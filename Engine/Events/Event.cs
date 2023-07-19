@@ -1,6 +1,6 @@
 namespace Engine.Events;
 
-public abstract class Event
+public abstract record Event
 {
     public bool IsHandled { get; set; }
     protected abstract EventType EventType { get; }

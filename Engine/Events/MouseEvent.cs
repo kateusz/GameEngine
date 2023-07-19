@@ -1,66 +1,35 @@
 namespace Engine.Events;
 
-public class MouseMovedEvent : Event
+public record MouseMovedEvent(uint X, uint Y) : Event
 {
-    public MouseMovedEvent(uint x, uint y)
-    {
-        X = x;
-        Y = y;
-    }
-
-    public uint X { get; }
-    public uint Y { get; }
-
     protected override EventType EventType => EventType.MouseMoved;
 
     protected override EventCategory EventCategory =>
         EventCategory.EventCategoryMouse | EventCategory.EventCategoryInput;
 }
 
-public class MouseScrolledEvent : Event
+public record MouseScrolledEvent(float XOffSet, float YOffset) : Event
 {
-    public MouseScrolledEvent(float xOffSet, float yOffset)
-    {
-        XOffSet = xOffSet;
-        YOffset = yOffset;
-    }
-
-    public float XOffSet { get; }
-    public float YOffset { get; }
-
     protected override EventType EventType => EventType.MouseScrolled;
 
     protected override EventCategory EventCategory =>
         EventCategory.EventCategoryMouse | EventCategory.EventCategoryInput;
 }
 
-public abstract class MouseButtonEvent : Event
+public abstract record MouseButtonEvent(int Button) : Event
 {
-    public int Button { get; set; }
+    public int Button { get; set; } = Button;
 
-    protected MouseButtonEvent(int button)
-    {
-        Button = button;
-    }
-    
     protected override EventCategory EventCategory =>
         EventCategory.EventCategoryMouse | EventCategory.EventCategoryInput;
 }
 
-public class MouseButtonPressedEvent : MouseButtonEvent
+public record MouseButtonPressedEvent(int Button) : MouseButtonEvent(Button)
 {
-    public MouseButtonPressedEvent(int button) : base(button)
-    {
-        
-    }
     protected override EventType EventType => EventType.MouseButtonPressed;
 }
 
-public class MouseButtonReleasedEvent : MouseButtonEvent
+public record MouseButtonReleasedEvent(int Button) : MouseButtonEvent(Button)
 {
-    public MouseButtonReleasedEvent(int button) : base(button)
-    {
-        
-    }
     protected override EventType EventType => EventType.MouseButtonReleased;
 }

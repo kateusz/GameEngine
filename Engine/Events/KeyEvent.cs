@@ -1,6 +1,6 @@
 namespace Engine.Events;
 
-public abstract class KeyEvent : Event
+public abstract record KeyEvent : Event
 {
     protected int KeyCode { get; }
 
@@ -16,7 +16,7 @@ public abstract class KeyEvent : Event
         EventCategory.EventCategoryKeyboard | EventCategory.EventCategoryInput;
 }
 
-public class KeyPressedEvent : KeyEvent
+public record KeyPressedEvent : KeyEvent
 {
     public int RepeatCount { get; }
 
@@ -26,7 +26,7 @@ public class KeyPressedEvent : KeyEvent
     }
 }
 
-public class KeyReleasedEvent : KeyEvent
+public record KeyReleasedEvent : KeyEvent
 {
     public KeyReleasedEvent(int keyCode) : base(keyCode, EventType.KeyReleased)
     {
