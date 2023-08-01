@@ -10,7 +10,7 @@ public record WindowProps(string Title, int Width, int Height, Action<Event> OnE
 public interface IWindow
 {
     void Run();
-    Action<Event> OnEvent { get; }
+    event Action<Event> OnEvent;
 }
 
 public class Window : GameWindow, IWindow
@@ -20,6 +20,8 @@ public class Window : GameWindow, IWindow
     {
         OnEvent = props.OnEvent;
     }
+    
+    public event Action<Event> OnEvent;
 
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
@@ -70,6 +72,4 @@ public class Window : GameWindow, IWindow
         var @event = new MouseButtonPressedEvent((int)e.Button);
         OnEvent(@event);
     }
-
-    public Action<Event> OnEvent { get; }
 }

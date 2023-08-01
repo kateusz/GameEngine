@@ -5,34 +5,26 @@ namespace Engine;
 public interface ILayer
 {
     string Name { get; }
-    void OnAttach();
-    void OnDetach();
-    void OnUpdate();
-    void OnEvent(Event @event);
+    event Action OnAttach;
+    event Action OnDetach;
+    event Action OnUpdate;
+   // Action<Event> OnHandleEvent { get; }
+   void HandleEvent(Event @event);
 }
 
 public class Layer : ILayer
 {
     public string Name { get; }
+    public event Action? OnAttach;
+    public event Action? OnDetach;
+    public event Action? OnUpdate;
 
     protected Layer(string name)
     {
         Name = name;
     }
 
-    public virtual void OnAttach()
-    {
-    }
-
-    public virtual void OnDetach()
-    {
-    }
-
-    public virtual void OnUpdate()
-    {
-    }
-
-    public virtual void OnEvent(Event @event)
+    public virtual void HandleEvent(Event @event)
     {
     }
 }

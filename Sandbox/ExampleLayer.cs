@@ -10,25 +10,30 @@ public class ExampleLayer : Layer
 
     public ExampleLayer(string name) : base(name)
     {
+        OnAttach += HandleOnAttach;
+        OnDetach += HandleOnDetach;
+        OnUpdate += HandleOnUpdate;
     }
 
-    public override void OnAttach()
+    
+    public void HandleOnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
     }
 
-    public override void OnDetach()
+    public void HandleOnDetach()
     {
         Logger.Debug("ExampleLayer OnDetach.");
     }
 
-    public override void OnUpdate()
+    public void HandleOnUpdate()
     {
         Logger.Debug("ExampleLayer OnUpdate.");
     }
 
-    public override void OnEvent(Event @event)
+    public override void HandleEvent(Event @event)
     {
+        base.HandleEvent(@event);
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
     }
 }
