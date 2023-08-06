@@ -16,16 +16,19 @@ public class OpenGLContext : IGraphicsContext
     private IShader _shader;
     private int _vertexArrayObject;
 
-    public OpenGLContext(GameWindow gameWindow)
+    public OpenGLContext(WindowProps props)
     {
-        _gameWindow = gameWindow;
+        _gameWindow = new GameWindow(GameWindowSettings.Default,
+            new NativeWindowSettings
+                { Size = (props.Width, props.Height), Title = props.Title, Flags = ContextFlags.ForwardCompatible, });
+        
         _gameWindow.Load += OnLoad;
         _gameWindow.RenderFrame += OnRenderFrame;
         _gameWindow.UpdateFrame += OnUpdateFrame;
     }
-    
+
     public event Action<Event> OnEvent;
-    
+
     public void Init()
     {
         _gameWindow.Run();
@@ -44,7 +47,7 @@ public class OpenGLContext : IGraphicsContext
         // the largest possible value for that channel.
         // This is a deep green.
         GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        
+
         float[] vertices =
         {
             -0.5f, -0.5f, 0.0f, // Bottom-left vertex
@@ -55,6 +58,7 @@ public class OpenGLContext : IGraphicsContext
         int[] indices = new int[] { 0, 1, 2 };
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
+        _vertexBuffer.Bind();
 
         // vertex array
         _vertexArrayObject = GL.GenVertexArray();
@@ -81,7 +85,7 @@ public class OpenGLContext : IGraphicsContext
             _gameWindow.Close();
         }
     }
-    
+
     // Now that initialization is done, let's create our render loop.
     private void OnRenderFrame(FrameEventArgs e)
     {
@@ -121,7 +125,7 @@ public class OpenGLContext : IGraphicsContext
 
         // And that's all you have to do for rendering! You should now see a yellow triangle on a black screen.
     }
-    
+
     protected void OnResize(ResizeEventArgs e)
     {
         var @event = new WindowResizeEvent(e.Width, e.Height);

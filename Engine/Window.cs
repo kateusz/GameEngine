@@ -22,9 +22,7 @@ public class Window : IWindow
 
     public Window(WindowProps props)
     {
-        _context = new OpenGLContext(new GameWindow(GameWindowSettings.Default,
-            new NativeWindowSettings
-                { Size = (props.Width, props.Height), Title = props.Title, Flags = ContextFlags.ForwardCompatible, }));
+        _context = new OpenGLContext(props);
     }
 
     public void Run()
