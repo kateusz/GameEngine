@@ -12,7 +12,6 @@ public class ExampleLayer : Layer
     {
         OnAttach += HandleOnAttach;
         OnDetach += HandleOnDetach;
-        OnUpdate += HandleOnUpdate;
     }
 
     
@@ -26,7 +25,7 @@ public class ExampleLayer : Layer
         Logger.Debug("ExampleLayer OnDetach.");
     }
 
-    public void HandleOnUpdate()
+    public override void OnUpdate()
     {
         Logger.Debug("ExampleLayer OnUpdate.");
     }

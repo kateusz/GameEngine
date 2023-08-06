@@ -11,6 +11,7 @@ public interface IWindow
 {
     void Run();
     event Action<Event> OnEvent;
+    void OnUpdate();
 }
 
 public class Window : GameWindow, IWindow
@@ -22,6 +23,10 @@ public class Window : GameWindow, IWindow
     }
     
     public event Action<Event> OnEvent;
+    public void OnUpdate()
+    {
+        
+    }
 
     protected override void OnUpdateFrame(FrameEventArgs e)
     {

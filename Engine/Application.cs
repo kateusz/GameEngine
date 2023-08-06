@@ -6,9 +6,6 @@ namespace Engine;
 public interface IApplication
 {
     void Run();
-    event Action<Event> OnEvent;
-    event Func<WindowCloseEvent, bool> OnWindowClose;
-
     void PushLayer(Layer layer);
     void PushOverlay(Layer overlay);
 }
@@ -21,33 +18,28 @@ public class Application : IApplication
     private readonly List<Layer> _layersStack = new();
     private bool _isRunning;
 
-    public event Action<Event>? OnEvent;
-    public event Func<WindowCloseEvent, bool>? OnWindowClose;
-
     protected Application()
     {
         var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 720, HandleOnEvent);
 
         _window = new Window(windowProps);
+        _window.OnEvent += HandleOnEvent;
         _isRunning = true;
-
-        OnEvent += HandleOnEvent;
-        OnWindowClose += HandleOnWindowClose;
     }
 
 
     public void Run()
     {
         _window.Run();
-        // while (_isRunning)
-        // {
-        //     for (var index = _layersStack.Count - 1; index >= 0; index--)
-        //     {
-        //         _layersStack[index].OnEvent();
-        //     }
-        //
-        //     //_window.OnUpdate();
-        // }
+        while (_isRunning)
+        {
+            for (var index = _layersStack.Count - 1; index >= 0; index--)
+            {
+                _layersStack[index].OnUpdate();
+            }
+        
+            _window.OnUpdate();
+        }
     }
 
     public void PushLayer(Layer layer)
