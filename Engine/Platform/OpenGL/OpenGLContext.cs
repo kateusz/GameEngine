@@ -54,12 +54,11 @@ public class OpenGLContext : IGraphicsContext
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
         _vertexBuffer.Bind();
-
-        // vertex array
+        
         _vertexArrayObject = GL.GenVertexArray();
         GL.BindVertexArray(_vertexArrayObject);
+        
         GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-        // Enable variable 0 in the shader.
         GL.EnableVertexAttribArray(0);
 
         _indexBuffer = IndexBufferFactory.Create(indices, 3);
@@ -82,10 +81,8 @@ public class OpenGLContext : IGraphicsContext
     {
         GL.Clear(ClearBufferMask.ColorBufferBit);
         
-        // Bind the shader
         _shader.Bind();
-
-        // Bind the VAO
+        
         GL.BindVertexArray(_vertexArrayObject);
         GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
         SwapBuffers();

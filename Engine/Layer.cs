@@ -9,8 +9,7 @@ public interface ILayer
     event Action OnDetach;
 
     void OnUpdate();
-   // Action<Event> OnHandleEvent { get; }
-   void HandleEvent(Event @event);
+    void HandleEvent(Event @event);
 }
 
 public class Layer : ILayer

@@ -22,6 +22,5 @@ public class OpenGLVertexBuffer : IVertexBuffer
 
     public void Unbind()
     {
-        // niepotrzebne w opentk?
     }
 }
