@@ -17,10 +17,10 @@ public class Application : IApplication
     private readonly IWindow _window;
     private readonly List<Layer> _layersStack = new();
     private bool _isRunning;
-
+    
     protected Application()
     {
-        var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 720, HandleOnEvent);
+        var windowProps = new WindowProps("Sandbox Engine testing!", 800, 600);
 
         _window = new Window(windowProps);
         _window.OnEvent += HandleOnEvent;
@@ -37,7 +37,7 @@ public class Application : IApplication
             {
                 _layersStack[index].OnUpdate();
             }
-        
+
             _window.OnUpdate();
         }
     }
@@ -65,6 +65,7 @@ public class Application : IApplication
             }
         }
     }
+
 
 
     private bool HandleOnWindowClose(WindowCloseEvent @event)

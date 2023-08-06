@@ -9,11 +9,19 @@
     <ItemGroup>
       <PackageReference Include="NLog" Version="5.2.2" />
       <PackageReference Include="NLog.Extensions.Logging" Version="5.3.2" />
-      <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.7.7" />
+      <PackageReference Include="OpenTK" Version="4.8.0" />
+      <PackageReference Include="OpenTK.Mathematics" Version="4.8.0" />
+      <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.0" />
     </ItemGroup>
 
     <ItemGroup>
       <None Update="nlog.config">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\shader.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\shader.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>
