@@ -1,7 +1,5 @@
 using Engine.Events;
 using Engine.Platform.OpenGL;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
 using IGraphicsContext = Engine.Renderer.IGraphicsContext;
 
 namespace Engine;
@@ -13,12 +11,12 @@ public interface IWindow
     void Run();
     event Action<Event> OnEvent;
     void OnUpdate();
+    event Action<WindowCloseEvent> OnClose;
 }
 
 public class Window : IWindow
 {
-    private IGraphicsContext _context;
-
+    private readonly IGraphicsContext _context;
 
     public Window(WindowProps props)
     {
@@ -35,4 +33,6 @@ public class Window : IWindow
     public void OnUpdate()
     {
     }
+
+    public event Action<WindowCloseEvent> OnClose;
 }

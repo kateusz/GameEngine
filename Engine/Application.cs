@@ -24,6 +24,7 @@ public class Application : IApplication
 
         _window = new Window(windowProps);
         _window.OnEvent += HandleOnEvent;
+        _window.OnClose += HandleOnWindowClose;
         _isRunning = true;
     }
 
@@ -65,12 +66,9 @@ public class Application : IApplication
             }
         }
     }
-
-
-
-    private bool HandleOnWindowClose(WindowCloseEvent @event)
+    
+    private void HandleOnWindowClose(WindowCloseEvent @event)
     {
         _isRunning = false;
-        return true;
     }
 }

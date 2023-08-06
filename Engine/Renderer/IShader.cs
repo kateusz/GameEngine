@@ -1,7 +1,5 @@
 namespace Engine.Renderer;
 
-public interface IShader
+public interface IShader : IBindable
 {
-    void Bind();
-    void Unbind();
 }

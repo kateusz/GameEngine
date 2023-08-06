@@ -1,8 +1,6 @@
 namespace Engine.Renderer;
 
-public interface IIndexBuffer
+public interface IIndexBuffer : IBindable
 {
-    void Bind();
-    void Unbind();
     int GetCount();
 }

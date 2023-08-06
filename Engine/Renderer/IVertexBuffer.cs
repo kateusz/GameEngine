@@ -1,9 +1,5 @@
 namespace Engine.Renderer;
 
-public interface IVertexBuffer
+public interface IVertexBuffer : IBindable
 {
-    void Bind();
-    void Unbind();
-    
-    // todo fabryka
 }
