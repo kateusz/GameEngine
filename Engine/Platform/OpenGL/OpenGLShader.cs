@@ -54,8 +54,10 @@ public class OpenGLShader : IShader
 
         // When the shader program is linked, it no longer needs the individual shaders attached to it; the compiled code is copied into the shader program.
         // Detach them, and then delete them.
-        GL.DetachShader(Handle, vertexShader);
-        GL.DetachShader(Handle, fragmentShader);
+        // TODO: it's not worth to do this because all debug information will be missing
+        //GL.DetachShader(Handle, vertexShader);
+        //GL.DetachShader(Handle, fragmentShader);
+
         GL.DeleteShader(fragmentShader);
         GL.DeleteShader(vertexShader);
 
@@ -90,12 +92,13 @@ public class OpenGLShader : IShader
 
         // Check for compilation errors
         GL.GetShader(shader, ShaderParameter.CompileStatus, out var code);
-        if (code != (int)All.True)
-        {
-            // We can use `GL.GetShaderInfoLog(shader)` to get information about the error.
-            var infoLog = GL.GetShaderInfoLog(shader);
-            throw new Exception($"Error occurred whilst compiling OpenGLShader({shader}).\n\n{infoLog}");
-        }
+        
+        if (code == (int)All.True) 
+            return;
+        
+        // We can use `GL.GetShaderInfoLog(shader)` to get information about the error.
+        var infoLog = GL.GetShaderInfoLog(shader);
+        throw new Exception($"Error occurred whilst compiling OpenGLShader({shader}).\n\n{infoLog}");
     }
 
     private static void LinkProgram(int program)
@@ -105,11 +108,12 @@ public class OpenGLShader : IShader
 
         // Check for linking errors
         GL.GetProgram(program, GetProgramParameterName.LinkStatus, out var code);
-        if (code != (int)All.True)
-        {
-            // We can use `GL.GetProgramInfoLog(program)` to get information about the error.
-            throw new Exception($"Error occurred whilst linking Program({program})");
-        }
+        if (code == (int)All.True) 
+            return;
+        
+        // We can use `GL.GetProgramInfoLog(program)` to get information about the error.
+        var errorLog = GL.GetProgramInfoLog(program);
+        throw new Exception($"Error occurred whilst linking Program({program}). ${errorLog}");
     }
 
     // A wrapper function that enables the shader program.

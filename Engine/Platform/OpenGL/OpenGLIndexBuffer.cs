@@ -5,19 +5,22 @@ namespace Engine.Platform.OpenGL;
 
 public class OpenGLIndexBuffer : IIndexBuffer
 {
+    private readonly uint[] _indices;
     private readonly int _count;
     private readonly int _indexBuffer;
 
-    public OpenGLIndexBuffer(int[] indices, int count)
+    public OpenGLIndexBuffer(uint[] indices, int count)
     {
+        _indices = indices;
         _count = count;
+        
         _indexBuffer = GL.GenBuffer();
-        GL.BufferData(BufferTarget.ElementArrayBuffer, count * sizeof(int), indices, BufferUsageHint.StaticDraw);
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indexBuffer);
     }
 
     public void Bind()
     {
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indexBuffer);
+        GL.BufferData(BufferTarget.ElementArrayBuffer, _indices.Length * sizeof(uint), _indices, BufferUsageHint.StaticDraw);
     }
 
     public void Unbind()

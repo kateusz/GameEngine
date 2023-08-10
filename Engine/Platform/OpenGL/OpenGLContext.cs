@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Engine.Events;
 using Engine.Renderer;
 using OpenTK.Graphics.OpenGL4;
@@ -11,17 +12,23 @@ namespace Engine.Platform.OpenGL;
 public class OpenGLContext : IGraphicsContext
 {
     private readonly GameWindow _gameWindow;
+
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
     private IShader _shader;
     private int _vertexArrayObject;
+    private uint[] _indices;
 
     public OpenGLContext(WindowProps props)
     {
         _gameWindow = new GameWindow(GameWindowSettings.Default,
             new NativeWindowSettings
-                { Size = (props.Width, props.Height), Title = props.Title, Flags = ContextFlags.ForwardCompatible, });
-        
+            {
+                Size = (props.Width, props.Height),
+                Title = props.Title,
+                Flags = ContextFlags.Debug | ContextFlags.ForwardCompatible,
+            });
+
         _gameWindow.Load += OnLoad;
         _gameWindow.RenderFrame += OnRenderFrame;
         _gameWindow.UpdateFrame += OnUpdateFrame;
@@ -45,27 +52,48 @@ public class OpenGLContext : IGraphicsContext
 
         float[] vertices =
         {
-            -0.5f, -0.5f, 0.0f, // Bottom-left vertex
-            0.5f, -0.5f, 0.0f, // Bottom-right vertex
-            0.0f, 0.5f, 0.0f // Top vertex
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f,
+            0.5f, 0.5f, 0.0f,
+            -0.5f, 0.5f, 0.0f,
         };
 
-        int[] indices = new int[] { 0, 1, 2 };
+        _indices = new uint[]
+        {
+            // 0, 1, 2,
+            // 2, 3, 0
+            0, 1, 3, // The first triangle will be the top-right half of the triangle
+            1, 2, 3  // Then the second will be the bottom-left half of the triangle
+        };
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
         _vertexBuffer.Bind();
-        
+
         _vertexArrayObject = GL.GenVertexArray();
         GL.BindVertexArray(_vertexArrayObject);
-        
+
         GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
         GL.EnableVertexAttribArray(0);
 
-        _indexBuffer = IndexBufferFactory.Create(indices, 3);
+        _indexBuffer = IndexBufferFactory.Create(_indices, 6);
+        _indexBuffer.Bind();
 
         // shaders
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
         _shader.Bind();
+    }
+    
+    private void OnRenderFrame(FrameEventArgs e)
+    {
+        GL.Clear(ClearBufferMask.ColorBufferBit);
+
+        _shader.Bind();
+
+        GL.BindVertexArray(_vertexArrayObject);
+        GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
+
+        var error = GL.GetError();
+        SwapBuffers();
     }
 
     private void OnUpdateFrame(FrameEventArgs e)
@@ -75,17 +103,6 @@ public class OpenGLContext : IGraphicsContext
         {
             _gameWindow.Close();
         }
-    }
-    
-    private void OnRenderFrame(FrameEventArgs e)
-    {
-        GL.Clear(ClearBufferMask.ColorBufferBit);
-        
-        _shader.Bind();
-        
-        GL.BindVertexArray(_vertexArrayObject);
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
-        SwapBuffers();
     }
 
     protected void OnResize(ResizeEventArgs e)
@@ -116,5 +133,10 @@ public class OpenGLContext : IGraphicsContext
     {
         var @event = new MouseButtonPressedEvent((int)e.Button);
         OnEvent(@event);
+    }
+
+    private static void CheckError()
+    {
+        var error = GL.GetError();
     }
 }

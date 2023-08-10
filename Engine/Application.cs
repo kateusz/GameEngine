@@ -32,15 +32,17 @@ public class Application : IApplication
     public void Run()
     {
         _window.Run();
-        while (_isRunning)
-        {
-            for (var index = _layersStack.Count - 1; index >= 0; index--)
-            {
-                _layersStack[index].OnUpdate();
-            }
-
-            _window.OnUpdate();
-        }
+        
+        // todo: not sure whether is it needed
+        // while (_isRunning)
+        // {
+        //     for (var index = _layersStack.Count - 1; index >= 0; index--)
+        //     {
+        //         _layersStack[index].OnUpdate();
+        //     }
+        //
+        //     _window.OnUpdate();
+        // }
     }
 
     public void PushLayer(Layer layer)
