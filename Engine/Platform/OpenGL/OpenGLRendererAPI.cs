@@ -4,23 +4,34 @@ using OpenTK.Mathematics;
 
 namespace Engine.Platform.OpenGL;
 
+public class SceneData
+{
+    public Matrix4 ViewProjectionMatrix { get; set; }
+}
+
 public class OpenGLRendererAPI : IRendererAPI
 {
-    public static void BeginScene()
+    public static SceneData SceneData = new SceneData();
+    
+    public ApiType ApiType { get; } = ApiType.OpenGL;
+    
+    public static void BeginScene(OrthographicCamera camera)
     {
+        SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
     }
 
     public static void EndScene()
     {
     }
 
-    public static void Submit(IVertexArray vertexArray)
+    public static void Submit(IShader shader, IVertexArray vertexArray)
     {
+        shader.Bind();
+        shader.SetMatrix4("u_ViewProjection", SceneData.ViewProjectionMatrix);
+        
         vertexArray.Bind();
         RendererCommand.DrawIndexed(vertexArray);
     }
-
-    public ApiType ApiType { get; } = ApiType.OpenGL;
 
     public void SetClearColor(Vector4 color)
     {

@@ -20,6 +20,8 @@ public class OpenGLContext : IGraphicsContext
     private IVertexArray _squareVertexArray;
     private uint[] _indices;
 
+    private OrthographicCamera _camera;
+
     public OpenGLContext(WindowProps props)
     {
         _gameWindow = new GameWindow(GameWindowSettings.Default,
@@ -33,6 +35,8 @@ public class OpenGLContext : IGraphicsContext
         _gameWindow.Load += OnLoad;
         _gameWindow.RenderFrame += OnRenderFrame;
         _gameWindow.UpdateFrame += OnUpdateFrame;
+
+        _camera = new OrthographicCamera(-1.0f, 1.0f, -1.0f, 1.0f);
     }
 
     public event Action<Event> OnEvent;
@@ -89,12 +93,11 @@ public class OpenGLContext : IGraphicsContext
     {
         RendererCommand.Clear();
         
-        OpenGLRendererAPI.BeginScene();
-
-        _shader.Bind();
+        //_camera.SetPosition(new Vector3(-0.5f, 0.5f, 0.0f));
+        //_camera.SetRotation(45.0f);
         
-        OpenGLRendererAPI.Submit(_vertexArray);
-        
+        OpenGLRendererAPI.BeginScene(_camera);
+        OpenGLRendererAPI.Submit(_shader, _vertexArray);
         OpenGLRendererAPI.EndScene();
         
         SwapBuffers();
