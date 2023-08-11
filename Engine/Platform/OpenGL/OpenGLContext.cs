@@ -37,6 +37,7 @@ public class OpenGLContext : IGraphicsContext
         _gameWindow.UpdateFrame += OnUpdateFrame;
 
         _camera = new OrthographicCamera(-1.0f, 1.0f, -1.0f, 1.0f);
+        //_camera = new OrthographicCamera(-2.0f, 2.0f, -2.0f, 2.0f);
     }
 
     public event Action<Event> OnEvent;
@@ -93,8 +94,8 @@ public class OpenGLContext : IGraphicsContext
     {
         RendererCommand.Clear();
         
-        //_camera.SetPosition(new Vector3(-0.5f, 0.5f, 0.0f));
-        //_camera.SetRotation(45.0f);
+        _camera.SetPosition(new Vector3(-0.5f, 0.0f, 0.0f));
+        //_camera.SetRotation(90.0f);
         
         OpenGLRendererAPI.BeginScene(_camera);
         OpenGLRendererAPI.Submit(_shader, _vertexArray);

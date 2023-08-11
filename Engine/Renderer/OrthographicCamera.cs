@@ -7,7 +7,8 @@ public class OrthographicCamera
 {
     public OrthographicCamera(float left, float right, float bottom, float top)
     {
-        Position = new Vector3(0.0f, 0.0f, 0.0f);
+        Position = Vector3.Zero;
+        Rotation = 0.0f;
 
         ProjectionMatrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1.0f, 1.0f);
         ViewMatrix = Matrix4.Identity;
@@ -34,15 +35,10 @@ public class OrthographicCamera
 
     private void RecalculateViewMatrix()
     {
-        var transform = Matrix4.Identity;
+        Matrix4 transform = Matrix4.CreateTranslation(Position) *
+                            Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
 
-        // Apply translation
-        transform *= Matrix4.CreateTranslation(Position);
-
-        // Apply rotation
-        //transform *= Matrix4.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.DegreesToRadians(Rotation));
-
-        ViewMatrix = transform.Inverted();
+        ViewMatrix = Matrix4.Invert(transform);
         ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
     }
 }
