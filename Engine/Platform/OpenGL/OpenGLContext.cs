@@ -51,9 +51,6 @@ public class OpenGLContext : IGraphicsContext
     {
         RendererCommand.SetClearColor(new Vector4(0.2f, 0.3f, 0.3f, 1.0f));
         RendererCommand.Clear();
-        
-        // todo: 
-        OpenGLRendererAPI.BeginScene();
 
         _vertexArray = VertexArrayFactory.Create();
 
@@ -80,11 +77,9 @@ public class OpenGLContext : IGraphicsContext
             0, 1, 2
         };
 
-        _indexBuffer = IndexBufferFactory.Create(_indices, 0);
+        _indexBuffer = IndexBufferFactory.Create(_indices, 3);
         _vertexArray.SetIndexBuffer(_indexBuffer);
         
-        //_squareVertexArray = VertexArrayFactory.Create();
-
         // shaders
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
         _shader.Bind();
@@ -92,14 +87,16 @@ public class OpenGLContext : IGraphicsContext
 
     private void OnRenderFrame(FrameEventArgs e)
     {
-        GL.Clear(ClearBufferMask.ColorBufferBit);
+        RendererCommand.Clear();
+        
+        OpenGLRendererAPI.BeginScene();
 
         _shader.Bind();
-
-        _vertexArray.Bind();
-        GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
-
-        var error = GL.GetError();
+        
+        OpenGLRendererAPI.Submit(_vertexArray);
+        
+        OpenGLRendererAPI.EndScene();
+        
         SwapBuffers();
     }
 

@@ -17,7 +17,7 @@ public class OpenGLRendererAPI : IRendererAPI
     public static void Submit(IVertexArray vertexArray)
     {
         vertexArray.Bind();
-        //TODO: END
+        RendererCommand.DrawIndexed(vertexArray);
     }
 
     public ApiType ApiType { get; } = ApiType.OpenGL;
@@ -29,7 +29,7 @@ public class OpenGLRendererAPI : IRendererAPI
 
     public void Clear()
     {
-        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        GL.Clear(ClearBufferMask.ColorBufferBit);
     }
 
     public void DrawIndexed(IVertexArray vertexArray)
