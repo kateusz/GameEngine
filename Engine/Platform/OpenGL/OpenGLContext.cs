@@ -15,7 +15,8 @@ public class OpenGLContext : IGraphicsContext
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
     private IShader _shader;
-    private int _vertexArrayObject;
+    private IVertexArray _vertexArray;
+    private IVertexArray _squareVertexArray;
     private uint[] _indices;
 
     public OpenGLContext(WindowProps props)
@@ -49,6 +50,8 @@ public class OpenGLContext : IGraphicsContext
     {
         GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
+        _vertexArray = VertexArrayFactory.Create();
+
         float[] vertices =
         {
             -0.5f, -0.5f, 0.0f, 0.8f, 0.2f, 0.8f, 1.0f,
@@ -57,38 +60,25 @@ public class OpenGLContext : IGraphicsContext
         };
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
-        _vertexBuffer.Bind();
 
-        _vertexArrayObject = GL.GenVertexArray();
-        GL.BindVertexArray(_vertexArrayObject);
-        
         var layout = new BufferLayout(new[]
         {
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float4, "a_Color"),
         });
 
-        _vertexBuffer.Layout = layout;
-        
-        for (var index = 0; index < layout.Elements.Count; index++)
-        {
-            var element = layout.Elements[index];
-            GL.EnableVertexAttribArray(index);
-            GL.VertexAttribPointer(index, 
-                element.GetComponentCount(),
-                element.Type.ToGLBaseType(),
-                element.Normalized,
-                layout.Stride,
-                element.Offset);
-        }
-        
+        _vertexBuffer.SetLayout(layout);
+        _vertexArray.AddVertexBuffer(_vertexBuffer);
+
         _indices = new uint[]
         {
             0, 1, 2
         };
 
         _indexBuffer = IndexBufferFactory.Create(_indices, 0);
-        _indexBuffer.Bind();
+        _vertexArray.SetIndexBuffer(_indexBuffer);
+        
+        //_squareVertexArray = VertexArrayFactory.Create();
 
         // shaders
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
@@ -101,7 +91,7 @@ public class OpenGLContext : IGraphicsContext
 
         _shader.Bind();
 
-        GL.BindVertexArray(_vertexArrayObject);
+        _vertexArray.Bind();
         GL.DrawElements(PrimitiveType.Triangles, _indices.Length, DrawElementsType.UnsignedInt, 0);
 
         var error = GL.GetError();

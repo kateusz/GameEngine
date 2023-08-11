@@ -2,5 +2,6 @@ namespace Engine.Renderer;
 
 public interface IVertexBuffer : IBindable
 {
-    public BufferLayout Layout { get; set; }
+    public void SetLayout(BufferLayout layout);
+    public BufferLayout Layout { get; }
 }
