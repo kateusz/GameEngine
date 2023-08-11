@@ -51,9 +51,9 @@ public class OpenGLContext : IGraphicsContext
 
         float[] vertices =
         {
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            0.5f, 0.5f, 0.0f,
+            -0.5f, -0.5f, 0.0f, 0.8f, 0.2f, 0.8f, 1.0f,
+            0.5f, -0.5f, 0.0f, 0.2f, 0.3f, 0.8f, 1.0f,
+            0.5f, 0.5f, 0.0f, 0.8f, 0.8f, 0.2f, 1.0f
         };
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
@@ -62,13 +62,13 @@ public class OpenGLContext : IGraphicsContext
         _vertexArrayObject = GL.GenVertexArray();
         GL.BindVertexArray(_vertexArrayObject);
         
-        //GL.EnableVertexAttribArray(0);
-        //GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-
         var layout = new BufferLayout(new[]
         {
-            new BufferElement(ShaderDataType.Float3, "a_Position")
+            new BufferElement(ShaderDataType.Float3, "a_Position"),
+            new BufferElement(ShaderDataType.Float4, "a_Color"),
         });
+
+        _vertexBuffer.Layout = layout;
         
         for (var index = 0; index < layout.Elements.Count; index++)
         {

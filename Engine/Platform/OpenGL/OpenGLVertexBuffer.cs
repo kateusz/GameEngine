@@ -14,7 +14,9 @@ public class OpenGLVertexBuffer : IVertexBuffer
         _vertexBufferObject = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
     }
-
+    
+    public BufferLayout Layout { get; set; }
+    
     public void Bind()
     {
         GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
@@ -23,4 +25,6 @@ public class OpenGLVertexBuffer : IVertexBuffer
     public void Unbind()
     {
     }
+
+   
 }
