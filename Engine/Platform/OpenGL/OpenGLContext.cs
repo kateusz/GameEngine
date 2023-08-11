@@ -54,15 +54,6 @@ public class OpenGLContext : IGraphicsContext
             -0.5f, -0.5f, 0.0f,
             0.5f, -0.5f, 0.0f,
             0.5f, 0.5f, 0.0f,
-            -0.5f, 0.5f, 0.0f,
-        };
-
-        _indices = new uint[]
-        {
-            // 0, 1, 2,
-            // 2, 3, 0
-            0, 1, 3, // The first triangle will be the top-right half of the triangle
-            1, 2, 3  // Then the second will be the bottom-left half of the triangle
         };
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
@@ -70,18 +61,40 @@ public class OpenGLContext : IGraphicsContext
 
         _vertexArrayObject = GL.GenVertexArray();
         GL.BindVertexArray(_vertexArrayObject);
+        
+        //GL.EnableVertexAttribArray(0);
+        //GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
 
-        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-        GL.EnableVertexAttribArray(0);
+        var layout = new BufferLayout(new[]
+        {
+            new BufferElement(ShaderDataType.Float3, "a_Position")
+        });
+        
+        for (var index = 0; index < layout.Elements.Count; index++)
+        {
+            var element = layout.Elements[index];
+            GL.EnableVertexAttribArray(index);
+            GL.VertexAttribPointer(index, 
+                element.GetComponentCount(),
+                element.Type.ToGLBaseType(),
+                element.Normalized,
+                layout.Stride,
+                element.Offset);
+        }
+        
+        _indices = new uint[]
+        {
+            0, 1, 2
+        };
 
-        _indexBuffer = IndexBufferFactory.Create(_indices, 6);
+        _indexBuffer = IndexBufferFactory.Create(_indices, 0);
         _indexBuffer.Bind();
 
         // shaders
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
         _shader.Bind();
     }
-    
+
     private void OnRenderFrame(FrameEventArgs e)
     {
         GL.Clear(ClearBufferMask.ColorBufferBit);
