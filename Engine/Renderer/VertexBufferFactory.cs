@@ -6,11 +6,11 @@ public static class VertexBufferFactory
 {
     public static IVertexBuffer Create(float[] vertices)
     {
-        switch (Renderer.RendererApi)
+        switch (RendererApiType.Type)
         {
-            case RendererApi.None:
+            case ApiType.None:
                 break;
-            case RendererApi.OpenGL:
+            case ApiType.OpenGL:
                 return new OpenGLVertexBuffer(vertices);
             default:
                 throw new ArgumentOutOfRangeException();

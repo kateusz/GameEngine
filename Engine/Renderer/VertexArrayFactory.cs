@@ -6,11 +6,11 @@ public static class VertexArrayFactory
 {
     public static IVertexArray Create()
     {
-        switch (Renderer.RendererApi)
+        switch (RendererApiType.Type)
         {
-            case RendererApi.None:
+            case ApiType.None:
                 break;
-            case RendererApi.OpenGL:
+            case ApiType.OpenGL:
                 return new OpenGLVertexArray();
             default:
                 throw new ArgumentOutOfRangeException();

@@ -1,6 +1,7 @@
 using Engine.Events;
 using Engine.Renderer;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -48,7 +49,11 @@ public class OpenGLContext : IGraphicsContext
 
     private void OnLoad()
     {
-        GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        RendererCommand.SetClearColor(new Vector4(0.2f, 0.3f, 0.3f, 1.0f));
+        RendererCommand.Clear();
+        
+        // todo: 
+        OpenGLRendererAPI.BeginScene();
 
         _vertexArray = VertexArrayFactory.Create();
 
