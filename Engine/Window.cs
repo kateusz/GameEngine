@@ -1,6 +1,5 @@
 using Engine.Events;
 using Engine.Platform.OpenGL;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -14,14 +13,13 @@ public interface IWindow
 {
     void Run();
     event Action<Event> OnEvent;
-    void OnUpdate();
+    event Action OnUpdate;
     event Action<WindowCloseEvent> OnClose;
 }
 
 public class Window : GameWindow, IWindow
 {
     private readonly IGraphicsContext _context;
- 
 
     public Window(WindowProps props) : base(GameWindowSettings.Default,
         new NativeWindowSettings
@@ -29,20 +27,15 @@ public class Window : GameWindow, IWindow
             Size = (props.Width, props.Height),
             Title = props.Title,
             Flags = ContextFlags.Debug | ContextFlags.ForwardCompatible,
+            Vsync = VSyncMode.Adaptive
         })
     {
         _context = new OpenGLContext(this);
         _context.Init();
-        
-        
     }
 
     public event Action<Event> OnEvent;
-
-    public void OnUpdate()
-    {
-        SwapBuffers();
-    }
+    public event Action OnUpdate;
 
     public event Action<WindowCloseEvent> OnClose;
 
@@ -53,9 +46,11 @@ public class Window : GameWindow, IWindow
     
     protected override void OnRenderFrame(FrameEventArgs e)
     {
+        OnUpdate();
         SwapBuffers();
     }
 
+    // todo: this is only needed for handling keyboard state?
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
         var input = KeyboardState;

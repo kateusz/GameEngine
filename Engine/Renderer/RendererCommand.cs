@@ -1,4 +1,5 @@
 using Engine.Platform.OpenGL;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace Engine.Renderer;
@@ -20,5 +21,6 @@ public static class RendererCommand
     public static void Clear()
     {
         RendererApi.Clear();
+        var error = GL.GetError();
     }
 }

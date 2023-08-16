@@ -11,10 +11,10 @@ public class SceneData
 
 public class OpenGLRendererAPI : IRendererAPI
 {
-    public static SceneData SceneData = new SceneData();
-    
+    public static readonly SceneData SceneData = new();
+
     public ApiType ApiType { get; } = ApiType.OpenGL;
-    
+
     public static void BeginScene(OrthographicCamera camera)
     {
         SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
@@ -28,7 +28,7 @@ public class OpenGLRendererAPI : IRendererAPI
     {
         shader.Bind();
         shader.SetMatrix4("u_ViewProjection", SceneData.ViewProjectionMatrix);
-        
+
         vertexArray.Bind();
         RendererCommand.DrawIndexed(vertexArray);
     }
@@ -40,13 +40,12 @@ public class OpenGLRendererAPI : IRendererAPI
 
     public void Clear()
     {
-        GL.Clear(ClearBufferMask.ColorBufferBit);
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 
     public void DrawIndexed(IVertexArray vertexArray)
     {
         var indexBuffer = vertexArray.IndexBuffer;
         GL.DrawElements(PrimitiveType.Triangles, indexBuffer.GetCount(), DrawElementsType.UnsignedInt, 0);
-
     }
 }

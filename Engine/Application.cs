@@ -25,24 +25,22 @@ public class Application : IApplication
         _window = new Window(windowProps);
         _window.OnEvent += HandleOnEvent;
         _window.OnClose += HandleOnWindowClose;
+        _window.OnUpdate += WindowOnOnUpdate;
         _isRunning = true;
+    }
+
+    private void WindowOnOnUpdate()
+    {
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
+        {
+            _layersStack[index].OnUpdate();
+        }
     }
 
 
     public void Run()
     {
         _window.Run();
-        
-        // todo: not sure whether is it needed
-        // while (_isRunning)
-        // {
-        //     for (var index = _layersStack.Count - 1; index >= 0; index--)
-        //     {
-        //         _layersStack[index].OnUpdate();
-        //     }
-        //
-        //     _window.OnUpdate();
-        // }
     }
 
     public void PushLayer(Layer layer)

@@ -10,7 +10,7 @@ namespace Sandbox;
 public class ExampleLayer : Layer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-    
+
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
     private IShader _shader;
@@ -23,7 +23,7 @@ public class ExampleLayer : Layer
     {
         OnAttach += HandleOnAttach;
         OnDetach += HandleOnDetach;
-        
+
         _camera = new OrthographicCamera(-1.0f, 1.0f, -1.0f, 1.0f);
         //_camera = new OrthographicCamera(-2.0f, 2.0f, -2.0f, 2.0f);
         
@@ -57,32 +57,21 @@ public class ExampleLayer : Layer
 
         _indexBuffer = IndexBufferFactory.Create(_indices, 3);
         _vertexArray.SetIndexBuffer(_indexBuffer);
-        
+
         // shaders
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
-        _shader.Bind();
-    }
-
-    
-    public void HandleOnAttach()
-    {
-        Logger.Debug("ExampleLayer OnAttach.");
-    }
-
-    public void HandleOnDetach()
-    {
-        Logger.Debug("ExampleLayer OnDetach.");
     }
 
     public override void OnUpdate()
     {
         Logger.Debug("ExampleLayer OnUpdate.");
-        
+
+        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
-        
+
         //_camera.SetPosition(new Vector3(-0.5f, 0.0f, 0.0f));
         //_camera.SetRotation(90.0f);
-        
+
         OpenGLRendererAPI.BeginScene(_camera);
         OpenGLRendererAPI.Submit(_shader, _vertexArray);
         OpenGLRendererAPI.EndScene();
@@ -92,5 +81,15 @@ public class ExampleLayer : Layer
     {
         base.HandleEvent(@event);
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
+    }
+    
+    public void HandleOnAttach()
+    {
+        Logger.Debug("ExampleLayer OnAttach.");
+    }
+
+    public void HandleOnDetach()
+    {
+        Logger.Debug("ExampleLayer OnDetach.");
     }
 }
