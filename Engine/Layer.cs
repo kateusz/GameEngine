@@ -8,7 +8,7 @@ public interface ILayer
     event Action OnAttach;
     event Action OnDetach;
 
-    void OnUpdate();
+    void OnUpdate(TimeSpan timeSpan);
     void HandleEvent(Event @event);
 }
 
@@ -23,12 +23,12 @@ public class Layer : ILayer
         Name = name;
     }
 
-    public virtual void OnUpdate()
+    public virtual void OnUpdate(TimeSpan timeSpan)
     {
-        
     }
 
     public virtual void HandleEvent(Event @event)
     {
+        @event.IsHandled = true;
     }
 }

@@ -2,7 +2,7 @@ namespace Engine.Events;
 
 public abstract record KeyEvent : Event
 {
-    protected int KeyCode { get; }
+    public int KeyCode { get; }
 
     protected KeyEvent(int keyCode, EventType eventType)
     {

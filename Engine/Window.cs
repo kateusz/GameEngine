@@ -1,3 +1,4 @@
+using Engine.Core;
 using Engine.Events;
 using Engine.Platform.OpenGL;
 using OpenTK.Windowing.Common;
@@ -46,6 +47,8 @@ public class Window : GameWindow, IWindow
     
     protected override void OnRenderFrame(FrameEventArgs e)
     {
+        // TODO: global static
+        Input.KeyboardState = KeyboardState;
         OnUpdate();
         SwapBuffers();
     }
@@ -53,11 +56,11 @@ public class Window : GameWindow, IWindow
     // todo: this is only needed for handling keyboard state?
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
-        var input = KeyboardState;
-        if (input.IsKeyDown(Keys.Escape))
-        {
-            Close();
-        }
+        if (!KeyboardState.IsKeyDown(Keys.Escape)) 
+            return;
+        
+        Close();
+        OnClose(new WindowCloseEvent());
     }
 
     protected override void OnResize(ResizeEventArgs e)

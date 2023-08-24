@@ -23,20 +23,20 @@ public class OrthographicCamera
 
     public void SetPosition(Vector3 position)
     {
-        Position = position;
+        Position += position;
         RecalculateViewMatrix();
     }
 
     public void SetRotation(float rotation)
     {
-        Rotation = rotation;
+        Rotation += rotation;
         RecalculateViewMatrix();
     }
 
     private void RecalculateViewMatrix()
     {
-        Matrix4 transform = Matrix4.CreateTranslation(Position) *
-                            Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
+        Matrix4 transform = Matrix4.CreateTranslation(Position.X, Position.Y, 0);
+                            //* Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
 
         ViewMatrix = Matrix4.Invert(transform);
         ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;

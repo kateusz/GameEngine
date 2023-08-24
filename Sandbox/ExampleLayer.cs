@@ -1,9 +1,12 @@
 using Engine;
+using Engine.Core;
 using Engine.Events;
 using Engine.Platform.OpenGL;
 using Engine.Renderer;
 using NLog;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Sandbox;
 
@@ -18,6 +21,9 @@ public class ExampleLayer : Layer
     private IVertexArray _squareVertexArray;
     private uint[] _indices;
     private OrthographicCamera _camera;
+    private Vector3 _cameraPosition = Vector3.Zero;
+    private float _cameraSpeed = 1.0f;
+    
 
     public ExampleLayer(string name) : base(name)
     {
@@ -25,8 +31,10 @@ public class ExampleLayer : Layer
         OnDetach += HandleOnDetach;
 
         _camera = new OrthographicCamera(-1.0f, 1.0f, -1.0f, 1.0f);
-        //_camera = new OrthographicCamera(-2.0f, 2.0f, -2.0f, 2.0f);
+        _camera.SetPosition(new Vector3(0.5f, 0.0f, 0.0f));
         
+        //_camera = new OrthographicCamera(-2.0f, 2.0f, -2.0f, 2.0f);
+
         RendererCommand.SetClearColor(new Vector4(0.2f, 0.3f, 0.3f, 1.0f));
         RendererCommand.Clear();
 
@@ -34,9 +42,10 @@ public class ExampleLayer : Layer
 
         float[] vertices =
         {
-            -0.5f, -0.5f, 0.0f, 0.8f, 0.2f, 0.8f, 1.0f,
+            0.5f, 0.5f, 0.0f, 0.8f, 0.2f, 0.8f, 1.0f,
             0.5f, -0.5f, 0.0f, 0.2f, 0.3f, 0.8f, 1.0f,
-            0.5f, 0.5f, 0.0f, 0.8f, 0.8f, 0.2f, 1.0f
+            -0.5f, -0.5f, 0.0f, 0.8f, 0.8f, 0.2f, 1.0f,
+            -0.5f,  0.5f, 0.0f, 0.2f, 0.3f, 0.8f, 1.0f,
         };
 
         _vertexBuffer = VertexBufferFactory.Create(vertices);
@@ -52,24 +61,35 @@ public class ExampleLayer : Layer
 
         _indices = new uint[]
         {
-            0, 1, 2
+            0, 1, 3,
+            1, 2, 3
         };
 
-        _indexBuffer = IndexBufferFactory.Create(_indices, 3);
+        _indexBuffer = IndexBufferFactory.Create(_indices, 6);
         _vertexArray.SetIndexBuffer(_indexBuffer);
 
         // shaders
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
     }
 
-    public override void OnUpdate()
+    public override void OnUpdate(TimeSpan timeSpan)
     {
-        Logger.Debug("ExampleLayer OnUpdate.");
+        Logger.Debug("ExampleLayer OnUpdate. Time: {0}s {1}ms", timeSpan.TotalSeconds, timeSpan.TotalMilliseconds);
+
+        // if (Input.KeyboardState.IsKeyPressed(Keys.Left))
+        //     _cameraPosition.X -= _cameraSpeed * (float)timeSpan.TotalSeconds;
+        // else if (Input.KeyboardState.IsKeyPressed(Keys.Right))
+        //     _cameraPosition.X += _cameraSpeed * (float)timeSpan.TotalSeconds;
+        // else if (Input.KeyboardState.IsKeyPressed(Keys.Down))
+        //     _cameraPosition.Y -= _cameraSpeed * (float)timeSpan.TotalSeconds;
+        // else if (Input.KeyboardState.IsKeyPressed(Keys.Up))
+        //     _cameraPosition.Y += _cameraSpeed * (float)timeSpan.TotalSeconds;
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
-        //_camera.SetPosition(new Vector3(-0.5f, 0.0f, 0.0f));
+        //_camera.SetPosition(_cameraPosition);
+       // _camera.SetPosition(new Vector3());
         //_camera.SetRotation(90.0f);
 
         OpenGLRendererAPI.BeginScene(_camera);
@@ -79,10 +99,10 @@ public class ExampleLayer : Layer
 
     public override void HandleEvent(Event @event)
     {
-        base.HandleEvent(@event);
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
+        base.HandleEvent(@event);
     }
-    
+
     public void HandleOnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
