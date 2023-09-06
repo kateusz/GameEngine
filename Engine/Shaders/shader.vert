@@ -12,5 +12,5 @@ void main(void)
 {
     v_Position = a_Position;
     v_Color = a_Color;
-    gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
+    gl_Position =  vec4(a_Position, 1.0) * u_ViewProjection;
 }

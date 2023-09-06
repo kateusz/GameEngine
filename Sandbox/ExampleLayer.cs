@@ -4,7 +4,6 @@ using Engine.Events;
 using Engine.Platform.OpenGL;
 using Engine.Renderer;
 using NLog;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -22,7 +21,7 @@ public class ExampleLayer : Layer
     private uint[] _indices;
     private OrthographicCamera _camera;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraSpeed = 1.0f;
+    private float _cameraSpeed = 0.01f;
     
 
     public ExampleLayer(string name) : base(name)
@@ -31,10 +30,6 @@ public class ExampleLayer : Layer
         OnDetach += HandleOnDetach;
 
         _camera = new OrthographicCamera(-1.0f, 1.0f, -1.0f, 1.0f);
-        _camera.SetPosition(new Vector3(0.5f, 0.0f, 0.0f));
-        
-        //_camera = new OrthographicCamera(-2.0f, 2.0f, -2.0f, 2.0f);
-
         RendererCommand.SetClearColor(new Vector4(0.2f, 0.3f, 0.3f, 1.0f));
         RendererCommand.Clear();
 
@@ -76,21 +71,19 @@ public class ExampleLayer : Layer
     {
         Logger.Debug("ExampleLayer OnUpdate. Time: {0}s {1}ms", timeSpan.TotalSeconds, timeSpan.TotalMilliseconds);
 
-        // if (Input.KeyboardState.IsKeyPressed(Keys.Left))
-        //     _cameraPosition.X -= _cameraSpeed * (float)timeSpan.TotalSeconds;
-        // else if (Input.KeyboardState.IsKeyPressed(Keys.Right))
-        //     _cameraPosition.X += _cameraSpeed * (float)timeSpan.TotalSeconds;
-        // else if (Input.KeyboardState.IsKeyPressed(Keys.Down))
-        //     _cameraPosition.Y -= _cameraSpeed * (float)timeSpan.TotalSeconds;
-        // else if (Input.KeyboardState.IsKeyPressed(Keys.Up))
-        //     _cameraPosition.Y += _cameraSpeed * (float)timeSpan.TotalSeconds;
+        if (Input.KeyboardState.IsKeyPressed(Keys.Left))
+            _cameraPosition.X -= _cameraSpeed * (float)timeSpan.TotalSeconds;
+        else if (Input.KeyboardState.IsKeyPressed(Keys.Right))
+            _cameraPosition.X += _cameraSpeed * (float)timeSpan.TotalSeconds;
+        else if (Input.KeyboardState.IsKeyPressed(Keys.Down))
+            _cameraPosition.Y -= _cameraSpeed * (float)timeSpan.TotalSeconds;
+        else if (Input.KeyboardState.IsKeyPressed(Keys.Up))
+            _cameraPosition.Y += _cameraSpeed * (float)timeSpan.TotalSeconds;
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
-        //_camera.SetPosition(_cameraPosition);
-       // _camera.SetPosition(new Vector3());
-        //_camera.SetRotation(90.0f);
+        _camera.SetPosition(_cameraPosition);
 
         OpenGLRendererAPI.BeginScene(_camera);
         OpenGLRendererAPI.Submit(_shader, _vertexArray);
