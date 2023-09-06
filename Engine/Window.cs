@@ -49,6 +49,7 @@ public class Window : GameWindow, IWindow
     {
         // TODO: global static
         Input.KeyboardState = KeyboardState;
+        Input.MouseState = MouseState;
         OnUpdate();
         SwapBuffers();
     }
