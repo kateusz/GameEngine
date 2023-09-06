@@ -11,18 +11,18 @@ namespace Sandbox;
 
 public class ExampleLayer : Layer
 {
+    private const float CameraSpeed = 10f;
+    
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
-    private IVertexBuffer _vertexBuffer;
-    private IIndexBuffer _indexBuffer;
-    private IShader _shader;
-    private IVertexArray _vertexArray;
-    private IVertexArray _squareVertexArray;
-    private uint[] _indices;
-    private OrthographicCamera _camera;
+    private readonly IVertexBuffer _vertexBuffer;
+    private readonly IIndexBuffer _indexBuffer;
+    private readonly IShader _shader;
+    private readonly IVertexArray _vertexArray;
+    private readonly uint[] _indices;
+    private readonly OrthographicCamera _camera;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraSpeed = 10f;
-    
+
     public ExampleLayer(string name) : base(name)
     {
         OnAttach += HandleOnAttach;
@@ -61,8 +61,7 @@ public class ExampleLayer : Layer
 
         _indexBuffer = IndexBufferFactory.Create(_indices, 6);
         _vertexArray.SetIndexBuffer(_indexBuffer);
-
-        // shaders
+        
         _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
     }
 
@@ -71,13 +70,13 @@ public class ExampleLayer : Layer
         Logger.Debug("ExampleLayer OnUpdate. Time: {0}s {1}ms", timeSpan.TotalSeconds, timeSpan.TotalMilliseconds);
 
         if (Input.KeyboardState.IsKeyPressed(Keys.Left))
-            _cameraPosition.X -= _cameraSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.X -= CameraSpeed * (float)timeSpan.TotalSeconds;
         else if (Input.KeyboardState.IsKeyPressed(Keys.Right))
-            _cameraPosition.X += _cameraSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.X += CameraSpeed * (float)timeSpan.TotalSeconds;
         else if (Input.KeyboardState.IsKeyPressed(Keys.Down))
-            _cameraPosition.Y -= _cameraSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.Y -= CameraSpeed * (float)timeSpan.TotalSeconds;
         else if (Input.KeyboardState.IsKeyPressed(Keys.Up))
-            _cameraPosition.Y += _cameraSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.Y += CameraSpeed * (float)timeSpan.TotalSeconds;
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
