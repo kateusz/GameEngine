@@ -47,9 +47,9 @@ public class Window : GameWindow, IWindow
     
     protected override void OnRenderFrame(FrameEventArgs e)
     {
-        // TODO: global static
         Input.KeyboardState = KeyboardState;
         Input.MouseState = MouseState;
+        
         OnUpdate();
         SwapBuffers();
     }
@@ -57,6 +57,13 @@ public class Window : GameWindow, IWindow
     // todo: this is only needed for handling keyboard state?
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
+        // TODO: global static
+        Input.KeyboardState = KeyboardState;
+        Input.MouseState = MouseState;
+        
+        // is it needed?
+        OnUpdate();
+        
         if (!KeyboardState.IsKeyDown(Keys.Escape)) 
             return;
         

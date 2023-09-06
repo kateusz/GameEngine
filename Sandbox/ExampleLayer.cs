@@ -21,9 +21,8 @@ public class ExampleLayer : Layer
     private uint[] _indices;
     private OrthographicCamera _camera;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraSpeed = 0.01f;
+    private float _cameraSpeed = 10f;
     
-
     public ExampleLayer(string name) : base(name)
     {
         OnAttach += HandleOnAttach;

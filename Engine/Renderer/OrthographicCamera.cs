@@ -25,19 +25,19 @@ public class OrthographicCamera
 
     public void SetPosition(Vector3 position)
     {
-        Position += position;
+        Position = position;
         RecalculateViewMatrix();
     }
 
     public void SetRotation(float rotation)
     {
-        Rotation += rotation;
+        Rotation = rotation;
         RecalculateViewMatrix();
     }
 
     public void SetScale(Vector3 scale)
     {
-        Scale += scale;
+        Scale = scale;
         RecalculateViewMatrix();
     }
 
