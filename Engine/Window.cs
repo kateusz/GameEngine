@@ -54,7 +54,7 @@ public class Window : GameWindow, IWindow
         SwapBuffers();
     }
 
-    // todo: this is only needed for handling keyboard state?
+    // TODO: this is only needed for handling keyboard state?
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
         // TODO: global static?
