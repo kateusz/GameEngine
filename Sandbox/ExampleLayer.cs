@@ -11,14 +11,16 @@ namespace Sandbox;
 
 public class ExampleLayer : Layer
 {
-    private const float CameraSpeed = 10f;
+    private const float CameraSpeed = 1f;
     
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly IVertexBuffer _vertexBuffer;
     private readonly IIndexBuffer _indexBuffer;
     private readonly IShader _shader;
+    private readonly IShader _flatColorShader;
     private readonly IVertexArray _vertexArray;
+    private readonly IVertexArray _squareVertexArray;
     private readonly uint[] _indices;
     private readonly OrthographicCamera _camera;
     private Vector3 _cameraPosition = Vector3.Zero;
@@ -62,20 +64,42 @@ public class ExampleLayer : Layer
         _indexBuffer = IndexBufferFactory.Create(_indices, 6);
         _vertexArray.SetIndexBuffer(_indexBuffer);
         
-        _shader = new OpenGLShader("Shaders/shader.vert", "Shaders/shader.frag");
+        // SQUARE START
+        _squareVertexArray = VertexArrayFactory.Create();
+        var squareVertices = new[]
+        {
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f,
+            0.5f, 0.5f, 0.0f,
+            -0.5f, 0.5f, 0.0f,
+        };
+        
+        var squareVertexBuffer = VertexBufferFactory.Create(squareVertices);
+        var squareLayout = new BufferLayout(new[]
+        {
+            new BufferElement(ShaderDataType.Float3, "a_Position"),
+        });
+        
+        squareVertexBuffer.SetLayout(squareLayout);
+        _squareVertexArray.AddVertexBuffer(squareVertexBuffer);
+        
+        var squareIndices = new uint[]{ 0, 1, 2, 2, 3, 0 };
+        var squareIndexBuffer = IndexBufferFactory.Create(squareIndices, 6);
+        _squareVertexArray.SetIndexBuffer(squareIndexBuffer);
+        
+        _shader = ShaderFactory.Create("Shaders/shader.vert", "Shaders/shader.frag");
+        _flatColorShader = ShaderFactory.Create("Shaders/flatColorShader.vert", "Shaders/flatColorShader.frag");
     }
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        Logger.Debug("ExampleLayer OnUpdate. Time: {0}s {1}ms", timeSpan.TotalSeconds, timeSpan.TotalMilliseconds);
-
-        if (Input.KeyboardState.IsKeyPressed(Keys.Left))
+        if (Input.KeyboardState.IsKeyDown(Keys.Left))
             _cameraPosition.X -= CameraSpeed * (float)timeSpan.TotalSeconds;
-        else if (Input.KeyboardState.IsKeyPressed(Keys.Right))
+        else if (Input.KeyboardState.IsKeyDown(Keys.Right))
             _cameraPosition.X += CameraSpeed * (float)timeSpan.TotalSeconds;
-        else if (Input.KeyboardState.IsKeyPressed(Keys.Down))
+        else if (Input.KeyboardState.IsKeyDown(Keys.Down))
             _cameraPosition.Y -= CameraSpeed * (float)timeSpan.TotalSeconds;
-        else if (Input.KeyboardState.IsKeyPressed(Keys.Up))
+        else if (Input.KeyboardState.IsKeyDown(Keys.Up))
             _cameraPosition.Y += CameraSpeed * (float)timeSpan.TotalSeconds;
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -84,7 +108,25 @@ public class ExampleLayer : Layer
         _camera.SetPosition(_cameraPosition);
 
         OpenGLRendererAPI.BeginScene(_camera);
-        OpenGLRendererAPI.Submit(_shader, _vertexArray);
+
+        var scale = Matrix4.CreateScale(0.1f);
+        var redColor = new Vector3(0.8f, 0.2f, 0.3f);
+        
+        _flatColorShader.Bind();
+        _flatColorShader.UploadUniformFloat3("u_Color", redColor);
+
+        for (var x = 0; x < 20; x++)
+        {
+            for (var y = 0; y < 20; y++)
+            {
+                var pos = new Vector3(x * 0.11f, y * 0.11f, 0.0f);
+                var transform = Matrix4.CreateTranslation(pos.X, pos.Y, 1.0f);// * scale;
+                
+                //OpenGLRendererAPI.Submit(_flatColorShader, _squareVertexArray, transform);
+            }
+        }
+        
+        OpenGLRendererAPI.Submit(_shader, _vertexArray, Matrix4.Identity);
         OpenGLRendererAPI.EndScene();
     }
 
