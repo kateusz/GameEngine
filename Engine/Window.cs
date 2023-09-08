@@ -50,7 +50,7 @@ public class Window : GameWindow, IWindow
         Input.KeyboardState = KeyboardState;
         Input.MouseState = MouseState;
         
-        OnUpdate();
+        //OnUpdate();
         SwapBuffers();
     }
 
