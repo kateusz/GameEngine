@@ -20,6 +20,12 @@ public class OpenGLRendererAPI : IRendererAPI
         SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
     }
 
+    public void Init()
+    {
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+    }
+
     public static void EndScene()
     {
     }
@@ -35,14 +41,10 @@ public class OpenGLRendererAPI : IRendererAPI
     }
 
     public void SetClearColor(Vector4 color)
-    {
-        GL.ClearColor(color.X, color.Y, color.Z, color.W);
-    }
+        => GL.ClearColor(color.X, color.Y, color.Z, color.W);
 
     public void Clear()
-    {
-        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-    }
+        => GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
     public void DrawIndexed(IVertexArray vertexArray)
     {

@@ -1,4 +1,6 @@
 using Engine.Events;
+using Engine.Platform.OpenGL;
+using Engine.Renderer;
 using NLog;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -30,6 +32,8 @@ public class Application : IApplication
         _window.OnClose += HandleOnWindowClose;
         _window.OnUpdate += HandleOnUpdate;
         _isRunning = true;
+        
+        RendererSingleton.Instance.Init();
     }
 
     public void Run()

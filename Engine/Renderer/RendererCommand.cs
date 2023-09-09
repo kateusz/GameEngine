@@ -6,21 +6,24 @@ namespace Engine.Renderer;
 
 public static class RendererCommand
 {
-    private static readonly IRendererAPI RendererApi = new OpenGLRendererAPI();
-
+    public static void Init()
+    {
+        RendererSingleton.Instance.Init();
+    }
+    
     public static void DrawIndexed(IVertexArray vertexArray)
     {
-        RendererApi.DrawIndexed(vertexArray);
+        RendererSingleton.Instance.DrawIndexed(vertexArray);
     }
 
     public static void SetClearColor(Vector4 color)
     {
-        RendererApi.SetClearColor(color);
+        RendererSingleton.Instance.SetClearColor(color);
     }
 
     public static void Clear()
     {
-        RendererApi.Clear();
+        RendererSingleton.Instance.Clear();
         var error = GL.GetError();
     }
 }
