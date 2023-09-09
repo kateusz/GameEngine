@@ -1,7 +1,6 @@
 using Engine;
 using Engine.Core;
 using Engine.Events;
-using Engine.Platform.OpenGL;
 using Engine.Renderer;
 using NLog;
 using OpenTK.Mathematics;
@@ -30,9 +29,6 @@ public class ExampleLayer : Layer
         OnDetach += HandleOnDetach;
 
         _camera = new OrthographicCamera(-1.0f, 1.0f, -1.0f, 1.0f);
-        RendererSingleton.Instance.SetClearColor(new Vector4(0.2f, 0.3f, 0.3f, 1.0f));
-        RendererSingleton.Instance.Clear();
-
         _vertexArray = VertexArrayFactory.Create();
         
         float[] vertices =
@@ -83,17 +79,14 @@ public class ExampleLayer : Layer
         else if (Input.KeyboardState.IsKeyDown(Keys.Up))
             _cameraPosition.Y += CameraSpeed * (float)timeSpan.TotalSeconds;
 
-        RendererSingleton.Instance.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        RendererSingleton.Instance.Clear();
-
         _camera.SetPosition(_cameraPosition);
 
-        OpenGLRendererAPI.BeginScene(_camera);
+        Renderer.Instance.BeginScene(_camera);
 
         _texture.Bind();
 
-        OpenGLRendererAPI.Submit(_textureShader, _vertexArray, Matrix4.CreateScale(1.0f));
-        OpenGLRendererAPI.EndScene();
+        Renderer.Instance.Submit(_textureShader, _vertexArray, Matrix4.CreateScale(1.0f));
+        Renderer.Instance.EndScene();
     }
 
     public override void HandleEvent(Event @event)

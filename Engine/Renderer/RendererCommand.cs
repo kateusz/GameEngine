@@ -1,4 +1,3 @@
-using Engine.Platform.OpenGL;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -6,24 +5,26 @@ namespace Engine.Renderer;
 
 public static class RendererCommand
 {
+    private static readonly IRendererAPI RendererApi = RendererApiFactory.Create();
+
     public static void Init()
     {
-        RendererSingleton.Instance.Init();
+        RendererApi.Init();
     }
-    
+
     public static void DrawIndexed(IVertexArray vertexArray)
     {
-        RendererSingleton.Instance.DrawIndexed(vertexArray);
+        RendererApi.DrawIndexed(vertexArray);
     }
 
     public static void SetClearColor(Vector4 color)
     {
-        RendererSingleton.Instance.SetClearColor(color);
+        RendererApi.SetClearColor(color);
     }
 
     public static void Clear()
     {
-        RendererSingleton.Instance.Clear();
+        RendererApi.Clear();
         var error = GL.GetError();
     }
 }

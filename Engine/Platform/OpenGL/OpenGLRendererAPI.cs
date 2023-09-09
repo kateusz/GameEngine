@@ -11,33 +11,12 @@ public class SceneData
 
 public class OpenGLRendererAPI : IRendererAPI
 {
-    public static readonly SceneData SceneData = new();
-
     public ApiType ApiType { get; } = ApiType.OpenGL;
-
-    public static void BeginScene(OrthographicCamera camera)
-    {
-        SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
-    }
 
     public void Init()
     {
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-    }
-
-    public static void EndScene()
-    {
-    }
-
-    public static void Submit(IShader shader, IVertexArray vertexArray, Matrix4 transform)
-    {
-        shader.Bind();
-        shader.UploadUniformMatrix4("u_ViewProjection", SceneData.ViewProjectionMatrix);
-        shader.UploadUniformMatrix4("u_Transform", transform);
-        
-        vertexArray.Bind();
-        RendererCommand.DrawIndexed(vertexArray);
     }
 
     public void SetClearColor(Vector4 color)

@@ -33,7 +33,7 @@ public class Application : IApplication
         _window.OnUpdate += HandleOnUpdate;
         _isRunning = true;
         
-        RendererSingleton.Instance.Init();
+        Renderer.Renderer.Instance.Init();
     }
 
     public void Run()
