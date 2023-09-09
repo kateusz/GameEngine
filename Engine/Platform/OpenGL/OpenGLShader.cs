@@ -106,7 +106,7 @@ public class OpenGLShader : IShader
     /// </summary>
     /// <param name="name">The name of the uniform</param>
     /// <param name="data">The data to set</param>
-    public void SetInt(string name, int data)
+    public void UploadUniformInt(string name, int data)
     {
         GL.UseProgram(_handle);
         GL.Uniform1(_uniformLocations[name], data);

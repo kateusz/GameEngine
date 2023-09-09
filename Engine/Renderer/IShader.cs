@@ -9,5 +9,5 @@ public interface IShader : IBindable
     void UploadUniformFloat4(string name, Vector4 data);
     void UploadUniformMatrix4(string name, Matrix4 data);
     void SetFloat(string name, float data);
-    void SetInt(string name, int data);
+    void UploadUniformInt(string name, int data);
 }
