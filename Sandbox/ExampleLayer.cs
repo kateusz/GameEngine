@@ -79,6 +79,9 @@ public class ExampleLayer : Layer
         else if (Input.KeyboardState.IsKeyDown(Keys.Up))
             _cameraPosition.Y += CameraSpeed * (float)timeSpan.TotalSeconds;
 
+        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        RendererCommand.Clear();
+        
         _camera.SetPosition(_cameraPosition);
 
         Renderer.Instance.BeginScene(_camera);

@@ -28,7 +28,7 @@ public class Window : GameWindow, IWindow
             Size = (props.Width, props.Height),
             Title = props.Title,
             Flags = ContextFlags.Debug | ContextFlags.ForwardCompatible,
-            Vsync = VSyncMode.Adaptive
+            Vsync = VSyncMode.On
         })
     {
         _context = new OpenGLContext(this);
@@ -49,9 +49,6 @@ public class Window : GameWindow, IWindow
     {
         Input.KeyboardState = KeyboardState;
         Input.MouseState = MouseState;
-        
-        //OnUpdate();
-        SwapBuffers();
     }
 
     // TODO: this is only needed for handling keyboard state?
@@ -61,8 +58,8 @@ public class Window : GameWindow, IWindow
         Input.KeyboardState = KeyboardState;
         Input.MouseState = MouseState;
         
-        // TODO: investigate when it should be called
         OnUpdate();
+        SwapBuffers();
         
         if (!KeyboardState.IsKeyDown(Keys.Escape)) 
             return;
