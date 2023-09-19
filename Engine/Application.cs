@@ -44,6 +44,7 @@ public class Application : IApplication
     public void PushLayer(Layer layer)
     {
         _layersStack.Insert(0, layer);
+        layer.OnAttach();
     }
 
     public void PushOverlay(Layer overlay)

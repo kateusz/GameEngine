@@ -6,6 +6,6 @@ public class Sandbox : Application
 {
     public Sandbox()
     {
-        PushLayer(new ExampleLayer("Example Layer"));
+        PushLayer(new Sandbox2D("2D Layer"));
     }
 }
