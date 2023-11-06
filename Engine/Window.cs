@@ -97,4 +97,10 @@ public class Window : GameWindow, IWindow
         var @event = new MouseButtonPressedEvent((int)e.Button);
         OnEvent(@event);
     }
+    
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        var @event = new MouseScrolledEvent(e.OffsetX, e.OffsetY);
+        OnEvent(@event);
+    }
 }
