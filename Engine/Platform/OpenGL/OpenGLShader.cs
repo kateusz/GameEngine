@@ -106,7 +106,7 @@ public class OpenGLShader : IShader
     /// </summary>
     /// <param name="name">The name of the uniform</param>
     /// <param name="data">The data to set</param>
-    public void UploadUniformInt(string name, int data)
+    public void SetInt(string name, int data)
     {
         GL.UseProgram(_handle);
         GL.Uniform1(_uniformLocations[name], data);
@@ -128,7 +128,7 @@ public class OpenGLShader : IShader
     /// </summary>
     /// <param name="name">The name of the uniform</param>
     /// <param name="data">The data to set</param>
-    public void UploadUniformMatrix4(string name, Matrix4 data)
+    public void SetMat4(string name, Matrix4 data)
     {
         GL.UseProgram(_handle);
         GL.UniformMatrix4(_uniformLocations[name], true, ref data);
@@ -139,7 +139,7 @@ public class OpenGLShader : IShader
     /// </summary>
     /// <param name="name">The name of the uniform</param>
     /// <param name="data">The data to set</param>
-    public void UploadUniformFloat3(string name, Vector3 data)
+    public void SetFloat3(string name, Vector3 data)
     {
         GL.UseProgram(_handle);
         GL.Uniform3(_uniformLocations[name], data);
@@ -150,7 +150,7 @@ public class OpenGLShader : IShader
     /// </summary>
     /// <param name="name">The name of the uniform</param>
     /// <param name="data">The data to set</param>
-    public void UploadUniformFloat4(string name, Vector4 data)
+    public void SetFloat4(string name, Vector4 data)
     {
         GL.UseProgram(_handle);
         GL.Uniform4(_uniformLocations[name], data);

@@ -25,8 +25,8 @@ public class Renderer
     public void Submit(IShader shader, IVertexArray vertexArray, Matrix4 transform)
     {
         shader.Bind();
-        shader.UploadUniformMatrix4("u_ViewProjection", SceneData.ViewProjectionMatrix);
-        shader.UploadUniformMatrix4("u_Transform", transform);
+        shader.SetMat4("u_ViewProjection", SceneData.ViewProjectionMatrix);
+        shader.SetMat4("u_Transform", transform);
         
         vertexArray.Bind();
         RendererCommand.DrawIndexed(vertexArray);
