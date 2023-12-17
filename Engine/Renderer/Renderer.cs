@@ -14,6 +14,7 @@ public class Renderer
     public void Init()
     {
         RendererCommand.Init();
+        Renderer2D.Instance.Init();
     }
     
     public void BeginScene(OrthographicCamera camera)
