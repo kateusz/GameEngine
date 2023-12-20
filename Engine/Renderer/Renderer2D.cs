@@ -14,10 +14,10 @@ public class Renderer2D
     public void Init()
     {
         //var textureShader = ShaderFactory.Create("Shaders/textureShader.vert", "Shaders/textureShader.frag");
-        var textureShader = ShaderFactory.Create("Shaders/flatColorShader.vert", "Shaders/flatColorShader.frag");
+        var flatColorShader = ShaderFactory.Create("Shaders/flatColorShader.vert", "Shaders/flatColorShader.frag");
         var quadVertexArray = VertexArrayFactory.Create();
         
-        _data = new Renderer2DStorage(quadVertexArray, textureShader);
+        _data = new Renderer2DStorage(quadVertexArray, flatColorShader);
 
         // float[] squareVertices =
         // {
@@ -55,7 +55,7 @@ public class Renderer2D
         var indexBuffer = IndexBufferFactory.Create(squareIndices, squareIndices.Length);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
         
-        _data.TextureShader.Bind();
+        //_data.Shader.Bind();
         //_data.TextureShader.SetInt("u_Texture", 0);
     }
 
@@ -66,8 +66,8 @@ public class Renderer2D
 
     public void BeginScene(OrthographicCamera camera)
     {
-        _data.TextureShader.Bind();
-        _data.TextureShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
+        _data.Shader.Bind();
+        _data.Shader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
     }
 
     public void EndScene()
@@ -82,13 +82,13 @@ public class Renderer2D
     
     public void DrawQuad(Vector3 position, Vector2 size, Vector4 color)
     {
-        _data.TextureShader.SetFloat4("u_Color", color);
+        _data.Shader.SetFloat4("u_Color", color);
         // bind white texture here
         
         var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);
         var scale = Matrix4.CreateScale(size.X, size.Y, 1.0f);
         var transform = Matrix4.Identity * positionTranslated * scale; /* *rotation */
-        _data.TextureShader.SetMat4("u_Transform", transform);
+        _data.Shader.SetMat4("u_Transform", transform);
         
         _data.QuadVertexArray.Bind();
         RendererCommand.DrawIndexed(_data.QuadVertexArray);
@@ -102,13 +102,13 @@ public class Renderer2D
     //todo
     public void DrawQuad(Vector3 position, Vector2 size, Texture2D texture)
     {
-        _data.TextureShader.SetFloat4("u_Color", Vector4.One);
+        _data.Shader.SetFloat4("u_Color", Vector4.One);
         texture.Bind();
         
         var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);
         var scale = Matrix4.CreateScale(size.X, size.Y, 1.0f);
         var transform = Matrix4.Identity * positionTranslated * scale; /* *rotation */
-        _data.TextureShader.SetMat4("u_Transform", transform);
+        _data.Shader.SetMat4("u_Transform", transform);
         
         _data.QuadVertexArray.Bind();
         RendererCommand.DrawIndexed(_data.QuadVertexArray);
