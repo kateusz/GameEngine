@@ -1,3 +1,3 @@
 namespace Engine.Renderer;
 
-public record Renderer2DStorage(IVertexArray QuadVertexArray, IShader Shader);
+public record Renderer2DStorage(IVertexArray QuadVertexArray, IShader TextureShader);

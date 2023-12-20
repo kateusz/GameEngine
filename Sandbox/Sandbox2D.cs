@@ -30,13 +30,18 @@ public class Sandbox2D : Layer
     public override void OnUpdate(TimeSpan timeSpan)
     {
         _cameraController.OnUpdate(timeSpan);
-        
+
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
-        
+
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
-        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f), new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
-        Renderer2D.Instance.DrawQuad(new Vector2(0.5f, -0.5f), new Vector2(0.5f, 0.5f), new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
+        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
+            new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
+        
+        Renderer2D.Instance.DrawQuad(new Vector2(0.5f, -0.5f), new Vector2(0.5f, 0.5f),
+            new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
+        
+        //Renderer2D.Instance.DrawQuad(new Vector2(0.2f, 0.5f), new Vector2(0.5f, 0.5f), _texture);
         Renderer2D.Instance.EndScene();
     }
 
@@ -44,7 +49,7 @@ public class Sandbox2D : Layer
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
         base.HandleEvent(@event);
-        
+
         _cameraController.OnEvent(@event);
     }
 
@@ -53,6 +58,11 @@ public class Sandbox2D : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+
+        // todo: remove blocking access
+        //_texture = TextureFactory.Create("assets/container.png").GetAwaiter().GetResult();
+
+
         // _vertexArray = VertexArrayFactory.Create();
         //
         // float[] vertices =
@@ -85,8 +95,7 @@ public class Sandbox2D : Layer
         // _vertexArray.SetIndexBuffer(_indexBuffer);
         // _textureShader = ShaderFactory.Create("Shaders/textureShader.vert", "Shaders/textureShader.frag");
         //
-        // // todo: remove blocking access
-        // _texture = TextureFactory.Create("assets/container.png").GetAwaiter().GetResult();
+
         //
         // _textureShader.Bind();
         // _textureShader.UploadUniformInt("u_Texture", 0);

@@ -9,6 +9,11 @@ public abstract class Texture
     {
         
     }
+
+    public virtual void SetData(byte[] data, int size)
+    {
+        
+    }
 }
 
 public class Texture2D : Texture

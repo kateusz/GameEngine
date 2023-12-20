@@ -10,6 +10,14 @@ public class OpenGLTexture2D : Texture2D
     private readonly string _path;
     private readonly int _rendererId;
 
+    private OpenGLTexture2D(int rendererId, int width, int height)
+    {
+        _rendererId = rendererId;
+        
+        Width = width;
+        Height = height;
+    }
+    
     private OpenGLTexture2D(string path, int rendererId, int width, int height)
     {
         _path = path;
@@ -68,6 +76,24 @@ public class OpenGLTexture2D : Texture2D
         return new OpenGLTexture2D(path, handle, width, height);
     }
     
+    public static async Task<OpenGLTexture2D> Create(int width, int height)
+    {
+        // Generate handle, 
+        var rendererId = GL.GenTexture();
+
+        // Bind the handle
+        GL.CreateTextures(TextureTarget.Texture2D, 1, new int[] {rendererId});
+        GL.TextureStorage2D(rendererId, 1, SizedInternalFormat.Rgba8, width, height);
+        
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+        
+        return new OpenGLTexture2D(rendererId, width, height);
+    }
+    
     // Activate texture
     // Multiple textures can be bound, if your shader needs more than just one.
     // If you want to do that, use GL.ActiveTexture to set which slot GL.BindTexture binds to.
@@ -78,5 +104,10 @@ public class OpenGLTexture2D : Texture2D
         // TODO: map slot to TextureUnit
         GL.ActiveTexture(TextureUnit.Texture0);
         GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+    }
+
+    public override void SetData(byte[] data, int size)
+    {
+        GL.TextureSubImage2D(_rendererId, 0, 0, 0, Width, Height, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
     }
 }
