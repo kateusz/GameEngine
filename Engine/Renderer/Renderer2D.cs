@@ -68,6 +68,7 @@ public class Renderer2D
     {
         _data.Shader.Bind();
         _data.Shader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
+        _data.Shader.SetMat4("u_Transform", Matrix4.Identity);
     }
 
     public void EndScene()
@@ -82,6 +83,7 @@ public class Renderer2D
     
     public void DrawQuad(Vector3 position, Vector2 size, Vector4 color)
     {
+        _data.Shader.Bind();
         _data.Shader.SetFloat4("u_Color", color);
         // bind white texture here
         
