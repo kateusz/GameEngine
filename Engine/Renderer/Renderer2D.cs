@@ -68,7 +68,6 @@ public class Renderer2D
     {
         _data.Shader.Bind();
         _data.Shader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
-        _data.Shader.SetMat4("u_Transform", Matrix4.Identity);
     }
 
     public void EndScene()
@@ -109,7 +108,7 @@ public class Renderer2D
         
         var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);
         var scale = Matrix4.CreateScale(size.X, size.Y, 1.0f);
-        var transform = Matrix4.Identity * positionTranslated * scale; /* *rotation */
+        var transform = positionTranslated * scale; /* *rotation */
         _data.Shader.SetMat4("u_Transform", transform);
         
         _data.QuadVertexArray.Bind();

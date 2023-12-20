@@ -30,7 +30,7 @@ public class Sandbox2D : Layer
         RendererCommand.Clear();
 
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
-        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
+        Renderer2D.Instance.DrawQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f),
             new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
         
         Renderer2D.Instance.DrawQuad(new Vector2(0.5f, -0.5f), new Vector2(0.5f, 0.5f),
