@@ -17,6 +17,7 @@ public class Sandbox2D : Layer
     private uint[] _indices;
     private OrthographicCameraController _cameraController;
     private Texture2D _texture;
+    private Texture2D _logoTexture;
 
     public Sandbox2D(string name) : base(name)
     {
@@ -36,15 +37,19 @@ public class Sandbox2D : Layer
             new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
         
         //blue
-        Renderer2D.Instance.DrawQuad(new Vector2(0.5f, -0.5f), new Vector2(0.5f, 0.5f),
+        Renderer2D.Instance.DrawQuad(new Vector2(-0.3f, 0.2f), new Vector2(0.5f, 0.5f),
             new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
         
         //texture
         Renderer2D.Instance.DrawQuad(
-            new Vector3(0.0f, 0.0f, -0.1f), 
-            new Vector2(1.0f, 1.0f), 
-            _texture,
-            2.0f);
+            new Vector3(0.0f, 0.0f, -0.1f),
+            new Vector2(1.0f, 1.0f),
+            _texture);
+        
+        Renderer2D.Instance.DrawQuad(
+            new Vector3(0.0f, 0.0f, -0.1f),
+            new Vector2(1.0f, 1.0f),
+            _logoTexture);
         
         Renderer2D.Instance.EndScene();
     }
@@ -62,7 +67,8 @@ public class Sandbox2D : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _texture = TextureFactory.Create("assets/container.png").GetAwaiter().GetResult();
+        _texture = TextureFactory.Create("assets/Checkerboard.png").GetAwaiter().GetResult();
+        _logoTexture = TextureFactory.Create("assets/ChernoLogo.png").GetAwaiter().GetResult();
     }
 
     public override void OnDetach()
