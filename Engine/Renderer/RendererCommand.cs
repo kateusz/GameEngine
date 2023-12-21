@@ -11,6 +11,8 @@ public static class RendererCommand
     {
         RendererApi.Init();
     }
+    
+    // todo: add viewport here
 
     public static void DrawIndexed(IVertexArray vertexArray)
     {

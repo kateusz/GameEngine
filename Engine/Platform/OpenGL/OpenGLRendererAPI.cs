@@ -29,5 +29,6 @@ public class OpenGLRendererAPI : IRendererAPI
     {
         var indexBuffer = vertexArray.IndexBuffer;
         GL.DrawElements(PrimitiveType.Triangles, indexBuffer.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 }
