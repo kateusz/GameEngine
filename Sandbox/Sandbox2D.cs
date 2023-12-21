@@ -9,12 +9,7 @@ namespace Sandbox;
 public class Sandbox2D : Layer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-
-    private IVertexBuffer _vertexBuffer;
-    private IIndexBuffer _indexBuffer;
-    private IVertexArray _vertexArray;
-    private IShader _textureShader;
-    private uint[] _indices;
+    
     private OrthographicCameraController _cameraController;
     private Texture2D _texture;
     private Texture2D _logoTexture;
