@@ -108,7 +108,7 @@ public class Renderer2D
         _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
          texture.Bind();
         
-        var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);
+        var positionTranslated = Matrix4.CreateTranslation(position);
         var scale = Matrix4.CreateScale(size.X, size.Y, 1.0f);
         var transform = Matrix4.Identity * positionTranslated * scale; /* *rotation */
         _data.TextureShader.SetMat4("u_Transform", transform);

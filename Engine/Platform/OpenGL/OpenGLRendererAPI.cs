@@ -17,6 +17,8 @@ public class OpenGLRendererAPI : IRendererAPI
     {
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        
+        GL.Enable(EnableCap.DepthTest);
     }
 
     public void SetClearColor(Vector4 color)

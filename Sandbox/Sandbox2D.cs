@@ -42,8 +42,8 @@ public class Sandbox2D : Layer
         
         //texture
         Renderer2D.Instance.DrawQuad(
-            new Vector3(0.0f, 0.0f, -0.1f),
-            new Vector2(1.0f, 1.0f),
+            new Vector3(0.0f, 0.0f, -0.5f),
+            new Vector2(10.0f, 10.0f),
             _texture);
         
         Renderer2D.Instance.DrawQuad(

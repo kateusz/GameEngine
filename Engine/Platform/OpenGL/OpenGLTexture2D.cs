@@ -52,7 +52,7 @@ public class OpenGLTexture2D : Texture2D
 
         var width = 0;
         var height = 0;
-        const PixelInternalFormat internalFormat = PixelInternalFormat.Rgba;
+        const PixelInternalFormat internalFormat = PixelInternalFormat.Rgba8;
         const PixelFormat dataFormat = PixelFormat.Rgba;
 
         // Here we open a stream to the file and pass it to StbImageSharp to load.
