@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sandbox", "Sandbox\Sandbox.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Engine", "Engine\Engine.csproj", "{A8E627FC-4815-46D5-8BB6-EE193F32D288}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor", "Editor\Editor.csproj", "{82BFD3C8-801F-4406-8682-BA76252D30AE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,9 +24,5 @@ Global
 		{A8E627FC-4815-46D5-8BB6-EE193F32D288}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A8E627FC-4815-46D5-8BB6-EE193F32D288}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A8E627FC-4815-46D5-8BB6-EE193F32D288}.Release|Any CPU.Build.0 = Release|Any CPU
-		{82BFD3C8-801F-4406-8682-BA76252D30AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{82BFD3C8-801F-4406-8682-BA76252D30AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{82BFD3C8-801F-4406-8682-BA76252D30AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{82BFD3C8-801F-4406-8682-BA76252D30AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
