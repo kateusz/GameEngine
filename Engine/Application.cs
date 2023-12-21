@@ -25,7 +25,7 @@ public class Application : IApplication
 
     protected Application()
     {
-        var windowProps = new WindowProps("Sandbox Engine testing!", 800, 600);
+        var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 1024);
 
         _window = new Window(windowProps);
         _window.OnEvent += HandleOnEvent;

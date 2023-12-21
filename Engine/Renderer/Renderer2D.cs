@@ -82,6 +82,9 @@ public class Renderer2D
     public void DrawQuad(Vector3 position, Vector2 size, Vector4 color)
     {
         _data.TextureShader.SetFloat4("u_Color", color);
+        
+        // Tiling factor doesn't apply to flat color shader
+        _data.TextureShader.SetFloat("u_TilingFactor", 1.0f);
         _data.WhiteTexture.Bind();
         
         var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);
@@ -93,15 +96,16 @@ public class Renderer2D
         RendererCommand.DrawIndexed(_data.QuadVertexArray);
     }
     
-    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture)
+    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f)
     {
-        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture);
+        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture, tilingFactor);
     }
     
     //todo
-    public void DrawQuad(Vector3 position, Vector2 size, Texture2D texture)
+    public void DrawQuad(Vector3 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f)
     {
         _data.TextureShader.SetFloat4("u_Color", Vector4.One);
+        _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
          texture.Bind();
         
         var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);

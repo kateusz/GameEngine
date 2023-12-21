@@ -40,7 +40,12 @@ public class Sandbox2D : Layer
             new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
         
         //texture
-        Renderer2D.Instance.DrawQuad(new Vector2(0.2f, 0.5f), new Vector2(0.5f, 0.5f), _texture);
+        Renderer2D.Instance.DrawQuad(
+            new Vector3(0.0f, 0.0f, -0.1f), 
+            new Vector2(1.0f, 1.0f), 
+            _texture,
+            2.0f);
+        
         Renderer2D.Instance.EndScene();
     }
 
