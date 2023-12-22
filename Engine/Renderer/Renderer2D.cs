@@ -95,15 +95,17 @@ public class Renderer2D
         RendererCommand.DrawIndexed(_data.QuadVertexArray);
     }
 
-    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f)
+    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f, Vector4? tintColor = null)
     {
-        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture, tilingFactor);
+        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture, tilingFactor, tintColor);
     }
 
     //todo
-    public void DrawQuad(Vector3 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f)
+    public void DrawQuad(Vector3 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f, Vector4? tintColor = null)
     {
-        _data.TextureShader.SetFloat4("u_Color", Vector4.One);
+        tintColor ??= Vector4.One;
+        
+        _data.TextureShader.SetFloat4("u_Color", tintColor.Value);
         _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
         texture.Bind();
 
@@ -137,14 +139,16 @@ public class Renderer2D
         RendererCommand.DrawIndexed(_data.QuadVertexArray);
     }
 
-    public void DrawRotatedQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, float tilingFactor)
+    public void DrawRotatedQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, float tilingFactor, Vector4? tintColor = null)
     {
-        DrawRotatedQuad(new Vector3(position.X, position.Y, 0.0f), size, rotation, texture, tilingFactor);
+        DrawRotatedQuad(new Vector3(position.X, position.Y, 0.0f), size, rotation, texture, tilingFactor, tintColor);
     }
 
-    public void DrawRotatedQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, float tilingFactor)
+    public void DrawRotatedQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, float tilingFactor, Vector4? tintColor = null)
     {
-        _data.TextureShader.SetFloat4("u_Color", Vector4.One);
+        tintColor ??= Vector4.One;
+        
+        _data.TextureShader.SetFloat4("u_Color", tintColor.Value);
         _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
         texture.Bind();
         
