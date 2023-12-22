@@ -102,8 +102,7 @@ public class Renderer2D
     {
         DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture, tilingFactor, tintColor);
     }
-
-    //todo
+    
     public void DrawQuad(Vector3 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f, Vector4? tintColor = null)
     {
         tintColor ??= Vector4.One;
