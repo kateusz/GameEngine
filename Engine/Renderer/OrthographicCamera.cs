@@ -40,12 +40,18 @@ public class OrthographicCamera
         RecalculateViewMatrix();
     }
 
+    public void SetProjection(float left, float right, float bottom, float top)
+    {
+        ProjectionMatrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1.0f, 1.0f);
+        ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
+    }
+
     private void RecalculateViewMatrix()
     {
         var position = Matrix4.CreateTranslation(Position.X, Position.Y, 0);
-        var scale = Matrix4.CreateScale(Scale.X, Scale.Y, Scale.Z);
         var rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(Rotation));
-
+        var scale = Matrix4.CreateScale(Scale.X, Scale.Y, Scale.Z);
+        
         var transform = Matrix4.Identity;
         transform *= position;
         transform *= rotation;

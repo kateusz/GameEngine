@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,6 +13,7 @@
       <PackageReference Include="OpenTK" Version="4.8.0" />
       <PackageReference Include="OpenTK.Mathematics" Version="4.8.0" />
       <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.0" />
+      <PackageReference Include="StbImageSharp" Version="2.27.13" />
     </ItemGroup>
 
     <ItemGroup>
@@ -28,6 +30,12 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
       <None Update="Shaders\flatColorShader.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\textureShader.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\textureShader.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

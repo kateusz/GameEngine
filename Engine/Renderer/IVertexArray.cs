@@ -1,3 +1,5 @@
+using Engine.Renderer.Buffers;
+
 namespace Engine.Renderer;
 
 public interface IVertexArray : IBindable

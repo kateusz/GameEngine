@@ -1,4 +1,3 @@
-using Engine.Platform.OpenGL;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -6,7 +5,14 @@ namespace Engine.Renderer;
 
 public static class RendererCommand
 {
-    private static readonly IRendererAPI RendererApi = new OpenGLRendererAPI();
+    private static readonly IRendererAPI RendererApi = RendererApiFactory.Create();
+
+    public static void Init()
+    {
+        RendererApi.Init();
+    }
+    
+    // todo: add viewport here
 
     public static void DrawIndexed(IVertexArray vertexArray)
     {

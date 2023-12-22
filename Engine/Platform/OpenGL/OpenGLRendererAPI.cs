@@ -11,42 +11,26 @@ public class SceneData
 
 public class OpenGLRendererAPI : IRendererAPI
 {
-    public static readonly SceneData SceneData = new();
-
     public ApiType ApiType { get; } = ApiType.OpenGL;
 
-    public static void BeginScene(OrthographicCamera camera)
+    public void Init()
     {
-        SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
-    }
-
-    public static void EndScene()
-    {
-    }
-
-    public static void Submit(IShader shader, IVertexArray vertexArray, Matrix4 transform)
-    {
-        shader.Bind();
-        shader.UploadUniformMatrix4("u_ViewProjection", SceneData.ViewProjectionMatrix);
-        shader.UploadUniformMatrix4("u_Transform", transform);
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         
-        vertexArray.Bind();
-        RendererCommand.DrawIndexed(vertexArray);
+        GL.Enable(EnableCap.DepthTest);
     }
 
     public void SetClearColor(Vector4 color)
-    {
-        GL.ClearColor(color.X, color.Y, color.Z, color.W);
-    }
+        => GL.ClearColor(color.X, color.Y, color.Z, color.W);
 
     public void Clear()
-    {
-        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-    }
+        => GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
     public void DrawIndexed(IVertexArray vertexArray)
     {
         var indexBuffer = vertexArray.IndexBuffer;
         GL.DrawElements(PrimitiveType.Triangles, indexBuffer.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 }
