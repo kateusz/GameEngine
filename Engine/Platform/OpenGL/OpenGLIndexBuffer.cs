@@ -1,4 +1,5 @@
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Engine.Platform.OpenGL;

@@ -1,25 +1,18 @@
-using Engine.Events;
 using IGraphicsContext = Engine.Renderer.IGraphicsContext;
 
 namespace Engine.Platform.OpenGL;
 
 public class OpenGLContext : IGraphicsContext
 {
-    private readonly IWindow _window;
+    private Action? _swapBuffer;
 
-    public OpenGLContext(IWindow window)
+    public void Init(Action swapBuffer)
     {
-        _window = window;
-    }
-
-    public event Action<Event> OnEvent;
-
-    public void Init()
-    {
+        _swapBuffer = swapBuffer;
     }
 
     public void SwapBuffers()
     {
-       
+        _swapBuffer?.Invoke();
     }
 }

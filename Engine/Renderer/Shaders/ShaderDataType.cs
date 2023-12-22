@@ -1,6 +1,6 @@
 using OpenTK.Graphics.OpenGL4;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Shaders;
 
 public enum ShaderDataType
 {

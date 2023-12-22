@@ -1,10 +1,10 @@
-using Engine.Core;
+using Engine.Core.Input;
 using Engine.Events;
 using Engine.Renderer;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace Engine;
+namespace Engine.Core;
 
 public class OrthographicCameraController
 {
@@ -28,20 +28,20 @@ public class OrthographicCameraController
 
     public void OnUpdate(TimeSpan timeSpan)
     {
-        if (Input.KeyboardState.IsKeyDown(Keys.A))
+        if (InputState.KeyboardState.IsKeyDown(Keys.A))
             _cameraPosition.X -= _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
-        else if (Input.KeyboardState.IsKeyDown(Keys.D))
+        else if (InputState.KeyboardState.IsKeyDown(Keys.D))
             _cameraPosition.X += _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
-        else if (Input.KeyboardState.IsKeyDown(Keys.S))
+        else if (InputState.KeyboardState.IsKeyDown(Keys.S))
             _cameraPosition.Y -= _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
-        else if (Input.KeyboardState.IsKeyDown(Keys.W))
+        else if (InputState.KeyboardState.IsKeyDown(Keys.W))
             _cameraPosition.Y += _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
 
         if (_rotation)
         {
-            if (Input.KeyboardState.IsKeyDown(Keys.Q))
+            if (InputState.KeyboardState.IsKeyDown(Keys.Q))
                 _cameraRotation += _cameraRotationSpeed * (float)timeSpan.TotalSeconds;
-            else if (Input.KeyboardState.IsKeyDown(Keys.E))
+            else if (InputState.KeyboardState.IsKeyDown(Keys.E))
                 _cameraRotation -= _cameraRotationSpeed * (float)timeSpan.TotalSeconds;
             
             Camera.SetRotation(_cameraRotation);

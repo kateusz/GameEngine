@@ -1,17 +1,18 @@
 using Engine.Platform.OpenGL;
+using Engine.Renderer;
 
-namespace Engine.Renderer;
+namespace Engine.Core.Window;
 
-public static class ShaderFactory
+public class WindowFactory
 {
-    public static IShader Create(string vertPath, string fragPath)
+    public static IWindow Create(WindowProps props)
     {
         switch (RendererApiType.Type)
         {
             case ApiType.None:
                 break;
             case ApiType.OpenGL:
-                return new OpenGLShader(vertPath, fragPath);
+                return new OpenGLWindow(props);
             default:
                 throw new ArgumentOutOfRangeException();
         }

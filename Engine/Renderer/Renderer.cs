@@ -1,4 +1,5 @@
 using Engine.Platform.OpenGL;
+using Engine.Renderer.Shaders;
 using OpenTK.Mathematics;
 
 namespace Engine.Renderer;

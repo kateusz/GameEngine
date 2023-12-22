@@ -1,3 +1,6 @@
+using Engine.Core;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Shaders;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 

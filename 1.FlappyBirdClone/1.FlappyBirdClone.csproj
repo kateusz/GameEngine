@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <RootNamespace>_1.FlappyBirdClone</RootNamespace>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Engine\Engine.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="assets\textures\" />
+    </ItemGroup>
+
+</Project>

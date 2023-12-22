@@ -1,4 +1,6 @@
-namespace Engine.Renderer;
+using Engine.Renderer.Shaders;
+
+namespace Engine.Renderer.Buffers;
 
 public class BufferElement
 {

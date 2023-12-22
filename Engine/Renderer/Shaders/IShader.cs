@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Shaders;
 
 public interface IShader : IBindable
 {

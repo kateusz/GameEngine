@@ -1,6 +1,6 @@
 using Engine.Events;
 
-namespace Engine;
+namespace Engine.Core;
 
 public interface ILayer
 {

@@ -1,17 +1,17 @@
 using Engine.Platform.OpenGL;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Buffers;
 
-public static class VertexBufferFactory
+public static class IndexBufferFactory
 {
-    public static IVertexBuffer Create(float[] vertices)
+    public static IIndexBuffer Create(uint[] indices, int count)
     {
         switch (RendererApiType.Type)
         {
             case ApiType.None:
                 break;
             case ApiType.OpenGL:
-                return new OpenGLVertexBuffer(vertices);
+                return new OpenGLIndexBuffer(indices, count);
             default:
                 throw new ArgumentOutOfRangeException();
         }

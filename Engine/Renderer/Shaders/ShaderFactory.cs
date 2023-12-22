@@ -1,17 +1,17 @@
 using Engine.Platform.OpenGL;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Shaders;
 
-public static class IndexBufferFactory
+public static class ShaderFactory
 {
-    public static IIndexBuffer Create(uint[] indices, int count)
+    public static IShader Create(string vertPath, string fragPath)
     {
         switch (RendererApiType.Type)
         {
             case ApiType.None:
                 break;
             case ApiType.OpenGL:
-                return new OpenGLIndexBuffer(indices, count);
+                return new OpenGLShader(vertPath, fragPath);
             default:
                 throw new ArgumentOutOfRangeException();
         }

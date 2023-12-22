@@ -1,11 +1,8 @@
+using Engine.Core.Window;
 using Engine.Events;
-using Engine.Platform.OpenGL;
-using Engine.Renderer;
 using NLog;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace Engine;
+namespace Engine.Core;
 
 public interface IApplication
 {
@@ -27,7 +24,7 @@ public class Application : IApplication
     {
         var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 1024);
 
-        _window = new Window(windowProps);
+        _window = WindowFactory.Create(windowProps);
         _window.OnEvent += HandleOnEvent;
         _window.OnClose += HandleOnWindowClose;
         _window.OnUpdate += HandleOnUpdate;

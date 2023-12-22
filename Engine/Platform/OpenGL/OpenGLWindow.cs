@@ -1,28 +1,17 @@
-using Engine.Core;
+using Engine.Core.Input;
+using Engine.Core.Window;
 using Engine.Events;
-using Engine.Platform.OpenGL;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using IGraphicsContext = Engine.Renderer.IGraphicsContext;
 
-namespace Engine;
+namespace Engine.Platform.OpenGL;
 
-public record WindowProps(string Title, int Width, int Height);
-
-public interface IWindow
+public class OpenGLWindow : GameWindow, IWindow
 {
-    void Run();
-    event Action<Event> OnEvent;
-    event Action OnUpdate;
-    event Action<WindowCloseEvent> OnClose;
-}
+    private readonly OpenGLContext _context;
 
-public class Window : GameWindow, IWindow
-{
-    private readonly IGraphicsContext _context;
-
-    public Window(WindowProps props) : base(GameWindowSettings.Default,
+    public OpenGLWindow(WindowProps props) : base(GameWindowSettings.Default,
         new NativeWindowSettings
         {
             Size = (props.Width, props.Height),
@@ -31,35 +20,33 @@ public class Window : GameWindow, IWindow
             Vsync = VSyncMode.On
         })
     {
-        _context = new OpenGLContext(this);
-        _context.Init();
+        _context = new OpenGLContext();
+        _context.Init(SwapBuffers);
     }
 
-    public event Action<Event> OnEvent;
-    public event Action OnUpdate;
-
-    public event Action<WindowCloseEvent> OnClose;
+    public event Action<Event> OnEvent = null!;
+    public event Action OnUpdate = null!;
+    public event Action<WindowCloseEvent> OnClose = null!;
 
     protected override void OnLoad()
     {
-        
     }
     
     protected override void OnRenderFrame(FrameEventArgs e)
     {
-        Input.KeyboardState = KeyboardState;
-        Input.MouseState = MouseState;
+        InputState.KeyboardState = KeyboardState;
+        InputState.MouseState = MouseState;
     }
 
-    // TODO: this is only needed for handling keyboard state?
+    // TODO: is this only needed for handling keyboard state?
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
         // TODO: global static?
-        Input.KeyboardState = KeyboardState;
-        Input.MouseState = MouseState;
+        InputState.KeyboardState = KeyboardState;
+        InputState.MouseState = MouseState;
         
         OnUpdate();
-        SwapBuffers();
+        _context.SwapBuffers();
         
         if (!KeyboardState.IsKeyDown(Keys.Escape)) 
             return;
