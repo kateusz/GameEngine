@@ -1,9 +1,10 @@
 using Engine.Platform.OpenGL;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Textures;
 
 public static class TextureFactory
 {
+    [Obsolete("Use overload with path parameter")]
     public static async Task<Texture2D> Create(int width, int height)
     {
         switch (RendererApiType.Type)

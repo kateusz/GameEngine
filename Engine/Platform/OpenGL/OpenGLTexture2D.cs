@@ -1,4 +1,5 @@
 using Engine.Renderer;
+using Engine.Renderer.Textures;
 using OpenTK.Graphics.OpenGL4;
 using StbImageSharp;
 

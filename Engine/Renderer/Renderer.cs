@@ -1,5 +1,7 @@
 using Engine.Platform.OpenGL;
+using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
+using Engine.Renderer.VertexArray;
 using OpenTK.Mathematics;
 
 namespace Engine.Renderer;

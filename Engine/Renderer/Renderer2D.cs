@@ -1,6 +1,9 @@
 using Engine.Core;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
+using Engine.Renderer.Textures;
+using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -17,7 +20,7 @@ public class Renderer2D
 
     public void Init()
     {
-        var textureShader = ShaderFactory.Create("Shaders/textureShader.vert", "Shaders/textureShader.frag");
+        var textureShader = ShaderFactory.Create("Platform/OpenGL/Shaders/textureShader.vert", "Platform/OpenGL/Shaders/textureShader.frag");
         var quadVertexArray = VertexArrayFactory.Create();
         var whiteTexture = TextureFactory.Create("assets/whiteTexture.png").GetAwaiter().GetResult();
 

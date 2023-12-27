@@ -2,6 +2,8 @@ using Engine;
 using Engine.Core;
 using Engine.Events;
 using Engine.Renderer;
+using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using NLog;
 using OpenTK.Mathematics;
 

@@ -20,16 +20,16 @@
       <None Update="nlog.config">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Shaders\flatColorShader.vert">
+      <None Update="Platform\OpenGL\Shaders\flatColorShader.frag">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Shaders\flatColorShader.frag">
+      <None Update="Platform\OpenGL\Shaders\flatColorShader.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Shaders\textureShader.frag">
+      <None Update="Platform\OpenGL\Shaders\textureShader.frag">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="Shaders\textureShader.vert">
+      <None Update="Platform\OpenGL\Shaders\textureShader.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

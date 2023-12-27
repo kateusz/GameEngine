@@ -1,4 +1,5 @@
 using Engine.Renderer;
+using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 

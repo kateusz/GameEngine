@@ -1,4 +1,4 @@
-namespace Engine.Renderer;
+namespace Engine.Renderer.Textures;
 
 public abstract class Texture
 {
@@ -7,16 +7,9 @@ public abstract class Texture
 
     public virtual void Bind(int slot = 0)
     {
-        
     }
 
     public virtual void SetData(uint data, int size)
     {
-        
     }
-}
-
-public class Texture2D : Texture
-{
-    
 }

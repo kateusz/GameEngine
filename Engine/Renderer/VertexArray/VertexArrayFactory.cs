@@ -1,6 +1,6 @@
 using Engine.Platform.OpenGL;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.VertexArray;
 
 public static class VertexArrayFactory
 {

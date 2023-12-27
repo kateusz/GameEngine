@@ -1,6 +1,6 @@
 using Engine.Renderer.Buffers;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.VertexArray;
 
 public interface IVertexArray : IBindable
 {

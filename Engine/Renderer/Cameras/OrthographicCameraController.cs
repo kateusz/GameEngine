@@ -1,10 +1,9 @@
 using Engine.Core.Input;
 using Engine.Events;
-using Engine.Renderer;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace Engine.Core;
+namespace Engine.Renderer.Cameras;
 
 public class OrthographicCameraController
 {

@@ -1,3 +1,4 @@
+using Engine.Renderer.VertexArray;
 using OpenTK.Mathematics;
 
 namespace Engine.Renderer;
