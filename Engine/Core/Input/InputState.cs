@@ -2,24 +2,22 @@ namespace Engine.Core.Input;
 
 public class InputState
 {
-    private static bool _initialized;
-    private static InputState _instance;
+    private static InputState? _instance;
         
     public static InputState Instance
     {
         get
         {
-            if (_initialized) 
+            if (_instance is not null) 
                 return _instance;
                 
             _instance = new InputState();
-            _initialized = true;
             return _instance;
         }
     }
 
-    public IKeyboardState Keyboard { get; private set; }
-    public IMouseState Mouse { get; private set; }
+    public IKeyboardState Keyboard { get; private set; } = null!;
+    public IMouseState Mouse { get; private set; } = null!;
 
     public static void Init()
     {

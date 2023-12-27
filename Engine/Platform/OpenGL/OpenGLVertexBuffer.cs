@@ -1,4 +1,3 @@
-using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using OpenTK.Graphics.OpenGL4;
 

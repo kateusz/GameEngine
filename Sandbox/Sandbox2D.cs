@@ -1,4 +1,3 @@
-using Engine;
 using Engine.Core;
 using Engine.Events;
 using Engine.Renderer;
@@ -15,7 +14,6 @@ public class Sandbox2D : Layer
     
     private OrthographicCameraController _cameraController;
     private Texture2D _texture;
-    private Texture2D _logoTexture;
 
     public Sandbox2D(string name) : base(name)
     {
@@ -65,8 +63,7 @@ public class Sandbox2D : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _texture = TextureFactory.Create("assets/Checkerboard.png").GetAwaiter().GetResult();
-        //_logoTexture = TextureFactory.Create("assets/ChernoLogo.png").GetAwaiter().GetResult();
+        _texture = TextureFactory.Create("assets/Checkerboard.png");
     }
 
     public override void OnDetach()

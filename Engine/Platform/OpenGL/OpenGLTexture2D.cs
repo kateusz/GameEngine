@@ -1,4 +1,3 @@
-using Engine.Renderer;
 using Engine.Renderer.Textures;
 using OpenTK.Graphics.OpenGL4;
 using StbImageSharp;
@@ -40,7 +39,7 @@ public class OpenGLTexture2D : Texture2D
     {
     }
 
-    public static async Task<OpenGLTexture2D> Create(string path)
+    public static OpenGLTexture2D Create(string path)
     {
         // Generate handle
         var handle = GL.GenTexture();
@@ -57,7 +56,7 @@ public class OpenGLTexture2D : Texture2D
         const PixelFormat dataFormat = PixelFormat.Rgba;
 
         // Here we open a stream to the file and pass it to StbImageSharp to load.
-        await using (var stream = File.OpenRead(path))
+        using (var stream = File.OpenRead(path))
         {
             var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
 
@@ -88,7 +87,7 @@ public class OpenGLTexture2D : Texture2D
     }
 
     [Obsolete("Crash")]
-    public static async Task<OpenGLTexture2D> Create(int width, int height)
+    public static OpenGLTexture2D Create(int width, int height)
     {
         // Generate handle
         var rendererId = GL.GenTexture();

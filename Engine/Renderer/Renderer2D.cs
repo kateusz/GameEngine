@@ -1,10 +1,8 @@
-using Engine.Core;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace Engine.Renderer;
@@ -15,14 +13,13 @@ public class Renderer2D
 
     public static Renderer2D Instance => _instance ??= new Renderer2D();
 
-    private Renderer2DStorage _data;
-    private OrthographicCameraController _cameraController;
+    private Renderer2DStorage _data = null!;
 
     public void Init()
     {
         var textureShader = ShaderFactory.Create("Platform/OpenGL/Shaders/textureShader.vert", "Platform/OpenGL/Shaders/textureShader.frag");
         var quadVertexArray = VertexArrayFactory.Create();
-        var whiteTexture = TextureFactory.Create("assets/whiteTexture.png").GetAwaiter().GetResult();
+        var whiteTexture = TextureFactory.Create("assets/whiteTexture.png");
 
         _data = new Renderer2DStorage(quadVertexArray, textureShader, whiteTexture);
 

@@ -10,7 +10,7 @@ public class Renderer
 {
     public static readonly SceneData SceneData = new();
     
-    private static Renderer _instance;
+    private static Renderer? _instance;
 
     public static Renderer Instance => _instance ??= new Renderer();
 

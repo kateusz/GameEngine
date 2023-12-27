@@ -5,14 +5,14 @@ namespace Engine.Renderer.Textures;
 public static class TextureFactory
 {
     [Obsolete("Use overload with path parameter")]
-    public static async Task<Texture2D> Create(int width, int height)
+    public static Texture2D Create(int width, int height)
     {
         switch (RendererApiType.Type)
         {
             case ApiType.None:
                 break;
             case ApiType.OpenGL:
-                return await OpenGLTexture2D.Create(width, height);
+                return OpenGLTexture2D.Create(width, height);
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -20,14 +20,14 @@ public static class TextureFactory
         throw new ArgumentOutOfRangeException();
     }
     
-    public static async Task<Texture2D> Create(string path)
+    public static Texture2D Create(string path)
     {
         switch (RendererApiType.Type)
         {
             case ApiType.None:
                 break;
             case ApiType.OpenGL:
-                return await OpenGLTexture2D.Create(path);
+                return OpenGLTexture2D.Create(path);
             default:
                 throw new ArgumentOutOfRangeException();
         }

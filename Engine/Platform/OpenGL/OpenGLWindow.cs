@@ -27,9 +27,9 @@ public class OpenGLWindow : GameWindow, IWindow
     public event Action OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
 
-    public static KeyboardState Keyboard { get; private set; }
-    public static MouseState Mouse { get; private set; }
-    
+    public static KeyboardState Keyboard { get; private set; } = null!;
+    public static MouseState Mouse { get; private set; } = null!;
+
     protected override void OnLoad()
     {
         Keyboard = KeyboardState;
