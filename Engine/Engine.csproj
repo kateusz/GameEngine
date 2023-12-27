@@ -8,11 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="NLog" Version="5.2.2" />
-      <PackageReference Include="NLog.Extensions.Logging" Version="5.3.2" />
-      <PackageReference Include="OpenTK" Version="4.8.0" />
-      <PackageReference Include="OpenTK.Mathematics" Version="4.8.0" />
-      <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.0" />
+      <PackageReference Include="NLog" Version="5.2.7" />
+      <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7" />
+      <PackageReference Include="OpenTK" Version="4.8.2" />
+      <PackageReference Include="OpenTK.Mathematics" Version="4.8.2" />
+      <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2" />
       <PackageReference Include="StbImageSharp" Version="2.27.13" />
     </ItemGroup>
 

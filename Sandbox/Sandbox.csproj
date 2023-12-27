@@ -9,10 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenTK" Version="4.8.0" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Engine\Engine.csproj" />
     </ItemGroup>
 
