@@ -1,4 +1,3 @@
-using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using OpenTK.Windowing.Common;
@@ -28,22 +27,19 @@ public class OpenGLWindow : GameWindow, IWindow
     public event Action OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
 
+    public static KeyboardState Keyboard { get; private set; }
+    public static MouseState Mouse { get; private set; }
+    
     protected override void OnLoad()
     {
+        Keyboard = KeyboardState;
+        Mouse = MouseState;
     }
     
-    protected override void OnRenderFrame(FrameEventArgs e)
-    {
-        InputState.KeyboardState = KeyboardState;
-        InputState.MouseState = MouseState;
-    }
-
-    // TODO: is this only needed for handling keyboard state?
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
-        // TODO: global static?
-        InputState.KeyboardState = KeyboardState;
-        InputState.MouseState = MouseState;
+        Keyboard = KeyboardState;
+        Mouse = MouseState;
         
         OnUpdate();
         _context.SwapBuffers();

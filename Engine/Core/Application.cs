@@ -1,3 +1,4 @@
+using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using NLog;
@@ -31,6 +32,7 @@ public class Application : IApplication
         _isRunning = true;
         
         Renderer.Renderer.Instance.Init();
+        InputState.Init();
     }
 
     public void Run()

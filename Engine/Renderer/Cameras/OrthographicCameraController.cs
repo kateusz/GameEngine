@@ -27,20 +27,20 @@ public class OrthographicCameraController
 
     public void OnUpdate(TimeSpan timeSpan)
     {
-        if (InputState.KeyboardState.IsKeyDown(Keys.A))
+        if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
             _cameraPosition.X -= _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
-        else if (InputState.KeyboardState.IsKeyDown(Keys.D))
+        else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.D))
             _cameraPosition.X += _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
-        else if (InputState.KeyboardState.IsKeyDown(Keys.S))
+        else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.S))
             _cameraPosition.Y -= _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
-        else if (InputState.KeyboardState.IsKeyDown(Keys.W))
+        else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.W))
             _cameraPosition.Y += _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
 
         if (_rotation)
         {
-            if (InputState.KeyboardState.IsKeyDown(Keys.Q))
+            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Q))
                 _cameraRotation += _cameraRotationSpeed * (float)timeSpan.TotalSeconds;
-            else if (InputState.KeyboardState.IsKeyDown(Keys.E))
+            else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.E))
                 _cameraRotation -= _cameraRotationSpeed * (float)timeSpan.TotalSeconds;
             
             Camera.SetRotation(_cameraRotation);
