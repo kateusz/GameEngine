@@ -22,6 +22,14 @@ public class OrthographicCameraController
         _rotation = rotation;
     }
 
+    public OrthographicCameraController(OrthographicCamera camera, float aspectRatio, bool rotation = false)
+    {
+        _aspectRatio = aspectRatio;
+        Camera = camera;
+        _aspectRatio = aspectRatio;
+        _rotation = rotation;
+    }
+
     public OrthographicCamera Camera { get; }
 
     public void OnUpdate(TimeSpan timeSpan)

@@ -14,6 +14,7 @@ public class Sandbox2D : Layer
     
     private OrthographicCameraController _cameraController;
     private Texture2D _texture;
+    private Texture2D _spriteSheet;
 
     public Sandbox2D(string name) : base(name)
     {
@@ -42,12 +43,11 @@ public class Sandbox2D : Layer
             new Vector2(10.0f, 10.0f),
             _texture);
         
-        // Renderer2D.Instance.DrawQuad(
-        //     new Vector3(0.0f, 0.0f, -0.1f),
-        //     new Vector2(1.0f, 1.0f),
-        //     _logoTexture);
-        
         Renderer2D.Instance.EndScene();
+        
+        // Renderer2D.Instance.BeginScene(_cameraController.Camera);
+        // Renderer2D.Instance.DrawQuad(Vector2.Zero, new Vector2(1.0f, 1.0f), _spriteSheet);
+        // Renderer2D.Instance.EndScene();
     }
 
     public override void HandleEvent(Event @event)
@@ -64,6 +64,7 @@ public class Sandbox2D : Layer
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         _texture = TextureFactory.Create("assets/Checkerboard.png");
+        _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
     }
 
     public override void OnDetach()
