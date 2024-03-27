@@ -5,33 +5,43 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="NLog" Version="5.2.7" />
-      <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7" />
-      <PackageReference Include="OpenTK" Version="4.8.2" />
-      <PackageReference Include="OpenTK.Mathematics" Version="4.8.2" />
-      <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2" />
-      <PackageReference Include="StbImageSharp" Version="2.27.13" />
+        <PackageReference Include="ImGui.NET" Version="1.90.1.1" />
+        <PackageReference Include="NLog" Version="5.2.7"/>
+        <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7"/>
+        <PackageReference Include="OpenTK" Version="4.8.2"/>
+        <PackageReference Include="OpenTK.Mathematics" Version="4.8.2"/>
+        <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2"/>
+        <PackageReference Include="StbImageSharp" Version="2.27.13"/>
+        <PackageReference Include="Veldrid" Version="4.9.0"/>
+        <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="nlog.config">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="Platform\OpenGL\Shaders\flatColorShader.frag">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="Platform\OpenGL\Shaders\flatColorShader.vert">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="Platform\OpenGL\Shaders\textureShader.frag">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="Platform\OpenGL\Shaders\textureShader.vert">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
+        <None Update="nlog.config">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Platform\OpenGL\Shaders\flatColorShader.frag">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Platform\OpenGL\Shaders\flatColorShader.vert">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Platform\OpenGL\Shaders\textureShader.frag">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Platform\OpenGL\Shaders\textureShader.vert">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="ImGui\Shaders\imgui-frag.glsl">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="ImGui\Shaders\imgui-vertex.glsl">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 

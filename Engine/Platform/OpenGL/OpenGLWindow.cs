@@ -53,6 +53,12 @@ public class OpenGLWindow : GameWindow, IWindow
 
     protected override void OnResize(ResizeEventArgs e)
     {
+        base.OnResize(e);
+        
+        // TODO: refactor this
+        // Update the opengl viewport
+        //GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        
         var @event = new WindowResizeEvent(e.Width, e.Height);
         OnEvent(@event);
     }

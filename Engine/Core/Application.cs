@@ -1,6 +1,7 @@
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
+using Engine.ImGui;
 using NLog;
 
 namespace Engine.Core;
@@ -18,6 +19,7 @@ public class Application : IApplication
 
     private readonly IWindow _window;
     private readonly List<Layer> _layersStack = new();
+    private readonly ImGuiLayer _imGuiLayer;
     private bool _isRunning;
     private DateTime _lastTime;
 
@@ -33,6 +35,10 @@ public class Application : IApplication
         
         Renderer.Renderer.Instance.Init();
         InputState.Init();
+        
+        _imGuiLayer = new ImGuiLayer("ImGUI");
+
+        PushOverlay(_imGuiLayer);
     }
 
     public void Run()
@@ -61,6 +67,15 @@ public class Application : IApplication
         {
             _layersStack[index].OnUpdate(elapsed);
         }
+
+        _imGuiLayer.Begin(elapsed);
+        
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
+        {
+            _layersStack[index].OnImGuiRender();
+        }
+        
+        _imGuiLayer.End();
     }
 
     private void HandleOnEvent(Event @event)
