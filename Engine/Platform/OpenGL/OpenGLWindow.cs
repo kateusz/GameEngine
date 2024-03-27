@@ -1,5 +1,6 @@
 using Engine.Core.Window;
 using Engine.Events;
+using OpenTK.Graphics.ES11;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -9,6 +10,8 @@ namespace Engine.Platform.OpenGL;
 public class OpenGLWindow : GameWindow, IWindow
 {
     private readonly OpenGLContext _context;
+    private float _scaleFactorX;
+    private float _scaleFactorY;
 
     public OpenGLWindow(WindowProps props) : base(GameWindowSettings.Default,
         new NativeWindowSettings
@@ -32,6 +35,13 @@ public class OpenGLWindow : GameWindow, IWindow
 
     protected override void OnLoad()
     {
+        // Initialise the Scale Factor
+        _scaleFactorX = 1.0f;
+        _scaleFactorY = 1.0f;
+        
+        // Get the Scale Factor of the Monitor
+        this.TryGetCurrentMonitorScale(out _scaleFactorX, out _scaleFactorY);
+        
         Keyboard = KeyboardState;
         Mouse = MouseState;
     }
@@ -51,15 +61,22 @@ public class OpenGLWindow : GameWindow, IWindow
         OnClose(new WindowCloseEvent());
     }
 
+    protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
+    {
+        base.OnFramebufferResize(e);
+    }
+
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
+        var width = (int)(Size.X * _scaleFactorX);
+        var height = (int)(Size.Y * _scaleFactorY);
         
         // TODO: refactor this
         // Update the opengl viewport
-        //GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        GL.Viewport(0, 0, width, height);
         
-        var @event = new WindowResizeEvent(e.Width, e.Height);
+        var @event = new WindowResizeEvent(width/2, height/2);
         OnEvent(@event);
     }
 

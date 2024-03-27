@@ -16,8 +16,6 @@
         <PackageReference Include="OpenTK.Mathematics" Version="4.8.2"/>
         <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2"/>
         <PackageReference Include="StbImageSharp" Version="2.27.13"/>
-        <PackageReference Include="Veldrid" Version="4.9.0"/>
-        <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0"/>
     </ItemGroup>
 
     <ItemGroup>

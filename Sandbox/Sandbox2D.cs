@@ -53,7 +53,6 @@ public class Sandbox2D : Layer
     public override void HandleEvent(Event @event)
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
-        base.HandleEvent(@event);
 
         _cameraController.OnEvent(@event);
     }
