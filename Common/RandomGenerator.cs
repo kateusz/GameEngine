@@ -1,4 +1,4 @@
-namespace _1.FlappyBirdClone;
+namespace Common;
 
 public class RandomGenerator
 {

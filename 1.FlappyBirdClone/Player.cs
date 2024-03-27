@@ -14,7 +14,7 @@ public class Player
 
     public void LoadAssets()
     {
-        _shipTexture = TextureFactory.Create("assets/textures/Ship.png");
+        _shipTexture = TextureFactory.Create("assets/textures/Ship2.png");
     }
 
     public void OnUpdate(TimeSpan ts)
@@ -30,6 +30,6 @@ public class Player
 
     public void OnRender()
     {
-        Renderer2D.Instance.DrawRotatedQuad(new Vector3(Position.X, Position.Y, 0.5f), new Vector2(1f, 1f), 270f, _shipTexture, 1.0f);
+        Renderer2D.Instance.DrawRotatedQuad(new Vector3(Position.X, Position.Y, 0.5f), new Vector2(1f, 2f), 0f, _shipTexture, 1.0f);
     }
 }

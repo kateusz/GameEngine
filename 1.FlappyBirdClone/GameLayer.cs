@@ -1,3 +1,4 @@
+using Common;
 using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
@@ -41,7 +42,7 @@ public class GameLayer : Layer
         if (_level.IsGameOver())
             _state = GameState.GameOver;
 
-        var playerPos = _level.Player.Position;
+        //var playerPos = _level.Player.Position;
         //_cameraController.Camera.SetPosition(new Vector3(playerPos.X, playerPos.Y, 0.0f));
 
         switch (_state)
@@ -52,7 +53,7 @@ public class GameLayer : Layer
                 break;
             }
         }
-
+        
         // Render
         RendererCommand.SetClearColor(new Vector4(0.0f, 0.0f, 0.0f, 1));
         RendererCommand.Clear();
