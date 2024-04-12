@@ -61,11 +61,6 @@ public class OpenGLWindow : GameWindow, IWindow
         OnClose(new WindowCloseEvent());
     }
 
-    protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
-    {
-        base.OnFramebufferResize(e);
-    }
-
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
@@ -76,7 +71,7 @@ public class OpenGLWindow : GameWindow, IWindow
         // Update the opengl viewport
         GL.Viewport(0, 0, width, height);
         
-        var @event = new WindowResizeEvent(width/2, height/2);
+        var @event = new WindowResizeEvent(width, height);
         OnEvent(@event);
     }
 

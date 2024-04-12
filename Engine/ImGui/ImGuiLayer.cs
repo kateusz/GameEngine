@@ -9,7 +9,7 @@ public class ImGuiLayer : Layer
     
     public ImGuiLayer(string name) : base(name)
     {
-        _controller = new ImGuiController(1280, 1024);
+        _controller = new ImGuiController();
     }
 
     public override void OnImGuiRender()
