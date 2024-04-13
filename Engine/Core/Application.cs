@@ -1,7 +1,7 @@
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
-using Engine.ImGui;
+using Engine.ImGuiNet;
 using NLog;
 
 namespace Engine.Core;

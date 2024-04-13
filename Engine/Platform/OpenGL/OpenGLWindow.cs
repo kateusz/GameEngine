@@ -38,25 +38,25 @@ public class OpenGLWindow : GameWindow, IWindow
         // Initialise the Scale Factor
         _scaleFactorX = 1.0f;
         _scaleFactorY = 1.0f;
-        
+
         // Get the Scale Factor of the Monitor
-        this.TryGetCurrentMonitorScale(out _scaleFactorX, out _scaleFactorY);
-        
+        TryGetCurrentMonitorScale(out _scaleFactorX, out _scaleFactorY);
+
         Keyboard = KeyboardState;
         Mouse = MouseState;
     }
-    
+
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
         Keyboard = KeyboardState;
         Mouse = MouseState;
-        
+
         OnUpdate();
         _context.SwapBuffers();
-        
-        if (!KeyboardState.IsKeyDown(Keys.Escape)) 
+
+        if (!KeyboardState.IsKeyDown(Keys.Escape))
             return;
-        
+
         Close();
         OnClose(new WindowCloseEvent());
     }
@@ -66,11 +66,10 @@ public class OpenGLWindow : GameWindow, IWindow
         base.OnResize(e);
         var width = (int)(Size.X * _scaleFactorX);
         var height = (int)(Size.Y * _scaleFactorY);
-        
-        // TODO: refactor this
-        // Update the opengl viewport
+
         GL.Viewport(0, 0, width, height);
-        
+
+        //var @event = new WindowResizeEvent(Size.X, Size.Y);
         var @event = new WindowResizeEvent(width, height);
         OnEvent(@event);
     }
@@ -98,7 +97,7 @@ public class OpenGLWindow : GameWindow, IWindow
         var @event = new MouseButtonPressedEvent((int)e.Button);
         OnEvent(@event);
     }
-    
+
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
         var @event = new MouseScrolledEvent(e.OffsetX, e.OffsetY);

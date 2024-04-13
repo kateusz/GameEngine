@@ -6,6 +6,8 @@ using OpenTK.Mathematics;
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 using Keys = OpenTK.Windowing.GraphicsLibraryFramework.Keys;
 
+namespace Engine.ImGuiNet;
+
 public class ImGuiController : IDisposable
 {
     private static bool _khrDebugAvailable;
@@ -48,7 +50,8 @@ public class ImGuiController : IDisposable
         IntPtr context = ImGui.CreateContext();
         ImGui.SetCurrentContext(context);
         ImGuiIOPtr io = ImGui.GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
+        //io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
 
         io.ConfigDockingAlwaysTabBar = true;
         io.ConfigWindowsResizeFromEdges = true;
@@ -58,8 +61,6 @@ public class ImGuiController : IDisposable
 
         io.Fonts.AddFontFromFileTTF("inconsolata.ttf", 24);
         //io.Fonts.AddFontDefault();
-
-        io.BackendFlags = ImGuiBackendFlags.None; // ImGuiBackendFlags.RendererHasVtxOffset;
 
         CreateDeviceResources();
         SetKeyMappings();
@@ -248,17 +249,20 @@ void main()
         var mouseState = InputState.Instance.Mouse;
         var keyboardState = InputState.Instance.Keyboard;
 
-        io.MouseDown[0] = mouseState.IsMouseButtonPressed(0);
+        var isLeftButtonClicked = mouseState.IsMouseButtonPressed(0);
+        io.MouseDown[0] = isLeftButtonClicked;
         io.MouseDown[1] = mouseState.IsMouseButtonPressed(1);
         io.MouseDown[2] = mouseState.IsMouseButtonPressed(2);
 
         var mousePos = mouseState.GetMousePosition();
-
+        Console.WriteLine($"isLeftButtonClicked: {isLeftButtonClicked}");
+        Console.WriteLine(mousePos);
         Vector2i screenPoint = new((int)mousePos.Item1, (int)mousePos.Item2);
         screenPoint *= 2;
 
         io.MousePos = new System.Numerics.Vector2(screenPoint.X, screenPoint.Y);
-
+        Console.WriteLine($"X: {io.MousePos.X}, Y: {io.MousePos.Y}");
+        
         foreach (Keys key in Enum.GetValues(typeof(Keys)))
         {
             if (key == Keys.Unknown)
