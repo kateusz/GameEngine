@@ -1,4 +1,5 @@
 using Engine.Platform.OpenGL;
+using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.VertexArray;
 
@@ -10,8 +11,10 @@ public static class VertexArrayFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
+            case ApiType.OpenTK:
                 return new OpenGLVertexArray();
+            case ApiType.SilkNet:
+                return new SilkNetVertexArray();
             default:
                 throw new ArgumentOutOfRangeException();
         }

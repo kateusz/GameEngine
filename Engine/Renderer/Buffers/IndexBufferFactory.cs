@@ -1,4 +1,5 @@
 using Engine.Platform.OpenGL;
+using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Buffers;
 
@@ -10,8 +11,10 @@ public static class IndexBufferFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
+            case ApiType.OpenTK:
                 return new OpenGLIndexBuffer(indices, count);
+            case ApiType.SilkNet:
+                return new SilkNetIndexBuffer(indices, count);
             default:
                 throw new ArgumentOutOfRangeException();
         }

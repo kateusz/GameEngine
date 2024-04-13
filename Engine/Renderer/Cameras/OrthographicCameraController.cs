@@ -1,6 +1,6 @@
+using System.Numerics;
 using Engine.Core.Input;
 using Engine.Events;
-using OpenTK.Mathematics;
 
 namespace Engine.Renderer.Cameras;
 

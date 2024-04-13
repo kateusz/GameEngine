@@ -7,6 +7,6 @@ public class OpenGLKeyboardState : IKeyboardState
 {
     public bool IsKeyPressed(KeyCodes keycode)
     {
-        return OpenGLWindow.Keyboard.IsKeyDown((Keys)((int)keycode));
+        return OpenGLGameWindow.Keyboard.IsKeyDown((Keys)((int)keycode));
     }
 }

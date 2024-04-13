@@ -1,18 +1,18 @@
+using System.Numerics;
 using Engine.Renderer;
 using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
 
 namespace Engine.Platform.OpenGL;
 
 public class SceneData
 {
-    public Matrix4 ViewProjectionMatrix { get; set; }
+    public Matrix4x4 ViewProjectionMatrix { get; set; }
 }
 
 public class OpenGLRendererAPI : IRendererAPI
 {
-    public ApiType ApiType { get; } = ApiType.OpenGL;
+    public ApiType ApiType { get; } = ApiType.OpenTK;
 
     public void Init()
     {

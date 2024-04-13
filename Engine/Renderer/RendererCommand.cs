@@ -1,6 +1,6 @@
 using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
+using System.Numerics;
 
 namespace Engine.Renderer;
 

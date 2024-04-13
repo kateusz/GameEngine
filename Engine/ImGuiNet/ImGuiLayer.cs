@@ -2,6 +2,7 @@ using Engine.Core;
 using Engine.Events;
 using ImGuiNET;
 using OpenTK.Mathematics;
+using Silk.NET.OpenGLES.Extensions.ImGui;
 
 namespace Engine.ImGuiNet;
 
@@ -24,7 +25,7 @@ public class ImGuiLayer : Layer
 
     public ImGuiLayer(string name) : base(name)
     {
-        _controller = new ImGuiController();
+        //_controller = new ImGuiController();
     }
 
     public override void OnImGuiRender()
@@ -78,7 +79,8 @@ public class ImGuiLayer : Layer
     {
         if (@event is WindowResizeEvent windowResizeEvent)
         {
-            _controller.WindowResized(windowResizeEvent.Width, windowResizeEvent.Height);
+            //todo
+            //_controller.WindowResized(windowResizeEvent.Width, windowResizeEvent.Height);
         }
         base.HandleEvent(@event);
     }

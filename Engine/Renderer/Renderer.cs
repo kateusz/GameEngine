@@ -1,8 +1,8 @@
+using System.Numerics;
 using Engine.Platform.OpenGL;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.VertexArray;
-using OpenTK.Mathematics;
 
 namespace Engine.Renderer;
 
@@ -25,7 +25,7 @@ public class Renderer
         SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
     }
     
-    public void Submit(IShader shader, IVertexArray vertexArray, Matrix4 transform)
+    public void Submit(IShader shader, IVertexArray vertexArray, Matrix4x4 transform)
     {
         shader.Bind();
         shader.SetMat4("u_ViewProjection", SceneData.ViewProjectionMatrix);

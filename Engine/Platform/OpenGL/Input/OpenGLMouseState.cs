@@ -7,21 +7,21 @@ public class OpenGLMouseState : IMouseState
 {
     public bool IsMouseButtonPressed(int button)
     {
-        return OpenGLWindow.Mouse.IsButtonDown((MouseButton)button);
+        return OpenGLGameWindow.Mouse.IsButtonDown((MouseButton)button);
     }
 
     public Tuple<float, float> GetMousePosition()
     {
-        return new Tuple<float, float>(OpenGLWindow.Mouse.X, OpenGLWindow.Mouse.Y);
+        return new Tuple<float, float>(OpenGLGameWindow.Mouse.X, OpenGLGameWindow.Mouse.Y);
     }
 
     public float GetMouseX()
     {
-        return OpenGLWindow.Mouse.X;
+        return OpenGLGameWindow.Mouse.X;
     }
 
     public float GetMouseY()
     {
-        return OpenGLWindow.Mouse.Y;
+        return OpenGLGameWindow.Mouse.Y;
     }
 }

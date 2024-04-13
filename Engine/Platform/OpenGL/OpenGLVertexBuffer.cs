@@ -30,6 +30,4 @@ public class OpenGLVertexBuffer : IVertexBuffer
     public void Unbind()
     {
     }
-
-   
 }

@@ -1,10 +1,10 @@
+using System.Numerics;
 using Engine.Core;
 using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using NLog;
-using OpenTK.Mathematics;
 
 namespace Sandbox;
 
@@ -22,6 +22,9 @@ public class Sandbox2D : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
+        if (_cameraController is null)
+            return;
+        
         _cameraController.OnUpdate(timeSpan);
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
