@@ -13,35 +13,53 @@ public class SilkNetShader : IShader
     public SilkNetShader(string vertPath, string fragPath)
     {
         var shaderSource = File.ReadAllText(vertPath);
-        var vertexShader = SilkNetContext.GL.CreateShader(ShaderType.VertexShader);
-
+        // Create our vertex shader, and give it our vertex shader source code.
+        uint vertexShader = SilkNetContext.GL.CreateShader(ShaderType.VertexShader);
         SilkNetContext.GL.ShaderSource(vertexShader, shaderSource);
-        CompileShader(vertexShader);
-        
-        shaderSource = File.ReadAllText(fragPath);
-        var fragmentShader = SilkNetContext.GL.CreateShader(ShaderType.FragmentShader);
-        SilkNetContext.GL.ShaderSource(fragmentShader, shaderSource);
-        CompileShader(fragmentShader);
 
+        // Attempt to compile the shader.
+        SilkNetContext.GL.CompileShader(vertexShader);
+
+        // Check to make sure that the shader has successfully compiled.
+        SilkNetContext.GL.GetShader(vertexShader, ShaderParameterName.CompileStatus, out int vStatus);
+        if (vStatus != (int)GLEnum.True)
+            throw new Exception("Vertex shader failed to compile: " + SilkNetContext.GL.GetShaderInfoLog(vertexShader));
+
+        var fragmentCode = File.ReadAllText(fragPath);
+        // Repeat this process for the fragment shader.
+        uint fragmentShader = SilkNetContext.GL.CreateShader(ShaderType.FragmentShader);
+        SilkNetContext.GL.ShaderSource(fragmentShader, fragmentCode);
+
+        SilkNetContext.GL.CompileShader(fragmentShader);
+
+        SilkNetContext.GL.GetShader(fragmentShader, ShaderParameterName.CompileStatus, out int fStatus);
+        if (fStatus != (int)GLEnum.True)
+            throw new Exception("Fragment shader failed to compile: " +
+                                SilkNetContext.GL.GetShaderInfoLog(fragmentShader));
+
+        // Create our shader program, and attach the vertex & fragment shaders.
         _handle = SilkNetContext.GL.CreateProgram();
 
         SilkNetContext.GL.AttachShader(_handle, vertexShader);
         SilkNetContext.GL.AttachShader(_handle, fragmentShader);
 
-        LinkProgram(_handle);
-        
+        // Attempt to "link" the program together.
+        SilkNetContext.GL.LinkProgram(_handle);
+
+        // Similar to shader compilation, check to make sure that the shader program has linked properly.
         SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.LinkStatus, out int lStatus);
-        if (lStatus != (int) GLEnum.True)
+        if (lStatus != (int)GLEnum.True)
             throw new Exception("Program failed to link: " + SilkNetContext.GL.GetProgramInfoLog(_handle));
-        
+
+        // Detach and delete our shaders. Once a program is linked, we no longer need the individual shader objects.
         SilkNetContext.GL.DetachShader(_handle, vertexShader);
         SilkNetContext.GL.DetachShader(_handle, fragmentShader);
-        SilkNetContext.GL.DeleteShader(fragmentShader);
         SilkNetContext.GL.DeleteShader(vertexShader);
-
-        SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.LinkStatus, out var numberOfUniforms);
+        SilkNetContext.GL.DeleteShader(fragmentShader);
 
         _uniformLocations = new Dictionary<string, int>();
+        
+        SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
 
         for (uint i = 0; i < numberOfUniforms; i++)
         {
@@ -56,7 +74,7 @@ public class SilkNetShader : IShader
         SilkNetContext.GL.CompileShader(shader);
         SilkNetContext.GL.GetShader(shader, ShaderParameterName.CompileStatus, out var code);
 
-        if (code == (int) GLEnum.True)
+        if (code == (int)GLEnum.True)
             return;
 
         // We can use `GL.GetShaderInfoLog(shader)` to get information about the error.
@@ -131,7 +149,7 @@ public class SilkNetShader : IShader
     public void SetMat4(string name, Matrix4x4 data)
     {
         ReadOnlySpan<float> matrix = Matrix4x4ToReadOnlySpan(data);
-        
+
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.UniformMatrix4(_uniformLocations[name], true, matrix);
     }
@@ -146,7 +164,7 @@ public class SilkNetShader : IShader
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform3(_uniformLocations[name], data);
     }
-    
+
     /// <summary>
     /// Set a uniform Vector3 on this shader.
     /// </summary>
@@ -157,11 +175,11 @@ public class SilkNetShader : IShader
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform4(_uniformLocations[name], data);
     }
-    
+
     public static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)
     {
         float[] matrixArray = new float[16]; // Create a float array to hold the matrix elements
-        
+
         // Copy the elements of the matrix into the array
         matrixArray[0] = matrix.M11;
         matrixArray[1] = matrix.M12;
@@ -179,7 +197,7 @@ public class SilkNetShader : IShader
         matrixArray[13] = matrix.M42;
         matrixArray[14] = matrix.M43;
         matrixArray[15] = matrix.M44;
-        
+
         return new ReadOnlySpan<float>(matrixArray); // Create a ReadOnlySpan<float> from the array
     }
 }

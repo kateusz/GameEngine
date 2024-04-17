@@ -7,7 +7,6 @@ namespace Engine.Platform.SilkNet;
 
 public class SilkNetRendererAPI : IRendererAPI
 {
-    public ApiType ApiType { get; }
     public void SetClearColor(Vector4 color)
     {
         SilkNetContext.GL.ClearColor(color.X, color.Y, color.Z, color.W);
@@ -18,7 +17,7 @@ public class SilkNetRendererAPI : IRendererAPI
         SilkNetContext.GL.Clear(ClearBufferMask.ColorBufferBit);
     }
 
-    public void DrawIndexed(IVertexArray vertexArray)
+    public unsafe void DrawIndexed(IVertexArray vertexArray)
     {
         var indexBuffer = vertexArray.IndexBuffer;
         SilkNetContext.GL.DrawElements(PrimitiveType.Triangles, (uint)indexBuffer.GetCount(), DrawElementsType.UnsignedInt, 0);

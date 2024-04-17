@@ -44,6 +44,10 @@ public class Application : IApplication
     private void HandleGameWindowOnLoad()
     {
         Renderer.Renderer.Instance.Init();
+        foreach (var layer in _layersStack)
+        {
+            layer.OnAttach();
+        }
     }
 
     public void Run()
@@ -54,7 +58,6 @@ public class Application : IApplication
     public void PushLayer(Layer layer)
     {
         _layersStack.Insert(0, layer);
-        layer.OnAttach();
     }
 
     public void PushOverlay(Layer overlay)

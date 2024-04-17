@@ -8,7 +8,7 @@ using NLog;
 
 namespace Sandbox;
 
-public class Sandbox2D : Layer
+public class Sandbox2DLayer : Layer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
     
@@ -16,12 +16,13 @@ public class Sandbox2D : Layer
     private Texture2D _texture;
     private Texture2D _spriteSheet;
 
-    public Sandbox2D(string name) : base(name)
+    public Sandbox2DLayer(string name) : base(name)
     {
     }
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
+        // TODO: remove this condition
         if (_cameraController is null)
             return;
         

@@ -63,20 +63,19 @@ public class SilkNetGameWindow : IGameWindow
         _inputContext = _window.CreateInput();
         for (int i = 0; i < _inputContext.Keyboards.Count; i++)
             _inputContext.Keyboards[i].KeyDown += KeyDown;
-
         
         OnWindowLoad();
     }
 
     private void WindowOnUpdate(double deltaTime)
     {
-        WindowOnUpdate(deltaTime);
-        
         var keyboard = _inputContext.Keyboards[0];
         var mouse = _inputContext.Mice[0];
         
         Mouse = mouse;
         Keyboard = keyboard;
+        
+        OnUpdate();
         //_context.SwapBuffers();
 
         // if (!KeyboardState.IsKeyDown(Keys.Escape))
