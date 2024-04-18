@@ -1,4 +1,5 @@
-using Engine.Platform.OpenGL.Input;
+using Engine.Platform.OpenTK.Input;
+using Engine.Platform.SilkNet.Input;
 using Engine.Renderer;
 
 namespace Engine.Core.Input;
@@ -11,8 +12,10 @@ public class MouseStateFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
-                return new OpenGLMouseState();
+            case ApiType.OpenTK:
+                return new OpenTKMouseState();
+            case ApiType.SilkNet:
+                return new SIlkNetMouseState();
             default:
                 throw new ArgumentOutOfRangeException();
         }

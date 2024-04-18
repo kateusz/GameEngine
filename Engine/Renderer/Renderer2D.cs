@@ -3,7 +3,7 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
-using OpenTK.Mathematics;
+using System.Numerics;
 
 namespace Engine.Renderer;
 
@@ -26,10 +26,10 @@ public class Renderer2D
         float[] squareVertices =
         {
             // Position         Texture coordinates
-            0.5f, 0.5f, 0.0f, 1.0f, 1.0f, // top right
-            0.5f, -0.5f, 0.0f, 1.0f, 0.0f, // bottom right
+            0.5f, 0.5f, 0.0f,   1.0f, 1.0f, // top right
+            0.5f, -0.5f, 0.0f,  1.0f, 0.0f, // bottom right
             -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // bottom left
-            -0.5f, 0.5f, 0.0f, 0.0f, 1.0f // top left
+            -0.5f, 0.5f, 0.0f,  0.0f, 1.0f // top left
         };
 
         var squareVertexBuffer = VertexBufferFactory.Create(squareVertices);
@@ -42,12 +42,6 @@ public class Renderer2D
 
         squareVertexBuffer.SetLayout(layout);
         _data.QuadVertexArray.AddVertexBuffer(squareVertexBuffer);
-
-        // var squareIndices = new uint[]
-        // {
-        //     0, 1, 2,
-        //     2, 3, 0
-        // };
 
         var squareIndices = new uint[]
         {
@@ -89,9 +83,9 @@ public class Renderer2D
         _data.TextureShader.SetFloat("u_TilingFactor", 1.0f);
         _data.WhiteTexture.Bind();
 
-        var positionTranslated = Matrix4.CreateTranslation(position.X, position.Y, 0);
-        var scale = Matrix4.CreateScale(size.X, size.Y, 1.0f);
-        var transform = Matrix4.Identity * positionTranslated * scale; /* *rotation */
+        var positionTranslated = Matrix4x4.CreateTranslation(position.X, position.Y, 0);
+        var scale = Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        var transform = Matrix4x4.Identity * positionTranslated * scale; /* *rotation */
         _data.TextureShader.SetMat4("u_Transform", transform);
 
         _data.QuadVertexArray.Bind();
@@ -111,9 +105,9 @@ public class Renderer2D
         _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
         texture.Bind();
 
-        var positionTranslated = Matrix4.CreateTranslation(position);
-        var scale = Matrix4.CreateScale(size.X, size.Y, 1.0f);
-        var transform = Matrix4.Identity * positionTranslated * scale; /* *rotation */
+        var positionTranslated = Matrix4x4.CreateTranslation(position);
+        var scale = Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        var transform = Matrix4x4.Identity * positionTranslated * scale; /* *rotation */
         _data.TextureShader.SetMat4("u_Transform", transform);
 
         _data.QuadVertexArray.Bind();
@@ -131,9 +125,10 @@ public class Renderer2D
         _data.TextureShader.SetFloat("u_TilingFactor", 1.0f);
         _data.WhiteTexture.Bind();
         
-        var transform = Matrix4.CreateTranslation(position) *
-                        Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(rotation)) *
-                        Matrix4.CreateScale(size.X, size.Y, 1.0f);
+        var transform = Matrix4x4.CreateTranslation(position) *
+                        // todo: helper class
+                        Matrix4x4.CreateRotationZ((float)(rotation * (Math.PI / 180))) *
+                        Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
         
         _data.TextureShader.SetMat4("u_Transform", transform);
 
@@ -154,9 +149,9 @@ public class Renderer2D
         _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
         texture.Bind();
         
-        var transform = Matrix4.CreateTranslation(position) *
-                        Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(rotation)) *
-                        Matrix4.CreateScale(size.X, size.Y, 1.0f);
+        var transform = Matrix4x4.CreateTranslation(position) *
+                        Matrix4x4.CreateRotationZ((float)(rotation * (Math.PI / 180))) *
+                        Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
 
         _data.TextureShader.SetMat4("u_Transform", transform);
 

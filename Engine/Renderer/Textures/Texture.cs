@@ -8,6 +8,10 @@ public abstract class Texture
     public virtual void Bind(int slot = 0)
     {
     }
+    
+    public virtual void Unbind()
+    {
+    }
 
     public virtual void SetData(uint data, int size)
     {

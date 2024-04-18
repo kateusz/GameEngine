@@ -1,8 +1,6 @@
-using IGraphicsContext = Engine.Renderer.IGraphicsContext;
+namespace Engine.Platform.OpenTK;
 
-namespace Engine.Platform.OpenGL;
-
-public class OpenGLContext : IGraphicsContext
+public class OpenTKContext
 {
     private Action? _swapBuffer;
 

@@ -1,4 +1,5 @@
-using Engine.Platform.OpenGL;
+using Engine.Platform.OpenTK;
+using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Textures;
 
@@ -11,8 +12,8 @@ public static class TextureFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
-                return OpenGLTexture2D.Create(width, height);
+            case ApiType.OpenTK:
+                return OpenTKTexture2D.Create(width, height);
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -26,8 +27,10 @@ public static class TextureFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
-                return OpenGLTexture2D.Create(path);
+            case ApiType.OpenTK:
+                return OpenTKTexture2D.Create(path);
+            case ApiType.SilkNet:
+                return SilkNetTexture2D.Create(path);
             default:
                 throw new ArgumentOutOfRangeException();
         }

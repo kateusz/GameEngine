@@ -3,13 +3,13 @@ using Engine.Renderer.Shaders;
 using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLVertexArray : IVertexArray
+public class OpenTKVertexArray : IVertexArray
 {
     private int _vertexArrayObject;
 
-    public OpenGLVertexArray()
+    public OpenTKVertexArray()
     {
         _vertexArrayObject = GL.GenVertexArray();
         VertexBuffers = new List<IVertexBuffer>();

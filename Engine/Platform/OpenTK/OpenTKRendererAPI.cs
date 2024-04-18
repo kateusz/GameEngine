@@ -1,18 +1,18 @@
+using System.Numerics;
 using Engine.Renderer;
 using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
 public class SceneData
 {
-    public Matrix4 ViewProjectionMatrix { get; set; }
+    public Matrix4x4 ViewProjectionMatrix { get; set; }
 }
 
-public class OpenGLRendererAPI : IRendererAPI
+public class OpenTKRendererAPI : IRendererAPI
 {
-    public ApiType ApiType { get; } = ApiType.OpenGL;
+    public ApiType ApiType { get; } = ApiType.OpenTK;
 
     public void Init()
     {
@@ -31,7 +31,7 @@ public class OpenGLRendererAPI : IRendererAPI
     public void DrawIndexed(IVertexArray vertexArray)
     {
         var indexBuffer = vertexArray.IndexBuffer;
-        GL.DrawElements(PrimitiveType.Triangles, indexBuffer.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, indexBuffer.Count, DrawElementsType.UnsignedInt, 0);
         GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 }

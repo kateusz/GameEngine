@@ -1,22 +1,23 @@
 using Engine.Renderer.Buffers;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLIndexBuffer : IIndexBuffer
+public class OpenTKIndexBuffer : IIndexBuffer
 {
     private readonly uint[] _indices;
-    private readonly int _count;
     private readonly int _indexBuffer;
 
-    public OpenGLIndexBuffer(uint[] indices, int count)
+    public OpenTKIndexBuffer(uint[] indices, int count)
     {
         _indices = indices;
-        _count = count;
+        Count = count;
         
         _indexBuffer = GL.GenBuffer();
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, _indexBuffer);
     }
+    
+    public int Count { get; }
 
     public void Bind()
     {
@@ -25,11 +26,6 @@ public class OpenGLIndexBuffer : IIndexBuffer
 
     public void Unbind()
     {
-        throw new NotImplementedException();
-    }
-
-    public int GetCount()
-    {
-        return _count;
+        // not needed in openTK
     }
 }

@@ -17,7 +17,7 @@ public class Application : IApplication
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
-    private readonly IWindow _window;
+    private readonly IGameWindow _gameWindow;
     private readonly List<Layer> _layersStack = new();
     private readonly ImGuiLayer _imGuiLayer;
     private bool _isRunning;
@@ -27,29 +27,36 @@ public class Application : IApplication
     {
         var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 1024);
 
-        _window = WindowFactory.Create(windowProps);
-        _window.OnEvent += HandleOnEvent;
-        _window.OnClose += HandleOnWindowClose;
-        _window.OnUpdate += HandleOnUpdate;
+        _gameWindow = WindowFactory.Create(windowProps);
+        _gameWindow.OnEvent += HandleOnEvent;
+        _gameWindow.OnClose += HandleOnGameWindowClose;
+        _gameWindow.OnUpdate += HandleOnUpdate;
+        _gameWindow.OnWindowLoad += HandleGameWindowOnLoad;
         _isRunning = true;
         
-        Renderer.Renderer.Instance.Init();
         InputState.Init();
         
         _imGuiLayer = new ImGuiLayer("ImGUI");
-
         PushOverlay(_imGuiLayer);
+    }
+
+    private void HandleGameWindowOnLoad()
+    {
+        Renderer.Renderer.Instance.Init();
+        foreach (var layer in _layersStack)
+        {
+            layer.OnAttach();
+        }
     }
 
     public void Run()
     {
-        _window.Run();
+        _gameWindow.Run();
     }
 
     public void PushLayer(Layer layer)
     {
         _layersStack.Insert(0, layer);
-        layer.OnAttach();
     }
 
     public void PushOverlay(Layer overlay)
@@ -92,7 +99,7 @@ public class Application : IApplication
         }
     }
     
-    private void HandleOnWindowClose(WindowCloseEvent @event)
+    private void HandleOnGameWindowClose(WindowCloseEvent @event)
     {
         _isRunning = false;
     }

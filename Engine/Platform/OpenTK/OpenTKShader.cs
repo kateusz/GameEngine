@@ -1,16 +1,19 @@
+using System.Numerics;
 using Engine.Renderer.Shaders;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using Vector3 = System.Numerics.Vector3;
+using Vector4 = System.Numerics.Vector4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLShader : IShader
+public class OpenTKShader : IShader
 {
     private readonly int _handle;
 
     private readonly Dictionary<string, int> _uniformLocations;
 
-    public OpenGLShader(string vertPath, string fragPath)
+    public OpenTKShader(string vertPath, string fragPath)
     {
         var shaderSource = File.ReadAllText(vertPath);
         var vertexShader = GL.CreateShader(ShaderType.VertexShader);
@@ -128,10 +131,11 @@ public class OpenGLShader : IShader
     /// </summary>
     /// <param name="name">The name of the uniform</param>
     /// <param name="data">The data to set</param>
-    public void SetMat4(string name, Matrix4 data)
+    public void SetMat4(string name, Matrix4x4 data)
     {
+        var matrix = SystemNumericsToOpenTK(data);
         GL.UseProgram(_handle);
-        GL.UniformMatrix4(_uniformLocations[name], true, ref data);
+        GL.UniformMatrix4(_uniformLocations[name], true, ref matrix);
     }
 
     /// <summary>
@@ -141,8 +145,10 @@ public class OpenGLShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat3(string name, Vector3 data)
     {
+        global::OpenTK.Mathematics.Vector3 vector3 = new global::OpenTK.Mathematics.Vector3(data.X, data.Y, data.Z);
+        
         GL.UseProgram(_handle);
-        GL.Uniform3(_uniformLocations[name], data);
+        GL.Uniform3(_uniformLocations[name], vector3);
     }
     
     /// <summary>
@@ -152,7 +158,19 @@ public class OpenGLShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat4(string name, Vector4 data)
     {
+        global::OpenTK.Mathematics.Vector4 vector4 = new global::OpenTK.Mathematics.Vector4(data.X, data.Y, data.Z, data.W);
+
         GL.UseProgram(_handle);
-        GL.Uniform4(_uniformLocations[name], data);
+        GL.Uniform4(_uniformLocations[name], vector4);
+    }
+    
+    public static Matrix4 SystemNumericsToOpenTK(Matrix4x4 systemNumericsMatrix)
+    {
+        return new Matrix4(
+            systemNumericsMatrix.M11, systemNumericsMatrix.M12, systemNumericsMatrix.M13, systemNumericsMatrix.M14,
+            systemNumericsMatrix.M21, systemNumericsMatrix.M22, systemNumericsMatrix.M23, systemNumericsMatrix.M24,
+            systemNumericsMatrix.M31, systemNumericsMatrix.M32, systemNumericsMatrix.M33, systemNumericsMatrix.M34,
+            systemNumericsMatrix.M41, systemNumericsMatrix.M42, systemNumericsMatrix.M43, systemNumericsMatrix.M44
+        );
     }
 }

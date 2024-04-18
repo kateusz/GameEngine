@@ -1,11 +1,10 @@
 using Engine.Renderer.VertexArray;
-using OpenTK.Mathematics;
+using System.Numerics;
 
 namespace Engine.Renderer;
 
 public interface IRendererAPI
 {
-    ApiType ApiType { get; }
     void SetClearColor(Vector4 color);
     void Clear();
     void DrawIndexed(IVertexArray vertexArray);

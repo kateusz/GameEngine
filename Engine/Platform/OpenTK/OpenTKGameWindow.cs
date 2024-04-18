@@ -5,15 +5,15 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLWindow : GameWindow, IWindow
+public class OpenTKGameWindow : GameWindow, IGameWindow
 {
-    private readonly OpenGLContext _context;
+    private readonly OpenTKContext _context;
     private float _scaleFactorX;
     private float _scaleFactorY;
 
-    public OpenGLWindow(WindowProps props) : base(GameWindowSettings.Default,
+    public OpenTKGameWindow(WindowProps props) : base(GameWindowSettings.Default,
         new NativeWindowSettings
         {
             Size = (props.Width, props.Height),
@@ -22,13 +22,14 @@ public class OpenGLWindow : GameWindow, IWindow
             Vsync = VSyncMode.On
         })
     {
-        _context = new OpenGLContext();
+        _context = new OpenTKContext();
         _context.Init(SwapBuffers);
     }
 
     public event Action<Event> OnEvent = null!;
     public event Action OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
+    public event Action OnWindowLoad;
 
     public static KeyboardState Keyboard { get; private set; } = null!;
     public static MouseState Mouse { get; private set; } = null!;
@@ -44,6 +45,8 @@ public class OpenGLWindow : GameWindow, IWindow
 
         Keyboard = KeyboardState;
         Mouse = MouseState;
+
+        OnWindowLoad();
     }
 
     protected override void OnUpdateFrame(FrameEventArgs e)
