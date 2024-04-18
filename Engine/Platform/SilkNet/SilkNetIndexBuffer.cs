@@ -13,8 +13,7 @@ public class SilkNetIndexBuffer : IIndexBuffer
     {
         _indices = indices;
         _count = count;
-
-
+        
         _indexBuffer = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, _indexBuffer);
     }
@@ -24,14 +23,16 @@ public class SilkNetIndexBuffer : IIndexBuffer
         unsafe
         {
             fixed (uint* buf = _indices)
+            {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ElementArrayBuffer,
                     (nuint)(_indices.Length * sizeof(uint)), buf, BufferUsageARB.StaticDraw);
+            }
         }
     }
 
     public void Unbind()
     {
-        throw new NotImplementedException();
+        SilkNetContext.GL.DeleteBuffer(_indexBuffer);
     }
 
     public int GetCount()

@@ -25,40 +25,41 @@ public class SilkNetVertexArray : IVertexArray
 
     public void Unbind()
     {
+        SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
         // not needed?
-        SilkNetContext.GL.BindVertexArray(0);
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, 0);
+        // SilkNetContext.GL.BindVertexArray(0);
+        // SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
+        // SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, 0);
     }
 
     public void AddVertexBuffer(IVertexBuffer vertexBuffer)
     {
         SilkNetContext.GL.BindVertexArray(_vertexArrayObject);
-        
+
         vertexBuffer.Bind();
-        
+
         if (vertexBuffer.Layout is null)
         {
             throw new InvalidOperationException("Vertex buffer has no layout!");
         }
-        
+
         var layout = vertexBuffer.Layout;
-        
+
         for (int index = 0; index < layout.Elements.Count; index++)
         {
             unsafe
             {
                 var element = layout.Elements[index];
                 SilkNetContext.GL.EnableVertexAttribArray((uint)index);
-                SilkNetContext.GL.VertexAttribPointer((uint)index, 
+                SilkNetContext.GL.VertexAttribPointer((uint)index,
                     element.GetComponentCount(),
                     VertexAttribPointerType.Float,
                     element.Normalized,
                     (uint)layout.Stride,
-                    (void*)0);
+                    (void*)element.Offset);
             }
         }
-        
+
         VertexBuffers.Add(vertexBuffer);
     }
 

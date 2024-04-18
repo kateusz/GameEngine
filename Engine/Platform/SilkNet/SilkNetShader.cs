@@ -7,44 +7,43 @@ namespace Engine.Platform.SilkNet;
 public class SilkNetShader : IShader
 {
     private readonly uint _handle;
-
     private readonly Dictionary<string, int> _uniformLocations;
-    private readonly GL _gl;
 
     public SilkNetShader(string vertPath, string fragPath)
     {
-        _gl = SilkNetContext.GL;
-        //Load the individual shaders.
         uint vertex = LoadShader(ShaderType.VertexShader, vertPath);
         uint fragment = LoadShader(ShaderType.FragmentShader, fragPath);
+        
         //Create the shader program.
-        _handle = _gl.CreateProgram();
+        _handle = SilkNetContext.GL.CreateProgram();
+        
         //Attach the individual shaders.
-        _gl.AttachShader(_handle, vertex);
-        _gl.AttachShader(_handle, fragment);
-        _gl.LinkProgram(_handle);
+        SilkNetContext.GL.AttachShader(_handle, vertex);
+        SilkNetContext.GL.AttachShader(_handle, fragment);
+        SilkNetContext.GL.LinkProgram(_handle);
+        
         //Check for linking errors.
-        _gl.GetProgram(_handle, GLEnum.LinkStatus, out var status);
+        SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
         if (status == 0)
         {
-            throw new Exception($"Program failed to link with error: {_gl.GetProgramInfoLog(_handle)}");
+            throw new Exception($"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
         }
 
         // Detach and delete our shaders. Once a program is linked, we no longer need the individual shader objects.
         // do not detach - debug purposes
-        //_gl.DetachShader(_handle, vertexShader);
-        //_gl.DetachShader(_handle, fragmentShader);
-        _gl.DeleteShader(vertex);
-        _gl.DeleteShader(fragment);
+        //SilkNetContext.GL.DetachShader(_handle, vertexShader);
+        //SilkNetContext.GL.DetachShader(_handle, fragmentShader);
+        SilkNetContext.GL.DeleteShader(vertex);
+        SilkNetContext.GL.DeleteShader(fragment);
 
         _uniformLocations = new Dictionary<string, int>();
         
-        _gl.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
+        SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
 
         for (uint i = 0; i < numberOfUniforms; i++)
         {
-            var key = _gl.GetActiveUniform(_handle, i, out _, out _);
-            var location = _gl.GetUniformLocation(_handle, key);
+            var key = SilkNetContext.GL.GetActiveUniform(_handle, i, out _, out _);
+            var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
             _uniformLocations.Add(key, location);
         }
     }
@@ -58,10 +57,10 @@ public class SilkNetShader : IShader
         //4) Compile the shader.
         //5) Check for errors.
         string src = File.ReadAllText(path);
-        uint handle = _gl.CreateShader(type);
-        _gl.ShaderSource(handle, src);
-        _gl.CompileShader(handle);
-        string infoLog = _gl.GetShaderInfoLog(handle);
+        uint handle = SilkNetContext.GL.CreateShader(type);
+        SilkNetContext.GL.ShaderSource(handle, src);
+        SilkNetContext.GL.CompileShader(handle);
+        string infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
         {
             throw new Exception($"Error compiling shader of type {type}, failed with error {infoLog}");
@@ -72,7 +71,7 @@ public class SilkNetShader : IShader
 
     public void Bind()
     {
-        _gl.UseProgram(_handle);
+        SilkNetContext.GL.UseProgram(_handle);
     }
 
     public void Unbind()
@@ -83,7 +82,7 @@ public class SilkNetShader : IShader
     // you can omit the layout(location=X) lines in the vertex shader, and use this in VertexAttribPointer instead of the hardcoded values.
     public int GetAttribLocation(string attribName)
     {
-        return _gl.GetAttribLocation(_handle, attribName);
+        return SilkNetContext.GL.GetAttribLocation(_handle, attribName);
     }
 
     // Uniform setters
@@ -102,8 +101,8 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetInt(string name, int data)
     {
-        _gl.UseProgram(_handle);
-        _gl.Uniform1(_uniformLocations[name], data);
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
     }
 
     /// <summary>
@@ -113,8 +112,8 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat(string name, float data)
     {
-        _gl.UseProgram(_handle);
-        _gl.Uniform1(_uniformLocations[name], data);
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
     }
 
     /// <summary>
@@ -126,8 +125,8 @@ public class SilkNetShader : IShader
     {
         ReadOnlySpan<float> matrix = Matrix4x4ToReadOnlySpan(data);
 
-        _gl.UseProgram(_handle);
-        _gl.UniformMatrix4(_uniformLocations[name], true, matrix);
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.UniformMatrix4(_uniformLocations[name], true, matrix);
     }
 
     /// <summary>
@@ -137,8 +136,8 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat3(string name, Vector3 data)
     {
-        _gl.UseProgram(_handle);
-        _gl.Uniform3(_uniformLocations[name], data);
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform3(_uniformLocations[name], data);
     }
 
     /// <summary>
@@ -148,8 +147,8 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat4(string name, Vector4 data)
     {
-        _gl.UseProgram(_handle);
-        _gl.Uniform4(_uniformLocations[name], data);
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform4(_uniformLocations[name], data);
     }
 
     public static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)

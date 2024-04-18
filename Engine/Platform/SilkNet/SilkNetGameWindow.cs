@@ -21,7 +21,7 @@ public class SilkNetGameWindow : IGameWindow
     {
         WindowOptions options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
-        options.Title = "My first Silk.NET program!";
+        options.Title = "Game Window";
 
         _window = Window.Create(options);
         
@@ -52,7 +52,8 @@ public class SilkNetGameWindow : IGameWindow
 
     private void WindowOnLoad()
     {
-        SilkNetContext.GL = _window.CreateOpenGL();
+        // todo change to _window.CreateOpenGL()
+        SilkNetContext.GL = GL.GetApi(_window);
         
         // Initialise the Scale Factor
         _scaleFactorX = 1.0f;

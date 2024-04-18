@@ -11,6 +11,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
     public SilkNetVertexBuffer(float[] vertices)
     {
         _vertices = vertices;
+        
         _vertexBufferObject = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _vertexBufferObject);
     }

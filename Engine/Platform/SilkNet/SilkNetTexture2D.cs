@@ -1,5 +1,4 @@
 using Engine.Renderer.Textures;
-using Silk.NET.OpenGL;
 using StbImageSharp;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
@@ -52,6 +51,7 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
 
+        // not needed?
         StbImage.stbi_set_flip_vertically_on_load(1);
 
         var width = 0;
@@ -68,34 +68,50 @@ public class SilkNetTexture2D : Texture2D
 
                 width = image.Width;
                 height = image.Height;
-
+                
                 fixed (byte* ptr = image.Data)
                 {
-                    SilkNetContext.GL.TexImage2D(
-                        TextureTarget.Texture2D,
-                        level: 0,
-                        internalFormat,
-                        (uint)image.Width,
-                        (uint)image.Height,
-                        border: 0,
-                        dataFormat,
-                        GLEnum.UnsignedByte,
-                        ptr);
+                    // Create our texture and upload the image data.
+                    SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint) width, 
+                        (uint) height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
                 }
+
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+        
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
+        
+                SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
             }
         }
 
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-
-        SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+        
 
         return new SilkNetTexture2D(path, handle, width, height, internalFormat, dataFormat);
     }
     
+    // Activate texture
+    // Multiple textures can be bound, if your shader needs more than just one.
+    // If you want to do that, use GL.ActiveTexture to set which slot GL.BindTexture binds to.
+    // The OpenGL standard requires that there be at least 16, but there can be more depending on your graphics card.
+    // Original ver: public void Use(TextureUnit unit)
+    public override void Bind(int slot = 0)
+    {
+        // TODO: map slot to TextureUnit
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+    }
+
+    public override void Unbind()
+    {
+        //In order to dispose we need to delete the opengl handle for the texture.
+        SilkNetContext.GL.DeleteTexture(_rendererId);
+    }
+
     // TODO: check whether it works
     public override void SetData(uint data, int size)
     {
