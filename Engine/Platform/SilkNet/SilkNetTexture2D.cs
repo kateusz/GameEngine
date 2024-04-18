@@ -30,7 +30,12 @@ public class SilkNetTexture2D : Texture2D
         Width = width;
         Height = height;
     }
-    
+
+    public override uint GetRendererId()
+    {
+        return _rendererId;
+    }
+
     public static Texture2D Create(string path)
     {
         // Generate handle

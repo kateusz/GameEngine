@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Core;
 using Engine.Events;
 using Engine.Platform.SilkNet;
@@ -16,8 +17,6 @@ public class ImGuiLayer : Layer
 
     public override void OnImGuiRender()
     {
-        ImGui.ShowDemoWindow();
-        SubmitUI();
     }
 
     public void Begin(TimeSpan timeSpan)
@@ -54,9 +53,5 @@ public class ImGuiLayer : Layer
         }
         
         base.HandleEvent(@event);
-    }
-
-    private void SubmitUI()
-    {
     }
 }
