@@ -8,6 +8,7 @@ public interface ILayer
     void OnAttach();
     void OnDetach();
     void OnUpdate(TimeSpan timeSpan);
+    void OnImGuiRender();
     void HandleEvent(Event @event);
 }
 
@@ -24,6 +25,10 @@ public class Layer : ILayer
     public virtual void OnDetach(){}
 
     public virtual void OnUpdate(TimeSpan timeSpan)
+    {
+    }
+
+    public virtual void OnImGuiRender()
     {
     }
 

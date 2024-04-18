@@ -1,4 +1,5 @@
-using Engine.Platform.OpenGL;
+using Engine.Platform.OpenTK;
+using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Shaders;
 
@@ -10,8 +11,10 @@ public static class ShaderFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
-                return new OpenGLShader(vertPath, fragPath);
+            case ApiType.OpenTK:
+                return new OpenTKShader(vertPath, fragPath);
+            case ApiType.SilkNet:
+                return new SilkNetShader(vertPath, fragPath);
             default:
                 throw new ArgumentOutOfRangeException();
         }

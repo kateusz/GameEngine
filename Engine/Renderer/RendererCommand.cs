@@ -1,5 +1,6 @@
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
+using Engine.Renderer.VertexArray;
+using System.Numerics;
+using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer;
 
@@ -27,6 +28,7 @@ public static class RendererCommand
     public static void Clear()
     {
         RendererApi.Clear();
-        var error = GL.GetError();
+        // TODO: introduce abstraction
+        //var error = SilkNetContext.GL.GetError();
     }
 }

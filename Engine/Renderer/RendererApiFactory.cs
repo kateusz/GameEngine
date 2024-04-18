@@ -1,4 +1,5 @@
-using Engine.Platform.OpenGL;
+using Engine.Platform.OpenTK;
+using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer;
 
@@ -10,8 +11,10 @@ public static class RendererApiFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenGL:
-                return new OpenGLRendererAPI();
+            case ApiType.OpenTK:
+                return new OpenTKRendererAPI();
+            case ApiType.SilkNet:
+                return new SilkNetRendererAPI();
             default:
                 throw new ArgumentOutOfRangeException();
         }

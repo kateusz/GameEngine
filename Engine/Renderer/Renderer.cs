@@ -1,6 +1,8 @@
-using Engine.Platform.OpenGL;
+using System.Numerics;
+using Engine.Platform.OpenTK;
+using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
-using OpenTK.Mathematics;
+using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
 
@@ -8,7 +10,7 @@ public class Renderer
 {
     public static readonly SceneData SceneData = new();
     
-    private static Renderer _instance;
+    private static Renderer? _instance;
 
     public static Renderer Instance => _instance ??= new Renderer();
 
@@ -23,7 +25,7 @@ public class Renderer
         SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
     }
     
-    public void Submit(IShader shader, IVertexArray vertexArray, Matrix4 transform)
+    public void Submit(IShader shader, IVertexArray vertexArray, Matrix4x4 transform)
     {
         shader.Bind();
         shader.SetMat4("u_ViewProjection", SceneData.ViewProjectionMatrix);
