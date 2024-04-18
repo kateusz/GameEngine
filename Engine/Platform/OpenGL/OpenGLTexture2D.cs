@@ -114,7 +114,7 @@ public class OpenGLTexture2D : Texture2D
     // If you want to do that, use GL.ActiveTexture to set which slot GL.BindTexture binds to.
     // The OpenGL standard requires that there be at least 16, but there can be more depending on your graphics card.
     // Original ver: public void Use(TextureUnit unit)
-    public override void Bind(int slot)
+    public override void Bind(int slot = 0)
     {
         // TODO: map slot to TextureUnit
         GL.ActiveTexture(TextureUnit.Texture0);

@@ -29,6 +29,6 @@ public static class RendererCommand
     {
         RendererApi.Clear();
         // TODO: introduce abstraction
-        var error = SilkNetContext.GL.GetError();
+        //var error = SilkNetContext.GL.GetError();
     }
 }
