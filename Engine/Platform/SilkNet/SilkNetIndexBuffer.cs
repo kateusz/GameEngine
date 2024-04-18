@@ -6,17 +6,18 @@ namespace Engine.Platform.SilkNet;
 public class SilkNetIndexBuffer : IIndexBuffer
 {
     private readonly uint[] _indices;
-    private readonly int _count;
     private readonly uint _indexBuffer;
 
     public SilkNetIndexBuffer(uint[] indices, int count)
     {
         _indices = indices;
-        _count = count;
+        Count = count;
         
         _indexBuffer = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, _indexBuffer);
     }
+    
+    public int Count { get; }
 
     public void Bind()
     {
@@ -33,10 +34,5 @@ public class SilkNetIndexBuffer : IIndexBuffer
     public void Unbind()
     {
         SilkNetContext.GL.DeleteBuffer(_indexBuffer);
-    }
-
-    public int GetCount()
-    {
-        return _count;
     }
 }

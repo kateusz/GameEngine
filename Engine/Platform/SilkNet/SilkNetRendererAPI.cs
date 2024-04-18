@@ -20,7 +20,7 @@ public class SilkNetRendererAPI : IRendererAPI
     public unsafe void DrawIndexed(IVertexArray vertexArray)
     {
         var indexBuffer = vertexArray.IndexBuffer;
-        SilkNetContext.GL.DrawElements(PrimitiveType.Triangles, (uint)indexBuffer.GetCount(),
+        SilkNetContext.GL.DrawElements(PrimitiveType.Triangles, (uint)indexBuffer.Count,
             DrawElementsType.UnsignedInt, (void*)0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
     }

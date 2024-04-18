@@ -18,17 +18,6 @@ public class SilkNetTexture2D : Texture2D
     private readonly uint _rendererId;
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
-    
-    private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
-        PixelFormat dataFormat)
-    {
-        _rendererId = rendererId;
-        _internalFormat = internalFormat;
-        _dataFormat = dataFormat;
-
-        Width = width;
-        Height = height;
-    }
 
     private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat)
@@ -101,8 +90,16 @@ public class SilkNetTexture2D : Texture2D
     // Original ver: public void Use(TextureUnit unit)
     public override void Bind(int slot = 0)
     {
-        // TODO: map slot to TextureUnit
-        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        var textureUnit = slot switch
+        {
+            0 => TextureUnit.Texture0,
+            1 => TextureUnit.Texture1,
+            2 => TextureUnit.Texture2,
+            3 => TextureUnit.Texture3,
+            4 => TextureUnit.Texture4,
+        };
+        
+        SilkNetContext.GL.ActiveTexture(textureUnit);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
     }
 

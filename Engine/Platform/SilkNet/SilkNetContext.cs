@@ -1,19 +1,12 @@
-using Engine.Renderer;
+using Silk.NET.Input;
 using Silk.NET.OpenGL;
+using Silk.NET.Windowing;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetContext : IGraphicsContext
+public class SilkNetContext
 {
     public static GL GL { get; set; }
-    
-    public void Init(Action swapBuffer)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void SwapBuffers()
-    {
-        throw new NotImplementedException();
-    }
+    public static IWindow Window { get; set; }
+    public static IInputContext InputContext { get; set; }
 }

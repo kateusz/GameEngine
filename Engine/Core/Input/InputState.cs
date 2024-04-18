@@ -16,8 +16,8 @@ public class InputState
         }
     }
 
-    public IKeyboardState Keyboard { get; private set; } = null!;
-    public IMouseState Mouse { get; private set; } = null!;
+    public IKeyboardState Keyboard { get; set; } = null!;
+    public IMouseState Mouse { get; set; } = null!;
 
     public static void Init()
     {

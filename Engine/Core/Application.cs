@@ -36,9 +36,8 @@ public class Application : IApplication
         
         InputState.Init();
         
-        //_imGuiLayer = new ImGuiLayer("ImGUI");
-
-        //PushOverlay(_imGuiLayer);
+        _imGuiLayer = new ImGuiLayer("ImGUI");
+        PushOverlay(_imGuiLayer);
     }
 
     private void HandleGameWindowOnLoad()
@@ -76,14 +75,14 @@ public class Application : IApplication
             _layersStack[index].OnUpdate(elapsed);
         }
 
-        //_imGuiLayer.Begin(elapsed);
+        _imGuiLayer.Begin(elapsed);
         
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnImGuiRender();
         }
         
-       // _imGuiLayer.End();
+        _imGuiLayer.End();
     }
 
     private void HandleOnEvent(Event @event)

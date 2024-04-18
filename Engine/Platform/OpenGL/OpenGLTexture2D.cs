@@ -116,8 +116,16 @@ public class OpenGLTexture2D : Texture2D
     // Original ver: public void Use(TextureUnit unit)
     public override void Bind(int slot = 0)
     {
-        // TODO: map slot to TextureUnit
-        GL.ActiveTexture(TextureUnit.Texture0);
+        var textureUnit = slot switch
+        {
+            0 => TextureUnit.Texture0,
+            1 => TextureUnit.Texture1,
+            2 => TextureUnit.Texture2,
+            3 => TextureUnit.Texture3,
+            4 => TextureUnit.Texture4,
+        };
+        
+        GL.ActiveTexture(textureUnit);
         GL.BindTexture(TextureTarget.Texture2D, _rendererId);
     }
 

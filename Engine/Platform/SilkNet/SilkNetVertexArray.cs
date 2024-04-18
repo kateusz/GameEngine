@@ -26,10 +26,6 @@ public class SilkNetVertexArray : IVertexArray
     public void Unbind()
     {
         SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
-        // not needed?
-        // SilkNetContext.GL.BindVertexArray(0);
-        // SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
-        // SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, 0);
     }
 
     public void AddVertexBuffer(IVertexBuffer vertexBuffer)

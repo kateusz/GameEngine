@@ -31,7 +31,7 @@ public class OpenGLRendererAPI : IRendererAPI
     public void DrawIndexed(IVertexArray vertexArray)
     {
         var indexBuffer = vertexArray.IndexBuffer;
-        GL.DrawElements(PrimitiveType.Triangles, indexBuffer.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, indexBuffer.Count, DrawElementsType.UnsignedInt, 0);
         GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 }

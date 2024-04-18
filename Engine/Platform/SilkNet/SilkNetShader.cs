@@ -13,15 +13,15 @@ public class SilkNetShader : IShader
     {
         uint vertex = LoadShader(ShaderType.VertexShader, vertPath);
         uint fragment = LoadShader(ShaderType.FragmentShader, fragPath);
-        
+
         //Create the shader program.
         _handle = SilkNetContext.GL.CreateProgram();
-        
+
         //Attach the individual shaders.
         SilkNetContext.GL.AttachShader(_handle, vertex);
         SilkNetContext.GL.AttachShader(_handle, fragment);
         SilkNetContext.GL.LinkProgram(_handle);
-        
+
         //Check for linking errors.
         SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
         if (status == 0)
@@ -29,7 +29,6 @@ public class SilkNetShader : IShader
             throw new Exception($"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
         }
 
-        // Detach and delete our shaders. Once a program is linked, we no longer need the individual shader objects.
         // do not detach - debug purposes
         //SilkNetContext.GL.DetachShader(_handle, vertexShader);
         //SilkNetContext.GL.DetachShader(_handle, fragmentShader);
@@ -37,7 +36,7 @@ public class SilkNetShader : IShader
         SilkNetContext.GL.DeleteShader(fragment);
 
         _uniformLocations = new Dictionary<string, int>();
-        
+
         SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
 
         for (uint i = 0; i < numberOfUniforms; i++)
@@ -46,27 +45,6 @@ public class SilkNetShader : IShader
             var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
             _uniformLocations.Add(key, location);
         }
-    }
-    
-    private uint LoadShader(ShaderType type, string path)
-    {
-        //To load a single shader we need to:
-        //1) Load the shader from a file.
-        //2) Create the handle.
-        //3) Upload the source to opengl.
-        //4) Compile the shader.
-        //5) Check for errors.
-        string src = File.ReadAllText(path);
-        uint handle = SilkNetContext.GL.CreateShader(type);
-        SilkNetContext.GL.ShaderSource(handle, src);
-        SilkNetContext.GL.CompileShader(handle);
-        string infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
-        if (!string.IsNullOrWhiteSpace(infoLog))
-        {
-            throw new Exception($"Error compiling shader of type {type}, failed with error {infoLog}");
-        }
-
-        return handle;
     }
 
     public void Bind()
@@ -174,5 +152,26 @@ public class SilkNetShader : IShader
         matrixArray[15] = matrix.M44;
 
         return new ReadOnlySpan<float>(matrixArray); // Create a ReadOnlySpan<float> from the array
+    }
+
+    private static uint LoadShader(ShaderType type, string path)
+    {
+        //To load a single shader we need to:
+        //1) Load the shader from a file.
+        //2) Create the handle.
+        //3) Upload the source to opengl.
+        //4) Compile the shader.
+        //5) Check for errors.
+        string src = File.ReadAllText(path);
+        uint handle = SilkNetContext.GL.CreateShader(type);
+        SilkNetContext.GL.ShaderSource(handle, src);
+        SilkNetContext.GL.CompileShader(handle);
+        string infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
+        if (!string.IsNullOrWhiteSpace(infoLog))
+        {
+            throw new Exception($"Error compiling shader of type {type}, failed with error {infoLog}");
+        }
+
+        return handle;
     }
 }
