@@ -12,17 +12,6 @@ public class OpenTKTexture2D : Texture2D
     private readonly PixelInternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
 
-    private OpenTKTexture2D(int rendererId, int width, int height, PixelInternalFormat internalFormat,
-        PixelFormat dataFormat)
-    {
-        _rendererId = rendererId;
-        _internalFormat = internalFormat;
-        _dataFormat = dataFormat;
-
-        Width = width;
-        Height = height;
-    }
-
     private OpenTKTexture2D(string path, int rendererId, int width, int height, PixelInternalFormat internalFormat,
         PixelFormat dataFormat)
     {
@@ -84,29 +73,6 @@ public class OpenTKTexture2D : Texture2D
         GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
         return new OpenTKTexture2D(path, handle, width, height, internalFormat, dataFormat);
-    }
-
-    [Obsolete("Crash")]
-    public static OpenTKTexture2D Create(int width, int height)
-    {
-        // Generate handle
-        var rendererId = GL.GenTexture();
-        
-        const PixelInternalFormat internalFormat = PixelInternalFormat.Rgba8;
-        const PixelFormat dataFormat = PixelFormat.Rgba;
-
-        // Bind the handle
-        // TODO: CreateTextures crashes the program
-        GL.CreateTextures(TextureTarget.Texture2D, 1, new int[1] { rendererId });
-        GL.TextureStorage2D(rendererId, 1, SizedInternalFormat.Rgba8, width, height);
-
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-
-        return new OpenTKTexture2D(rendererId, width, height, internalFormat, dataFormat);
     }
 
     // Activate texture

@@ -4,6 +4,7 @@ using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using System.Numerics;
+using Engine.Math;
 
 namespace Engine.Renderer;
 
@@ -17,7 +18,7 @@ public class Renderer2D
 
     public void Init()
     {
-        var textureShader = ShaderFactory.Create("Platform/OpenGL/Shaders/textureShader.vert", "Platform/OpenGL/Shaders/textureShader.frag");
+        var textureShader = ShaderFactory.Create("Shaders/OpenGL/textureShader.vert", "Shaders/OpenGL/textureShader.frag");
         var quadVertexArray = VertexArrayFactory.Create();
         var whiteTexture = TextureFactory.Create("assets/whiteTexture.png");
 
@@ -126,8 +127,7 @@ public class Renderer2D
         _data.WhiteTexture.Bind();
         
         var transform = Matrix4x4.CreateTranslation(position) *
-                        // todo: helper class
-                        Matrix4x4.CreateRotationZ((float)(rotation * (Math.PI / 180))) *
+                        Matrix4x4.CreateRotationZ(MathHelpers.ToRadians(rotation)) *
                         Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
         
         _data.TextureShader.SetMat4("u_Transform", transform);
@@ -150,7 +150,7 @@ public class Renderer2D
         texture.Bind();
         
         var transform = Matrix4x4.CreateTranslation(position) *
-                        Matrix4x4.CreateRotationZ((float)(rotation * (Math.PI / 180))) *
+                        Matrix4x4.CreateRotationZ(MathHelpers.ToRadians(rotation)) *
                         Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
 
         _data.TextureShader.SetMat4("u_Transform", transform);

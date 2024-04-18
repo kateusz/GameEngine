@@ -12,8 +12,6 @@ public class SceneData
 
 public class OpenTKRendererAPI : IRendererAPI
 {
-    public ApiType ApiType { get; } = ApiType.OpenTK;
-
     public void Init()
     {
         GL.Enable(EnableCap.Blend);
@@ -33,5 +31,10 @@ public class OpenTKRendererAPI : IRendererAPI
         var indexBuffer = vertexArray.IndexBuffer;
         GL.DrawElements(PrimitiveType.Triangles, indexBuffer.Count, DrawElementsType.UnsignedInt, 0);
         GL.BindTexture(TextureTarget.Texture2D, 0);
+    }
+    
+    public int GetError()
+    {
+        return (int)GL.GetError();
     }
 }

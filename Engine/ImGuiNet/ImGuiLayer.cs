@@ -2,7 +2,6 @@ using Engine.Core;
 using Engine.Events;
 using Engine.Platform.SilkNet;
 using ImGuiNET;
-using Silk.NET.Input;
 using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Engine.ImGuiNet;
@@ -49,12 +48,11 @@ public class ImGuiLayer : Layer
 
     public override void HandleEvent(Event @event)
     {
-        if (@event is WindowResizeEvent windowResizeEvent)
+        if (@event is WindowCloseEvent)
         {
-            //todo
-            //_controller.WindowResized(windowResizeEvent.Width, windowResizeEvent.Height);
+            _controller.Dispose();
         }
-
+        
         base.HandleEvent(@event);
     }
 

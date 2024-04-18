@@ -70,7 +70,7 @@ public class OrthographicCameraController
     private bool OnMouseScrolled(MouseScrolledEvent @event)
     {
         _zoomLevel = @event.YOffset * 0.25f;
-        _zoomLevel = Math.Max(_zoomLevel, 0.25f);
+        _zoomLevel = System.Math.Max(_zoomLevel, 0.25f);
         Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
         return true;
     }

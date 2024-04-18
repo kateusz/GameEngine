@@ -109,7 +109,7 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.DeleteTexture(_rendererId);
     }
 
-    // TODO: check whether it works
+    // TODO: check whether it works - not used?
     public override void SetData(uint data, int size)
     {
         var intPtrValue = IntPtr.Size switch

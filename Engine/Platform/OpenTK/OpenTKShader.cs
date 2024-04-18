@@ -35,7 +35,6 @@ public class OpenTKShader : IShader
 
         // When the shader program is linked, it no longer needs the individual shaders attached to it; the compiled code is copied into the shader program.
         // Detach them, and then delete them.
-        // TODO: it's not worth to do this because all debug information will be missing
         //GL.DetachShader(Handle, vertexShader);
         //GL.DetachShader(Handle, fragmentShader);
 
