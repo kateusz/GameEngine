@@ -1,5 +1,4 @@
 using Engine.Core.Input;
-using Engine.Platform.OpenGL;
 using Silk.NET.Input;
 
 namespace Engine.Platform.SilkNet.Input;

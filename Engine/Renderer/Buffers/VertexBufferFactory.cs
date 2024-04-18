@@ -1,4 +1,4 @@
-using Engine.Platform.OpenGL;
+using Engine.Platform.OpenTK;
 using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Buffers;
@@ -12,7 +12,7 @@ public static class VertexBufferFactory
             case ApiType.None:
                 break;
             case ApiType.OpenTK:
-                return new OpenGLVertexBuffer(vertices);
+                return new OpenTKVertexBuffer(vertices);
             case ApiType.SilkNet:
                 return new SilkNetVertexBuffer(vertices);
             default:

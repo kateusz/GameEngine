@@ -3,14 +3,14 @@ using Engine.Renderer;
 using Engine.Renderer.VertexArray;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
 public class SceneData
 {
     public Matrix4x4 ViewProjectionMatrix { get; set; }
 }
 
-public class OpenGLRendererAPI : IRendererAPI
+public class OpenTKRendererAPI : IRendererAPI
 {
     public ApiType ApiType { get; } = ApiType.OpenTK;
 

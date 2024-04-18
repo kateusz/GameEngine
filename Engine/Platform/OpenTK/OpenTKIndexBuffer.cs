@@ -1,14 +1,14 @@
 using Engine.Renderer.Buffers;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLIndexBuffer : IIndexBuffer
+public class OpenTKIndexBuffer : IIndexBuffer
 {
     private readonly uint[] _indices;
     private readonly int _indexBuffer;
 
-    public OpenGLIndexBuffer(uint[] indices, int count)
+    public OpenTKIndexBuffer(uint[] indices, int count)
     {
         _indices = indices;
         Count = count;

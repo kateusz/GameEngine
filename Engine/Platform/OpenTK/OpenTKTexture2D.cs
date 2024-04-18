@@ -2,17 +2,17 @@ using Engine.Renderer.Textures;
 using OpenTK.Graphics.OpenGL4;
 using StbImageSharp;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
 // TODO: add support for both RGB and RGBA
-public class OpenGLTexture2D : Texture2D
+public class OpenTKTexture2D : Texture2D
 {
     private readonly string _path;
     private readonly int _rendererId;
     private readonly PixelInternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
 
-    private OpenGLTexture2D(int rendererId, int width, int height, PixelInternalFormat internalFormat,
+    private OpenTKTexture2D(int rendererId, int width, int height, PixelInternalFormat internalFormat,
         PixelFormat dataFormat)
     {
         _rendererId = rendererId;
@@ -23,7 +23,7 @@ public class OpenGLTexture2D : Texture2D
         Height = height;
     }
 
-    private OpenGLTexture2D(string path, int rendererId, int width, int height, PixelInternalFormat internalFormat,
+    private OpenTKTexture2D(string path, int rendererId, int width, int height, PixelInternalFormat internalFormat,
         PixelFormat dataFormat)
     {
         _path = path;
@@ -35,11 +35,11 @@ public class OpenGLTexture2D : Texture2D
         Height = height;
     }
 
-    ~OpenGLTexture2D()
+    ~OpenTKTexture2D()
     {
     }
 
-    public static OpenGLTexture2D Create(string path)
+    public static OpenTKTexture2D Create(string path)
     {
         // Generate handle
         var handle = GL.GenTexture();
@@ -83,11 +83,11 @@ public class OpenGLTexture2D : Texture2D
 
         GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
-        return new OpenGLTexture2D(path, handle, width, height, internalFormat, dataFormat);
+        return new OpenTKTexture2D(path, handle, width, height, internalFormat, dataFormat);
     }
 
     [Obsolete("Crash")]
-    public static OpenGLTexture2D Create(int width, int height)
+    public static OpenTKTexture2D Create(int width, int height)
     {
         // Generate handle
         var rendererId = GL.GenTexture();
@@ -106,7 +106,7 @@ public class OpenGLTexture2D : Texture2D
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
 
-        return new OpenGLTexture2D(rendererId, width, height, internalFormat, dataFormat);
+        return new OpenTKTexture2D(rendererId, width, height, internalFormat, dataFormat);
     }
 
     // Activate texture

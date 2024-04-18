@@ -1,6 +1,6 @@
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLContext
+public class OpenTKContext
 {
     private Action? _swapBuffer;
 

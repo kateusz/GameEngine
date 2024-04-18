@@ -5,15 +5,15 @@ using OpenTK.Mathematics;
 using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLShader : IShader
+public class OpenTKShader : IShader
 {
     private readonly int _handle;
 
     private readonly Dictionary<string, int> _uniformLocations;
 
-    public OpenGLShader(string vertPath, string fragPath)
+    public OpenTKShader(string vertPath, string fragPath)
     {
         var shaderSource = File.ReadAllText(vertPath);
         var vertexShader = GL.CreateShader(ShaderType.VertexShader);
@@ -145,7 +145,7 @@ public class OpenGLShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat3(string name, Vector3 data)
     {
-        OpenTK.Mathematics.Vector3 vector3 = new OpenTK.Mathematics.Vector3(data.X, data.Y, data.Z);
+        global::OpenTK.Mathematics.Vector3 vector3 = new global::OpenTK.Mathematics.Vector3(data.X, data.Y, data.Z);
         
         GL.UseProgram(_handle);
         GL.Uniform3(_uniformLocations[name], vector3);
@@ -158,7 +158,7 @@ public class OpenGLShader : IShader
     /// <param name="data">The data to set</param>
     public void SetFloat4(string name, Vector4 data)
     {
-        OpenTK.Mathematics.Vector4 vector4 = new OpenTK.Mathematics.Vector4(data.X, data.Y, data.Z, data.W);
+        global::OpenTK.Mathematics.Vector4 vector4 = new global::OpenTK.Mathematics.Vector4(data.X, data.Y, data.Z, data.W);
 
         GL.UseProgram(_handle);
         GL.Uniform4(_uniformLocations[name], vector4);

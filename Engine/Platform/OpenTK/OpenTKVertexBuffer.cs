@@ -1,14 +1,14 @@
 using Engine.Renderer.Buffers;
 using OpenTK.Graphics.OpenGL4;
 
-namespace Engine.Platform.OpenGL;
+namespace Engine.Platform.OpenTK;
 
-public class OpenGLVertexBuffer : IVertexBuffer
+public class OpenTKVertexBuffer : IVertexBuffer
 {
     private readonly float[] _vertices;
     private readonly int _vertexBufferObject;
 
-    public OpenGLVertexBuffer(float[] vertices)
+    public OpenTKVertexBuffer(float[] vertices)
     {
         _vertices = vertices;
         _vertexBufferObject = GL.GenBuffer();
