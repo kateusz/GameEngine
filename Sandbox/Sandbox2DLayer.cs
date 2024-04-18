@@ -22,10 +22,6 @@ public class Sandbox2DLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        // TODO: remove this condition
-        if (_cameraController is null)
-            return;
-
         _cameraController.OnUpdate(timeSpan);
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));

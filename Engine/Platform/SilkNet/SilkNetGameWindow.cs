@@ -47,14 +47,14 @@ public class SilkNetGameWindow : IGameWindow
 
     private void OnWindowClosing()
     {
-        // TODO: Dispose our controller first
-        //controller?.Dispose();
+        OnEvent(new WindowCloseEvent());
+        OnClose(new WindowCloseEvent());
 
         // Dispose the input context
-        SilkNetContext.InputContext?.Dispose();
+        SilkNetContext.InputContext.Dispose();
 
         // Unload OpenGL
-        SilkNetContext.GL?.Dispose();
+        SilkNetContext.GL.Dispose();
     }
 
 
@@ -85,8 +85,7 @@ public class SilkNetGameWindow : IGameWindow
 
         if (!InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Escape))
             return;
-
-        OnClose(new WindowCloseEvent());
+        
         _window.Close();
     }
 

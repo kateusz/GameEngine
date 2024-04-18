@@ -32,4 +32,9 @@ public class SilkNetRendererAPI : IRendererAPI
         
         SilkNetContext.GL.Enable(EnableCap.DepthTest);
     }
+
+    public int GetError()
+    {
+        return (int)SilkNetContext.GL.GetError();
+    }
 }

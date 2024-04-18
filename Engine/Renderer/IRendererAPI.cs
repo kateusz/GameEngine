@@ -9,4 +9,5 @@ public interface IRendererAPI
     void Clear();
     void DrawIndexed(IVertexArray vertexArray);
     void Init();
+    int GetError();
 }
