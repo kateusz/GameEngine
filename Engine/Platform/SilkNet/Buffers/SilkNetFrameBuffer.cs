@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Renderer.Buffers;
 using Silk.NET.OpenGL;
 
@@ -5,6 +6,8 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetFrameBuffer : FrameBuffer
 {
+    private const uint MaxFramebufferSize = 8192;
+    
     private uint _rendererId = 0;
     private uint _colorAttachment = 0;
     private uint _depthAttachment = 0;
@@ -28,6 +31,12 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     public override void Resize(uint width, uint height)
     {
+        if (width == 0 || height == 0 || width > MaxFramebufferSize || height > MaxFramebufferSize)
+        {
+            Debug.WriteLine("Attempted to resize framebuffer to {0}, {1}", width, height);
+            return;
+        }
+        
         _specification.Width = width;
         _specification.Height = height;
 
