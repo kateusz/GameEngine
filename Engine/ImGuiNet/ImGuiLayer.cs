@@ -1,4 +1,3 @@
-using System.Numerics;
 using Engine.Core;
 using Engine.Events;
 using Engine.Platform.SilkNet;

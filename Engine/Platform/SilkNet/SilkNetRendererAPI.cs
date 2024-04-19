@@ -14,7 +14,7 @@ public class SilkNetRendererAPI : IRendererAPI
 
     public void Clear()
     {
-        SilkNetContext.GL.Clear(ClearBufferMask.ColorBufferBit);
+        SilkNetContext.GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 
     public unsafe void DrawIndexed(IVertexArray vertexArray)
