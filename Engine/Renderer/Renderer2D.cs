@@ -20,7 +20,7 @@ public class Renderer2D
     {
         var textureShader = ShaderFactory.Create("Shaders/OpenGL/textureShader.vert", "Shaders/OpenGL/textureShader.frag");
         var quadVertexArray = VertexArrayFactory.Create();
-        var whiteTexture = TextureFactory.Create("assets/whiteTexture.png");
+        var whiteTexture = TextureFactory.Create("assets/textures/whiteTexture.png");
 
         _data = new Renderer2DStorage(quadVertexArray, textureShader, whiteTexture);
 
