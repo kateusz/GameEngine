@@ -24,14 +24,25 @@ public class SilkNetFrameBuffer : FrameBuffer
     }
 
     public override uint GetColorAttachmentRendererId() => _colorAttachment;
+    public override FramebufferSpecification GetSpecification() => _specification;
 
-    public void Invalidate()
+    public override void Bind()
+    {
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+    }
+
+    public override void Unbind()
+    {
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+    }
+
+    private void Invalidate()
     {
         unsafe
         {
             _rendererId = SilkNetContext.GL.GenFramebuffer();
             SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
-            
+
             _colorAttachment = SilkNetContext.GL.GenTexture();
             SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
             SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachment);
@@ -50,10 +61,12 @@ public class SilkNetFrameBuffer : FrameBuffer
 
             // Generate handle
             _depthAttachment = SilkNetContext.GL.GenRenderbuffer();
-            
+
             SilkNetContext.GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _depthAttachment);
-            SilkNetContext.GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, InternalFormat.Depth24Stencil8, _specification.Width, _specification.Height);
-            SilkNetContext.GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _depthAttachment);
+            SilkNetContext.GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, InternalFormat.Depth24Stencil8,
+                _specification.Width, _specification.Height);
+            SilkNetContext.GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
+                FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _depthAttachment);
 
             // Check framebuffer completeness
             var status = SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
@@ -65,15 +78,5 @@ public class SilkNetFrameBuffer : FrameBuffer
             // Unbind framebuffer
             SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
-    }
-
-    public override void Bind()
-    {
-        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
-    }
-
-    public override void Unbind()
-    {
-        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
 }

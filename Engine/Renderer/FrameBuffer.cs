@@ -2,24 +2,13 @@ using Engine.Renderer.Buffers;
 
 namespace Engine.Renderer;
 
-public class FrameBuffer : IFrameBuffer
+public abstract class FrameBuffer : IFrameBuffer
 {
-    public virtual void Bind()
-    {
-    }
+    public abstract void Bind();
 
-    public virtual void Unbind()
-    {
-    }
-    
-    public virtual uint GetColorAttachmentRendererId()
-    {
-        return 0;
-    }
+    public abstract void Unbind();
 
-    public virtual FramebufferSpecification GetSpecification()
-    {
-        // TODO:
-        return null;
-    }
+    public abstract uint GetColorAttachmentRendererId();
+
+    public abstract FramebufferSpecification GetSpecification();
 }
