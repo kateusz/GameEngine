@@ -1,5 +1,4 @@
 using Engine.Renderer;
-using Engine.Renderer.Buffers;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
@@ -39,7 +38,7 @@ public class SilkNetFrameBuffer : FrameBuffer
 
             // Create our texture and upload the image data.
             SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, _specification.Width,
-                _specification.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, null);
+                _specification.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, (void*)0);
 
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                 (int)TextureMinFilter.Linear);

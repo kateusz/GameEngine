@@ -26,8 +26,11 @@ public class Sandbox2DLayer : Layer
     public override void OnUpdate(TimeSpan timeSpan)
     {
         _cameraController.OnUpdate(timeSpan);
-
-        ResetStats();
+        
+        _frameBuffer.Bind();
+        
+        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        RendererCommand.Clear();
 
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
 
@@ -83,63 +86,54 @@ public class Sandbox2DLayer : Layer
         SubmitUI();
     }
     
-    public void ResetStats()
-    {
-        _frameBuffer.Bind();
-        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        RendererCommand.Clear();
-    }
 
     private void SubmitUI()
     {
-        unsafe
+        var dockspaceOpen = true;
+        var fullscreenPersistant = true;
+        var dockspaceFlags = ImGuiDockNodeFlags.None;
+
+        var windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
+        if (fullscreenPersistant)
         {
-            var dockspaceOpen = true;
-            var fullscreenPersistant = true;
-            var dockspaceFlags = ImGuiDockNodeFlags.None;
+            var viewPort = ImGui.GetMainViewport();
+            ImGui.SetNextWindowPos(viewPort.Pos);
+            ImGui.SetNextWindowSize(viewPort.Size);
+            ImGui.SetNextWindowViewport(viewPort.ID);
+        }
 
-            var windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
-            if (fullscreenPersistant)
+        ImGui.Begin("Dockspace demo", ref dockspaceOpen, windowFlags);
+
+        var io = ImGui.GetIO();
+
+        var dockspaceId = ImGui.GetID("MyDockSpace");
+        ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
+
+        if (ImGui.BeginMenuBar())
+        {
+            if (ImGui.BeginMenu("File"))
             {
-                var viewPort = ImGui.GetMainViewport();
-                ImGui.SetNextWindowPos(viewPort.Pos);
-                ImGui.SetNextWindowSize(viewPort.Size);
-                ImGui.SetNextWindowViewport(viewPort.ID);
-            }
-
-            ImGui.Begin("Dockspace demo", ref dockspaceOpen, windowFlags);
-
-            var io = ImGui.GetIO();
-
-            var dockspaceId = ImGui.GetID("MyDockSpace");
-            ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
-
-            if (ImGui.BeginMenuBar())
-            {
-                if (ImGui.BeginMenu("File"))
+                if (ImGui.MenuItem("Exit"))
                 {
-                    if (ImGui.MenuItem("Exit"))
-                    {
-                    }
-
-                    ImGui.EndMenu();
                 }
 
-                ImGui.EndMenuBar();
+                ImGui.EndMenu();
             }
 
-            ImGui.Begin("Settings");
-            ImGui.Text("testujemy");
-
-            //ImGui.ColorEdit4("Square color", )
-
-            //var textureId = _frameBuffer.GetColorAttachmentRendererId();
-            var textureId = _texture.GetRendererId();
-            var texturePointer = new IntPtr(textureId++);
-            ImGui.Image(texturePointer, new Vector2(1280, 720));
-
-            ImGui.End();
-            ImGui.End();
+            ImGui.EndMenuBar();
         }
+
+        ImGui.Begin("Settings");
+        ImGui.Text("testujemy");
+
+        //ImGui.ColorEdit4("Square color", )
+
+        var textureId = _frameBuffer.GetColorAttachmentRendererId();
+        //var textureId = _texture.GetRendererId();
+        var texturePointer = new IntPtr(textureId);
+        ImGui.Image(texturePointer, new Vector2(800, 600));
+
+        ImGui.End();
+        ImGui.End();
     }
 }
