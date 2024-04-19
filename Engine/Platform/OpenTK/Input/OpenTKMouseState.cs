@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Core.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -15,11 +16,12 @@ public class OpenTKMouseState : IMouseState
         return new Tuple<float, float>(OpenTKGameWindow.Mouse.X, OpenTKGameWindow.Mouse.Y);
     }
 
-    public float GetMouseX()
+    public Vector2 GetPos()
     {
-        return OpenTKGameWindow.Mouse.X;
+        var pos = OpenTKGameWindow.Mouse.Position;
+        return new Vector2(pos.X, pos.Y);
     }
-
+    
     public float GetMouseY()
     {
         return OpenTKGameWindow.Mouse.Y;

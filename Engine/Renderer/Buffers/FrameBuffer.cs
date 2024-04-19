@@ -1,6 +1,4 @@
-using Engine.Renderer.Buffers;
-
-namespace Engine.Renderer;
+namespace Engine.Renderer.Buffers;
 
 public abstract class FrameBuffer : IFrameBuffer
 {
@@ -10,5 +8,5 @@ public abstract class FrameBuffer : IFrameBuffer
 
     public abstract uint GetColorAttachmentRendererId();
 
-    public abstract FramebufferSpecification GetSpecification();
+    public abstract FrameBufferSpecification GetSpecification();
 }

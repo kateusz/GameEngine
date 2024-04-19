@@ -16,7 +16,7 @@ public class SilkNetGameWindow : IGameWindow
     public SilkNetGameWindow(WindowProps props)
     {
         WindowOptions options = WindowOptions.Default;
-        options.Size = new Vector2D<int>(800, 600);
+        options.Size = new Vector2D<int>(props.Width, props.Height);
         options.Title = "Game Window";
 
         _window = Window.Create(options);
@@ -40,11 +40,6 @@ public class SilkNetGameWindow : IGameWindow
         _window.Run();
     }
 
-    public void SwapBuffers()
-    {
-        // not needed for Silk.Net
-    }
-
     private void OnWindowClosing()
     {
         OnEvent(new WindowCloseEvent());
@@ -56,8 +51,7 @@ public class SilkNetGameWindow : IGameWindow
         // Unload OpenGL
         SilkNetContext.GL.Dispose();
     }
-
-
+    
     private void WindowOnLoad()
     {
         SilkNetContext.GL = _window.CreateOpenGL();

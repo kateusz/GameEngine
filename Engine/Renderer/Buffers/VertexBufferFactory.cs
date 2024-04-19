@@ -1,5 +1,6 @@
 using Engine.Platform.OpenTK;
 using Engine.Platform.SilkNet;
+using Engine.Platform.SilkNet.Buffers;
 
 namespace Engine.Renderer.Buffers;
 

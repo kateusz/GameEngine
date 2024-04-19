@@ -1,7 +1,7 @@
 using Engine.Renderer.Buffers;
 using Silk.NET.OpenGL;
 
-namespace Engine.Platform.SilkNet;
+namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetIndexBuffer : IIndexBuffer
 {

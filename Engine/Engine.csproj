@@ -43,18 +43,6 @@
         <None Update="ImGui\Shaders\imgui-vertex.glsl">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="Shaders\OpenGL\flatColorShader.frag">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Shaders\OpenGL\flatColorShader.vert">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Shaders\OpenGL\textureShader.frag">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Shaders\OpenGL\textureShader.vert">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
     
     <ItemGroup>
