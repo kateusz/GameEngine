@@ -72,7 +72,7 @@ public class EditorLayer : Layer
         _texture = TextureFactory.Create("assets/textures/Checkerboard.png");
         //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
 
-        var frameBufferSpec = new FramebufferSpecification(1280, 720);
+        var frameBufferSpec = new FrameBufferSpecification(1280, 720);
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
     }
 

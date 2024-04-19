@@ -1,16 +1,16 @@
-using Engine.Renderer;
+using Engine.Renderer.Buffers;
 using Silk.NET.OpenGL;
 
-namespace Engine.Platform.SilkNet;
+namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetFrameBuffer : FrameBuffer
 {
     private uint _rendererId;
     private uint _colorAttachment;
     private uint _depthAttachment;
-    private readonly FramebufferSpecification _specification;
+    private readonly FrameBufferSpecification _specification;
 
-    public SilkNetFrameBuffer(FramebufferSpecification spec)
+    public SilkNetFrameBuffer(FrameBufferSpecification spec)
     {
         _specification = spec;
         Invalidate();
@@ -24,7 +24,7 @@ public class SilkNetFrameBuffer : FrameBuffer
     }
 
     public override uint GetColorAttachmentRendererId() => _colorAttachment;
-    public override FramebufferSpecification GetSpecification() => _specification;
+    public override FrameBufferSpecification GetSpecification() => _specification;
 
     public override void Bind()
     {

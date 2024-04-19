@@ -12,7 +12,7 @@ public interface ILayer
     void HandleEvent(Event @event);
 }
 
-public class Layer : ILayer
+public abstract class Layer : ILayer
 {
     public string Name { get; }
 
@@ -24,13 +24,9 @@ public class Layer : ILayer
     public virtual void OnAttach(){}
     public virtual void OnDetach(){}
 
-    public virtual void OnUpdate(TimeSpan timeSpan)
-    {
-    }
+    public abstract void OnUpdate(TimeSpan timeSpan);
 
-    public virtual void OnImGuiRender()
-    {
-    }
+    public abstract void OnImGuiRender();
 
     public virtual void HandleEvent(Event @event)
     {

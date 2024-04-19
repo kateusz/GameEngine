@@ -1,11 +1,11 @@
 using Engine.Platform.SilkNet;
-using Engine.Renderer.Buffers;
+using Engine.Platform.SilkNet.Buffers;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Buffers;
 
 public static class FrameBufferFactory
 {
-    public static IFrameBuffer Create(FramebufferSpecification spec)
+    public static IFrameBuffer Create(FrameBufferSpecification spec)
     {
         switch (RendererApiType.Type)
         {

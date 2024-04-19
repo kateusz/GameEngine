@@ -14,6 +14,10 @@ public class ImGuiLayer : Layer
     {
     }
 
+    public override void OnUpdate(TimeSpan timeSpan)
+    {
+    }
+
     public override void OnImGuiRender()
     {
     }
@@ -37,14 +41,6 @@ public class ImGuiLayer : Layer
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
     }
 
-    private void OnConfigureIo()
-    {
-        var io = ImGui.GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-        io.WantSaveIniSettings = true;
-    }
-
     public override void HandleEvent(Event @event)
     {
         if (@event is WindowCloseEvent)
@@ -53,5 +49,13 @@ public class ImGuiLayer : Layer
         }
         
         base.HandleEvent(@event);
+    }
+    
+    private static void OnConfigureIo()
+    {
+        var io = ImGui.GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.WantSaveIniSettings = true;
     }
 }
