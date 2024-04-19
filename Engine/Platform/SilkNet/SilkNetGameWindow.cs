@@ -66,6 +66,14 @@ public class SilkNetGameWindow : IGameWindow
         Console.WriteLine("Load!");
 
         SilkNetContext.InputContext = _window.CreateInput();
+        
+        var keyboard = SilkNetContext.InputContext.Keyboards[0];
+        var mouse = SilkNetContext.InputContext.Mice[0];
+
+        Mouse = mouse;
+        Mouse.Scroll += OnMouseWheel;
+        
+        Keyboard = keyboard;
 
         for (int i = 0; i < SilkNetContext.InputContext.Keyboards.Count; i++)
             SilkNetContext.InputContext.Keyboards[i].KeyDown += KeyDown;
@@ -75,12 +83,6 @@ public class SilkNetGameWindow : IGameWindow
 
     private void WindowOnUpdate(double deltaTime)
     {
-        var keyboard = SilkNetContext.InputContext.Keyboards[0];
-        var mouse = SilkNetContext.InputContext.Mice[0];
-
-        Mouse = mouse;
-        Keyboard = keyboard;
-
         OnUpdate();
 
         if (!InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Escape))
@@ -101,6 +103,12 @@ public class SilkNetGameWindow : IGameWindow
         SilkNetContext.GL.Viewport(newSize);
 
         var @event = new WindowResizeEvent(newSize.X, newSize.Y);
+        OnEvent(@event);
+    }
+
+    private void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
+    {
+        var @event = new MouseScrolledEvent(scrollWheel.X, scrollWheel.Y);
         OnEvent(@event);
     }
 }
