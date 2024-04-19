@@ -33,7 +33,7 @@ public class ImGuiLayer : Layer
         var view = SilkNetContext.Window;
         var inputContext = SilkNetContext.InputContext;
         var gl = SilkNetContext.GL;
-
+        
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
     }
 
@@ -42,6 +42,7 @@ public class ImGuiLayer : Layer
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.WantSaveIniSettings = true;
     }
 
     public override void HandleEvent(Event @event)
