@@ -18,6 +18,7 @@ public class EditorLayer : Layer
     private Texture2D _texture;
     private Texture2D _spriteSheet;
     private IFrameBuffer _frameBuffer;
+    private Vector2 _viewportSize;
 
     public EditorLayer(string name) : base(name)
     {
@@ -90,7 +91,7 @@ public class EditorLayer : Layer
     private void SubmitUI()
     {
         var dockspaceOpen = true;
-        var fullscreenPersistant = true;
+        const bool fullscreenPersistant = true;
         var dockspaceFlags = ImGuiDockNodeFlags.None;
 
         var windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
@@ -102,7 +103,7 @@ public class EditorLayer : Layer
             ImGui.SetNextWindowViewport(viewPort.ID);
         }
 
-        ImGui.Begin("Dockspace demo", ref dockspaceOpen, windowFlags);
+        ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
 
         var io = ImGui.GetIO();
 
@@ -125,13 +126,28 @@ public class EditorLayer : Layer
 
         ImGui.Begin("Settings");
         ImGui.Text("testujemy");
+        ImGui.End();
+        
+        ImGui.Begin("Viewport");
+        var viewportPanelSize = ImGui.GetContentRegionAvail();
+        if (_viewportSize != viewportPanelSize)
+        {
+            _frameBuffer.Resize((uint)viewportPanelSize.X, (uint)viewportPanelSize.Y);
+            _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
 
-        //ImGui.ColorEdit4("Square color", )
-
+            var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
+            _cameraController.OnEvent(@resizeEvent);
+        }
+        
         var textureId = _frameBuffer.GetColorAttachmentRendererId();
-        //var textureId = _texture.GetRendererId();
         var texturePointer = new IntPtr(textureId);
-        ImGui.Image(texturePointer, new Vector2(800, 600));
+        ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1), new Vector2(1, 0));
+        ImGui.End();
+
+        // var textureId = _frameBuffer.GetColorAttachmentRendererId();
+        // var texturePointer = new IntPtr(textureId);
+        //
+        // ImGui.Image(texturePointer, new Vector2(800, 600));
 
         ImGui.End();
         ImGui.End();

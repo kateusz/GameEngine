@@ -5,9 +5,9 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetFrameBuffer : FrameBuffer
 {
-    private uint _rendererId;
-    private uint _colorAttachment;
-    private uint _depthAttachment;
+    private uint _rendererId = 0;
+    private uint _colorAttachment = 0;
+    private uint _depthAttachment = 0;
     private readonly FrameBufferSpecification _specification;
 
     public SilkNetFrameBuffer(FrameBufferSpecification spec)
@@ -26,9 +26,18 @@ public class SilkNetFrameBuffer : FrameBuffer
     public override uint GetColorAttachmentRendererId() => _colorAttachment;
     public override FrameBufferSpecification GetSpecification() => _specification;
 
+    public override void Resize(uint width, uint height)
+    {
+        _specification.Width = width;
+        _specification.Height = height;
+
+        Invalidate();
+    }
+
     public override void Bind()
     {
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+        //SilkNetContext.GL.Viewport(0, 0, _specification.Width, _specification.Height);
     }
 
     public override void Unbind()
@@ -40,6 +49,15 @@ public class SilkNetFrameBuffer : FrameBuffer
     {
         unsafe
         {
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+
+                SilkNetContext.GL.DeleteTexture(_colorAttachment);
+
+                SilkNetContext.GL.DeleteRenderbuffer(_depthAttachment);
+            }
+
             _rendererId = SilkNetContext.GL.GenFramebuffer();
             SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
 
@@ -72,7 +90,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             var status = SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
             if (status != GLEnum.FramebufferComplete)
             {
-                throw new Exception($"Framebuffer is not complete: {status}");
+                //throw new Exception($"Framebuffer is not complete: {status}");
             }
 
             // Unbind framebuffer
