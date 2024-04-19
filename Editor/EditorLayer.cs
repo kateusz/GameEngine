@@ -8,23 +8,26 @@ using Engine.Renderer.Textures;
 using ImGuiNET;
 using NLog;
 
-namespace Sandbox;
+namespace Editor;
 
-public class Sandbox2DLayer : Layer
+public class EditorLayer : Layer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
     private OrthographicCameraController _cameraController;
     private Texture2D _texture;
     private Texture2D _spriteSheet;
+    private IFrameBuffer _frameBuffer;
 
-    public Sandbox2DLayer(string name) : base(name)
+    public EditorLayer(string name) : base(name)
     {
     }
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
         _cameraController.OnUpdate(timeSpan);
+        
+        _frameBuffer.Bind();
         
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
@@ -46,6 +49,8 @@ public class Sandbox2DLayer : Layer
             _texture);
 
         Renderer2D.Instance.EndScene();
+        
+        _frameBuffer.Unbind();
 
         // Renderer2D.Instance.BeginScene(_cameraController.Camera);
         // Renderer2D.Instance.DrawQuad(Vector2.Zero, new Vector2(1.0f, 1.0f), _spriteSheet);
@@ -64,8 +69,11 @@ public class Sandbox2DLayer : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _texture = TextureFactory.Create("assets/Checkerboard.png");
+        _texture = TextureFactory.Create("assets/textures/Checkerboard.png");
         //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
+
+        var frameBufferSpec = new FramebufferSpecification(1280, 720);
+        _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
     }
 
     public override void OnDetach()
@@ -81,6 +89,51 @@ public class Sandbox2DLayer : Layer
 
     private void SubmitUI()
     {
-        ImGui.ShowDemoWindow();
+        var dockspaceOpen = true;
+        var fullscreenPersistant = true;
+        var dockspaceFlags = ImGuiDockNodeFlags.None;
+
+        var windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
+        if (fullscreenPersistant)
+        {
+            var viewPort = ImGui.GetMainViewport();
+            ImGui.SetNextWindowPos(viewPort.Pos);
+            ImGui.SetNextWindowSize(viewPort.Size);
+            ImGui.SetNextWindowViewport(viewPort.ID);
+        }
+
+        ImGui.Begin("Dockspace demo", ref dockspaceOpen, windowFlags);
+
+        var io = ImGui.GetIO();
+
+        var dockspaceId = ImGui.GetID("MyDockSpace");
+        ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
+
+        if (ImGui.BeginMenuBar())
+        {
+            if (ImGui.BeginMenu("File"))
+            {
+                if (ImGui.MenuItem("Exit"))
+                {
+                }
+
+                ImGui.EndMenu();
+            }
+
+            ImGui.EndMenuBar();
+        }
+
+        ImGui.Begin("Settings");
+        ImGui.Text("testujemy");
+
+        //ImGui.ColorEdit4("Square color", )
+
+        var textureId = _frameBuffer.GetColorAttachmentRendererId();
+        //var textureId = _texture.GetRendererId();
+        var texturePointer = new IntPtr(textureId);
+        ImGui.Image(texturePointer, new Vector2(800, 600));
+
+        ImGui.End();
+        ImGui.End();
     }
 }
