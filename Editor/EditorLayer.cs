@@ -7,6 +7,7 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using ImGuiNET;
 using NLog;
+using Application = Engine.Core.Application;
 
 namespace Editor;
 
@@ -19,6 +20,8 @@ public class EditorLayer : Layer
     private Texture2D _spriteSheet;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
+    private bool _viewportFocused;
+    private bool _viewportHovered;
 
     public EditorLayer(string name) : base(name)
     {
@@ -26,10 +29,11 @@ public class EditorLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        _cameraController.OnUpdate(timeSpan);
-        
+        if (_viewportFocused)
+            _cameraController.OnUpdate(timeSpan);
+
         _frameBuffer.Bind();
-        
+
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
@@ -50,7 +54,7 @@ public class EditorLayer : Layer
             _texture);
 
         Renderer2D.Instance.EndScene();
-        
+
         _frameBuffer.Unbind();
 
         // Renderer2D.Instance.BeginScene(_cameraController.Camera);
@@ -86,7 +90,7 @@ public class EditorLayer : Layer
     {
         SubmitUI();
     }
-    
+
 
     private void SubmitUI()
     {
@@ -116,6 +120,7 @@ public class EditorLayer : Layer
             {
                 if (ImGui.MenuItem("Exit"))
                 {
+                    // todo
                 }
 
                 ImGui.EndMenu();
@@ -124,11 +129,18 @@ public class EditorLayer : Layer
             ImGui.EndMenuBar();
         }
 
+        string testString = "";
         ImGui.Begin("Settings");
-        ImGui.Text("testujemy");
+        ImGui.Text("Testing!");
+        ImGui.InputText("##InputText", ref testString, 50);
         ImGui.End();
-        
+
         ImGui.Begin("Viewport");
+
+        _viewportFocused = ImGui.IsWindowFocused();
+        _viewportHovered = ImGui.IsWindowHovered();
+        Application.ImGuiLayer.BlockEvents = !_viewportFocused || !_viewportHovered;
+
         var viewportPanelSize = ImGui.GetContentRegionAvail();
         if (_viewportSize != viewportPanelSize)
         {
@@ -138,10 +150,11 @@ public class EditorLayer : Layer
             var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
             _cameraController.OnEvent(@resizeEvent);
         }
-        
+
         var textureId = _frameBuffer.GetColorAttachmentRendererId();
         var texturePointer = new IntPtr(textureId);
-        ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1), new Vector2(1, 0));
+        ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
+            new Vector2(1, 0));
         ImGui.End();
 
         // var textureId = _frameBuffer.GetColorAttachmentRendererId();

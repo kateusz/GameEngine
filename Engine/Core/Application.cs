@@ -9,17 +9,18 @@ namespace Engine.Core;
 public interface IApplication
 {
     void Run();
-    void PushLayer(Layer layer);
-    void PushOverlay(Layer overlay);
+    void PushLayer(ILayer layer);
+    void PushOverlay(ILayer overlay);
 }
 
 public class Application : IApplication
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
+    public static ImGuiLayer ImGuiLayer;
+
     private readonly IGameWindow _gameWindow;
-    private readonly List<Layer> _layersStack = new();
-    private readonly ImGuiLayer _imGuiLayer;
+    private readonly List<ILayer> _layersStack = new();
     private bool _isRunning;
     private DateTime _lastTime;
 
@@ -36,8 +37,8 @@ public class Application : IApplication
         
         InputState.Init();
         
-        _imGuiLayer = new ImGuiLayer("ImGUI");
-        PushOverlay(_imGuiLayer);
+        ImGuiLayer = new ImGuiLayer("ImGUI");
+        PushOverlay(ImGuiLayer);
     }
 
     private void HandleGameWindowOnLoad()
@@ -54,12 +55,12 @@ public class Application : IApplication
         _gameWindow.Run();
     }
 
-    public void PushLayer(Layer layer)
+    public void PushLayer(ILayer layer)
     {
         _layersStack.Insert(0, layer);
     }
 
-    public void PushOverlay(Layer overlay)
+    public void PushOverlay(ILayer overlay)
     {
         _layersStack.Add(overlay);
     }
@@ -75,14 +76,14 @@ public class Application : IApplication
             _layersStack[index].OnUpdate(elapsed);
         }
 
-        _imGuiLayer.Begin(elapsed);
+        ImGuiLayer.Begin(elapsed);
         
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnImGuiRender();
         }
         
-        _imGuiLayer.End();
+        ImGuiLayer.End();
     }
 
     private void HandleOnEvent(Event @event)
