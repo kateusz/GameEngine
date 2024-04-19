@@ -6,5 +6,5 @@ public abstract record Event
     protected abstract EventType EventType { get; }
     protected abstract EventCategory EventCategory { get; }
 
-    protected bool IsInCategory(EventCategory category) => EventCategory.HasFlag(category);
+    public bool IsInCategory(EventCategory category) => EventCategory.HasFlag(category);
 }

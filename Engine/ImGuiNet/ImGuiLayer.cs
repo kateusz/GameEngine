@@ -37,7 +37,7 @@ public class ImGuiLayer : Layer
         var view = SilkNetContext.Window;
         var inputContext = SilkNetContext.InputContext;
         var gl = SilkNetContext.GL;
-        
+
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
     }
 
@@ -47,10 +47,19 @@ public class ImGuiLayer : Layer
         {
             _controller.Dispose();
         }
-        
+
+        if (BlockEvents)
+        {
+            var io = ImGui.GetIO();
+            @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryMouse) & io.WantCaptureMouse;
+            @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryKeyboard) & io.WantCaptureKeyboard;
+        }
+
         base.HandleEvent(@event);
     }
-    
+
+    public bool BlockEvents { get; set; }
+
     private static void OnConfigureIo()
     {
         var io = ImGui.GetIO();
