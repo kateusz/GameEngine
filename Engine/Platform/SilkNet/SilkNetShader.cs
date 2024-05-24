@@ -54,6 +54,7 @@ public class SilkNetShader : IShader
 
     public void Unbind()
     {
+        SilkNetContext.GL.UseProgram(0);
     }
 
     // The shader sources provided with this project use hardcoded layout(location)-s. If you want to do it dynamically,
@@ -79,6 +80,8 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetInt(string name, int data)
     {
+        int uniformLocation = SilkNetContext.GL.GetUniformLocation(_handle, "u_Texture");
+
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
     }
