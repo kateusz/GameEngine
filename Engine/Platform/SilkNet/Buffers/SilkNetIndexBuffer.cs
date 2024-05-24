@@ -6,33 +6,40 @@ namespace Engine.Platform.SilkNet.Buffers;
 public class SilkNetIndexBuffer : IIndexBuffer
 {
     private readonly uint[] _indices;
-    private readonly uint _indexBuffer;
+    private readonly uint _rendererId;
 
     public SilkNetIndexBuffer(uint[] indices, int count)
     {
         _indices = indices;
         Count = count;
         
-        _indexBuffer = SilkNetContext.GL.GenBuffer();
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, _indexBuffer);
+        _rendererId = SilkNetContext.GL.GenBuffer();
+        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
+        
+        unsafe
+        {
+            fixed (uint* buf = _indices)
+            {
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)count * sizeof(uint), buf, BufferUsageARB.StaticDraw);
+            }
+        }
+    }
+
+    ~SilkNetIndexBuffer()
+    {
+        SilkNetContext.GL.DeleteBuffers(1, _rendererId);
     }
     
     public int Count { get; }
 
     public void Bind()
     {
-        unsafe
-        {
-            fixed (uint* buf = _indices)
-            {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ElementArrayBuffer,
-                    (nuint)(_indices.Length * sizeof(uint)), buf, BufferUsageARB.StaticDraw);
-            }
-        }
+        SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, _rendererId);
+ 
     }
 
     public void Unbind()
     {
-        SilkNetContext.GL.DeleteBuffer(_indexBuffer);
+        SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, 0);
     }
 }
