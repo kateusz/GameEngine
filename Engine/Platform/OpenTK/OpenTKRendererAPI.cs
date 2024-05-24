@@ -26,7 +26,7 @@ public class OpenTKRendererAPI : IRendererAPI
     public void Clear()
         => GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-    public void DrawIndexed(IVertexArray vertexArray)
+    public void DrawIndexed(IVertexArray vertexArray, uint count)
     {
         var indexBuffer = vertexArray.IndexBuffer;
         GL.DrawElements(PrimitiveType.Triangles, indexBuffer.Count, DrawElementsType.UnsignedInt, 0);
