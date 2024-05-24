@@ -99,7 +99,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             var status = SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
             if (status != GLEnum.FramebufferComplete)
             {
-                //throw new Exception($"Framebuffer is not complete: {status}");
+                throw new Exception($"Framebuffer is not complete: {status}");
             }
 
             // Unbind framebuffer

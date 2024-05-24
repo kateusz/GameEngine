@@ -1,3 +1,4 @@
+using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using OpenTK.Graphics.OpenGL4;
 
@@ -21,7 +22,11 @@ public class OpenTKVertexBuffer : IVertexBuffer
     }
 
     public BufferLayout Layout { get; private set; }
-    
+    public void SetData(QuadVertex[] toArray, uint dataSize)
+    {
+        throw new NotImplementedException();
+    }
+
     public void Bind()
     {
         GL.BufferData(BufferTarget.ArrayBuffer, _vertices.Length * sizeof(float), _vertices, BufferUsageHint.StaticDraw);
