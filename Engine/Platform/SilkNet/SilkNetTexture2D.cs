@@ -1,4 +1,5 @@
 using Engine.Renderer.Textures;
+using Silk.NET.OpenGL;
 using StbImageSharp;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
@@ -19,16 +20,21 @@ public class SilkNetTexture2D : Texture2D
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
 
-    private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
+    private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat)
     {
-        _path = path;
         _rendererId = rendererId;
         _internalFormat = internalFormat;
         _dataFormat = dataFormat;
 
         Width = width;
         Height = height;
+    }
+    
+    private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
+        PixelFormat dataFormat) : this(rendererId, width, height, internalFormat, dataFormat)
+    {
+        _path = path;
     }
 
     public override uint GetRendererId()
@@ -42,6 +48,8 @@ public class SilkNetTexture2D : Texture2D
         var handle = SilkNetContext.GL.GenTexture();
 
         // Bind the handle
+        
+        // todo: texture1? 
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
 
@@ -95,17 +103,7 @@ public class SilkNetTexture2D : Texture2D
     // Original ver: public void Use(TextureUnit unit)
     public override void Bind(int slot = 0)
     {
-        var textureUnit = slot switch
-        {
-            0 => TextureUnit.Texture0,
-            1 => TextureUnit.Texture1,
-            2 => TextureUnit.Texture2,
-            3 => TextureUnit.Texture3,
-            4 => TextureUnit.Texture4,
-        };
-        
-        SilkNetContext.GL.ActiveTexture(textureUnit);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+        SilkNetContext.GL.BindTextureUnit((uint)slot, _rendererId);
     }
 
     public override void Unbind()
@@ -114,7 +112,6 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.DeleteTexture(_rendererId);
     }
 
-    // TODO: check whether it works - not used?
     public override void SetData(uint data, int size)
     {
         var intPtrValue = IntPtr.Size switch
@@ -131,7 +128,34 @@ public class SilkNetTexture2D : Texture2D
             throw new Exception("Data must be entire texture!");
         }
 
-        SilkNetContext.GL.TextureSubImage2D(_rendererId, 0, 0, 0, (uint)Width, (uint)Height, _dataFormat, PixelType.UnsignedByte,
-            intPtrValue);
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+        SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0, _dataFormat, PixelType.UnsignedByte, intPtrValue);
+    }
+
+    public static Texture2D Create(int width, int height)
+    {
+        var internalFormat = InternalFormat.Rgba8;
+        var dataFormat = PixelFormat.Rgba;
+        
+        uint[] textures = new uint[1];
+        SilkNetContext.GL.GenTextures(1, textures);
+        var rendererID = textures[0];
+        
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        
+       
+        SilkNetContext.GL.BindTexture(GLEnum.Texture2D, rendererID);
+
+       
+        SilkNetContext.GL.TexImage2D(GLEnum.Texture2D, 0, internalFormat, (uint)width, (uint)height, 0, dataFormat,
+            GLEnum.UnsignedByte, IntPtr.Zero);
+        
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.Linear);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Nearest);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapS, (int)GLEnum.Repeat);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapT, (int)GLEnum.Repeat);
+
+        return new SilkNetTexture2D(rendererID, width, height, internalFormat, dataFormat);
     }
 }

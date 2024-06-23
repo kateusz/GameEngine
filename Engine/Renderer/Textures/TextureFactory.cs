@@ -21,4 +21,20 @@ public static class TextureFactory
 
         throw new ArgumentOutOfRangeException();
     }
+
+    public static Texture2D Create(int width, int height)
+    {
+        switch (RendererApiType.Type)
+        {
+            case ApiType.None:
+                break;
+            case ApiType.OpenTK:
+            case ApiType.SilkNet:
+                return SilkNetTexture2D.Create(width, height);
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        throw new ArgumentOutOfRangeException();
+    }
 }

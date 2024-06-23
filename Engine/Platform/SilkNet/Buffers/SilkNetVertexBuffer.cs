@@ -1,3 +1,4 @@
+using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Silk.NET.OpenGL;
 
@@ -5,15 +6,18 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetVertexBuffer : IVertexBuffer
 {
-    private readonly float[] _vertices;
-    private readonly uint _vertexBufferObject;
+    private readonly uint _rendererId;
 
-    public SilkNetVertexBuffer(float[] vertices)
+    public SilkNetVertexBuffer(uint size)
     {
-        _vertices = vertices;
-        
-        _vertexBufferObject = SilkNetContext.GL.GenBuffer();
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _vertexBufferObject);
+        _rendererId = SilkNetContext.GL.GenBuffer();
+        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
+        SilkNetContext.GL.BufferData(GLEnum.ArrayBuffer, size, IntPtr.Zero, GLEnum.DynamicDraw);
+    }
+
+    ~SilkNetVertexBuffer()
+    {
+        SilkNetContext.GL.DeleteBuffers(1, _rendererId);
     }
 
     public void SetLayout(BufferLayout layout)
@@ -23,17 +27,39 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public BufferLayout Layout { get; private set; }
 
-    public void Bind()
+    public void SetData(QuadVertex[] vertexes, uint dataSize)
     {
+        if (vertexes.Length == 0)
+            return;
+        
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+
+        var floats = new List<float>();
+        
+        foreach (var quadVertex in vertexes)
+        {
+            floats.AddRange(quadVertex.GetFloatArray());
+        }
+        
+        var bufferData = floats.ToArray();
+        
         unsafe
         {
-            fixed (float* buf = _vertices)
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(_vertices.Length * sizeof(float)),
-                    buf, BufferUsageARB.StaticDraw);
+            fixed (float* pNewData = bufferData)
+            {
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(bufferData.Length * sizeof(float)),
+                    pNewData, BufferUsageARB.StaticDraw);
+            }
         }
+    }
+
+    public void Bind()
+    {
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
     }
 
     public void Unbind()
     {
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, 0);
     }
 }

@@ -41,8 +41,8 @@ public class EditorLayer : Layer
         //     45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
 
         // // blue
-        Renderer2D.Instance.DrawQuad(new Vector2(-0.3f, 0.2f), new Vector2(0.5f, 0.5f),
-            new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
+        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
+            new Vector4(0.8f, 0.2f, 0.3f, 1.0f ));
         //
         // //texture
         // Renderer2D.Instance.DrawQuad(
@@ -124,7 +124,6 @@ public class EditorLayer : Layer
                 ImGui.InputText("##InputText", ref testString, 50);
                 ImGui.End();
             }
-
 
             ImGui.Begin("Viewport");
             {
