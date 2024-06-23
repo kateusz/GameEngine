@@ -22,7 +22,7 @@ public class OpenTKVertexBuffer : IVertexBuffer
     }
 
     public BufferLayout Layout { get; private set; }
-    public void SetData(QuadVertex[] toArray, uint dataSize)
+    public void SetData(QuadVertex[] vertexes, uint dataSize)
     {
         throw new NotImplementedException();
     }

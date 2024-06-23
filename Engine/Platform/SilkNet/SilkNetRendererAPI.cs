@@ -17,12 +17,13 @@ public class SilkNetRendererAPI : IRendererAPI
         SilkNetContext.GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 
-    public unsafe void DrawIndexed(IVertexArray vertexArray)
+    public unsafe void DrawIndexed(IVertexArray vertexArray, uint count)
     {
         var indexBuffer = vertexArray.IndexBuffer;
-        SilkNetContext.GL.DrawElements(PrimitiveType.Triangles, (uint)indexBuffer.Count,
-            DrawElementsType.UnsignedInt, (void*)0);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
+        var itemsCount = count != 0 ? count : (uint)indexBuffer.Count;
+
+        SilkNetContext.GL.DrawElements(PrimitiveType.Triangles, itemsCount, DrawElementsType.UnsignedInt, (void*)0); // check with: IntPtr.Zero);
+        //SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 
     public void Init()
