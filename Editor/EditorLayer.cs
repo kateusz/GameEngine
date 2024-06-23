@@ -4,7 +4,6 @@ using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
-using Engine.Renderer.Textures;
 using ImGuiNET;
 using NLog;
 using Application = Engine.Core.Application;
@@ -16,8 +15,6 @@ public class EditorLayer : Layer
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
     private OrthographicCameraController _cameraController;
-    private Texture2D _texture;
-    private Texture2D _spriteSheet;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
@@ -40,26 +37,22 @@ public class EditorLayer : Layer
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
 
         // red
-        Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f),
-            45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
+        // Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f),
+        //     45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
 
         // // blue
         Renderer2D.Instance.DrawQuad(new Vector2(-0.3f, 0.2f), new Vector2(0.5f, 0.5f),
             new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
         //
         // //texture
-        Renderer2D.Instance.DrawQuad(
-            new Vector3(0.0f, 0.0f, -0.5f),
-            new Vector2(10.0f, 10.0f),
-            _texture);
+        // Renderer2D.Instance.DrawQuad(
+        //     new Vector3(0.0f, 0.0f, -0.5f),
+        //     new Vector2(10.0f, 10.0f),
+        //     _texture);
 
         Renderer2D.Instance.EndScene();
 
         _frameBuffer.Unbind();
-
-        // Renderer2D.Instance.BeginScene(_cameraController.Camera);
-        // Renderer2D.Instance.DrawQuad(Vector2.Zero, new Vector2(1.0f, 1.0f), _spriteSheet);
-        // Renderer2D.Instance.EndScene();
     }
 
     public override void HandleEvent(Event @event)
@@ -74,9 +67,6 @@ public class EditorLayer : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _texture = TextureFactory.Create("assets/textures/Checkerboard.png");
-        //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
-
         var frameBufferSpec = new FrameBufferSpecification(1280, 720);
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
     }
@@ -108,61 +98,56 @@ public class EditorLayer : Layer
         }
 
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
-
-        var io = ImGui.GetIO();
-
-        var dockspaceId = ImGui.GetID("MyDockSpace");
-        ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
-
-        if (ImGui.BeginMenuBar())
         {
-            if (ImGui.BeginMenu("File"))
+            var dockspaceId = ImGui.GetID("MyDockSpace");
+            ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
+
+            if (ImGui.BeginMenuBar())
             {
-                if (ImGui.MenuItem("Exit"))
+                if (ImGui.BeginMenu("File"))
                 {
-                    // todo
+                    if (ImGui.MenuItem("Exit"))
+                    {
+                        // todo
+                    }
+
+                    ImGui.EndMenu();
                 }
 
-                ImGui.EndMenu();
+                ImGui.EndMenuBar();
             }
 
-            ImGui.EndMenuBar();
+            string testString = "";
+            ImGui.Begin("Settings");
+            {
+                ImGui.Text("Testing!");
+                ImGui.InputText("##InputText", ref testString, 50);
+                ImGui.End();
+            }
+
+
+            ImGui.Begin("Viewport");
+            {
+                _viewportFocused = ImGui.IsWindowFocused();
+                _viewportHovered = ImGui.IsWindowHovered();
+                Application.ImGuiLayer.BlockEvents = !_viewportFocused || !_viewportHovered;
+
+                var viewportPanelSize = ImGui.GetContentRegionAvail();
+                if (_viewportSize != viewportPanelSize)
+                {
+                    _frameBuffer.Resize((uint)viewportPanelSize.X, (uint)viewportPanelSize.Y);
+                    _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
+
+                    var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
+                    _cameraController.OnEvent(@resizeEvent);
+                }
+
+                var textureId = _frameBuffer.GetColorAttachmentRendererId();
+                var texturePointer = new IntPtr(textureId);
+                ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
+                    new Vector2(1, 0));
+                ImGui.End();
+            }
         }
-
-        string testString = "";
-        ImGui.Begin("Settings");
-        ImGui.Text("Testing!");
-        ImGui.InputText("##InputText", ref testString, 50);
-        ImGui.End();
-
-        ImGui.Begin("Viewport");
-
-        _viewportFocused = ImGui.IsWindowFocused();
-        _viewportHovered = ImGui.IsWindowHovered();
-        Application.ImGuiLayer.BlockEvents = !_viewportFocused || !_viewportHovered;
-
-        var viewportPanelSize = ImGui.GetContentRegionAvail();
-        if (_viewportSize != viewportPanelSize)
-        {
-            _frameBuffer.Resize((uint)viewportPanelSize.X, (uint)viewportPanelSize.Y);
-            _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
-
-            var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
-            _cameraController.OnEvent(@resizeEvent);
-        }
-
-        var textureId = _frameBuffer.GetColorAttachmentRendererId();
-        var texturePointer = new IntPtr(textureId);
-        ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
-            new Vector2(1, 0));
-        ImGui.End();
-
-        // var textureId = _frameBuffer.GetColorAttachmentRendererId();
-        // var texturePointer = new IntPtr(textureId);
-        //
-        // ImGui.Image(texturePointer, new Vector2(800, 600));
-
-        ImGui.End();
-        ImGui.End();
     }
 }

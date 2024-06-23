@@ -12,9 +12,9 @@ public static class RendererCommand
         RendererApi.Init();
     }
     
-    public static void DrawIndexed(IVertexArray vertexArray)
+    public static void DrawIndexed(IVertexArray vertexArray, uint count = 0)
     {
-        RendererApi.DrawIndexed(vertexArray);
+        RendererApi.DrawIndexed(vertexArray, count);
     }
 
     public static void SetClearColor(Vector4 color)

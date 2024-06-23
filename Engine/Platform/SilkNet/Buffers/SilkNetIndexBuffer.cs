@@ -5,12 +5,10 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetIndexBuffer : IIndexBuffer
 {
-    private readonly uint[] _indices;
     private readonly uint _rendererId;
 
     public SilkNetIndexBuffer(uint[] indices, int count)
     {
-        _indices = indices;
         Count = count;
         
         _rendererId = SilkNetContext.GL.GenBuffer();
@@ -18,7 +16,7 @@ public class SilkNetIndexBuffer : IIndexBuffer
         
         unsafe
         {
-            fixed (uint* buf = _indices)
+            fixed (uint* buf = indices)
             {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)count * sizeof(uint), buf, BufferUsageARB.StaticDraw);
             }
