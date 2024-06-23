@@ -15,7 +15,26 @@ public static class VertexBufferFactory
             case ApiType.OpenTK:
                 return new OpenTKVertexBuffer(vertices);
             case ApiType.SilkNet:
-                return new SilkNetVertexBuffer(vertices);
+                // todo:
+                //return new SilkNetVertexBuffer(vertices);
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    
+        throw new ArgumentOutOfRangeException();
+    }
+    
+    public static IVertexBuffer Create(uint size)
+    {
+        switch (RendererApiType.Type)
+        {
+            case ApiType.None:
+                break;
+            case ApiType.SilkNet:
+                return new SilkNetVertexBuffer(size);
+            case ApiType.OpenTK:
+                // todo:
+                //return new OpenTKVertexBuffer(size);
             default:
                 throw new ArgumentOutOfRangeException();
         }
