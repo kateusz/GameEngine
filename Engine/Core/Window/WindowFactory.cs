@@ -1,4 +1,3 @@
-using Engine.Platform.OpenTK;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 
@@ -12,8 +11,6 @@ public class WindowFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenTK:
-                return new OpenTKGameWindow(props);
             case ApiType.SilkNet:
                 return new SilkNetGameWindow(props);
             default:

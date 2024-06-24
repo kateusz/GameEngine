@@ -2,7 +2,6 @@ using Engine.Core;
 using Engine.Events;
 using Engine.Platform.SilkNet;
 using ImGuiNET;
-using Silk.NET.Input;
 using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Engine.ImGuiNet;
@@ -15,10 +14,12 @@ public class ImGuiLayer : Layer
     {
     }
 
+    public override void OnUpdate(TimeSpan timeSpan)
+    {
+    }
+
     public override void OnImGuiRender()
     {
-        ImGui.ShowDemoWindow();
-        SubmitUI();
     }
 
     public void Begin(TimeSpan timeSpan)
@@ -40,25 +41,30 @@ public class ImGuiLayer : Layer
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
     }
 
-    private void OnConfigureIo()
-    {
-        var io = ImGui.GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
-        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-    }
-
     public override void HandleEvent(Event @event)
     {
-        if (@event is WindowResizeEvent windowResizeEvent)
+        if (@event is WindowCloseEvent)
         {
-            //todo
-            //_controller.WindowResized(windowResizeEvent.Width, windowResizeEvent.Height);
+            _controller.Dispose();
+        }
+
+        if (BlockEvents)
+        {
+            var io = ImGui.GetIO();
+            @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryMouse) & io.WantCaptureMouse;
+            @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryKeyboard) & io.WantCaptureKeyboard;
         }
 
         base.HandleEvent(@event);
     }
 
-    private void SubmitUI()
+    public bool BlockEvents { get; set; }
+
+    private static void OnConfigureIo()
     {
+        var io = ImGui.GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        io.WantSaveIniSettings = true;
     }
 }

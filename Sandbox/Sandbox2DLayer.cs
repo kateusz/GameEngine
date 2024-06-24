@@ -4,6 +4,7 @@ using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
+using ImGuiNET;
 using NLog;
 
 namespace Sandbox;
@@ -22,12 +23,8 @@ public class Sandbox2DLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        // TODO: remove this condition
-        if (_cameraController is null)
-            return;
-
         _cameraController.OnUpdate(timeSpan);
-
+        
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
@@ -38,14 +35,14 @@ public class Sandbox2DLayer : Layer
             45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
 
         // // blue
-         Renderer2D.Instance.DrawQuad(new Vector2(-0.3f, 0.2f), new Vector2(0.5f, 0.5f),
+        Renderer2D.Instance.DrawQuad(new Vector2(-0.3f, 0.2f), new Vector2(0.5f, 0.5f),
             new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
         //
         // //texture
-        // Renderer2D.Instance.DrawQuad(
-        //     new Vector3(0.0f, 0.0f, -0.5f),
-        //     new Vector2(10.0f, 10.0f),
-        //     _texture);
+        Renderer2D.Instance.DrawQuad(
+            new Vector3(0.0f, 0.0f, -0.5f),
+            new Vector2(10.0f, 10.0f),
+            _texture);
 
         Renderer2D.Instance.EndScene();
 
@@ -67,11 +64,22 @@ public class Sandbox2DLayer : Layer
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         _texture = TextureFactory.Create("assets/Checkerboard.png");
-        _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
+        //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
     }
 
     public override void OnDetach()
     {
         Logger.Debug("ExampleLayer OnDetach.");
+    }
+
+    public override void OnImGuiRender()
+    {
+        SubmitUI();
+    }
+    
+
+    private void SubmitUI()
+    {
+        ImGui.ShowDemoWindow();
     }
 }

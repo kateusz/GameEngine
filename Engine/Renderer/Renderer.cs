@@ -1,5 +1,4 @@
 using System.Numerics;
-using Engine.Platform.OpenTK;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.VertexArray;
@@ -8,7 +7,7 @@ namespace Engine.Renderer;
 
 public class Renderer
 {
-    public static readonly SceneData SceneData = new();
+    public static readonly dynamic SceneData;
     
     private static Renderer? _instance;
 

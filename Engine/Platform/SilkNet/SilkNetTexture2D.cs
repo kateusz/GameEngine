@@ -1,4 +1,5 @@
 using Engine.Renderer.Textures;
+using Silk.NET.OpenGL;
 using StbImageSharp;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
@@ -15,28 +16,37 @@ namespace Engine.Platform.SilkNet;
 public class SilkNetTexture2D : Texture2D
 {
     private readonly string _path;
-    private readonly uint _rendererId;
+    public uint RendererId { get; }
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
 
-    private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
+    private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat)
     {
-        _path = path;
-        _rendererId = rendererId;
+        RendererId = rendererId;
         _internalFormat = internalFormat;
         _dataFormat = dataFormat;
 
         Width = width;
         Height = height;
     }
-    
+
+    private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
+        PixelFormat dataFormat) : this(rendererId, width, height, internalFormat, dataFormat)
+    {
+        _path = path;
+    }
+
+    public override uint GetRendererId()
+    {
+        return RendererId;
+    }
+
     public static Texture2D Create(string path)
     {
-        // Generate handle
         var handle = SilkNetContext.GL.GenTexture();
 
-        // Bind the handle
+        // todo: texture1? 
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
 
@@ -57,32 +67,34 @@ public class SilkNetTexture2D : Texture2D
 
                 width = image.Width;
                 height = image.Height;
-                
+
                 fixed (byte* ptr = image.Data)
                 {
                     // Create our texture and upload the image data.
-                    SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint) width, 
-                        (uint) height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+                    SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)width,
+                        (uint)height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
                 }
 
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                    (int)TextureMinFilter.Linear);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                    (int)TextureMagFilter.Nearest);
 
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-        
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                    (int)TextureWrapMode.Repeat);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                    (int)TextureWrapMode.Repeat);
+
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
-        
+
                 SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
             }
         }
 
-        
-
         return new SilkNetTexture2D(path, handle, width, height, internalFormat, dataFormat);
     }
-    
+
     // Activate texture
     // Multiple textures can be bound, if your shader needs more than just one.
     // If you want to do that, use GL.ActiveTexture to set which slot GL.BindTexture binds to.
@@ -90,26 +102,16 @@ public class SilkNetTexture2D : Texture2D
     // Original ver: public void Use(TextureUnit unit)
     public override void Bind(int slot = 0)
     {
-        var textureUnit = slot switch
-        {
-            0 => TextureUnit.Texture0,
-            1 => TextureUnit.Texture1,
-            2 => TextureUnit.Texture2,
-            3 => TextureUnit.Texture3,
-            4 => TextureUnit.Texture4,
-        };
-        
-        SilkNetContext.GL.ActiveTexture(textureUnit);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);
     }
 
     public override void Unbind()
     {
         //In order to dispose we need to delete the opengl handle for the texture.
-        SilkNetContext.GL.DeleteTexture(_rendererId);
+        SilkNetContext.GL.DeleteTexture(RendererId);
     }
 
-    // TODO: check whether it works
     public override void SetData(uint data, int size)
     {
         var intPtrValue = IntPtr.Size switch
@@ -126,7 +128,35 @@ public class SilkNetTexture2D : Texture2D
             throw new Exception("Data must be entire texture!");
         }
 
-        SilkNetContext.GL.TextureSubImage2D(_rendererId, 0, 0, 0, (uint)Width, (uint)Height, _dataFormat, PixelType.UnsignedByte,
-            intPtrValue);
+        // todo: texture1?
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);
+        SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0,
+            _dataFormat, PixelType.UnsignedByte, intPtrValue);
     }
+
+    public static Texture2D Create(int width, int height)
+    {
+        var internalFormat = InternalFormat.Rgba8;
+        var dataFormat = PixelFormat.Rgba;
+
+        uint[] textures = new uint[1];
+        SilkNetContext.GL.GenTextures(1, textures);
+        var rendererId = textures[0];
+        
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        SilkNetContext.GL.BindTexture(GLEnum.Texture2D, rendererId);
+
+        SilkNetContext.GL.TexImage2D(GLEnum.Texture2D, 0, internalFormat, (uint)width, (uint)height, 0, dataFormat,
+            GLEnum.UnsignedByte, IntPtr.Zero);
+
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.Linear);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Nearest);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapS, (int)GLEnum.Repeat);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapT, (int)GLEnum.Repeat);
+
+        return new SilkNetTexture2D(rendererId, width, height, internalFormat, dataFormat);
+    }
+
+    public override bool Equals(object? obj) => RendererId == ((SilkNetTexture2D)obj).RendererId;
 }

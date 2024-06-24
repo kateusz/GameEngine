@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Math;
 
 namespace Engine.Renderer.Cameras;
 
@@ -49,7 +50,7 @@ public class OrthographicCamera
     private void RecalculateViewMatrix()
     {
         var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, 0);
-        var rotation = Matrix4x4.CreateRotationZ((float)(Rotation * (Math.PI / 180)));
+        var rotation = Matrix4x4.CreateRotationZ(MathHelpers.ToRadians(Rotation));
         var scale = Matrix4x4.CreateScale(Scale.X, Scale.Y, Scale.Z);
 
         var transform = Matrix4x4.Identity;

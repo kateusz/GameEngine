@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Core.Input;
 using Silk.NET.Input;
 
@@ -15,13 +16,8 @@ public class SIlkNetMouseState : IMouseState
         return new Tuple<float, float>(SilkNetGameWindow.Mouse.Position.X, SilkNetGameWindow.Mouse.Position.Y);
     }
 
-    public float GetMouseX()
+    public Vector2 GetPos()
     {
-        return SilkNetGameWindow.Mouse.Position.X;
-    }
-
-    public float GetMouseY()
-    {
-        return SilkNetGameWindow.Mouse.Position.Y;
+        return SilkNetGameWindow.Mouse.Position;
     }
 }

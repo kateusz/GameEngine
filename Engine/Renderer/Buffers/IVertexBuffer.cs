@@ -4,4 +4,5 @@ public interface IVertexBuffer : IBindable
 {
     public void SetLayout(BufferLayout layout);
     public BufferLayout Layout { get; }
+    void SetData(QuadVertex[] vertexes, uint dataSize);
 }
