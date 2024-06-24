@@ -22,13 +22,15 @@ public class Renderer2D
         _data = new Renderer2DData();
 
         _data.QuadVertexArray = VertexArrayFactory.Create();
-        uint quadVertexSize = 36;
+        var quadVertexSize = QuadVertex.GetSize();
 
         var layout = new BufferLayout(new[]
         {
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float4, "a_Color"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
+            new BufferElement(ShaderDataType.Float, "a_TexIndex"),
+            new BufferElement(ShaderDataType.Float, "a_TilingFactor"),
         });
         _data.QuadVertexBuffer = VertexBufferFactory.Create(Renderer2DData.MaxVertices * quadVertexSize);
         _data.QuadVertexBuffer.SetLayout(layout);
@@ -59,16 +61,22 @@ public class Renderer2D
         uint whiteTextureData = 0xffffffff;
         _data.WhiteTexture.SetData(whiteTextureData, sizeof(uint));
 
+        var samplers = new int[Renderer2DData.MaxTextureSlots];
+        for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
+            samplers[i] = i;
+
         _data.TextureShader = ShaderFactory.Create("assets/shaders/opengl/textureShader.vert",
             "assets/shaders/opengl/textureShader.frag");
         _data.TextureShader.Bind();
+        _data.TextureShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
+
+        // Set all texture slots to 0
+        _data.TextureSlots.Add(_data.WhiteTexture);
 
         _data.QuadVertexPositions.Add(new Vector4(-0.5f, -0.5f, 0.0f, 1.0f));
         _data.QuadVertexPositions.Add(new Vector4(0.5f, -0.5f, 0.0f, 1.0f));
         _data.QuadVertexPositions.Add(new Vector4(0.5f, 0.5f, 0.0f, 1.0f));
         _data.QuadVertexPositions.Add(new Vector4(-0.5f, 0.5f, 0.0f, 1.0f));
-        
-        //_data.TextureShader.SetInt("u_Texture", 0);
     }
 
     public void Shutdown()
@@ -82,6 +90,7 @@ public class Renderer2D
         _data.QuadVertexBufferBase = [];
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
+        _data.TextureSlotIndex = 1;
     }
 
     public void EndScene()
@@ -103,12 +112,79 @@ public class Renderer2D
         if (_data.QuadIndexBufferCount == 0)
             return; // Nothing to draw
 
+        // Bind textures
+        for (var i = 0; i < _data.TextureSlotIndex; i++)
+            _data.TextureSlots[i].Bind(i);
+
         RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+    }
+
+    private void FlushAndReset()
+    {
+        EndScene();
+
+        _data.QuadIndexCount = 0;
+        _data.QuadIndexBufferCount = 0;
+        _data.QuadVertexBufferBase = [];
+        _data.TextureSlotIndex = 1;
     }
 
     public void DrawQuad(Vector2 position, Vector2 size, Vector4 color)
     {
-        Matrix4x4 transform = Matrix4x4.CreateTranslation(new Vector3(position, 0.0f)) *
+        if (_data.QuadIndexCount >= Renderer2DData.MaxIndices)
+            FlushAndReset();
+        
+        const float texIndex = 0.0f; // White Texture
+        const float tilingFactor = 1.0f;
+        
+        var positionTranslated = Matrix4x4.CreateTranslation(position.X, position.Y, 0);
+        var scale = Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        var transform = Matrix4x4.Identity * positionTranslated * scale; /* *rotation */
+        _data.TextureShader.SetMat4("u_Transform", transform);
+
+        var quadVertexCount = 4;
+        Vector2[] textureCoords =
+        [
+            new(0.0f, 0.0f),
+            new(1.0f, 0.0f),
+            new(1.0f, 1.0f),
+            new(0.0f, 1.0f)
+        ];
+
+        for (var i = 0; i < quadVertexCount; i++)
+        {
+            var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
+                _data.QuadVertexPositions[i].Z);
+
+            _data.QuadVertexBufferBase.Add(new QuadVertex
+            {
+                Position = Vector3.Transform(vector3, transform),
+                Color = color,
+                TexCoord = textureCoords[i],
+                TexIndex = texIndex,
+                TilingFactor = tilingFactor
+            });
+            
+            _data.CurrentVertexBufferIndex++;
+        }
+
+        _data.QuadIndexBufferCount += 6;
+    }
+
+    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f,
+        Vector4? tintColor = null)
+    {
+        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture, tilingFactor, tintColor);
+    }
+
+    public void DrawQuad(Vector3 position, Vector2 size, Vector4 color)
+    {
+        if (_data.QuadIndexCount >= Renderer2DData.MaxIndices)
+            FlushAndReset();
+        const float texIndex = 0.0f; // White Texture
+        const float tilingFactor = 1.0f;
+
+        Matrix4x4 transform = Matrix4x4.CreateTranslation(position) *
                               Matrix4x4.CreateScale(new Vector3(size.X, size.Y, 1.0f));
 
         var quadVertexCount = 4;
@@ -130,38 +206,14 @@ public class Renderer2D
                 Position = Vector3.Transform(vector3, transform),
                 Color = color,
                 TexCoord = textureCoords[i],
-                //TexIndex = textureIndex;
-                //TilingFactor = tilingFactor;
+                TexIndex = texIndex,
+                TilingFactor = tilingFactor
             });
+            
+            _data.CurrentVertexBufferIndex++;
         }
-
-
-        _data.CurrentVertexBufferIndex++;
-
+        
         _data.QuadIndexBufferCount += 6;
-    }
-
-    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f,
-        Vector4? tintColor = null)
-    {
-        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, texture, tilingFactor, tintColor);
-    }
-
-    public void DrawQuad(Vector3 position, Vector2 size, Vector4 color)
-    {
-        _data.TextureShader.SetFloat4("u_Color", color);
-
-        // Tiling factor doesn't apply to flat color shader
-        _data.TextureShader.SetFloat("u_TilingFactor", 1.0f);
-        _data.WhiteTexture.Bind();
-
-        var positionTranslated = Matrix4x4.CreateTranslation(position.X, position.Y, 0);
-        var scale = Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-        var transform = Matrix4x4.Identity * positionTranslated * scale; /* *rotation */
-        _data.TextureShader.SetMat4("u_Transform", transform);
-
-        _data.QuadVertexArray.Bind();
-        RendererCommand.DrawIndexed(_data.QuadVertexArray);
     }
 
 
@@ -170,17 +222,57 @@ public class Renderer2D
     {
         tintColor ??= Vector4.One;
 
-        _data.TextureShader.SetFloat4("u_Color", tintColor.Value);
-        _data.TextureShader.SetFloat("u_TilingFactor", tilingFactor);
-        texture.Bind();
+        var quadVertexCount = 4;
+        var textureCoords = new List<Vector2>
+        {
+            new(0.0f, 0.0f),
+            new(1.0f, 0.0f),
+            new(1.0f, 1.0f),
+            new(0.0f, 1.0f)
+        };
 
-        var positionTranslated = Matrix4x4.CreateTranslation(position);
-        var scale = Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-        var transform = Matrix4x4.Identity * positionTranslated * scale; /* *rotation */
-        _data.TextureShader.SetMat4("u_Transform", transform);
+        if (_data.QuadIndexCount >= Renderer2DData.MaxIndices)
+            FlushAndReset();
 
-        _data.QuadVertexArray.Bind();
-        RendererCommand.DrawIndexed(_data.QuadVertexArray);
+        float textureIndex = 0.0f;
+        for (var i = 1; i < _data.TextureSlotIndex; i++)
+        {
+            if (ReferenceEquals(_data.TextureSlots[i], texture))
+            {
+                textureIndex = i;
+                break;
+            }
+        }
+
+        if (textureIndex == 0.0f)
+        {
+            if (_data.TextureSlotIndex >= Renderer2DData.MaxTextureSlots)
+                FlushAndReset();
+
+            textureIndex = _data.TextureSlotIndex;
+            _data.TextureSlots[_data.TextureSlotIndex] = texture;
+            _data.TextureSlotIndex++;
+        }
+
+        Matrix4x4 transform = Matrix4x4.CreateTranslation(position) *
+                              Matrix4x4.CreateScale(new Vector3(size.X, size.Y, 1.0f));
+
+        for (var i = 0; i < quadVertexCount; i++)
+        {
+            var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
+                _data.QuadVertexPositions[i].Z);
+
+            _data.QuadVertexBufferBase.Add(new QuadVertex
+            {
+                Position = Vector3.Transform(vector3, transform),
+                Color = tintColor.Value,
+                TexCoord = textureCoords[i],
+                TexIndex = textureIndex,
+                TilingFactor = tilingFactor
+            });
+        }
+
+        _data.QuadIndexCount += 6;
     }
 
     public void DrawRotatedQuad(Vector2 position, Vector2 size, float rotation, Vector4 color)

@@ -11,6 +11,7 @@ public class Renderer2DData
     public const int MaxQuads = 10;
     public const int MaxVertices = MaxQuads * 4; // 4 vertex per quad
     public const int MaxIndices = MaxQuads * 6; // 6 indices oer quad
+    public const int MaxTextureSlots = 16;
 
     public IVertexArray QuadVertexArray { get; set; }
     public IVertexBuffer QuadVertexBuffer { get; set; }
@@ -21,4 +22,7 @@ public class Renderer2DData
     public int CurrentVertexBufferIndex { get; set; }
     public uint QuadIndexBufferCount { get; set; }
     public List<Vector4> QuadVertexPositions = new(4);
+    public List<Texture2D> TextureSlots = new(MaxTextureSlots);
+    public int TextureSlotIndex { get; set; }
+    public uint QuadIndexCount { get; set; }
 }

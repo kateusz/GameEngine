@@ -8,15 +8,18 @@ public struct QuadVertex
     public Vector3 Position { get; init; }
     public Vector4 Color { get; init; }
     public Vector2 TexCoord { get; init; }
+    public float TexIndex { get; init; }
+    public float TilingFactor { get; init; }
 
     public static uint GetSize()
     {
-        return (uint)Marshal.SizeOf(typeof(QuadVertex));
+        var size = (uint)Marshal.SizeOf(typeof(QuadVertex));
+        return size;
     }
     
     public float[] GetFloatArray()
     {
-        var floatArray = new float[9];
+        var floatArray = new float[11];
         
         floatArray[0] = Position.X;
         floatArray[1] = Position.Y;
@@ -29,6 +32,9 @@ public struct QuadVertex
 
         floatArray[7] = TexCoord.X;
         floatArray[8] = TexCoord.Y;
+        
+        floatArray[9] = TexIndex;
+        floatArray[10] = TilingFactor;
 
         return floatArray;
     }

@@ -114,6 +114,16 @@ public class OpenTKShader : IShader
         GL.Uniform1(_uniformLocations[name], data);
     }
 
+    public void SetIntArray(string name, int[] values, uint count)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void UploadUniformIntArray(string name, int[] values, uint count)
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Set a uniform float on this shader.
     /// </summary>
