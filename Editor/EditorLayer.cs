@@ -114,7 +114,6 @@ public class EditorLayer : Layer
                 {
                     if (ImGui.MenuItem("Exit"))
                     {
-                        // todo
                     }
 
                     ImGui.EndMenu();
