@@ -5,6 +5,7 @@ using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
+using Engine.Scene;
 using ImGuiNET;
 using NLog;
 using Application = Engine.Core.Application;
@@ -21,6 +22,7 @@ public class EditorLayer : Layer
     private bool _viewportFocused;
     private bool _viewportHovered;
     private Texture2D _checkerboardTexture;
+    private Scene _activeScene;
 
     public EditorLayer(string name) : base(name)
     {
