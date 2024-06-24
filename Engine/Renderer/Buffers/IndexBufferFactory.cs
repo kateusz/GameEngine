@@ -1,5 +1,3 @@
-using Engine.Platform.OpenTK;
-using Engine.Platform.SilkNet;
 using Engine.Platform.SilkNet.Buffers;
 
 namespace Engine.Renderer.Buffers;
@@ -12,8 +10,6 @@ public static class IndexBufferFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenTK:
-                return new OpenTKIndexBuffer(indices, count);
             case ApiType.SilkNet:
                 return new SilkNetIndexBuffer(indices, count);
             default:

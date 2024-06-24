@@ -11,9 +11,6 @@
     <ItemGroup>
         <PackageReference Include="NLog" Version="5.2.7"/>
         <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7"/>
-        <PackageReference Include="OpenTK" Version="4.8.2"/>
-        <PackageReference Include="OpenTK.Mathematics" Version="4.8.2"/>
-        <PackageReference Include="OpenTK.Windowing.Desktop" Version="4.8.2"/>
         <PackageReference Include="Silk.NET.Input" Version="2.20.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.20.0" />
         <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.20.0" />

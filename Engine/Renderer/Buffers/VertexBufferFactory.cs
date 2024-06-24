@@ -1,4 +1,3 @@
-using Engine.Platform.OpenTK;
 using Engine.Platform.SilkNet.Buffers;
 
 namespace Engine.Renderer.Buffers;
@@ -11,8 +10,6 @@ public static class VertexBufferFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenTK:
-                return new OpenTKVertexBuffer(vertices);
             case ApiType.SilkNet:
             default:
                 throw new ArgumentOutOfRangeException();
@@ -29,7 +26,6 @@ public static class VertexBufferFactory
                 break;
             case ApiType.SilkNet:
                 return new SilkNetVertexBuffer(size);
-            case ApiType.OpenTK:
             default:
                 throw new ArgumentOutOfRangeException();
         }
