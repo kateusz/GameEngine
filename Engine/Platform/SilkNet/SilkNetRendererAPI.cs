@@ -23,7 +23,7 @@ public class SilkNetRendererAPI : IRendererAPI
         var itemsCount = count != 0 ? count : (uint)indexBuffer.Count;
 
         SilkNetContext.GL.DrawElements(PrimitiveType.Triangles, itemsCount, DrawElementsType.UnsignedInt, (void*)0); // check with: IntPtr.Zero);
-        //SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 
     public void Init()

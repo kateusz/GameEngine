@@ -16,14 +16,14 @@ namespace Engine.Platform.SilkNet;
 public class SilkNetTexture2D : Texture2D
 {
     private readonly string _path;
-    private readonly uint _rendererId;
+    public uint RendererId { get; }
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
 
     private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat)
     {
-        _rendererId = rendererId;
+        RendererId = rendererId;
         _internalFormat = internalFormat;
         _dataFormat = dataFormat;
 
@@ -39,7 +39,7 @@ public class SilkNetTexture2D : Texture2D
 
     public override uint GetRendererId()
     {
-        return _rendererId;
+        return RendererId;
     }
 
     public static Texture2D Create(string path)
@@ -91,8 +91,6 @@ public class SilkNetTexture2D : Texture2D
             }
         }
 
-        
-
         return new SilkNetTexture2D(path, handle, width, height, internalFormat, dataFormat);
     }
     
@@ -103,13 +101,14 @@ public class SilkNetTexture2D : Texture2D
     // Original ver: public void Use(TextureUnit unit)
     public override void Bind(int slot = 0)
     {
-        SilkNetContext.GL.BindTextureUnit((uint)slot, _rendererId);
+        SilkNetContext.GL.ActiveTexture(GLEnum.Texture0 + slot);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);   
     }
 
     public override void Unbind()
     {
         //In order to dispose we need to delete the opengl handle for the texture.
-        SilkNetContext.GL.DeleteTexture(_rendererId);
+        SilkNetContext.GL.DeleteTexture(RendererId);
     }
 
     public override void SetData(uint data, int size)
@@ -129,7 +128,7 @@ public class SilkNetTexture2D : Texture2D
         }
 
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0, _dataFormat, PixelType.UnsignedByte, intPtrValue);
     }
 
@@ -158,4 +157,6 @@ public class SilkNetTexture2D : Texture2D
 
         return new SilkNetTexture2D(rendererID, width, height, internalFormat, dataFormat);
     }
+
+    public override bool Equals(object? obj) => RendererId == ((SilkNetTexture2D)obj).RendererId;
 }

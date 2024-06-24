@@ -86,6 +86,18 @@ public class SilkNetShader : IShader
         SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
     }
 
+    public void SetIntArray(string name, int[] values, uint count)
+    {
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
+    }
+
+    public void UploadUniformIntArray(string name, int[] values, uint count)
+    {
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
+    }
+
     /// <summary>
     /// Set a uniform float on this shader.
     /// </summary>
