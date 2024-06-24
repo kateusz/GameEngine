@@ -48,7 +48,6 @@ public class SilkNetTexture2D : Texture2D
         var handle = SilkNetContext.GL.GenTexture();
 
         // Bind the handle
-        
         // todo: texture1? 
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
@@ -101,7 +100,7 @@ public class SilkNetTexture2D : Texture2D
     // Original ver: public void Use(TextureUnit unit)
     public override void Bind(int slot = 0)
     {
-        SilkNetContext.GL.ActiveTexture(GLEnum.Texture0 + slot);
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);   
     }
 
@@ -127,6 +126,7 @@ public class SilkNetTexture2D : Texture2D
             throw new Exception("Data must be entire texture!");
         }
 
+        // todo: check unit val
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0, _dataFormat, PixelType.UnsignedByte, intPtrValue);
@@ -141,12 +141,10 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.GenTextures(1, textures);
         var rendererID = textures[0];
         
+        // todo:
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
-        
-       
         SilkNetContext.GL.BindTexture(GLEnum.Texture2D, rendererID);
-
-       
+        
         SilkNetContext.GL.TexImage2D(GLEnum.Texture2D, 0, internalFormat, (uint)width, (uint)height, 0, dataFormat,
             GLEnum.UnsignedByte, IntPtr.Zero);
         

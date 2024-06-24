@@ -32,6 +32,7 @@ public class SilkNetRendererAPI : IRendererAPI
         SilkNetContext.GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         
         SilkNetContext.GL.Enable(EnableCap.DepthTest);
+        SilkNetContext.GL.DepthFunc(DepthFunction.Lequal); // or another appropriate function
     }
 
     public int GetError()
