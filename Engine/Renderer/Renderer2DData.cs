@@ -22,7 +22,7 @@ public class Renderer2DData
     public int CurrentVertexBufferIndex { get; set; }
     public uint QuadIndexBufferCount { get; set; }
     public List<Vector4> QuadVertexPositions = new(4);
-    public List<Texture2D> TextureSlots = new(MaxTextureSlots);
+    public Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
     public int TextureSlotIndex { get; set; }
     public uint QuadIndexCount { get; set; }
 }

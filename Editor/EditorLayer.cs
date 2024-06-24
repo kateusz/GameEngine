@@ -4,6 +4,7 @@ using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using ImGuiNET;
 using NLog;
 using Application = Engine.Core.Application;
@@ -19,6 +20,7 @@ public class EditorLayer : Layer
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private bool _viewportHovered;
+    private Texture2D _checkerboardTexture;
 
     public EditorLayer(string name) : base(name)
     {
@@ -39,19 +41,18 @@ public class EditorLayer : Layer
         // red
         // Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f),
         //     45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
-
-        // // blue
-        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
-            new Vector4(0.8f, 0.2f, 0.3f, 1.0f ));
-        //
-        // //texture
-        // Renderer2D.Instance.DrawQuad(
-        //     new Vector3(0.0f, 0.0f, -0.5f),
-        //     new Vector2(10.0f, 10.0f),
-        //     _texture);
-
+        
+        Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture, 10.0f);
+        
+        Renderer2D.Instance.DrawQuad(
+            new Vector3(0.0f, 0.0f, 0.0f),
+            new Vector2(1.0f, 1.0f),
+            new Vector4(0.8f, 0.8f, 0.3f, 1.0f ));
+        
+        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f), new Vector4(0.8f, 0.2f, 0.3f, 1.0f ));
+        
         Renderer2D.Instance.EndScene();
-
+        
         _frameBuffer.Unbind();
     }
 
@@ -65,6 +66,8 @@ public class EditorLayer : Layer
     public override void OnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
+        
+        _checkerboardTexture = TextureFactory.Create("assets/textures/Checkerboard.png");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         var frameBufferSpec = new FrameBufferSpecification(1280, 720);
