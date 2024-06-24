@@ -7,7 +7,6 @@ layout(location = 3) in float a_TexIndex;
 layout(location = 4) in float a_TilingFactor;
 
 uniform mat4 u_ViewProjection;
-uniform mat4 u_Transform;
 
 out vec4 v_Color;
 out vec2 v_TexCoord;
@@ -20,5 +19,5 @@ void main()
     v_TexCoord = a_TexCoord;
     v_TexIndex = a_TexIndex;
     v_TilingFactor = a_TilingFactor;
-    gl_Position = vec4(a_Position, 1.0) * u_Transform * u_ViewProjection;
+    gl_Position = vec4(a_Position, 1.0) * u_ViewProjection;
 }
