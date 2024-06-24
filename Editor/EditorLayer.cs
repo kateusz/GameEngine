@@ -38,21 +38,24 @@ public class EditorLayer : Layer
 
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
 
-        // red
-        // Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f),
-        //     45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
-        
-        Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture, 10.0f);
-        
+        Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture,
+            10.0f);
+
+        // yellow
         Renderer2D.Instance.DrawQuad(
             new Vector3(0.0f, 0.0f, 0.0f),
             new Vector2(1.0f, 1.0f),
-            new Vector4(0.8f, 0.8f, 0.3f, 1.0f ));
-        
-        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f), new Vector4(0.8f, 0.2f, 0.3f, 1.0f ));
-        
+            new Vector4(0.8f, 0.8f, 0.3f, 1.0f));
+
+        // red
+        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
+            new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
+
+        Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f), 45.0f,
+            new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
+
         Renderer2D.Instance.EndScene();
-        
+
         _frameBuffer.Unbind();
     }
 
@@ -66,7 +69,7 @@ public class EditorLayer : Layer
     public override void OnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
-        
+
         _checkerboardTexture = TextureFactory.Create("assets/textures/Checkerboard.png");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
