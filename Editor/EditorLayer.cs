@@ -1,4 +1,5 @@
 using System.Numerics;
+using ECS;
 using Engine.Core;
 using Engine.Events;
 using Engine.Renderer;
@@ -6,6 +7,7 @@ using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene;
+using Engine.Scene.Components;
 using ImGuiNET;
 using NLog;
 using Application = Engine.Core.Application;
@@ -23,6 +25,11 @@ public class EditorLayer : Layer
     private bool _viewportHovered;
     private Texture2D _checkerboardTexture;
     private Scene _activeScene;
+    private Entity _squareEntity;
+    private Vector4 _squareColor;
+    private Entity _cameraEntity;
+    private Entity _secondCamera;
+    private bool _primaryCamera;
 
     public EditorLayer(string name) : base(name)
     {
@@ -39,23 +46,7 @@ public class EditorLayer : Layer
         RendererCommand.Clear();
 
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
-
-        Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture,
-            10.0f);
-
-        // yellow
-        Renderer2D.Instance.DrawQuad(
-            new Vector3(0.0f, 0.0f, 0.0f),
-            new Vector2(1.0f, 1.0f),
-            new Vector4(0.8f, 0.8f, 0.3f, 1.0f));
-
-        // red
-        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
-            new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
-
-        Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f), 45.0f,
-            new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
-
+        _activeScene.OnUpdate(timeSpan);
         Renderer2D.Instance.EndScene();
 
         _frameBuffer.Unbind();
@@ -77,6 +68,35 @@ public class EditorLayer : Layer
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         var frameBufferSpec = new FrameBufferSpecification(1280, 720);
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
+
+        _activeScene = new Scene();
+
+        var squareColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
+        var square = _activeScene.CreateEntity("Square");
+        square.AddComponent(new TransformComponent());
+        square.AddComponent(new SpriteRendererComponent(squareColor));
+        Context.Instance.Register(square);
+
+        _squareEntity = square;
+        _squareColor = squareColor;
+
+        _cameraEntity = _activeScene.CreateEntity("Camera Entity");
+        var cameraComponent = new CameraComponent
+        {
+            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-16.0f, 16.0f, -9.0f, 9.0f, -1.0f, 1.0f))
+        };
+        _cameraEntity.AddComponent(cameraComponent);
+        Context.Instance.Register(_cameraEntity);
+
+        _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
+        var secondCameraComponent =
+            new CameraComponent
+            {
+                Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f)),
+                Primary = false
+            };
+        _secondCamera.AddComponent(secondCameraComponent);
+        Context.Instance.Register(_secondCamera);
     }
 
     public override void OnDetach()
@@ -124,13 +144,38 @@ public class EditorLayer : Layer
                 ImGui.EndMenuBar();
             }
 
-            string testString = "";
             ImGui.Begin("Settings");
             {
-                ImGui.Text("Testing!");
-                ImGui.InputText("##InputText", ref testString, 50);
+                ImGui.Separator();
+                var tag = _squareEntity.Id;
+                ImGui.Text(tag.ToString());
+
+                var spriteRendererComponent = _squareEntity.GetComponent<SpriteRendererComponent>();
+                ImGui.ColorEdit4("Square Color", ref _squareColor);
+
+                if (_squareColor != spriteRendererComponent.Color)
+                {
+                    spriteRendererComponent.Color = _squareColor;
+                }
+
+                ImGui.Separator();
                 ImGui.End();
             }
+
+            var transform = _cameraEntity.GetComponent<TransformComponent>().Transform;
+            Vector3 translation = new Vector3(transform.M41, transform.M42, transform.M43);
+            ImGui.DragFloat3("Camera Transform", ref translation);
+
+            if (ImGui.Checkbox("Camera A", ref _primaryCamera))
+            {
+                _cameraEntity.GetComponent<CameraComponent>().Primary = _primaryCamera;
+                _secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
+            }
+
+            // var camera = _secondCamera.GetComponent<CameraComponent>().Camera;
+            // float orthoSize = camera.OrthographicSize;
+            // if (ImGui.DragFloat("Second Camera Ortho Size", ref orthoSize));
+            //     camera.OrthographicSize = orthoSize;
 
             ImGui.Begin("Viewport");
             {
@@ -139,13 +184,15 @@ public class EditorLayer : Layer
                 Application.ImGuiLayer.BlockEvents = !_viewportFocused || !_viewportHovered;
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
-                if (_viewportSize != viewportPanelSize)
+                if (_viewportSize != viewportPanelSize && viewportPanelSize.X > 0 && viewportPanelSize.Y > 0)
                 {
                     _frameBuffer.Resize((uint)viewportPanelSize.X, (uint)viewportPanelSize.Y);
                     _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
 
                     var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
                     _cameraController.OnEvent(@resizeEvent);
+
+                    //_activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
                 }
 
                 var textureId = _frameBuffer.GetColorAttachmentRendererId();

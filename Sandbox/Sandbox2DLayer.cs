@@ -24,31 +24,28 @@ public class Sandbox2DLayer : Layer
     public override void OnUpdate(TimeSpan timeSpan)
     {
         _cameraController.OnUpdate(timeSpan);
-        
+
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
         Renderer2D.Instance.BeginScene(_cameraController.Camera);
 
-        // red
-        Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f),
-            45.0f, new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
+       // Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture, 10.0f);
 
-        // // blue
-        Renderer2D.Instance.DrawQuad(new Vector2(-0.3f, 0.2f), new Vector2(0.5f, 0.5f),
-            new Vector4(0.2f, 0.3f, 0.8f, 1.0f));
-        //
-        // //texture
+        // yellow
         Renderer2D.Instance.DrawQuad(
-            new Vector3(0.0f, 0.0f, -0.5f),
-            new Vector2(10.0f, 10.0f),
-            _texture);
+            new Vector3(0.0f, 0.0f, 0.0f),
+            new Vector2(1.0f, 1.0f),
+            new Vector4(0.8f, 0.8f, 0.3f, 1.0f));
+
+        // red
+        Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
+            new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
+
+        Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f), 45.0f,
+            new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
 
         Renderer2D.Instance.EndScene();
-
-        // Renderer2D.Instance.BeginScene(_cameraController.Camera);
-        // Renderer2D.Instance.DrawQuad(Vector2.Zero, new Vector2(1.0f, 1.0f), _spriteSheet);
-        // Renderer2D.Instance.EndScene();
     }
 
     public override void HandleEvent(Event @event)
@@ -76,7 +73,7 @@ public class Sandbox2DLayer : Layer
     {
         SubmitUI();
     }
-    
+
 
     private void SubmitUI()
     {

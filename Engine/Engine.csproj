@@ -15,7 +15,7 @@
         <PackageReference Include="Silk.NET.OpenGL" Version="2.20.0" />
         <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.20.0" />
         <PackageReference Include="Silk.NET.Windowing" Version="2.20.0" />
-        <PackageReference Include="StbImageSharp" Version="2.27.13"/>
+        <PackageReference Include="StbImageSharp" Version="2.27.13" />
     </ItemGroup>
 
     <ItemGroup>
@@ -43,7 +43,11 @@
     </ItemGroup>
     
     <ItemGroup>
-        <Content Include="bin\Debug\net8.0\runtimes\osx-arm64\native\cimgui.dylib"/>
+        <Content Include="bin\Debug\net8.0\runtimes\osx-arm64\native\cimgui.dylib" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\ECS\ECS.csproj" />
     </ItemGroup>
 
 
