@@ -19,6 +19,7 @@ public class Renderer
         Renderer2D.Instance.Init();
     }
     
+    [Obsolete("remove")]
     public void BeginScene(OrthographicCamera camera)
     {
         SceneData.ViewProjectionMatrix = camera.ViewProjectionMatrix;
