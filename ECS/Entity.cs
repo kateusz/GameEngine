@@ -45,4 +45,9 @@ public class Entity
         }
         return true;
     }
+
+    public override bool Equals(object? obj)
+    {
+        return base.Equals(obj);
+    }
 }

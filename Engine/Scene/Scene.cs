@@ -45,9 +45,6 @@ public class Scene
             Renderer2D.Instance.BeginScene(camera, cameraTransform);
             Renderer2D.Instance.DrawQuad(transformComponent.Transform, spriteRendererComponent.Color);
             Renderer2D.Instance.EndScene();
-            
-            // todo?
-            transformComponent.Transform = Matrix4x4.Identity;
         }
     }
 }
