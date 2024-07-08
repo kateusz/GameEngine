@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Editor.Panels;
 using Engine.Core;
 using Engine.Events;
 using Engine.Renderer;
@@ -31,6 +32,7 @@ public class EditorLayer : Layer
     private Entity _secondCamera;
     private bool _primaryCamera;
     private Vector3 _translation;
+    private SceneHierarchyPanel _sceneHierarchyPanel; 
 
     public EditorLayer(string name) : base(name)
     {
@@ -72,10 +74,7 @@ public class EditorLayer : Layer
 
         var squareColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
         var square = _activeScene.CreateEntity("Square");
-        square.AddComponent(new TransformComponent
-        {
-            Transform = Matrix4x4.CreateTranslation(new Vector3(-2.0f, -2.0f, 0.0f))
-        });
+        square.AddComponent(new TransformComponent());
         square.AddComponent(new SpriteRendererComponent(squareColor));
         Context.Instance.Register(square);
 
@@ -103,6 +102,8 @@ public class EditorLayer : Layer
         //     };
         // _secondCamera.AddComponent(secondCameraComponent);
         // Context.Instance.Register(_secondCamera);
+
+        _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
     }
 
     public override void OnDetach()
@@ -148,6 +149,8 @@ public class EditorLayer : Layer
 
                 ImGui.EndMenuBar();
             }
+            
+            _sceneHierarchyPanel.OnImGuiRender();
 
             ImGui.Begin("Settings");
             {
