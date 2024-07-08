@@ -30,6 +30,7 @@ public class EditorLayer : Layer
     private Entity _cameraEntity;
     private Entity _secondCamera;
     private bool _primaryCamera;
+    private Vector3 _translation;
 
     public EditorLayer(string name) : base(name)
     {
@@ -44,10 +45,8 @@ public class EditorLayer : Layer
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
-
-        Renderer2D.Instance.BeginScene(_cameraController.Camera);
+        
         _activeScene.OnUpdate(timeSpan);
-        Renderer2D.Instance.EndScene();
 
         _frameBuffer.Unbind();
     }
@@ -66,14 +65,17 @@ public class EditorLayer : Layer
         _checkerboardTexture = TextureFactory.Create("assets/textures/Checkerboard.png");
 
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        var frameBufferSpec = new FrameBufferSpecification(1280, 720);
+        var frameBufferSpec = new FrameBufferSpecification(852, 701);
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
         _activeScene = new Scene();
 
         var squareColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
         var square = _activeScene.CreateEntity("Square");
-        square.AddComponent(new TransformComponent());
+        square.AddComponent(new TransformComponent
+        {
+            Transform = Matrix4x4.CreateTranslation(new Vector3(-2.0f, -2.0f, 0.0f))
+        });
         square.AddComponent(new SpriteRendererComponent(squareColor));
         Context.Instance.Register(square);
 
@@ -81,22 +83,26 @@ public class EditorLayer : Layer
         _squareColor = squareColor;
 
         _cameraEntity = _activeScene.CreateEntity("Camera Entity");
+        _cameraEntity.AddComponent(new TransformComponent());
+        var aspectRatio = 1280.0f / 720.0f;
+        var zoomLevel = 2.0f;
         var cameraComponent = new CameraComponent
         {
-            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-16.0f, 16.0f, -9.0f, 9.0f, -1.0f, 1.0f))
+            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f)),
+            //Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f))
         };
         _cameraEntity.AddComponent(cameraComponent);
         Context.Instance.Register(_cameraEntity);
 
-        _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
-        var secondCameraComponent =
-            new CameraComponent
-            {
-                Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f)),
-                Primary = false
-            };
-        _secondCamera.AddComponent(secondCameraComponent);
-        Context.Instance.Register(_secondCamera);
+        // _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
+        // var secondCameraComponent =
+        //     new CameraComponent
+        //     {
+        //         Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f)),
+        //         Primary = false
+        //     };
+        // _secondCamera.AddComponent(secondCameraComponent);
+        // Context.Instance.Register(_secondCamera);
     }
 
     public override void OnDetach()
@@ -108,7 +114,6 @@ public class EditorLayer : Layer
     {
         SubmitUI();
     }
-
 
     private void SubmitUI()
     {
@@ -163,19 +168,24 @@ public class EditorLayer : Layer
             }
 
             var transform = _cameraEntity.GetComponent<TransformComponent>().Transform;
-            Vector3 translation = new Vector3(transform.M41, transform.M42, transform.M43);
-            ImGui.DragFloat3("Camera Transform", ref translation);
+            var oldValue = _translation;
+            ImGui.DragFloat3("Camera Transform", ref _translation, 0.1f);
 
+            if (_translation != oldValue)
+            {
+                var newTransform = transform * Matrix4x4.CreateTranslation(_translation);
+                _cameraEntity.GetComponent<TransformComponent>().Transform = newTransform;
+            }
+            
             if (ImGui.Checkbox("Camera A", ref _primaryCamera))
             {
                 _cameraEntity.GetComponent<CameraComponent>().Primary = _primaryCamera;
-                _secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
+                //_secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
             }
 
-            // var camera = _secondCamera.GetComponent<CameraComponent>().Camera;
-            // float orthoSize = camera.OrthographicSize;
-            // if (ImGui.DragFloat("Second Camera Ortho Size", ref orthoSize));
-            //     camera.OrthographicSize = orthoSize;
+            var camera = _cameraEntity.GetComponent<CameraComponent>().Camera;
+            var val = camera.Projection[0, 1];
+            ImGui.DragFloat("Second Camera Ortho Size", ref val);
 
             ImGui.Begin("Viewport");
             {

@@ -2,6 +2,7 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using Engine.ImGuiNet;
+using Engine.Renderer;
 using NLog;
 
 namespace Engine.Core;
@@ -43,7 +44,7 @@ public class Application : IApplication
 
     private void HandleGameWindowOnLoad()
     {
-        Renderer.Renderer.Instance.Init();
+        Renderer2D.Instance.Init();
         foreach (var layer in _layersStack)
         {
             layer.OnAttach();
