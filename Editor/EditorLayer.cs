@@ -133,9 +133,15 @@ public class EditorLayer : Layer
 
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
+            var style = ImGui.GetStyle();
+            float minWinSizeX = style.WindowMinSize.X;
+            style.WindowMinSize.X = 370.0f;
+            
             var dockspaceId = ImGui.GetID("MyDockSpace");
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
 
+            style.WindowMinSize.X = minWinSizeX;
+            
             if (ImGui.BeginMenuBar())
             {
                 if (ImGui.BeginMenu("File"))
