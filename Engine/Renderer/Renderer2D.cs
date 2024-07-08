@@ -59,7 +59,7 @@ public class Renderer2D
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
         var success = Matrix4x4.Invert(transform, out var inverted);
-        var viewProj = camera.Projection * inverted;
+        var viewProj = Matrix4x4.Identity * camera.Projection * inverted;
 
         _data.TextureShader.Bind();
         _data.TextureShader.SetMat4("u_ViewProjection", viewProj);
