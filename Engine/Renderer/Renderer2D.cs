@@ -59,7 +59,12 @@ public class Renderer2D
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
         _ = Matrix4x4.Invert(transform, out var transformInverted);
-        var viewProj = camera.Projection * transformInverted;
+        
+        // windows version
+        //var viewProj = transformInverted * camera.Projection;
+        
+        // mac version
+        var viewProj = transformInverted * camera.Projection;
 
         _data.TextureShader.Bind();
         _data.TextureShader.SetMat4("u_ViewProjection", viewProj);
