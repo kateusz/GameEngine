@@ -74,11 +74,7 @@ public class EditorLayer : Layer
 
         var squareColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
         var square = _activeScene.CreateEntity("Square");
-        square.AddComponent(new TransformComponent
-        {
-            // todo: why is it not centered after run?
-            Transform = Matrix4x4.CreateTranslation(new Vector3(-1.3f, -1.0f, 0.0f))
-        });
+        square.AddComponent(new TransformComponent());
         square.AddComponent(new SpriteRendererComponent(squareColor, _checkerboardTexture));
         Context.Instance.Register(square);
 
@@ -86,13 +82,16 @@ public class EditorLayer : Layer
         _squareColor = squareColor;
 
         _cameraEntity = _activeScene.CreateEntity("Camera Entity");
-        _cameraEntity.AddComponent(new TransformComponent());
+        _cameraEntity.AddComponent(new TransformComponent()
+        {
+            // todo: why is it not centered after run?
+            Transform = Matrix4x4.CreateTranslation(new Vector3(2.7f, 1.1f, 0.0f))
+        });
         var aspectRatio = 1280.0f / 720.0f;
-        var zoomLevel = 1.0f;
+        var zoomLevel = 2.0f;
         var cameraComponent = new CameraComponent
         {
-            //Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f))
-            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f))
+            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f))
         };
         _cameraEntity.AddComponent(cameraComponent);
         Context.Instance.Register(_cameraEntity);
