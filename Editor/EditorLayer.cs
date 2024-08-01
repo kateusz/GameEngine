@@ -82,32 +82,31 @@ public class EditorLayer : Layer
         _squareColor = squareColor;
 
         _cameraEntity = _activeScene.CreateEntity("Camera Entity");
+        
+        // todo: why is it not centered after run?
+        _translation = new Vector3(1.9f, 1.2f, 0.0f);
+        var cameraTranslation = Matrix4x4.CreateTranslation(_translation);
+        
         _cameraEntity.AddComponent(new TransformComponent
         {
-            // todo: why is it not centered after run?
-            Transform = Matrix4x4.CreateTranslation(new Vector3(2.7f, 1.1f, 0.0f))
+            Transform = cameraTranslation
         });
-        var aspectRatio = 1280.0f / 720.0f;
-        var zoomLevel = 2.0f;
-        var cameraComponent = new CameraComponent
-        {
-            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f))
-        };
+
+        var cameraComponent = new CameraComponent();
         _cameraEntity.AddComponent(cameraComponent);
         Context.Instance.Register(_cameraEntity);
 
         _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
         _secondCamera.AddComponent(new TransformComponent
         {
-            // todo: why is it not centered after run?
-            Transform = Matrix4x4.CreateTranslation(new Vector3(2.7f, 1.1f, 0.0f))
+            Transform = cameraTranslation
         });
-        var secondCameraComponent =
-            new CameraComponent
-            {
-                Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f)),
-                Primary = false
-            };
+        
+        var secondCameraComponent = new CameraComponent
+        {
+            Primary = false
+        };
+        
         _secondCamera.AddComponent(secondCameraComponent);
         Context.Instance.Register(_secondCamera);
 
@@ -200,8 +199,11 @@ public class EditorLayer : Layer
             }
 
             var camera = _secondCamera.GetComponent<CameraComponent>().Camera;
-            var val = camera.Projection[0, 1];
-            ImGui.DragFloat("Second Camera Ortho Size", ref val);
+            var val = camera.OrthographicSize;
+            if (ImGui.DragFloat("Second Camera Ortho Size", ref val))
+            {
+                camera.SetOrthographicSize(val);
+            }
 
             ImGui.Begin("Viewport");
             {
