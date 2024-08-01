@@ -21,8 +21,8 @@ public class Scene
     {
         var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         
-        Camera camera = null;
-        Matrix4x4 cameraTransform = Matrix4x4.Identity;
+        Camera? camera = null;
+        var cameraTransform = Matrix4x4.Identity;
         
         foreach (var entity in cameraGroup)
         {
@@ -45,6 +45,22 @@ public class Scene
             Renderer2D.Instance.BeginScene(camera, cameraTransform);
             Renderer2D.Instance.DrawQuad(transformComponent.Transform, spriteRendererComponent.Color);
             Renderer2D.Instance.EndScene();
+        }
+    }
+
+    public void OnViewportResize(uint width, uint height)
+    {
+        _viewportWidth = width;
+        _viewportHeight = height;
+        
+        var group = Context.Instance.GetGroup([typeof(CameraComponent)]);
+        foreach (var entity in group)
+        {
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+            if (!cameraComponent.FixedAspectRatio)
+            {
+                cameraComponent.Camera.SetViewportSize(width, height);
+            }
         }
     }
 }
