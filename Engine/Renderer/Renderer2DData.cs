@@ -8,7 +8,8 @@ namespace Engine.Renderer;
 
 public class Renderer2DData
 {
-    public const int MaxQuads = 10;
+    private const int MaxQuads = 10;
+    
     public const int MaxVertices = MaxQuads * 4; // 4 vertex per quad
     public const int MaxIndices = MaxQuads * 6; // 6 indices oer quad
     public const int MaxTextureSlots = 16;
@@ -21,8 +22,8 @@ public class Renderer2DData
     public List<QuadVertex> QuadVertexBufferBase { get; set; } = [];
     public int CurrentVertexBufferIndex { get; set; }
     public uint QuadIndexBufferCount { get; set; }
-    public List<Vector4> QuadVertexPositions = new(4);
-    public Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
+    public readonly List<Vector4> QuadVertexPositions = new(4);
+    public readonly Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
     public int TextureSlotIndex { get; set; }
     public uint QuadIndexCount { get; set; }
 }

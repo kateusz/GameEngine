@@ -79,7 +79,7 @@ public class EditorLayer : Layer
             // todo: why is it not centered after run?
             Transform = Matrix4x4.CreateTranslation(new Vector3(-1.3f, -1.0f, 0.0f))
         });
-        square.AddComponent(new SpriteRendererComponent(squareColor));
+        square.AddComponent(new SpriteRendererComponent(squareColor, _checkerboardTexture));
         Context.Instance.Register(square);
 
         _squareEntity = square;
@@ -91,7 +91,8 @@ public class EditorLayer : Layer
         var zoomLevel = 1.0f;
         var cameraComponent = new CameraComponent
         {
-            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f))
+            //Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f))
+            Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f))
         };
         _cameraEntity.AddComponent(cameraComponent);
         Context.Instance.Register(_cameraEntity);
@@ -212,7 +213,7 @@ public class EditorLayer : Layer
                     _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
 
                     var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
-                    _cameraController.OnEvent(@resizeEvent);
+                    //_cameraController.OnEvent(@resizeEvent);
 
                     //_activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
                 }
