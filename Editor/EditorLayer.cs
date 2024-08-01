@@ -30,7 +30,7 @@ public class EditorLayer : Layer
     private Vector4 _squareColor;
     private Entity _cameraEntity;
     private Entity _secondCamera;
-    private bool _primaryCamera;
+    private bool _primaryCamera = true;
     private Vector3 _translation;
     private SceneHierarchyPanel _sceneHierarchyPanel; 
 
@@ -82,7 +82,7 @@ public class EditorLayer : Layer
         _squareColor = squareColor;
 
         _cameraEntity = _activeScene.CreateEntity("Camera Entity");
-        _cameraEntity.AddComponent(new TransformComponent()
+        _cameraEntity.AddComponent(new TransformComponent
         {
             // todo: why is it not centered after run?
             Transform = Matrix4x4.CreateTranslation(new Vector3(2.7f, 1.1f, 0.0f))
@@ -96,15 +96,20 @@ public class EditorLayer : Layer
         _cameraEntity.AddComponent(cameraComponent);
         Context.Instance.Register(_cameraEntity);
 
-        // _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
-        // var secondCameraComponent =
-        //     new CameraComponent
-        //     {
-        //         Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f)),
-        //         Primary = false
-        //     };
-        // _secondCamera.AddComponent(secondCameraComponent);
-        // Context.Instance.Register(_secondCamera);
+        _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
+        _secondCamera.AddComponent(new TransformComponent
+        {
+            // todo: why is it not centered after run?
+            Transform = Matrix4x4.CreateTranslation(new Vector3(2.7f, 1.1f, 0.0f))
+        });
+        var secondCameraComponent =
+            new CameraComponent
+            {
+                Camera = new Camera(Matrix4x4.CreateOrthographicOffCenter(-aspectRatio * zoomLevel, aspectRatio * zoomLevel, -zoomLevel, zoomLevel, -1.0f, 1.0f)),
+                Primary = false
+            };
+        _secondCamera.AddComponent(secondCameraComponent);
+        Context.Instance.Register(_secondCamera);
 
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
     }
@@ -191,10 +196,10 @@ public class EditorLayer : Layer
             if (ImGui.Checkbox("Camera A", ref _primaryCamera))
             {
                 _cameraEntity.GetComponent<CameraComponent>().Primary = _primaryCamera;
-                //_secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
+                _secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
             }
 
-            var camera = _cameraEntity.GetComponent<CameraComponent>().Camera;
+            var camera = _secondCamera.GetComponent<CameraComponent>().Camera;
             var val = camera.Projection[0, 1];
             ImGui.DragFloat("Second Camera Ortho Size", ref val);
 
@@ -211,9 +216,9 @@ public class EditorLayer : Layer
                     _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
 
                     var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
-                    //_cameraController.OnEvent(@resizeEvent);
+                    _cameraController.OnEvent(@resizeEvent);
 
-                    //_activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+                    _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
                 }
 
                 var textureId = _frameBuffer.GetColorAttachmentRendererId();

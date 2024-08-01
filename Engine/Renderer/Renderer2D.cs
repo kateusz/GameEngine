@@ -61,7 +61,7 @@ public class Renderer2D
         _ = Matrix4x4.Invert(transform, out var transformInverted);
         
         // windows version
-        //var viewProj = transformInverted * camera.Projection;
+        //var viewProj = camera.Projection * transformInverted;
         
         // mac version
         var viewProj = transformInverted * camera.Projection;
