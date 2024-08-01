@@ -179,14 +179,13 @@ public class EditorLayer : Layer
                 ImGui.Separator();
                 ImGui.End();
             }
-
-            var transform = _cameraEntity.GetComponent<TransformComponent>().Transform;
+            
             var oldValue = _translation;
             ImGui.DragFloat3("Camera Transform", ref _translation, 0.1f);
 
             if (_translation != oldValue)
             {
-                var newTransform = transform * Matrix4x4.CreateTranslation(_translation);
+                var newTransform = Matrix4x4.CreateTranslation(_translation);
                 _cameraEntity.GetComponent<TransformComponent>().Transform = newTransform;
             }
             
