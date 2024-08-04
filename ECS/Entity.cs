@@ -4,7 +4,9 @@ public class Entity
 {
     public Guid Id { get; private set; }
     public string Name { get; set; }
+    
     private Dictionary<Type, Component> components;
+    public event Action<Component>? OnComponentAdded;
 
     public Entity(string name)
     {
@@ -16,6 +18,13 @@ public class Entity
     public void AddComponent(Component component)
     {
         components[component.GetType()] = component;
+        OnComponentAdded?.Invoke(component);
+    }
+
+    public void AddComponent<TComponent>() where TComponent : Component, new()
+    {
+        var component = new TComponent();
+        components[typeof(TComponent)] = component;
     }
 
     public void RemoveComponent<T>() where T : Component

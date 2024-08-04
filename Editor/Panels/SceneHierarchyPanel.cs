@@ -26,7 +26,7 @@ public class SceneHierarchyPanel
     {
         ImGui.Begin("Scene Hierarchy");
 
-        foreach (var entity in Context.Instance.Entities)
+        foreach (var entity in Context.Instance.Entities.ToList())
         {
             DrawEntityNode(entity);
         }
@@ -34,11 +34,26 @@ public class SceneHierarchyPanel
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
             _selectionContext = null;
 
+        // Right-click on blank space
+        if (ImGui.BeginPopupContextWindow("WindowContextMenu", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
+        {
+            if (ImGui.MenuItem("Create Empty Entity"))
+            {
+                var entity = _context.CreateEntity("Empty Entity");
+                entity.AddComponent<TransformComponent>();
+                Context.Instance.Register(entity);
+            }
+
+            ImGui.EndPopup();
+        }
+
         ImGui.End();
 
         ImGui.Begin("Properties");
         if (_selectionContext is not null)
+        {
             DrawComponents(_selectionContext);
+        }
 
         ImGui.End();
     }
@@ -59,44 +74,169 @@ public class SceneHierarchyPanel
             entity.Name = tag; // Update entity's name if needed
         }
 
-        if (entity.HasComponent<TransformComponent>())
+        ImGui.SameLine();
+        ImGui.PushItemWidth(-1);
+
+        if (ImGui.Button("Add Component"))
+            ImGui.OpenPopup("AddComponent");
+
+        if (ImGui.BeginPopup("AddComponent"))
         {
-            if (ImGui.TreeNodeEx(typeof(TransformComponent).GetHashCode(), ImGuiTreeNodeFlags.DefaultOpen, "Transform"))
+            if (ImGui.MenuItem("Camera"))
             {
-                var tc = entity.GetComponent<TransformComponent>();
-                
-                var newTranslation = tc.Translation;
-                DrawVec3Control("Translation", ref newTranslation);
-
-                if (newTranslation != tc.Translation) 
-                    tc.Translation = newTranslation;
-
-                var rotationRadians = tc.Rotation;
-                Vector3 rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
-                DrawVec3Control("Rotation", ref rotationDegrees);
-                var newRotationRadians = MathHelpers.ToRadians(rotationDegrees);
-
-                if (newRotationRadians != tc.Rotation) 
-                    tc.Rotation = newRotationRadians;
-
-                var newScale = tc.Scale;
-                DrawVec3Control("Scale", ref newScale, 1.0f);
-
-                if (newScale != tc.Scale)
-                    tc.Scale = newScale;
-
-                ImGui.TreePop();
+                _selectionContext.AddComponent<CameraComponent>();
+                ImGui.CloseCurrentPopup();
             }
+
+            if (ImGui.MenuItem("Sprite Renderer"))
+            {
+                _selectionContext.AddComponent<SpriteRendererComponent>();
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
         }
 
-        if (entity.HasComponent<SpriteRendererComponent>())
+        ImGui.PopItemWidth();
+
+        const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.AllowOverlap;
+
+        DrawComponent<TransformComponent>("Transform", entity, tc =>
         {
-            if (ImGui.TreeNodeEx(typeof(SpriteRendererComponent).GetHashCode(), ImGuiTreeNodeFlags.DefaultOpen,
+            var newTranslation = tc.Translation;
+            DrawVec3Control("Translation", ref newTranslation);
+
+            if (newTranslation != tc.Translation)
+                tc.Translation = newTranslation;
+
+            var rotationRadians = tc.Rotation;
+            Vector3 rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
+            DrawVec3Control("Rotation", ref rotationDegrees);
+            var newRotationRadians = MathHelpers.ToRadians(rotationDegrees);
+
+            if (newRotationRadians != tc.Rotation)
+                tc.Rotation = newRotationRadians;
+
+            var newScale = tc.Scale;
+            DrawVec3Control("Scale", ref newScale, 1.0f);
+
+            if (newScale != tc.Scale)
+                tc.Scale = newScale;
+        });
+
+        DrawComponent<CameraComponent>("Camera", entity, cameraComponent =>
+        {
+            var camera = cameraComponent.Camera;
+
+            bool primary = cameraComponent.Primary;
+            if (ImGui.Checkbox("Primary", ref primary))
+            {
+                cameraComponent.Primary = primary;
+            }
+
+            string[] projectionTypeStrings = { "Perspective", "Orthographic" };
+            var currentProjectionType = camera.ProjectionType;
+            string currentProjectionTypeString = projectionTypeStrings[(int)currentProjectionType];
+
+            if (ImGui.BeginCombo("Projection", currentProjectionTypeString))
+            {
+                for (int i = 0; i < projectionTypeStrings.Length; i++)
+                {
+                    bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
+                    if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
+                    {
+                        currentProjectionTypeString = projectionTypeStrings[i];
+                        camera.SetProjectionType((ProjectionType)i);
+                    }
+
+                    if (isSelected)
+                    {
+                        ImGui.SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui.EndCombo();
+            }
+
+            if (camera.ProjectionType == ProjectionType.Perspective)
+            {
+                float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
+                if (ImGui.DragFloat("Vertical FOV", ref verticalFov))
+                {
+                    camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
+                }
+
+                float perspectiveNear = camera.PerspectiveNear;
+                if (ImGui.DragFloat("Near", ref perspectiveNear))
+                {
+                    camera.SetPerspectiveNearClip(perspectiveNear);
+                }
+
+                float perspectiveFar = camera.OrthographicFar;
+                if (ImGui.DragFloat("Far", ref perspectiveFar))
+                {
+                    camera.SetPerspectiveFarClip(perspectiveFar);
+                }
+            }
+
+            if (camera.ProjectionType == ProjectionType.Orthographic)
+            {
+                float orthoSize = camera.OrthographicSize;
+                if (ImGui.DragFloat("Size", ref orthoSize))
+                {
+                    camera.SetOrthographicSize(orthoSize);
+                }
+
+                float orthoNear = camera.OrthographicNear;
+                if (ImGui.DragFloat("Near", ref orthoNear))
+                {
+                    camera.SetOrthographicNearClip(orthoNear);
+                }
+
+                float orthoFar = camera.OrthographicFar;
+                if (ImGui.DragFloat("Far", ref orthoFar))
+                {
+                    camera.SetOrthographicFarClip(orthoFar);
+                }
+
+                bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
+                if (ImGui.Checkbox("Fixed Aspect Ratio", ref fixedAspectRatio))
+                {
+                    cameraComponent.FixedAspectRatio = fixedAspectRatio;
+                }
+            }
+        });
+
+
+        DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, cameraComponent =>
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            if (ImGui.TreeNodeEx(typeof(SpriteRendererComponent).GetHashCode(), treeNodeFlags,
                     "Sprite Renderer"))
             {
+                ImGui.SameLine(ImGui.GetWindowWidth() - 25.0f);
+                if (ImGui.Button("+", new System.Numerics.Vector2(20, 20)))
+                {
+                    ImGui.OpenPopup("ComponentSettings");
+                }
+
+                ImGui.PopStyleVar();
+
+                bool removeComponent = false;
+                if (ImGui.BeginPopup("ComponentSettings"))
+                {
+                    if (ImGui.MenuItem("Remove component"))
+                        removeComponent = true;
+                    ImGui.EndPopup();
+                }
+
                 var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
                 var newColor = spriteRendererComponent.Color;
-                ImGui.ColorEdit4("Square Color", ref newColor);
+                ImGui.ColorEdit4("Color", ref newColor);
+                ImGui.TreePop();
+
+                if (removeComponent)
+                    entity.RemoveComponent<SpriteRendererComponent>();
 
                 if (spriteRendererComponent.Color != newColor)
                 {
@@ -106,101 +246,56 @@ public class SceneHierarchyPanel
                 ImGui.Separator();
                 ImGui.End();
             }
-        }
-        
-        if (entity.HasComponent<CameraComponent>())
-        {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-            if (ImGui.TreeNodeEx("Camera", ImGuiTreeNodeFlags.DefaultOpen))
-            {
-                var camera = cameraComponent.Camera;
-
-                bool primary = cameraComponent.Primary;
-                if (ImGui.Checkbox("Primary", ref primary))
-                {
-                    cameraComponent.Primary = primary;
-                }
-
-                string[] projectionTypeStrings = { "Perspective", "Orthographic" };
-                var currentProjectionType = camera.ProjectionType;
-                string currentProjectionTypeString = projectionTypeStrings[(int)currentProjectionType];
-
-                if (ImGui.BeginCombo("Projection", currentProjectionTypeString))
-                {
-                    for (int i = 0; i < projectionTypeStrings.Length; i++)
-                    {
-                        bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
-                        if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
-                        {
-                            currentProjectionTypeString = projectionTypeStrings[i];
-                            camera.SetProjectionType((ProjectionType)i);
-                        }
-
-                        if (isSelected)
-                        {
-                            ImGui.SetItemDefaultFocus();
-                        }
-                    }
-
-                    ImGui.EndCombo();
-                }
-
-                if (camera.ProjectionType == ProjectionType.Perspective)
-                {
-                    float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
-                    if (ImGui.DragFloat("Vertical FOV", ref verticalFov))
-                    {
-                        camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
-                    }
-
-                    float perspectiveNear = camera.PerspectiveNear;
-                    if (ImGui.DragFloat("Near", ref perspectiveNear))
-                    {
-                        camera.SetPerspectiveNearClip(perspectiveNear);
-                    }
-
-                    float perspectiveFar = camera.OrthographicFar;
-                    if (ImGui.DragFloat("Far", ref perspectiveFar))
-                    {
-                        camera.SetPerspectiveFarClip(perspectiveFar);
-                    }
-                }
-
-                if (camera.ProjectionType == ProjectionType.Orthographic)
-                {
-                    float orthoSize = camera.OrthographicSize;
-                    if (ImGui.DragFloat("Size", ref orthoSize))
-                    {
-                        camera.SetOrthographicSize(orthoSize);
-                    }
-
-                    float orthoNear = camera.OrthographicNear;
-                    if (ImGui.DragFloat("Near", ref orthoNear))
-                    {
-                        camera.SetOrthographicNearClip(orthoNear);
-                    }
-
-                    float orthoFar = camera.OrthographicFar;
-                    if (ImGui.DragFloat("Far", ref orthoFar))
-                    {
-                        camera.SetOrthographicFarClip(orthoFar);
-                    }
-
-                    bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
-                    if (ImGui.Checkbox("Fixed Aspect Ratio", ref fixedAspectRatio))
-                    {
-                        cameraComponent.FixedAspectRatio = fixedAspectRatio;
-                    }
-                }
-
-                ImGui.TreePop();
-            }
-        }
+        });
 
         ImGui.End();
-
-        //controller.Render();
     }
+
+
+    public static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : Component
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                                          ImGuiTreeNodeFlags.AllowOverlap |
+                                                                          ImGuiTreeNodeFlags.FramePadding;
+
+        if (entity.HasComponent<T>())
+        {
+            T component = entity.GetComponent<T>();
+            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            ImGui.Separator();
+
+            bool open = ImGui.TreeNodeEx(typeof(T).GetHashCode().ToString(), treeNodeFlags, name);
+            ImGui.PopStyleVar();
+
+            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
+            if (ImGui.Button("+", new Vector2(lineHeight, lineHeight)))
+            {
+                ImGui.OpenPopup("ComponentSettings");
+            }
+
+            bool removeComponent = false;
+            if (ImGui.BeginPopup("ComponentSettings"))
+            {
+                if (ImGui.MenuItem("Remove component"))
+                    removeComponent = true;
+                ImGui.EndPopup();
+            }
+
+            if (open)
+            {
+                uiFunction(component);
+                ImGui.TreePop();
+            }
+
+            if (removeComponent)
+                entity.RemoveComponent<T>();
+        }
+    }
+
 
     private void DrawEntityNode(Entity entity)
     {
@@ -213,6 +308,15 @@ public class SceneHierarchyPanel
             _selectionContext = entity;
         }
 
+        bool entityDeleted = false;
+        if (ImGui.BeginPopupContextItem())
+        {
+            if (ImGui.MenuItem("Delete Entity"))
+                entityDeleted = true;
+
+            ImGui.EndPopup();
+        }
+
         if (opened)
         {
             flags = ImGuiTreeNodeFlags.OpenOnArrow;
@@ -220,6 +324,13 @@ public class SceneHierarchyPanel
             if (opened)
                 ImGui.TreePop();
             ImGui.TreePop();
+        }
+
+        if (entityDeleted)
+        {
+            _context.DestroyEntity(entity);
+            if (Equals(_selectionContext, entity))
+                _selectionContext = null;
         }
     }
 

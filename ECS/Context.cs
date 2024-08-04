@@ -5,7 +5,7 @@ public class Context
     private static Context? _instance;
     public static Context Instance => _instance ??= new Context();
     
-    public List<Entity> Entities { get; private set; }
+    public IList<Entity> Entities { get; private set; }
 
     private Context()
     {

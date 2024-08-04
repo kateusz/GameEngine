@@ -1,10 +1,19 @@
 using System.Numerics;
 using ECS;
-using Engine.Renderer.Textures;
 
 namespace Engine.Scene.Components;
 
-public class SpriteRendererComponent(Vector4 color) : Component
+public class SpriteRendererComponent : Component
 {
-    public Vector4 Color { get; set; } = color;
+    public SpriteRendererComponent()
+    {
+        Color = Vector4.Zero;
+    }
+    
+    public SpriteRendererComponent(Vector4 color)
+    {
+        Color = color;
+    }
+
+    public Vector4 Color { get; set; }
 }
