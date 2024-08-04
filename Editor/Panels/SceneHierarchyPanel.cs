@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Engine.Math;
 using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
@@ -57,8 +58,7 @@ public class SceneHierarchyPanel
             tag = System.Text.Encoding.UTF8.GetString(buffer).TrimEnd('\0');
             entity.Name = tag; // Update entity's name if needed
         }
-
-
+        
         if (entity.HasComponent<TransformComponent>())
         {
             // ImGui TreeNode for TransformComponent
@@ -82,6 +82,99 @@ public class SceneHierarchyPanel
                 ImGui.TreePop(); // Close TreeNode
             }
         }
+
+        if (entity.HasComponent<CameraComponent>())
+        {
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+            if (ImGui.TreeNodeEx("Camera", ImGuiTreeNodeFlags.DefaultOpen))
+            {
+                var camera = cameraComponent.Camera;
+
+                bool primary = cameraComponent.Primary;
+                if (ImGui.Checkbox("Primary", ref primary))
+                {
+                    cameraComponent.Primary = primary;
+                }
+
+                string[] projectionTypeStrings = { "Perspective", "Orthographic" };
+                var currentProjectionType = camera.ProjectionType;
+                string currentProjectionTypeString = projectionTypeStrings[(int)currentProjectionType];
+
+                if (ImGui.BeginCombo("Projection", currentProjectionTypeString))
+                {
+                    for (int i = 0; i < projectionTypeStrings.Length; i++)
+                    {
+                        bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
+                        if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
+                        {
+                            currentProjectionTypeString = projectionTypeStrings[i];
+                            camera.SetProjectionType((ProjectionType)i);
+                        }
+
+                        if (isSelected)
+                        {
+                            ImGui.SetItemDefaultFocus();
+                        }
+                    }
+
+                    ImGui.EndCombo();
+                }
+
+                if (camera.ProjectionType == ProjectionType.Perspective)
+                {
+                    float verticalFov = MathHelpers.ToDegrees(camera.PerspectiveFOV);
+                    if (ImGui.DragFloat("Vertical FOV", ref verticalFov))
+                    {
+                        camera.SetPerspectiveVerticalFOV(MathHelpers.ToRadians(verticalFov));
+                    }
+
+                    float perspectiveNear = camera.PerspectiveNear;
+                    if (ImGui.DragFloat("Near", ref perspectiveNear))
+                    {
+                        camera.SetPerspectiveNearClip(perspectiveNear);
+                    }
+
+                    float perspectiveFar = camera.OrthographicFar;
+                    if (ImGui.DragFloat("Far", ref perspectiveFar))
+                    {
+                        camera.SetPerspectiveFarClip(perspectiveFar);
+                    }
+                }
+
+                if (camera.ProjectionType == ProjectionType.Orthographic)
+                {
+                    float orthoSize = camera.OrthographicSize;
+                    if (ImGui.DragFloat("Size", ref orthoSize))
+                    {
+                        camera.SetOrthographicSize(orthoSize);
+                    }
+
+                    float orthoNear = camera.OrthographicNear;
+                    if (ImGui.DragFloat("Near", ref orthoNear))
+                    {
+                        camera.SetOrthographicNearClip(orthoNear);
+                    }
+
+                    float orthoFar = camera.OrthographicFar;
+                    if (ImGui.DragFloat("Far", ref orthoFar))
+                    {
+                        camera.SetOrthographicFarClip(orthoFar);
+                    }
+
+                    bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
+                    if (ImGui.Checkbox("Fixed Aspect Ratio", ref fixedAspectRatio))
+                    {
+                        cameraComponent.FixedAspectRatio = fixedAspectRatio;
+                    }
+                }
+
+                ImGui.TreePop();
+            }
+        }
+
+        ImGui.End();
+
+        //controller.Render();
     }
 
     private void DrawEntityNode(Entity entity)

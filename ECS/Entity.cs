@@ -48,6 +48,16 @@ public class Entity
 
     public override bool Equals(object? obj)
     {
-        return base.Equals(obj);
+        return Id == ((Entity)obj).Id;
+    }
+
+    protected bool Equals(Entity other)
+    {
+        return components.Equals(other.components) && Id.Equals(other.Id) && Name == other.Name;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(components, Id, Name);
     }
 }

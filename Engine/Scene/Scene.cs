@@ -19,6 +19,22 @@ public class Scene
 
     public void OnUpdate(TimeSpan ts)
     {
+        // Update scripts
+        var nativeScriptGroup = Context.Instance.View<NativeScriptComponent>();
+        
+        foreach (var (entity, nativeScriptComponent) in nativeScriptGroup)
+        {
+
+            if (nativeScriptComponent.ScriptableEntity.Entity == null)
+            {
+                //todo: loop ref?
+                nativeScriptComponent.ScriptableEntity.Entity = entity;
+            }
+            
+            nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
+        }
+        
+        // Render 2D
         var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         
         Camera? camera = null;

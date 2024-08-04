@@ -29,4 +29,18 @@ public class Context
         }
         return result;
     }
+
+    public List<Tuple<Entity, TComponent>> View<TComponent>() where TComponent : Component
+    {
+        var result = new List<Tuple<Entity, TComponent>>();
+        var groups = GetGroup(typeof(TComponent));
+        
+        foreach (var entity in groups)
+        {
+            var component = entity.GetComponent<TComponent>();
+            result.Add(new Tuple<Entity, TComponent>(entity, component));
+        }
+        
+        return result;
+    }
 }

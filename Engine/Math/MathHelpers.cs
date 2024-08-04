@@ -6,4 +6,9 @@ public static class MathHelpers
     {
         return (float)(degrees * (System.Math.PI / 180));
     }
+    
+    public static float ToDegrees(float radians)
+    {
+        return radians * (MathF.PI / 180.0f);;
+    }
 }
