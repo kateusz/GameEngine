@@ -58,31 +58,59 @@ public class SceneHierarchyPanel
             tag = System.Text.Encoding.UTF8.GetString(buffer).TrimEnd('\0');
             entity.Name = tag; // Update entity's name if needed
         }
-        
+
         if (entity.HasComponent<TransformComponent>())
         {
-            // ImGui TreeNode for TransformComponent
             if (ImGui.TreeNodeEx(typeof(TransformComponent).GetHashCode(), ImGuiTreeNodeFlags.DefaultOpen, "Transform"))
             {
-                // Get reference to TransformComponent's Transform
-                var transform = entity.GetComponent<TransformComponent>().Transform;
+                // Get reference to TransformComponent's 
+                var tc = entity.GetComponent<TransformComponent>();
 
-                // ImGui DragFloat3 for editing position
-                Vector3 position = new Vector3(transform.M41, transform.M42, transform.M43);
-                if (ImGui.DragFloat3("Position", ref position, 0.1f))
-                {
-                    // Update transform with new position values
-                    transform.M41 = position[0];
-                    transform.M42 = position[1];
-                    transform.M43 = position[2];
-                    // Update TransformComponent in entity if needed
-                    entity.GetComponent<TransformComponent>().Transform = transform;
-                }
+                var newTranslation = DrawVec3Control("Translation", tc.Translation);
+
+                Vector3 rotationDegrees = new Vector3(
+                    MathHelpers.ToDegrees(tc.Rotation.X),
+                    MathHelpers.ToDegrees(tc.Rotation.Y),
+                    MathHelpers.ToDegrees(tc.Rotation.Z)
+                );
+
+                var newRotation = DrawVec3Control("Rotation", tc.Rotation);
+
+                tc.Rotation = new Vector3(
+                    MathHelpers.ToRadians(tc.Rotation.X),
+                    MathHelpers.ToRadians(tc.Rotation.Y),
+                    MathHelpers.ToRadians(tc.Rotation.Z)
+                );
+
+                var newScale = DrawVec3Control("Scale", tc.Scale, 1.0f);
+
+                tc.Translation = newTranslation;
+                tc.Rotation = newRotation;
+                tc.Scale = newScale;
 
                 ImGui.TreePop(); // Close TreeNode
             }
         }
 
+        if (entity.HasComponent<SpriteRendererComponent>())
+        {
+            if (ImGui.TreeNodeEx(typeof(SpriteRendererComponent).GetHashCode(), ImGuiTreeNodeFlags.DefaultOpen,
+                    "Sprite Renderer"))
+            {
+                var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
+                var newColor = spriteRendererComponent.Color;
+                ImGui.ColorEdit4("Square Color", ref newColor);
+
+                if (spriteRendererComponent.Color != newColor)
+                {
+                    spriteRendererComponent.Color = newColor;
+                }
+
+                ImGui.Separator();
+                ImGui.End();
+            }
+        }
+        
         if (entity.HasComponent<CameraComponent>())
         {
             var cameraComponent = entity.GetComponent<CameraComponent>();
@@ -196,5 +224,67 @@ public class SceneHierarchyPanel
                 ImGui.TreePop();
             ImGui.TreePop();
         }
+    }
+
+    public Vector3 DrawVec3Control(string label, Vector3 values, float resetValue = 0.0f, float columnWidth = 100.0f)
+    {
+        ImGui.PushID(label);
+
+        ImGui.Columns(2);
+        ImGui.SetColumnWidth(0, columnWidth);
+        ImGui.Text(label);
+        ImGui.NextColumn();
+
+        // Get the total width available for the DragFloat controls
+        float itemWidth = ImGui.CalcItemWidth();
+        float buttonWidth = 20.0f; // Width of the reset button (X, Y, Z)
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+
+        // Define button sizes
+        Vector2 buttonSize = new Vector2(buttonWidth, ImGui.GetFrameHeight());
+
+        // Handle X
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.9f, 0.2f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
+        if (ImGui.Button("X", buttonSize))
+            values.X = resetValue;
+        ImGui.PopStyleColor(3);
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.DragFloat("##X", ref values.X, 0.1f, 0.0f, 0.0f, "%.2f");
+
+        // Handle Y
+        ImGui.SameLine();
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
+        if (ImGui.Button("Y", buttonSize))
+            values.Y = resetValue;
+        ImGui.PopStyleColor(3);
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.DragFloat("##Y", ref values.Y, 0.1f, 0.0f, 0.0f, "%.2f");
+
+        // Handle Z
+        ImGui.SameLine();
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.1f, 0.25f, 0.8f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.2f, 0.35f, 0.9f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.1f, 0.25f, 0.8f, 1.0f));
+        if (ImGui.Button("Z", buttonSize))
+            values.Z = resetValue;
+        ImGui.PopStyleColor(3);
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.DragFloat("##Z", ref values.Z, 0.1f, 0.0f, 0.0f, "%.2f");
+
+        ImGui.Columns(1);
+
+        ImGui.PopID();
+
+        return values;
     }
 }
