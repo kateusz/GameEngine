@@ -29,15 +29,16 @@ public class Scene
             {
                 //todo: loop ref?
                 nativeScriptComponent.ScriptableEntity.Entity = entity;
+                nativeScriptComponent.ScriptableEntity.OnCreate();
             }
             
             nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
         }
         
         // Render 2D
+        Camera? mainCamera = null;
         var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         
-        Camera? camera = null;
         var cameraTransform = Matrix4x4.Identity;
         
         foreach (var entity in cameraGroup)
@@ -47,19 +48,24 @@ public class Scene
 
             if (cameraComponent.Primary)
             {
-                camera = cameraComponent.Camera;
-                cameraTransform = transformComponent.Transform;
+                mainCamera = cameraComponent.Camera;
+                cameraTransform = transformComponent.GetTransform();
+                break;
             }
         }
-        
-        var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
-        foreach (var entity in group)
+
+        if (mainCamera != null)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
+            Renderer2D.Instance.BeginScene(mainCamera, cameraTransform);
             
-            Renderer2D.Instance.BeginScene(camera, cameraTransform);
-            Renderer2D.Instance.DrawQuad(transformComponent.Transform, spriteRendererComponent.Color);
+            var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+            foreach (var entity in group)
+            {
+                var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
+                var transformComponent = entity.GetComponent<TransformComponent>();
+                Renderer2D.Instance.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color);
+            }
+            
             Renderer2D.Instance.EndScene();
         }
     }

@@ -87,24 +87,16 @@ public class EditorLayer : Layer
         _cameraEntity = _activeScene.CreateEntity("Camera Entity");
         
         // todo: why is it not centered after run?
-        _translation = new Vector3(1.9f, 1.2f, 0.0f);
-        var cameraTranslation = Matrix4x4.CreateTranslation(_translation);
-        
-        _cameraEntity.AddComponent(new TransformComponent
-        {
-            Transform = cameraTranslation
-        });
+        _translation = new Vector3(1.7f, 1.2f, 0.0f);
+
+        _cameraEntity.AddComponent(new TransformComponent());
 
         var cameraComponent = new CameraComponent();
         _cameraEntity.AddComponent(cameraComponent);
         Context.Instance.Register(_cameraEntity);
 
         _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
-        _secondCamera.AddComponent(new TransformComponent
-        {
-            Transform = cameraTranslation
-        });
-        
+        _secondCamera.AddComponent(new TransformComponent());
         var secondCameraComponent = new CameraComponent
         {
             Primary = false
@@ -175,20 +167,7 @@ public class EditorLayer : Layer
 
             ImGui.Begin("Settings");
             {
-                ImGui.Separator();
-                var tag = _squareEntity.Id;
-                ImGui.Text(tag.ToString());
-
-                var spriteRendererComponent = _squareEntity.GetComponent<SpriteRendererComponent>();
-                ImGui.ColorEdit4("Square Color", ref _squareColor);
-
-                if (_squareColor != spriteRendererComponent.Color)
-                {
-                    spriteRendererComponent.Color = _squareColor;
-                }
-
-                ImGui.Separator();
-                ImGui.End();
+                
             }
             
             var oldValue = _translation;
@@ -196,8 +175,7 @@ public class EditorLayer : Layer
 
             if (_translation != oldValue)
             {
-                var newTransform = Matrix4x4.CreateTranslation(_translation);
-                _cameraEntity.GetComponent<TransformComponent>().Transform = newTransform;
+                _cameraEntity.GetComponent<TransformComponent>().Translation = _translation;
             }
             
             if (ImGui.Checkbox("Camera A", ref _primaryCamera))

@@ -72,6 +72,17 @@ public class Renderer2D
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
         _data.TextureSlotIndex = 1;
+        
+        Matrix4x4.Invert(viewProj, out var inverseViewProjectionMatrix);
+
+        var centerScreen = new Vector4(0, 0, 0, 1);
+        var centerWorld = Vector4.Transform(centerScreen, inverseViewProjectionMatrix);
+
+        var  centerPosition = new Vector3(
+            centerWorld.X / centerWorld.W,
+            centerWorld.Y / centerWorld.W,
+            centerWorld.Z / centerWorld.W
+        );
     }
 
     public void EndScene()
