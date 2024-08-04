@@ -22,7 +22,7 @@ public class SceneCamera : Camera
     public float OrthographicFar { get; private set; } = 1.0f;
     public float AspectRatio { get; private set; } = 0.0f;
 
-    public float PerspectiveFOV { get; set; } = MathHelpers.ToRadians(45.0f);
+    public float PerspectiveFOV { get; set; } = MathHelpers.DegreesToRadians(45.0f);
     public float PerspectiveNear { get; set; } = 0.01f;
     public float PerspectiveFar { get; set; } = 1000.0f;
 
