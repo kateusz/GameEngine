@@ -52,7 +52,7 @@ public class SilkNetVertexArray : IVertexArray
                     VertexAttribPointerType.Float,
                     element.Normalized,
                     (uint)layout.Stride,
-                    (void*)element.Offset);
+                    (void*)element.Offset); // what about element.Offset + sizeof(float) * count * i)???
             }
         }
 
