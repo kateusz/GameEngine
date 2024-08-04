@@ -14,7 +14,16 @@ public class Scene
     public Entity CreateEntity(string name)
     {
         var entity = new Entity(name);
+        entity.OnComponentAdded += OnComponentAdded;
         return entity;
+    }
+
+    private void OnComponentAdded(Component component)
+    {
+        if (component is CameraComponent cameraComponent)
+        {
+            cameraComponent.Camera.SetViewportSize(_viewportWidth, _viewportHeight);
+        }
     }
 
     public void DestroyEntity(Entity entity)

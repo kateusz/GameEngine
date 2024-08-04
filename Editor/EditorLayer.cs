@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json;
 using ECS;
 using Editor.Panels;
 using Engine.Core;
@@ -153,6 +154,19 @@ public class EditorLayer : Layer
             {
                 if (ImGui.BeginMenu("File"))
                 {
+                    if (ImGui.MenuItem("Serialize"))
+                    {
+                        var json = JsonSerializer.Serialize(_activeScene);
+                        Directory.CreateDirectory("assets/scenes");
+                        File.WriteAllText("assets/scenes/Example.scene", json);
+                    }
+
+                    if (ImGui.MenuItem("Deserialize"))
+                    {
+                        var sceneData = File.ReadAllText("assets/scenes/Example.scene");
+                        var scene = JsonSerializer.Deserialize<Scene>(sceneData);
+                    }
+                    
                     if (ImGui.MenuItem("Exit"))
                     {
                     }

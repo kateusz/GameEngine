@@ -25,6 +25,7 @@ public class Entity
     {
         var component = new TComponent();
         components[typeof(TComponent)] = component;
+        OnComponentAdded?.Invoke(component);
     }
 
     public void RemoveComponent<T>() where T : Component
