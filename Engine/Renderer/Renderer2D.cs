@@ -151,7 +151,7 @@ public class Renderer2D
         
         if (rotation != 0)
         {
-            transform *= Matrix4x4.CreateRotationZ(MathHelpers.ToRadians(rotation));
+            transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
         }
         
         transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);

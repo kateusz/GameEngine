@@ -63,32 +63,29 @@ public class SceneHierarchyPanel
         {
             if (ImGui.TreeNodeEx(typeof(TransformComponent).GetHashCode(), ImGuiTreeNodeFlags.DefaultOpen, "Transform"))
             {
-                // Get reference to TransformComponent's 
                 var tc = entity.GetComponent<TransformComponent>();
+                
+                var newTranslation = tc.Translation;
+                DrawVec3Control("Translation", ref newTranslation);
 
-                var newTranslation = DrawVec3Control("Translation", tc.Translation);
+                if (newTranslation != tc.Translation) 
+                    tc.Translation = newTranslation;
 
-                Vector3 rotationDegrees = new Vector3(
-                    MathHelpers.ToDegrees(tc.Rotation.X),
-                    MathHelpers.ToDegrees(tc.Rotation.Y),
-                    MathHelpers.ToDegrees(tc.Rotation.Z)
-                );
+                var rotationRadians = tc.Rotation;
+                Vector3 rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
+                DrawVec3Control("Rotation", ref rotationDegrees);
+                var newRotationRadians = MathHelpers.ToRadians(rotationDegrees);
 
-                var newRotation = DrawVec3Control("Rotation", tc.Rotation);
+                if (newRotationRadians != tc.Rotation) 
+                    tc.Rotation = newRotationRadians;
 
-                tc.Rotation = new Vector3(
-                    MathHelpers.ToRadians(tc.Rotation.X),
-                    MathHelpers.ToRadians(tc.Rotation.Y),
-                    MathHelpers.ToRadians(tc.Rotation.Z)
-                );
+                var newScale = tc.Scale;
+                DrawVec3Control("Scale", ref newScale, 1.0f);
 
-                var newScale = DrawVec3Control("Scale", tc.Scale, 1.0f);
+                if (newScale != tc.Scale)
+                    tc.Scale = newScale;
 
-                tc.Translation = newTranslation;
-                tc.Rotation = newRotation;
-                tc.Scale = newScale;
-
-                ImGui.TreePop(); // Close TreeNode
+                ImGui.TreePop();
             }
         }
 
@@ -150,10 +147,10 @@ public class SceneHierarchyPanel
 
                 if (camera.ProjectionType == ProjectionType.Perspective)
                 {
-                    float verticalFov = MathHelpers.ToDegrees(camera.PerspectiveFOV);
+                    float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
                     if (ImGui.DragFloat("Vertical FOV", ref verticalFov))
                     {
-                        camera.SetPerspectiveVerticalFOV(MathHelpers.ToRadians(verticalFov));
+                        camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
                     }
 
                     float perspectiveNear = camera.PerspectiveNear;
@@ -226,7 +223,7 @@ public class SceneHierarchyPanel
         }
     }
 
-    public Vector3 DrawVec3Control(string label, Vector3 values, float resetValue = 0.0f, float columnWidth = 100.0f)
+    public void DrawVec3Control(string label, ref Vector3 values, float resetValue = 0.0f, float columnWidth = 100.0f)
     {
         ImGui.PushID(label);
 
@@ -284,7 +281,5 @@ public class SceneHierarchyPanel
         ImGui.Columns(1);
 
         ImGui.PopID();
-
-        return values;
     }
 }

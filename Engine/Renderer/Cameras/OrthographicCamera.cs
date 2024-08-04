@@ -50,7 +50,7 @@ public class OrthographicCamera
     private void RecalculateViewMatrix()
     {
         var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, 0);
-        var rotation = Matrix4x4.CreateRotationZ(MathHelpers.ToRadians(Rotation));
+        var rotation = Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
         var scale = Matrix4x4.CreateScale(Scale.X, Scale.Y, Scale.Z);
 
         var transform = Matrix4x4.Identity;
