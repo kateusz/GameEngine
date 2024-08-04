@@ -17,6 +17,11 @@ public class Scene
         return entity;
     }
 
+    public void DestroyEntity(Entity entity)
+    {
+        Context.Instance.Entities.Remove(entity);
+    }
+
     public void OnUpdate(TimeSpan ts)
     {
         // Update scripts
