@@ -5,50 +5,54 @@ public class Entity
     public Guid Id { get; private set; }
     public string Name { get; set; }
     
-    private Dictionary<Type, Component> components;
+    private readonly Dictionary<Type, Component> _components;
     public event Action<Component>? OnComponentAdded;
 
-    public Entity(string name)
+    public Entity(string name) : this(Guid.NewGuid(), name)
     {
-        Id = Guid.NewGuid();
+    }
+
+    public Entity(Guid id, string name)
+    {
+        Id = id;
         Name = name;
-        components = new Dictionary<Type, Component>();
+        _components = new Dictionary<Type, Component>();
     }
 
     public void AddComponent(Component component)
     {
-        components[component.GetType()] = component;
+        _components[component.GetType()] = component;
         OnComponentAdded?.Invoke(component);
     }
 
     public void AddComponent<TComponent>() where TComponent : Component, new()
     {
         var component = new TComponent();
-        components[typeof(TComponent)] = component;
+        _components[typeof(TComponent)] = component;
         OnComponentAdded?.Invoke(component);
     }
 
     public void RemoveComponent<T>() where T : Component
     {
-        components.Remove(typeof(T));
+        _components.Remove(typeof(T));
     }
 
     public T GetComponent<T>() where T : Component
     {
-        components.TryGetValue(typeof(T), out Component component);
+        _components.TryGetValue(typeof(T), out Component component);
         return (T)component;
     }
 
     public bool HasComponent<T>() where T : Component
     {
-        return components.ContainsKey(typeof(T));
+        return _components.ContainsKey(typeof(T));
     }
     
     public bool HasComponents(Type[] componentTypes)
     {
         foreach (var type in componentTypes)
         {
-            if (!components.ContainsKey(type))
+            if (!_components.ContainsKey(type))
             {
                 return false;
             }
@@ -63,11 +67,11 @@ public class Entity
 
     protected bool Equals(Entity other)
     {
-        return components.Equals(other.components) && Id.Equals(other.Id) && Name == other.Name;
+        return _components.Equals(other._components) && Id.Equals(other.Id) && Name == other.Name;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(components, Id, Name);
+        return HashCode.Combine(_components, Id, Name);
     }
 }

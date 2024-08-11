@@ -5,6 +5,7 @@ using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using System.Numerics;
 using Engine.Math;
+using Engine.Platform;
 using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
 namespace Engine.Renderer;
@@ -20,7 +21,8 @@ public class Renderer2D
 
     static Renderer2D()
     {
-        TextureCoords = [
+        TextureCoords =
+        [
             new(0.0f, 0.0f),
             new(1.0f, 0.0f),
             new(1.0f, 1.0f),
@@ -59,26 +61,33 @@ public class Renderer2D
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
         _ = Matrix4x4.Invert(transform, out var transformInverted);
-        
-        // windows version
-        //var viewProj = camera.Projection * transformInverted;
-        
-        // mac version
-        var viewProj = transformInverted * camera.Projection;
+        Matrix4x4? viewProj = null;
+
+        if (OSInfo.IsWindows)
+        {
+            viewProj = camera.Projection * transformInverted;
+        }
+        else if (OSInfo.IsMacOS)
+        {
+            viewProj = transformInverted * camera.Projection;
+        }
+
+        if (viewProj is null)
+            throw new InvalidOperationException("Unsupported OS version!");
 
         _data.TextureShader.Bind();
-        _data.TextureShader.SetMat4("u_ViewProjection", viewProj);
+        _data.TextureShader.SetMat4("u_ViewProjection", viewProj.Value);
         _data.QuadVertexBufferBase = [];
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
         _data.TextureSlotIndex = 1;
-        
-        Matrix4x4.Invert(viewProj, out var inverseViewProjectionMatrix);
+
+        Matrix4x4.Invert(viewProj.Value, out var inverseViewProjectionMatrix);
 
         var centerScreen = new Vector4(0, 0, 0, 1);
         var centerWorld = Vector4.Transform(centerScreen, inverseViewProjectionMatrix);
 
-        var  centerPosition = new Vector3(
+        var centerPosition = new Vector3(
             centerWorld.X / centerWorld.W,
             centerWorld.Y / centerWorld.W,
             centerWorld.Z / centerWorld.W
@@ -143,22 +152,22 @@ public class Renderer2D
     {
         DrawQuad(position with { Z = 0.0f }, size, rotation: 0, texture, tilingFactor, tintColor);
     }
-    
+
     public void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D? texture, float tilingFactor = 1.0f,
         Vector4? tintColor = null)
     {
         var transform = Matrix4x4.CreateTranslation(position);
-        
+
         if (rotation != 0)
         {
             transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
         }
-        
+
         transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-        
+
         DrawQuad(transform, texture, tilingFactor, tintColor);
     }
-    
+
     public void DrawQuad(Matrix4x4 transform, Vector4 color)
     {
         DrawQuad(transform, texture: null, tilingFactor: 1.0f, color);
@@ -287,7 +296,7 @@ public class Renderer2D
         _data.QuadVertexPositions.Add(new Vector4(0.5f, 0.5f, 0.0f, 1.0f));
         _data.QuadVertexPositions.Add(new Vector4(-0.5f, 0.5f, 0.0f, 1.0f));
     }
-    
+
     private static uint[] CreateQuadIndices()
     {
         var quadIndices = new uint[Renderer2DData.MaxIndices];

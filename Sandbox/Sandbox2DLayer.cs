@@ -13,7 +13,7 @@ public class Sandbox2DLayer : Layer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
-    private OrthographicCameraController _cameraController;
+    private OrthographicCameraController _orthographicCameraController;
     private Texture2D _texture;
     private Texture2D _spriteSheet;
 
@@ -23,12 +23,12 @@ public class Sandbox2DLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        _cameraController.OnUpdate(timeSpan);
+        _orthographicCameraController.OnUpdate(timeSpan);
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
-        Renderer2D.Instance.BeginScene(_cameraController.Camera);
+        Renderer2D.Instance.BeginScene(_orthographicCameraController.Camera);
 
        // Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture, 10.0f);
 
@@ -52,14 +52,14 @@ public class Sandbox2DLayer : Layer
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
 
-        _cameraController.OnEvent(@event);
+        _orthographicCameraController.OnEvent(@event);
     }
 
     public override void OnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
 
-        _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         _texture = TextureFactory.Create("assets/Checkerboard.png");
         //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
     }
