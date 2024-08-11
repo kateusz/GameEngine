@@ -1,6 +1,8 @@
+using System.Runtime.InteropServices;
 using Engine.Renderer.Cameras;
-using System.Numerics;
+using System.Text.Json.Serialization;
 using Engine.Math;
+using Engine.Platform;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace Engine.Scene;
@@ -15,11 +17,8 @@ public class SceneCamera : Camera
 {
     public ProjectionType ProjectionType { get; private set; } = ProjectionType.Orthographic;
     public float OrthographicSize { get; private set; } = 2.0f;
-
-    // TODO: apply OS check
-    // On macOS the clip space Z range is [0, 1] instead of the more common [-1, 1].
-    public float OrthographicNear { get; private set; } = -1.0f;
-    public float OrthographicFar { get; private set; } = 1.0f;
+    public float OrthographicNear { get; private set; }
+    public float OrthographicFar { get; private set; }
     public float AspectRatio { get; private set; } = 0.0f;
 
     public float PerspectiveFOV { get; set; } = MathHelpers.DegreesToRadians(45.0f);
@@ -29,6 +28,17 @@ public class SceneCamera : Camera
     public SceneCamera() : base(Matrix4x4.Identity)
     {
         RecalculateProjection();
+        
+        if (OSInfo.IsWindows)
+        {
+            OrthographicNear = -1.0f;
+            OrthographicFar = 1.0f;
+        }
+        else if (OSInfo.IsMacOS)
+        {
+            OrthographicNear = 0.0f;
+            OrthographicFar = 1.0f;
+        }
     }
 
     public void SetOrthographic(float size, float nearClip, float farClip)

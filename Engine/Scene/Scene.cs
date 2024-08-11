@@ -11,6 +11,7 @@ public class Scene
     private uint _viewportWidth;
     private uint _viewportHeight;
 
+    // todo: assign entities to Scene
     public Entity CreateEntity(string name)
     {
         var entity = new Entity(name);
