@@ -1,6 +1,4 @@
-using System.Runtime.InteropServices;
 using Engine.Renderer.Cameras;
-using System.Text.Json.Serialization;
 using Engine.Math;
 using Engine.Platform;
 using Matrix4x4 = System.Numerics.Matrix4x4;
@@ -15,11 +13,21 @@ public enum ProjectionType
 
 public class SceneCamera : Camera
 {
+    private float _aspectRatio;
+    
     public ProjectionType ProjectionType { get; private set; } = ProjectionType.Orthographic;
     public float OrthographicSize { get; private set; } = 2.0f;
     public float OrthographicNear { get; private set; }
     public float OrthographicFar { get; private set; }
-    public float AspectRatio { get; private set; } = 0.0f;
+    public float AspectRatio
+    {
+        get => _aspectRatio;
+        set
+        {
+            _aspectRatio = value;
+            RecalculateProjection();
+        }
+    }
 
     public float PerspectiveFOV { get; set; } = MathHelpers.DegreesToRadians(45.0f);
     public float PerspectiveNear { get; set; } = 0.01f;
@@ -27,8 +35,6 @@ public class SceneCamera : Camera
 
     public SceneCamera() : base(Matrix4x4.Identity)
     {
-        RecalculateProjection();
-        
         if (OSInfo.IsWindows)
         {
             OrthographicNear = -1.0f;
@@ -39,6 +45,8 @@ public class SceneCamera : Camera
             OrthographicNear = 0.0f;
             OrthographicFar = 1.0f;
         }
+
+        RecalculateProjection();
     }
 
     public void SetOrthographic(float size, float nearClip, float farClip)
@@ -62,7 +70,6 @@ public class SceneCamera : Camera
     public void SetViewportSize(uint width, uint height)
     {
         AspectRatio = (float)width / (float)height;
-        RecalculateProjection();
     }
 
     public void SetOrthographicSize(float size)

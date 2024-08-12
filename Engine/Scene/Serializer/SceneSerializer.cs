@@ -13,16 +13,34 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class SceneSerializer
 {
+    private const string SceneKey = "Scene";
+    private const string EntitiesKey = "Entities";
+    private const string DefaultSceneName = "default";
+    private const string AssetsDirectory = "assets/scenes";
+    private const string ComponentsKey = "Components";
+    private const string NameKey = "Name";
+    private const string IdKey = "Id";
+
+    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
+    {
+        WriteIndented = true,
+        Converters =
+        {
+            new Vector3Converter(),
+            new Vector4Converter(),
+            new JsonStringEnumConverter()
+        }
+    };
+
     public static void Serialize(Scene scene, string path)
     {
         var jsonObj = new JsonObject
         {
-            ["Scene"] = "default",
-            ["Entities"] = new JsonArray()
+            [SceneKey] = DefaultSceneName,
+            [EntitiesKey] = new JsonArray()
         };
 
-        if (jsonObj["Entities"] is not JsonArray jsonEntities) 
-            throw new InvalidSceneJsonException(nameof(jsonEntities));
+        var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
 
         foreach (var entity in Context.Instance.Entities.ToList())
         {
@@ -30,112 +48,89 @@ public class SceneSerializer
         }
 
         var jsonString = jsonObj.ToJsonString();
-
-        Directory.CreateDirectory("assets/scenes");
+        Directory.CreateDirectory(AssetsDirectory);
         File.WriteAllText(path, jsonString);
     }
 
     public static void Deserialize(Scene scene, string path)
     {
-        var contextEntities = Context.Instance.Entities;
         var json = File.ReadAllText(path);
-        var jsonObj = JsonNode.Parse(json)?.AsObject();
+        var jsonObj = JsonNode.Parse(json)?.AsObject() ??
+                      throw new InvalidSceneJsonException("Got null JSON Object from JSON");
 
-        if (jsonObj is null)
-            throw new InvalidSceneJsonException("Got null JSON Object from JSON");
-
-        if (jsonObj["Entities"] is null)
-            throw new InvalidSceneJsonException("Got invalid Scene JSON");
-
-        var jsonEntities = jsonObj["Entities"]!.AsArray();
+        var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
 
         foreach (var jsonEntity in jsonEntities)
         {
-            if (jsonEntity is null)
-                continue;
-            
-            var entityObj = jsonEntity.AsObject();
+            if (jsonEntity is not JsonObject entityObj) continue;
 
-            if (entityObj["Id"] is null || entityObj["Name"] is null)
-                throw new InvalidSceneJsonException("Got invalid JSON for entity");
+            var entity = DeserializeEntity(entityObj);
+            Context.Instance.Entities.Add(entity);
+        }
+    }
 
-            var entityId = entityObj["Id"]!.GetValue<Guid>();
-            var entityName = entityObj["Name"]?.GetValue<string>();
+    private static JsonArray GetJsonArray(JsonNode jsonObject, string key)
+    {
+        return jsonObject[key] as JsonArray ?? throw new InvalidSceneJsonException($"Got invalid {key} JSON");
+    }
 
-            // Create a new Entity and set its Id and Name
-            var entity = new Entity(entityId, entityName!);
+    private static Entity DeserializeEntity(JsonObject entityObj)
+    {
+        var entityId = entityObj[IdKey]?.GetValue<Guid>() ?? throw new InvalidSceneJsonException("Invalid entity ID");
+        var entityName = entityObj[NameKey]?.GetValue<string>() ??
+                         throw new InvalidSceneJsonException("Invalid entity Name");
 
-            // TODO: remove hard-coded native script for camera
-            if (entity.Name == "Camera Entity")
+        var entity = new Entity(entityId, entityName);
+
+        // Handle special cases for entity names
+        if (entity.Name == "Camera Entity")
+        {
+            entity.AddComponent(new NativeScriptComponent
             {
-                entity.AddComponent(new NativeScriptComponent
-                {
-                    ScriptableEntity = new CameraController()
-                });
-            }
+                ScriptableEntity = new CameraController()
+            });
+        }
 
-            if (entityObj["Components"] is null or not JsonArray)
-                throw new InvalidSceneJsonException($"Got invalid Components for entity {entity.Name}");
-            
-            // Deserialize components
-            var componentsArray = entityObj["Components"]!.AsArray();
-            foreach (var componentNode in componentsArray)
-            {
-                if (componentNode is null || componentNode["Name"] is null)
-                    throw new InvalidSceneJsonException("Got invalid component JSON");
-                        
-                var componentName = componentNode["Name"]!.GetValue<string>();
+        var componentsArray = GetJsonArray(entityObj, ComponentsKey);
 
-                if (componentName == nameof(TransformComponent))
-                {
-                    var transformComponent = JsonSerializer.Deserialize<TransformComponent>(
-                        componentNode.ToJsonString(), new JsonSerializerOptions
-                        {
-                            Converters =
-                            {
-                                new Vector3Converter()
-                            }
-                        });
+        foreach (var componentNode in componentsArray)
+        {
+            DeserializeComponent(entity,
+                componentNode ?? throw new InvalidSceneJsonException("Got null JSON Component"));
+        }
 
-                    if (transformComponent != null)
-                    {
-                        entity.AddComponent(transformComponent);
-                    }
-                }
-                else if (componentName == nameof(CameraComponent))
-                {
-                    var cameraComponent = JsonSerializer.Deserialize<CameraComponent>(componentNode.ToJsonString(),
-                        new JsonSerializerOptions
-                        {
-                            Converters =
-                            {
-                                new JsonStringEnumConverter(),
-                                new Vector3Converter()
-                            }
-                        });
-                    if (cameraComponent != null)
-                    {
-                        entity.AddComponent(cameraComponent);
-                    }
-                }
-                else if (componentName == nameof(SpriteRendererComponent))
-                {
-                    var spriteRendererComponent = JsonSerializer.Deserialize<SpriteRendererComponent>(
-                        componentNode.ToJsonString(), new JsonSerializerOptions
-                        {
-                            Converters =
-                            {
-                                new Vector4Converter()
-                            }
-                        });
-                    if (spriteRendererComponent != null)
-                    {
-                        entity.AddComponent(spriteRendererComponent);
-                    }
-                }
-            }
+        return entity;
+    }
 
-            contextEntities.Add(entity);
+    private static void DeserializeComponent(Entity entity, JsonNode componentNode)
+    {
+        if (componentNode is not JsonObject componentObj || componentObj[NameKey] is null)
+            throw new InvalidSceneJsonException("Invalid component JSON");
+
+        var componentName = componentObj[NameKey]!.GetValue<string>();
+
+        switch (componentName)
+        {
+            case nameof(TransformComponent):
+                AddComponent<TransformComponent>(entity, componentObj);
+                break;
+            case nameof(CameraComponent):
+                AddComponent<CameraComponent>(entity, componentObj);
+                break;
+            case nameof(SpriteRendererComponent):
+                AddComponent<SpriteRendererComponent>(entity, componentObj);
+                break;
+            default:
+                throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
+        }
+    }
+
+    private static void AddComponent<T>(Entity entity, JsonObject componentObj) where T : Component
+    {
+        var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component != null)
+        {
+            entity.AddComponent(component);
         }
     }
 
@@ -143,58 +138,31 @@ public class SceneSerializer
     {
         var entityObj = new JsonObject
         {
-            ["Id"] = entity.Id,
-            ["Name"] = entity.Name,
-            ["Components"] = new JsonArray()
+            [IdKey] = entity.Id,
+            [NameKey] = entity.Name,
+            [ComponentsKey] = new JsonArray()
         };
 
-        if (entity.HasComponent<TransformComponent>())
-        {
-            var component = entity.GetComponent<TransformComponent>();
-            var element = JsonSerializer.SerializeToNode(component, new JsonSerializerOptions
-            {
-                Converters =
-                {
-                    new Vector3Converter()
-                },
-                WriteIndented = true
-            });
-            element!["Name"] = nameof(TransformComponent);
-
-            var components = entityObj["Components"] as JsonArray;
-            components!.Add(element);
-        }
-
-        if (entity.HasComponent<CameraComponent>())
-        {
-            var component = entity.GetComponent<CameraComponent>();
-            var element = JsonSerializer.SerializeToNode(component, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-            element!["Name"] = nameof(CameraComponent);
-
-            var components = entityObj["Components"] as JsonArray;
-            components!.Add(element);
-        }
-
-        if (entity.HasComponent<SpriteRendererComponent>())
-        {
-            var component = entity.GetComponent<SpriteRendererComponent>();
-            var element = JsonSerializer.SerializeToNode(component, new JsonSerializerOptions
-            {
-                Converters =
-                {
-                    new Vector4Converter()
-                },
-                WriteIndented = true
-            });
-            element!["Name"] = nameof(SpriteRendererComponent);
-
-            var components = entityObj["Components"] as JsonArray;
-            components!.Add(element);
-        }
+        SerializeComponent<TransformComponent>(entity, entityObj, nameof(TransformComponent));
+        SerializeComponent<CameraComponent>(entity, entityObj, nameof(CameraComponent));
+        SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
 
         jsonEntities.Add(entityObj);
+    }
+
+    private static void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
+        where T : Component
+    {
+        if (!entity.HasComponent<T>())
+            return;
+
+        var component = entity.GetComponent<T>();
+        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        if (element != null)
+        {
+            element[NameKey] = componentName;
+            var components = GetJsonArray(entityObj, ComponentsKey);
+            components.Add(element);
+        }
     }
 }

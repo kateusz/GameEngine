@@ -72,48 +72,7 @@ public class EditorLayer : Layer
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
         _activeScene = new Scene();
-        
-        // todo: why is it not centered after run?
-        //_translation = new Vector3(1.2f, 1.2f, 0.0f);
         _translation = new Vector3();
-
-        /*
-        var squareColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
-        var square = _activeScene.CreateEntity("Square");
-        square.AddComponent(new TransformComponent());
-        square.AddComponent(new SpriteRendererComponent(squareColor));
-        Context.Instance.Register(square);
-
-        _squareEntity = square;
-        _squareColor = squareColor;
-        
-        var redSquare = _activeScene.CreateEntity("Red Square");
-        redSquare.AddComponent(new SpriteRendererComponent(new Vector4(1.0f, 0.0f, 0.0f, 1.0f)));
-        
-        _cameraEntity = _activeScene.CreateEntity("Camera Entity");
-
-        _cameraEntity.AddComponent(new TransformComponent());
-
-        var cameraComponent = new CameraComponent();
-        _cameraEntity.AddComponent(cameraComponent);
-        Context.Instance.Register(_cameraEntity);
-
-        _secondCamera = _activeScene.CreateEntity("Clip-Space Entity");
-        _secondCamera.AddComponent(new TransformComponent());
-        var secondCameraComponent = new CameraComponent
-        {
-            Primary = false
-        };
-        
-        _secondCamera.AddComponent(secondCameraComponent);
-        Context.Instance.Register(_secondCamera);
-
-        _cameraEntity.AddComponent(new NativeScriptComponent
-        {
-            ScriptableEntity = new CameraController()
-        });
-        */
-
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
     }
 
