@@ -1,4 +1,4 @@
-namespace Engine.Renderer.Buffers;
+namespace Engine.Renderer.Buffers.FrameBuffer;
 
 public class FrameBufferSpecification(uint width, uint height, uint samples = 1, bool swapChainTarget = false)
 {
