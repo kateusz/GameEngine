@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Math;
 using Engine.Platform;
@@ -14,6 +15,9 @@ public enum ProjectionType
 public class SceneCamera : Camera
 {
     private float _aspectRatio;
+    private Vector3 _cameraPosition = new Vector3(0.0f, 0.0f, 3.0f);
+    private Vector3 _cameraFront = new Vector3(0.0f, 0.0f, -1.0f);
+    private Vector3 _cameraUp = Vector3.UnitY;
     
     public ProjectionType ProjectionType { get; private set; } = ProjectionType.Orthographic;
     public float OrthographicSize { get; private set; } = 2.0f;
@@ -81,9 +85,9 @@ public class SceneCamera : Camera
     private void RecalculateProjection()
     {
         if (ProjectionType == ProjectionType.Perspective)
-        { 
-            Projection =
-                Matrix4x4.CreatePerspectiveFieldOfView(PerspectiveFOV, AspectRatio, PerspectiveNear, PerspectiveFar);
+        {
+            var view = Matrix4x4.CreateLookAt(_cameraPosition, _cameraPosition + _cameraFront, _cameraUp);
+            Projection = view * Matrix4x4.CreatePerspectiveFieldOfView(PerspectiveFOV, AspectRatio, PerspectiveNear, PerspectiveFar);
         }
         else
         {
