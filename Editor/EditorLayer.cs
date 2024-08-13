@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Editor.Panels;
 using Engine.Core;
+using Engine.Core.Input;
 using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
@@ -58,7 +59,46 @@ public class EditorLayer : Layer
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
 
+        if (@event is KeyPressedEvent keyPressedEvent)
+        {
+            OnKeyPressed(keyPressedEvent);
+        }
+
         _orthographicCameraController.OnEvent(@event);
+    }
+
+    private void OnKeyPressed(KeyPressedEvent keyPressedEvent)
+    {
+        // Shortcuts
+        if (keyPressedEvent.RepeatCount > 0)
+            return;
+        
+        bool control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) || InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightControl);
+        bool shift = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftShift) || InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightShift);
+        switch (keyPressedEvent.KeyCode)
+        {
+            case (int)KeyCodes.N:
+            {
+                if (control)
+                    NewScene();
+
+                break;
+            }
+            case (int)KeyCodes.O:
+            {
+                if (control)
+                    OpenScene();
+
+                break;
+            }
+            case (int)KeyCodes.S:
+            {
+                if (control && shift)
+                    SaveSceneAs();
+
+                break;
+            }
+        }
     }
 
     public override void OnAttach()
@@ -116,18 +156,18 @@ public class EditorLayer : Layer
             {
                 if (ImGui.BeginMenu("File"))
                 {
-                    if (ImGui.MenuItem("Serialize"))
-                    {
-                        SceneSerializer.Serialize(_activeScene, "assets/scenes/Example.scene");
-                    }
-
-                    if (ImGui.MenuItem("Deserialize"))
-                    {
-                        SceneSerializer.Deserialize(_activeScene, "assets/scenes/Example.scene");
-                    }
+                    if (ImGui.MenuItem("New", "Ctrl+N"))
+                        NewScene();
+                    
+                    if (ImGui.MenuItem("Open...", "Ctrl+O"))
+                        OpenScene();
+                    
+                    if (ImGui.MenuItem("Save As...", "Ctrl+Shift+S"))
+                        SaveSceneAs();
                     
                     if (ImGui.MenuItem("Exit"))
                     {
+                        
                     }
 
                     ImGui.EndMenu();
@@ -194,5 +234,32 @@ public class EditorLayer : Layer
                 ImGui.End();
             }
         }
+    }
+    
+    private void NewScene()
+    {
+        _activeScene = new Scene();
+        _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(_activeScene);
+    }
+
+    private void OpenScene()
+    {
+        var filePath = "assets/scenes/Example.scene";
+        
+        if (!string.IsNullOrWhiteSpace(filePath))
+        {
+            _activeScene = new Scene();
+            _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            _sceneHierarchyPanel.SetContext(_activeScene);
+
+            SceneSerializer.Deserialize(_activeScene, filePath);
+        }
+    }
+
+    private void SaveSceneAs()
+    {
+        var filePath = "assets/scenes/Example.scene";
+        SceneSerializer.Serialize(_activeScene, filePath);
     }
 }
