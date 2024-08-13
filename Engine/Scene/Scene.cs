@@ -11,13 +11,23 @@ public class Scene
     private uint _viewportWidth;
     private uint _viewportHeight;
 
-    // todo: assign entities to Scene
+    public Scene()
+    {
+        Context.Instance.Entities.Clear();
+    }
+    
+    public IList<Entity> Entities => Context.Instance.Entities;
+    
     public Entity CreateEntity(string name)
     {
         var entity = new Entity(name);
         entity.OnComponentAdded += OnComponentAdded;
+        Context.Instance.Register(entity);
+        
         return entity;
     }
+
+    public void AddEntity(Entity entity) => Context.Instance.Register(entity);
 
     private void OnComponentAdded(Component component)
     {
@@ -29,7 +39,7 @@ public class Scene
 
     public void DestroyEntity(Entity entity)
     {
-        Context.Instance.Entities.Remove(entity);
+        Entities.Remove(entity);
     }
 
     public void OnUpdate(TimeSpan ts)
