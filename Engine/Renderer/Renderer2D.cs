@@ -52,10 +52,8 @@ public class Renderer2D
     {
         _data.TextureShader.Bind();
         _data.TextureShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
-        _data.QuadVertexBufferBase = [];
-        _data.QuadIndexBufferCount = 0;
-        _data.CurrentVertexBufferIndex = 0;
-        _data.TextureSlotIndex = 1;
+        
+        StartBatch();
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -77,10 +75,17 @@ public class Renderer2D
 
         _data.TextureShader.Bind();
         _data.TextureShader.SetMat4("u_ViewProjection", viewProj.Value);
-        _data.QuadVertexBufferBase = [];
-        _data.QuadIndexBufferCount = 0;
-        _data.CurrentVertexBufferIndex = 0;
-        _data.TextureSlotIndex = 1;
+        StartBatch();
+    }
+    
+    public void BeginScene(EditorCamera camera)
+    {
+        var viewProj = camera.GetViewProjection();
+
+        _data.TextureShader.Bind();
+        _data.TextureShader.SetMat4("u_ViewProjection", viewProj);
+
+        StartBatch();
     }
 
     public void EndScene()
@@ -107,16 +112,6 @@ public class Renderer2D
             _data.TextureSlots[i].Bind(i);
 
         RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
-    }
-
-    private void FlushAndReset()
-    {
-        EndScene();
-
-        _data.QuadIndexCount = 0;
-        _data.QuadIndexBufferCount = 0;
-        _data.QuadVertexBufferBase = [];
-        _data.TextureSlotIndex = 1;
     }
 
     public void DrawQuad(Vector2 position, Vector2 size, Vector4 color)
@@ -167,7 +162,7 @@ public class Renderer2D
         tintColor ??= Vector4.One;
 
         if (_data.QuadIndexCount >= Renderer2DData.MaxIndices)
-            FlushAndReset();
+            NextBatch();
 
         var quadVertexCount = 4;
 
@@ -186,7 +181,7 @@ public class Renderer2D
             if (textureIndex == 0.0f)
             {
                 if (_data.TextureSlotIndex >= Renderer2DData.MaxTextureSlots)
-                    FlushAndReset();
+                    NextBatch();
 
                 textureIndex = _data.TextureSlotIndex;
                 _data.TextureSlots[_data.TextureSlotIndex] = texture;
@@ -234,6 +229,20 @@ public class Renderer2D
         Vector4? tintColor = null)
     {
         DrawQuad(position, size, rotation, texture, tilingFactor, tintColor);
+    }
+    
+    private void StartBatch()
+    {
+        _data.QuadVertexBufferBase = [];
+        _data.QuadIndexBufferCount = 0;
+        _data.CurrentVertexBufferIndex = 0;
+        _data.TextureSlotIndex = 1;
+    }
+    
+    private void NextBatch()
+    {
+        Flush();
+        StartBatch();
     }
 
     private void InitBuffers()
