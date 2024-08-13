@@ -1,4 +1,4 @@
-namespace Engine.Renderer.Buffers;
+namespace Engine.Renderer.Buffers.FrameBuffer;
 
 public abstract class FrameBuffer : IFrameBuffer
 {

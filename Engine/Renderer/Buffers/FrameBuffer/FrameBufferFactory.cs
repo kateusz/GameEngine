@@ -1,6 +1,6 @@
 using Engine.Platform.SilkNet.Buffers;
 
-namespace Engine.Renderer.Buffers;
+namespace Engine.Renderer.Buffers.FrameBuffer;
 
 public static class FrameBufferFactory
 {

@@ -6,6 +6,7 @@ using Engine.Core.Input;
 using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;

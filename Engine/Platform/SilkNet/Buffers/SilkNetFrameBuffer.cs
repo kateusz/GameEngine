@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet.Buffers;
