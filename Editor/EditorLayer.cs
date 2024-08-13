@@ -7,7 +7,6 @@ using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
-using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
@@ -26,15 +25,11 @@ public class EditorLayer : Layer
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private bool _viewportHovered;
-    private Texture2D _checkerboardTexture;
     private Scene _activeScene;
-    private Entity _squareEntity;
-    private Vector4 _squareColor;
-    private Entity _cameraEntity;
     private Entity _secondCamera;
     private bool _primaryCamera = true;
     private Vector3 _translation;
-    private SceneHierarchyPanel _sceneHierarchyPanel; 
+    private SceneHierarchyPanel _sceneHierarchyPanel;
 
     public EditorLayer(string name) : base(name)
     {
@@ -49,7 +44,7 @@ public class EditorLayer : Layer
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
-        
+
         _activeScene.OnUpdate(timeSpan);
 
         _frameBuffer.Unbind();
@@ -72,9 +67,11 @@ public class EditorLayer : Layer
         // Shortcuts
         if (keyPressedEvent.RepeatCount > 0)
             return;
-        
-        bool control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) || InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightControl);
-        bool shift = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftShift) || InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightShift);
+
+        bool control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) ||
+                       InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightControl);
+        bool shift = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftShift) ||
+                     InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
             case (int)KeyCodes.N:
@@ -104,8 +101,6 @@ public class EditorLayer : Layer
     public override void OnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
-
-        _checkerboardTexture = TextureFactory.Create("assets/textures/Checkerboard.png");
 
         _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         var frameBufferSpec = new FrameBufferSpecification(852, 701);
@@ -146,28 +141,27 @@ public class EditorLayer : Layer
             var style = ImGui.GetStyle();
             float minWinSizeX = style.WindowMinSize.X;
             style.WindowMinSize.X = 370.0f;
-            
+
             var dockspaceId = ImGui.GetID("MyDockSpace");
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
 
             style.WindowMinSize.X = minWinSizeX;
-            
+
             if (ImGui.BeginMenuBar())
             {
                 if (ImGui.BeginMenu("File"))
                 {
                     if (ImGui.MenuItem("New", "Ctrl+N"))
                         NewScene();
-                    
+
                     if (ImGui.MenuItem("Open...", "Ctrl+O"))
                         OpenScene();
-                    
+
                     if (ImGui.MenuItem("Save As...", "Ctrl+Shift+S"))
                         SaveSceneAs();
-                    
+
                     if (ImGui.MenuItem("Exit"))
                     {
-                        
                     }
 
                     ImGui.EndMenu();
@@ -175,11 +169,11 @@ public class EditorLayer : Layer
 
                 ImGui.EndMenuBar();
             }
-            
+
             _sceneHierarchyPanel.OnImGuiRender();
 
             ImGui.Begin("Settings");
-            
+
             var oldValue = _translation;
             ImGui.DragFloat3("Camera Transform", ref _translation, 0.1f);
 
@@ -188,12 +182,12 @@ public class EditorLayer : Layer
                 var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
                 cameraEntity.GetComponent<TransformComponent>().Translation = _translation;
             }
-            
+
             if (ImGui.Checkbox("Camera A", ref _primaryCamera))
             {
                 var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
                 var secondCamera = _activeScene.Entities.First(x => x.Name == "Clip-Space Entity");
-                
+
                 cameraEntity.GetComponent<CameraComponent>().Primary = _primaryCamera;
                 secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
             }
@@ -235,7 +229,7 @@ public class EditorLayer : Layer
             }
         }
     }
-    
+
     private void NewScene()
     {
         _activeScene = new Scene();
@@ -246,7 +240,7 @@ public class EditorLayer : Layer
     private void OpenScene()
     {
         var filePath = "assets/scenes/Example.scene";
-        
+
         if (!string.IsNullOrWhiteSpace(filePath))
         {
             _activeScene = new Scene();
