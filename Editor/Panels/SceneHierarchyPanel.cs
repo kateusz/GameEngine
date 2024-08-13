@@ -171,7 +171,7 @@ public class SceneHierarchyPanel
                     camera.SetPerspectiveNearClip(perspectiveNear);
                 }
 
-                float perspectiveFar = camera.OrthographicFar;
+                float perspectiveFar = camera.PerspectiveFar;
                 if (ImGui.DragFloat("Far", ref perspectiveFar))
                 {
                     camera.SetPerspectiveFarClip(perspectiveFar);
