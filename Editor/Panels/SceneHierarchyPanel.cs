@@ -295,7 +295,6 @@ public class SceneHierarchyPanel
         }
     }
 
-
     private void DrawEntityNode(Entity entity)
     {
         var tag = entity.Name;
