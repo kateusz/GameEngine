@@ -89,6 +89,8 @@ public class SilkNetGameWindow : IGameWindow
     {
         if (key == Key.Escape)
             _window.Close();
+
+        OnEvent(new KeyPressedEvent((int)key, 0));
     }
 
     private void OnFrameBufferResize(Vector2D<int> newSize)
