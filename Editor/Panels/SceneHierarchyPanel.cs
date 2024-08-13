@@ -26,7 +26,7 @@ public class SceneHierarchyPanel
     {
         ImGui.Begin("Scene Hierarchy");
 
-        foreach (var entity in Context.Instance.Entities.ToList())
+        foreach (var entity in _context.Entities)
         {
             DrawEntityNode(entity);
         }
@@ -41,7 +41,6 @@ public class SceneHierarchyPanel
             {
                 var entity = _context.CreateEntity("Empty Entity");
                 entity.AddComponent<TransformComponent>();
-                Context.Instance.Register(entity);
             }
 
             ImGui.EndPopup();

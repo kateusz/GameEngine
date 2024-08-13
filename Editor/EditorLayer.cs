@@ -185,14 +185,14 @@ public class EditorLayer : Layer
 
             if (_translation != oldValue)
             {
-                var cameraEntity = Context.Instance.Entities.First(x => x.Name == "Camera Entity");
+                var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
                 cameraEntity.GetComponent<TransformComponent>().Translation = _translation;
             }
             
             if (ImGui.Checkbox("Camera A", ref _primaryCamera))
             {
-                var cameraEntity = Context.Instance.Entities.First(x => x.Name == "Camera Entity");
-                var secondCamera = Context.Instance.Entities.First(x => x.Name == "Clip-Space Entity");
+                var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
+                var secondCamera = _activeScene.Entities.First(x => x.Name == "Clip-Space Entity");
                 
                 cameraEntity.GetComponent<CameraComponent>().Primary = _primaryCamera;
                 secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
@@ -259,7 +259,7 @@ public class EditorLayer : Layer
 
     private void SaveSceneAs()
     {
-        var filePath = "assets/scenes/Example.scene";
+        var filePath = $"assets/scenes/Example-{DateTime.UtcNow.ToShortDateString()}.scene";
         SceneSerializer.Serialize(_activeScene, filePath);
     }
 }

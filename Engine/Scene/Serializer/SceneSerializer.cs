@@ -42,12 +42,15 @@ public class SceneSerializer
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
 
-        foreach (var entity in Context.Instance.Entities.ToList())
+        foreach (var entity in scene.Entities.ToList())
         {
             SerializeEntity(jsonEntities, entity);
         }
 
-        var jsonString = jsonObj.ToJsonString();
+        var jsonString = jsonObj.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
         Directory.CreateDirectory(AssetsDirectory);
         File.WriteAllText(path, jsonString);
     }
@@ -65,7 +68,7 @@ public class SceneSerializer
             if (jsonEntity is not JsonObject entityObj) continue;
 
             var entity = DeserializeEntity(entityObj);
-            Context.Instance.Entities.Add(entity);
+            scene.AddEntity(entity);
         }
     }
 
