@@ -97,17 +97,6 @@ public class SceneCamera : Camera
         }
     }
 
-    private static Matrix4x4 CreateOrthographic(float left, float right, float bottom, float top, float zNear,
-        float zFar)
-    {
-        return new Matrix4x4(
-            2.0f / (right - left), 0.0f, 0.0f, -(right + left) / (right - left),
-            0.0f, 2.0f / (top - bottom), 0.0f, -(top + bottom) / (top - bottom),
-            0.0f, 0.0f, -2.0f / (zFar - zNear), -(zFar + zNear) / (zFar - zNear),
-            0.0f, 0.0f, 0.0f, 1.0f
-        );
-    }
-
     public void SetPerspectiveVerticalFOV(float verticalFov) { PerspectiveFOV = verticalFov; RecalculateProjection(); }
     public void SetPerspectiveNearClip(float nearClip) { PerspectiveNear = nearClip; RecalculateProjection(); }
     public void SetPerspectiveFarClip(float farClip) { PerspectiveFar = farClip; RecalculateProjection(); }

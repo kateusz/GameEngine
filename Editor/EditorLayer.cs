@@ -30,6 +30,7 @@ public class EditorLayer : Layer
     private bool _primaryCamera = true;
     private Vector3 _translation;
     private SceneHierarchyPanel _sceneHierarchyPanel;
+    private EditorCamera _editorCamera;
 
     public EditorLayer(string name) : base(name)
     {
@@ -37,15 +38,29 @@ public class EditorLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
+        // Resize
+        // TODO: is it needed?
+        // var spec = _frameBuffer.GetSpecification();
+        // if (_viewportSize.X > 0.0f && _viewportSize.Y > 0.0f && // zero sized framebuffer is invalid
+        //     (spec.Width != _viewportSize.X || spec.Height != _viewportSize.Y))
+        // {
+        //     _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        //     //_cameraController.OnResize(_viewportSize.X, _viewportSize.y);
+        //     _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
+        //     _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        // }
+        
         if (_viewportFocused)
             _orthographicCameraController.OnUpdate(timeSpan);
-
+        
+        //_editorCamera.OnUpdate(timeSpan);
         _frameBuffer.Bind();
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
-        _activeScene.OnUpdate(timeSpan);
+        _activeScene.OnUpdateRuntime(timeSpan);
+        //_activeScene.OnUpdateEditor(timeSpan, _editorCamera);
 
         _frameBuffer.Unbind();
     }
@@ -53,13 +68,14 @@ public class EditorLayer : Layer
     public override void HandleEvent(Event @event)
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
+        
+        _orthographicCameraController.OnEvent(@event);
+        //_editorCamera.OnEvent(@event);
 
         if (@event is KeyPressedEvent keyPressedEvent)
         {
             OnKeyPressed(keyPressedEvent);
         }
-
-        _orthographicCameraController.OnEvent(@event);
     }
 
     private void OnKeyPressed(KeyPressedEvent keyPressedEvent)
@@ -107,6 +123,7 @@ public class EditorLayer : Layer
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
         _activeScene = new Scene();
+        _editorCamera = new EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
         _translation = new Vector3();
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
     }

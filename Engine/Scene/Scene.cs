@@ -42,7 +42,7 @@ public class Scene
         Entities.Remove(entity);
     }
 
-    public void OnUpdate(TimeSpan ts)
+    public void OnUpdateRuntime(TimeSpan ts)
     {
         // Update scripts
         var nativeScriptGroup = Context.Instance.View<NativeScriptComponent>();
@@ -93,6 +93,21 @@ public class Scene
             
             Renderer2D.Instance.EndScene();
         }
+    }
+    
+    public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
+    {
+        Renderer2D.Instance.BeginScene(camera);
+
+        var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+        foreach (var entity in group)
+        {
+            var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            Renderer2D.Instance.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color);
+        }
+
+        Renderer2D.Instance.EndScene();
     }
 
     public void OnViewportResize(uint width, uint height)
