@@ -4,6 +4,7 @@ public class FrameBufferSpecification(uint width, uint height, uint samples = 1,
 {
     public uint Width { get;  set; } = width;
     public uint Height { get;  set; } = height;
+    public FramebufferAttachmentSpecification Attachments;
     public uint Samples { get; init; } = samples;
     public bool SwapChainTarget { get; init; } = swapChainTarget;
 
