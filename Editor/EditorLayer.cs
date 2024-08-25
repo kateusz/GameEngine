@@ -31,6 +31,7 @@ public class EditorLayer : Layer
     private bool _primaryCamera = true;
     private Vector3 _translation;
     private SceneHierarchyPanel _sceneHierarchyPanel;
+    private ContentBrowserPanel _contentBrowserPanel;
     private EditorCamera _editorCamera;
 
     public EditorLayer(string name) : base(name)
@@ -127,6 +128,7 @@ public class EditorLayer : Layer
         _editorCamera = new EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
         _translation = new Vector3();
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
+        _contentBrowserPanel = new ContentBrowserPanel();
     }
 
     public override void OnDetach()
@@ -189,6 +191,7 @@ public class EditorLayer : Layer
             }
 
             _sceneHierarchyPanel.OnImGuiRender();
+            _contentBrowserPanel.OnImGuiRender();
 
             ImGui.Begin("Settings");
 
