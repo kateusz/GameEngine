@@ -62,9 +62,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             if (_rendererId != 0)
             {
                 SilkNetContext.GL.DeleteFramebuffer(_rendererId);
-
                 SilkNetContext.GL.DeleteTexture(_colorAttachment);
-
                 SilkNetContext.GL.DeleteRenderbuffer(_depthAttachment);
             }
 
