@@ -51,15 +51,6 @@ public class ContentBrowserPanel
             FileSystemInfo info = new FileInfo(entry);
             
             var isDirectory = (info.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
-            if (isDirectory)
-            {
-                Console.WriteLine($"Directory: {entry}");
-            }
-            else
-            {
-                Console.WriteLine($"File: {entry}");
-            }
-
             var filenameString = info.Name;
             
             var icon = isDirectory ? _directoryIcon : _fileIcon;
