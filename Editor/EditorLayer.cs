@@ -4,8 +4,9 @@ using Editor.Panels;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events;
+using Engine.ImGuiNet;
+using Engine.Math;
 using Engine.Renderer;
-using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
@@ -14,6 +15,7 @@ using Engine.Scene.Serializer;
 using ImGuiNET;
 using NLog;
 using Application = Engine.Core.Application;
+using ImGuiGizmoOperation = Engine.ImGuiNet.ImGuiGizmoOperation;
 
 namespace Editor;
 
@@ -33,6 +35,7 @@ public class EditorLayer : Layer
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
     private EditorCamera _editorCamera;
+    private ImGuiGizmoOperation _gizmoType = ImGuiGizmoOperation.NONE;
 
     public EditorLayer(string name) : base(name)
     {
@@ -51,10 +54,10 @@ public class EditorLayer : Layer
         //     _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
         //     _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         // }
-        
+
         if (_viewportFocused)
             _orthographicCameraController.OnUpdate(timeSpan);
-        
+
         //_editorCamera.OnUpdate(timeSpan);
         _frameBuffer.Bind();
 
@@ -70,7 +73,7 @@ public class EditorLayer : Layer
     public override void HandleEvent(Event @event)
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
-        
+
         _orthographicCameraController.OnEvent(@event);
         //_editorCamera.OnEvent(@event);
 
@@ -113,6 +116,19 @@ public class EditorLayer : Layer
 
                 break;
             }
+            // Gizmos
+            case (int)KeyCodes.Q:
+                _gizmoType = ImGuiGizmoOperation.NONE;
+                break;
+            case (int)KeyCodes.W:
+                _gizmoType = ImGuiGizmoOperation.TRANSLATE;
+                break;
+            case (int)KeyCodes.E:
+                _gizmoType = ImGuiGizmoOperation.ROTATE;
+                break;
+            case (int)KeyCodes.R:
+                _gizmoType = ImGuiGizmoOperation.SCALE;
+                break;
         }
     }
 
@@ -228,7 +244,7 @@ public class EditorLayer : Layer
             {
                 _viewportFocused = ImGui.IsWindowFocused();
                 _viewportHovered = ImGui.IsWindowHovered();
-                Application.ImGuiLayer.BlockEvents = !_viewportFocused || !_viewportHovered;
+                Application.ImGuiLayer.BlockEvents = !_viewportFocused && !_viewportHovered;
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
                 if (_viewportSize != viewportPanelSize && viewportPanelSize.X > 0 && viewportPanelSize.Y > 0)
@@ -248,6 +264,78 @@ public class EditorLayer : Layer
                     new Vector2(1, 0));
                 ImGui.End();
             }
+
+            
+            // Gizmo
+            /*
+            var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
+            if (selectedEntity != null && _gizmoType != ImGuiGizmoOperation.NONE)
+            {
+                // todo
+                //ImGuizmoWrapper.SetOrthographic(false);
+                ImGuizmoWrapper.SetDrawlist();
+
+                var windowWidth = ImGui.GetWindowWidth();
+                var windowHeight = ImGui.GetWindowHeight();
+                ImGuizmoWrapper.SetRect(
+                    ImGui.GetWindowPos().X,
+                    ImGui.GetWindowPos().Y,
+                    windowWidth,
+                    windowHeight
+                );
+
+                // Camera
+                var cameraEntity = _activeScene.GetPrimaryCameraEntity();
+                if (cameraEntity is null)
+                    return;
+                
+                
+                var cameraComponent = cameraEntity.GetComponent<CameraComponent>();
+                var camera = cameraComponent.Camera;
+                var cameraProjection = camera.Projection;
+                
+                Matrix4x4.Invert(cameraEntity.GetComponent<TransformComponent>().GetTransform(), out var cameraView);
+                
+                // Entity transform
+                var transformComponent = selectedEntity.GetComponent<TransformComponent>();
+                var transform = transformComponent.GetTransform();
+                
+                // Snapping
+                bool snap = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl);
+                float snapValue = 0.5f; // Snap to 0.5m for translation/scale
+                if (_gizmoType == ImGuiGizmoOperation.ROTATE)
+                    snapValue = 45.0f; // Snap to 45 degrees for rotation
+
+                float[] snapValues = { snapValue, snapValue, snapValue };
+
+                ImGuizmoWrapper.Manipulate(
+                    cameraView.ToArray(),
+                    cameraProjection.ToArray(),
+                    (int)_gizmoType, // todo cast to ImGuiGizmoOperation
+                    mode: (int)ImGuizmoMode.Local,
+                    transform.ToArray(),
+                    null, 
+                    snap ? snapValues : null,
+                    null,
+                    null
+                );
+
+                if (ImGuizmoWrapper.IsUsing())
+                {
+                    var translation = Vector3.Zero;
+                    var rotation = Vector3.Zero;
+                    var scale = Vector3.One;
+
+                    // Decompose the transform
+                    MathHelpers.DecomposeTransform(transform, out translation, out rotation, out scale);
+
+                    var deltaRotation = rotation - transformComponent.Rotation;
+                    transformComponent.Translation = translation;
+                    transformComponent.Rotation += deltaRotation;
+                    transformComponent.Scale = scale;
+                }
+            }
+             */
         }
     }
 

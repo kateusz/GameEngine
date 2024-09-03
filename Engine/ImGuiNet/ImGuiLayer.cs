@@ -26,6 +26,14 @@ public class ImGuiLayer : Layer
     public void Begin(TimeSpan timeSpan)
     {
         _controller.Update((float)timeSpan.TotalSeconds);
+        
+        // ImGui_ImplOpenGL3_NewFrame();
+        // ImGui_ImplGlfw_NewFrame();
+        ImGui.NewFrame();
+        
+        // TODO: ImGuizmo CRASH
+        //ImGuizmoWrapper.SetOrthographic(false);
+        //ImGuizmoWrapper.BeginFrame();
     }
 
     public void End()
@@ -40,6 +48,8 @@ public class ImGuiLayer : Layer
         var gl = SilkNetContext.GL;
 
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
+        var ctx = ImGui.GetCurrentContext();
+        ImGuizmoWrapper.SetImGuiContext(ctx);
     }
 
     public override void HandleEvent(Event @event)

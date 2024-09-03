@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace ECS;
 
 public class Context
@@ -5,11 +7,11 @@ public class Context
     private static Context? _instance;
     public static Context Instance => _instance ??= new Context();
     
-    public IList<Entity> Entities { get; private set; }
+    public ConcurrentBag<Entity> Entities { get; set; }
 
     private Context()
     {
-        Entities = new List<Entity>();
+        Entities = new ConcurrentBag<Entity>();
     }
 
     public void Register(Entity entity)
