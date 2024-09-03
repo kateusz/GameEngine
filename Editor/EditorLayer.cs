@@ -216,7 +216,7 @@ public class EditorLayer : Layer
 
             if (_translation != oldValue)
             {
-                var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
+                var cameraEntity = _activeScene.Entities.First(x => x.Name == "Primary Camera");
                 cameraEntity.GetComponent<TransformComponent>().Translation = _translation;
             }
 
