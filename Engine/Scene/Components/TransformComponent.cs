@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Engine.Math;
 
 namespace Engine.Scene.Components;
 
@@ -21,11 +22,19 @@ public class TransformComponent : Component
     
     public Matrix4x4 GetTransform()
     {
-        var rotationX = Matrix4x4.CreateRotationX(Rotation.X);
-        var rotationY = Matrix4x4.CreateRotationY(Rotation.Y);
-        var rotationZ = Matrix4x4.CreateRotationZ(Rotation.Z);
-        var rotation = rotationX * rotationY * rotationZ;
+        //var rotationX = Matrix4x4.CreateRotationX(Rotation.X);
+        //var rotationY = Matrix4x4.CreateRotationY(Rotation.Y);
+        //var rotationZ = Matrix4x4.CreateRotationZ(Rotation.Z);
+        //var rotation = rotationX * rotationY * rotationZ;
+        
+        // Example Euler angles in radians
+        var eulerAngles = new Vector3(0.5f, 1.0f, 0.3f);
 
+        // Convert Euler angles to Quaternion
+        var quaternion = MathHelpers.QuaternionFromEuler(eulerAngles);
+
+        // Convert Quaternion to Matrix4x4
+        var rotation = MathHelpers.MatrixFromQuaternion(quaternion);
         var translation = Matrix4x4.CreateTranslation(Translation);
         var scale = Matrix4x4.CreateScale(Scale);
 

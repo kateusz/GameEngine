@@ -29,7 +29,7 @@ public class ImGuiLayer : Layer
         
         // ImGui_ImplOpenGL3_NewFrame();
         // ImGui_ImplGlfw_NewFrame();
-        ImGui.NewFrame();
+        //ImGui.NewFrame();
         
         // TODO: ImGuizmo CRASH
         //ImGuizmoWrapper.SetOrthographic(false);
@@ -48,8 +48,10 @@ public class ImGuiLayer : Layer
         var gl = SilkNetContext.GL;
 
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
-        var ctx = ImGui.GetCurrentContext();
-        ImGuizmoWrapper.SetImGuiContext(ctx);
+        
+        // TODO: ImGuizmo
+        //var ctx = ImGui.GetCurrentContext();
+        //ImGuizmoWrapper.SetImGuiContext(ctx);
     }
 
     public override void HandleEvent(Event @event)

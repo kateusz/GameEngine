@@ -391,4 +391,6 @@ public class SceneHierarchyPanel
 
         ImGui.PopID();
     }
+
+    public Entity? GetSelectedEntity() => _selectionContext;
 }

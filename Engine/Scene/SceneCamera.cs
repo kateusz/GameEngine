@@ -15,14 +15,14 @@ public enum ProjectionType
 public class SceneCamera : Camera
 {
     private float _aspectRatio;
-    private Vector3 _cameraPosition = new Vector3(0.0f, 0.0f, 3.0f);
-    private Vector3 _cameraFront = new Vector3(0.0f, 0.0f, -1.0f);
+    private Vector3 _cameraPosition = new(0.0f, 0.0f, 3.0f);
+    private Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
     private Vector3 _cameraUp = Vector3.UnitY;
     
-    public ProjectionType ProjectionType { get; private set; } = ProjectionType.Orthographic;
-    public float OrthographicSize { get; private set; } = 2.0f;
-    public float OrthographicNear { get; private set; }
-    public float OrthographicFar { get; private set; }
+    public ProjectionType ProjectionType { get; set; } = ProjectionType.Orthographic;
+    public float OrthographicSize { get; set; }
+    public float OrthographicNear { get; set; }
+    public float OrthographicFar { get; set; }
     public float AspectRatio
     {
         get => _aspectRatio;
