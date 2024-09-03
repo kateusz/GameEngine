@@ -1,0 +1,165 @@
+{
+  "Scene": "default",
+  "Entities": [
+    {
+      "Id": "3a1fa3e1-71ef-4f6f-97d4-d3668b0fd675",
+      "Name": "Camera B",
+      "Components": [
+        {
+          "Translation": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Rotation": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Scale": {
+            "X": 1,
+            "Y": 1,
+            "Z": 1
+          },
+          "Name": "TransformComponent"
+        },
+        {
+          "Camera": {
+            "ProjectionType": "Orthographic",
+            "OrthographicSize": 2,
+            "OrthographicNear": 0,
+            "OrthographicFar": 1,
+            "AspectRatio": 1.2386831,
+            "PerspectiveFOV": 0.7853982,
+            "PerspectiveNear": 0.01,
+            "PerspectiveFar": 1000,
+            "Projection": {
+              "IsIdentity": false,
+              "Translation": {
+                "X": -0,
+                "Y": -0,
+                "Z": -0
+              }
+            }
+          },
+          "Primary": false,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": "cb2d7f2e-5376-4b5e-ba1c-f0998d60dd1e",
+      "Name": "Primary Camera",
+      "Components": [
+        {
+          "Translation": {
+            "X": 15.646223,
+            "Y": 10.21195,
+            "Z": 0
+          },
+          "Rotation": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Scale": {
+            "X": 1,
+            "Y": 1,
+            "Z": 1
+          },
+          "Name": "TransformComponent"
+        },
+        {
+          "Camera": {
+            "ProjectionType": "Orthographic",
+            "OrthographicSize": 15,
+            "OrthographicNear": 0,
+            "OrthographicFar": 1,
+            "AspectRatio": 1.2386831,
+            "PerspectiveFOV": 0.7853982,
+            "PerspectiveNear": 0.01,
+            "PerspectiveFar": 1000,
+            "Projection": {
+              "IsIdentity": false,
+              "Translation": {
+                "X": -0,
+                "Y": -0,
+                "Z": -0
+              }
+            }
+          },
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": "ef5d4359-0d99-4b00-872a-8096f4500275",
+      "Name": "Red Square",
+      "Components": [
+        {
+          "Translation": {
+            "X": 0,
+            "Y": 1.1,
+            "Z": 0
+          },
+          "Rotation": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Scale": {
+            "X": 1,
+            "Y": 1,
+            "Z": 1
+          },
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": {
+            "X": 1,
+            "Y": 0,
+            "Z": 0,
+            "W": 1
+          },
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": "97a954ba-916d-42e1-b826-893805268f26",
+      "Name": "Green Square",
+      "Components": [
+        {
+          "Translation": {
+            "X": 2.4,
+            "Y": 0,
+            "Z": 0
+          },
+          "Rotation": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Scale": {
+            "X": 1,
+            "Y": 1,
+            "Z": 1
+          },
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": {
+            "X": 0,
+            "Y": 1,
+            "Z": 0,
+            "W": 1
+          },
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    }
+  ]
+}

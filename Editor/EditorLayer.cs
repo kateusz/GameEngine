@@ -220,7 +220,7 @@ public class EditorLayer : Layer
                 cameraEntity.GetComponent<TransformComponent>().Translation = _translation;
             }
 
-            if (ImGui.Checkbox("Camera A", ref _primaryCamera))
+            if (ImGui.Checkbox("Primary Camera", ref _primaryCamera))
             {
                 var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
                 var secondCamera = _activeScene.Entities.First(x => x.Name == "Clip-Space Entity");

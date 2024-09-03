@@ -34,7 +34,7 @@ public class ContentBrowserPanel
         }
         
         var padding = 16.0f;
-        var thumbnailSize = 128.0f;
+        var thumbnailSize = 64.0f;
         var cellSize = thumbnailSize + padding;
 
         var panelWidth = ImGui.GetContentRegionAvail().X;
@@ -68,9 +68,6 @@ public class ContentBrowserPanel
         }
         
         ImGui.Columns(1);
-
-        ImGui.SliderFloat("Thumbnail Size", ref thumbnailSize, 16, 512);
-        ImGui.SliderFloat("Padding", ref padding, 0, 32);
 
         // TODO: status bar
         ImGui.End();

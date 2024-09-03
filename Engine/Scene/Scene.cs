@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 using ECS;
 using Engine.Renderer;
@@ -15,15 +16,15 @@ public class Scene
     {
         Context.Instance.Entities.Clear();
     }
-    
-    public IList<Entity> Entities => Context.Instance.Entities;
-    
+
+    public ConcurrentBag<Entity> Entities => Context.Instance.Entities;
+
     public Entity CreateEntity(string name)
     {
         var entity = new Entity(name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
-        
+
         return entity;
     }
 
@@ -39,33 +40,33 @@ public class Scene
 
     public void DestroyEntity(Entity entity)
     {
-        Entities.Remove(entity);
+        var updated = new ConcurrentBag<Entity>(Entities.Where(item => item.Id != entity.Id));
+        Context.Instance.Entities = updated;
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
         // Update scripts
         var nativeScriptGroup = Context.Instance.View<NativeScriptComponent>();
-        
+
         foreach (var (entity, nativeScriptComponent) in nativeScriptGroup)
         {
-
             if (nativeScriptComponent.ScriptableEntity.Entity == null)
             {
                 //todo: loop ref?
                 nativeScriptComponent.ScriptableEntity.Entity = entity;
                 nativeScriptComponent.ScriptableEntity.OnCreate();
             }
-            
+
             nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
         }
-        
+
         // Render 2D
         Camera? mainCamera = null;
         var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        
+
         var cameraTransform = Matrix4x4.Identity;
-        
+
         foreach (var entity in cameraGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
@@ -82,7 +83,7 @@ public class Scene
         if (mainCamera != null)
         {
             Renderer2D.Instance.BeginScene(mainCamera, cameraTransform);
-            
+
             var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
             foreach (var entity in group)
             {
@@ -90,11 +91,11 @@ public class Scene
                 var transformComponent = entity.GetComponent<TransformComponent>();
                 Renderer2D.Instance.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color);
             }
-            
+
             Renderer2D.Instance.EndScene();
         }
     }
-    
+
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
         Renderer2D.Instance.BeginScene(camera);
@@ -114,7 +115,7 @@ public class Scene
     {
         _viewportWidth = width;
         _viewportHeight = height;
-        
+
         var group = Context.Instance.GetGroup([typeof(CameraComponent)]);
         foreach (var entity in group)
         {
@@ -124,5 +125,18 @@ public class Scene
                 cameraComponent.Camera.SetViewportSize(width, height);
             }
         }
+    }
+
+    public Entity? GetPrimaryCameraEntity()
+    {
+        var view = Context.Instance.View<CameraComponent>();
+        foreach (var (entity, component) in view)
+        {
+            var camera = entity.GetComponent<CameraComponent>();
+            if (camera.Primary)
+                return entity;
+        }
+
+        return null;
     }
 }
