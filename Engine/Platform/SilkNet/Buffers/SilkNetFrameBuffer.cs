@@ -26,7 +26,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             else
                 _depthAttachmentSpec = specificationAttachment;
         }
-        
+
         Invalidate();
     }
 
@@ -35,7 +35,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
         SilkNetContext.GL.DeleteTextures(_colorAttachments);
         SilkNetContext.GL.DeleteRenderbuffer(_depthAttachment);
-        
+
         Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
         _depthAttachment = 0;
     }
@@ -57,6 +57,37 @@ public class SilkNetFrameBuffer : FrameBuffer
         Invalidate();
     }
 
+    public override int ReadPixel(int attachmentIndex, int x, int y)
+    {
+        unsafe
+        {
+            SilkNetContext.GL.ReadBuffer(GLEnum.ColorAttachment0 + attachmentIndex);
+
+            // Prepare to read the pixel data
+            // Prepare a buffer to hold the pixel data
+            byte[] pixelData = new byte[1 * 1 * 3]; // For RGB, 3 bytes per pixel
+
+            fixed (byte* pixelPtr = pixelData)
+            {
+                SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, GLEnum.Int, pixelPtr);
+            }
+    
+            // Return the pixel data
+            return pixelData[0];
+        }
+    }
+
+    public override void ClearAttachment(int attachmentIndex, int value)
+    {
+        unsafe
+        {
+            var spec = _colorAttachmentSpecs[attachmentIndex];
+            // TODO: ClearTexImage not available
+            //SilkNetContext.GL.ClearTexImage(_colorAttachments[attachmentIndex], 0, HazelFBTextureFormatToGL(spec.TextureFormat), GLEnum.Int, &value);
+            
+        }
+    }
+    
     public override void Bind()
     {
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
@@ -88,9 +119,23 @@ public class SilkNetFrameBuffer : FrameBuffer
             {
                 SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[i]);
 
+                InternalFormat internalFormat = InternalFormat.Rgba8;
+                PixelFormat format = PixelFormat.Rgba;
+                switch (_colorAttachmentSpecs[i].TextureFormat)
+                {
+                    case FramebufferTextureFormat.RGBA8:
+                        internalFormat = InternalFormat.Rgba8;
+                        format = PixelFormat.Rgba;
+                        break;
+                    case FramebufferTextureFormat.RED_INTEGER:
+                        internalFormat = InternalFormat.R32i;
+                        format = PixelFormat.RedInteger;
+                        break;
+                }
+
                 // Create our texture and upload the image data.
-                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, _specification.Width,
-                    _specification.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, (void*)0);
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
+                    _specification.Height, 0, format, PixelType.UnsignedByte, (void*)0);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.Linear);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
@@ -98,7 +143,20 @@ public class SilkNetFrameBuffer : FrameBuffer
                 SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
                     FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, _colorAttachments[i], 0);
             }
-            
+
+            // TODO: finish
+            // if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
+            // {
+            //     _depthAttachment = SilkNetContext.GL.GenTexture();
+            //     
+            //     switch (_depthAttachmentSpec.TextureFormat)
+            //     {
+            //         case FramebufferTextureFormat.DEPTH24STENCIL8:
+            //             Utils::AttachDepthTexture(_depthAttachment, m_Specification.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT, m_Specification.Width, m_Specification.Height);
+            //             break;
+            //     }
+            // }
+
             // Handle draw buffers
             if (_colorAttachments.Length >= 1)
             {
@@ -120,7 +178,7 @@ public class SilkNetFrameBuffer : FrameBuffer
                 // Only depth-pass
                 SilkNetContext.GL.DrawBuffer(GLEnum.None);
             }
-            
+
             if (SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
             {
                 Console.WriteLine("Framebuffer is not complete!");
@@ -139,5 +197,16 @@ public class SilkNetFrameBuffer : FrameBuffer
             default:
                 return false;
         }
+    }
+    
+    public GLEnum HazelFBTextureFormatToGL(FramebufferTextureFormat format)
+    {
+        switch (format)
+        {
+            case FramebufferTextureFormat.RGBA8:       return GLEnum.Rgba8;
+            case FramebufferTextureFormat.RED_INTEGER: return GLEnum.RedInteger;
+        }
+
+        return 0;
     }
 }

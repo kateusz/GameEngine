@@ -28,6 +28,7 @@ public class EditorLayer : Layer
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private bool _viewportHovered;
+    private Vector2[] _viewportBounds = new Vector2[2];
     private Scene _activeScene;
     private Entity _secondCamera;
     private bool _primaryCamera = true;
@@ -57,16 +58,44 @@ public class EditorLayer : Layer
 
         if (_viewportFocused)
             _orthographicCameraController.OnUpdate(timeSpan);
-
-        //_editorCamera.OnUpdate(timeSpan);
+        
+        _editorCamera.OnUpdate(timeSpan);
         _frameBuffer.Bind();
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         RendererCommand.Clear();
 
+        _frameBuffer.ClearAttachment(1, -1);
+        
         _activeScene.OnUpdateRuntime(timeSpan);
         //_activeScene.OnUpdateEditor(timeSpan, _editorCamera);
+        
+        // Get mouse position from ImGui
+        var mousePos = ImGui.GetMousePos();
+        var mx = mousePos.X;
+        var my = mousePos.Y;
 
+        mx -= _viewportSize.X;
+        my -= _viewportSize.Y;
+
+        // Calculate viewport size
+        var viewportSize = _viewportBounds[1] - _viewportBounds[0];
+        my = viewportSize.Y - my; // Flip the Y-axis
+
+        // Convert to integer mouse coordinates
+        int mouseX = (int)mx;
+        int mouseY = (int)my;
+
+        // Check if the mouse is within the viewport bounds
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
+        {
+            // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
+            int pixelData = _frameBuffer.ReadPixel(1, mouseX, mouseY);
+
+            // Log or warn about the pixel data
+            Console.WriteLine($"Pixel data = {pixelData}");
+        }
+        
         _frameBuffer.Unbind();
     }
 
@@ -140,7 +169,8 @@ public class EditorLayer : Layer
         var frameBufferSpec = new FrameBufferSpecification(852, 701);
         frameBufferSpec.AttachmentsSpec = new ([
             new(FramebufferTextureFormat.RGBA8),
-            new(FramebufferTextureFormat.Depth)
+            new(FramebufferTextureFormat.RED_INTEGER),
+            new(FramebufferTextureFormat.Depth),
         ]);
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
@@ -266,6 +296,17 @@ public class EditorLayer : Layer
                 var texturePointer = new IntPtr(textureId);
                 ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
                     new Vector2(1, 0));
+                
+                var windowSize = ImGui.GetWindowSize();
+                var minBound = ImGui.GetWindowPos();
+                var viewportOffset = ImGui.GetCursorPos(); // Includes tab bar
+                minBound.X += viewportOffset.X;
+                minBound.Y += viewportOffset.Y;
+
+                var maxBound = new Vector2(minBound.X + windowSize.X, minBound.Y + windowSize.Y);
+                _viewportBounds[0] = new Vector2( minBound.X, minBound.Y);
+                _viewportBounds[1] = new Vector2(maxBound.X, maxBound.Y);
+                
                 ImGui.End();
             }
 
