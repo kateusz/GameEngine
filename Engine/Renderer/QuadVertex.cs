@@ -10,6 +10,7 @@ public struct QuadVertex
     public Vector2 TexCoord { get; init; }
     public float TexIndex { get; init; }
     public float TilingFactor { get; init; }
+    public int EntityId { get; init; }
 
     public static uint GetSize()
     {
@@ -19,7 +20,7 @@ public struct QuadVertex
     
     public float[] GetFloatArray()
     {
-        var floatArray = new float[11];
+        var floatArray = new float[12];
         
         floatArray[0] = Position.X;
         floatArray[1] = Position.Y;
@@ -35,6 +36,8 @@ public struct QuadVertex
         
         floatArray[9] = TexIndex;
         floatArray[10] = TilingFactor;
+        
+        floatArray[11] = EntityId;
 
         return floatArray;
     }

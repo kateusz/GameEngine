@@ -12,8 +12,8 @@ public class EntityTests
     public void Entity_Should_Have_Unique_Id()
     {
         // Act
-        var entity1 = new Entity("Entity1");
-        var entity2 = new Entity("Entity2");
+        var entity1 = new Entity(1, "Entity1");
+        var entity2 = new Entity(2, "Entity2");
 
         // Assert
         entity1.Id.Should().NotBe(entity2.Id);
@@ -23,7 +23,7 @@ public class EntityTests
     public void AddComponent_Should_Add_TransformComponent_To_Entity()
     {
         // Arrange
-        var entity = new Entity("Entity1");
+        var entity = new Entity(1, "Entity1");
         var transformComponent = new TransformComponent();
 
         // Act
@@ -38,7 +38,7 @@ public class EntityTests
     public void AddComponent_Generic_Should_Add_TransformComponent_To_Entity()
     {
         // Arrange
-        var entity = new Entity("Entity1");
+        var entity = new Entity(1, "Entity1");
 
         // Act
         entity.AddComponent<TransformComponent>();
@@ -51,7 +51,7 @@ public class EntityTests
     public void RemoveComponent_Should_Remove_TransformComponent_From_Entity()
     {
         // Arrange
-        var entity = new Entity("Entity1");
+        var entity = new Entity(1, "Entity1");
         entity.AddComponent<TransformComponent>();
 
         // Act
@@ -65,7 +65,7 @@ public class EntityTests
     public void HasComponents_Should_Return_True_If_All_Components_Exist()
     {
         // Arrange
-        var entity = new Entity("Entity1");
+        var entity = new Entity(1, "Entity1");
         entity.AddComponent<TransformComponent>();
         entity.AddComponent<VelocityComponent>();
 
@@ -80,7 +80,7 @@ public class EntityTests
     public void HasComponents_Should_Return_False_If_Any_Component_Is_Missing()
     {
         // Arrange
-        var entity = new Entity("Entity1");
+        var entity = new Entity(1, "Entity1");
         entity.AddComponent<TransformComponent>();
 
         // Act

@@ -2,17 +2,13 @@ namespace ECS;
 
 public class Entity
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public string Name { get; set; }
     
     private readonly Dictionary<Type, Component> _components;
     public event Action<Component>? OnComponentAdded;
-
-    public Entity(string name) : this(Guid.NewGuid(), name)
-    {
-    }
-
-    public Entity(Guid id, string name)
+    
+    public Entity(int id, string name)
     {
         Id = id;
         Name = name;

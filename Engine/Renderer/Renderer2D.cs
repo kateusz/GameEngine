@@ -6,6 +6,7 @@ using Engine.Renderer.VertexArray;
 using System.Numerics;
 using Engine.Math;
 using Engine.Platform;
+using Engine.Scene.Components;
 using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
 namespace Engine.Renderer;
@@ -152,12 +153,12 @@ public class Renderer2D
         DrawQuad(transform, texture, tilingFactor, tintColor);
     }
 
-    public void DrawQuad(Matrix4x4 transform, Vector4 color)
+    public void DrawQuad(Matrix4x4 transform, Vector4 color, int entityId = -1)
     {
-        DrawQuad(transform, texture: null, tilingFactor: 1.0f, color);
+        DrawQuad(transform, texture: null, tilingFactor: 1.0f, color, entityId);
     }
 
-    public void DrawQuad(Matrix4x4 transform, Texture2D? texture, float tilingFactor = 1.0f, Vector4? tintColor = null)
+    public void DrawQuad(Matrix4x4 transform, Texture2D? texture, float tilingFactor = 1.0f, Vector4? tintColor = null, int entityId = -1)
     {
         tintColor ??= Vector4.One;
 
@@ -200,7 +201,8 @@ public class Renderer2D
                 Color = tintColor.Value,
                 TexCoord = TextureCoords[i],
                 TexIndex = textureIndex,
-                TilingFactor = tilingFactor
+                TilingFactor = tilingFactor,
+                EntityId = entityId
             });
 
             _data.CurrentVertexBufferIndex++;
@@ -231,6 +233,11 @@ public class Renderer2D
         DrawQuad(position, size, rotation, texture, tilingFactor, tintColor);
     }
     
+    public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
+    {
+        DrawQuad(transform, src.Color, entityId);
+    }
+    
     private void StartBatch()
     {
         _data.QuadVertexBufferBase = [];
@@ -255,6 +262,7 @@ public class Renderer2D
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Float, "a_TexIndex"),
             new BufferElement(ShaderDataType.Float, "a_TilingFactor"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID"),
         });
 
         _data.QuadVertexBuffer = VertexBufferFactory.Create(Renderer2DData.MaxVertices * quadVertexSize);
