@@ -212,79 +212,52 @@ public class SceneHierarchyPanel
 
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, spriteRendererComponent =>
         {
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
-            if (ImGui.TreeNodeEx(typeof(SpriteRendererComponent).GetHashCode(), treeNodeFlags,
-                    "Sprite Renderer"))
+            var newColor = spriteRendererComponent.Color;
+            ImGui.ColorEdit4("Color", ref newColor);
+            
+            if (spriteRendererComponent.Color != newColor)
             {
-                ImGui.SameLine(ImGui.GetWindowWidth() - 25.0f);
-                if (ImGui.Button("+", new Vector2(20, 20)))
-                {
-                    ImGui.OpenPopup("ComponentSettings");
-                }
-
-                ImGui.PopStyleVar();
-
-                bool removeComponent = false;
-                if (ImGui.BeginPopup("ComponentSettings"))
-                {
-                    if (ImGui.MenuItem("Remove component"))
-                        removeComponent = true;
-                    ImGui.EndPopup();
-                }
-                
-                var newColor = spriteRendererComponent.Color;
-                ImGui.ColorEdit4("Color", ref newColor);
-                ImGui.TreePop();
-
-                if (removeComponent)
-                    entity.RemoveComponent<SpriteRendererComponent>();
-
-                if (spriteRendererComponent.Color != newColor)
-                {
-                    spriteRendererComponent.Color = newColor;
-                }
-
-                ImGui.Separator();
-
-                // Render the "Texture" button with a fixed width of 100.0f and automatic height (0.0f)
-                if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
-                {
-                    // Optional: Handle button click logic if needed
-                }
-
-                // Begin drag-and-drop target handling
-                if (ImGui.BeginDragDropTarget())
-                {
-                    unsafe
-                    {
-                        // Accept the drag-and-drop payload with the label "CONTENT_BROWSER_ITEM"
-                        ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-                        if (payload.NativePtr != null)
-                        {
-                            // Convert the payload data (wchar_t*) to a C# string
-                            string path = Marshal.PtrToStringUni(payload.Data);
-
-                            // Combine the asset path and the dragged path
-                            string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-
-                            // Set the component's texture (assuming Texture2D.Create takes a string path)
-                            spriteRendererComponent.Texture = TextureFactory.Create(texturePath);
-                        }
-
-                        // End the drag-and-drop target
-                        ImGui.EndDragDropTarget();
-                    }
-                }
-
-                // Render a float slider for the "Tiling Factor"
-                float tillingFactor = spriteRendererComponent.TilingFactor;
-                if (ImGui.DragFloat("Tiling Factor", ref tillingFactor, 0.1f, 0.0f, 100.0f))
-                {
-                    spriteRendererComponent.TilingFactor = tillingFactor;
-                }
-                
-                ImGui.End();
+                spriteRendererComponent.Color = newColor;
             }
+
+            // Render the "Texture" button with a fixed width of 100.0f and automatic height (0.0f)
+            if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
+            {
+                // Optional: Handle button click logic if needed
+            }
+
+            // Begin drag-and-drop target handling
+            if (ImGui.BeginDragDropTarget())
+            {
+                unsafe
+                {
+                    // Accept the drag-and-drop payload with the label "CONTENT_BROWSER_ITEM"
+                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                    if (payload.NativePtr != null)
+                    {
+                        // Convert the payload data (wchar_t*) to a C# string
+                        string path = Marshal.PtrToStringUni(payload.Data);
+
+                        // Combine the asset path and the dragged path
+                        string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+
+                        // Set the component's texture (assuming Texture2D.Create takes a string path)
+                        spriteRendererComponent.Texture = TextureFactory.Create(texturePath);
+                    }
+
+                    // End the drag-and-drop target
+                    ImGui.EndDragDropTarget();
+                }
+            }
+
+            // Render a float slider for the "Tiling Factor"
+            float tillingFactor = spriteRendererComponent.TilingFactor;
+            if (ImGui.DragFloat("Tiling Factor", ref tillingFactor, 0.1f, 0.0f, 100.0f))
+            {
+                spriteRendererComponent.TilingFactor = tillingFactor;
+            }
+
+            ImGui.End();
         });
 
         ImGui.End();
