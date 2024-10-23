@@ -23,7 +23,7 @@ public class ContextTests
     {
         // Arrange
         var context = Context.Instance;
-        var entity = new Entity("entity1");
+        var entity = new Entity(1, "entity1");
 
         // Act
         context.Register(entity);
@@ -39,10 +39,10 @@ public class ContextTests
         var context = Context.Instance;
         context.Entities.Clear(); // Clear the context for test isolation
 
-        var entity1 = new Entity("entity1");
+        var entity1 = new Entity(1, "entity1");
         entity1.AddComponent(new PositionComponent());
 
-        var entity2 = new Entity("entity2");
+        var entity2 = new Entity(2, "entity2");
         entity2.AddComponent(new PositionComponent());
         entity2.AddComponent(new VelocityComponent());
 
@@ -64,11 +64,11 @@ public class ContextTests
         var context = Context.Instance;
         context.Entities.Clear(); // Clear the context for test isolation
 
-        var entity1 = new Entity("entity1");
+        var entity1 = new Entity(1, "entity1");
         var positionComponent1 = new PositionComponent();
         entity1.AddComponent(positionComponent1);
 
-        var entity2 = new Entity("entity2");
+        var entity2 = new Entity(2, "entity2");
         var positionComponent2 = new PositionComponent();
         entity2.AddComponent(positionComponent2);
 
@@ -91,7 +91,7 @@ public class ContextTests
         var context = Context.Instance;
         context.Entities.Clear(); // Clear the context for test isolation
 
-        var entity1 = new Entity("entity1");
+        var entity1 = new Entity(1, "entity1");
         entity1.AddComponent(new VelocityComponent());
 
         context.Register(entity1);

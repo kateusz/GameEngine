@@ -37,6 +37,7 @@ public class EditorLayer : Layer
     private ContentBrowserPanel _contentBrowserPanel;
     private EditorCamera _editorCamera;
     private ImGuiGizmoOperation _gizmoType = ImGuiGizmoOperation.NONE;
+    private Entity _hoveredEntity;
 
     public EditorLayer(string name) : base(name)
     {
@@ -74,6 +75,9 @@ public class EditorLayer : Layer
         
         // Get mouse position from ImGui
         var mousePos = ImGui.GetMousePos();
+
+        Console.WriteLine(mousePos);
+        
         var mx = mousePos.X;
         var my = mousePos.Y;
 
@@ -92,10 +96,13 @@ public class EditorLayer : Layer
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
         {
             // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
-            int pixelData = _frameBuffer.ReadPixel(1, mouseX, mouseY);
+            int pixelData = _frameBuffer.ReadPixel(1, (int)mousePos.X, (int)mousePos.Y);
 
             // Log or warn about the pixel data
             Console.WriteLine($"Pixel data = {pixelData}");
+            
+            // TODO: access based on entityId
+            //_hoveredEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, _activeScene);
         }
         
         _frameBuffer.Unbind();

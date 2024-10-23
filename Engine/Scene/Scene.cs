@@ -21,7 +21,10 @@ public class Scene
 
     public Entity CreateEntity(string name)
     {
-        var entity = new Entity(name);
+        Random random = new Random();
+        var randomNumber = random.Next(0, 10001);
+        
+        var entity = new Entity(randomNumber, name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
 
@@ -89,7 +92,7 @@ public class Scene
             {
                 var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
                 var transformComponent = entity.GetComponent<TransformComponent>();
-                Renderer2D.Instance.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color);
+                Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id.GetHashCode());
             }
 
             Renderer2D.Instance.EndScene();
@@ -105,7 +108,7 @@ public class Scene
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
-            Renderer2D.Instance.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color);
+            Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id.GetHashCode());
         }
 
         Renderer2D.Instance.EndScene();
