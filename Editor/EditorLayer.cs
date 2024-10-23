@@ -44,7 +44,6 @@ public class EditorLayer : Layer
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
     private SceneState _sceneState;
-    private string _assetPath = Path.Combine(Environment.CurrentDirectory, "assets");
 
     public EditorLayer(string name) : base(name)
     {
@@ -379,7 +378,7 @@ public class EditorLayer : Layer
                         if (payload.NativePtr != null)
                         {
                             string path = Marshal.PtrToStringUni(payload.Data); // Converting IntPtr to string (wchar_t* in C#)
-                            OpenScene(System.IO.Path.Combine(_assetPath, path)); // Combining paths
+                            OpenScene(Path.Combine(AssetsManager.AssetsPath, path)); // Combining paths
                         }
                         ImGui.EndDragDropTarget();
                     }

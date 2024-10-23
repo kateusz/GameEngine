@@ -235,7 +235,10 @@ public class Renderer2D
     
     public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
     {
-        DrawQuad(transform, src.Color, entityId);
+        if (src.Texture is not null)
+            DrawQuad(transform, src.Texture, src.TilingFactor, src.Color, entityId);
+        else
+            DrawQuad(transform, src.Color, entityId);
     }
     
     private void StartBatch()
