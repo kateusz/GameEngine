@@ -66,6 +66,7 @@ public class SilkNetGameWindow : IGameWindow
 
         Mouse = mouse;
         Mouse.Scroll += OnMouseWheel;
+        Mouse.MouseDown += OnMouseDown;
         
         Keyboard = keyboard;
 
@@ -73,6 +74,12 @@ public class SilkNetGameWindow : IGameWindow
             SilkNetContext.InputContext.Keyboards[i].KeyDown += KeyDown;
 
         OnWindowLoad();
+    }
+
+    private void OnMouseDown(IMouse arg1, MouseButton arg2)
+    {
+        var @event = new MouseButtonPressedEvent((int)arg2);
+        OnEvent(@event);
     }
 
     private void WindowOnUpdate(double deltaTime)

@@ -62,18 +62,9 @@ public class SilkNetFrameBuffer : FrameBuffer
         unsafe
         {
             SilkNetContext.GL.ReadBuffer(GLEnum.ColorAttachment0 + attachmentIndex);
-
-            // Prepare to read the pixel data
-            // Prepare a buffer to hold the pixel data
-            int[] pixelData = new int[1];
-            
-            fixed (int* pixelPtr = pixelData)
-            {
-                SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, GLEnum.Int, pixelPtr);
-            }
-
-            // Return the pixel data
-            return pixelData[0];
+            int redValue = 0;
+            SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, PixelType.Int, &redValue);
+            return redValue;
         }
     }
 
@@ -133,11 +124,11 @@ public class SilkNetFrameBuffer : FrameBuffer
                 
                 // Create our texture and upload the image data.
                 SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
-                    _specification.Height, 0, format, PixelType.UnsignedByte, (void*)0);
+                    _specification.Height, 0, format, PixelType.Int, (void*)0);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                    (int)TextureMinFilter.Linear);
+                    (int)TextureMinFilter.Nearest);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                    (int)TextureMagFilter.Linear);
+                    (int)TextureMagFilter.Nearest);
                 SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
                     FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, _colorAttachments[i], 0);
             }
@@ -162,7 +153,7 @@ public class SilkNetFrameBuffer : FrameBuffer
                 {
                     throw new Exception("Too many color attachments!");
                 }
-
+                
                 DrawBufferMode[] drawBuffers = new DrawBufferMode[4];
                 for (int i = 0; i < 4; i++)
                 {
