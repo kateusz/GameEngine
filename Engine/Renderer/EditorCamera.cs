@@ -42,7 +42,7 @@ public class EditorCamera : Camera
         UpdateView();
     }
 
-    public void OnUpdate(TimeSpan timestep)
+    public void OnUpdate(TimeSpan ts)
     {
         var keyboard = InputState.Instance.Keyboard;
         var mouse = InputState.Instance.Mouse;
