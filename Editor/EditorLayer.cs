@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using ECS;
 using Editor.Panels;
 using Engine.Core;
@@ -9,11 +10,13 @@ using Engine.Math;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
 using ImGuiNET;
 using NLog;
+using Silk.NET.GLFW;
 using Application = Engine.Core.Application;
 using ImGuiGizmoOperation = Engine.ImGuiNet.ImGuiGizmoOperation;
 
@@ -38,6 +41,10 @@ public class EditorLayer : Layer
     private EditorCamera _editorCamera;
     private ImGuiGizmoOperation _gizmoType = ImGuiGizmoOperation.NONE;
     private Entity _hoveredEntity;
+    private Texture2D _iconPlay;
+    private Texture2D _iconStop;
+    private SceneState _sceneState;
+    private string _assetPath = Path.Combine(Environment.CurrentDirectory, "assets");
 
     public EditorLayer(string name) : base(name)
     {
@@ -46,6 +53,10 @@ public class EditorLayer : Layer
     public override void OnAttach()
     {
         Logger.Debug("ExampleLayer OnAttach.");
+        
+        _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
+        _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
+        _sceneState = SceneState.Edit;
 
         _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         var frameBufferSpec = new FrameBufferSpecification(1200, 720);
@@ -81,11 +92,9 @@ public class EditorLayer : Layer
             _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
             _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
-
-        if (_viewportFocused)
-            _orthographicCameraController.OnUpdate(timeSpan);
         
-        _editorCamera.OnUpdate(timeSpan);
+        // todo: stats
+        //Renderer2D.ResetStats();
         _frameBuffer.Bind();
 
         RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -93,19 +102,27 @@ public class EditorLayer : Layer
 
         _frameBuffer.ClearAttachment(1, -1);
         
-        _activeScene.OnUpdateRuntime(timeSpan);
-        
-        // TODO: check why it doesnt work
-        //_activeScene.OnUpdateEditor(timeSpan, _editorCamera);
+        switch (_sceneState)
+        {
+            case SceneState.Edit:
+            {
+                if (_viewportFocused)
+                    _orthographicCameraController.OnUpdate(timeSpan);
+                _editorCamera.OnUpdate(timeSpan);
+                _activeScene.OnUpdateEditor(timeSpan, _editorCamera);
+                break;
+            }
+            case SceneState.Play:
+            {
+                _activeScene.OnUpdateRuntime(timeSpan);
+                break;
+            }
+        }
         
         // Get mouse position from ImGui
         var mousePos = ImGui.GetMousePos();
-        
         var mx = mousePos.X - _viewportBounds[0].X;
         var my = mousePos.Y - _viewportBounds[0].Y;
-
-        //mx -= _viewportSize.X;
-        //my -= _viewportSize.Y;
 
         // Calculate viewport size
         var viewportSize = _viewportBounds[1] - _viewportBounds[0];
@@ -144,6 +161,10 @@ public class EditorLayer : Layer
         if (@event is KeyPressedEvent keyPressedEvent)
         {
             OnKeyPressed(keyPressedEvent);
+        } 
+        else if (@event is MouseButtonPressedEvent mouseButtonPressedEvent)
+        {
+            OnMouseButtonPressed(mouseButtonPressedEvent);
         }
     }
 
@@ -201,6 +222,54 @@ public class EditorLayer : Layer
         SubmitUI();
     }
 
+    private void UI_Toolbar()
+    {
+        // Pushing style variables and colors using ImGui.NET syntax
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(0, 2));
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new System.Numerics.Vector2(0, 0));
+
+        ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0, 0, 0, 0));
+
+        var colors = ImGui.GetStyle().Colors;
+        var buttonHovered = colors[(int)ImGuiCol.ButtonHovered];
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new System.Numerics.Vector4(buttonHovered.X, buttonHovered.Y, buttonHovered.Z, 0.5f));
+
+        var buttonActive = colors[(int)ImGuiCol.ButtonActive];
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new System.Numerics.Vector4(buttonActive.X, buttonActive.Y, buttonActive.Z, 0.5f));
+
+        // Begin toolbar window
+        ImGui.Begin("##toolbar", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+
+        // Calculate button size based on window height
+        float size = ImGui.GetWindowHeight() - 4.0f;
+
+        // Set the appropriate icon (m_IconPlay or m_IconStop) based on the scene state
+        var icon = _sceneState == SceneState.Edit ? _iconPlay : _iconStop;
+
+        // Center the icon button in the window
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
+
+        // Display the icon button and handle button press
+        if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0), new Vector2(1, 1)))
+        {
+            if (_sceneState == SceneState.Edit)
+            {
+                OnScenePlay();
+            }
+            else if (_sceneState == SceneState.Play)
+            {
+                OnSceneStop();
+            }
+        }
+
+        // Pop the style and color variables
+        ImGui.PopStyleVar(2);
+        ImGui.PopStyleColor(3);
+
+        // End the toolbar window
+        ImGui.End();
+    }
+
     private void SubmitUI()
     {
         var dockspaceOpen = true;
@@ -252,37 +321,26 @@ public class EditorLayer : Layer
 
             _sceneHierarchyPanel.OnImGuiRender();
             _contentBrowserPanel.OnImGuiRender();
+            
+            ImGui.Begin("Stats");
 
-            ImGui.Begin("Settings");
-
-            var oldValue = _translation;
-            ImGui.DragFloat3("Camera Transform", ref _translation, 0.1f);
-
-            if (_translation != oldValue)
+            string name = "None";
+            if (_hoveredEntity != null)
             {
-                var cameraEntity = _activeScene.Entities.First(x => x.Name == "Primary Camera");
-                cameraEntity.GetComponent<TransformComponent>().Translation = _translation;
+                name = _hoveredEntity.GetComponent<TagComponent>().Tag;
             }
+            ImGui.Text($"Hovered Entity: {name}");
 
-            if (ImGui.Checkbox("Primary Camera", ref _primaryCamera))
-            {
-                var cameraEntity = _activeScene.Entities.First(x => x.Name == "Camera Entity");
-                var secondCamera = _activeScene.Entities.First(x => x.Name == "Clip-Space Entity");
+            //var stats = Renderer2D.GetStats();
+            ImGui.Text("Renderer2D Stats:");
+            // ImGui.Text($"Draw Calls: {stats.DrawCalls}");
+            // ImGui.Text($"Quads: {stats.QuadCount}");
+            // ImGui.Text($"Vertices: {stats.GetTotalVertexCount()}");
+            // ImGui.Text($"Indices: {stats.GetTotalIndexCount()}");
 
-                cameraEntity.GetComponent<CameraComponent>().Primary = _primaryCamera;
-                secondCamera.GetComponent<CameraComponent>().Primary = !_primaryCamera;
-            }
-
-            // TODO: this value is null before deserialization - make it more flexible
-            if (_secondCamera is not null)
-            {
-                var camera = _secondCamera.GetComponent<CameraComponent>().Camera;
-                var val = camera.OrthographicSize;
-                if (ImGui.DragFloat("Second Camera Ortho Size", ref val))
-                {
-                    camera.SetOrthographicSize(val);
-                }
-            }
+            ImGui.End();
+            
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
             ImGui.Begin("Viewport");
             {
@@ -313,33 +371,31 @@ public class EditorLayer : Layer
                 ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
                     new Vector2(1, 0));
                 
+                if (ImGui.BeginDragDropTarget())
+                {
+                    unsafe
+                    {
+                        ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                        if (payload.NativePtr != null)
+                        {
+                            string path = Marshal.PtrToStringUni(payload.Data); // Converting IntPtr to string (wchar_t* in C#)
+                            OpenScene(System.IO.Path.Combine(_assetPath, path)); // Combining paths
+                        }
+                        ImGui.EndDragDropTarget();
+                    }
+                }
+                
                 ImGui.End();
             }
-
             
             // Gizmo
-            /*
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-            if (selectedEntity != null && _gizmoType != ImGuiGizmoOperation.NONE)
+            if (selectedEntity != null)
             {
-                // todo
-                //ImGuizmoWrapper.SetOrthographic(false);
-                ImGuizmoWrapper.SetDrawlist();
-
-                var windowWidth = ImGui.GetWindowWidth();
-                var windowHeight = ImGui.GetWindowHeight();
-                ImGuizmoWrapper.SetRect(
-                    ImGui.GetWindowPos().X,
-                    ImGui.GetWindowPos().Y,
-                    windowWidth,
-                    windowHeight
-                );
-
                 // Camera
                 var cameraEntity = _activeScene.GetPrimaryCameraEntity();
                 if (cameraEntity is null)
                     return;
-                
                 
                 var cameraComponent = cameraEntity.GetComponent<CameraComponent>();
                 var camera = cameraComponent.Camera;
@@ -350,44 +406,31 @@ public class EditorLayer : Layer
                 // Entity transform
                 var transformComponent = selectedEntity.GetComponent<TransformComponent>();
                 var transform = transformComponent.GetTransform();
-                
-                // Snapping
-                bool snap = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl);
-                float snapValue = 0.5f; // Snap to 0.5m for translation/scale
-                if (_gizmoType == ImGuiGizmoOperation.ROTATE)
-                    snapValue = 45.0f; // Snap to 45 degrees for rotation
+        
 
-                float[] snapValues = { snapValue, snapValue, snapValue };
-
-                ImGuizmoWrapper.Manipulate(
-                    cameraView.ToArray(),
-                    cameraProjection.ToArray(),
-                    (int)_gizmoType, // todo cast to ImGuiGizmoOperation
-                    mode: (int)ImGuizmoMode.Local,
-                    transform.ToArray(),
-                    null, 
-                    snap ? snapValues : null,
-                    null,
-                    null
-                );
-
-                if (ImGuizmoWrapper.IsUsing())
-                {
-                    var translation = Vector3.Zero;
-                    var rotation = Vector3.Zero;
-                    var scale = Vector3.One;
-
-                    // Decompose the transform
-                    MathHelpers.DecomposeTransform(transform, out translation, out rotation, out scale);
-
-                    var deltaRotation = rotation - transformComponent.Rotation;
-                    transformComponent.Translation = translation;
-                    transformComponent.Rotation += deltaRotation;
-                    transformComponent.Scale = scale;
-                }
             }
-             */
+            
+            ImGui.End();
+            ImGui.PopStyleVar();
+
+            UI_Toolbar();
+
+            ImGui.End();
         }
+    }
+    
+    private bool OnMouseButtonPressed(MouseButtonPressedEvent e)
+    {
+        if (e.Button == (int)MouseButton.Left)
+        {
+            if (_viewportHovered && !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
+            {
+                //_sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+            }
+            
+        }
+        
+        return false;
     }
 
     private void NewScene()
@@ -410,10 +453,28 @@ public class EditorLayer : Layer
             SceneSerializer.Deserialize(_activeScene, filePath);
         }
     }
+    
+    private void OpenScene(string path)
+    {
+        _activeScene = new Scene();
+        _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(_activeScene);
+
+        SceneSerializer.Deserialize(_activeScene, path);
+    }
 
     private void SaveSceneAs()
     {
         var filePath = $"assets/scenes/Example-{DateTime.UtcNow.ToShortDateString()}.scene";
         SceneSerializer.Serialize(_activeScene, filePath);
+    }
+    
+    void OnScenePlay()
+    {
+        _sceneState = SceneState.Play;
+    }
+    void OnSceneStop()
+    {
+        _sceneState = SceneState.Edit;
     }
 }
