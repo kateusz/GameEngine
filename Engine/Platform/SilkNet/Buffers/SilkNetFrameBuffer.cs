@@ -34,7 +34,7 @@ public class SilkNetFrameBuffer : FrameBuffer
     {
         SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
         SilkNetContext.GL.DeleteTextures(_colorAttachments);
-        SilkNetContext.GL.DeleteRenderbuffer(_depthAttachment);
+        SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
 
         Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
         _depthAttachment = 0;
@@ -106,7 +106,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             {
                 SilkNetContext.GL.DeleteFramebuffer(_rendererId);
                 SilkNetContext.GL.DeleteTextures(_colorAttachments);
-                SilkNetContext.GL.DeleteRenderbuffer(_depthAttachment);
+                SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
             }
 
             _rendererId = SilkNetContext.GL.GenFramebuffer();
@@ -143,19 +143,19 @@ public class SilkNetFrameBuffer : FrameBuffer
                 SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
                     FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, _colorAttachments[i], 0);
             }
-
-            // TODO: finish
-            // if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
-            // {
-            //     _depthAttachment = SilkNetContext.GL.GenTexture();
-            //     
-            //     switch (_depthAttachmentSpec.TextureFormat)
-            //     {
-            //         case FramebufferTextureFormat.DEPTH24STENCIL8:
-            //             Utils::AttachDepthTexture(_depthAttachment, m_Specification.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT, m_Specification.Width, m_Specification.Height);
-            //             break;
-            //     }
-            // }
+            
+            if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
+            {
+                _depthAttachment = SilkNetContext.GL.GenTexture();
+                SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
+                
+                switch (_depthAttachmentSpec.TextureFormat)
+                {
+                    case FramebufferTextureFormat.DEPTH24STENCIL8:
+                        AttachDepthTexture(_depthAttachment, _specification.Samples, GLEnum.Depth24Stencil8, FramebufferAttachment.DepthStencilAttachment, _specification.Width, _specification.Height);
+                        break;
+                }
+            }
 
             // Handle draw buffers
             if (_colorAttachments.Length >= 1)
@@ -208,5 +208,31 @@ public class SilkNetFrameBuffer : FrameBuffer
         }
 
         return 0;
+    }
+    
+    public void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
+    {
+        bool multisampled = samples > 1;
+
+        if (multisampled)
+        {
+            // Multisampled texture
+            SilkNetContext.GL.TexImage2DMultisample(TextureTarget.Texture2DMultisample, samples, format, width, height, false);
+        }
+        else
+        {
+            // Regular 2D texture
+            SilkNetContext.GL.TexStorage2D(TextureTarget.Texture2D, 1, format, width, height);
+
+            // Set texture parameters
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        }
+
+        // Attach the texture to the framebuffer
+        SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachmentType, multisampled ? TextureTarget.Texture2DMultisample : TextureTarget.Texture2D, id, 0);
     }
 }
