@@ -92,7 +92,7 @@ public class Renderer2D
 
     public void EndScene()
     {
-        uint dataSize = 0;
+        int dataSize = 0;
         for (int i = 0; i < _data.CurrentVertexBufferIndex; i++)
         {
             dataSize += QuadVertex.GetSize();
@@ -271,7 +271,7 @@ public class Renderer2D
             new BufferElement(ShaderDataType.Int, "a_EntityID"),
         });
 
-        _data.QuadVertexBuffer = VertexBufferFactory.Create(Renderer2DData.MaxVertices * quadVertexSize);
+        _data.QuadVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
         _data.QuadVertexBuffer.SetLayout(layout);
         _data.QuadVertexArray.AddVertexBuffer(_data.QuadVertexBuffer);
         _data.QuadVertexBufferBase = new List<QuadVertex>(Renderer2DData.MaxVertices);

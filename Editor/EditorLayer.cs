@@ -37,8 +37,7 @@ public class EditorLayer : Layer
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
     private EditorCamera _editorCamera;
-    private ImGuiGizmoOperation _gizmoType = ImGuiGizmoOperation.NONE;
-    private Entity _hoveredEntity;
+    private Entity? _hoveredEntity;
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
     private SceneState _sceneState;
@@ -135,13 +134,13 @@ public class EditorLayer : Layer
             //if (mouseX >= 0 && mouseY >= 0)
         {
             // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
-            int pixelData = _frameBuffer.ReadPixel(1, mouseX, mouseY);
+            int entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
 
             // Log or warn about the pixel data
-            Console.WriteLine($"Pixel data = {pixelData}");
+            Console.WriteLine($"Pixel data = {entityId}");
 
-            // TODO: access based on entityId
-            //_hoveredEntity = pixelData == -1 ? Entity() : Entity((entt::entity)pixelData, _activeScene);
+            var entity = _activeScene.Entities.FirstOrDefault(x => x.Id == entityId);
+            _hoveredEntity = entity;
         }
 
         _frameBuffer.Unbind();
@@ -197,19 +196,6 @@ public class EditorLayer : Layer
 
                 break;
             }
-            // Gizmos
-            case (int)KeyCodes.Q:
-                _gizmoType = ImGuiGizmoOperation.NONE;
-                break;
-            case (int)KeyCodes.W:
-                _gizmoType = ImGuiGizmoOperation.TRANSLATE;
-                break;
-            case (int)KeyCodes.E:
-                _gizmoType = ImGuiGizmoOperation.ROTATE;
-                break;
-            case (int)KeyCodes.R:
-                _gizmoType = ImGuiGizmoOperation.SCALE;
-                break;
         }
     }
 
@@ -327,7 +313,7 @@ public class EditorLayer : Layer
             string name = "None";
             if (_hoveredEntity != null)
             {
-                name = _hoveredEntity.GetComponent<TagComponent>().Tag;
+                name = _hoveredEntity.Name;
             }
 
             ImGui.Text($"Hovered Entity: {name}");
@@ -426,10 +412,12 @@ public class EditorLayer : Layer
     {
         if (e.Button == (int)MouseButton.Left)
         {
-            if (_viewportHovered && !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
+            if (_viewportHovered && _hoveredEntity != null && !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
             {
-                //_sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+                _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
             }
+
+            return true;
         }
 
         return false;

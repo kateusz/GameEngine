@@ -307,6 +307,11 @@ public class SceneHierarchyPanel
                 entity.RemoveComponent<T>();
         }
     }
+    
+    public void SetSelectedEntity(Entity entity)
+    {
+        _selectionContext = entity;
+    }
 
     private void DrawEntityNode(Entity entity)
     {
