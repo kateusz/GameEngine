@@ -16,7 +16,6 @@ using ImGuiNET;
 using NLog;
 using Silk.NET.GLFW;
 using Application = Engine.Core.Application;
-using ImGuiGizmoOperation = Engine.ImGuiNet.ImGuiGizmoOperation;
 
 namespace Editor;
 
