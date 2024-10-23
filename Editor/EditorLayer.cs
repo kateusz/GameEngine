@@ -138,6 +138,10 @@ public class EditorLayer : Layer
 
         _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         var frameBufferSpec = new FrameBufferSpecification(852, 701);
+        frameBufferSpec.AttachmentsSpec = new ([
+            new(FramebufferTextureFormat.RGBA8),
+            new(FramebufferTextureFormat.Depth)
+        ]);
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
         _activeScene = new Scene();
