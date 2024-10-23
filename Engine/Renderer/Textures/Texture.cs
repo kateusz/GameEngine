@@ -16,4 +16,9 @@ public abstract class Texture
     public virtual void SetData(uint data, int size)
     {
     }
+
+    public virtual uint GetRendererId()
+    {
+        return 0;
+    }
 }

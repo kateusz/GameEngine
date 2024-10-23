@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Core.Input;
 using Silk.NET.Input;
 
@@ -10,18 +11,13 @@ public class SIlkNetMouseState : IMouseState
         return SilkNetGameWindow.Mouse.IsButtonPressed((MouseButton)button);
     }
 
-    public Tuple<float, float> GetMousePosition()
+    public Vector2 GetPos()
     {
-        return new Tuple<float, float>(SilkNetGameWindow.Mouse.Position.X, SilkNetGameWindow.Mouse.Position.Y);
+        return SilkNetGameWindow.Mouse.Position;
     }
 
-    public float GetMouseX()
-    {
-        return SilkNetGameWindow.Mouse.Position.X;
-    }
-
-    public float GetMouseY()
-    {
-        return SilkNetGameWindow.Mouse.Position.Y;
-    }
+    // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+    public float X => SilkNetGameWindow.Mouse != null ? SilkNetGameWindow.Mouse.Position.X : 0;
+    // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+    public float Y { get; } = SilkNetGameWindow.Mouse != null ? SilkNetGameWindow.Mouse.Position.Y : 0;
 }

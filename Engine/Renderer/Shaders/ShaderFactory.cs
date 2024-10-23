@@ -1,4 +1,3 @@
-using Engine.Platform.OpenTK;
 using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Shaders;
@@ -11,8 +10,6 @@ public static class ShaderFactory
         {
             case ApiType.None:
                 break;
-            case ApiType.OpenTK:
-                return new OpenTKShader(vertPath, fragPath);
             case ApiType.SilkNet:
                 return new SilkNetShader(vertPath, fragPath);
             default:
