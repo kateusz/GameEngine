@@ -68,6 +68,8 @@ public class EditorLayer : Layer
         _frameBuffer.ClearAttachment(1, -1);
         
         _activeScene.OnUpdateRuntime(timeSpan);
+        
+        // TODO: check why it doesnt work
         //_activeScene.OnUpdateEditor(timeSpan, _editorCamera);
         
         // Get mouse position from ImGui
@@ -276,6 +278,12 @@ public class EditorLayer : Layer
 
             ImGui.Begin("Viewport");
             {
+                var viewportMinRegion = ImGui.GetWindowContentRegionMin();
+                var viewportMaxRegion = ImGui.GetWindowContentRegionMax();
+                var viewportOffset = ImGui.GetWindowPos();
+                _viewportBounds[0] = new Vector2(viewportMinRegion.X + viewportOffset.X, viewportMinRegion.Y + viewportOffset.Y);
+                _viewportBounds[1] = new Vector2(viewportMaxRegion.X + viewportOffset.X, viewportMaxRegion.Y + viewportOffset.Y);
+                
                 _viewportFocused = ImGui.IsWindowFocused();
                 _viewportHovered = ImGui.IsWindowHovered();
                 Application.ImGuiLayer.BlockEvents = !_viewportFocused && !_viewportHovered;
@@ -296,16 +304,6 @@ public class EditorLayer : Layer
                 var texturePointer = new IntPtr(textureId);
                 ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
                     new Vector2(1, 0));
-                
-                var windowSize = ImGui.GetWindowSize();
-                var minBound = ImGui.GetWindowPos();
-                var viewportOffset = ImGui.GetCursorPos(); // Includes tab bar
-                minBound.X += viewportOffset.X;
-                minBound.Y += viewportOffset.Y;
-
-                var maxBound = new Vector2(minBound.X + windowSize.X, minBound.Y + windowSize.Y);
-                _viewportBounds[0] = new Vector2( minBound.X, minBound.Y);
-                _viewportBounds[1] = new Vector2(maxBound.X, maxBound.Y);
                 
                 ImGui.End();
             }
