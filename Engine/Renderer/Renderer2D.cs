@@ -35,7 +35,8 @@ public class Renderer2D
     {
         _data = new Renderer2DData
         {
-            QuadVertexArray = VertexArrayFactory.Create()
+            QuadVertexArray = VertexArrayFactory.Create(),
+            Stats = new Statistics(0, 0)
         };
 
         InitBuffers();
@@ -113,6 +114,7 @@ public class Renderer2D
             _data.TextureSlots[i].Bind(i);
 
         RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+        _data.Stats.DrawCalls++;
     }
 
     public void DrawQuad(Vector2 position, Vector2 size, Vector4 color)
@@ -209,6 +211,7 @@ public class Renderer2D
         }
 
         _data.QuadIndexBufferCount += 6;
+        _data.Stats.QuadCount++;
     }
 
     public void DrawRotatedQuad(Vector2 position, Vector2 size, float rotation, Vector4 color)
@@ -325,5 +328,16 @@ public class Renderer2D
         }
 
         return quadIndices;
+    }
+
+    public void ResetStats()
+    {
+        _data.Stats.QuadCount = 0;
+        _data.Stats.DrawCalls = 0;
+    }
+    
+    public Statistics GetStats()
+    {
+        return _data.Stats;
     }
 }
