@@ -65,13 +65,13 @@ public class SilkNetFrameBuffer : FrameBuffer
 
             // Prepare to read the pixel data
             // Prepare a buffer to hold the pixel data
-            byte[] pixelData = new byte[1 * 1 * 3]; // For RGB, 3 bytes per pixel
-
-            fixed (byte* pixelPtr = pixelData)
+            int[] pixelData = new int[1];
+            
+            fixed (int* pixelPtr = pixelData)
             {
                 SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, GLEnum.Int, pixelPtr);
             }
-    
+
             // Return the pixel data
             return pixelData[0];
         }
@@ -82,9 +82,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         unsafe
         {
             var spec = _colorAttachmentSpecs[attachmentIndex];
-            // TODO: ClearTexImage not available
-            //SilkNetContext.GL.ClearTexImage(_colorAttachments[attachmentIndex], 0, HazelFBTextureFormatToGL(spec.TextureFormat), GLEnum.Int, &value);
-            
+            SilkNetContext.GL.ClearBuffer (BufferKind.Color,attachmentIndex, value);
         }
     }
     
@@ -132,7 +130,7 @@ public class SilkNetFrameBuffer : FrameBuffer
                         format = PixelFormat.RedInteger;
                         break;
                 }
-
+                
                 // Create our texture and upload the image data.
                 SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
                     _specification.Height, 0, format, PixelType.UnsignedByte, (void*)0);
@@ -165,8 +163,8 @@ public class SilkNetFrameBuffer : FrameBuffer
                     throw new Exception("Too many color attachments!");
                 }
 
-                DrawBufferMode[] drawBuffers = new DrawBufferMode[_colorAttachments.Length];
-                for (int i = 0; i < _colorAttachments.Length; i++)
+                DrawBufferMode[] drawBuffers = new DrawBufferMode[4];
+                for (int i = 0; i < 4; i++)
                 {
                     drawBuffers[i] = DrawBufferMode.ColorAttachment0 + i;
                 }

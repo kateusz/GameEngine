@@ -42,20 +42,45 @@ public class EditorLayer : Layer
     public EditorLayer(string name) : base(name)
     {
     }
+    
+    public override void OnAttach()
+    {
+        Logger.Debug("ExampleLayer OnAttach.");
+
+        _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        var frameBufferSpec = new FrameBufferSpecification(1200, 720);
+        frameBufferSpec.AttachmentsSpec = new ([
+            new(FramebufferTextureFormat.RGBA8),
+            new(FramebufferTextureFormat.RED_INTEGER),
+            new(FramebufferTextureFormat.Depth),
+        ]);
+        _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
+
+        _activeScene = new Scene();
+        _editorCamera = new EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
+        _translation = new Vector3();
+        _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
+        _contentBrowserPanel = new ContentBrowserPanel();
+    }
+
+    public override void OnDetach()
+    {
+        Logger.Debug("ExampleLayer OnDetach.");
+    }
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
         // Resize
         // TODO: is it needed?
-        // var spec = _frameBuffer.GetSpecification();
-        // if (_viewportSize.X > 0.0f && _viewportSize.Y > 0.0f && // zero sized framebuffer is invalid
-        //     (spec.Width != _viewportSize.X || spec.Height != _viewportSize.Y))
-        // {
-        //     _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        //     //_cameraController.OnResize(_viewportSize.X, _viewportSize.y);
-        //     _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
-        //     _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        // }
+        var spec = _frameBuffer.GetSpecification();
+        if (_viewportSize.X > 0.0f && _viewportSize.Y > 0.0f && // zero sized framebuffer is invalid
+            (spec.Width != _viewportSize.X || spec.Height != _viewportSize.Y))
+        {
+            _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            //_cameraController.OnResize(_viewportSize.X, _viewportSize.y);
+            _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
+            _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        }
 
         if (_viewportFocused)
             _orthographicCameraController.OnUpdate(timeSpan);
@@ -75,14 +100,12 @@ public class EditorLayer : Layer
         
         // Get mouse position from ImGui
         var mousePos = ImGui.GetMousePos();
-
-        Console.WriteLine(mousePos);
         
-        var mx = mousePos.X;
-        var my = mousePos.Y;
+        var mx = mousePos.X - _viewportBounds[0].X;
+        var my = mousePos.Y - _viewportBounds[0].Y;
 
-        mx -= _viewportSize.X;
-        my -= _viewportSize.Y;
+        //mx -= _viewportSize.X;
+        //my -= _viewportSize.Y;
 
         // Calculate viewport size
         var viewportSize = _viewportBounds[1] - _viewportBounds[0];
@@ -92,11 +115,14 @@ public class EditorLayer : Layer
         int mouseX = (int)mx;
         int mouseY = (int)my;
 
+        Console.WriteLine($"X: {mouseX}, Y: {mouseY}");
+
         // Check if the mouse is within the viewport bounds
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
+        //if (mouseX >= 0 && mouseY >= 0)
         {
             // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
-            int pixelData = _frameBuffer.ReadPixel(1, (int)mousePos.X, (int)mousePos.Y);
+            int pixelData = _frameBuffer.ReadPixel(1, mouseX, mouseY);
 
             // Log or warn about the pixel data
             Console.WriteLine($"Pixel data = {pixelData}");
@@ -168,31 +194,6 @@ public class EditorLayer : Layer
                 _gizmoType = ImGuiGizmoOperation.SCALE;
                 break;
         }
-    }
-
-    public override void OnAttach()
-    {
-        Logger.Debug("ExampleLayer OnAttach.");
-
-        _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        var frameBufferSpec = new FrameBufferSpecification(852, 701);
-        frameBufferSpec.AttachmentsSpec = new ([
-            new(FramebufferTextureFormat.RGBA8),
-            new(FramebufferTextureFormat.RED_INTEGER),
-            new(FramebufferTextureFormat.Depth),
-        ]);
-        _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
-
-        _activeScene = new Scene();
-        _editorCamera = new EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
-        _translation = new Vector3();
-        _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
-        _contentBrowserPanel = new ContentBrowserPanel();
-    }
-
-    public override void OnDetach()
-    {
-        Logger.Debug("ExampleLayer OnDetach.");
     }
 
     public override void OnImGuiRender()
