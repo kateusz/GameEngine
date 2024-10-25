@@ -1,5 +1,9 @@
 using System.Collections.Concurrent;
 using System.Numerics;
+using Box2D.NetStandard.Collision.Shapes;
+using Box2D.NetStandard.Dynamics.Bodies;
+using Box2D.NetStandard.Dynamics.Fixtures;
+using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
@@ -11,6 +15,7 @@ public class Scene
 {
     private uint _viewportWidth;
     private uint _viewportHeight;
+    private World _physicsWorld;
 
     public Scene()
     {
@@ -63,6 +68,26 @@ public class Scene
 
             nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
         }
+        
+        // Physics
+        const int velocityIterations = 6;
+        const int positionIterations = 2;
+        var deltaSeconds = (float)ts.TotalSeconds;
+        _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
+        
+        // Retrieve transform from Box2D
+        var view = Context.Instance.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            var transform = entity.GetComponent<TransformComponent>();
+            var body = component.RuntimeBody;
+            
+            // todo: update density, friction, restitution?
+            
+            var position = body.GetPosition();
+            transform.Translation = new Vector3(position.X, position.Y, 0);
+            transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+        }
 
         // Render 2D
         Camera? mainCamera = null;
@@ -114,6 +139,48 @@ public class Scene
         Renderer2D.Instance.EndScene();
     }
 
+    public void OnRuntimeStart()
+    {
+        _physicsWorld = new World(new Vector2(0, -9.81f));
+        var view = Context.Instance.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            var transform = entity.GetComponent<TransformComponent>();
+            var bodyDef = new BodyDef
+            {
+                position = new Vector2(transform.Translation.X, transform.Translation.Y),
+                angle = transform.Rotation.Z,
+                type = RigidBody2DTypeToBox2DBody(component.BodyType),
+                bullet = component.BodyType == RigidBodyType.Dynamic ? true : false
+            };
+
+            var body = _physicsWorld.CreateBody(bodyDef);
+            body.SetFixedRotation(component.FixedRotation);
+            component.RuntimeBody = body;
+
+            if (entity.HasComponent<BoxCollider2DComponent>())
+            {
+                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
+                var shape = new PolygonShape();
+                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y);
+                var fixtureDef = new FixtureDef
+                {
+                    shape = shape,
+                    density = boxCollider.Density,
+                    friction = boxCollider.Friction,
+                    restitution = boxCollider.Restitution
+                };
+
+                body.CreateFixture(fixtureDef);
+            }
+        }
+    }
+
+    public void OnRuntimeStop()
+    {
+        
+    }
+
     public void OnViewportResize(uint width, uint height)
     {
         _viewportWidth = width;
@@ -141,5 +208,16 @@ public class Scene
         }
 
         return null;
+    }
+    
+    private BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
+    {
+        return componentBodyType switch
+        {
+            RigidBodyType.Static => BodyType.Static,
+            RigidBodyType.Dynamic => BodyType.Dynamic,
+            RigidBodyType.Kinematic => BodyType.Kinematic,
+            _ => throw new ArgumentOutOfRangeException(nameof(componentBodyType), componentBodyType, null)
+        };
     }
 }

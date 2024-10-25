@@ -26,6 +26,7 @@ public class SceneSerializer
         WriteIndented = true,
         Converters =
         {
+            new Vector2Converter(),
             new Vector3Converter(),
             new Vector4Converter(),
             new JsonStringEnumConverter()
@@ -124,6 +125,12 @@ public class SceneSerializer
             case nameof(SpriteRendererComponent):
                 AddComponent<SpriteRendererComponent>(entity, componentObj);
                 break;
+            case nameof(RigidBody2DComponent):
+                AddComponent<RigidBody2DComponent>(entity, componentObj);
+                break;
+            case nameof(BoxCollider2DComponent):
+                AddComponent<BoxCollider2DComponent>(entity, componentObj);
+                break;
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
         }
@@ -150,6 +157,8 @@ public class SceneSerializer
         SerializeComponent<TransformComponent>(entity, entityObj, nameof(TransformComponent));
         SerializeComponent<CameraComponent>(entity, entityObj, nameof(CameraComponent));
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
+        SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
+        SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
 
         jsonEntities.Add(entityObj);
     }
