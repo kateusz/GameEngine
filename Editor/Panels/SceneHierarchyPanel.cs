@@ -52,17 +52,16 @@ public class SceneHierarchyPanel
         ImGui.End();
 
         ImGui.Begin("Properties");
-        if (_selectionContext is not null)
-        {
-            DrawComponents(_selectionContext);
-        }
-
+        DrawComponents();
         ImGui.End();
     }
 
-    private void DrawComponents(Entity entity)
+    private void DrawComponents()
     {
-        var tag = entity.Name;
+        if (_selectionContext is null)
+            return;
+            
+        var tag = _selectionContext.Name;
 
         byte[] buffer = new byte[256];
         Array.Clear(buffer, 0, buffer.Length);
@@ -73,7 +72,7 @@ public class SceneHierarchyPanel
         {
             // Convert byte[] buffer back to string
             tag = System.Text.Encoding.UTF8.GetString(buffer).TrimEnd('\0');
-            entity.Name = tag; // Update entity's name if needed
+            _selectionContext.Name = tag; // Update entity's name if needed
         }
 
         ImGui.SameLine();
@@ -100,10 +99,8 @@ public class SceneHierarchyPanel
         }
 
         ImGui.PopItemWidth();
-
-        const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.AllowOverlap;
-
-        DrawComponent<TransformComponent>("Transform", entity, tc =>
+        
+        DrawComponent<TransformComponent>("Transform", _selectionContext, tc =>
         {
             var newTranslation = tc.Translation;
             DrawVec3Control("Translation", ref newTranslation);
@@ -126,7 +123,7 @@ public class SceneHierarchyPanel
                 tc.Scale = newScale;
         });
 
-        DrawComponent<CameraComponent>("Camera", entity, cameraComponent =>
+        DrawComponent<CameraComponent>("Camera", _selectionContext, cameraComponent =>
         {
             var camera = cameraComponent.Camera;
 
@@ -210,7 +207,7 @@ public class SceneHierarchyPanel
         });
 
 
-        DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, spriteRendererComponent =>
+        DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, spriteRendererComponent =>
         {
             var newColor = spriteRendererComponent.Color;
             ImGui.ColorEdit4("Color", ref newColor);
@@ -236,7 +233,11 @@ public class SceneHierarchyPanel
                     if (payload.NativePtr != null)
                     {
                         // Convert the payload data (wchar_t*) to a C# string
-                        string path = Marshal.PtrToStringUni(payload.Data);
+                        var path = Marshal.PtrToStringUni(payload.Data);
+                        if (path is null)
+                        {
+                            return;
+                        }
 
                         // Combine the asset path and the dragged path
                         string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
@@ -317,7 +318,7 @@ public class SceneHierarchyPanel
     {
         var tag = entity.Name;
 
-        var flags = ((_selectionContext == entity) ? ImGuiTreeNodeFlags.Selected : 0) | ImGuiTreeNodeFlags.OpenOnArrow;
+        var flags = (_selectionContext?.Id == entity.Id ? ImGuiTreeNodeFlags.Selected : 0) | ImGuiTreeNodeFlags.OpenOnArrow;
         var opened = ImGui.TreeNodeEx(tag, flags, tag);
         if (ImGui.IsItemClicked())
         {

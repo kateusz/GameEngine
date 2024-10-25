@@ -9,10 +9,10 @@ public class SilkNetFrameBuffer : FrameBuffer
     private const uint MaxFramebufferSize = 8192;
 
     private uint _rendererId = 0;
-    private List<FramebufferTextureSpecification> _colorAttachmentSpecs = new List<FramebufferTextureSpecification>();
+    private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
     private uint _depthAttachment;
-    private FramebufferTextureSpecification _depthAttachmentSpec;
+    private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
 
     public SilkNetFrameBuffer(FrameBufferSpecification spec)
@@ -89,71 +89,51 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     private void Invalidate()
     {
-        unsafe
+        if (_rendererId != 0)
         {
-            if (_rendererId != 0)
-            {
-                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
-                SilkNetContext.GL.DeleteTextures(_colorAttachments);
-                SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
-            }
+            SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+            SilkNetContext.GL.DeleteTextures(_colorAttachments);
+            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+        }
 
-            _rendererId = SilkNetContext.GL.GenFramebuffer();
-            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+        _rendererId = SilkNetContext.GL.GenFramebuffer();
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
 
-            _colorAttachments = new uint[_colorAttachmentSpecs.Count];
-            SilkNetContext.GL.GenTextures(_colorAttachments);
+        _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+        SilkNetContext.GL.GenTextures(_colorAttachments);
 
-            for (int i = 0; i < _colorAttachments.Length; i++)
-            {
-                SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[i]);
-
-                InternalFormat internalFormat = InternalFormat.Rgba8;
-                PixelFormat format = PixelFormat.Rgba;
-                switch (_colorAttachmentSpecs[i].TextureFormat)
-                {
-                    case FramebufferTextureFormat.RGBA8:
-                        internalFormat = InternalFormat.Rgba8;
-                        format = PixelFormat.Rgba;
-                        break;
-                    case FramebufferTextureFormat.RED_INTEGER:
-                        internalFormat = InternalFormat.R32i;
-                        format = PixelFormat.RedInteger;
-                        break;
-                }
-                
-                // Create our texture and upload the image data.
-                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
-                    _specification.Height, 0, format, PixelType.Int, (void*)0);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                    (int)TextureMinFilter.Nearest);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                    (int)TextureMagFilter.Nearest);
-                SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
-                    FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, _colorAttachments[i], 0);
-            }
+        for (var i = 0; i < _colorAttachments.Length; i++)
+        {
+            AttachColorTexture(i);
+        }
             
-            if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
-            {
-                _depthAttachment = SilkNetContext.GL.GenTexture();
-                SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
+        if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
+        {
+            _depthAttachment = SilkNetContext.GL.GenTexture();
+            SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
                 
-                switch (_depthAttachmentSpec.TextureFormat)
-                {
-                    case FramebufferTextureFormat.DEPTH24STENCIL8:
-                        AttachDepthTexture(_depthAttachment, _specification.Samples, GLEnum.Depth24Stencil8, FramebufferAttachment.DepthStencilAttachment, _specification.Width, _specification.Height);
-                        break;
-                }
+            switch (_depthAttachmentSpec.TextureFormat)
+            {
+                case FramebufferTextureFormat.DEPTH24STENCIL8:
+                    AttachDepthTexture(_depthAttachment, _specification.Samples, GLEnum.Depth24Stencil8, FramebufferAttachment.DepthStencilAttachment, _specification.Width, _specification.Height);
+                    break;
             }
+        }
 
+        DrawBuffers();
+
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+    }
+
+    private void DrawBuffers()
+    {
+        switch (_colorAttachments.Length)
+        {
             // Handle draw buffers
-            if (_colorAttachments.Length >= 1)
+            case > 4:
+                throw new Exception("Too many color attachments!");
+            case >= 1:
             {
-                if (_colorAttachments.Length > 4)
-                {
-                    throw new Exception("Too many color attachments!");
-                }
-                
                 DrawBufferMode[] drawBuffers = new DrawBufferMode[4];
                 for (int i = 0; i < 4; i++)
                 {
@@ -161,34 +141,59 @@ public class SilkNetFrameBuffer : FrameBuffer
                 }
 
                 SilkNetContext.GL.DrawBuffers((uint)_colorAttachments.Length, drawBuffers);
+                break;
             }
-            else if (_colorAttachments.Length == 0)
-            {
+            case 0:
                 // Only depth-pass
                 SilkNetContext.GL.DrawBuffer(GLEnum.None);
-            }
+                break;
+        }
 
-            if (SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
-            {
-                Console.WriteLine("Framebuffer is not complete!");
-            }
-
-            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        if (SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
+        {
+            throw new Exception("Framebuffer is not complete!");
         }
     }
 
-    public bool IsDepthFormat(FramebufferTextureFormat format)
+    private unsafe void AttachColorTexture(int attachmentIndex)
     {
-        switch (format)
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[attachmentIndex]);
+
+        InternalFormat internalFormat = InternalFormat.Rgba8;
+        PixelFormat format = PixelFormat.Rgba;
+        switch (_colorAttachmentSpecs[attachmentIndex].TextureFormat)
         {
-            case FramebufferTextureFormat.DEPTH24STENCIL8:
-                return true;
-            default:
-                return false;
+            case FramebufferTextureFormat.RGBA8:
+                internalFormat = InternalFormat.Rgba8;
+                format = PixelFormat.Rgba;
+                break;
+            case FramebufferTextureFormat.RED_INTEGER:
+                internalFormat = InternalFormat.R32i;
+                format = PixelFormat.RedInteger;
+                break;
         }
+                
+        // Create our texture and upload the image data.
+        SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
+            _specification.Height, 0, format, PixelType.Int, (void*)0);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+            (int)TextureMinFilter.Nearest);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+            (int)TextureMagFilter.Nearest);
+        SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
+            FramebufferAttachment.ColorAttachment0 + attachmentIndex, TextureTarget.Texture2D, _colorAttachments[attachmentIndex], 0);
+    }
+
+    private static bool IsDepthFormat(FramebufferTextureFormat format)
+    {
+        return format switch
+        {
+            FramebufferTextureFormat.DEPTH24STENCIL8 => true,
+            _ => false
+        };
     }
     
-    public GLEnum HazelFBTextureFormatToGL(FramebufferTextureFormat format)
+    private GLEnum TextureFormatToGL(FramebufferTextureFormat format)
     {
         switch (format)
         {
@@ -199,7 +204,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         return 0;
     }
     
-    public void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
+    private void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
     {
         bool multisampled = samples > 1;
 
