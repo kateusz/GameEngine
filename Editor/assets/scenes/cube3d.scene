@@ -57,7 +57,7 @@
       "Name": "Primary Camera",
       "Components": [
         {
-          "Translation": [0, 1.70000005, 4],
+          "Translation": [15.646223, 10.21195, 0],
         "Rotation": [-0.404916406, 0, 0],
         "Scale": [1, 1, 1],
           "Name": "TransformComponent"

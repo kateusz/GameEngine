@@ -84,6 +84,7 @@ public class SilkNetGameWindow : IGameWindow
 
     private void WindowOnUpdate(double deltaTime)
     {
+        Mouse = SilkNetContext.InputContext.Mice[0];
         OnUpdate();
 
         if (!InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Escape))

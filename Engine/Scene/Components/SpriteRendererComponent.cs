@@ -8,7 +8,7 @@ public class SpriteRendererComponent : Component
 {
     public SpriteRendererComponent()
     {
-        Color = Vector4.Zero;
+        Color = Vector4.One;
     }
     
     public SpriteRendererComponent(Vector4 color)
