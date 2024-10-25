@@ -73,6 +73,7 @@ public class Scene
         const int velocityIterations = 6;
         const int positionIterations = 2;
         var deltaSeconds = (float)ts.TotalSeconds;
+        deltaSeconds = 1.0f / 60.0f;
         _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
         
         // Retrieve transform from Box2D
@@ -80,7 +81,13 @@ public class Scene
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
+            var collision = entity.GetComponent<BoxCollider2DComponent>();
             var body = component.RuntimeBody;
+
+            var fixture = body.GetFixtureList();
+            fixture.Density = collision.Density;
+            fixture.m_friction = collision.Friction;
+            fixture.Restitution = collision.Restitution;
             
             // todo: update density, friction, restitution?
             
