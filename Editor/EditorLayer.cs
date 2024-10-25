@@ -28,11 +28,8 @@ public class EditorLayer : Layer
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private bool _viewportHovered;
-    private Vector2[] _viewportBounds = new Vector2[2];
+    private readonly Vector2[] _viewportBounds = new Vector2[2];
     private Scene _activeScene;
-    private Entity _secondCamera;
-    private bool _primaryCamera = true;
-    private Vector3 _translation;
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
     private EditorCamera _editorCamera;
@@ -53,18 +50,20 @@ public class EditorLayer : Layer
         _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
         _sceneState = SceneState.Edit;
 
+        // todo: width and height from window props
         _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        var frameBufferSpec = new FrameBufferSpecification(1200, 720);
-        frameBufferSpec.AttachmentsSpec = new([
-            new(FramebufferTextureFormat.RGBA8),
-            new(FramebufferTextureFormat.RED_INTEGER),
-            new(FramebufferTextureFormat.Depth),
-        ]);
+        var frameBufferSpec = new FrameBufferSpecification(1200, 720)
+        {
+            AttachmentsSpec = new FramebufferAttachmentSpecification([
+                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8),
+                new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
+                new FramebufferTextureSpecification(FramebufferTextureFormat.Depth),
+            ])
+        };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
         _activeScene = new Scene();
         _editorCamera = new EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
-        _translation = new Vector3();
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
         _contentBrowserPanel = new ContentBrowserPanel();
     }
@@ -79,8 +78,8 @@ public class EditorLayer : Layer
         // Resize
         // TODO: is it needed?
         var spec = _frameBuffer.GetSpecification();
-        if (_viewportSize.X > 0.0f && _viewportSize.Y > 0.0f && // zero sized framebuffer is invalid
-            (spec.Width != _viewportSize.X || spec.Height != _viewportSize.Y))
+        if (_viewportSize is { X: > 0.0f, Y: > 0.0f } && // zero sized framebuffer is invalid
+            (spec.Width != (uint)_viewportSize.X || spec.Height != (uint)_viewportSize.Y))
         {
             _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
             //_cameraController.OnResize(_viewportSize.X, _viewportSize.y);
@@ -123,21 +122,14 @@ public class EditorLayer : Layer
         my = viewportSize.Y - my; // Flip the Y-axis
 
         // Convert to integer mouse coordinates
-        int mouseX = (int)mx;
-        int mouseY = (int)my;
-
-        Console.WriteLine($"X: {mouseX}, Y: {mouseY}");
+        var mouseX = (int)mx;
+        var mouseY = (int)my;
 
         // Check if the mouse is within the viewport bounds
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
-            //if (mouseX >= 0 && mouseY >= 0)
         {
             // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
-            int entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
-
-            // Log or warn about the pixel data
-            Console.WriteLine($"Pixel data = {entityId}");
-
+            var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = _activeScene.Entities.FirstOrDefault(x => x.Id == entityId);
             _hoveredEntity = entity;
         }
@@ -168,9 +160,9 @@ public class EditorLayer : Layer
         if (keyPressedEvent.RepeatCount > 0)
             return;
 
-        bool control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) ||
+        var control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) ||
                        InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightControl);
-        bool shift = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftShift) ||
+        var shift = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftShift) ||
                      InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
@@ -206,26 +198,24 @@ public class EditorLayer : Layer
     private void UI_Toolbar()
     {
         // Pushing style variables and colors using ImGui.NET syntax
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(0, 2));
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new System.Numerics.Vector2(0, 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 2));
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
 
-        ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0, 0, 0, 0));
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
 
         var colors = ImGui.GetStyle().Colors;
         var buttonHovered = colors[(int)ImGuiCol.ButtonHovered];
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered,
-            new System.Numerics.Vector4(buttonHovered.X, buttonHovered.Y, buttonHovered.Z, 0.5f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, buttonHovered with { W = 0.5f });
 
         var buttonActive = colors[(int)ImGuiCol.ButtonActive];
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive,
-            new System.Numerics.Vector4(buttonActive.X, buttonActive.Y, buttonActive.Z, 0.5f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, buttonActive with { W = 0.5f });
 
         // Begin toolbar window
         ImGui.Begin("##toolbar",
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         // Calculate button size based on window height
-        float size = ImGui.GetWindowHeight() - 4.0f;
+        var size = ImGui.GetWindowHeight() - 4.0f;
 
         // Set the appropriate icon (m_IconPlay or m_IconStop) based on the scene state
         var icon = _sceneState == SceneState.Edit ? _iconPlay : _iconStop;
@@ -237,13 +227,14 @@ public class EditorLayer : Layer
         if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0),
                 new Vector2(1, 1)))
         {
-            if (_sceneState == SceneState.Edit)
+            switch (_sceneState)
             {
-                OnScenePlay();
-            }
-            else if (_sceneState == SceneState.Play)
-            {
-                OnSceneStop();
+                case SceneState.Edit:
+                    OnScenePlay();
+                    break;
+                case SceneState.Play:
+                    OnSceneStop();
+                    break;
             }
         }
 
@@ -259,9 +250,9 @@ public class EditorLayer : Layer
     {
         var dockspaceOpen = true;
         const bool fullscreenPersistant = true;
-        var dockspaceFlags = ImGuiDockNodeFlags.None;
-
-        var windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
+        const ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags.None;
+        const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
+        
         if (fullscreenPersistant)
         {
             var viewPort = ImGui.GetMainViewport();
@@ -273,7 +264,7 @@ public class EditorLayer : Layer
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
             var style = ImGui.GetStyle();
-            float minWinSizeX = style.WindowMinSize.X;
+            var minWinSizeX = style.WindowMinSize.X;
             style.WindowMinSize.X = 370.0f;
 
             var dockspaceId = ImGui.GetID("MyDockSpace");
@@ -309,7 +300,7 @@ public class EditorLayer : Layer
 
             ImGui.Begin("Stats");
 
-            string name = "None";
+            var name = "None";
             if (_hoveredEntity != null)
             {
                 name = _hoveredEntity.Name;
@@ -343,7 +334,7 @@ public class EditorLayer : Layer
                 Application.ImGuiLayer.BlockEvents = !_viewportFocused && !_viewportHovered;
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
-                if (_viewportSize != viewportPanelSize && viewportPanelSize.X > 0 && viewportPanelSize.Y > 0)
+                if (_viewportSize != viewportPanelSize && viewportPanelSize is { X: > 0, Y: > 0 })
                 {
                     _frameBuffer.Resize((uint)viewportPanelSize.X, (uint)viewportPanelSize.Y);
                     _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
@@ -366,9 +357,9 @@ public class EditorLayer : Layer
                         ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
                         if (payload.NativePtr != null)
                         {
-                            string path =
-                                Marshal.PtrToStringUni(payload.Data); // Converting IntPtr to string (wchar_t* in C#)
-                            OpenScene(Path.Combine(AssetsManager.AssetsPath, path)); // Combining paths
+                            var path = Marshal.PtrToStringUni(payload.Data); // Converting IntPtr to string (wchar_t* in C#)
+                            if (path is not null)
+                                OpenScene(Path.Combine(AssetsManager.AssetsPath, path)); // Combining paths
                         }
 
                         ImGui.EndDragDropTarget();
@@ -407,19 +398,15 @@ public class EditorLayer : Layer
         }
     }
 
-    private bool OnMouseButtonPressed(MouseButtonPressedEvent e)
+    private void OnMouseButtonPressed(MouseButtonPressedEvent e)
     {
-        if (e.Button == (int)MouseButton.Left)
+        if (e.Button != (int)MouseButton.Left) 
+            return;
+        
+        if (_viewportHovered && _hoveredEntity != null && !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
         {
-            if (_viewportHovered && _hoveredEntity != null && !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
-            {
-                _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
-            }
-
-            return true;
+            _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
         }
-
-        return false;
     }
 
     private void NewScene()
@@ -431,16 +418,18 @@ public class EditorLayer : Layer
 
     private void OpenScene()
     {
-        var filePath = "assets/scenes/Example.scene";
+        // TODO: from configuration
+        const string filePath = "assets/scenes/Example.scene";
 
-        if (!string.IsNullOrWhiteSpace(filePath))
-        {
-            _activeScene = new Scene();
-            _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-            _sceneHierarchyPanel.SetContext(_activeScene);
 
-            SceneSerializer.Deserialize(_activeScene, filePath);
-        }
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new Exception($"Scene doesnt exists: {filePath}");
+        
+        _activeScene = new Scene();
+        _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(_activeScene);
+
+        SceneSerializer.Deserialize(_activeScene, filePath);
     }
 
     private void OpenScene(string path)
@@ -454,16 +443,17 @@ public class EditorLayer : Layer
 
     private void SaveSceneAs()
     {
+        // TODO: from config
         var filePath = $"assets/scenes/Example-{DateTime.UtcNow.ToShortDateString()}.scene";
         SceneSerializer.Serialize(_activeScene, filePath);
     }
 
-    void OnScenePlay()
+    private void OnScenePlay()
     {
         _sceneState = SceneState.Play;
     }
 
-    void OnSceneStop()
+    private void OnSceneStop()
     {
         _sceneState = SceneState.Edit;
     }

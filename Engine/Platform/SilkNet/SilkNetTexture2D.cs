@@ -16,19 +16,21 @@ namespace Engine.Platform.SilkNet;
 public class SilkNetTexture2D : Texture2D
 {
     private readonly string _path;
-    public uint RendererId { get; }
+    private readonly uint _rendererId;
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
 
     private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat)
     {
-        RendererId = rendererId;
+        _rendererId = rendererId;
         _internalFormat = internalFormat;
         _dataFormat = dataFormat;
 
         Width = width;
         Height = height;
+
+        _path = string.Empty;
     }
 
     private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
@@ -39,14 +41,13 @@ public class SilkNetTexture2D : Texture2D
 
     public override uint GetRendererId()
     {
-        return RendererId;
+        return _rendererId;
     }
 
     public static Texture2D Create(string path)
     {
         var handle = SilkNetContext.GL.GenTexture();
-
-        // todo: texture1? 
+        
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
 
@@ -103,13 +104,13 @@ public class SilkNetTexture2D : Texture2D
     public override void Bind(int slot = 0)
     {
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
     }
 
     public override void Unbind()
     {
         //In order to dispose we need to delete the opengl handle for the texture.
-        SilkNetContext.GL.DeleteTexture(RendererId);
+        SilkNetContext.GL.DeleteTexture(_rendererId);
     }
 
     public override void SetData(uint data, int size)
@@ -130,7 +131,7 @@ public class SilkNetTexture2D : Texture2D
 
         // todo: texture1?
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, RendererId);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0,
             _dataFormat, PixelType.UnsignedByte, intPtrValue);
     }
@@ -158,5 +159,17 @@ public class SilkNetTexture2D : Texture2D
         return new SilkNetTexture2D(rendererId, width, height, internalFormat, dataFormat);
     }
 
-    public override bool Equals(object? obj) => RendererId == ((SilkNetTexture2D)obj).RendererId;
+    public override bool Equals(object? obj)
+    {
+        if (obj is not SilkNetTexture2D other)
+            return false;
+        
+        return _rendererId == other._rendererId;
+    }
+
+    public override int GetHashCode()
+    {
+        // Use a hash code derived from the unique renderer ID, which represents this texture in OpenGL.
+        return _rendererId.GetHashCode();
+    }
 }

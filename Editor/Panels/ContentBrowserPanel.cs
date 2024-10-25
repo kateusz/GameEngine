@@ -30,7 +30,7 @@ public class ContentBrowserPanel
         {
             if (ImGui.Button("<-"))
             {
-                _currentDirectory = Directory.GetParent(_currentDirectory).FullName;
+                _currentDirectory = Directory.GetParent(_currentDirectory)!.FullName;
             }
         }
         

@@ -13,7 +13,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
     {
         _rendererId = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
-        SilkNetContext.GL.BufferData(GLEnum.ArrayBuffer, size, IntPtr.Zero, GLEnum.DynamicDraw);
+        SilkNetContext.GL.BufferData(GLEnum.ArrayBuffer, size, in IntPtr.Zero, GLEnum.DynamicDraw);
     }
 
     ~SilkNetVertexBuffer()
@@ -26,7 +26,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
         Layout = layout;
     }
 
-    public BufferLayout Layout { get; private set; }
+    public BufferLayout? Layout { get; private set; }
 
     public void SetData(QuadVertex[] vertices, int dataSize)
     {
