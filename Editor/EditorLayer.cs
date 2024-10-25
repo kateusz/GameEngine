@@ -236,7 +236,7 @@ public class EditorLayer : Layer
                     break;
             }
         }
-
+        
         // Pop the style and color variables
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);
@@ -364,18 +364,19 @@ public class EditorLayer : Layer
             {
                 // Camera
                 var cameraEntity = _activeScene.GetPrimaryCameraEntity();
-                if (cameraEntity is null)
-                    return;
+                if (cameraEntity != null)
+                {
+                    var cameraComponent = cameraEntity.GetComponent<CameraComponent>();
+                    var camera = cameraComponent.Camera;
+                    var cameraProjection = camera.Projection;
 
-                var cameraComponent = cameraEntity.GetComponent<CameraComponent>();
-                var camera = cameraComponent.Camera;
-                var cameraProjection = camera.Projection;
+                    Matrix4x4.Invert(cameraEntity.GetComponent<TransformComponent>().GetTransform(),
+                        out var cameraView);
 
-                Matrix4x4.Invert(cameraEntity.GetComponent<TransformComponent>().GetTransform(), out var cameraView);
-
-                // Entity transform
-                var transformComponent = selectedEntity.GetComponent<TransformComponent>();
-                var transform = transformComponent.GetTransform();
+                    // Entity transform
+                    var transformComponent = selectedEntity.GetComponent<TransformComponent>();
+                    var transform = transformComponent.GetTransform();
+                }
             }
 
             ImGui.End();
