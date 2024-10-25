@@ -11,6 +11,7 @@ class Program
         logger.LogInformation("FlappyBirdGame has started.");
 
         var flappyBirdGame = new FlappyBirdGame();
+        flappyBirdGame.PushLayer(new GameLayer("Game Layer"));
         flappyBirdGame.Run();
     }
 }
