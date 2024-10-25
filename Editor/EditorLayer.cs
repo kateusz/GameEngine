@@ -63,7 +63,7 @@ public class EditorLayer : Layer
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
         _activeScene = new Scene();
-        _editorCamera = new EditorCamera(30.0f, 1.778f, 0.1f, 1000.0f);
+        _editorCamera = new EditorCamera(30.0f, 1280.0f / 720.0f, 0.1f, 1000.0f);
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
         _contentBrowserPanel = new ContentBrowserPanel();
     }
@@ -82,7 +82,6 @@ public class EditorLayer : Layer
             (spec.Width != (uint)_viewportSize.X || spec.Height != (uint)_viewportSize.Y))
         {
             _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-            //_cameraController.OnResize(_viewportSize.X, _viewportSize.y);
             _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
             _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
@@ -334,17 +333,7 @@ public class EditorLayer : Layer
                 Application.ImGuiLayer.BlockEvents = !_viewportFocused && !_viewportHovered;
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
-                if (_viewportSize != viewportPanelSize && viewportPanelSize is { X: > 0, Y: > 0 })
-                {
-                    _frameBuffer.Resize((uint)viewportPanelSize.X, (uint)viewportPanelSize.Y);
-                    _viewportSize = new Vector2(viewportPanelSize.X, viewportPanelSize.Y);
-
-                    var @resizeEvent = new WindowResizeEvent((int)viewportPanelSize.X, (int)viewportPanelSize.Y);
-                    _orthographicCameraController.OnEvent(@resizeEvent);
-
-                    _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-                }
-
+                _viewportSize = viewportPanelSize;
                 var textureId = _frameBuffer.GetColorAttachmentRendererId();
                 var texturePointer = new IntPtr(textureId);
                 ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
