@@ -87,21 +87,6 @@ public class ContentBrowserPanel
         }
         
         ImGui.Columns(1);
-
-        // TODO: status bar
-        ImGui.End();
-
-        foreach (var fileEntry in Directory.GetFiles(_currentDirectory))
-        {
-            var path = new FileInfo(fileEntry);
-            var filenameString = path.Name;
-
-            if (ImGui.Button(filenameString))
-            {
-                // Handle file selection here
-            }
-        }
-
         ImGui.End();
     }
 }
