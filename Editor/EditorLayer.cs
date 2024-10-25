@@ -94,6 +94,7 @@ public class EditorLayer : Layer
         RendererCommand.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
+        var mousePos = ImGui.GetMousePos();
 
         switch (_sceneState)
         {
@@ -101,7 +102,7 @@ public class EditorLayer : Layer
             {
                 if (_viewportFocused)
                     _orthographicCameraController.OnUpdate(timeSpan);
-                _editorCamera.OnUpdate(timeSpan);
+                _editorCamera.OnUpdate(mousePos);
                 _activeScene.OnUpdateEditor(timeSpan, _editorCamera);
                 break;
             }
@@ -113,7 +114,6 @@ public class EditorLayer : Layer
         }
 
         // Get mouse position from ImGui
-        var mousePos = ImGui.GetMousePos();
         var mx = mousePos.X - _viewportBounds[0].X;
         var my = mousePos.Y - _viewportBounds[0].Y;
 
@@ -142,7 +142,7 @@ public class EditorLayer : Layer
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
 
         _orthographicCameraController.OnEvent(@event);
-        //_editorCamera.OnEvent(@event);
+        _editorCamera.OnEvent(@event);
 
         if (@event is KeyPressedEvent keyPressedEvent)
         {

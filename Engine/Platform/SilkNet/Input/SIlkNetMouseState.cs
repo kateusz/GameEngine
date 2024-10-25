@@ -11,6 +11,7 @@ public class SIlkNetMouseState : IMouseState
         return SilkNetGameWindow.Mouse.IsButtonPressed((MouseButton)button);
     }
 
+    // todo: not working
     public Vector2 GetPos()
     {
         return SilkNetGameWindow.Mouse.Position;

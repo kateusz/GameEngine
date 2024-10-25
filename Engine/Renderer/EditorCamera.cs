@@ -9,7 +9,7 @@ namespace Engine.Renderer;
 
 public class EditorCamera : Camera
 {
-    private float _fov = 45.0f;
+    private float _fov = 90.0f;
     private float _aspectRatio = 1.778f;
     private float _nearClip = 0.1f;
     private float _farClip = 1000.0f;
@@ -42,23 +42,28 @@ public class EditorCamera : Camera
         UpdateView();
     }
 
-    public void OnUpdate(TimeSpan ts)
+    public void OnUpdate(Vector2 mousePosition)
     {
         var keyboard = InputState.Instance.Keyboard;
         var mouse = InputState.Instance.Mouse;
         
         if (keyboard.IsKeyPressed(KeyCodes.LeftAlt))
         {
-            var mousePosition = new Vector2(mouse.X, mouse.Y);
             var delta = (mousePosition - _initialMousePosition) * 0.003f;
             _initialMousePosition = mousePosition;
 
             if (mouse.IsMouseButtonPressed((int)MouseButton.Middle))
+            {
                 MousePan(delta);
+            }
             else if (mouse.IsMouseButtonPressed((int)MouseButton.Left))
+            {
                 MouseRotate(delta);
+            }
             else if (mouse.IsMouseButtonPressed((int)MouseButton.Right))
+            {
                 MouseZoom(delta.Y);
+            }
         }
 
         UpdateView();
