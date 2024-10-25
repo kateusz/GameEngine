@@ -8,7 +8,7 @@ public class CameraController : ScriptableEntity
     public override void OnUpdate(TimeSpan ts)
     {
         var translation = GetComponent<TransformComponent>().Translation;
-        var speed = 1.0f;
+        var speed = 10.0f;
 
         if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
             translation.X -= speed * (float)ts.TotalSeconds;
