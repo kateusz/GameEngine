@@ -7,6 +7,10 @@ namespace Engine.Scene.Components;
 public class TransformComponent : Component
 {
     public Vector3 Translation { get; set; }
+    
+    /// <summary>
+    /// Rotation in radians
+    /// </summary>
     public Vector3 Rotation { get; set; } = Vector3.Zero;
     public Vector3 Scale { get; set; } = Vector3.One;
 
@@ -22,16 +26,8 @@ public class TransformComponent : Component
     
     public Matrix4x4 GetTransform()
     {
-        //var rotationX = Matrix4x4.CreateRotationX(Rotation.X);
-        //var rotationY = Matrix4x4.CreateRotationY(Rotation.Y);
-        //var rotationZ = Matrix4x4.CreateRotationZ(Rotation.Z);
-        //var rotation = rotationX * rotationY * rotationZ;
-        
-        // Example Euler angles in radians
-        var eulerAngles = new Vector3(0.5f, 1.0f, 0.3f);
-
         // Convert Euler angles to Quaternion
-        var quaternion = MathHelpers.QuaternionFromEuler(eulerAngles);
+        var quaternion = MathHelpers.QuaternionFromEuler(Rotation);
 
         // Convert Quaternion to Matrix4x4
         var rotation = MathHelpers.MatrixFromQuaternion(quaternion);
