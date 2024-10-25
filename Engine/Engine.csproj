@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha" />
         <PackageReference Include="NLog" Version="5.3.3" />
         <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7"/>
         <PackageReference Include="Silk.NET.Input" Version="2.21.0" />

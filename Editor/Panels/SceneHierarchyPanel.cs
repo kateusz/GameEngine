@@ -11,6 +11,8 @@ namespace Editor.Panels;
 
 public class SceneHierarchyPanel
 {
+    private static readonly string[] BodyTypeStrings = [RigidBodyType.Static.ToString(), RigidBodyType.Dynamic.ToString(), RigidBodyType.Kinematic.ToString()];
+
     private Scene _context;
     private Entity? _selectionContext;
 
@@ -60,7 +62,7 @@ public class SceneHierarchyPanel
     {
         if (_selectionContext is null)
             return;
-            
+
         var tag = _selectionContext.Name;
 
         byte[] buffer = new byte[256];
@@ -83,23 +85,47 @@ public class SceneHierarchyPanel
 
         if (ImGui.BeginPopup("AddComponent"))
         {
-            if (ImGui.MenuItem("Camera"))
+            if (!_selectionContext.HasComponent<CameraComponent>())
             {
-                _selectionContext.AddComponent<CameraComponent>();
-                ImGui.CloseCurrentPopup();
+                if (ImGui.MenuItem("Camera"))
+                {
+                    _selectionContext.AddComponent<CameraComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
             }
 
-            if (ImGui.MenuItem("Sprite Renderer"))
+            if (!_selectionContext.HasComponent<SpriteRendererComponent>())
             {
-                _selectionContext.AddComponent<SpriteRendererComponent>();
-                ImGui.CloseCurrentPopup();
+                if (ImGui.MenuItem("Sprite Renderer"))
+                {
+                    _selectionContext.AddComponent<SpriteRendererComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+
+            if (!_selectionContext.HasComponent<RigidBody2DComponent>())
+            {
+                if (ImGui.MenuItem("Rigidbody 2D"))
+                {
+                    _selectionContext.AddComponent<RigidBody2DComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+
+            if (!_selectionContext.HasComponent<BoxCollider2DComponent>())
+            {
+                if (ImGui.MenuItem("Box Collider 2D"))
+                {
+                    _selectionContext.AddComponent<BoxCollider2DComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
             }
 
             ImGui.EndPopup();
         }
 
         ImGui.PopItemWidth();
-        
+
         DrawComponent<TransformComponent>("Transform", _selectionContext, tc =>
         {
             var newTranslation = tc.Translation;
@@ -211,7 +237,7 @@ public class SceneHierarchyPanel
         {
             var newColor = spriteRendererComponent.Color;
             ImGui.ColorEdit4("Color", ref newColor);
-            
+
             if (spriteRendererComponent.Color != newColor)
             {
                 spriteRendererComponent.Color = newColor;
@@ -257,8 +283,77 @@ public class SceneHierarchyPanel
             {
                 spriteRendererComponent.TilingFactor = tillingFactor;
             }
+        });
 
-            ImGui.End();
+        DrawComponent<RigidBody2DComponent>("Rigidbody 2D", _selectionContext, component =>
+        {
+            // Get the current body type string based on the component's type
+            var currentBodyTypeString = component.BodyType.ToString();
+
+            // Begin the combo box for "Body Type"
+            if (ImGui.BeginCombo("Body Type", currentBodyTypeString))
+            {
+                // Iterate over all body types
+                for (var i = 0; i < BodyTypeStrings.Length; i++)
+                {
+                    var isSelected = currentBodyTypeString == BodyTypeStrings[i];
+
+                    if (ImGui.Selectable(BodyTypeStrings[i], isSelected))
+                    {
+                        // Update the selected type
+                        component.BodyType = (RigidBodyType)i;
+                        currentBodyTypeString = BodyTypeStrings[i];
+                    }
+
+                    if (isSelected)
+                        ImGui.SetItemDefaultFocus();
+                }
+
+                ImGui.EndCombo();
+            }
+            
+            // Checkbox for "Fixed Rotation"
+
+            var fixedRotation = component.FixedRotation;
+            if (ImGui.Checkbox("Fixed Rotation", ref fixedRotation))
+            {
+                component.FixedRotation = fixedRotation;
+            }
+        });
+
+        DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectionContext, component =>
+        {
+            var offset = component.Offset;
+            if (ImGui.DragFloat2("Offset", ref offset))
+            {
+                component.Offset = offset;
+            }
+            
+            var size = component.Size;
+            if (ImGui.DragFloat2("Size", ref size))
+            {
+                component.Size = size;
+            }
+            
+            var density = component.Density;
+            if (ImGui.DragFloat("Density", ref density, 0.1f, 0.0f, 1.0f))
+            {
+                component.Density = density;
+            }
+            
+            var friction = component.Friction;
+            if (ImGui.DragFloat("Friction", ref friction, 0.1f, 0.0f, 1.0f))
+            {
+                component.Friction = friction;
+            }
+            
+            var restitution = component.Restitution;
+            if (ImGui.DragFloat("Restitution", ref restitution, 0.1f, 0.0f, 1.0f))
+            {
+                component.Restitution = restitution;
+            }
+            
+            // todo: restitution treshold
         });
 
         ImGui.End();
@@ -308,7 +403,7 @@ public class SceneHierarchyPanel
                 entity.RemoveComponent<T>();
         }
     }
-    
+
     public void SetSelectedEntity(Entity entity)
     {
         _selectionContext = entity;
@@ -318,7 +413,8 @@ public class SceneHierarchyPanel
     {
         var tag = entity.Name;
 
-        var flags = (_selectionContext?.Id == entity.Id ? ImGuiTreeNodeFlags.Selected : 0) | ImGuiTreeNodeFlags.OpenOnArrow;
+        var flags = (_selectionContext?.Id == entity.Id ? ImGuiTreeNodeFlags.Selected : 0) |
+                    ImGuiTreeNodeFlags.OpenOnArrow;
         var opened = ImGui.TreeNodeEx(tag, flags, tag);
         if (ImGui.IsItemClicked())
         {

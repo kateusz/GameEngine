@@ -70,6 +70,9 @@
       <None Update="assets\scenes\cube3d.scene">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="assets\scenes\Physics2D.scene">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

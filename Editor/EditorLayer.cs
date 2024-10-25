@@ -441,10 +441,12 @@ public class EditorLayer : Layer
     private void OnScenePlay()
     {
         _sceneState = SceneState.Play;
+        _activeScene.OnRuntimeStart();
     }
 
     private void OnSceneStop()
     {
         _sceneState = SceneState.Edit;
+        _activeScene.OnRuntimeStop();
     }
 }
