@@ -2,44 +2,25 @@
   "Scene": "default",
   "Entities": [
     {
-      "Id": 101,
-      "Name": "Camera B",
-      "Components": [
-        {
-          "Translation": [0, 0, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
-          "Name": "TransformComponent"
-        },
-        {
-          "Camera": {
-            "ProjectionType": "Orthographic",
-            "OrthographicSize": 2,
-            "OrthographicNear": 0,
-            "OrthographicFar": 1,
-            "AspectRatio": 1.2386831,
-            "PerspectiveFOV": 0.7853982,
-            "PerspectiveNear": 0.01,
-            "PerspectiveFar": 1000,
-            "Projection": {
-              "IsIdentity": false,
-              "Translation": [0, 0, 0]
-            }
-          },
-          "Primary": false,
-          "FixedAspectRatio": false,
-          "Name": "CameraComponent"
-        }
-      ]
-    },
-    {
       "Id": 102,
       "Name": "Primary Camera",
       "Components": [
         {
-          "Translation": [15.646223, 10.21195, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            6.9032035,
+            3.6976802,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Name": "TransformComponent"
         },
         {
@@ -54,7 +35,11 @@
             "PerspectiveFar": 1000,
             "Projection": {
               "IsIdentity": false,
-              "Translation": [0, 0, 0]
+              "Translation": [
+                -0,
+                -0,
+                -0
+              ]
             }
           },
           "Primary": true,
@@ -65,32 +50,70 @@
     },
     {
       "Id": 103,
-      "Name": "Red Square",
+      "Name": "Box",
       "Components": [
         {
-          "Translation": [0, 1.1, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            0,
+            1.1,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Name": "TransformComponent"
         },
         {
-          "Color": [1, 0, 0, 1],
+          "Color": [
+            1,
+            0,
+            0,
+            1
+          ],
+          "Texture": null,
+          "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }
       ]
     },
     {
       "Id": 104,
-      "Name": "Green Square",
+      "Name": "Player",
       "Components": [
         {
-          "Translation": [2.4, 0, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            2.4,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Name": "TransformComponent"
         },
         {
-          "Color": [0, 1, 0, 1],
+          "Color": [
+            0,
+            1,
+            0,
+            1
+          ],
+          "Texture": null,
+          "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }
       ]
