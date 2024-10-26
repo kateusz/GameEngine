@@ -60,7 +60,7 @@ public class Sandbox2DLayer : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _texture = TextureFactory.Create("assets/Checkerboard.png");
+        _texture = TextureFactory.Create("assets/textures/Checkerboard.png");
         //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
     }
 
@@ -77,6 +77,6 @@ public class Sandbox2DLayer : Layer
 
     private void SubmitUI()
     {
-        ImGui.ShowDemoWindow();
+        //ImGui.ShowDemoWindow();
     }
 }

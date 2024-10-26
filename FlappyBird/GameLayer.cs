@@ -1,15 +1,18 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Platform.SilkNet;
 using Engine.Renderer;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scene.Serializer;
 
 namespace FlappyBird;
 
 public class GameLayer : Layer
 {
     private Scene _activeScene;
-    
+
     public GameLayer(string name) : base(name)
     {
     }
@@ -17,9 +20,8 @@ public class GameLayer : Layer
     public override void OnAttach()
     {
         _activeScene = new Scene();
-        
-        var entity = _activeScene.CreateEntity("Empty Entity");
-        entity.AddComponent<TransformComponent>();
+        SceneSerializer.Deserialize(_activeScene, "assets/scenes/Example.scene");
+        _activeScene.OnRuntimeStart();
     }
 
     public override void OnUpdate(TimeSpan timeSpan)
@@ -32,6 +34,5 @@ public class GameLayer : Layer
 
     public override void OnImGuiRender()
     {
-        // nothing to do 
     }
 }

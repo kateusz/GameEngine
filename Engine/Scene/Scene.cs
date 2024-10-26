@@ -51,6 +51,49 @@ public class Scene
         var updated = new ConcurrentBag<Entity>(Entities.Where(item => item.Id != entity.Id));
         Context.Instance.Entities = updated;
     }
+    
+    
+    public void OnRuntimeStart()
+    {
+        _physicsWorld = new World(new Vector2(0, -9.81f));
+        var view = Context.Instance.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            var transform = entity.GetComponent<TransformComponent>();
+            var bodyDef = new BodyDef
+            {
+                position = new Vector2(transform.Translation.X, transform.Translation.Y),
+                angle = transform.Rotation.Z,
+                type = RigidBody2DTypeToBox2DBody(component.BodyType),
+                bullet = component.BodyType == RigidBodyType.Dynamic ? true : false
+            };
+
+            var body = _physicsWorld.CreateBody(bodyDef);
+            body.SetFixedRotation(component.FixedRotation);
+            component.RuntimeBody = body;
+
+            if (entity.HasComponent<BoxCollider2DComponent>())
+            {
+                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
+                var shape = new PolygonShape();
+                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y);
+                var fixtureDef = new FixtureDef
+                {
+                    shape = shape,
+                    density = boxCollider.Density,
+                    friction = boxCollider.Friction,
+                    restitution = boxCollider.Restitution
+                };
+
+                body.CreateFixture(fixtureDef);
+            }
+        }
+    }
+
+    public void OnRuntimeStop()
+    {
+        
+    }
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
@@ -146,47 +189,6 @@ public class Scene
         Renderer2D.Instance.EndScene();
     }
 
-    public void OnRuntimeStart()
-    {
-        _physicsWorld = new World(new Vector2(0, -9.81f));
-        var view = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
-        {
-            var transform = entity.GetComponent<TransformComponent>();
-            var bodyDef = new BodyDef
-            {
-                position = new Vector2(transform.Translation.X, transform.Translation.Y),
-                angle = transform.Rotation.Z,
-                type = RigidBody2DTypeToBox2DBody(component.BodyType),
-                bullet = component.BodyType == RigidBodyType.Dynamic ? true : false
-            };
-
-            var body = _physicsWorld.CreateBody(bodyDef);
-            body.SetFixedRotation(component.FixedRotation);
-            component.RuntimeBody = body;
-
-            if (entity.HasComponent<BoxCollider2DComponent>())
-            {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-                var shape = new PolygonShape();
-                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y);
-                var fixtureDef = new FixtureDef
-                {
-                    shape = shape,
-                    density = boxCollider.Density,
-                    friction = boxCollider.Friction,
-                    restitution = boxCollider.Restitution
-                };
-
-                body.CreateFixture(fixtureDef);
-            }
-        }
-    }
-
-    public void OnRuntimeStop()
-    {
-        
-    }
 
     public void OnViewportResize(uint width, uint height)
     {
