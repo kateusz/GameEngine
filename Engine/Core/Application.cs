@@ -25,7 +25,7 @@ public class Application : IApplication
     private bool _isRunning;
     private DateTime _lastTime;
 
-    protected Application()
+    protected Application(bool enableImGui = false)
     {
         var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 720);
 
@@ -37,9 +37,12 @@ public class Application : IApplication
         _isRunning = true;
         
         InputState.Init();
-        
-        ImGuiLayer = new ImGuiLayer("ImGUI");
-        PushOverlay(ImGuiLayer);
+
+        if (enableImGui)
+        {
+            ImGuiLayer = new ImGuiLayer("ImGUI");
+            PushOverlay(ImGuiLayer);
+        }
     }
 
     private void HandleGameWindowOnLoad()
@@ -77,14 +80,14 @@ public class Application : IApplication
             _layersStack[index].OnUpdate(elapsed);
         }
 
-        ImGuiLayer.Begin(elapsed);
+        ImGuiLayer?.Begin(elapsed);
         
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnImGuiRender();
         }
         
-        ImGuiLayer.End();
+        ImGuiLayer?.End();
     }
 
     private void HandleOnEvent(Event @event)
