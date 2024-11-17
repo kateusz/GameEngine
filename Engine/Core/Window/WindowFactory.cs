@@ -7,16 +7,10 @@ public class WindowFactory
 {
     public static IGameWindow Create(WindowProps props)
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return new SilkNetGameWindow(props);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => new SilkNetGameWindow(props),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 }

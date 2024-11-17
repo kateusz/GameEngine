@@ -6,31 +6,19 @@ public static class TextureFactory
 {
     public static Texture2D Create(string path)
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return SilkNetTexture2D.Create(path);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => SilkNetTexture2D.Create(path),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 
     public static Texture2D Create(int width, int height)
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return SilkNetTexture2D.Create(width, height);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => SilkNetTexture2D.Create(width, height),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 }

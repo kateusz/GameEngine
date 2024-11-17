@@ -20,6 +20,21 @@ public class Sandbox2DLayer : Layer
     public Sandbox2DLayer(string name) : base(name)
     {
     }
+    
+    public override void OnAttach()
+    {
+        Logger.Debug("ExampleLayer OnAttach.");
+
+        _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
+        
+        _textureBarrel = SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(8, 2), new Vector2(128, 128), new Vector2(1, 1));
+    }
+
+    public override void OnDetach()
+    {
+        Logger.Debug("ExampleLayer OnDetach.");
+    }
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
@@ -53,27 +68,11 @@ public class Sandbox2DLayer : Layer
         _orthographicCameraController.OnEvent(@event);
     }
 
-    public override void OnAttach()
-    {
-        Logger.Debug("ExampleLayer OnAttach.");
-
-        _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
-        
-        _textureBarrel = SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(8, 2), new Vector2(128, 128), new Vector2(1, 1));
-    }
-
-    public override void OnDetach()
-    {
-        Logger.Debug("ExampleLayer OnDetach.");
-    }
-
     public override void OnImGuiRender()
     {
         SubmitUI();
     }
-
-
+    
     private void SubmitUI()
     {
         //ImGui.ShowDemoWindow();

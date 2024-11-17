@@ -6,16 +6,10 @@ public static class ShaderFactory
 {
     public static IShader Create(string vertPath, string fragPath)
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return new SilkNetShader(vertPath, fragPath);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => new SilkNetShader(vertPath, fragPath),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 }

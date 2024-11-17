@@ -6,16 +6,10 @@ public static class VertexArrayFactory
 {
     public static IVertexArray Create()
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return new SilkNetVertexArray();
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => new SilkNetVertexArray(),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 }
