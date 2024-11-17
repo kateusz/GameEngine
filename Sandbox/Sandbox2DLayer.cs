@@ -14,8 +14,8 @@ public class Sandbox2DLayer : Layer
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
     private OrthographicCameraController _orthographicCameraController;
-    private Texture2D _texture;
     private Texture2D _spriteSheet;
+    private SubTexture2D _textureBarrel;
 
     public Sandbox2DLayer(string name) : base(name)
     {
@@ -30,21 +30,19 @@ public class Sandbox2DLayer : Layer
 
         Renderer2D.Instance.BeginScene(_orthographicCameraController.Camera);
 
-       // Renderer2D.Instance.DrawQuad(new Vector3(0.0f, 0.0f, -0.1f), new Vector2(20.0f, 20.0f), _checkerboardTexture, 10.0f);
+        // sub texture
+        Renderer2D.Instance.DrawQuad(new Vector3(2.0f, 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, _textureBarrel);
 
         // yellow
         Renderer2D.Instance.DrawQuad(
             new Vector3(0.0f, 0.0f, 0.0f),
             new Vector2(1.0f, 1.0f),
             new Vector4(0.8f, 0.8f, 0.3f, 1.0f));
-
+        
         // red
         Renderer2D.Instance.DrawQuad(new Vector2(-1.0f, 0.0f), new Vector2(0.8f, 0.8f),
             new Vector4(0.8f, 0.2f, 0.3f, 1.0f));
-
-        Renderer2D.Instance.DrawRotatedQuad(new Vector2(-0.5f, 0.0f), new Vector2(0.8f, 0.8f), 45.0f,
-            new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
-
+        
         Renderer2D.Instance.EndScene();
     }
 
@@ -60,8 +58,9 @@ public class Sandbox2DLayer : Layer
         Logger.Debug("ExampleLayer OnAttach.");
 
         _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _texture = TextureFactory.Create("assets/textures/Checkerboard.png");
-        //_spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
+        _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
+        
+        _textureBarrel = SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(8, 2), new Vector2(128, 128), new Vector2(1, 1));
     }
 
     public override void OnDetach()
