@@ -7,16 +7,10 @@ public class MouseStateFactory
 {
     public static IMouseState Create()
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return new SIlkNetMouseState();
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => new SIlkNetMouseState(),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 }

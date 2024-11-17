@@ -6,16 +6,10 @@ public static class FrameBufferFactory
 {
     public static IFrameBuffer Create(FrameBufferSpecification spec)
     {
-        switch (RendererApiType.Type)
+        return RendererApiType.Type switch
         {
-            case ApiType.None:
-                break;
-            case ApiType.SilkNet:
-                return new SilkNetFrameBuffer(spec);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        throw new ArgumentOutOfRangeException();
+            ApiType.SilkNet => new SilkNetFrameBuffer(spec),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
     }
 }
