@@ -167,7 +167,7 @@ public class Scene
             {
                 var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
                 var transformComponent = entity.GetComponent<TransformComponent>();
-                Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id.GetHashCode());
+                Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
             }
 
             Renderer2D.Instance.EndScene();
@@ -183,7 +183,7 @@ public class Scene
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
-            Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id.GetHashCode());
+            Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
         Renderer2D.Instance.EndScene();

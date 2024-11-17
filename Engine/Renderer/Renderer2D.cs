@@ -17,17 +17,17 @@ public class Renderer2D
 
     public static Renderer2D Instance => _instance ??= new Renderer2D();
 
-    private Renderer2DData _data = null!;
-    private static readonly Vector2[] TextureCoords;
+    private Renderer2DData _data = new();
+    private static readonly Vector2[] DefaultTextureCoords;
 
     static Renderer2D()
     {
-        TextureCoords =
+        DefaultTextureCoords =
         [
-            new(0.0f, 0.0f),
-            new(1.0f, 0.0f),
-            new(1.0f, 1.0f),
-            new(0.0f, 1.0f)
+            new Vector2(0.0f, 0.0f),
+            new Vector2(1.0f, 0.0f),
+            new Vector2(1.0f, 1.0f),
+            new Vector2(0.0f, 1.0f)
         ];
     }
 
@@ -36,7 +36,7 @@ public class Renderer2D
         _data = new Renderer2DData
         {
             QuadVertexArray = VertexArrayFactory.Create(),
-            Stats = new Statistics(0, 0)
+            Stats = new Statistics()
         };
 
         InitBuffers();
@@ -49,7 +49,7 @@ public class Renderer2D
     {
     }
 
-    [Obsolete("remove")]
+    [Obsolete("Used only for Sandbox testing")]
     public void BeginScene(OrthographicCamera camera)
     {
         _data.TextureShader.Bind();
@@ -71,12 +71,12 @@ public class Renderer2D
         {
             viewProj = transformInverted * camera.Projection;
         }
-
-        if (viewProj is null)
+        else
             throw new InvalidOperationException("Unsupported OS version!");
 
         _data.TextureShader.Bind();
         _data.TextureShader.SetMat4("u_ViewProjection", viewProj.Value);
+        
         StartBatch();
     }
     
@@ -92,8 +92,8 @@ public class Renderer2D
 
     public void EndScene()
     {
-        int dataSize = 0;
-        for (int i = 0; i < _data.CurrentVertexBufferIndex; i++)
+        var dataSize = 0;
+        for (var i = 0; i < _data.CurrentVertexBufferIndex; i++)
         {
             dataSize += QuadVertex.GetSize();
         }
@@ -119,55 +119,80 @@ public class Renderer2D
 
     public void DrawQuad(Vector2 position, Vector2 size, Vector4 color)
     {
-        DrawQuad(new Vector3(position.X, position.Y, 1.0f), size, rotation: 0, texture: null!, tilingFactor: 1.0f,
+        DrawQuad(new Vector3(position.X, position.Y, 1.0f), size, rotation: 0, texture: null, textureCoords: DefaultTextureCoords, tilingFactor: 1.0f,
             tintColor: color);
     }
 
     public void DrawQuad(Vector3 position, Vector2 size, Vector4 color)
     {
-        DrawQuad(position with { Z = 0.0f }, size, rotation: 0, texture: null!, tilingFactor: 1.0f, tintColor: color);
+        DrawQuad(position with { Z = 0.0f }, size, rotation: 0, texture: null, textureCoords: DefaultTextureCoords, tilingFactor: 1.0f, tintColor: color);
+    }
+    
+    public void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D subTexture)
+    {
+        var transform = CalculateTransform(position, size, rotation);
+
+        const float tilingFactor = 1.0f;
+        var textureCoords = subTexture.TexCoords;
+        var tintColor = Vector4.One;
+
+        DrawQuad(transform, subTexture.Texture, textureCoords, tilingFactor, tintColor);
     }
 
-    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f,
-        Vector4? tintColor = null)
+    public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f, Vector4? tintColor = null)
     {
-        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, rotation: 0, texture, tilingFactor, tintColor);
+        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, rotation: 0, texture, DefaultTextureCoords, tilingFactor, tintColor);
     }
 
-    public void DrawQuad(Vector3 position, Vector2 size, Texture2D? texture, float tilingFactor = 1.0f,
-        Vector4? tintColor = null)
+    public void DrawQuad(Vector3 position, Vector2 size, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null)
     {
-        DrawQuad(position with { Z = 0.0f }, size, rotation: 0, texture, tilingFactor, tintColor);
+        DrawQuad(position with { Z = 0.0f }, size, rotation: 0, texture, textureCoords, tilingFactor, tintColor);
     }
 
-    public void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D? texture, float tilingFactor = 1.0f,
-        Vector4? tintColor = null)
+    public void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null)
     {
-        var transform = Matrix4x4.CreateTranslation(position);
-
-        if (rotation != 0)
-        {
-            transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
-        }
-
-        transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-
-        DrawQuad(transform, texture, tilingFactor, tintColor);
+        var transform = CalculateTransform(position, size, rotation);
+        DrawQuad(transform, texture, textureCoords, tilingFactor, tintColor);
     }
 
     public void DrawQuad(Matrix4x4 transform, Vector4 color, int entityId = -1)
     {
-        DrawQuad(transform, texture: null, tilingFactor: 1.0f, color, entityId);
+        DrawQuad(transform, texture: null, textureCoords: DefaultTextureCoords, tilingFactor: 1.0f, color, entityId);
     }
 
-    public void DrawQuad(Matrix4x4 transform, Texture2D? texture, float tilingFactor = 1.0f, Vector4? tintColor = null, int entityId = -1)
+    /// <summary>
+    /// Draws a textured or colored quad
+    /// </summary>
+    /// <param name="transform">
+    /// The transformation matrix applied to the quad's vertices. This matrix defines the position, rotation, and scaling of the quad.
+    /// </param>
+    /// <param name="texture">
+    /// The texture applied to the quad. If <c>null</c>, the quad will be drawn with a solid color using the specified <paramref name="tintColor"/>.
+    /// </param>
+    /// <param name="textureCoords">tbd</param>
+    /// <param name="tilingFactor">
+    /// The tiling factor for the texture coordinates. This value determines how many times the texture repeats over the quad. Default is 1.0f (no tiling).
+    /// </param>
+    /// <param name="tintColor">
+    /// The color tint applied to the quad. If <c>null</c>, the default value is <see cref="Vector4.One"/>, representing white (no tint).
+    /// </param>
+    /// <param name="entityId">
+    /// The ID of the entity associated with the quad. Used for identifying the quad in entity-based systems. Default is -1 (no entity).
+    /// </param>
+    /// <remarks>
+    /// This method handles batching of quads and may trigger a new batch if the current batch reaches the maximum allowed indices or texture slots.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the maximum number of texture slots is exceeded when a new texture is added.
+    /// </exception>
+    public void DrawQuad(Matrix4x4 transform, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null, int entityId = -1)
     {
         tintColor ??= Vector4.One;
 
         if (_data.QuadIndexCount >= Renderer2DData.MaxIndices)
             NextBatch();
 
-        var quadVertexCount = 4;
+        const int quadVertexCount = 4;
 
         var textureIndex = 0.0f;
         if (texture is not null)
@@ -201,7 +226,7 @@ public class Renderer2D
             {
                 Position = Vector3.Transform(vector3, transform),
                 Color = tintColor.Value,
-                TexCoord = TextureCoords[i],
+                TexCoord = textureCoords[i],
                 TexIndex = textureIndex,
                 TilingFactor = tilingFactor,
                 EntityId = entityId
@@ -213,33 +238,11 @@ public class Renderer2D
         _data.QuadIndexBufferCount += 6;
         _data.Stats.QuadCount++;
     }
-
-    public void DrawRotatedQuad(Vector2 position, Vector2 size, float rotation, Vector4 color)
-    {
-        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, rotation, texture: null!, tilingFactor: 1.0f, color);
-    }
-
-    public void DrawRotatedQuad(Vector3 position, Vector2 size, float rotation, Vector4 color)
-    {
-        DrawQuad(position, size, rotation, texture: null!, tilingFactor: 1.0f, color);
-    }
-
-    public void DrawRotatedQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, float tilingFactor,
-        Vector4? tintColor = null)
-    {
-        DrawQuad(new Vector3(position.X, position.Y, 0.0f), size, rotation, texture, tilingFactor, tintColor);
-    }
-
-    public void DrawRotatedQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, float tilingFactor,
-        Vector4? tintColor = null)
-    {
-        DrawQuad(position, size, rotation, texture, tilingFactor, tintColor);
-    }
     
     public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
     {
         if (src.Texture is not null)
-            DrawQuad(transform, src.Texture, src.TilingFactor, src.Color, entityId);
+            DrawQuad(transform, src.Texture, DefaultTextureCoords, src.TilingFactor, src.Color, entityId);
         else
             DrawQuad(transform, src.Color, entityId);
     }
@@ -261,15 +264,14 @@ public class Renderer2D
     private void InitBuffers()
     {
         var quadVertexSize = QuadVertex.GetSize();
-        var layout = new BufferLayout(new[]
-        {
+        var layout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float4, "a_Color"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Float, "a_TexIndex"),
             new BufferElement(ShaderDataType.Float, "a_TilingFactor"),
-            new BufferElement(ShaderDataType.Int, "a_EntityID"),
-        });
+            new BufferElement(ShaderDataType.Int, "a_EntityID")
+        ]);
 
         _data.QuadVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
         _data.QuadVertexBuffer.SetLayout(layout);
@@ -316,10 +318,12 @@ public class Renderer2D
         uint offset = 0;
         for (uint i = 0; i < Renderer2DData.MaxIndices; i += 6)
         {
+            // first triangle
             quadIndices[i + 0] = offset + 0;
             quadIndices[i + 1] = offset + 1;
             quadIndices[i + 2] = offset + 2;
 
+            // second triangle
             quadIndices[i + 3] = offset + 2;
             quadIndices[i + 4] = offset + 3;
             quadIndices[i + 5] = offset + 0;
@@ -329,6 +333,21 @@ public class Renderer2D
 
         return quadIndices;
     }
+    
+    private static Matrix4x4 CalculateTransform(Vector3 position, Vector2 size, float rotation)
+    {
+        var transform = Matrix4x4.CreateTranslation(position);
+        
+        if (rotation != 0)
+        {
+            transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
+        }
+
+        transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        return transform;
+    }
+
+    #region stats
 
     public void ResetStats()
     {
@@ -340,4 +359,6 @@ public class Renderer2D
     {
         return _data.Stats;
     }
+
+    #endregion
 }
