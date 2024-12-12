@@ -102,6 +102,15 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
+            
+            if (!_selectionContext.HasComponent<SubTextureRendererComponent>())
+            {
+                if (ImGui.MenuItem("Sub Texture Renderer"))
+                {
+                    _selectionContext.AddComponent<SubTextureRendererComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
 
             if (!_selectionContext.HasComponent<RigidBody2DComponent>())
             {
@@ -231,8 +240,7 @@ public class SceneHierarchyPanel
                 }
             }
         });
-
-
+        
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, spriteRendererComponent =>
         {
             var newColor = spriteRendererComponent.Color;
@@ -282,6 +290,49 @@ public class SceneHierarchyPanel
             if (ImGui.DragFloat("Tiling Factor", ref tillingFactor, 0.1f, 0.0f, 100.0f))
             {
                 spriteRendererComponent.TilingFactor = tillingFactor;
+            }
+        });
+        
+        DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, c =>
+        {
+            var newCoords = c.Coords;
+            DrawVec2Control("Sub texture coords", ref newCoords);
+
+            if (newCoords != c.Coords)
+                c.Coords = newCoords;
+
+            // Render the "Texture" button with a fixed width of 100.0f and automatic height (0.0f)
+            if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
+            {
+                // Optional: Handle button click logic if needed
+            }
+            
+            // Begin drag-and-drop target handling
+            if (ImGui.BeginDragDropTarget())
+            {
+                unsafe
+                {
+                    // Accept the drag-and-drop payload with the label "CONTENT_BROWSER_ITEM"
+                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                    if (payload.NativePtr != null)
+                    {
+                        // Convert the payload data (wchar_t*) to a C# string
+                        var path = Marshal.PtrToStringUni(payload.Data);
+                        if (path is null)
+                        {
+                            return;
+                        }
+
+                        // Combine the asset path and the dragged path
+                        string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+
+                        // Set the component's texture (assuming Texture2D.Create takes a string path)
+                        c.Texture = TextureFactory.Create(texturePath);
+                    }
+
+                    // End the drag-and-drop target
+                    ImGui.EndDragDropTarget();
+                }
             }
         });
 
@@ -507,5 +558,54 @@ public class SceneHierarchyPanel
         ImGui.PopID();
     }
 
+    // todo: remove duplication from DrawVec3Control
+    public void DrawVec2Control(string label, ref Vector2 values, float resetValue = 0, float columnWidth = 100.0f)
+    {
+        ImGui.PushID(label);
+
+        ImGui.Columns(2);
+        ImGui.SetColumnWidth(0, columnWidth);
+        ImGui.Text(label);
+        ImGui.NextColumn();
+
+        // Get the total width available for the DragFloat controls
+        var itemWidth = ImGui.CalcItemWidth();
+        const float buttonWidth = 20.0f; // Width of the reset button (X, Y, Z)
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+
+        // Define button sizes
+        var buttonSize = new Vector2(buttonWidth, ImGui.GetFrameHeight());
+
+        // Handle X
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.9f, 0.2f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
+        if (ImGui.Button("X", buttonSize))
+            values.X = resetValue;
+        ImGui.PopStyleColor(3);
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.InputFloat("##X", ref values.X);
+
+        // Handle Y
+        ImGui.SameLine();
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
+        if (ImGui.Button("Y", buttonSize))
+            values.Y = resetValue;
+        ImGui.PopStyleColor(3);
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.InputFloat("##Y", ref values.Y);
+
+        ImGui.Columns(1);
+
+        ImGui.PopID();
+    }
+
+    
     public Entity? GetSelectedEntity() => _selectionContext;
 }
