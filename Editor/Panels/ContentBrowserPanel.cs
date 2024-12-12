@@ -74,7 +74,7 @@ public class ContentBrowserPanel
             
             ImGui.PopStyleColor();
             
-            if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+            if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && !File.Exists(info.FullName))
             {
                 _currentDirectory = info.FullName;
             }
