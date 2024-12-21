@@ -25,6 +25,5 @@ public class Renderer2DData
     public readonly List<Vector4> QuadVertexPositions = new(4);
     public readonly Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
     public int TextureSlotIndex { get; set; }
-    public uint QuadIndexCount { get; set; }
     public Statistics Stats { get; set; }
 }
