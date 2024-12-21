@@ -92,29 +92,7 @@ public class Renderer2D
 
     public void EndScene()
     {
-        var dataSize = 0;
-        for (var i = 0; i < _data.CurrentVertexBufferIndex; i++)
-        {
-            dataSize += QuadVertex.GetSize();
-        }
-
-        // upload data to GPU
-        _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase.ToArray(), dataSize);
-
         Flush();
-    }
-
-    private void Flush()
-    {
-        if (_data.QuadIndexBufferCount == 0)
-            return; // Nothing to draw
-
-        // Bind textures
-        for (var i = 0; i < _data.TextureSlotIndex; i++)
-            _data.TextureSlots[i].Bind(i);
-
-        RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
-        _data.Stats.DrawCalls++;
     }
 
     public void DrawQuad(Vector2 position, Vector2 size, Vector4 color)
@@ -189,7 +167,7 @@ public class Renderer2D
     {
         tintColor ??= Vector4.One;
 
-        if (_data.QuadIndexCount >= Renderer2DData.MaxIndices)
+        if (_data.QuadIndexBufferCount >= Renderer2DData.MaxIndices)
             NextBatch();
 
         const int quadVertexCount = 4;
@@ -259,6 +237,28 @@ public class Renderer2D
     {
         Flush();
         StartBatch();
+    }
+    
+    private void Flush()
+    {
+        if (_data.QuadIndexBufferCount == 0)
+            return; // Nothing to draw
+        
+        var dataSize = 0;
+        for (var i = 0; i < _data.CurrentVertexBufferIndex; i++)
+        {
+            dataSize += QuadVertex.GetSize();
+        }
+
+        // upload data to GPU
+        _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase.ToArray(), dataSize);
+
+        // Bind textures
+        for (var i = 0; i < _data.TextureSlotIndex; i++)
+            _data.TextureSlots[i].Bind(i);
+
+        RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+        _data.Stats.DrawCalls++;
     }
 
     private void InitBuffers()
