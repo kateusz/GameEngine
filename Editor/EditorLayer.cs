@@ -313,6 +313,10 @@ public class EditorLayer : Layer
             ImGui.Text($"Quads: {stats.QuadCount}");
             ImGui.Text($"Vertices: {stats.GetTotalVertexCount()}");
             ImGui.Text($"Indices: {stats.GetTotalIndexCount()}");
+            ImGui.Text("Editor Camera:");
+            ImGui.Text($"X: {stats.EditorCameraX}");
+            ImGui.Text($"Y: {stats.EditorCameraY}");
+            ImGui.Text($"Z: {stats.EditorCameraZ}");
 
             ImGui.End();
 

@@ -82,6 +82,12 @@ public class Renderer2D
     
     public void BeginScene(EditorCamera camera)
     {
+        // debug Camera
+        var cameraPosition = camera.GetPosition();
+        _data.Stats.EditorCameraX = cameraPosition.X;
+        _data.Stats.EditorCameraY = cameraPosition.Y;
+        _data.Stats.EditorCameraZ = cameraPosition.Z;
+        
         var viewProj = camera.GetViewProjection();
 
         _data.TextureShader.Bind();
