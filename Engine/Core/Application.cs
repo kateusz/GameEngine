@@ -47,6 +47,7 @@ public class Application : IApplication
 
     private void HandleGameWindowOnLoad()
     {
+        RendererCommand.Init();
         Renderer2D.Instance.Init();
         foreach (var layer in _layersStack)
         {
