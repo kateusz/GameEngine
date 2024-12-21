@@ -12,7 +12,7 @@ public class OrthographicCameraController
     private float _cameraTranslationSpeed = 1.0f;
     private float _cameraRotation;
     private float _cameraRotationSpeed = 10.0f;
-    private float _zoomLevel = 5.0f;
+    private float _zoomLevel = 10.0f;
 
     public OrthographicCameraController(float aspectRatio, bool rotation = false)
     {
