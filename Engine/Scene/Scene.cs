@@ -5,6 +5,7 @@ using Box2D.NetStandard.Dynamics.Bodies;
 using Box2D.NetStandard.Dynamics.Fixtures;
 using Box2D.NetStandard.Dynamics.World;
 using ECS;
+using Engine.Core.Input;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
@@ -55,7 +56,7 @@ public class Scene
     
     public void OnRuntimeStart()
     {
-        _physicsWorld = new World(new Vector2(0, -9.81f));
+        _physicsWorld = new World(new Vector2(0, -0.81f));
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -126,6 +127,14 @@ public class Scene
             var transform = entity.GetComponent<TransformComponent>();
             var collision = entity.GetComponent<BoxCollider2DComponent>();
             var body = component.RuntimeBody;
+            
+            
+            // DEBUG - change velocity
+            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Space))
+            {
+                body.SetLinearVelocity(new Vector2(0, 1.5f));
+            }
+            // end debug
 
             var fixture = body.GetFixtureList();
             fixture.Density = collision.Density;

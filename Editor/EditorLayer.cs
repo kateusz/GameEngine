@@ -89,7 +89,8 @@ public class EditorLayer : Layer
         Renderer2D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        //RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        RendererCommand.SetClearColor(new Vector4(255, 255, 255f, 1.0f));
         RendererCommand.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
