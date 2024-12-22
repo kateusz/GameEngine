@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Box2D.NetStandard.Dynamics.Bodies;
 using ECS;
 
@@ -14,5 +15,7 @@ public class RigidBody2DComponent : Component
 {
     public RigidBodyType BodyType { get; set; }
     public bool FixedRotation { get; set; }
+    
+    [JsonIgnore]
     public Body RuntimeBody { get; set; }
 }
