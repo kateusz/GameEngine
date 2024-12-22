@@ -87,7 +87,7 @@ public class SceneSerializer
         var entity = new Entity(entityId, entityName);
 
         // Handle special cases for entity names
-        // TODO: remove hardcoded logic
+        // TODO: NativeScriptComponent-  remove hardcoded logic
         if (entity.Name == "Primary Camera")
         {
             entity.AddComponent(new NativeScriptComponent
