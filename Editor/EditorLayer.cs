@@ -142,7 +142,11 @@ public class EditorLayer : Layer
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
 
         _orthographicCameraController.OnEvent(@event);
-        _editorCamera.OnEvent(@event);
+        
+        if (_sceneState == SceneState.Edit)
+        {
+            _editorCamera.OnEvent(@event);
+        }
 
         if (@event is KeyPressedEvent keyPressedEvent)
         {
