@@ -18,11 +18,11 @@ public abstract record KeyEvent : Event
 
 public record KeyPressedEvent : KeyEvent
 {
-    public int RepeatCount { get; }
+    public bool IsRepeat { get; }
 
-    public KeyPressedEvent(int keyCode, int repeatCount) : base(keyCode, EventType.KeyPressed)
+    public KeyPressedEvent(int keyCode, bool isRepeat) : base(keyCode, EventType.KeyPressed)
     {
-        RepeatCount = repeatCount;
+        IsRepeat = isRepeat;
     }
 }
 

@@ -157,7 +157,7 @@ public class EditorLayer : Layer
     private void OnKeyPressed(KeyPressedEvent keyPressedEvent)
     {
         // Shortcuts
-        if (keyPressedEvent.RepeatCount > 0)
+        if (!keyPressedEvent.IsRepeat)
             return;
 
         var control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) ||
