@@ -24,6 +24,7 @@ public class SceneHierarchyPanel
     public void SetContext(Scene context)
     {
         _context = context;
+        _selectionContext = null;
     }
 
     public void OnImGuiRender()
@@ -46,6 +47,7 @@ public class SceneHierarchyPanel
             {
                 var entity = _context.CreateEntity("Empty Entity");
                 entity.AddComponent<TransformComponent>();
+                entity.AddComponent<IdComponent>();
             }
 
             ImGui.EndPopup();

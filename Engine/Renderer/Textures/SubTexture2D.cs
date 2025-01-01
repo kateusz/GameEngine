@@ -27,4 +27,10 @@ public record SubTexture2D
 
         return new SubTexture2D(texture, min, max);
     }
+    
+    public void Deconstruct(out Texture2D texture, out Vector2[] texCoords)
+    {
+        texture = Texture;
+        texCoords = TexCoords;
+    }
 }

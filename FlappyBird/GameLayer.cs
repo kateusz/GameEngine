@@ -18,7 +18,7 @@ public class GameLayer : Layer
 
     public override void OnAttach()
     {
-        _activeScene = new Scene();
+        _activeScene = new Scene("");
         SceneSerializer.Deserialize(_activeScene, "assets/scenes/Example.scene");
         _activeScene.OnRuntimeStart();
     }

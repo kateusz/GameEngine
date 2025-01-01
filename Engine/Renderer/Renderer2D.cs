@@ -116,11 +116,11 @@ public class Renderer2D
     {
         var transform = CalculateTransform(position, size, rotation);
 
+        var (texture, textureCoords) = subTexture;
         const float tilingFactor = 1.0f;
-        var textureCoords = subTexture.TexCoords;
         var tintColor = Vector4.One;
 
-        DrawQuad(transform, subTexture.Texture, textureCoords, tilingFactor, tintColor);
+        DrawQuad(transform, texture, textureCoords, tilingFactor, tintColor);
     }
 
     public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f, Vector4? tintColor = null)

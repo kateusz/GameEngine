@@ -14,12 +14,14 @@ namespace Engine.Scene;
 
 public class Scene
 {
+    private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
     private World _physicsWorld;
 
-    public Scene()
+    public Scene(string path)
     {
+        _path = path;
         Context.Instance.Entities.Clear();
     }
 
@@ -30,7 +32,7 @@ public class Scene
         Random random = new Random();
         var randomNumber = random.Next(0, 10001);
         
-        var entity = new Entity(randomNumber, name);
+        var entity = Entity.Create(randomNumber, name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
 
@@ -237,5 +239,54 @@ public class Scene
             RigidBodyType.Kinematic => BodyType.Kinematic,
             _ => throw new ArgumentOutOfRangeException(nameof(componentBodyType), componentBodyType, null)
         };
+    }
+
+    public void DuplicateEntity(Entity entity)
+    {
+        var name = entity.Name;
+        var newEntity = CreateEntity(name);
+        if (entity.HasComponent<TransformComponent>())
+        {
+            var component = entity.GetComponent<TransformComponent>();
+            newEntity.AddComponent(component);
+        }
+
+        if (entity.HasComponent<SpriteRendererComponent>())
+        {
+            var component = entity.GetComponent<SpriteRendererComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        if (entity.HasComponent<SubTextureRendererComponent>())
+        {
+            var component = entity.GetComponent<SubTextureRendererComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        if (entity.HasComponent<CameraComponent>())
+        {
+            var component = entity.GetComponent<CameraComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        if (entity.HasComponent<NativeScriptComponent>())
+        {
+            var component = entity.GetComponent<NativeScriptComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        if (entity.HasComponent<RigidBody2DComponent>())
+        {
+            var component = entity.GetComponent<RigidBody2DComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        if (entity.HasComponent<BoxCollider2DComponent>())
+        {
+            var component = entity.GetComponent<BoxCollider2DComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        Context.Instance.Register(newEntity);
     }
 }

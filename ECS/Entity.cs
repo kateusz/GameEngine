@@ -2,18 +2,12 @@ namespace ECS;
 
 public class Entity
 {
+    private readonly Dictionary<Type, Component> _components = new();
+    
     public int Id { get; private set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
     
-    private readonly Dictionary<Type, Component> _components;
     public event Action<Component>? OnComponentAdded;
-    
-    public Entity(int id, string name)
-    {
-        Id = id;
-        Name = name;
-        _components = new Dictionary<Type, Component>();
-    }
 
     public void AddComponent(Component component)
     {
@@ -69,5 +63,14 @@ public class Entity
     public override int GetHashCode()
     {
         return HashCode.Combine(_components, Id, Name);
+    }
+
+    public static Entity Create(int id, string name)
+    {
+        return new Entity
+        {
+            Id = id,
+            Name = name,
+        };
     }
 }
