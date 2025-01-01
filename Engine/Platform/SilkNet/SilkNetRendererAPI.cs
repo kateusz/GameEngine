@@ -26,6 +26,16 @@ public class SilkNetRendererAPI : IRendererAPI
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 
+    public void DrawLines(IVertexArray vertexArray, uint vertexCount)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void SetLineWidth(float width)
+    {
+        throw new NotImplementedException();
+    }
+
     public void Init()
     {
         SilkNetContext.GL.Enable(EnableCap.Blend);
