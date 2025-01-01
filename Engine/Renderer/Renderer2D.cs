@@ -287,6 +287,20 @@ public class Renderer2D
         var quadIndices = CreateQuadIndices();
         var indexBuffer = IndexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
+
+        return;
+        
+        var lineVertexSize = LineVertex.GetSize();
+        var lineLayout = new BufferLayout([
+            new BufferElement(ShaderDataType.Float3, "a_Position"),
+            new BufferElement(ShaderDataType.Float4, "a_Color"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID")
+        ]);
+        
+        _data.LineVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * lineVertexSize));
+        _data.LineVertexBuffer.SetLayout(lineLayout);
+        _data.LineVertexArray.AddVertexBuffer(_data.LineVertexBuffer);
+        _data.LineVertexBufferBase = new List<LineVertex>(Renderer2DData.MaxVertices);
     }
 
     private void InitWhiteTexture()

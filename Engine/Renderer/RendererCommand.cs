@@ -16,6 +16,16 @@ public static class RendererCommand
     {
         RendererApi.DrawIndexed(vertexArray, count);
     }
+    
+    public static void DrawLines(IVertexArray vertexArray, uint vertexCount)
+    {
+        RendererApi.DrawLines(vertexArray, vertexCount);
+    }
+
+    public static void SetLineWidth(float width)
+    {
+        RendererApi.SetLineWidth(width);
+    }
 
     public static void SetClearColor(Vector4 color)
     {
