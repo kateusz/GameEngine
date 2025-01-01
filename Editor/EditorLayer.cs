@@ -37,6 +37,7 @@ public class EditorLayer : Layer
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
     private SceneState _sceneState;
+    private string? _editorScenePath;
 
     public EditorLayer(string name) : base(name)
     {
@@ -62,7 +63,7 @@ public class EditorLayer : Layer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
-        _activeScene = new Scene();
+        _activeScene = new Scene("");
         _editorCamera = new EditorCamera(30.0f, 1280.0f / 720.0f, 0.1f, 1000.0f);
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
         _contentBrowserPanel = new ContentBrowserPanel();
@@ -186,9 +187,15 @@ public class EditorLayer : Layer
             }
             case (int)KeyCodes.S:
             {
-                if (control && shift)
-                    SaveSceneAs();
+                if (control)
+                    SaveScene();
 
+                break;
+            }
+            case (int)KeyCodes.D:
+            {
+                if (control) 
+                    OnDuplicateEntity();
                 break;
             }
         }
@@ -286,8 +293,8 @@ public class EditorLayer : Layer
                     if (ImGui.MenuItem("Open...", "Ctrl+O"))
                         OpenScene();
 
-                    if (ImGui.MenuItem("Save As...", "Ctrl+Shift+S"))
-                        SaveSceneAs();
+                    if (ImGui.MenuItem("Save", "Ctrl+S"))
+                        SaveScene();
 
                     if (ImGui.MenuItem("Exit"))
                     {
@@ -410,21 +417,23 @@ public class EditorLayer : Layer
 
     private void NewScene()
     {
-        _activeScene = new Scene();
+        _activeScene = new Scene("");
         _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         _sceneHierarchyPanel.SetContext(_activeScene);
     }
 
     private void OpenScene()
     {
+        if (_sceneState != SceneState.Edit)
+            OnSceneStop();
+        
         // TODO: from configuration
         const string filePath = "assets/scenes/Example.scene";
-
-
+        
         if (string.IsNullOrWhiteSpace(filePath))
             throw new Exception($"Scene doesnt exists: {filePath}");
         
-        _activeScene = new Scene();
+        _activeScene = new Scene(filePath);
         _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         _sceneHierarchyPanel.SetContext(_activeScene);
 
@@ -433,29 +442,44 @@ public class EditorLayer : Layer
 
     private void OpenScene(string path)
     {
-        _activeScene = new Scene();
+        if (_sceneState != SceneState.Edit)
+            OnSceneStop();
+
+        _editorScenePath = path;
+        _activeScene = new Scene(path);
         _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         _sceneHierarchyPanel.SetContext(_activeScene);
 
         SceneSerializer.Deserialize(_activeScene, path);
     }
-
-    private void SaveSceneAs()
+    
+    private void SaveScene()
     {
-        // TODO: from config
-        var filePath = $"assets/scenes/Example-{DateTime.UtcNow.ToShortDateString()}.scene";
-        SceneSerializer.Serialize(_activeScene, filePath);
+        if (!string.IsNullOrWhiteSpace(_editorScenePath))
+            SceneSerializer.Serialize(_activeScene, _editorScenePath);
     }
 
     private void OnScenePlay()
     {
         _sceneState = SceneState.Play;
         _activeScene.OnRuntimeStart();
+        _sceneHierarchyPanel.SetContext(_activeScene);
     }
 
     private void OnSceneStop()
     {
         _sceneState = SceneState.Edit;
         _activeScene.OnRuntimeStop();
+        _sceneHierarchyPanel.SetContext(_activeScene);
+    }
+
+    private void OnDuplicateEntity()
+    {
+        if (_sceneState != SceneState.Edit)
+            return;
+        
+        var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
+        if (selectedEntity is not null)
+            _activeScene.DuplicateEntity(selectedEntity);
     }
 }

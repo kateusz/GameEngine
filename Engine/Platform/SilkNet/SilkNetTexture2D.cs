@@ -164,7 +164,7 @@ public class SilkNetTexture2D : Texture2D
         if (obj is not SilkNetTexture2D other)
             return false;
         
-        return _rendererId == other._rendererId;
+        return _rendererId == other.GetRendererId();
     }
 
     public override int GetHashCode()

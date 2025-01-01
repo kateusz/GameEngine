@@ -84,7 +84,7 @@ public class SceneSerializer
         var entityName = entityObj[NameKey]?.GetValue<string>() ??
                          throw new InvalidSceneJsonException("Invalid entity Name");
 
-        var entity = new Entity(entityId, entityName);
+        var entity = Entity.Create(entityId, entityName);
 
         // Handle special cases for entity names
         // TODO: NativeScriptComponent-  remove hardcoded logic

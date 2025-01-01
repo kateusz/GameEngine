@@ -19,11 +19,6 @@ public class TransformComponent : Component
         Translation = Vector3.Zero;
     }
     
-    public TransformComponent(Vector3 translation)
-    {
-        Translation = translation;
-    }
-    
     public Matrix4x4 GetTransform()
     {
         // Convert Euler angles to Quaternion
