@@ -36,7 +36,10 @@ public class Renderer2D
         _data = new Renderer2DData
         {
             QuadVertexArray = VertexArrayFactory.Create(),
-            Stats = new Statistics()
+            //CameraUniformBuffer = UniformBufferFactory.Create((uint)CameraData.GetSize(), 0),
+            Stats = new Statistics(),
+            //CameraBuffer = new CameraData(),
+            LineVertexArray = VertexArrayFactory.Create()
         };
 
         InitBuffers();
@@ -52,8 +55,8 @@ public class Renderer2D
     [Obsolete("Used only for Sandbox testing")]
     public void BeginScene(OrthographicCamera camera)
     {
-        _data.TextureShader.Bind();
-        _data.TextureShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
+        _data.QuadShader.Bind();
+        _data.QuadShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
         
         StartBatch();
     }
@@ -74,9 +77,14 @@ public class Renderer2D
         else
             throw new InvalidOperationException("Unsupported OS version!");
 
-        _data.TextureShader.Bind();
-        _data.TextureShader.SetMat4("u_ViewProjection", viewProj.Value);
+        //_data.CameraBuffer.ViewProjection = camera.Projection * transformInverted;
+        //_data.CameraUniformBuffer.SetData(_data.CameraBuffer, CameraData.GetSize());
+        _data.QuadShader.Bind();
+        _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
         
+        _data.LineShader.Bind();
+        _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
+
         StartBatch();
     }
     
@@ -90,8 +98,14 @@ public class Renderer2D
         
         var viewProj = camera.GetViewProjection();
 
-        _data.TextureShader.Bind();
-        _data.TextureShader.SetMat4("u_ViewProjection", viewProj);
+        //_data.CameraBuffer.ViewProjection = viewProj;
+        //_data.CameraUniformBuffer.SetData(_data.CameraBuffer, CameraData.GetSize());
+
+        _data.QuadShader.Bind();
+        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
+        
+        _data.LineShader.Bind();
+        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
 
         StartBatch();
     }
@@ -237,6 +251,10 @@ public class Renderer2D
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
         _data.TextureSlotIndex = 1;
+
+        _data.LineVertexBufferBase = [];
+        _data.LineVertexCount = 0;
+        _data.CurrentLineVertexBufferIndex = 0;
     }
     
     private void NextBatch()
@@ -247,24 +265,31 @@ public class Renderer2D
     
     private void Flush()
     {
-        if (_data.QuadIndexBufferCount == 0)
-            return; // Nothing to draw
-        
-        var dataSize = 0;
-        for (var i = 0; i < _data.CurrentVertexBufferIndex; i++)
+        if (_data.QuadIndexBufferCount > 0)
         {
-            dataSize += QuadVertex.GetSize();
+            var dataSize = 0;
+            for (var i = 0; i < _data.CurrentVertexBufferIndex; i++)
+            {
+                dataSize += QuadVertex.GetSize();
+            }
+
+            // upload data to GPU
+            _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase.ToArray(), dataSize);
+
+            // Bind textures
+            for (var i = 0; i < _data.TextureSlotIndex; i++)
+                _data.TextureSlots[i].Bind(i);
+
+            //_data.TextureShader.Bind();
+            RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+            _data.Stats.DrawCalls++;
         }
 
-        // upload data to GPU
-        _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase.ToArray(), dataSize);
-
-        // Bind textures
-        for (var i = 0; i < _data.TextureSlotIndex; i++)
-            _data.TextureSlots[i].Bind(i);
-
-        RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
-        _data.Stats.DrawCalls++;
+        if (_data.LineVertexCount > 0)
+        {
+            
+        }
+        
     }
 
     private void InitBuffers()
@@ -288,7 +313,7 @@ public class Renderer2D
         var indexBuffer = IndexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
 
-        return;
+        //return;
         
         var lineVertexSize = LineVertex.GetSize();
         var lineLayout = new BufferLayout([
@@ -317,10 +342,14 @@ public class Renderer2D
         for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
             samplers[i] = i;
 
-        _data.TextureShader = ShaderFactory.Create("assets/shaders/opengl/textureShader.vert",
+        _data.QuadShader = ShaderFactory.Create("assets/shaders/opengl/textureShader.vert",
             "assets/shaders/opengl/textureShader.frag");
-        _data.TextureShader.Bind();
-        _data.TextureShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
+        _data.QuadShader.Bind();
+        _data.QuadShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
+
+        _data.LineShader = ShaderFactory.Create("assets/shaders/opengl/lineShader.vert",
+            "assets/shaders/opengl/lineShader.frag");
+        _data.LineShader.Bind();
     }
 
     private void InitQuadVertexPositions()

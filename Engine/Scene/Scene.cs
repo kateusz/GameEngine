@@ -45,7 +45,8 @@ public class Scene
     {
         if (component is CameraComponent cameraComponent)
         {
-            cameraComponent.Camera.SetViewportSize(_viewportWidth, _viewportHeight);
+            if (_viewportWidth > 0 && _viewportHeight > 0)
+                cameraComponent.Camera.SetViewportSize(_viewportWidth, _viewportHeight);
         }
     }
 
