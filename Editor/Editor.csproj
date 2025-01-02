@@ -82,6 +82,12 @@
       <None Update="assets\scenes\flappy-bird.scene">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="assets\shaders\OpenGL\lineShader.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\lineShader.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

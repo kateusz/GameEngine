@@ -9,5 +9,5 @@ public struct LineVertex
     public Vector3 Position { get; init; }
     public Vector4 Color { get; init; }
 
-    public static int GetSize() => Marshal.SizeOf(typeof(LineVertex));
+    public static int GetSize() => Marshal.SizeOf<LineVertex>();
 }
