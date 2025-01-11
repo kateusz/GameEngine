@@ -12,5 +12,5 @@ public struct QuadVertex
     public float TilingFactor { get; init; }
     public int EntityId { get; init; }
 
-    public static int GetSize() => Marshal.SizeOf(typeof(QuadVertex));
+    public static int GetSize() => Marshal.SizeOf<QuadVertex>();
 }

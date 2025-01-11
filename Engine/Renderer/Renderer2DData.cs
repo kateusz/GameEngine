@@ -20,7 +20,7 @@ public class Renderer2DData
     public const int MaxVertices = MaxQuads * 4; // 4 vertex per quad
     public const int MaxIndices = MaxQuads * 6; // 6 indices oer quad
     public const int MaxTextureSlots = 16;
-    public const float LineWidth = 2.0f;
+    public const float LineWidth = 1.0f;
 
     public IVertexArray QuadVertexArray { get; set; }
     public IVertexBuffer QuadVertexBuffer { get; set; }

@@ -58,6 +58,9 @@ public class Renderer2D
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
         
+        _data.LineShader.Bind();
+        _data.LineShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
+        
         StartBatch();
     }
 
@@ -245,6 +248,60 @@ public class Renderer2D
             DrawQuad(transform, src.Color, entityId);
     }
     
+    public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
+    {
+        _data.LineVertexBufferBase.Add(new LineVertex
+        {
+            Position = p0,
+            Color = color,
+            EntityId = entityId
+        });
+        
+        _data.CurrentLineVertexBufferIndex++;
+        
+        _data.LineVertexBufferBase.Add(new LineVertex
+        {
+            Position = p1,
+            Color = color,
+            EntityId = entityId
+        });
+        
+        _data.CurrentLineVertexBufferIndex++;
+        _data.LineVertexCount += 2;
+    }
+    
+    public void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId)
+    {
+        // Calculate the four corners of the rectangle
+        Vector3 p0 = new Vector3(position.X - size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
+        Vector3 p1 = new Vector3(position.X + size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
+        Vector3 p2 = new Vector3(position.X + size.X * 0.5f, position.Y + size.Y * 0.5f, position.Z);
+        Vector3 p3 = new Vector3(position.X - size.X * 0.5f, position.Y + size.Y * 0.5f, position.Z);
+
+        // Draw the rectangle's edges
+        DrawLine(p0, p1, color, entityId);
+        DrawLine(p1, p2, color, entityId);
+        DrawLine(p2, p3, color, entityId);
+        DrawLine(p3, p0, color, entityId);
+    }
+    
+    public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId)
+    {
+        Vector3[] lineVertices = new Vector3[4];
+        for (var i = 0; i < 4; i++)
+        {
+            var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
+                _data.QuadVertexPositions[i].Z);
+
+            lineVertices[i] = Vector3.Transform(vector3, transform);
+        }
+
+        DrawLine(lineVertices[0], lineVertices[1], color, entityId);
+        DrawLine(lineVertices[1], lineVertices[2], color, entityId);
+        DrawLine(lineVertices[2], lineVertices[3], color, entityId);
+        DrawLine(lineVertices[3], lineVertices[0], color, entityId);
+    }
+    
     private void StartBatch()
     {
         _data.QuadVertexBufferBase = [];
@@ -287,7 +344,19 @@ public class Renderer2D
 
         if (_data.LineVertexCount > 0)
         {
-            
+            var dataSize = 0;
+            for (var i = 0; i < _data.CurrentLineVertexBufferIndex; i++)
+            {
+                dataSize += LineVertex.GetSize();
+            }
+
+            // upload data to GPU
+            _data.LineVertexBuffer.SetData(_data.LineVertexBufferBase.ToArray(), dataSize);
+
+            //_data.TextureShader.Bind();
+            RendererCommand.SetLineWidth(Renderer2DData.LineWidth);
+            RendererCommand.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
+            _data.Stats.DrawCalls++;
         }
         
     }
@@ -312,8 +381,6 @@ public class Renderer2D
         var quadIndices = CreateQuadIndices();
         var indexBuffer = IndexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
-
-        //return;
         
         var lineVertexSize = LineVertex.GetSize();
         var lineLayout = new BufferLayout([
