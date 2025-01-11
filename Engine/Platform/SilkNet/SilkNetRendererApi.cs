@@ -5,7 +5,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetRendererAPI : IRendererAPI
+public class SilkNetRendererApi : IRendererAPI
 {
     public void SetClearColor(Vector4 color)
     {
@@ -28,12 +28,17 @@ public class SilkNetRendererAPI : IRendererAPI
 
     public void DrawLines(IVertexArray vertexArray, uint vertexCount)
     {
-        throw new NotImplementedException();
+        vertexArray.Bind();
+        SilkNetContext.GL.DrawArrays(PrimitiveType.Lines, 0, vertexCount);
     }
 
+    /// <summary>
+    /// Sets line width
+    /// </summary>
+    /// <param name="width">Line Width Range: 1 to 1, otherwise will throw 1281 (GL_INVALID_VALUE) error</param>
     public void SetLineWidth(float width)
     {
-        throw new NotImplementedException();
+        SilkNetContext.GL.LineWidth(width);
     }
 
     public void Init()

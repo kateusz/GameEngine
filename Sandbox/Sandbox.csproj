@@ -42,6 +42,12 @@
       <None Update="assets\shaders\opengl\textureShader.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="assets\shaders\opengl\lineShader.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\opengl\lineShader.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

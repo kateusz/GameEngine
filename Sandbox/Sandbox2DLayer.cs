@@ -4,7 +4,6 @@ using Engine.Events;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
-using ImGuiNET;
 using NLog;
 
 namespace Sandbox;
@@ -86,18 +85,23 @@ public class Sandbox2DLayer : Layer
         RendererCommand.Clear();
 
         Renderer2D.Instance.BeginScene(_orthographicCameraController.Camera);
+        
+        //Renderer2D.Instance.DrawQuad(new Vector2(0,0), Vector2.One, new Vector4(100, 100, 100, 100));
+        
+        Renderer2D.Instance.DrawLine(new Vector3(0, 0, 0), new Vector3(5, 5, 0), new Vector4(100,100,100,100), 5);
+        Renderer2D.Instance.DrawRect(new Vector3(0, 0, 0), new Vector2(5, 5), new Vector4(100,100,100,100), 5);
 
-        for (var row = 0; row < _mapHeight; row++)
-        {
-            for (var col = 0; col < _mapWidth; col++)
-            {
-                var subTextureCode = _mapArray[row, col];
-                var subTexture = _textureMap[subTextureCode];
-                
-                // _mapHeight - row because openGl reads from bottom left to top right
-                Renderer2D.Instance.DrawQuad(new Vector3(col - _mapWidth / 2.0f, _mapHeight - row / 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, subTexture);
-            }
-        }
+        // for (var row = 0; row < _mapHeight; row++)
+        // {
+        //     for (var col = 0; col < _mapWidth; col++)
+        //     {
+        //         var subTextureCode = _mapArray[row, col];
+        //         var subTexture = _textureMap[subTextureCode];
+        //         
+        //         // _mapHeight - row because openGl reads from bottom left to top right
+        //         Renderer2D.Instance.DrawQuad(new Vector3(col - _mapWidth / 2.0f, _mapHeight - row / 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, subTexture);
+        //     }
+        // }
 
         Renderer2D.Instance.EndScene();
     }

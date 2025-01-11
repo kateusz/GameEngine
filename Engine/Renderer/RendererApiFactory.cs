@@ -8,7 +8,7 @@ public static class RendererApiFactory
     {
         return RendererApiType.Type switch
         {
-            ApiType.SilkNet => new SilkNetRendererAPI(),
+            ApiType.SilkNet => new SilkNetRendererApi(),
             _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
         };
     }
