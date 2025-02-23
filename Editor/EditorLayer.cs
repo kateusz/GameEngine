@@ -66,7 +66,15 @@ public class EditorLayer : Layer
         _activeScene = new Scene("");
         _editorCamera = new EditorCamera(30.0f, 1280.0f / 720.0f, 0.1f, 1000.0f);
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
+        _sceneHierarchyPanel.EntitySelected = EntitySelected;
         _contentBrowserPanel = new ContentBrowserPanel();
+    }
+
+    private void EntitySelected(Entity entity)
+    {
+        // center camera
+        var transformComponent = entity.GetComponent<TransformComponent>();
+        _editorCamera.CenterToPos(transformComponent.Translation);
     }
 
     public override void OnDetach()

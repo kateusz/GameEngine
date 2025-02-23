@@ -87,6 +87,14 @@ public class EditorCamera : Camera
         _viewportHeight = height;
         UpdateProjection();
     }
+    
+    public void CenterToPos(Vector3 position)
+    {
+        _focalPoint = position;
+        _distance = 100.0f;
+        UpdateView();
+    }
+
 
     public Matrix4x4 GetViewMatrix() => _viewMatrix;
 
