@@ -16,6 +16,8 @@ public class SceneHierarchyPanel
     private Scene _context;
     private Entity? _selectionContext;
 
+    public Action<Entity> EntitySelected;
+
     public SceneHierarchyPanel(Scene context)
     {
         _context = context;
@@ -476,6 +478,7 @@ public class SceneHierarchyPanel
         var opened = ImGui.TreeNodeEx(tag, flags, tag);
         if (ImGui.IsItemClicked())
         {
+            EntitySelected.Invoke(entity);
             _selectionContext = entity;
         }
 
