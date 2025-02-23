@@ -329,6 +329,12 @@ public class Renderer2D
             {
                 dataSize += QuadVertex.GetSize();
             }
+            
+            // Make sure we're using the quad shader
+            _data.QuadShader.Bind();
+        
+            // Explicitly bind the quad vertex array
+            _data.QuadVertexArray.Bind();
 
             // upload data to GPU
             _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase.ToArray(), dataSize);
@@ -344,6 +350,12 @@ public class Renderer2D
 
         if (_data.LineVertexCount > 0)
         {
+            // Switch to line shader
+            _data.LineShader.Bind();
+        
+            // Explicitly bind line vertex array
+            _data.LineVertexArray.Bind();
+            
             var dataSize = 0;
             for (var i = 0; i < _data.CurrentLineVertexBufferIndex; i++)
             {
