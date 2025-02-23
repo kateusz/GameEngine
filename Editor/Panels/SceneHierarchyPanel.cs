@@ -136,6 +136,24 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
+            
+            if (!_selectionContext.HasComponent<CircleRendererComponent>())
+            {
+                if (ImGui.MenuItem("Circle Renderer"))
+                {
+                    _selectionContext.AddComponent<CircleRendererComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+            
+            if (!_selectionContext.HasComponent<CircleCollider2DComponent>())
+            {
+                if (ImGui.MenuItem("Circle Collider 2D"))
+                {
+                    _selectionContext.AddComponent<CircleCollider2DComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
 
             ImGui.EndPopup();
         }
@@ -300,6 +318,29 @@ public class SceneHierarchyPanel
             }
         });
         
+        DrawComponent<CircleRendererComponent>("Circle Renderer", _selectionContext, circle =>
+        {
+            var newColor = circle.Color;
+            ImGui.ColorEdit4("Color", ref newColor);
+
+            if (circle.Color != newColor)
+            {
+                circle.Color = newColor;
+            }
+            
+            float thickness = circle.Thickness;
+            if (ImGui.DragFloat("Thickness", ref thickness, 0.025f, 0.0f, 1.0f))
+            {
+                circle.Thickness = thickness;
+            }
+            
+            float fade = circle.Fade;
+            if (ImGui.DragFloat("Fade", ref fade, 0.00025f, 0.0f, 1.0f))
+            {
+                circle.Fade = fade;
+            }
+        });
+        
         DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, c =>
         {
             var newCoords = c.Coords;
@@ -391,6 +432,41 @@ public class SceneHierarchyPanel
             if (ImGui.DragFloat2("Size", ref size))
             {
                 component.Size = size;
+            }
+            
+            var density = component.Density;
+            if (ImGui.DragFloat("Density", ref density, 0.1f, 0.0f, 1.0f))
+            {
+                component.Density = density;
+            }
+            
+            var friction = component.Friction;
+            if (ImGui.DragFloat("Friction", ref friction, 0.1f, 0.0f, 1.0f))
+            {
+                component.Friction = friction;
+            }
+            
+            var restitution = component.Restitution;
+            if (ImGui.DragFloat("Restitution", ref restitution, 0.1f, 0.0f, 1.0f))
+            {
+                component.Restitution = restitution;
+            }
+            
+            // todo: restitution treshold
+        });
+        
+        DrawComponent<CircleCollider2DComponent>("Circle Collider 2D", _selectionContext, component =>
+        {
+            var offset = component.Offset;
+            if (ImGui.DragFloat2("Offset", ref offset))
+            {
+                component.Offset = offset;
+            }
+            
+            var radius = component.Radius;
+            if (ImGui.DragFloat("Radius", ref radius))
+            {
+                component.Radius = radius;
             }
             
             var density = component.Density;

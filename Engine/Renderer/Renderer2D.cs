@@ -6,6 +6,7 @@ using Engine.Renderer.VertexArray;
 using System.Numerics;
 using Engine.Math;
 using Engine.Platform;
+using Engine.Renderer.Vertex;
 using Engine.Scene.Components;
 using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
@@ -39,7 +40,8 @@ public class Renderer2D
             //CameraUniformBuffer = UniformBufferFactory.Create((uint)CameraData.GetSize(), 0),
             Stats = new Statistics(),
             //CameraBuffer = new CameraData(),
-            LineVertexArray = VertexArrayFactory.Create()
+            LineVertexArray = VertexArrayFactory.Create(),
+            CircleVertexArray = VertexArrayFactory.Create()
         };
 
         InitBuffers();
@@ -61,6 +63,9 @@ public class Renderer2D
         _data.LineShader.Bind();
         _data.LineShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
         
+        _data.CircleShader.Bind();
+        _data.CircleShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
+        
         StartBatch();
     }
 
@@ -79,14 +84,18 @@ public class Renderer2D
         }
         else
             throw new InvalidOperationException("Unsupported OS version!");
-
+        
         //_data.CameraBuffer.ViewProjection = camera.Projection * transformInverted;
         //_data.CameraUniformBuffer.SetData(_data.CameraBuffer, CameraData.GetSize());
+        
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
         
         _data.LineShader.Bind();
         _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
+        
+        _data.CircleShader.Bind();
+        _data.CircleShader.SetMat4("u_ViewProjection", viewProj.Value);
 
         StartBatch();
     }
@@ -109,6 +118,9 @@ public class Renderer2D
         
         _data.LineShader.Bind();
         _data.LineShader.SetMat4("u_ViewProjection", viewProj);
+        
+        _data.CircleShader.Bind();
+        _data.CircleShader.SetMat4("u_ViewProjection", viewProj);
 
         StartBatch();
     }
@@ -301,6 +313,34 @@ public class Renderer2D
         DrawLine(lineVertices[2], lineVertices[3], color, entityId);
         DrawLine(lineVertices[3], lineVertices[0], color, entityId);
     }
+
+    public void DrawCircle(Matrix4x4 transform, Vector4 color, float thickness, float fade, int entityId)
+    {
+        for (var i = 0; i < 4; i++)
+        {
+            var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
+                _data.QuadVertexPositions[i].Z);
+
+            var localPosition = new Vector3(_data.QuadVertexPositions[i].X * 2.0f, 
+                _data.QuadVertexPositions[i].Y * 2.0f,
+                _data.QuadVertexPositions[i].Z * 2.0f);
+            
+            _data.CircleVertexBufferBase.Add(new CircleVertex
+            {
+                WorldPosition = Vector3.Transform(vector3, transform),
+                LocalPosition = localPosition,
+                Color = color,
+                Thickness = thickness,
+                Fade = fade,
+                EntityId = entityId
+            });
+
+            _data.CurrentVertexBufferIndex++;
+        }
+
+        _data.QuadIndexBufferCount += 6;
+        _data.Stats.QuadCount++;
+    }
     
     private void StartBatch()
     {
@@ -312,6 +352,10 @@ public class Renderer2D
         _data.LineVertexBufferBase = [];
         _data.LineVertexCount = 0;
         _data.CurrentLineVertexBufferIndex = 0;
+        
+        _data.CircleVertexBufferBase = [];
+        _data.CircleIndexBufferCount = 0;
+        _data.CurrentCircleVertexBufferIndex = 0;
     }
     
     private void NextBatch()
@@ -342,8 +386,7 @@ public class Renderer2D
             // Bind textures
             for (var i = 0; i < _data.TextureSlotIndex; i++)
                 _data.TextureSlots[i].Bind(i);
-
-            //_data.TextureShader.Bind();
+            
             RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
             _data.Stats.DrawCalls++;
         }
@@ -364,10 +407,30 @@ public class Renderer2D
 
             // upload data to GPU
             _data.LineVertexBuffer.SetData(_data.LineVertexBufferBase.ToArray(), dataSize);
-
-            //_data.TextureShader.Bind();
+            
             RendererCommand.SetLineWidth(Renderer2DData.LineWidth);
             RendererCommand.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
+            _data.Stats.DrawCalls++;
+        }
+        
+        if (_data.CircleIndexBufferCount > 0)
+        {
+            // Switch to circle shader
+            _data.CircleShader.Bind();
+        
+            // Explicitly bind circle vertex array
+            _data.CircleVertexArray.Bind();
+            
+            var dataSize = 0;
+            for (var i = 0; i < _data.CurrentCircleVertexBufferIndex; i++)
+            {
+                dataSize += CircleVertex.GetSize();
+            }
+
+            // upload data to GPU
+            _data.CircleVertexBuffer.SetData(_data.CircleVertexBufferBase.ToArray(), dataSize);
+
+            RendererCommand.DrawIndexed(_data.CircleVertexArray, _data.CircleIndexBufferCount);
             _data.Stats.DrawCalls++;
         }
         
@@ -375,6 +438,7 @@ public class Renderer2D
 
     private void InitBuffers()
     {
+        // quads
         var quadVertexSize = QuadVertex.GetSize();
         var layout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
@@ -394,6 +458,7 @@ public class Renderer2D
         var indexBuffer = IndexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
         
+        // lines
         var lineVertexSize = LineVertex.GetSize();
         var lineLayout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
@@ -405,6 +470,22 @@ public class Renderer2D
         _data.LineVertexBuffer.SetLayout(lineLayout);
         _data.LineVertexArray.AddVertexBuffer(_data.LineVertexBuffer);
         _data.LineVertexBufferBase = new List<LineVertex>(Renderer2DData.MaxVertices);
+        
+        // circles
+        var circleVertexSize = CircleVertex.GetSize();
+        var circleLayout = new BufferLayout([
+            new BufferElement(ShaderDataType.Float3, "a_WorldPosition"),
+            new BufferElement(ShaderDataType.Float3, "a_LocalPosition"),
+            new BufferElement(ShaderDataType.Float4, "a_Color"),
+            new BufferElement(ShaderDataType.Float, "a_Thickness"),
+            new BufferElement(ShaderDataType.Float, "a_Fade"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID")
+        ]);
+        
+        _data.CircleVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * circleVertexSize));
+        _data.CircleVertexBuffer.SetLayout(circleLayout);
+        _data.CircleVertexArray.AddVertexBuffer(_data.CircleVertexBuffer);
+        _data.CircleVertexBufferBase = new List<CircleVertex>(Renderer2DData.MaxVertices);
     }
 
     private void InitWhiteTexture()
@@ -429,6 +510,10 @@ public class Renderer2D
         _data.LineShader = ShaderFactory.Create("assets/shaders/opengl/lineShader.vert",
             "assets/shaders/opengl/lineShader.frag");
         _data.LineShader.Bind();
+        
+        _data.CircleShader = ShaderFactory.Create("assets/shaders/opengl/circleShader.vert",
+            "assets/shaders/opengl/circleShader.frag");
+        _data.CircleShader.Bind();
     }
 
     private void InitQuadVertexPositions()

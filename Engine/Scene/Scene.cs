@@ -91,6 +91,22 @@ public class Scene
 
                 body.CreateFixture(fixtureDef);
             }
+            
+            if (entity.HasComponent<CircleCollider2DComponent>())
+            {
+                var boxCollider = entity.GetComponent<CircleCollider2DComponent>();
+                var circleShape = new CircleShape();
+                circleShape.Set(boxCollider.Offset, boxCollider.Radius);
+                var fixtureDef = new FixtureDef
+                {
+                    shape = circleShape,
+                    density = boxCollider.Density,
+                    friction = boxCollider.Friction,
+                    restitution = boxCollider.Restitution
+                };
+
+                body.CreateFixture(fixtureDef);
+            }
         }
     }
 
@@ -174,12 +190,22 @@ public class Scene
         {
             Renderer2D.Instance.BeginScene(mainCamera, cameraTransform);
 
+            // draw sprites
             var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
             foreach (var entity in group)
             {
                 var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
                 var transformComponent = entity.GetComponent<TransformComponent>();
                 Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            }
+            
+            // draw circles
+            var circleGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CircleRendererComponent)]);
+            foreach (var entity in circleGroup)
+            {
+                var circle = entity.GetComponent<CircleRendererComponent>();
+                var transformComponent = entity.GetComponent<TransformComponent>();
+                Renderer2D.Instance.DrawCircle(transformComponent.GetTransform(), circle.Color, circle.Thickness, circle.Fade, entity.Id);
             }
 
             Renderer2D.Instance.EndScene();
@@ -190,12 +216,22 @@ public class Scene
     {
         Renderer2D.Instance.BeginScene(camera);
 
+        // draw sprites
         var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in group)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
             Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+        }
+        
+        // draw circles
+        var circleGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CircleRendererComponent)]);
+        foreach (var entity in circleGroup)
+        {
+            var circle = entity.GetComponent<CircleRendererComponent>();
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            Renderer2D.Instance.DrawCircle(transformComponent.GetTransform(), circle.Color, circle.Thickness, circle.Fade, entity.Id);
         }
 
         Renderer2D.Instance.EndScene();
@@ -246,6 +282,7 @@ public class Scene
     {
         var name = entity.Name;
         var newEntity = CreateEntity(name);
+        
         if (entity.HasComponent<TransformComponent>())
         {
             var component = entity.GetComponent<TransformComponent>();
@@ -285,6 +322,12 @@ public class Scene
         if (entity.HasComponent<BoxCollider2DComponent>())
         {
             var component = entity.GetComponent<BoxCollider2DComponent>();
+            newEntity.AddComponent(component);
+        }
+        
+        if (entity.HasComponent<CircleCollider2DComponent>())
+        {
+            var component = entity.GetComponent<CircleCollider2DComponent>();
             newEntity.AddComponent(component);
         }
         

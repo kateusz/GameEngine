@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Vertex;
 
 public struct LineVertex
 {

@@ -29,13 +29,18 @@ public class Entity
 
     public T GetComponent<T>() where T : Component
     {
-        _components.TryGetValue(typeof(T), out Component component);
+        _components.TryGetValue(typeof(T), out Component? component);
         return (T)component;
     }
 
     public bool HasComponent<T>() where T : Component
     {
         return _components.ContainsKey(typeof(T));
+    }
+    
+    public bool HasComponent(Type componentType)
+    {
+        return _components.ContainsKey(componentType);
     }
     
     public bool HasComponents(Type[] componentTypes)

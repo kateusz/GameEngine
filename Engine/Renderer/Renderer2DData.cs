@@ -2,6 +2,7 @@ using System.Numerics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Renderer.Vertex;
 using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
@@ -37,6 +38,15 @@ public class Renderer2DData
     public List<LineVertex> LineVertexBufferBase { get; set; } = [];
     public int CurrentLineVertexBufferIndex { get; set; }
     public uint LineVertexCount { get; set; }
+    
+    
+    
+    public IVertexArray CircleVertexArray { get; set; }
+    public IVertexBuffer CircleVertexBuffer { get; set; }
+    public IShader CircleShader { get; set; }
+    public List<CircleVertex> CircleVertexBufferBase { get; set; } = [];
+    public int CurrentCircleVertexBufferIndex { get; set; }
+    public uint CircleIndexBufferCount { get; set; }
 
 
     public readonly Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];

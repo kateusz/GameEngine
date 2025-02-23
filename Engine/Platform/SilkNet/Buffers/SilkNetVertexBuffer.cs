@@ -1,5 +1,6 @@
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Vertex;
 using Silk.NET.OpenGL;
 using Buffer = System.Buffer;
 
@@ -122,6 +123,69 @@ public class SilkNetVertexBuffer : IVertexBuffer
                 0, 
                 data, 
                 i * LineVertex.GetSize() + 7 * sizeof(float),
+                sizeof(int)); // EntityId
+        }
+        
+        unsafe
+        {
+            fixed (byte* pData = data)
+            {
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)data.Length, pData, BufferUsageARB.StaticDraw);
+                var error = SilkNetContext.GL.GetError();
+            }
+        }
+    }
+
+    public void SetData(CircleVertex[] circleVertices, int dataSize)
+    {
+        if (circleVertices.Length == 0)
+            return;
+        
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+
+        // Create a flat array of bytes from the vertices
+        var data = new byte[dataSize];
+        
+        // Copy each vertex's data to the byte array
+        for (int i = 0; i < circleVertices.Length; i++)
+        {
+            var vertex = circleVertices[i];
+
+            // Convert each field to bytes and copy to the byte array
+            Buffer.BlockCopy(new[] { vertex.WorldPosition.X, vertex.WorldPosition.Y, vertex.WorldPosition.Z }, 
+                0, 
+                data,
+                i * CircleVertex.GetSize() + 0 * sizeof(float), 
+                sizeof(float) * 3); // WorldPosition
+            
+            Buffer.BlockCopy(new[] { vertex.LocalPosition.X, vertex.LocalPosition.Y, vertex.LocalPosition.Z }, 
+                0, 
+                data,
+                i * CircleVertex.GetSize() + 3 * sizeof(float), 
+                sizeof(float) * 3); // LocalPosition
+            
+            Buffer.BlockCopy(new[] { vertex.Color.X, vertex.Color.Y, vertex.Color.Z, vertex.Color.W }, 
+                0, 
+                data,
+                i * CircleVertex.GetSize() + 6 * sizeof(float), 
+                sizeof(float) * 4); // ColorB
+            
+            Buffer.BlockCopy(new[] { vertex.Thickness }, 
+                0, 
+                data, 
+                i * CircleVertex.GetSize() + 10 * sizeof(float),
+                sizeof(float)); // Thickness
+            
+            Buffer.BlockCopy(new[] { vertex.Fade }, 
+                0, 
+                data, 
+                i * CircleVertex.GetSize() + 11 * sizeof(float),
+                sizeof(int)); // Fade
+            
+            Buffer.BlockCopy(new[] { vertex.EntityId }, 
+                0, 
+                data, 
+                i * CircleVertex.GetSize() + 12 * sizeof(float),
                 sizeof(int)); // EntityId
         }
         
