@@ -49,6 +49,8 @@ public class Application : IApplication
     {
         RendererCommand.Init();
         Renderer2D.Instance.Init();
+        Renderer3D.Instance.Init(); 
+        
         foreach (var layer in _layersStack)
         {
             layer.OnAttach();

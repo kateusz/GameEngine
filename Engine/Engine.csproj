@@ -12,6 +12,7 @@
         <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha" />
         <PackageReference Include="NLog" Version="5.3.4" />
         <PackageReference Include="NLog.Extensions.Logging" Version="5.3.14" />
+        <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />
         <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0" />

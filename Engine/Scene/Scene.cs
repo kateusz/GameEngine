@@ -100,96 +100,73 @@ public class Scene
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
+{
+    // Update scripts (existing code)
+    var nativeScriptGroup = Context.Instance.View<NativeScriptComponent>();
+    
+    foreach (var (entity, nativeScriptComponent) in nativeScriptGroup)
     {
-        // Update scripts
-        var nativeScriptGroup = Context.Instance.View<NativeScriptComponent>();
-
-        foreach (var (entity, nativeScriptComponent) in nativeScriptGroup)
+        if (nativeScriptComponent.ScriptableEntity.Entity == null)
         {
-            if (nativeScriptComponent.ScriptableEntity.Entity == null)
-            {
-                //todo: loop ref?
-                nativeScriptComponent.ScriptableEntity.Entity = entity;
-                nativeScriptComponent.ScriptableEntity.OnCreate();
-            }
-
-            nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
+            nativeScriptComponent.ScriptableEntity.Entity = entity;
+            nativeScriptComponent.ScriptableEntity.OnCreate();
         }
         
-        // Physics
-        const int velocityIterations = 6;
-        const int positionIterations = 2;
-        var deltaSeconds = (float)ts.TotalSeconds;
-        deltaSeconds = 1.0f / 60.0f;
-        _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
+        nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
+    }
+    
+    // Physics (existing code)
+    const int velocityIterations = 6;
+    const int positionIterations = 2;
+    var deltaSeconds = (float)ts.TotalSeconds;
+    deltaSeconds = 1.0f / 60.0f;
+    _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
+    
+    // Retrieve transform from Box2D (existing code)
+    var view = Context.Instance.View<RigidBody2DComponent>();
+    foreach (var (entity, component) in view)
+    {
+        var transform = entity.GetComponent<TransformComponent>();
+        var collision = entity.GetComponent<BoxCollider2DComponent>();
+        var body = component.RuntimeBody;
         
-        // Retrieve transform from Box2D
-        var view = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
+        var fixture = body.GetFixtureList();
+        fixture.Density = collision.Density;
+        fixture.m_friction = collision.Friction;
+        fixture.Restitution = collision.Restitution;
+        
+        var position = body.GetPosition();
+        transform.Translation = new Vector3(position.X, position.Y, 0);
+        transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+    }
+    
+    // Find the main camera
+    Camera? mainCamera = null;
+    var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+    
+    var cameraTransform = Matrix4x4.Identity;
+    
+    foreach (var entity in cameraGroup)
+    {
+        var transformComponent = entity.GetComponent<TransformComponent>();
+        var cameraComponent = entity.GetComponent<CameraComponent>();
+        
+        if (cameraComponent.Primary)
         {
-            var transform = entity.GetComponent<TransformComponent>();
-            var collision = entity.GetComponent<BoxCollider2DComponent>();
-            var body = component.RuntimeBody;
-            
-            
-            // DEBUG - change velocity
-            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Space))
-            {
-                body.SetLinearVelocity(new Vector2(0, 1.5f));
-            }
-            // end debug
-
-            var fixture = body.GetFixtureList();
-            fixture.Density = collision.Density;
-            fixture.m_friction = collision.Friction;
-            fixture.Restitution = collision.Restitution;
-            
-            // todo: update density, friction, restitution?
-            
-            var position = body.GetPosition();
-            transform.Translation = new Vector3(position.X, position.Y, 0);
-            transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
-        }
-
-        // Render 2D
-        Camera? mainCamera = null;
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var entity in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
-
-        if (mainCamera != null)
-        {
-            Renderer2D.Instance.BeginScene(mainCamera, cameraTransform);
-
-            var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
-            foreach (var entity in group)
-            {
-                var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
-                var transformComponent = entity.GetComponent<TransformComponent>();
-                Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
-            }
-
-            Renderer2D.Instance.EndScene();
+            mainCamera = cameraComponent.Camera;
+            cameraTransform = transformComponent.GetTransform();
+            break;
         }
     }
-
-    public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
+    
+    if (mainCamera != null)
     {
-        Renderer2D.Instance.BeginScene(camera);
-
+        // Render 3D (new code)
+        Render3D(mainCamera, cameraTransform);
+        
+        // Render 2D (existing code)
+        Renderer2D.Instance.BeginScene(mainCamera, cameraTransform);
+        
         var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in group)
         {
@@ -197,7 +174,39 @@ public class Scene
             var transformComponent = entity.GetComponent<TransformComponent>();
             Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
+        
+        Renderer2D.Instance.EndScene();
+    }
+}
 
+    public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
+    {
+        // First render 3D objects
+        Renderer3D.Instance.BeginScene(camera);
+    
+        var modelGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)]);
+        foreach (var entity in modelGroup)
+        {
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            var meshComponent = entity.GetComponent<MeshComponent>();
+            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+        
+            Renderer3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent, entity.Id);
+        }
+    
+        Renderer3D.Instance.EndScene();
+    
+        // Then render 2D objects (existing code)
+        Renderer2D.Instance.BeginScene(camera);
+    
+        var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+        foreach (var entity in spriteGroup)
+        {
+            var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            Renderer2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+        }
+    
         Renderer2D.Instance.EndScene();
     }
 
@@ -290,4 +299,24 @@ public class Scene
         
         Context.Instance.Register(newEntity);
     }
+    
+    public void Render3D(Camera camera, Matrix4x4 cameraTransform)
+    {
+        Renderer3D.Instance.BeginScene(camera, cameraTransform);
+    
+        // Get entities with MeshComponent and ModelRendererComponent
+        var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)]);
+    
+        foreach (var entity in group)
+        {
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            var meshComponent = entity.GetComponent<MeshComponent>();
+            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+        
+            Renderer3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent, entity.Id);
+        }
+    
+        Renderer3D.Instance.EndScene();
+    }
+
 }
