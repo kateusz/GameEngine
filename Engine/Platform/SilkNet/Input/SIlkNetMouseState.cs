@@ -17,6 +17,7 @@ public class SIlkNetMouseState : IMouseState
         return SilkNetGameWindow.Mouse.Position;
     }
 
+    public float ScrollY => SilkNetGameWindow.Mouse != null ? SilkNetGameWindow.Mouse.ScrollWheels[0].Y : 0;
     // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
     public float X => SilkNetGameWindow.Mouse != null ? SilkNetGameWindow.Mouse.Position.X : 0;
     // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract

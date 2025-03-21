@@ -25,7 +25,7 @@ public class SilkNetIndexBuffer : IIndexBuffer
 
     ~SilkNetIndexBuffer()
     {
-        SilkNetContext.GL.DeleteBuffers(1, _rendererId);
+        SilkNetContext.GL.DeleteBuffer(_rendererId);
     }
     
     public int Count { get; }

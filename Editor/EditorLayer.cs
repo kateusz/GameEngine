@@ -62,6 +62,8 @@ public class EditorLayer : Layer
             ])
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
+        
+        Renderer3D.Instance.Init();
 
         _activeScene = new Scene("");
         _editorCamera = new EditorCamera(30.0f, 1280.0f / 720.0f, 0.1f, 1000.0f);
@@ -74,7 +76,7 @@ public class EditorLayer : Layer
     {
         // center camera
         var transformComponent = entity.GetComponent<TransformComponent>();
-        _editorCamera.CenterToPos(transformComponent.Translation);
+        //_editorCamera.CenterToPos(transformComponent.Translation);
     }
 
     public override void OnDetach()
@@ -98,8 +100,8 @@ public class EditorLayer : Layer
         Renderer2D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        //RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        RendererCommand.SetClearColor(new Vector4(255, 255, 255f, 1.0f));
+        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        //RendererCommand.SetClearColor(new Vector4(255, 255, 255f, 1.0f));
         RendererCommand.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
@@ -337,6 +339,12 @@ public class EditorLayer : Layer
             ImGui.Text($"X: {stats.EditorCameraX}");
             ImGui.Text($"Y: {stats.EditorCameraY}");
             ImGui.Text($"Z: {stats.EditorCameraZ}");
+            
+            // 3D Stats
+            var stats3D = Renderer3D.Instance.GetStats();
+            ImGui.Text("Renderer3D Stats:");
+            ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
+
 
             ImGui.End();
 

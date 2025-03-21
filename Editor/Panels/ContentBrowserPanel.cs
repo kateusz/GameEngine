@@ -55,7 +55,21 @@ public class ContentBrowserPanel
             var filenameString = info.Name;
             ImGui.PushID(filenameString);
             
-            var icon = isDirectory ? _directoryIcon : _fileIcon;
+            // Replace it with this:
+            Texture2D icon;
+            if (isDirectory)
+            {
+                icon = _directoryIcon;
+            }
+            else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+            {
+                // You could create a specific model icon, but for simplicity we'll use the same file icon
+                icon = _fileIcon;
+            }
+            else
+            {
+                icon = _fileIcon;
+            }
             var pointer  = new IntPtr(icon.GetRendererId());
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
             ImGui.ImageButton("", pointer, new Vector2(thumbnailSize, thumbnailSize), new Vector2(0, 1), new Vector2(1, 0));

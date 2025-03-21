@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
 using Engine.Math;
+using Engine.Renderer.Models;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
@@ -50,6 +51,15 @@ public class SceneHierarchyPanel
                 var entity = _context.CreateEntity("Empty Entity");
                 entity.AddComponent<TransformComponent>();
                 entity.AddComponent<IdComponent>();
+            }
+            
+            // Add a new menu item for 3D objects
+            if (ImGui.MenuItem("Create 3D Entity"))
+            {
+                var entity = _context.CreateEntity("3D Entity");
+                entity.AddComponent<TransformComponent>();
+                entity.AddComponent<MeshComponent>();
+                entity.AddComponent<ModelRendererComponent>();
             }
 
             ImGui.EndPopup();
@@ -138,6 +148,25 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
+            
+            if (!_selectionContext.HasComponent<MeshComponent>())
+            {
+                if (ImGui.MenuItem("Mesh Component"))
+                {
+                    _selectionContext.AddComponent<MeshComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+
+            if (!_selectionContext.HasComponent<ModelRendererComponent>())
+            {
+                if (ImGui.MenuItem("Model Renderer"))
+                {
+                    _selectionContext.AddComponent<ModelRendererComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+
 
             ImGui.EndPopup();
         }
@@ -415,6 +444,101 @@ public class SceneHierarchyPanel
             
             // todo: restitution treshold
         });
+        
+        DrawComponent<MeshComponent>("Mesh", _selectionContext, meshComponent =>
+{
+    // Render the "Load OBJ" button
+    if (ImGui.Button("Load OBJ", new Vector2(100.0f, 0.0f)))
+    {
+        // In a real implementation, you'd use a file dialog here
+        // For now, we'll use a hardcoded path for demonstration
+        string objPath = "assets/obj/al.obj";
+        if (File.Exists(objPath))
+        {
+            meshComponent.Mesh = MeshFactory.Create(objPath);
+        }
+    }
+
+    // Display the mesh name
+    ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
+    ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
+    ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+    
+    // Begin drag-and-drop target handling for OBJ files
+    if (ImGui.BeginDragDropTarget())
+    {
+        unsafe
+        {
+            ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+            if (payload.NativePtr != null)
+            {
+                var path = Marshal.PtrToStringUni(payload.Data);
+                if (path is not null && path.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+                {
+                    string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
+                    meshComponent.Mesh = MeshFactory.Create(fullPath);
+                }
+            }
+            ImGui.EndDragDropTarget();
+        }
+    }
+});
+
+// Add this DrawComponent method for ModelRendererComponent
+
+DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, modelRendererComponent =>
+{
+    var newColor = modelRendererComponent.Color;
+    ImGui.ColorEdit4("Color", ref newColor);
+
+    if (modelRendererComponent.Color != newColor)
+    {
+        modelRendererComponent.Color = newColor;
+    }
+    
+    // Render the "Texture" button
+    if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
+    {
+        // Optional: Handle button click logic if needed
+    }
+    
+    // Begin drag-and-drop target handling
+    if (ImGui.BeginDragDropTarget())
+    {
+        unsafe
+        {
+            ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+            if (payload.NativePtr != null)
+            {
+                var path = Marshal.PtrToStringUni(payload.Data);
+                if (path is null)
+                {
+                    return;
+                }
+
+                string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                if (File.Exists(texturePath) && (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
+                {
+                    modelRendererComponent.OverrideTexture = TextureFactory.Create(texturePath);
+                }
+            }
+            ImGui.EndDragDropTarget();
+        }
+    }
+    
+    // Shadow options
+    bool castShadows = modelRendererComponent.CastShadows;
+    if (ImGui.Checkbox("Cast Shadows", ref castShadows))
+    {
+        modelRendererComponent.CastShadows = castShadows;
+    }
+    
+    bool receiveShadows = modelRendererComponent.ReceiveShadows;
+    if (ImGui.Checkbox("Receive Shadows", ref receiveShadows))
+    {
+        modelRendererComponent.ReceiveShadows = receiveShadows;
+    }
+});
 
         ImGui.End();
     }
