@@ -112,6 +112,13 @@
       <None Update="assets\obj\torus.obj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="assets\obj\person.obj">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="bin\Debug\net8.0\assets\scenes\Physics2D.scene" />
     </ItemGroup>
 
 </Project>

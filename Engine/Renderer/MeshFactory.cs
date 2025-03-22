@@ -6,6 +6,7 @@ public static class MeshFactory
 {
     private static readonly Dictionary<string, Mesh> _loadedMeshes = new();
     
+    // In MeshFactory.cs
     public static Mesh Create(string objFilePath)
     {
         // Check if we've already loaded this mesh
@@ -13,12 +14,18 @@ public static class MeshFactory
         {
             return existingMesh;
         }
-        
+    
         // Load the mesh
         var model = new Model(objFilePath);
         var mesh = model.Meshes.First();
-        _loadedMeshes[objFilePath] = mesh; // todo check when there could be more than one
-        
+    
+        // Log information about mesh size
+        if (mesh.Vertices.Count > 50000 || mesh.Indices.Count > 100000)
+        {
+            Console.WriteLine($"WARNING: Large mesh loaded from {objFilePath}: {mesh.Vertices.Count} vertices, {mesh.Indices.Count} indices");
+        }
+    
+        _loadedMeshes[objFilePath] = mesh;
         return mesh;
     }
     

@@ -1,0 +1,9 @@
+# Material file for tetrahedron.obj
+# Contains a simple red material definition
+
+newmtl RedMaterial
+Ka 0.2 0.1 0.1        # Ambient color
+Kd 0.8 0.2 0.2        # Diffuse color
+Ks 1.0 0.5 0.5        # Specular color
+Ns 32.0               # Shininess
+d 1.0                 # Opacity (1.0 = fully opaque)
