@@ -6,7 +6,6 @@ public static class MeshFactory
 {
     private static readonly Dictionary<string, Mesh> _loadedMeshes = new();
     
-    // In MeshFactory.cs
     public static Mesh Create(string objFilePath)
     {
         // Check if we've already loaded this mesh
@@ -26,6 +25,7 @@ public static class MeshFactory
         }
     
         _loadedMeshes[objFilePath] = mesh;
+
         return mesh;
     }
     
