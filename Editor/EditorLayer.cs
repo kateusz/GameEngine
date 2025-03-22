@@ -471,6 +471,8 @@ public class EditorLayer : Layer
     
     private void SaveScene()
     {
+        var currentDirectory = Environment.CurrentDirectory;
+        _editorScenePath = Path.Combine(currentDirectory, "assets", "objModels", "scene.scene");
         if (!string.IsNullOrWhiteSpace(_editorScenePath))
             SceneSerializer.Serialize(_activeScene, _editorScenePath);
     }
