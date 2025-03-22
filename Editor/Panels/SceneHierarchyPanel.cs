@@ -452,10 +452,14 @@ public class SceneHierarchyPanel
     {
         // In a real implementation, you'd use a file dialog here
         // For now, we'll use a hardcoded path for demonstration
-        string objPath = "assets/obj/al.obj";
+        //string objPath = "assets/obj/cube.model";
+        //string objPath = "assets/obj/tetrahedron.obj";
+        string objPath = "assets/obj/torus.obj";
         if (File.Exists(objPath))
         {
-            meshComponent.Mesh = MeshFactory.Create(objPath);
+            var mesh = MeshFactory.Create(objPath);
+            mesh.Initialize();
+            meshComponent.SetMesh(mesh);
         }
     }
 
@@ -476,7 +480,9 @@ public class SceneHierarchyPanel
                 if (path is not null && path.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
                 {
                     string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
-                    meshComponent.Mesh = MeshFactory.Create(fullPath);
+                    var mesh = MeshFactory.Create(fullPath);
+                    mesh.Initialize();
+                    meshComponent.SetMesh(mesh);
                 }
             }
             ImGui.EndDragDropTarget();

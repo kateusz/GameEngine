@@ -30,6 +30,7 @@ public class Mesh
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
     public Texture2D DiffuseTexture { get; set; }
+    public List<Texture2D> Textures { get; set; }
     
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
@@ -46,8 +47,9 @@ public class Mesh
     public Mesh(string name = "Unnamed")
     {
         Name = name;
-        Vertices = new List<Vertex>();
-        Indices = new List<uint>();
+        Vertices = [];
+        Indices = [];
+        Textures = [];
         DiffuseTexture = TextureFactory.Create(1, 1); // Default white texture
     }
 

@@ -18,7 +18,14 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     ~SilkNetVertexBuffer()
     {
-        SilkNetContext.GL.DeleteBuffer(_rendererId);
+        try
+        {
+            SilkNetContext.GL.DeleteBuffer(_rendererId);
+        }
+        catch (Exception e)
+        {
+            // todo: 
+        }
     }
 
     public void SetLayout(BufferLayout layout)

@@ -15,11 +15,11 @@ public static class MeshFactory
         }
         
         // Load the mesh
-        // TODO: here create mesh from obj file (assimp)
-        //var mesh = ObjLoader.LoadObj(objFilePath);
-        //_loadedMeshes[objFilePath] = mesh;
+        var model = new Model(objFilePath);
+        var mesh = model.Meshes.First();
+        _loadedMeshes[objFilePath] = mesh; // todo check when there could be more than one
         
-        return null;
+        return mesh;
     }
     
     public static Mesh CreateCube()
