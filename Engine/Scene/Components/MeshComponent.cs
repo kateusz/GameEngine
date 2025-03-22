@@ -18,4 +18,6 @@ public class MeshComponent : Component
     {
         Mesh = mesh;
     }
+
+    public void SetMesh(Mesh mesh) => Mesh = mesh;
 }
