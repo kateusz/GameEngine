@@ -115,25 +115,25 @@
       <None Update="assets\obj\person.obj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\base.obj">
+      <None Update="assets\objModels\base.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\objModels\cube.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\person.obj">
+      <None Update="assets\objModels\person.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\objModels\tetrahedron.mtl">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\tetrahedron.obj">
+      <None Update="assets\objModels\tetrahedron.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\objModels\torus.mtl">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\torus.obj">
+      <None Update="assets\objModels\torus.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

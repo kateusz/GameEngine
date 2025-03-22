@@ -453,9 +453,9 @@ public class SceneHierarchyPanel
         // In a real implementation, you'd use a file dialog here
         // For now, we'll use a hardcoded path for demonstration
         //string objPath = "assets/objModels/cube.model";
-        //string objPath = "assets/objModels/tetrahedron.obj";
-        //string objPath = "assets/objModels/torus.obj";
-        string objPath = "assets/objModels/person.obj";
+        //string objPath = "assets/objModels/tetrahedron.model";
+        //string objPath = "assets/objModels/torus.model";
+        string objPath = "assets/objModels/person.model";
         if (File.Exists(objPath))
         {
             var mesh = MeshFactory.Create(objPath);

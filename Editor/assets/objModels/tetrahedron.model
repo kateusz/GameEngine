@@ -1,0 +1,35 @@
+# Tetrahedron (3D triangle pyramid) rotated 45 degrees around X-axis
+# Created for testing OBJ file loading
+mtllib tetrahedron.mtl
+
+# Vertices (rotated 45 degrees around X axis)
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 0.5 0.612 0.612
+v 0.5 -0.342 0.812
+
+# Texture coordinates (unchanged)
+vt 0.0 0.0
+vt 1.0 0.0
+vt 0.5 1.0
+vt 0.0 0.5
+vt 1.0 0.5
+vt 0.5 0.0
+
+# Vertex normals (rotated 45 degrees around X axis)
+vn 0.0 0.7071 -0.7071
+vn 0.0 -0.985 -0.169
+vn 0.7071 -0.119 0.697
+vn -0.7071 -0.119 0.697
+
+# Material
+usemtl RedMaterial
+
+# Faces (format: vertex/texture/normal)
+# Base triangle
+f 1/1/1 2/2/1 3/3/1
+
+# Side triangles
+f 1/4/2 2/5/2 4/6/2
+f 2/4/3 3/5/3 4/6/3
+f 3/4/4 1/5/4 4/6/4
