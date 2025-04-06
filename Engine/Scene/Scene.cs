@@ -18,6 +18,8 @@ public class Scene
     private uint _viewportWidth;
     private uint _viewportHeight;
     private World _physicsWorld;
+    
+    public Skybox? Skybox { get; set; }
 
     public Scene(string path)
     {
@@ -161,6 +163,8 @@ public class Scene
     
     if (mainCamera != null)
     {
+        Skybox?.Render(mainCamera);
+        
         // Render 3D (new code)
         Render3D(mainCamera, cameraTransform);
         
@@ -181,6 +185,13 @@ public class Scene
 
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
+        var group = Context.Instance.View<SkyboxComponent>();
+        foreach (var (entity, skyboxComponent) in group)
+        {
+            Skybox = skyboxComponent.Skybox;
+            Skybox?.Render(camera);
+        }
+        
         // First render 3D objects
         Renderer3D.Instance.BeginScene(camera);
     

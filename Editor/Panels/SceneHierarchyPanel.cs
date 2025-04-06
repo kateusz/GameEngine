@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
 using Engine.Math;
+using Engine.Renderer;
 using Engine.Renderer.Models;
 using Engine.Renderer.Textures;
 using Engine.Scene;
@@ -167,7 +168,15 @@ public class SceneHierarchyPanel
                 }
             }
 
-
+            if (!_selectionContext.HasComponent<SkyboxComponent>())
+            {
+                if (ImGui.MenuItem("Skybox"))
+                {
+                    _selectionContext.AddComponent<SkyboxComponent>();
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+            
             ImGui.EndPopup();
         }
 
@@ -546,6 +555,34 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
         modelRendererComponent.ReceiveShadows = receiveShadows;
     }
 });
+
+        DrawComponent<SkyboxComponent>("Skybox", _selectionContext, skyboxComponent =>
+        {
+            bool hasSkybox = skyboxComponent.Skybox != null;
+            if (ImGui.Button(hasSkybox ? "Change Skybox" : "Load Skybox"))
+            {
+                // In a real implementation, you would show a file dialog here
+                // For now, we'll just use hardcoded paths as an example
+                string skyboxDir = "assets/textures/skybox";
+                
+                try
+                {
+                    var skybox = SkyboxFactory.CreateFromDirectory(skyboxDir);
+                    skyboxComponent.SetSkybox(skybox);
+                }
+                catch (Exception ex)
+                {
+                    // Log the error or show an error message
+                    Console.WriteLine($"Failed to load skybox: {ex.Message}");
+                }
+            }
+            
+            if (hasSkybox && ImGui.Button("Remove Skybox"))
+            {
+                skyboxComponent.Skybox?.Dispose();
+                skyboxComponent.Skybox = null;
+            }
+        });
 
         ImGui.End();
     }
