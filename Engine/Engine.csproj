@@ -10,6 +10,9 @@
 
     <ItemGroup>
         <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha" />
+        <PackageReference Include="CSharpFunctionalExtensions" Version="3.6.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.13.0" />
         <PackageReference Include="NLog" Version="5.3.4" />
         <PackageReference Include="NLog.Extensions.Logging" Version="5.3.14" />
         <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />

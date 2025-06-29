@@ -88,12 +88,6 @@
       <None Update="assets\shaders\OpenGL\lineShader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\phong.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets\shaders\OpenGL\phong.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
       <None Update="assets\obj\cube.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
@@ -157,10 +151,10 @@
       <None Update="assets\textures\skybox\top.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\skybox.frag">
+      <None Update="assets\shaders\OpenGL\phong.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\skybox.vert">
+      <None Update="assets\shaders\OpenGL\phong.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

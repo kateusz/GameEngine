@@ -12,6 +12,7 @@ using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
 using ImGuiNET;
 using NLog;
 using Silk.NET.GLFW;
@@ -70,6 +71,8 @@ public class EditorLayer : Layer
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
         _contentBrowserPanel = new ContentBrowserPanel();
+        
+        ScriptEngine.Instance.Initialize(_activeScene);
     }
 
     private void EntitySelected(Entity entity)
@@ -115,6 +118,7 @@ public class EditorLayer : Layer
                     _orthographicCameraController.OnUpdate(timeSpan);
                 _editorCamera.OnUpdate(mousePos);
                 _activeScene.OnUpdateEditor(timeSpan, _editorCamera);
+                ScriptEngine.Instance.Update(timeSpan);
                 break;
             }
             case SceneState.Play:
@@ -157,6 +161,7 @@ public class EditorLayer : Layer
         if (_sceneState == SceneState.Edit)
         {
             _editorCamera.OnEvent(@event);
+            ScriptEngine.Instance.ProcessEvent(@event);
         }
 
         if (@event is KeyPressedEvent keyPressedEvent)
@@ -489,6 +494,9 @@ public class EditorLayer : Layer
         _sceneState = SceneState.Edit;
         _activeScene.OnRuntimeStop();
         _sceneHierarchyPanel.SetContext(_activeScene);
+        
+        // Reinitialize ScriptEngine with current scene
+        ScriptEngine.Instance.Initialize(_activeScene);
     }
 
     private void OnDuplicateEntity()

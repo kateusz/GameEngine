@@ -71,6 +71,9 @@ public class SceneHierarchyPanel
         ImGui.Begin("Properties");
         DrawComponents();
         ImGui.End();
+        
+        // Render script component UI
+        ScriptComponentUI.Render();
     }
 
     private void DrawComponents()
@@ -167,15 +170,16 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
-
-            if (!_selectionContext.HasComponent<SkyboxComponent>())
+            
+            if (!_selectionContext.HasComponent<NativeScriptComponent>())
             {
-                if (ImGui.MenuItem("Skybox"))
+                if (ImGui.MenuItem("Script"))
                 {
-                    _selectionContext.AddComponent<SkyboxComponent>();
+                    _selectionContext.AddComponent<NativeScriptComponent>();
                     ImGui.CloseCurrentPopup();
                 }
             }
+            
             
             ImGui.EndPopup();
         }
@@ -500,8 +504,6 @@ public class SceneHierarchyPanel
     }
 });
 
-// Add this DrawComponent method for ModelRendererComponent
-
 DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, modelRendererComponent =>
 {
     var newColor = modelRendererComponent.Color;
@@ -556,33 +558,7 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
     }
 });
 
-        DrawComponent<SkyboxComponent>("Skybox", _selectionContext, skyboxComponent =>
-        {
-            bool hasSkybox = skyboxComponent.Skybox != null;
-            if (ImGui.Button(hasSkybox ? "Change Skybox" : "Load Skybox"))
-            {
-                // In a real implementation, you would show a file dialog here
-                // For now, we'll just use hardcoded paths as an example
-                string skyboxDir = "assets/textures/skybox";
-                
-                try
-                {
-                    var skybox = SkyboxFactory.CreateFromDirectory(skyboxDir);
-                    skyboxComponent.SetSkybox(skybox);
-                }
-                catch (Exception ex)
-                {
-                    // Log the error or show an error message
-                    Console.WriteLine($"Failed to load skybox: {ex.Message}");
-                }
-            }
-            
-            if (hasSkybox && ImGui.Button("Remove Skybox"))
-            {
-                skyboxComponent.Skybox?.Dispose();
-                skyboxComponent.Skybox = null;
-            }
-        });
+        ScriptComponentUI.DrawScriptComponent(_selectionContext);
 
         ImGui.End();
     }
