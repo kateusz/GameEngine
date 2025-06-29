@@ -3,7 +3,7 @@
   "Entities": [
     {
       "Id": 4323,
-      "Name": "Bottom Pipe",
+      "Name": "Pipe",
       "Components": [
         {
           "Translation": [
@@ -32,7 +32,8 @@
           ],
           "Texture": {
             "Width": 533,
-            "Height": 2186
+            "Height": 2186,
+            "Path": null
           },
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
@@ -40,14 +41,6 @@
         {
           "BodyType": "Static",
           "FixedRotation": false,
-          "RuntimeBody": {
-            "Transform": {},
-            "Position": [
-              0,
-              -0.4
-            ],
-            "UserData": null
-          },
           "Name": "RigidBody2DComponent"
         },
         {
@@ -63,13 +56,14 @@
           "Friction": 1,
           "Restitution": 0,
           "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
         }
       ]
     },
     {
       "Id": 1156,
-      "Name": "Top Pipe",
+      "Name": "Pipe",
       "Components": [
         {
           "Translation": [
@@ -98,7 +92,8 @@
           ],
           "Texture": {
             "Width": 533,
-            "Height": 2186
+            "Height": 2186,
+            "Path": null
           },
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
@@ -121,62 +116,7 @@
           "Friction": 1,
           "Restitution": 0,
           "RestitutionThreshold": 0.5,
-          "Name": "BoxCollider2DComponent"
-        }
-      ]
-    },
-    {
-      "Id": 1,
-      "Name": "Floor",
-      "Components": [
-        {
-          "Translation": [
-            0,
-            0,
-            0
-          ],
-          "Rotation": [
-            0,
-            0,
-            0
-          ],
-          "Scale": [
-            171.34,
-            0.06,
-            1
-          ],
-          "Name": "TransformComponent"
-        },
-        {
-          "Color": [
-            0,
-            0,
-            0,
-            0
-          ],
-          "Texture": null,
-          "TilingFactor": 1,
-          "Name": "SpriteRendererComponent"
-        },
-        {
-          "BodyType": "Static",
-          "FixedRotation": false,
-          
-          "Name": "RigidBody2DComponent"
-        },
-        {
-          "Size": [
-            0.5,
-            0.5
-          ],
-          "Offset": [
-            0,
-            0
-          ],
-          "Density": 0,
-          "Friction": 0.4,
-          "Restitution": 0,
-          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
         }
       ]
@@ -188,7 +128,7 @@
         {
           "Translation": [
             -0.00038168248,
-            3.3149989,
+            4.7149989,
             0
           ],
           "Rotation": [
@@ -212,7 +152,8 @@
           ],
           "Texture": {
             "Width": 446,
-            "Height": 520
+            "Height": 520,
+            "Path": null
           },
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
@@ -220,7 +161,6 @@
         {
           "BodyType": "Dynamic",
           "FixedRotation": false,
-          
           "Name": "RigidBody2DComponent"
         },
         {
@@ -236,6 +176,7 @@
           "Friction": 0,
           "Restitution": 0,
           "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
         }
       ]
@@ -284,6 +225,54 @@
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": 9376,
+      "Name": "Game Manager",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        }
+      ]
+    },
+    {
+      "Id": 9200,
+      "Name": "Pipe Spawner",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
         }
       ]
     }

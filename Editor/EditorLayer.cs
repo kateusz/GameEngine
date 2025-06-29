@@ -118,7 +118,9 @@ public class EditorLayer : Layer
                     _orthographicCameraController.OnUpdate(timeSpan);
                 _editorCamera.OnUpdate(mousePos);
                 _activeScene.OnUpdateEditor(timeSpan, _editorCamera);
-                ScriptEngine.Instance.Update(timeSpan);
+                
+                // should it be called here?
+                //ScriptEngine.Instance.Update(timeSpan);
                 break;
             }
             case SceneState.Play:
@@ -480,7 +482,7 @@ public class EditorLayer : Layer
     private void SaveScene()
     {
         var currentDirectory = Environment.CurrentDirectory;
-        _editorScenePath = Path.Combine(currentDirectory, "assets", "objModels", "scene.scene");
+        _editorScenePath = Path.Combine(currentDirectory, "assets", "scenes", "scene.scene");
         if (!string.IsNullOrWhiteSpace(_editorScenePath))
             SceneSerializer.Serialize(_activeScene, _editorScenePath);
     }
