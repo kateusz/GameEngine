@@ -1,6 +1,5 @@
 using System.Reflection;
 using CSharpFunctionalExtensions;
-using ECS;
 using Engine.Core.Input;
 using Engine.Events;
 using Engine.Scene;
@@ -8,7 +7,6 @@ using Engine.Scene.Components;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using NLog;
-using Entity = ECS.Entity;
 using GameScene = Engine.Scene.Scene;
 
 namespace Engine.Scripting;
@@ -100,7 +98,7 @@ public class ScriptEngine
                 switch (@event)
                 {
                     case KeyPressedEvent kpe:
-                        scriptComponent.ScriptableEntity.OnKeyPressed((KeyCodes)kpe.KeyCode);
+                            scriptComponent.ScriptableEntity.OnKeyPressed((KeyCodes)kpe.KeyCode);
                         break;
                     case MouseButtonPressedEvent mbpe:
                         scriptComponent.ScriptableEntity.OnMouseButtonPressed(mbpe.Button);
@@ -311,7 +309,8 @@ public class ScriptEngine
         try
         {
             // Get required references
-            var references = GetMetadataReferences();
+            //var references = GetMetadataReferences();
+            var references = GetReferencesFromRuntimeDirectory();
                 
             // Create compilation
             var compilationOptions = new CSharpCompilationOptions(
@@ -324,10 +323,33 @@ public class ScriptEngine
                 syntaxTrees,
                 references,
                 compilationOptions);
-                
+            
+            // CHECK DIAGNOSTICS BEFORE EMITTING - This is crucial!
+            var preEmitDiagnostics = compilation.GetDiagnostics();
+            Console.WriteLine($"=== PRE-EMIT DIAGNOSTICS ({preEmitDiagnostics.Length}) ===");
+        
+            foreach (var diagnostic in preEmitDiagnostics)
+            {
+                Console.WriteLine($"{diagnostic.Severity}: {diagnostic.GetMessage()}");
+                Console.WriteLine($"  Location: {diagnostic.Location}");
+                Console.WriteLine($"  Id: {diagnostic.Id}");
+                Console.WriteLine();
+            }
+            
             // Emit to memory
             using var ms = new MemoryStream();
             var emitResult = compilation.Emit(ms);
+            
+            Console.WriteLine($"=== EMIT RESULT: {emitResult.Success} ===");
+        
+            if (!emitResult.Success)
+            {
+                Console.WriteLine("=== EMIT DIAGNOSTICS ===");
+                foreach (var diagnostic in emitResult.Diagnostics)
+                {
+                    Console.WriteLine($"{diagnostic.Severity}: {diagnostic.GetMessage()}");
+                }
+            }
                 
             if (emitResult.Success)
             {
@@ -363,31 +385,86 @@ public class ScriptEngine
             return (false, [ex.Message]);
         }
     }
-
-    private MetadataReference[] GetMetadataReferences()
+    
+    private MetadataReference[] GetReferencesFromRuntimeDirectory()
     {
-        var references = new List<MetadataReference>
+        Console.WriteLine("=== LOADING FROM RUNTIME DIRECTORY ===");
+        var references = new List<MetadataReference>();
+        
+        try
         {
-            // Add core assemblies
-            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(System.Runtime.CompilerServices.RuntimeHelpers).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
-            // Add engine assemblies
-            MetadataReference.CreateFromFile(typeof(Entity).Assembly.Location), // ECS
-            MetadataReference.CreateFromFile(typeof(Component).Assembly.Location), // ECS
-            MetadataReference.CreateFromFile(typeof(GameScene).Assembly.Location), // Engine.Scene
-            MetadataReference.CreateFromFile(typeof(ScriptableEntity).Assembly.Location), // Engine
-            MetadataReference.CreateFromFile(typeof(TransformComponent).Assembly.Location), // Engine components
-            MetadataReference.CreateFromFile(typeof(NativeScriptComponent).Assembly.Location), // Engine components
-            MetadataReference.CreateFromFile(typeof(KeyCodes).Assembly.Location), // Engine.Core.Input
-            MetadataReference.CreateFromFile(typeof(Event).Assembly.Location), // Engine.Events
-            // Numerics for Vector3, etc.
-            MetadataReference.CreateFromFile(typeof(System.Numerics.Vector3).Assembly.Location)
-        };
-
-        return references.Distinct().ToArray();
+            var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
+            Console.WriteLine($"Runtime directory: {runtimeDir}");
+            
+            // Essential .NET 8 assemblies
+            var essentialAssemblies = new[]
+            {
+                "System.Private.CoreLib.dll",
+                "System.Runtime.dll",
+                "System.Collections.dll",
+                "System.Console.dll",
+                "System.Linq.dll",
+                "System.Numerics.dll",           // Basic numerics
+                "System.Numerics.Vectors.dll",   // Vector3, Vector4, etc. - CRITICAL!
+                "netstandard.dll",
+                "mscorlib.dll",
+                "System.Collections.Concurrent.dll",
+                "System.Collections.dll"
+            };
+            
+            foreach (var assemblyName in essentialAssemblies)
+            {
+                var path = Path.Combine(runtimeDir, assemblyName);
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        references.Add(MetadataReference.CreateFromFile(path));
+                        Console.WriteLine($"✅ Added: {assemblyName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"❌ Error adding {assemblyName}: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"❌ Missing: {assemblyName}");
+                }
+            }
+            
+            // Add engine assemblies from loaded assemblies
+            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                .ToArray();
+            
+            foreach (var assembly in loadedAssemblies)
+            {
+                var name = assembly.GetName().Name;
+                if (name.StartsWith("Engine") || name.StartsWith("ECS") || name.StartsWith("Editor"))
+                {
+                    try
+                    {
+                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                        Console.WriteLine($"✅ Added engine: {name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"❌ Error adding engine {name}: {ex.Message}");
+                    }
+                }
+            }
+            
+            references.Add(MetadataReference.CreateFromFile(Path.Combine(Environment.CurrentDirectory,  "Box2D.NetStandard.dll")));
+            Console.WriteLine("✅ Added Box2d");
+            
+            return references.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error loading from runtime directory: {ex}");
+            throw;
+        }
     }
         
     // Creates a default script template for a new script

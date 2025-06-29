@@ -163,4 +163,40 @@
       <Content Include="bin\Debug\net8.0\assets\scenes\Physics2D.scene" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="assets\scripts\CameraFollow.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdController.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\CameraFollow.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdController.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\CameraFollow.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdController.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\FlappyBirdGameManager.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+      <Compile Update="assets\scripts\PipeSpawner.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
+    </ItemGroup>
+
 </Project>

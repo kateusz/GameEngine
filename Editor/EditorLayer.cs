@@ -161,6 +161,9 @@ public class EditorLayer : Layer
         if (_sceneState == SceneState.Edit)
         {
             _editorCamera.OnEvent(@event);
+        }
+        else
+        {
             ScriptEngine.Instance.ProcessEvent(@event);
         }
 

@@ -11,5 +11,5 @@ public class BoxCollider2DComponent : Component
     public float Friction { get; set; } = 0.5f;
     public float Restitution { get; set; } = 0.0f;
     public float RestitutionThreshold { get; set; } = 0.5f;
-    
+    public bool IsTrigger { get; set; } = false;
 }

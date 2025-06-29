@@ -17,6 +17,7 @@ public class Scene
     private uint _viewportWidth;
     private uint _viewportHeight;
     private World _physicsWorld;
+    private SceneContactListener _contactListener;
 
     public Scene(string path)
     {
@@ -59,6 +60,10 @@ public class Scene
     public void OnRuntimeStart()
     {
         _physicsWorld = new World(new Vector2(0, -0.81f));
+        
+        _contactListener = new SceneContactListener();
+        _physicsWorld.SetContactListener(_contactListener);
+        
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -73,6 +78,9 @@ public class Scene
 
             var body = _physicsWorld.CreateBody(bodyDef);
             body.SetFixedRotation(component.FixedRotation);
+            
+            body.SetUserData(entity);
+            
             component.RuntimeBody = body;
 
             if (entity.HasComponent<BoxCollider2DComponent>())
@@ -85,7 +93,8 @@ public class Scene
                     shape = shape,
                     density = boxCollider.Density,
                     friction = boxCollider.Friction,
-                    restitution = boxCollider.Restitution
+                    restitution = boxCollider.Restitution,
+                    isSensor = boxCollider.IsTrigger
                 };
 
                 body.CreateFixture(fixtureDef);
@@ -95,7 +104,26 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        
+        // Wyczyść ContactListener
+        if (_physicsWorld != null && _contactListener != null)
+        {
+            _physicsWorld.SetContactListener(null);
+            _contactListener = null;
+        }
+    
+        // Wyczyść UserData z bodies
+        var view = Context.Instance.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            if (component.RuntimeBody != null)
+            {
+                component.RuntimeBody.SetUserData(null);
+                component.RuntimeBody = null;
+            }
+        }
+    
+        // Zniszcz physics world
+        _physicsWorld = null;
     }
 
     public void OnUpdateRuntime(TimeSpan ts)

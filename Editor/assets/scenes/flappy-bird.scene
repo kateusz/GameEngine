@@ -69,7 +69,7 @@
     },
     {
       "Id": 1156,
-      "Name": "Top Pipe\u0000ity",
+      "Name": "Top Pipe",
       "Components": [
         {
           "Translation": [
@@ -183,7 +183,7 @@
     },
     {
       "Id": 2882,
-      "Name": "Bird\u0000a\u0000ntity",
+      "Name": "Bird",
       "Components": [
         {
           "Translation": [
@@ -242,7 +242,7 @@
     },
     {
       "Id": 118,
-      "Name": "Camera\u0000ntity",
+      "Name": "Camera",
       "Components": [
         {
           "Translation": [
