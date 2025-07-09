@@ -117,11 +117,6 @@ public class SceneHierarchyPanel
                 if (ImGui.MenuItem("Camera"))
                 {
                     _selectionContext.AddComponent<CameraComponent>();
-                    _selectionContext.AddComponent(new NativeScriptComponent
-                    {
-                        ScriptableEntity = new CameraController()
-                    });
-                    
                     ImGui.CloseCurrentPopup();
                 }
             }
