@@ -25,6 +25,7 @@ public class FlappyBirdGameManager : ScriptableEntity
     // Component references for other scripts
     private PipeSpawner pipeSpawnerScript;
     private CameraFollow cameraFollowScript;
+    private FlappyBirdController birdScript;
     
     // Debug logging control
     private float debugLogInterval = 2.0f; // Log every 2 seconds during gameplay
@@ -49,6 +50,14 @@ public class FlappyBirdGameManager : ScriptableEntity
             Console.WriteLine($"[DEBUG] Bird entity found: {birdEntity.Name}");
             var birdTransform = birdEntity.GetComponent<TransformComponent>();
             Console.WriteLine($"[DEBUG] Bird initial position: {birdTransform.Translation}");
+            
+            // Get reference to the bird script
+            var birdScriptComponent = birdEntity.GetComponent<NativeScriptComponent>();
+            if (birdScriptComponent?.ScriptableEntity is FlappyBirdController bird)
+            {
+                birdScript = bird;
+                Console.WriteLine("[DEBUG] Connected to FlappyBirdController script");
+            }
         }
         else
         {
@@ -235,9 +244,16 @@ public class FlappyBirdGameManager : ScriptableEntity
         
         Console.WriteLine($"[DEBUG] Game variables reset - Score: {score}, Game Time: {gameTime:F2}");
         
-        // Reset bird position
-        if (birdEntity != null)
+        // Reset bird using the bird script
+        if (birdScript != null)
         {
+            Console.WriteLine("[DEBUG] Resetting bird via bird script");
+            birdScript.ResetBird();
+        }
+        else if (birdEntity != null)
+        {
+            // Fallback: reset bird position manually
+            Console.WriteLine("[DEBUG] Fallback: Resetting bird position manually");
             var transform = birdEntity.GetComponent<TransformComponent>();
             var oldPosition = transform.Translation;
             transform.Translation = new Vector3(-2.0f, 0.0f, 0.0f);
@@ -248,7 +264,7 @@ public class FlappyBirdGameManager : ScriptableEntity
         }
         else
         {
-            Console.WriteLine("[DEBUG] ERROR: Cannot reset bird position - bird entity is null!");
+            Console.WriteLine("[DEBUG] ERROR: Cannot reset bird - no bird entity or script found!");
         }
         
         Console.WriteLine("Game Started!");
@@ -256,21 +272,31 @@ public class FlappyBirdGameManager : ScriptableEntity
     
     private void RestartGame()
     {
-        Console.WriteLine("[DEBUG] RestartGame() called");
+        Console.WriteLine("[DEBUG] ====== GAME RESTART SEQUENCE ======");
         
-        // Clean up existing pipes using the pipe spawner script
+        // Step 1: Clean up existing pipes
+        Console.WriteLine("[DEBUG] Step 1: Cleaning up pipes");
         if (pipeSpawnerScript != null)
         {
             pipeSpawnerScript.DestroyAllPipes();
         }
         else
         {
-            // Fallback cleanup method
             CleanupAllPipes();
         }
         
-        // Reset game state
+        // Step 2: Reset bird 
+        Console.WriteLine("[DEBUG] Step 2: Resetting bird");
+        if (birdScript != null)
+        {
+            birdScript.ResetBird();
+        }
+        
+        // Step 3: Reset game state and start new game
+        Console.WriteLine("[DEBUG] Step 3: Starting new game");
         StartGame();
+        
+        Console.WriteLine("[DEBUG] ====== RESTART SEQUENCE COMPLETE ======");
     }
     
     private void SetGameState(GameState newState)
@@ -278,24 +304,33 @@ public class FlappyBirdGameManager : ScriptableEntity
         GameState oldState = gameState;
         gameState = newState;
         
-        Console.WriteLine($"[DEBUG] Game state transition: {oldState} -> {newState}");
+        Console.WriteLine($"[DEBUG] ====== GAME STATE TRANSITION ======");
+        Console.WriteLine($"[DEBUG] {oldState} -> {newState}");
         
         switch (newState)
         {
             case GameState.Menu:
                 Console.WriteLine("[DEBUG] Entering Menu state");
-                // Game objects will check state and stop automatically
+                Console.WriteLine("[DEBUG] - Camera will stop following");
+                Console.WriteLine("[DEBUG] - Pipes will stop spawning");
+                Console.WriteLine("[DEBUG] - Bird input will be limited");
                 break;
             case GameState.Playing:
                 Console.WriteLine("[DEBUG] Entering Playing state");
-                // Game objects will check state and start automatically
+                Console.WriteLine("[DEBUG] - Camera will follow bird");
+                Console.WriteLine("[DEBUG] - Pipes will spawn and move");
+                Console.WriteLine("[DEBUG] - Bird input will be active");
                 break;
             case GameState.GameOver:
                 Console.WriteLine("[DEBUG] Entering Game Over state");
-                Console.WriteLine($"Game Over! Final Score: {score}");
-                // Game objects will check state and stop automatically
+                Console.WriteLine($"[DEBUG] - Final Score: {score}");
+                Console.WriteLine("[DEBUG] - Camera will freeze");
+                Console.WriteLine("[DEBUG] - Pipes will stop spawning and moving");
+                Console.WriteLine("[DEBUG] - Bird input will be disabled");
+                Console.WriteLine("[DEBUG] - Press R or Space to restart");
                 break;
         }
+        Console.WriteLine("[DEBUG] ====== STATE TRANSITION COMPLETE ======");
     }
     
     private void CheckScoring()
@@ -349,20 +384,30 @@ public class FlappyBirdGameManager : ScriptableEntity
     
     private bool IsBirdDead()
     {
-        // This would be set by the bird controller when collision occurs
-        // For now, just check Y bounds
         if (birdEntity == null) 
         {
             Console.WriteLine("[DEBUG] IsBirdDead check - bird entity is null, returning false");
             return false;
         }
         
+        // First check with the bird script if available
+        if (birdScript != null)
+        {
+            bool scriptSaysDead = birdScript.IsBirdDead();
+            if (scriptSaysDead)
+            {
+                Console.WriteLine("[DEBUG] Bird script reports bird is dead");
+                return true;
+            }
+        }
+        
+        // Also check Y bounds as backup
         var position = birdEntity.GetComponent<TransformComponent>().Translation;
         bool outOfBounds = position.Y < -5.0f || position.Y > 10.0f;
         
         if (outOfBounds && enableDebugLogs)
         {
-            Console.WriteLine($"[DEBUG] Bird death detected - Position Y: {position.Y:F2}, Bounds: [-5.0, 10.0]");
+            Console.WriteLine($"[DEBUG] Bird death detected via bounds - Position Y: {position.Y:F2}, Bounds: [-5.0, 10.0]");
         }
         
         return outOfBounds;
@@ -463,8 +508,18 @@ public class FlappyBirdGameManager : ScriptableEntity
     // Method to trigger game over from external scripts (like bird controller)
     public void TriggerGameOver()
     {
-        Console.WriteLine("[DEBUG] Game Over triggered by external script");
+        if (gameState == GameState.GameOver)
+        {
+            Console.WriteLine("[DEBUG] Game Over already triggered, ignoring duplicate call");
+            return;
+        }
+        
+        Console.WriteLine("[DEBUG] ====== GAME OVER TRIGGERED ======");
+        Console.WriteLine($"[DEBUG] Previous state: {gameState}");
+        Console.WriteLine($"[DEBUG] Final score: {score}");
+        Console.WriteLine($"[DEBUG] Game time: {gameTime:F2} seconds");
         SetGameState(GameState.GameOver);
+        Console.WriteLine("[DEBUG] ====== GAME OVER SEQUENCE COMPLETE ======");
     }
     
     // Method to increment score from external scripts
