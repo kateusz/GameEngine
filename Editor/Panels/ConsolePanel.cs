@@ -13,7 +13,6 @@ public class ConsolePanel
     private readonly ConsoleTextWriter _consoleWriter;
     private readonly TextWriter _originalOut;
     private readonly TextWriter _originalError;
-    private bool _showTimestamps = true;
     private bool _showInfo = true;
     private bool _showWarnings = true;
     private bool _showErrors = true;
@@ -79,11 +78,6 @@ public class ConsolePanel
         
         // Auto-scroll checkbox
         ImGui.Checkbox("Auto-scroll", ref _autoScroll);
-
-        ImGui.SameLine();
-        
-        // Timestamps checkbox
-        ImGui.Checkbox("Timestamps", ref _showTimestamps);
 
         // Filter controls
         ImGui.SameLine();
@@ -166,10 +160,8 @@ public class ConsolePanel
 
         ImGui.PushStyleColor(ImGuiCol.Text, color);
 
-        // Format message with timestamp if enabled
-        var displayText = _showTimestamps 
-            ? $"[{message.Timestamp:HH:mm:ss}] {message.Text}"
-            : message.Text;
+        // Display only the message text, no timestamp
+        var displayText = message.Text;
 
         ImGui.TextUnformatted(displayText);
         

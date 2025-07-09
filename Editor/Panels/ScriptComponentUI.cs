@@ -39,18 +39,34 @@ public static class ScriptComponentUI
             if (script != null)
             {
                 var scriptType = script.GetType();
+                // Begin a horizontal layout for script name and buttons
+                ImGui.BeginGroup();
                 ImGui.Text($"Script: {scriptType.Name}");
-                    
-                // Edit button
-                ImGui.SameLine(ImGui.GetContentRegionAvail().X - 160);
-                if (ImGui.Button("Edit##Script", new Vector2(60, 0)))
+                ImGui.EndGroup();
+
+                // Calculate button widths
+                float buttonWidth = 60.0f;
+                float removeButtonWidth = 80.0f;
+                float spacing = 8.0f;
+                float totalButtonWidth = buttonWidth + spacing + removeButtonWidth;
+                float regionWidth = ImGui.GetContentRegionAvail().X;
+                float cursorPosX = ImGui.GetCursorPosX();
+                float textWidth = ImGui.CalcTextSize($"Script: {scriptType.Name}").X;
+                float rightAlign = regionWidth - totalButtonWidth;
+                if (rightAlign > textWidth + spacing)
+                {
+                    ImGui.SameLine(cursorPosX + rightAlign);
+                }
+                else
+                {
+                    ImGui.SameLine();
+                }
+                if (ImGui.Button("Edit##Script", new Vector2(buttonWidth, 0)))
                 {
                     ScriptEditor.Open(scriptType.Name);
                 }
-                    
-                // Remove button
                 ImGui.SameLine();
-                if (ImGui.Button("Remove##Script", new Vector2(80, 0)))
+                if (ImGui.Button("Remove##Script", new Vector2(removeButtonWidth, 0)))
                 {
                     entity.RemoveComponent<NativeScriptComponent>();
                 }
