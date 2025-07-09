@@ -39,36 +39,20 @@ public static class ScriptComponentUI
             if (script != null)
             {
                 var scriptType = script.GetType();
-                // Begin a horizontal layout for script name and buttons
-                ImGui.BeginGroup();
                 ImGui.Text($"Script: {scriptType.Name}");
-                ImGui.EndGroup();
 
-                // Calculate button widths
-                float buttonWidth = 60.0f;
-                float removeButtonWidth = 80.0f;
-                float spacing = 8.0f;
-                float totalButtonWidth = buttonWidth + spacing + removeButtonWidth;
-                float regionWidth = ImGui.GetContentRegionAvail().X;
-                float cursorPosX = ImGui.GetCursorPosX();
-                float textWidth = ImGui.CalcTextSize($"Script: {scriptType.Name}").X;
-                float rightAlign = regionWidth - totalButtonWidth;
-                if (rightAlign > textWidth + spacing)
+                // Right-click context menu for the script label
+                if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
                 {
-                    ImGui.SameLine(cursorPosX + rightAlign);
-                }
-                else
-                {
-                    ImGui.SameLine();
-                }
-                if (ImGui.Button("Edit##Script", new Vector2(buttonWidth, 0)))
-                {
-                    ScriptEditor.Open(scriptType.Name);
-                }
-                ImGui.SameLine();
-                if (ImGui.Button("Remove##Script", new Vector2(removeButtonWidth, 0)))
-                {
-                    entity.RemoveComponent<NativeScriptComponent>();
+                    if (ImGui.MenuItem("Edit"))
+                    {
+                        ScriptEditor.Open(scriptType.Name);
+                    }
+                    if (ImGui.MenuItem("Remove"))
+                    {
+                        entity.RemoveComponent<NativeScriptComponent>();
+                    }
+                    ImGui.EndPopup();
                 }
             }
             else

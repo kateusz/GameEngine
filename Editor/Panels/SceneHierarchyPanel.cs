@@ -89,16 +89,24 @@ public class SceneHierarchyPanel
         byte[] tagBytes = System.Text.Encoding.UTF8.GetBytes(tag);
         Array.Copy(tagBytes, buffer, Math.Min(tagBytes.Length, buffer.Length - 1));
 
-        if (ImGui.InputText("Tag", buffer, (uint)buffer.Length))
+        // Use two columns for label and input
+        ImGui.Columns(2, "tag_columns", false);
+        ImGui.SetColumnWidth(0, 60.0f); // Label column width
+        ImGui.Text("Tag");
+        ImGui.NextColumn();
+        ImGui.PushItemWidth(-1);
+        if (ImGui.InputText("##TagInput", buffer, (uint)buffer.Length))
         {
             // Convert byte[] buffer back to string
             tag = System.Text.Encoding.UTF8.GetString(buffer).TrimEnd('\0');
             _selectionContext.Name = tag; // Update entity's name if needed
         }
+        ImGui.PopItemWidth();
+        ImGui.Columns(1);
 
-        ImGui.SameLine();
-        ImGui.PushItemWidth(-1);
-
+        // Add some vertical spacing
+        ImGui.Spacing();
+        
         if (ImGui.Button("Add Component"))
             ImGui.OpenPopup("AddComponent");
 
