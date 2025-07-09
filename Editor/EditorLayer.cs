@@ -438,27 +438,6 @@ public class EditorLayer : Layer
                 ImGui.End();
             }
 
-            // Gizmo
-            var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-            if (selectedEntity != null)
-            {
-                // Camera
-                var cameraEntity = _activeScene.GetPrimaryCameraEntity();
-                if (cameraEntity != null)
-                {
-                    var cameraComponent = cameraEntity.GetComponent<CameraComponent>();
-                    var camera = cameraComponent.Camera;
-                    var cameraProjection = camera.Projection;
-
-                    Matrix4x4.Invert(cameraEntity.GetComponent<TransformComponent>().GetTransform(),
-                        out var cameraView);
-
-                    // Entity transform
-                    var transformComponent = selectedEntity.GetComponent<TransformComponent>();
-                    var transform = transformComponent.GetTransform();
-                }
-            }
-
             ImGui.End();
             ImGui.PopStyleVar();
 

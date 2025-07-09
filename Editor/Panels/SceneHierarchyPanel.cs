@@ -555,17 +555,10 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
             ImGui.PopStyleVar();
 
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-            if (ImGui.Button("+", new Vector2(lineHeight, lineHeight)))
+            if (ImGui.Button("-", new Vector2(lineHeight, lineHeight)))
             {
-                ImGui.OpenPopup("ComponentSettings");
-            }
-
-            bool removeComponent = false;
-            if (ImGui.BeginPopup("ComponentSettings"))
-            {
-                if (ImGui.MenuItem("Remove component"))
-                    removeComponent = true;
-                ImGui.EndPopup();
+                entity.RemoveComponent<T>();
+                return;
             }
 
             if (open)
@@ -573,21 +566,7 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
                 uiFunction(component);
                 ImGui.TreePop();
             }
-
-            if (removeComponent)
-                entity.RemoveComponent<T>();
         }
-    }
-
-    // Helper for two-column property row
-    public static void DrawPropertyRow(string label, Action inputControl)
-    {
-        ImGui.Columns(2);
-        ImGui.Text(label);
-        ImGui.NextColumn();
-        ImGui.SetNextItemWidth(-1);
-        inputControl();
-        ImGui.Columns(1);
     }
 
     public void SetSelectedEntity(Entity entity)

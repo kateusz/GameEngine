@@ -345,17 +345,10 @@ public static class ScriptComponentUI
             ImGui.PopStyleVar();
 
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-            if (ImGui.Button("+", new Vector2(lineHeight, lineHeight)))
+            if (ImGui.Button("-", new Vector2(lineHeight, lineHeight)))
             {
-                ImGui.OpenPopup("ComponentSettings");
-            }
-
-            bool removeComponent = false;
-            if (ImGui.BeginPopup("ComponentSettings"))
-            {
-                if (ImGui.MenuItem("Remove component"))
-                    removeComponent = true;
-                ImGui.EndPopup();
+                entity.RemoveComponent<T>();
+                return;
             }
 
             if (open)
@@ -363,9 +356,6 @@ public static class ScriptComponentUI
                 uiFunction(component);
                 ImGui.TreePop();
             }
-
-            if (removeComponent)
-                entity.RemoveComponent<T>();
         }
         else
         {
