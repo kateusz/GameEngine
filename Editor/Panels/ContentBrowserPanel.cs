@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Renderer.Textures;
@@ -11,6 +12,7 @@ public class ContentBrowserPanel
     private string _currentDirectory;
     private readonly Texture2D _directoryIcon;
     private readonly Texture2D _fileIcon;
+    private readonly Dictionary<string, Texture2D> _imageCache = new();
 
     public ContentBrowserPanel()
     {
@@ -59,15 +61,30 @@ public class ContentBrowserPanel
             var filenameString = info.Name;
             ImGui.PushID(filenameString);
             
-            // Replace it with this:
             Texture2D icon;
+            bool isImage = false;
             if (isDirectory)
             {
                 icon = _directoryIcon;
             }
+            else if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+            {
+                isImage = true;
+                if (!_imageCache.TryGetValue(entry, out icon))
+                {
+                    try
+                    {
+                        icon = TextureFactory.Create(entry);
+                        _imageCache[entry] = icon;
+                    }
+                    catch
+                    {
+                        icon = _fileIcon;
+                    }
+                }
+            }
             else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
             {
-                // You could create a specific model icon, but for simplicity we'll use the same file icon
                 icon = _fileIcon;
             }
             else
@@ -80,12 +97,8 @@ public class ContentBrowserPanel
             
             if (ImGui.BeginDragDropSource())
             {
-                // Convert the relativePath string to a pointer (wide character format)
-                IntPtr itemPathPtr = Marshal.StringToHGlobalUni(relativePath);  // Convert C# string to wchar_t* (IntPtr)
-
-                // Calculate size in bytes, including the null terminator
-                var itemPathSize = (relativePath.Length + 1) * sizeof(char);  // wchar_t is 2 bytes in C#
-                
+                IntPtr itemPathPtr = Marshal.StringToHGlobalUni(relativePath);
+                var itemPathSize = (relativePath.Length + 1) * sizeof(char);
                 ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPathPtr, (uint)itemPathSize);
                 ImGui.EndDragDropSource();
             }
@@ -98,7 +111,6 @@ public class ContentBrowserPanel
             }
             
             ImGui.TextWrapped(filenameString);
-
             ImGui.NextColumn();
             
             ImGui.PopID();
