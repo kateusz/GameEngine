@@ -32,6 +32,7 @@ public class SceneHierarchyPanel
 
     public void OnImGuiRender()
     {
+        ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");
 
         foreach (var entity in _context.Entities)
@@ -67,6 +68,7 @@ public class SceneHierarchyPanel
 
         ImGui.End();
 
+        ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Properties");
         DrawComponents();
         ImGui.End();

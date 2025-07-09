@@ -40,6 +40,8 @@ public class EditorLayer : Layer
     private Texture2D _iconStop;
     private SceneState _sceneState;
     private string? _editorScenePath;
+    private Vector4 _backgroundColor = new Vector4(0.1f, 0.1f, 0.1f, 1.0f);
+    private bool _showSettings = false;
 
     public EditorLayer(string name) : base(name)
     {
@@ -110,8 +112,7 @@ public class EditorLayer : Layer
         Renderer2D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        //RendererCommand.SetClearColor(new Vector4(255, 255, 255f, 1.0f));
+        RendererCommand.SetClearColor(_backgroundColor);
         RendererCommand.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
@@ -302,13 +303,9 @@ public class EditorLayer : Layer
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
             var style = ImGui.GetStyle();
-            var minWinSizeX = style.WindowMinSize.X;
-            style.WindowMinSize.X = 370.0f;
 
             var dockspaceId = ImGui.GetID("MyDockSpace");
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
-
-            style.WindowMinSize.X = minWinSizeX;
 
             if (ImGui.BeginMenuBar())
             {
@@ -334,11 +331,25 @@ public class EditorLayer : Layer
                 {
                     if (ImGui.MenuItem("Clear Console"))
                         _consolePanel.Clear();
-                    
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Settings"))
+                {
+                    if (ImGui.MenuItem("Editor Settings"))
+                        _showSettings = true;
                     ImGui.EndMenu();
                 }
 
                 ImGui.EndMenuBar();
+            }
+
+            if (_showSettings)
+            {
+                ImGui.Begin("Editor Settings", ref _showSettings, ImGuiWindowFlags.AlwaysAutoResize);
+                ImGui.Text("Editor Background Color");
+                ImGui.ColorEdit4("Background Color", ref _backgroundColor);
+                ImGui.End();
             }
 
             _sceneHierarchyPanel.OnImGuiRender();
