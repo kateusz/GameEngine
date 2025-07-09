@@ -644,12 +644,10 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
             ImGui.EndPopup();
         }
 
+        // Remove the redundant nested TreeNodeEx call
+        // Only display the entity as a single node
         if (opened)
         {
-            flags = ImGuiTreeNodeFlags.OpenOnArrow;
-            opened = ImGui.TreeNodeEx((IntPtr)9817239, flags, tag);
-            if (opened)
-                ImGui.TreePop();
             ImGui.TreePop();
         }
 
