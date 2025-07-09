@@ -6,6 +6,8 @@
         <Nullable>enable</Nullable>
         <PublishAot>false</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <EnableMixedModeDebugging>true</EnableMixedModeDebugging>
     </PropertyGroup>
 
     <ItemGroup>
