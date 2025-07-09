@@ -88,17 +88,14 @@ public class SilkNetGameWindow : IGameWindow
         Mouse = SilkNetContext.InputContext.Mice[0];
         OnUpdate();
 
-        if (!InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Escape))
-            return;
-        
-        _window.Close();
+        // if (!InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.))
+        //     return;
+        //
+        // _window.Close();
     }
 
     private void KeyDown(IKeyboard keyboard, Key key, int keyCode)
     {
-        if (key == Key.Escape)
-            _window.Close();
-
         OnEvent(new KeyPressedEvent((int)key, true));
     }
 
@@ -113,7 +110,8 @@ public class SilkNetGameWindow : IGameWindow
 
     private void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
     {
-        var @event = new MouseScrolledEvent(scrollWheel.X, scrollWheel.Y);
-        OnEvent(@event);
+        // TEMP DISABLE
+        //var @event = new MouseScrolledEvent(scrollWheel.X, scrollWheel.Y);
+        //OnEvent(@event);
     }
 }

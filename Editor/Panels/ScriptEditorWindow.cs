@@ -109,10 +109,11 @@ public class ScriptEditorWindow
         {
             if (_hasChanges && !_showCloseConfirmation)
             {
-                _isOpen = true;
+                // Only show confirmation if user tried to close with unsaved changes
                 _showCloseConfirmation = true;
+                _isOpen = true; // Reopen until user confirms
             }
-            else if (!_hasChanges)
+            else
             {
                 Close();
             }
@@ -287,13 +288,13 @@ public class ScriptEditorWindow
         try
         {
             var (success, errors) = await ScriptEngine.Instance.CreateOrUpdateScriptAsync(_scriptName, _scriptContent);
-                
             if (success)
             {
                 _originalScriptContent = _scriptContent;
                 _hasChanges = false;
                 _errorMessage = string.Empty;
-                _showSaveConfirmation = true;
+                // Close immediately after save
+                Close(true);
             }
             else
             {
