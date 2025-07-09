@@ -7,11 +7,11 @@ using Engine.Scene.Components;
 
 public class PipeSpawner : ScriptableEntity
 {
-    private float spawnTimer = 0.0f;
-    private float spawnInterval = 2.0f; // Spawn pipe every 2 seconds
-    private float pipeSpeed = 3.0f;
-    private float pipeGap = 4.0f; // Gap between top and bottom pipes
-    private float spawnX = 15.0f; // Spawn pipes off-screen to the right
+    public float spawnTimer = 0.0f;
+    public float spawnInterval = 2.0f; // Spawn pipe every 2 seconds
+    public float pipeSpeed = 3.0f;
+    public float pipeGap = 4.0f; // Gap between top and bottom pipes
+    public float spawnX = 15.0f; // Spawn pipes off-screen to the right
     private Random random = new Random();
     
     public override void OnCreate()

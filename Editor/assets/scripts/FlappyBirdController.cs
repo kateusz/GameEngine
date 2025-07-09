@@ -16,7 +16,9 @@ public class FlappyBirdController : ScriptableEntity
     private BoxCollider2DComponent colliderComponent;
     private float rotationSmoothness = 3.0f;
     private float maxRotationAngle = 30.0f; // degrees
-    private bool hasLoggedComponents = false;
+    
+    // exposed fields
+    public bool hasLoggedComponents = false;
     
     public override void OnCreate()
     {

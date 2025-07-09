@@ -51,7 +51,7 @@ public class ScriptEngine
         Logger.Info("ScriptEngine initialized with scene");
     }
 
-    public void Update(TimeSpan deltaTime)
+    public void OnUpdate(TimeSpan deltaTime)
     {
         // Check for script changes
         CheckForScriptChanges();

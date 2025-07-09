@@ -51,6 +51,7 @@ public class EditorLayer : Layer
     
     public EditorLayer(string name) : base(name)
     {
+        _showOpenProjectPopup = true; // Show Open Project dialog at startup
     }
 
     public override void OnAttach()

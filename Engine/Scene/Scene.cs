@@ -130,7 +130,7 @@ public class Scene
     public void OnUpdateRuntime(TimeSpan ts)
     {
         // Update scripts (existing code)
-        ScriptEngine.Instance.Update(ts);
+        ScriptEngine.Instance.OnUpdate(ts);
 
         // Physics (existing code)
         const int velocityIterations = 6;

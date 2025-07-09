@@ -372,4 +372,84 @@ public class ScriptableEntity
     }
         
     #endregion
+
+    #region Reflection Utilities for Editor and Serialization
+
+    /// <summary>
+    /// Returns all public fields and properties (with public getter/setter) that are editable in the editor.
+    /// </summary>
+    public IEnumerable<(string Name, Type Type, object Value)> GetExposedFields()
+    {
+        var type = GetType();
+        // Public instance fields
+        foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (IsSupportedType(field.FieldType))
+                yield return (field.Name, field.FieldType, field.GetValue(this));
+        }
+        // Public instance properties with getter and setter
+        foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (prop.CanRead && prop.CanWrite && IsSupportedType(prop.PropertyType))
+                yield return (prop.Name, prop.PropertyType, prop.GetValue(this));
+        }
+    }
+
+    /// <summary>
+    /// Gets the value of a public field or property by name.
+    /// </summary>
+    public object GetFieldValue(string name)
+    {
+        var type = GetType();
+        var field = type.GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+        if (field != null && IsSupportedType(field.FieldType))
+            return field.GetValue(this);
+        var prop = type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+        if (prop != null && prop.CanRead && IsSupportedType(prop.PropertyType))
+            return prop.GetValue(this);
+        throw new ArgumentException($"Field or property '{name}' not found or not supported.");
+    }
+
+    /// <summary>
+    /// Sets the value of a public field or property by name.
+    /// </summary>
+    public void SetFieldValue(string name, object value)
+    {
+        var type = GetType();
+        var field = type.GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+        if (field != null && IsSupportedType(field.FieldType))
+        {
+            field.SetValue(this, ConvertToSupportedType(value, field.FieldType));
+            return;
+        }
+        var prop = type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+        if (prop != null && prop.CanWrite && IsSupportedType(prop.PropertyType))
+        {
+            prop.SetValue(this, ConvertToSupportedType(value, prop.PropertyType));
+            return;
+        }
+        throw new ArgumentException($"Field or property '{name}' not found or not supported.");
+    }
+
+    private static bool IsSupportedType(Type type)
+    {
+        return type == typeof(int) || type == typeof(float) || type == typeof(double) ||
+               type == typeof(bool) || type == typeof(string) ||
+               type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4);
+    }
+
+    private static object ConvertToSupportedType(object value, Type targetType)
+    {
+        if (value == null) return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+        if (targetType.IsAssignableFrom(value.GetType())) return value;
+        if (targetType == typeof(Vector2) && value is System.Text.Json.Nodes.JsonArray arr2 && arr2.Count == 2)
+            return new Vector2((float)arr2[0]!, (float)arr2[1]!);
+        if (targetType == typeof(Vector3) && value is System.Text.Json.Nodes.JsonArray arr3 && arr3.Count == 3)
+            return new Vector3((float)arr3[0]!, (float)arr3[1]!, (float)arr3[2]!);
+        if (targetType == typeof(Vector4) && value is System.Text.Json.Nodes.JsonArray arr4 && arr4.Count == 4)
+            return new Vector4((float)arr4[0]!, (float)arr4[1]!, (float)arr4[2]!, (float)arr4[3]!);
+        return Convert.ChangeType(value, targetType);
+    }
+
+    #endregion
 }

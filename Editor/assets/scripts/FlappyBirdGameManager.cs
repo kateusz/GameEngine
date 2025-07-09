@@ -22,11 +22,13 @@ public class FlappyBirdGameManager : ScriptableEntity
     private Entity pipeSpawnerEntity;
     
     // Debug logging control
-    private bool enableDebugLogs = true;
     private float debugLogInterval = 2.0f; // Log every 2 seconds during gameplay
     private float lastDebugLogTime = 0.0f;
     private int lastScore = -1; // Track score changes
     private GameState lastGameState = GameState.Menu;
+    
+    // exposed fields
+    public bool enableDebugLogs = true;
     
     public override void OnCreate()
     {

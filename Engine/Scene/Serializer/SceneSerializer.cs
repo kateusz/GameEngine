@@ -162,9 +162,29 @@ public class SceneSerializer
         var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(scriptTypeName);
         if (scriptInstanceResult.IsSuccess)
         {
+            var scriptInstance = scriptInstanceResult.Value;
+            // --- Deserialize public fields/properties ---
+            if (componentObj["Fields"] is JsonObject fieldsObj)
+            {
+                foreach (var field in fieldsObj)
+                {
+                    var fieldName = field.Key;
+                    var fieldValueNode = field.Value;
+                    if (fieldValueNode != null)
+                    {
+                        var exposed = scriptInstance.GetExposedFields().FirstOrDefault(f => f.Name == fieldName);
+                        if (exposed.Name != null)
+                        {
+                            var value = fieldValueNode.Deserialize(exposed.Type, DefaultSerializerOptions);
+                            scriptInstance.SetFieldValue(fieldName, value);
+                        }
+                    }
+                }
+            }
+            // --- End deserialize fields ---
             entity.AddComponent(new NativeScriptComponent
             {
-                ScriptableEntity = scriptInstanceResult.Value
+                ScriptableEntity = scriptInstance
             });
             return;
         }
@@ -236,6 +256,16 @@ public class SceneSerializer
         {
             var scriptTypeName = component.ScriptableEntity.GetType().Name;
             scriptComponentObj[ScriptTypeKey] = scriptTypeName;
+
+            // --- Serialize public fields/properties ---
+            var fieldsObj = new JsonObject();
+            foreach (var (fieldName, fieldType, fieldValue) in component.ScriptableEntity.GetExposedFields())
+            {
+                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, DefaultSerializerOptions);
+            }
+            if (fieldsObj.Count > 0)
+                scriptComponentObj["Fields"] = fieldsObj;
+            // --- End serialize fields ---
         }
 
         var components = GetJsonArray(entityObj, ComponentsKey);

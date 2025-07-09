@@ -12,7 +12,9 @@ public class CameraFollow : ScriptableEntity
     private float smoothSpeed = 2.0f; // How smooth the camera follows
     private bool followOnlyX = true; // Only follow X axis for side-scrolling
     private float debugLogTimer = 0.0f; // To prevent spamming console
-    private bool hasLoggedComponentCheck = false;
+    
+    // exposed fields
+    public bool hasLoggedComponentCheck = false;
     
     public override void OnCreate()
     {
