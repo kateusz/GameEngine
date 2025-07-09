@@ -286,7 +286,7 @@ public class FlappyBirdController : ScriptableEntity
         {
             try
             {
-                transformComponent.Translation = new Vector3(-2.0f, 0.0f, 0.0f);
+                transformComponent.Translation = new Vector3(0.0f, 4.71f, 0.0f);
                 transformComponent.Rotation = Vector3.Zero;
                 Console.WriteLine($"[FlappyBirdController] Bird position reset to: {transformComponent.Translation}");
             }

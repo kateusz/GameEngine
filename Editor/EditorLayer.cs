@@ -40,7 +40,7 @@ public class EditorLayer : Layer
     private Texture2D _iconStop;
     private SceneState _sceneState;
     private string? _editorScenePath;
-    private Vector4 _backgroundColor = new Vector4(0.1f, 0.1f, 0.1f, 1.0f);
+    private Vector4 _backgroundColor = new Vector4(232.0f, 232.0f, 232.0f, 1.0f);
     private bool _showSettings = false;
     private bool _showNewProjectPopup = false;
     private string _newProjectName = string.Empty;
@@ -672,6 +672,11 @@ public class EditorLayer : Layer
         
         // Reinitialize ScriptEngine with current scene
         ScriptEngine.Instance.Initialize(_activeScene);
+        
+        // Reset editor camera to center at origin
+        _editorCamera.CenterToPos(System.Numerics.Vector3.Zero);
+        _editorCamera.SetDistance(10.0f);
+        
         Console.WriteLine("⏹️ Scene play stopped");
     }
 

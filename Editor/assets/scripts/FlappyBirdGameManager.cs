@@ -256,7 +256,7 @@ public class FlappyBirdGameManager : ScriptableEntity
             Console.WriteLine("[DEBUG] Fallback: Resetting bird position manually");
             var transform = birdEntity.GetComponent<TransformComponent>();
             var oldPosition = transform.Translation;
-            transform.Translation = new Vector3(-2.0f, 0.0f, 0.0f);
+            transform.Translation = new Vector3(0.0f, 4.71f, 0.0f);
             transform.Rotation = Vector3.Zero;
             
             Console.WriteLine($"[DEBUG] Bird position reset from {oldPosition} to {transform.Translation}");
