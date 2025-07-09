@@ -232,7 +232,11 @@ public class SceneHierarchyPanel
             var currentProjectionType = camera.ProjectionType;
             string currentProjectionTypeString = projectionTypeStrings[(int)currentProjectionType];
 
-            if (ImGui.BeginCombo("Projection", currentProjectionTypeString))
+            ImGui.Columns(2);
+            ImGui.Text("Projection");
+            ImGui.NextColumn();
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.BeginCombo("##Projection", currentProjectionTypeString))
             {
                 for (int i = 0; i < projectionTypeStrings.Length; i++)
                 {
@@ -242,62 +246,95 @@ public class SceneHierarchyPanel
                         currentProjectionTypeString = projectionTypeStrings[i];
                         camera.SetProjectionType((ProjectionType)i);
                     }
-
                     if (isSelected)
                     {
                         ImGui.SetItemDefaultFocus();
                     }
                 }
-
                 ImGui.EndCombo();
             }
+            ImGui.Columns(1);
 
             if (camera.ProjectionType == ProjectionType.Perspective)
             {
                 float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
-                if (ImGui.DragFloat("Vertical FOV", ref verticalFov))
+                ImGui.Columns(2);
+                ImGui.Text("Vertical FOV");
+                ImGui.NextColumn();
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.DragFloat("##VerticalFOV", ref verticalFov))
                 {
                     camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
                 }
+                ImGui.Columns(1);
 
                 float perspectiveNear = camera.PerspectiveNear;
-                if (ImGui.DragFloat("Near", ref perspectiveNear))
+                ImGui.Columns(2);
+                ImGui.Text("Near");
+                ImGui.NextColumn();
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.DragFloat("##PerspectiveNear", ref perspectiveNear))
                 {
                     camera.SetPerspectiveNearClip(perspectiveNear);
                 }
+                ImGui.Columns(1);
 
                 float perspectiveFar = camera.PerspectiveFar;
-                if (ImGui.DragFloat("Far", ref perspectiveFar))
+                ImGui.Columns(2);
+                ImGui.Text("Far");
+                ImGui.NextColumn();
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.DragFloat("##PerspectiveFar", ref perspectiveFar))
                 {
                     camera.SetPerspectiveFarClip(perspectiveFar);
                 }
+                ImGui.Columns(1);
             }
 
             if (camera.ProjectionType == ProjectionType.Orthographic)
             {
                 float orthoSize = camera.OrthographicSize;
-                if (ImGui.DragFloat("Size", ref orthoSize))
+                ImGui.Columns(2);
+                ImGui.Text("Size");
+                ImGui.NextColumn();
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.DragFloat("##OrthoSize", ref orthoSize))
                 {
                     camera.SetOrthographicSize(orthoSize);
                 }
+                ImGui.Columns(1);
 
                 float orthoNear = camera.OrthographicNear;
-                if (ImGui.DragFloat("Near", ref orthoNear))
+                ImGui.Columns(2);
+                ImGui.Text("Near");
+                ImGui.NextColumn();
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.DragFloat("##OrthoNear", ref orthoNear))
                 {
                     camera.SetOrthographicNearClip(orthoNear);
                 }
+                ImGui.Columns(1);
 
                 float orthoFar = camera.OrthographicFar;
-                if (ImGui.DragFloat("Far", ref orthoFar))
+                ImGui.Columns(2);
+                ImGui.Text("Far");
+                ImGui.NextColumn();
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.DragFloat("##OrthoFar", ref orthoFar))
                 {
                     camera.SetOrthographicFarClip(orthoFar);
                 }
+                ImGui.Columns(1);
 
                 bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
-                if (ImGui.Checkbox("Fixed Aspect Ratio", ref fixedAspectRatio))
+                ImGui.Columns(2);
+                ImGui.Text("Fixed Aspect Ratio");
+                ImGui.NextColumn();
+                if (ImGui.Checkbox("##FixedAspectRatio", ref fixedAspectRatio))
                 {
                     cameraComponent.FixedAspectRatio = fixedAspectRatio;
                 }
+                ImGui.Columns(1);
             }
         });
         
