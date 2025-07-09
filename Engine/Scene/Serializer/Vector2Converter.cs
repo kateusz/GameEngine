@@ -10,7 +10,7 @@ public class Vector2Converter : JsonConverter<Vector2>
     {
         reader.Read(); // StartArray
             
-        // Read each component (X, Y, Z) from the array
+        // Read each component (X, Y) from the array
         var x = reader.GetSingle();
         reader.Read();
         var y = reader.GetSingle();
@@ -22,8 +22,13 @@ public class Vector2Converter : JsonConverter<Vector2>
     public override void Write(Utf8JsonWriter writer, Vector2 value, JsonSerializerOptions options)
     {
         writer.WriteStartArray(); // Start array
-        writer.WriteNumberValue(value.X); // X as first element
-        writer.WriteNumberValue(value.Y); // Y as second element
+        
+        // Handle NaN and infinity values by replacing them with 0
+        var x = float.IsNaN(value.X) || float.IsInfinity(value.X) ? 0f : value.X;
+        var y = float.IsNaN(value.Y) || float.IsInfinity(value.Y) ? 0f : value.Y;
+        
+        writer.WriteNumberValue(x); // X as first element
+        writer.WriteNumberValue(y); // Y as second element
         writer.WriteEndArray(); // End array
     }
 }

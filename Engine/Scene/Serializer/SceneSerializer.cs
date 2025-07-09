@@ -3,7 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
+using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scripting;
 
 namespace Engine.Scene.Serializer;
 
@@ -20,6 +22,7 @@ public class SceneSerializer
     private const string ComponentsKey = "Components";
     private const string NameKey = "Name";
     private const string IdKey = "Id";
+    private const string ScriptTypeKey = "ScriptType";
 
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
@@ -131,8 +134,61 @@ public class SceneSerializer
             case nameof(BoxCollider2DComponent):
                 AddComponent<BoxCollider2DComponent>(entity, componentObj);
                 break;
+            case nameof(NativeScriptComponent):
+                DeserializeNativeScriptComponent(entity, componentObj);
+                break;
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
+        }
+    }
+
+    private static void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
+    {
+        if (!componentObj.ContainsKey(ScriptTypeKey))
+        {
+            // If no script type is specified, just add an empty NativeScriptComponent
+            entity.AddComponent(new NativeScriptComponent());
+            return;
+        }
+
+        var scriptTypeName = componentObj[ScriptTypeKey]?.GetValue<string>();
+        if (string.IsNullOrEmpty(scriptTypeName))
+        {
+            entity.AddComponent(new NativeScriptComponent());
+            return;
+        }
+
+        // First try to create script instance using ScriptEngine (for dynamic scripts)
+        var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(scriptTypeName);
+        if (scriptInstanceResult.IsSuccess)
+        {
+            entity.AddComponent(new NativeScriptComponent
+            {
+                ScriptableEntity = scriptInstanceResult.Value
+            });
+            return;
+        }
+
+        // If ScriptEngine fails, try to create built-in script types
+        ScriptableEntity? builtInScript = scriptTypeName switch
+        {
+            nameof(CameraController) => new CameraController(),
+            // Add other built-in script types here as needed
+            _ => null
+        };
+
+        if (builtInScript != null)
+        {
+            entity.AddComponent(new NativeScriptComponent
+            {
+                ScriptableEntity = builtInScript
+            });
+        }
+        else
+        {
+            // If script creation fails, add empty component and log warning
+            entity.AddComponent(new NativeScriptComponent());
+            // Note: In a production system, you might want to log this warning
         }
     }
 
@@ -159,8 +215,31 @@ public class SceneSerializer
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
+        SerializeNativeScriptComponent(entity, entityObj);
 
         jsonEntities.Add(entityObj);
+    }
+
+    private static void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)
+    {
+        if (!entity.HasComponent<NativeScriptComponent>())
+            return;
+
+        var component = entity.GetComponent<NativeScriptComponent>();
+        var scriptComponentObj = new JsonObject
+        {
+            [NameKey] = nameof(NativeScriptComponent)
+        };
+
+        // Store the script type name if a script is attached
+        if (component.ScriptableEntity != null)
+        {
+            var scriptTypeName = component.ScriptableEntity.GetType().Name;
+            scriptComponentObj[ScriptTypeKey] = scriptTypeName;
+        }
+
+        var components = GetJsonArray(entityObj, ComponentsKey);
+        components.Add(scriptComponentObj);
     }
 
     private static void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
