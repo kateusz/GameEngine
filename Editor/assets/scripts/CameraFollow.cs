@@ -8,8 +8,10 @@ using Engine.Scene.Components;
 public class CameraFollow : ScriptableEntity
 {
     private Entity targetEntity;
+    private Entity gameManagerEntity;
+    private FlappyBirdGameManager gameManager;
     private Vector3 offset = new Vector3(3.0f, 0.0f, 0.0f); // Camera offset from target
-    private float smoothSpeed = 2.0f; // How smooth the camera follows
+    private float smoothSpeed = 0.1f; // How smooth the camera follows
     private bool followOnlyX = true; // Only follow X axis for side-scrolling
     private float debugLogTimer = 0.0f; // To prevent spamming console
     
@@ -46,6 +48,26 @@ public class CameraFollow : ScriptableEntity
             Console.WriteLine($"[CameraFollow] SUCCESS: Found target entity '{targetEntity.Name}' (ID: {targetEntity.Id})");
         }
         
+        // Find the game manager entity
+        gameManagerEntity = FindEntity("Game Manager");
+        if (gameManagerEntity != null)
+        {
+            var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent?.ScriptableEntity is FlappyBirdGameManager manager)
+            {
+                gameManager = manager;
+                Console.WriteLine("[CameraFollow] SUCCESS: Found and connected to Game Manager");
+            }
+            else
+            {
+                Console.WriteLine("[CameraFollow] WARNING: Game Manager entity found but no FlappyBirdGameManager script");
+            }
+        }
+        else
+        {
+            Console.WriteLine("[CameraFollow] WARNING: Game Manager entity not found - camera will always follow");
+        }
+        
         // Check if this entity has the required components
         var cameraTransform = GetComponent<TransformComponent>();
         if (cameraTransform == null)
@@ -61,6 +83,21 @@ public class CameraFollow : ScriptableEntity
     public override void OnUpdate(TimeSpan ts)
     {
         debugLogTimer += (float)ts.TotalSeconds;
+        
+        // Check game state - don't follow camera when game is over
+        if (gameManager != null)
+        {
+            var gameState = gameManager.GetGameState();
+            if (gameState == GameState.GameOver)
+            {
+                if (debugLogTimer > 2.0f) // Log occasionally when game is over
+                {
+                    Console.WriteLine("[CameraFollow] Game Over - camera movement paused");
+                    debugLogTimer = 0.0f;
+                }
+                return; // Don't update camera position when game is over
+            }
+        }
         
         if (targetEntity == null) 
         {
@@ -81,6 +118,7 @@ public class CameraFollow : ScriptableEntity
             Console.WriteLine($"[CameraFollow] Component check:");
             Console.WriteLine($"  - Camera transform: {(cameraTransform != null ? "✓" : "✗")}");
             Console.WriteLine($"  - Target transform: {(targetTransform != null ? "✓" : "✗")}");
+            Console.WriteLine($"  - Game manager: {(gameManager != null ? "✓" : "✗")}");
             hasLoggedComponentCheck = true;
         }
         
@@ -123,7 +161,8 @@ public class CameraFollow : ScriptableEntity
         // Debug logging every 1 second
         if (debugLogTimer > 1.0f)
         {
-            Console.WriteLine($"[CameraFollow] Position update:");
+            var currentGameState = gameManager?.GetGameState() ?? GameState.Playing;
+            Console.WriteLine($"[CameraFollow] Position update (State: {currentGameState}):");
             Console.WriteLine($"  - Target pos: {targetTransform.Translation:F2}");
             Console.WriteLine($"  - Current cam: {currentPosition:F2}");
             Console.WriteLine($"  - Desired cam: {desiredPosition:F2}");
@@ -178,6 +217,8 @@ public class CameraFollow : ScriptableEntity
     {
         Console.WriteLine($"[CameraFollow] === CURRENT STATE ===");
         Console.WriteLine($"Target entity: {(targetEntity != null ? targetEntity.Name : "NULL")}");
+        Console.WriteLine($"Game manager: {(gameManager != null ? "Connected" : "NULL")}");
+        Console.WriteLine($"Game state: {(gameManager != null ? gameManager.GetGameState().ToString() : "Unknown")}");
         Console.WriteLine($"Offset: {offset}");
         Console.WriteLine($"Smooth speed: {smoothSpeed}");
         Console.WriteLine($"Follow X-only: {followOnlyX}");

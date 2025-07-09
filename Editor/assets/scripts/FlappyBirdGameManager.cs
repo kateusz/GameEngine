@@ -20,6 +20,11 @@ public class FlappyBirdGameManager : ScriptableEntity
     private float gameTime = 0.0f;
     private Entity birdEntity;
     private Entity pipeSpawnerEntity;
+    private Entity cameraEntity;
+    
+    // Component references for other scripts
+    private PipeSpawner pipeSpawnerScript;
+    private CameraFollow cameraFollowScript;
     
     // Debug logging control
     private float debugLogInterval = 2.0f; // Log every 2 seconds during gameplay
@@ -50,14 +55,39 @@ public class FlappyBirdGameManager : ScriptableEntity
             Console.WriteLine("[DEBUG] WARNING: Bird entity not found!");
         }
         
-        pipeSpawnerEntity = FindEntity("PipeSpawner");
+        pipeSpawnerEntity = FindEntity("Pipe Spawner");
         if (pipeSpawnerEntity != null)
         {
             Console.WriteLine($"[DEBUG] Pipe spawner entity found: {pipeSpawnerEntity.Name}");
+            // Get reference to the PipeSpawner script
+            var scriptComponent = pipeSpawnerEntity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent?.ScriptableEntity is PipeSpawner spawner)
+            {
+                pipeSpawnerScript = spawner;
+                Console.WriteLine("[DEBUG] Connected to PipeSpawner script");
+            }
         }
         else
         {
             Console.WriteLine("[DEBUG] WARNING: Pipe spawner entity not found!");
+        }
+        
+        // Find camera entity (usually named "Camera" or "Primary Camera")
+        cameraEntity = FindEntity("Camera") ?? FindEntity("Primary Camera");
+        if (cameraEntity != null)
+        {
+            Console.WriteLine($"[DEBUG] Camera entity found: {cameraEntity.Name}");
+            // Get reference to the CameraFollow script
+            var scriptComponent = cameraEntity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent?.ScriptableEntity is CameraFollow camera)
+            {
+                cameraFollowScript = camera;
+                Console.WriteLine("[DEBUG] Connected to CameraFollow script");
+            }
+        }
+        else
+        {
+            Console.WriteLine("[DEBUG] WARNING: Camera entity not found!");
         }
         
         // Start in menu state
@@ -156,7 +186,7 @@ public class FlappyBirdGameManager : ScriptableEntity
             Console.WriteLine($"[DEBUG] Updating Game Over state - Final score: {score}");
         }
         // Display final score, wait for restart input
-        // Stop all game objects
+        // Stop all game objects (handled by SetGameState)
     }
     
     public override void OnKeyPressed(KeyCodes key)
@@ -221,9 +251,6 @@ public class FlappyBirdGameManager : ScriptableEntity
             Console.WriteLine("[DEBUG] ERROR: Cannot reset bird position - bird entity is null!");
         }
         
-        // Enable pipe spawner
-        EnablePipeSpawning(true);
-        
         Console.WriteLine("Game Started!");
     }
     
@@ -231,16 +258,16 @@ public class FlappyBirdGameManager : ScriptableEntity
     {
         Console.WriteLine("[DEBUG] RestartGame() called");
         
-        // Count pipes before cleanup
-        int pipeCount = CountPipes();
-        Console.WriteLine($"[DEBUG] Found {pipeCount} pipes to clean up");
-        
-        // Clean up existing pipes
-        CleanupAllPipes();
-        
-        // Verify cleanup
-        int remainingPipes = CountPipes();
-        Console.WriteLine($"[DEBUG] Pipe cleanup complete - {remainingPipes} pipes remaining");
+        // Clean up existing pipes using the pipe spawner script
+        if (pipeSpawnerScript != null)
+        {
+            pipeSpawnerScript.DestroyAllPipes();
+        }
+        else
+        {
+            // Fallback cleanup method
+            CleanupAllPipes();
+        }
         
         // Reset game state
         StartGame();
@@ -256,17 +283,17 @@ public class FlappyBirdGameManager : ScriptableEntity
         switch (newState)
         {
             case GameState.Menu:
-                Console.WriteLine("[DEBUG] Entering Menu state - disabling pipe spawning");
-                EnablePipeSpawning(false);
+                Console.WriteLine("[DEBUG] Entering Menu state");
+                // Game objects will check state and stop automatically
                 break;
             case GameState.Playing:
-                Console.WriteLine("[DEBUG] Entering Playing state - enabling pipe spawning");
-                EnablePipeSpawning(true);
+                Console.WriteLine("[DEBUG] Entering Playing state");
+                // Game objects will check state and start automatically
                 break;
             case GameState.GameOver:
-                Console.WriteLine("[DEBUG] Entering Game Over state - disabling pipe spawning");
-                EnablePipeSpawning(false);
+                Console.WriteLine("[DEBUG] Entering Game Over state");
                 Console.WriteLine($"Game Over! Final Score: {score}");
+                // Game objects will check state and stop automatically
                 break;
         }
     }
@@ -339,22 +366,6 @@ public class FlappyBirdGameManager : ScriptableEntity
         }
         
         return outOfBounds;
-    }
-    
-    private void EnablePipeSpawning(bool enable)
-    {
-        // Enable/disable pipe spawner script
-        // This would require a way to enable/disable scripts
-        Console.WriteLine($"[DEBUG] Pipe spawning: {(enable ? "Enabled" : "Disabled")}");
-        
-        if (pipeSpawnerEntity != null)
-        {
-            Console.WriteLine($"[DEBUG] Pipe spawner entity available for state change");
-        }
-        else
-        {
-            Console.WriteLine("[DEBUG] WARNING: Pipe spawner entity is null - cannot change state");
-        }
     }
     
     private void CleanupAllPipes()
@@ -431,5 +442,35 @@ public class FlappyBirdGameManager : ScriptableEntity
         if (enableDebugLogs)
             Console.WriteLine($"[DEBUG] Game state requested: {gameState}");
         return gameState;
+    }
+    
+    // Methods for other scripts to interact with the game manager
+    public bool IsGamePlaying()
+    {
+        return gameState == GameState.Playing;
+    }
+    
+    public bool IsGameOver()
+    {
+        return gameState == GameState.GameOver;
+    }
+    
+    public bool IsInMenu()
+    {
+        return gameState == GameState.Menu;
+    }
+    
+    // Method to trigger game over from external scripts (like bird controller)
+    public void TriggerGameOver()
+    {
+        Console.WriteLine("[DEBUG] Game Over triggered by external script");
+        SetGameState(GameState.GameOver);
+    }
+    
+    // Method to increment score from external scripts
+    public void IncrementScore()
+    {
+        score++;
+        Console.WriteLine($"[DEBUG] Score incremented to: {score}");
     }
 }
