@@ -33,6 +33,7 @@ public class EditorLayer : Layer
     private Scene _activeScene;
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
+    private ConsolePanel _consolePanel; // Added console panel
     private EditorCamera _editorCamera;
     private Entity? _hoveredEntity;
     private Texture2D _iconPlay;
@@ -71,8 +72,13 @@ public class EditorLayer : Layer
         _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
         _contentBrowserPanel = new ContentBrowserPanel();
+        _consolePanel = new ConsolePanel(); // Initialize console panel
         
         ScriptEngine.Instance.Initialize(_activeScene);
+        
+        // Add some initial console messages to demonstrate functionality
+        Console.WriteLine("✅ Editor initialized successfully!");
+        Console.WriteLine("Console panel is now capturing output.");
     }
 
     private void EntitySelected(Entity entity)
@@ -85,6 +91,7 @@ public class EditorLayer : Layer
     public override void OnDetach()
     {
         Logger.Debug("ExampleLayer OnDetach.");
+        _consolePanel?.Dispose(); // Clean up console panel
     }
 
     public override void OnUpdate(TimeSpan timeSpan)
@@ -323,12 +330,21 @@ public class EditorLayer : Layer
                     ImGui.EndMenu();
                 }
 
+                if (ImGui.BeginMenu("View"))
+                {
+                    if (ImGui.MenuItem("Clear Console"))
+                        _consolePanel.Clear();
+                    
+                    ImGui.EndMenu();
+                }
+
                 ImGui.EndMenuBar();
             }
 
             _sceneHierarchyPanel.OnImGuiRender();
             _contentBrowserPanel.OnImGuiRender();
-
+            _consolePanel.OnImGuiRender(); // Render console panel
+            
             ImGui.Begin("Stats");
 
             var name = "None";
@@ -354,7 +370,6 @@ public class EditorLayer : Layer
             var stats3D = Renderer3D.Instance.GetStats();
             ImGui.Text("Renderer3D Stats:");
             ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
-
 
             ImGui.End();
 
@@ -446,6 +461,7 @@ public class EditorLayer : Layer
         _activeScene = new Scene("");
         _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         _sceneHierarchyPanel.SetContext(_activeScene);
+        Console.WriteLine("📄 New scene created");
     }
 
     private void OpenScene()
@@ -464,6 +480,7 @@ public class EditorLayer : Layer
         _sceneHierarchyPanel.SetContext(_activeScene);
 
         SceneSerializer.Deserialize(_activeScene, filePath);
+        Console.WriteLine($"📂 Scene opened: {filePath}");
     }
 
     private void OpenScene(string path)
@@ -477,6 +494,7 @@ public class EditorLayer : Layer
         _sceneHierarchyPanel.SetContext(_activeScene);
 
         SceneSerializer.Deserialize(_activeScene, path);
+        Console.WriteLine($"📂 Scene opened: {path}");
     }
     
     private void SaveScene()
@@ -484,7 +502,10 @@ public class EditorLayer : Layer
         var currentDirectory = Environment.CurrentDirectory;
         _editorScenePath = Path.Combine(currentDirectory, "assets", "scenes", "scene.scene");
         if (!string.IsNullOrWhiteSpace(_editorScenePath))
+        {
             SceneSerializer.Serialize(_activeScene, _editorScenePath);
+            Console.WriteLine($"💾 Scene saved: {_editorScenePath}");
+        }
     }
 
     private void OnScenePlay()
@@ -492,6 +513,7 @@ public class EditorLayer : Layer
         _sceneState = SceneState.Play;
         _activeScene.OnRuntimeStart();
         _sceneHierarchyPanel.SetContext(_activeScene);
+        Console.WriteLine("▶️ Scene play started");
     }
 
     private void OnSceneStop()
@@ -502,6 +524,7 @@ public class EditorLayer : Layer
         
         // Reinitialize ScriptEngine with current scene
         ScriptEngine.Instance.Initialize(_activeScene);
+        Console.WriteLine("⏹️ Scene play stopped");
     }
 
     private void OnDuplicateEntity()
@@ -511,6 +534,9 @@ public class EditorLayer : Layer
         
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
         if (selectedEntity is not null)
+        {
             _activeScene.DuplicateEntity(selectedEntity);
+            Console.WriteLine($"📋 Entity duplicated: {selectedEntity.Name}");
+        }
     }
 }

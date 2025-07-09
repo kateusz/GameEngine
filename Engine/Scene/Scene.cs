@@ -8,6 +8,7 @@ using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
+using Engine.Scripting;
 
 namespace Engine.Scene;
 
@@ -129,18 +130,7 @@ public class Scene
     public void OnUpdateRuntime(TimeSpan ts)
     {
         // Update scripts (existing code)
-        var nativeScriptGroup = Context.Instance.View<NativeScriptComponent>();
-
-        foreach (var (entity, nativeScriptComponent) in nativeScriptGroup)
-        {
-            if (nativeScriptComponent.ScriptableEntity.Entity == null)
-            {
-                nativeScriptComponent.ScriptableEntity.Entity = entity;
-                nativeScriptComponent.ScriptableEntity.OnCreate();
-            }
-
-            nativeScriptComponent.ScriptableEntity.OnUpdate(ts);
-        }
+        ScriptEngine.Instance.Update(ts);
 
         // Physics (existing code)
         const int velocityIterations = 6;
