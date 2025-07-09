@@ -341,50 +341,40 @@ public class SceneHierarchyPanel
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, spriteRendererComponent =>
         {
             var newColor = spriteRendererComponent.Color;
-            ImGui.ColorEdit4("Color", ref newColor);
-
+            DrawPropertyRow("Color", () => ImGui.ColorEdit4("##Color", ref newColor));
             if (spriteRendererComponent.Color != newColor)
             {
                 spriteRendererComponent.Color = newColor;
             }
-
-            // Render the "Texture" button with a fixed width of 100.0f and automatic height (0.0f)
-            if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
+            DrawPropertyRow("Texture", () =>
             {
-                // Optional: Handle button click logic if needed
-            }
-
-            // Begin drag-and-drop target handling
+                if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
+                {
+                    // Optional: Handle button click logic if needed
+                }
+            });
+            // Drag-and-drop for texture
             if (ImGui.BeginDragDropTarget())
             {
                 unsafe
                 {
-                    // Accept the drag-and-drop payload with the label "CONTENT_BROWSER_ITEM"
                     ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
                     if (payload.NativePtr != null)
                     {
-                        // Convert the payload data (wchar_t*) to a C# string
                         var path = Marshal.PtrToStringUni(payload.Data);
                         if (path is null)
                         {
                             return;
                         }
-
-                        // Combine the asset path and the dragged path
                         string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-
-                        // Set the component's texture (assuming Texture2D.Create takes a string path)
                         spriteRendererComponent.Texture = TextureFactory.Create(texturePath);
                     }
-
-                    // End the drag-and-drop target
                     ImGui.EndDragDropTarget();
                 }
             }
-
-            // Render a float slider for the "Tiling Factor"
             float tillingFactor = spriteRendererComponent.TilingFactor;
-            if (ImGui.DragFloat("Tiling Factor", ref tillingFactor, 0.1f, 0.0f, 100.0f))
+            DrawPropertyRow("Tiling Factor", () => ImGui.DragFloat("##TilingFactor", ref tillingFactor, 0.1f, 0.0f, 100.0f));
+            if (spriteRendererComponent.TilingFactor != tillingFactor)
             {
                 spriteRendererComponent.TilingFactor = tillingFactor;
             }
@@ -393,41 +383,31 @@ public class SceneHierarchyPanel
         DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, c =>
         {
             var newCoords = c.Coords;
-            DrawVec2Control("Sub texture coords", ref newCoords);
-
+            DrawPropertyRow("Sub texture coords", () => ImGui.DragFloat2("##SubTexCoords", ref newCoords));
             if (newCoords != c.Coords)
                 c.Coords = newCoords;
-
-            // Render the "Texture" button with a fixed width of 100.0f and automatic height (0.0f)
-            if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
+            DrawPropertyRow("Texture", () =>
             {
-                // Optional: Handle button click logic if needed
-            }
-            
-            // Begin drag-and-drop target handling
+                if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
+                {
+                    // Optional: Handle button click logic if needed
+                }
+            });
             if (ImGui.BeginDragDropTarget())
             {
                 unsafe
                 {
-                    // Accept the drag-and-drop payload with the label "CONTENT_BROWSER_ITEM"
                     ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
                     if (payload.NativePtr != null)
                     {
-                        // Convert the payload data (wchar_t*) to a C# string
                         var path = Marshal.PtrToStringUni(payload.Data);
                         if (path is null)
                         {
                             return;
                         }
-
-                        // Combine the asset path and the dragged path
                         string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-
-                        // Set the component's texture (assuming Texture2D.Create takes a string path)
                         c.Texture = TextureFactory.Create(texturePath);
                     }
-
-                    // End the drag-and-drop target
                     ImGui.EndDragDropTarget();
                 }
             }
@@ -435,73 +415,53 @@ public class SceneHierarchyPanel
 
         DrawComponent<RigidBody2DComponent>("Rigidbody 2D", _selectionContext, component =>
         {
-            // Get the current body type string based on the component's type
             var currentBodyTypeString = component.BodyType.ToString();
-
-            // Begin the combo box for "Body Type"
-            if (ImGui.BeginCombo("Body Type", currentBodyTypeString))
+            DrawPropertyRow("Body Type", () =>
             {
-                // Iterate over all body types
-                for (var i = 0; i < BodyTypeStrings.Length; i++)
+                if (ImGui.BeginCombo("##BodyType", currentBodyTypeString))
                 {
-                    var isSelected = currentBodyTypeString == BodyTypeStrings[i];
-
-                    if (ImGui.Selectable(BodyTypeStrings[i], isSelected))
+                    for (var i = 0; i < BodyTypeStrings.Length; i++)
                     {
-                        // Update the selected type
-                        component.BodyType = (RigidBodyType)i;
-                        currentBodyTypeString = BodyTypeStrings[i];
+                        var isSelected = currentBodyTypeString == BodyTypeStrings[i];
+                        if (ImGui.Selectable(BodyTypeStrings[i], isSelected))
+                        {
+                            component.BodyType = (RigidBodyType)i;
+                            currentBodyTypeString = BodyTypeStrings[i];
+                        }
+                        if (isSelected)
+                            ImGui.SetItemDefaultFocus();
                     }
-
-                    if (isSelected)
-                        ImGui.SetItemDefaultFocus();
+                    ImGui.EndCombo();
                 }
-
-                ImGui.EndCombo();
-            }
-            
-            // Checkbox for "Fixed Rotation"
-
-            var fixedRotation = component.FixedRotation;
-            if (ImGui.Checkbox("Fixed Rotation", ref fixedRotation))
-            {
+            });
+            bool fixedRotation = component.FixedRotation;
+            DrawPropertyRow("Fixed Rotation", () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
+            if (component.FixedRotation != fixedRotation)
                 component.FixedRotation = fixedRotation;
-            }
         });
 
         DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectionContext, component =>
         {
             var offset = component.Offset;
-            if (ImGui.DragFloat2("Offset", ref offset))
-            {
+            DrawPropertyRow("Offset", () => ImGui.DragFloat2("##Offset", ref offset));
+            if (component.Offset != offset)
                 component.Offset = offset;
-            }
-            
             var size = component.Size;
-            if (ImGui.DragFloat2("Size", ref size))
-            {
+            DrawPropertyRow("Size", () => ImGui.DragFloat2("##Size", ref size));
+            if (component.Size != size)
                 component.Size = size;
-            }
-            
-            var density = component.Density;
-            if (ImGui.DragFloat("Density", ref density, 0.1f, 0.0f, 1.0f))
-            {
+            float density = component.Density;
+            DrawPropertyRow("Density", () => ImGui.DragFloat("##Density", ref density, 0.1f, 0.0f, 1.0f));
+            if (component.Density != density)
                 component.Density = density;
-            }
-            
-            var friction = component.Friction;
-            if (ImGui.DragFloat("Friction", ref friction, 0.1f, 0.0f, 1.0f))
-            {
+            float friction = component.Friction;
+            DrawPropertyRow("Friction", () => ImGui.DragFloat("##Friction", ref friction, 0.1f, 0.0f, 1.0f));
+            if (component.Friction != friction)
                 component.Friction = friction;
-            }
-            
-            var restitution = component.Restitution;
-            if (ImGui.DragFloat("Restitution", ref restitution, 0.1f, 0.0f, 1.0f))
-            {
+            float restitution = component.Restitution;
+            DrawPropertyRow("Restitution", () => ImGui.DragFloat("##Restitution", ref restitution, 0.1f, 0.0f, 1.0f));
+            if (component.Restitution != restitution)
                 component.Restitution = restitution;
-            }
-            
-            // todo: restitution treshold
         });
         
         DrawComponent<MeshComponent>("Mesh", _selectionContext, meshComponent =>
@@ -553,20 +513,18 @@ public class SceneHierarchyPanel
 DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, modelRendererComponent =>
 {
     var newColor = modelRendererComponent.Color;
-    ImGui.ColorEdit4("Color", ref newColor);
-
+    DrawPropertyRow("Color", () => ImGui.ColorEdit4("##ModelColor", ref newColor));
     if (modelRendererComponent.Color != newColor)
     {
         modelRendererComponent.Color = newColor;
     }
-    
-    // Render the "Texture" button
-    if (ImGui.Button("Texture", new Vector2(100.0f, 0.0f)))
+    DrawPropertyRow("Texture", () =>
     {
-        // Optional: Handle button click logic if needed
-    }
-    
-    // Begin drag-and-drop target handling
+        if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
+        {
+            // Optional: Handle button click logic if needed
+        }
+    });
     if (ImGui.BeginDragDropTarget())
     {
         unsafe
@@ -592,16 +550,14 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
     
     // Shadow options
     bool castShadows = modelRendererComponent.CastShadows;
-    if (ImGui.Checkbox("Cast Shadows", ref castShadows))
-    {
+    DrawPropertyRow("Cast Shadows", () => ImGui.Checkbox("##CastShadows", ref castShadows));
+    if (modelRendererComponent.CastShadows != castShadows)
         modelRendererComponent.CastShadows = castShadows;
-    }
     
     bool receiveShadows = modelRendererComponent.ReceiveShadows;
-    if (ImGui.Checkbox("Receive Shadows", ref receiveShadows))
-    {
+    DrawPropertyRow("Receive Shadows", () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
+    if (modelRendererComponent.ReceiveShadows != receiveShadows)
         modelRendererComponent.ReceiveShadows = receiveShadows;
-    }
 });
 
         ScriptComponentUI.DrawScriptComponent(_selectionContext);
@@ -654,6 +610,17 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
         }
     }
 
+    // Helper for two-column property row
+    private void DrawPropertyRow(string label, Action inputControl)
+    {
+        ImGui.Columns(2);
+        ImGui.Text(label);
+        ImGui.NextColumn();
+        ImGui.SetNextItemWidth(-1);
+        inputControl();
+        ImGui.Columns(1);
+    }
+
     public void SetSelectedEntity(Entity entity)
     {
         _selectionContext = entity;
@@ -698,110 +665,80 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
 
     public void DrawVec3Control(string label, ref Vector3 values, float resetValue = 0.0f, float columnWidth = 100.0f)
     {
-        ImGui.PushID(label);
-
         ImGui.Columns(2);
-        ImGui.SetColumnWidth(0, columnWidth);
         ImGui.Text(label);
         ImGui.NextColumn();
-
-        // Get the total width available for the DragFloat controls
-        float itemWidth = ImGui.CalcItemWidth();
-        float buttonWidth = 20.0f; // Width of the reset button (X, Y, Z)
+        ImGui.PushID(label);
+        float itemWidth = ImGui.GetContentRegionAvail().X;
+        float buttonWidth = 20.0f;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
-
-        // Define button sizes
         Vector2 buttonSize = new Vector2(buttonWidth, ImGui.GetFrameHeight());
-
-        // Handle X
+        float controlWidth = (itemWidth - 2 * (buttonWidth + spacing)) / 3.0f;
+        // X
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.9f, 0.2f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
-        if (ImGui.Button("X", buttonSize))
-            values.X = resetValue;
+        if (ImGui.Button("X", buttonSize)) values.X = resetValue;
         ImGui.PopStyleColor(3);
-
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.SetNextItemWidth(controlWidth);
         ImGui.DragFloat("##X", ref values.X, 0.1f, 0.0f, 0.0f, "%.2f");
-
-        // Handle Y
+        // Y
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
-        if (ImGui.Button("Y", buttonSize))
-            values.Y = resetValue;
+        if (ImGui.Button("Y", buttonSize)) values.Y = resetValue;
         ImGui.PopStyleColor(3);
-
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.SetNextItemWidth(controlWidth);
         ImGui.DragFloat("##Y", ref values.Y, 0.1f, 0.0f, 0.0f, "%.2f");
-
-        // Handle Z
+        // Z
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.1f, 0.25f, 0.8f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.2f, 0.35f, 0.9f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.1f, 0.25f, 0.8f, 1.0f));
-        if (ImGui.Button("Z", buttonSize))
-            values.Z = resetValue;
+        if (ImGui.Button("Z", buttonSize)) values.Z = resetValue;
         ImGui.PopStyleColor(3);
-
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.SetNextItemWidth(controlWidth);
         ImGui.DragFloat("##Z", ref values.Z, 0.1f, 0.0f, 0.0f, "%.2f");
-
-        ImGui.Columns(1);
-
         ImGui.PopID();
+        ImGui.Columns(1);
     }
-
     // todo: remove duplication from DrawVec3Control
     public void DrawVec2Control(string label, ref Vector2 values, float resetValue = 0, float columnWidth = 100.0f)
     {
-        ImGui.PushID(label);
-
         ImGui.Columns(2);
-        ImGui.SetColumnWidth(0, columnWidth);
         ImGui.Text(label);
         ImGui.NextColumn();
-
-        // Get the total width available for the DragFloat controls
-        var itemWidth = ImGui.CalcItemWidth();
-        const float buttonWidth = 20.0f; // Width of the reset button (X, Y, Z)
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-
-        // Define button sizes
-        var buttonSize = new Vector2(buttonWidth, ImGui.GetFrameHeight());
-
-        // Handle X
+        ImGui.PushID(label);
+        float itemWidth = ImGui.GetContentRegionAvail().X;
+        float buttonWidth = 20.0f;
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        Vector2 buttonSize = new Vector2(buttonWidth, ImGui.GetFrameHeight());
+        float controlWidth = (itemWidth - (buttonWidth + spacing)) / 2.0f;
+        // X
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.9f, 0.2f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.8f, 0.1f, 0.15f, 1.0f));
-        if (ImGui.Button("X", buttonSize))
-            values.X = resetValue;
+        if (ImGui.Button("X", buttonSize)) values.X = resetValue;
         ImGui.PopStyleColor(3);
-
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.SetNextItemWidth(controlWidth);
         ImGui.InputFloat("##X", ref values.X);
-
-        // Handle Y
+        // Y
         ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
-        if (ImGui.Button("Y", buttonSize))
-            values.Y = resetValue;
+        if (ImGui.Button("Y", buttonSize)) values.Y = resetValue;
         ImGui.PopStyleColor(3);
-
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(itemWidth / 3 - buttonSize.X - spacing);
+        ImGui.SetNextItemWidth(controlWidth);
         ImGui.InputFloat("##Y", ref values.Y);
-
-        ImGui.Columns(1);
-
         ImGui.PopID();
+        ImGui.Columns(1);
     }
 
     
