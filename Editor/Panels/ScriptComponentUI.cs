@@ -61,87 +61,50 @@ public static class ScriptComponentUI
                 {
                     bool changed = false;
                     object newValue = fieldValue;
-                    string inputLabel = $"{fieldName}##{fieldName}"; // Unique label for ImGui controls
-
-                    if (fieldType == typeof(int))
+                    string inputLabel = $"{fieldName}##{fieldName}";
+                    UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
                     {
-                        int v = (int)fieldValue;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.DragInt(inputLabel, ref v))
+                        if (fieldType == typeof(int))
                         {
-                            newValue = v;
-                            changed = true;
+                            int v = (int)fieldValue;
+                            if (ImGui.DragInt(inputLabel, ref v)) { newValue = v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(float))
-                    {
-                        float v = (float)fieldValue;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.DragFloat(inputLabel, ref v))
+                        else if (fieldType == typeof(float))
                         {
-                            newValue = v;
-                            changed = true;
+                            float v = (float)fieldValue;
+                            if (ImGui.DragFloat(inputLabel, ref v)) { newValue = v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(double))
-                    {
-                        float v = (float)(double)fieldValue;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.DragFloat(inputLabel, ref v))
+                        else if (fieldType == typeof(double))
                         {
-                            newValue = (double)v;
-                            changed = true;
+                            float v = (float)(double)fieldValue;
+                            if (ImGui.DragFloat(inputLabel, ref v)) { newValue = (double)v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(bool))
-                    {
-                        bool v = (bool)fieldValue;
-                        if (ImGui.Checkbox(inputLabel, ref v))
+                        else if (fieldType == typeof(bool))
                         {
-                            newValue = v;
-                            changed = true;
+                            bool v = (bool)fieldValue;
+                            if (ImGui.Checkbox(inputLabel, ref v)) { newValue = v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(string))
-                    {
-                        string v = (string)fieldValue ?? string.Empty;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.InputText(inputLabel, ref v, 256))
+                        else if (fieldType == typeof(string))
                         {
-                            newValue = v;
-                            changed = true;
+                            string v = (string)fieldValue ?? string.Empty;
+                            if (ImGui.InputText(inputLabel, ref v, 256)) { newValue = v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(Vector2))
-                    {
-                        Vector2 v = (Vector2)fieldValue;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.DragFloat2(inputLabel, ref v))
+                        else if (fieldType == typeof(Vector2))
                         {
-                            newValue = v;
-                            changed = true;
+                            Vector2 v = (Vector2)fieldValue;
+                            if (ImGui.DragFloat2(inputLabel, ref v)) { newValue = v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(Vector3))
-                    {
-                        Vector3 v = (Vector3)fieldValue;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.DragFloat3(inputLabel, ref v))
+                        else if (fieldType == typeof(Vector3))
                         {
-                            newValue = v;
-                            changed = true;
+                            Vector3 v = (Vector3)fieldValue;
+                            if (ImGui.DragFloat3(inputLabel, ref v)) { newValue = v; changed = true; }
                         }
-                    }
-                    else if (fieldType == typeof(Vector4))
-                    {
-                        Vector4 v = (Vector4)fieldValue;
-                        ImGui.SetNextItemWidth(120);
-                        if (ImGui.ColorEdit4(inputLabel, ref v))
+                        else if (fieldType == typeof(Vector4))
                         {
-                            newValue = v;
-                            changed = true;
+                            Vector4 v = (Vector4)fieldValue;
+                            if (ImGui.ColorEdit4(inputLabel, ref v)) { newValue = v; changed = true; }
                         }
-                    }
+                    });
                     if (changed)
                     {
                         script.SetFieldValue(fieldName, newValue);

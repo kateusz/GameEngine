@@ -223,130 +223,99 @@ public class SceneHierarchyPanel
             var camera = cameraComponent.Camera;
 
             bool primary = cameraComponent.Primary;
-            if (ImGui.Checkbox("Primary", ref primary))
-            {
+            UIPropertyRenderer.DrawPropertyRow("Primary", () => ImGui.Checkbox("##Primary", ref primary));
+            if (cameraComponent.Primary != primary)
                 cameraComponent.Primary = primary;
-            }
 
             string[] projectionTypeStrings = { "Perspective", "Orthographic" };
             var currentProjectionType = camera.ProjectionType;
             string currentProjectionTypeString = projectionTypeStrings[(int)currentProjectionType];
-
-            ImGui.Columns(2);
-            ImGui.Text("Projection");
-            ImGui.NextColumn();
-            ImGui.SetNextItemWidth(-1);
-            if (ImGui.BeginCombo("##Projection", currentProjectionTypeString))
+            UIPropertyRenderer.DrawPropertyRow("Projection", () =>
             {
-                for (int i = 0; i < projectionTypeStrings.Length; i++)
+                if (ImGui.BeginCombo("##Projection", currentProjectionTypeString))
                 {
-                    bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
-                    if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
+                    for (int i = 0; i < projectionTypeStrings.Length; i++)
                     {
-                        currentProjectionTypeString = projectionTypeStrings[i];
-                        camera.SetProjectionType((ProjectionType)i);
+                        bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
+                        if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
+                        {
+                            currentProjectionTypeString = projectionTypeStrings[i];
+                            camera.SetProjectionType((ProjectionType)i);
+                        }
+                        if (isSelected)
+                        {
+                            ImGui.SetItemDefaultFocus();
+                        }
                     }
-                    if (isSelected)
-                    {
-                        ImGui.SetItemDefaultFocus();
-                    }
+                    ImGui.EndCombo();
                 }
-                ImGui.EndCombo();
-            }
-            ImGui.Columns(1);
+            });
 
             if (camera.ProjectionType == ProjectionType.Perspective)
             {
                 float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
-                ImGui.Columns(2);
-                ImGui.Text("Vertical FOV");
-                ImGui.NextColumn();
-                ImGui.SetNextItemWidth(-1);
-                if (ImGui.DragFloat("##VerticalFOV", ref verticalFov))
+                UIPropertyRenderer.DrawPropertyRow("Vertical FOV", () => ImGui.DragFloat("##VerticalFOV", ref verticalFov));
+                if (verticalFov != MathHelpers.RadiansToDegrees(camera.PerspectiveFOV))
                 {
                     camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
                 }
-                ImGui.Columns(1);
 
                 float perspectiveNear = camera.PerspectiveNear;
-                ImGui.Columns(2);
-                ImGui.Text("Near");
-                ImGui.NextColumn();
-                ImGui.SetNextItemWidth(-1);
-                if (ImGui.DragFloat("##PerspectiveNear", ref perspectiveNear))
+                UIPropertyRenderer.DrawPropertyRow("Near", () => ImGui.DragFloat("##PerspectiveNear", ref perspectiveNear));
+                if (camera.PerspectiveNear != perspectiveNear)
                 {
                     camera.SetPerspectiveNearClip(perspectiveNear);
                 }
-                ImGui.Columns(1);
 
                 float perspectiveFar = camera.PerspectiveFar;
-                ImGui.Columns(2);
-                ImGui.Text("Far");
-                ImGui.NextColumn();
-                ImGui.SetNextItemWidth(-1);
-                if (ImGui.DragFloat("##PerspectiveFar", ref perspectiveFar))
+                UIPropertyRenderer.DrawPropertyRow("Far", () => ImGui.DragFloat("##PerspectiveFar", ref perspectiveFar));
+                if (camera.PerspectiveFar != perspectiveFar)
                 {
                     camera.SetPerspectiveFarClip(perspectiveFar);
                 }
-                ImGui.Columns(1);
             }
 
             if (camera.ProjectionType == ProjectionType.Orthographic)
             {
                 float orthoSize = camera.OrthographicSize;
-                ImGui.Columns(2);
-                ImGui.Text("Size");
-                ImGui.NextColumn();
-                ImGui.SetNextItemWidth(-1);
-                if (ImGui.DragFloat("##OrthoSize", ref orthoSize))
+                UIPropertyRenderer.DrawPropertyRow("Size", () => ImGui.DragFloat("##OrthoSize", ref orthoSize));
+                if (camera.OrthographicSize != orthoSize)
                 {
                     camera.SetOrthographicSize(orthoSize);
                 }
-                ImGui.Columns(1);
 
                 float orthoNear = camera.OrthographicNear;
-                ImGui.Columns(2);
-                ImGui.Text("Near");
-                ImGui.NextColumn();
-                ImGui.SetNextItemWidth(-1);
-                if (ImGui.DragFloat("##OrthoNear", ref orthoNear))
+                UIPropertyRenderer.DrawPropertyRow("Near", () => ImGui.DragFloat("##OrthoNear", ref orthoNear));
+                if (camera.OrthographicNear != orthoNear)
                 {
                     camera.SetOrthographicNearClip(orthoNear);
                 }
-                ImGui.Columns(1);
 
                 float orthoFar = camera.OrthographicFar;
-                ImGui.Columns(2);
-                ImGui.Text("Far");
-                ImGui.NextColumn();
-                ImGui.SetNextItemWidth(-1);
-                if (ImGui.DragFloat("##OrthoFar", ref orthoFar))
+                UIPropertyRenderer.DrawPropertyRow("Far", () => ImGui.DragFloat("##OrthoFar", ref orthoFar));
+                if (camera.OrthographicFar != orthoFar)
                 {
                     camera.SetOrthographicFarClip(orthoFar);
                 }
-                ImGui.Columns(1);
 
                 bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
-                ImGui.Columns(2);
-                ImGui.Text("Fixed Aspect Ratio");
-                ImGui.NextColumn();
-                if (ImGui.Checkbox("##FixedAspectRatio", ref fixedAspectRatio))
+                UIPropertyRenderer.DrawPropertyRow("Fixed Aspect Ratio", () => ImGui.Checkbox("##FixedAspectRatio", ref fixedAspectRatio));
+                if (cameraComponent.FixedAspectRatio != fixedAspectRatio)
                 {
                     cameraComponent.FixedAspectRatio = fixedAspectRatio;
                 }
-                ImGui.Columns(1);
             }
         });
         
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, spriteRendererComponent =>
         {
             var newColor = spriteRendererComponent.Color;
-            DrawPropertyRow("Color", () => ImGui.ColorEdit4("##Color", ref newColor));
+            UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##Color", ref newColor));
             if (spriteRendererComponent.Color != newColor)
             {
                 spriteRendererComponent.Color = newColor;
             }
-            DrawPropertyRow("Texture", () =>
+            UIPropertyRenderer.DrawPropertyRow("Texture", () =>
             {
                 if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
                 {
@@ -373,7 +342,7 @@ public class SceneHierarchyPanel
                 }
             }
             float tillingFactor = spriteRendererComponent.TilingFactor;
-            DrawPropertyRow("Tiling Factor", () => ImGui.DragFloat("##TilingFactor", ref tillingFactor, 0.1f, 0.0f, 100.0f));
+            UIPropertyRenderer.DrawPropertyRow("Tiling Factor", () => ImGui.DragFloat("##TilingFactor", ref tillingFactor, 0.1f, 0.0f, 100.0f));
             if (spriteRendererComponent.TilingFactor != tillingFactor)
             {
                 spriteRendererComponent.TilingFactor = tillingFactor;
@@ -383,10 +352,10 @@ public class SceneHierarchyPanel
         DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, c =>
         {
             var newCoords = c.Coords;
-            DrawPropertyRow("Sub texture coords", () => ImGui.DragFloat2("##SubTexCoords", ref newCoords));
+            UIPropertyRenderer.DrawPropertyRow("Sub texture coords", () => ImGui.DragFloat2("##SubTexCoords", ref newCoords));
             if (newCoords != c.Coords)
                 c.Coords = newCoords;
-            DrawPropertyRow("Texture", () =>
+            UIPropertyRenderer.DrawPropertyRow("Texture", () =>
             {
                 if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
                 {
@@ -416,7 +385,7 @@ public class SceneHierarchyPanel
         DrawComponent<RigidBody2DComponent>("Rigidbody 2D", _selectionContext, component =>
         {
             var currentBodyTypeString = component.BodyType.ToString();
-            DrawPropertyRow("Body Type", () =>
+            UIPropertyRenderer.DrawPropertyRow("Body Type", () =>
             {
                 if (ImGui.BeginCombo("##BodyType", currentBodyTypeString))
                 {
@@ -435,7 +404,7 @@ public class SceneHierarchyPanel
                 }
             });
             bool fixedRotation = component.FixedRotation;
-            DrawPropertyRow("Fixed Rotation", () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
+            UIPropertyRenderer.DrawPropertyRow("Fixed Rotation", () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
             if (component.FixedRotation != fixedRotation)
                 component.FixedRotation = fixedRotation;
         });
@@ -443,23 +412,23 @@ public class SceneHierarchyPanel
         DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectionContext, component =>
         {
             var offset = component.Offset;
-            DrawPropertyRow("Offset", () => ImGui.DragFloat2("##Offset", ref offset));
+            UIPropertyRenderer.DrawPropertyRow("Offset", () => ImGui.DragFloat2("##Offset", ref offset));
             if (component.Offset != offset)
                 component.Offset = offset;
             var size = component.Size;
-            DrawPropertyRow("Size", () => ImGui.DragFloat2("##Size", ref size));
+            UIPropertyRenderer.DrawPropertyRow("Size", () => ImGui.DragFloat2("##Size", ref size));
             if (component.Size != size)
                 component.Size = size;
             float density = component.Density;
-            DrawPropertyRow("Density", () => ImGui.DragFloat("##Density", ref density, 0.1f, 0.0f, 1.0f));
+            UIPropertyRenderer.DrawPropertyRow("Density", () => ImGui.DragFloat("##Density", ref density, 0.1f, 0.0f, 1.0f));
             if (component.Density != density)
                 component.Density = density;
             float friction = component.Friction;
-            DrawPropertyRow("Friction", () => ImGui.DragFloat("##Friction", ref friction, 0.1f, 0.0f, 1.0f));
+            UIPropertyRenderer.DrawPropertyRow("Friction", () => ImGui.DragFloat("##Friction", ref friction, 0.1f, 0.0f, 1.0f));
             if (component.Friction != friction)
                 component.Friction = friction;
             float restitution = component.Restitution;
-            DrawPropertyRow("Restitution", () => ImGui.DragFloat("##Restitution", ref restitution, 0.1f, 0.0f, 1.0f));
+            UIPropertyRenderer.DrawPropertyRow("Restitution", () => ImGui.DragFloat("##Restitution", ref restitution, 0.1f, 0.0f, 1.0f));
             if (component.Restitution != restitution)
                 component.Restitution = restitution;
         });
@@ -513,12 +482,12 @@ public class SceneHierarchyPanel
 DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, modelRendererComponent =>
 {
     var newColor = modelRendererComponent.Color;
-    DrawPropertyRow("Color", () => ImGui.ColorEdit4("##ModelColor", ref newColor));
+    UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##ModelColor", ref newColor));
     if (modelRendererComponent.Color != newColor)
     {
         modelRendererComponent.Color = newColor;
     }
-    DrawPropertyRow("Texture", () =>
+    UIPropertyRenderer.DrawPropertyRow("Texture", () =>
     {
         if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
         {
@@ -550,12 +519,12 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
     
     // Shadow options
     bool castShadows = modelRendererComponent.CastShadows;
-    DrawPropertyRow("Cast Shadows", () => ImGui.Checkbox("##CastShadows", ref castShadows));
+    UIPropertyRenderer.DrawPropertyRow("Cast Shadows", () => ImGui.Checkbox("##CastShadows", ref castShadows));
     if (modelRendererComponent.CastShadows != castShadows)
         modelRendererComponent.CastShadows = castShadows;
     
     bool receiveShadows = modelRendererComponent.ReceiveShadows;
-    DrawPropertyRow("Receive Shadows", () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
+    UIPropertyRenderer.DrawPropertyRow("Receive Shadows", () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
     if (modelRendererComponent.ReceiveShadows != receiveShadows)
         modelRendererComponent.ReceiveShadows = receiveShadows;
 });
@@ -611,7 +580,7 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
     }
 
     // Helper for two-column property row
-    private void DrawPropertyRow(string label, Action inputControl)
+    public static void DrawPropertyRow(string label, Action inputControl)
     {
         ImGui.Columns(2);
         ImGui.Text(label);
