@@ -42,7 +42,13 @@ public class EditorLayer : Layer
     private string? _editorScenePath;
     private Vector4 _backgroundColor = new Vector4(0.1f, 0.1f, 0.1f, 1.0f);
     private bool _showSettings = false;
-
+    private bool _showNewProjectPopup = false;
+    private string _newProjectName = string.Empty;
+    private string _newProjectError = string.Empty;
+    private string? _currentProjectDirectory = null;
+    private bool _showOpenProjectPopup = false;
+    private string _openProjectPath = string.Empty;
+    
     public EditorLayer(string name) : base(name)
     {
     }
@@ -311,19 +317,19 @@ public class EditorLayer : Layer
             {
                 if (ImGui.BeginMenu("File"))
                 {
+                    if (ImGui.MenuItem("New Project"))
+                        _showNewProjectPopup = true;
+                    if (ImGui.MenuItem("Open Project"))
+                        _showOpenProjectPopup = true;
                     if (ImGui.MenuItem("New", "Ctrl+N"))
                         NewScene();
-
                     if (ImGui.MenuItem("Open...", "Ctrl+O"))
                         OpenScene();
-
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
                         SaveScene();
-
                     if (ImGui.MenuItem("Exit"))
                     {
                     }
-
                     ImGui.EndMenu();
                 }
 
@@ -454,6 +460,140 @@ public class EditorLayer : Layer
 
             ImGui.End();
         }
+        RenderNewProjectPopup();
+        RenderOpenProjectPopup();
+    }
+
+    private void RenderNewProjectPopup()
+    {
+        if (_showNewProjectPopup)
+        {
+            ImGui.OpenPopup("New Project");
+        }
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        if (ImGui.BeginPopupModal("New Project", ref _showNewProjectPopup, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        {
+            ImGui.Text("Enter Project Name:");
+            ImGui.InputText("##ProjectName", ref _newProjectName, 100);
+            ImGui.Separator();
+            bool isValid = !string.IsNullOrWhiteSpace(_newProjectName) && System.Text.RegularExpressions.Regex.IsMatch(_newProjectName, @"^[a-zA-Z0-9_\- ]+$");
+            if (!isValid && !string.IsNullOrEmpty(_newProjectName))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.TextWrapped("Project name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores.");
+                ImGui.PopStyleColor();
+            }
+            if (!string.IsNullOrEmpty(_newProjectError))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.TextWrapped(_newProjectError);
+                ImGui.PopStyleColor();
+            }
+            ImGui.BeginDisabled(!isValid);
+            if (ImGui.Button("Create", new Vector2(120, 0)))
+            {
+                var result = CreateNewProject(_newProjectName.Trim());
+                if (result)
+                {
+                    _showNewProjectPopup = false;
+                    _newProjectName = string.Empty;
+                    _newProjectError = string.Empty;
+                }
+            }
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                _showNewProjectPopup = false;
+                _newProjectName = string.Empty;
+                _newProjectError = string.Empty;
+            }
+            ImGui.EndPopup();
+        }
+    }
+
+    private bool CreateNewProject(string projectName)
+    {
+        try
+        {
+            var currentDir = Environment.CurrentDirectory;
+            var projectDir = Path.Combine(currentDir, projectName);
+            if (Directory.Exists(projectDir))
+            {
+                _newProjectError = $"A directory named '{projectName}' already exists.";
+                return false;
+            }
+            Directory.CreateDirectory(projectDir);
+            Directory.CreateDirectory(Path.Combine(projectDir, "assets"));
+            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "scenes"));
+            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "textures"));
+            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "scripts"));
+            _currentProjectDirectory = projectDir;
+            AssetsManager.SetAssetsPath(Path.Combine(projectDir, "assets"));
+            _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+            Console.WriteLine($"🆕 Project '{projectName}' created at {projectDir}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _newProjectError = $"Failed to create project: {ex.Message}";
+            return false;
+        }
+    }
+
+    private void RenderOpenProjectPopup()
+    {
+        if (_showOpenProjectPopup)
+        {
+            ImGui.OpenPopup("Open Project");
+        }
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        if (ImGui.BeginPopupModal("Open Project", ref _showOpenProjectPopup, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        {
+            ImGui.Text("Enter project name:");
+            ImGui.InputText("##OpenProjectName", ref _openProjectPath, 100);
+            ImGui.Separator();
+            bool isValid = !string.IsNullOrWhiteSpace(_openProjectPath) && Directory.Exists(Path.Combine(Environment.CurrentDirectory, _openProjectPath));
+            if (!isValid && !string.IsNullOrEmpty(_openProjectPath))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.TextWrapped("Project directory does not exist.");
+                ImGui.PopStyleColor();
+            }
+            ImGui.BeginDisabled(!isValid);
+            if (ImGui.Button("Open", new Vector2(120, 0)))
+            {
+                var projectDir = Path.Combine(Environment.CurrentDirectory, _openProjectPath.Trim());
+                OpenProject(projectDir);
+                _showOpenProjectPopup = false;
+                _openProjectPath = string.Empty;
+            }
+            ImGui.EndDisabled();
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                _showOpenProjectPopup = false;
+                _openProjectPath = string.Empty;
+            }
+            ImGui.EndPopup();
+        }
+    }
+
+    private void OpenProject(string projectDir)
+    {
+        _currentProjectDirectory = projectDir;
+        var assetsDir = Path.Combine(projectDir, "assets");
+        if (Directory.Exists(assetsDir))
+        {
+            AssetsManager.SetAssetsPath(assetsDir);
+            _contentBrowserPanel.SetRootDirectory(assetsDir);
+        }
+        else
+        {
+            AssetsManager.SetAssetsPath(projectDir);
+            _contentBrowserPanel.SetRootDirectory(projectDir);
+        }
+        Console.WriteLine($"📂 Project opened: {projectDir}");
     }
 
     private void OnMouseButtonPressed(MouseButtonPressedEvent e)
@@ -510,8 +650,18 @@ public class EditorLayer : Layer
     
     private void SaveScene()
     {
-        var currentDirectory = Environment.CurrentDirectory;
-        _editorScenePath = Path.Combine(currentDirectory, "assets", "scenes", "scene.scene");
+        string sceneDir;
+        if (!string.IsNullOrEmpty(_currentProjectDirectory))
+        {
+            sceneDir = Path.Combine(_currentProjectDirectory, "assets", "scenes");
+        }
+        else
+        {
+            sceneDir = Path.Combine(Environment.CurrentDirectory, "assets", "scenes");
+        }
+        if (!Directory.Exists(sceneDir))
+            Directory.CreateDirectory(sceneDir);
+        _editorScenePath = Path.Combine(sceneDir, "scene.scene");
         if (!string.IsNullOrWhiteSpace(_editorScenePath))
         {
             SceneSerializer.Serialize(_activeScene, _editorScenePath);

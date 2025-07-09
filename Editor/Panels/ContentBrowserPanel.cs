@@ -7,7 +7,7 @@ namespace Editor.Panels;
 
 public class ContentBrowserPanel
 {
-    private readonly string _assetPath;
+    private string _assetPath;
     private string _currentDirectory;
     private readonly Texture2D _directoryIcon;
     private readonly Texture2D _fileIcon;
@@ -25,6 +25,10 @@ public class ContentBrowserPanel
     public void OnImGuiRender()
     {
         ImGui.Begin("Content Browser");
+
+        // Display current path at the top
+        ImGui.TextWrapped($"Current Path: {_currentDirectory}");
+        ImGui.Separator();
 
         if (_currentDirectory != _assetPath)
         {
@@ -102,5 +106,11 @@ public class ContentBrowserPanel
         
         ImGui.Columns(1);
         ImGui.End();
+    }
+
+    public void SetRootDirectory(string rootDir)
+    {
+        _assetPath = rootDir;
+        _currentDirectory = rootDir;
     }
 }

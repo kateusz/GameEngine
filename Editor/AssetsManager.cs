@@ -2,5 +2,11 @@ namespace Editor;
 
 public static class AssetsManager
 {
-    public static string AssetsPath = Path.Combine(Environment.CurrentDirectory, "assets");
+    private static string _assetsPath = Path.Combine(Environment.CurrentDirectory, "assets");
+    public static string AssetsPath => _assetsPath;
+
+    public static void SetAssetsPath(string path)
+    {
+        _assetsPath = path;
+    }
 }
