@@ -321,22 +321,22 @@ public class EditorLayer : Layer
                         _showNewProjectPopup = true;
                     if (ImGui.MenuItem("Open Project"))
                         _showOpenProjectPopup = true;
+                    if (ImGui.MenuItem("Exit"))
+                    {
+                        Environment.Exit(0); // Exit the application
+                    }
+                    ImGui.EndMenu();
+                }
+
+                // New Scene menu for scene operations
+                if (ImGui.BeginMenu("Scene..."))
+                {
                     if (ImGui.MenuItem("New", "Ctrl+N"))
                         NewScene();
                     if (ImGui.MenuItem("Open...", "Ctrl+O"))
                         OpenScene();
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
                         SaveScene();
-                    if (ImGui.MenuItem("Exit"))
-                    {
-                    }
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu("View"))
-                {
-                    if (ImGui.MenuItem("Clear Console"))
-                        _consolePanel.Clear();
                     ImGui.EndMenu();
                 }
 
