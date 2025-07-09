@@ -82,6 +82,11 @@ public class EditorLayer : Layer
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel(); // Initialize console panel
         
+        // Set scripts directory based on current project directory
+        string projectRoot = _currentProjectDirectory ?? Environment.CurrentDirectory;
+        string scriptsDir = Path.Combine(projectRoot, "assets", "scripts");
+        ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
+        
         ScriptEngine.Instance.Initialize(_activeScene);
         
         // Add some initial console messages to demonstrate functionality
@@ -593,6 +598,8 @@ public class EditorLayer : Layer
             AssetsManager.SetAssetsPath(projectDir);
             _contentBrowserPanel.SetRootDirectory(projectDir);
         }
+        string scriptsDir = Path.Combine(_currentProjectDirectory, "assets", "scripts");
+        ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
         Console.WriteLine($"📂 Project opened: {projectDir}");
     }
 

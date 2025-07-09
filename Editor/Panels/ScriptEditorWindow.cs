@@ -25,7 +25,7 @@ public class ScriptEditorWindow
     private readonly float _lineNumbersWidth = 50.0f;
     private readonly Vector4 _lineNumbersColor = new Vector4(0.5f, 0.5f, 0.5f, 1.0f);
     private readonly Vector4 _errorColor = new Vector4(1.0f, 0.3f, 0.3f, 1.0f);
-        
+    
     public void Open(string scriptName, bool isNewScript = false, Action<bool> onCloseCallback = null)
     {
         _scriptName = scriptName;
@@ -155,41 +155,87 @@ public class ScriptEditorWindow
     private void RenderEditor()
     {
         var windowSize = ImGui.GetContentRegionAvail();
-            
-        // Create a child window for the text editor
         ImGui.BeginChild("ScriptEditorChild", new Vector2(windowSize.X, windowSize.Y - 25));
-            
-        var textFlags = ImGuiInputTextFlags.AllowTabInput | 
+
+        var textFlags = ImGuiInputTextFlags.AllowTabInput |
                         ImGuiInputTextFlags.CtrlEnterForNewLine;
-            
+
         var isFocused = ImGui.IsWindowFocused();
-            
+        var io = ImGui.GetIO();
+
+        // Keyboard shortcuts
+        if (isFocused && io.KeyCtrl)
+        {
+            if (ImGui.IsKeyPressed(ImGuiKey.C))
+            {
+                ImGui.SetClipboardText(_scriptContent);
+            }
+            if (ImGui.IsKeyPressed(ImGuiKey.V))
+            {
+                var clipboard = ImGui.GetClipboardText();
+                if (!string.IsNullOrEmpty(clipboard))
+                {
+                    // Insert clipboard at cursor position (simple append for now)
+                    _scriptContent += clipboard;
+                    _hasChanges = _scriptContent != _originalScriptContent;
+                }
+            }
+            if (ImGui.IsKeyPressed(ImGuiKey.X))
+            {
+                ImGui.SetClipboardText(_scriptContent);
+                _scriptContent = string.Empty;
+                _hasChanges = _scriptContent != _originalScriptContent;
+            }
+        }
+
         // Input text with multiline
-        if (ImGui.InputTextMultiline("##ScriptContent", ref _scriptContent, 
+        if (ImGui.InputTextMultiline("##ScriptContent", ref _scriptContent,
                 1024 * 1024, new Vector2(-1, -1), textFlags))
         {
             _hasChanges = _scriptContent != _originalScriptContent;
         }
-            
+
         // Auto-focus the text editor when the window opens
         if (_isNewScript && isFocused)
         {
             ImGui.SetKeyboardFocusHere(-1);
             _isNewScript = false;
         }
-            
+
+        // Right-click context menu
+        if (ImGui.BeginPopupContextItem("ScriptEditorContextMenu"))
+        {
+            if (ImGui.MenuItem("Copy", "Ctrl+C")) ImGui.SetClipboardText(_scriptContent);
+            if (ImGui.MenuItem("Paste", "Ctrl+V"))
+            {
+                var clipboard = ImGui.GetClipboardText();
+                if (!string.IsNullOrEmpty(clipboard))
+                {
+                    _scriptContent += clipboard;
+                    _hasChanges = _scriptContent != _originalScriptContent;
+                }
+            }
+            if (ImGui.MenuItem("Cut", "Ctrl+X"))
+            {
+                ImGui.SetClipboardText(_scriptContent);
+                _scriptContent = string.Empty;
+                _hasChanges = _scriptContent != _originalScriptContent;
+            }
+            ImGui.EndPopup();
+        }
+
         ImGui.EndChild();
     }
         
     private void RenderStatusBar()
     {
         ImGui.BeginChild("StatusBar", new Vector2(-1, 20));
-            
+
         ImGui.Text(_hasChanges ? "Modified" : "Saved");
-            
-        ImGui.SameLine(ImGui.GetWindowWidth() - 150);
-        ImGui.Text($"Characters: {_scriptContent.Length}");
-            
+
+        ImGui.SameLine(ImGui.GetWindowWidth() - 350);
+        ImGui.Text($"Characters: {_scriptContent.Length} | Shortcuts: Ctrl+C (Copy), Ctrl+V (Paste), Ctrl+X (Cut), Ctrl+A (Select All)");
+
         ImGui.EndChild();
     }
         

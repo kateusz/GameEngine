@@ -22,7 +22,7 @@ public class ScriptEngine
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
-    private readonly string _scriptsDirectory;
+    private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
 
     private GameScene? _activeScene;
@@ -33,11 +33,15 @@ public class ScriptEngine
 
     private ScriptEngine()
     {
-        // Create scripts directory if it doesn't exist
+        // Default to current directory, but allow override
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
+    }
 
-        // Compile all existing scripts
+    public void SetScriptsDirectory(string scriptsDirectory)
+    {
+        _scriptsDirectory = scriptsDirectory;
+        Directory.CreateDirectory(_scriptsDirectory);
         CompileAllScripts();
     }
 
