@@ -20,6 +20,7 @@ public class SilkNetGameWindow : IGameWindow
         options.Title = "Game Window";
 
         _window = Window.Create(options);
+        _window.WindowState = WindowState.Maximized;
 
         _window.Load += WindowOnLoad;
         _window.Update += WindowOnUpdate;
