@@ -105,14 +105,32 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        // Wyczyść ContactListener
+        // First, mark all script entities as "stopping" to prevent new physics operations
+        var scriptEntities = Context.Instance.View<NativeScriptComponent>();
+        foreach (var (entity, component) in scriptEntities)
+        {
+            if (component.ScriptableEntity != null)
+            {
+                try
+                {
+                    component.ScriptableEntity.OnDestroy();
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't crash
+                    Console.WriteLine($"Error in script OnDestroy: {ex.Message}");
+                }
+            }
+        }
+
+        // Clear ContactListener
         if (_physicsWorld != null && _contactListener != null)
         {
             _physicsWorld.SetContactListener(null);
             _contactListener = null;
         }
 
-        // Wyczyść UserData z bodies
+        // Clear UserData from bodies
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -123,7 +141,7 @@ public class Scene
             }
         }
 
-        // Zniszcz physics world
+        // Destroy physics world
         _physicsWorld = null;
     }
 
@@ -147,14 +165,17 @@ public class Scene
             var collision = entity.GetComponent<BoxCollider2DComponent>();
             var body = component.RuntimeBody;
 
-            var fixture = body.GetFixtureList();
-            fixture.Density = collision.Density;
-            fixture.m_friction = collision.Friction;
-            fixture.Restitution = collision.Restitution;
+            if (body != null)
+            {
+                var fixture = body.GetFixtureList();
+                fixture.Density = collision.Density;
+                fixture.m_friction = collision.Friction;
+                fixture.Restitution = collision.Restitution;
 
-            var position = body.GetPosition();
-            transform.Translation = new Vector3(position.X, position.Y, 0);
-            transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+                var position = body.GetPosition();
+                transform.Translation = new Vector3(position.X, position.Y, 0);
+                transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+            }
         }
 
         // Find the main camera

@@ -28,7 +28,7 @@ public class FlappyBirdGameManager : ScriptableEntity
     private GameState lastGameState = GameState.Menu;
     
     // exposed fields
-    public bool enableDebugLogs = true;
+    public bool enableDebugLogs = false;
     
     public override void OnCreate()
     {
