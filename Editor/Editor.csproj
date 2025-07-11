@@ -184,9 +184,6 @@
       <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\CameraFollow.cs">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      </Compile>
       <Compile Update="assets\scripts\FlappyBirdController.cs">
         <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       </Compile>

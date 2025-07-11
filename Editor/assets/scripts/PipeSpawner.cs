@@ -7,256 +7,299 @@ using Engine.Scene.Components;
 
 public class PipeSpawner : ScriptableEntity
 {
-    public float spawnTimer = 0.0f;
-    public float spawnInterval = 2.0f; // Spawn pipe every 2 seconds
-    public float pipeSpeed = 3.0f;
-    public float pipeGap = 4.0f; // Gap between top and bottom pipes
-    public float spawnX = 15.0f; // Spawn pipes off-screen to the right
+    // Screen/camera bounds (adjust based on your camera setup)
+    private const float SCREEN_RIGHT = 16.0f;   // Where pipes spawn (off-screen right)
+    private const float SCREEN_LEFT = -16.0f;   // Where pipes are destroyed (off-screen left)
+    private const float BIRD_X_POSITION = 4.0f; // Must match FlappyBirdController.BIRD_X_POSITION
+    
+    // Pipe settings
+    private float pipeSpeed = 4.0f;         // Speed pipes move left
+    private float spawnInterval = 2.5f;     // Time between pipe spawns
+    private float pipeGap = 3.5f;          // Gap between top and bottom pipe
+    private float pipeWidth = 1.5f;        // Width of pipe for cleanup detection
+    
+    // Pipe positioning
+    private float minPipeY = -3.0f;        // Minimum Y for gap center
+    private float maxPipeY = 3.0f;         // Maximum Y for gap center
+    private float pipeHeight = 6.0f;       // Height of each pipe segment
+    
+    // Spawning state
+    private float spawnTimer = 0.0f;
+    private int pipeCounter = 0;           // For unique pipe naming
     private Random random = new Random();
+    
+    // Game Manager connection
     private Entity gameManagerEntity;
     private FlappyBirdGameManager gameManager;
     private bool hasConnectedToGameManager = false;
+    
+    // Debug
+    private float debugLogTimer = 0.0f;
+    private bool enableDebugLogs = false;
 
     public override void OnCreate()
     {
-        Console.WriteLine("Pipe Spawner initialized!");
-
-        // Find the game manager entity
-        gameManagerEntity = FindEntity("Game Manager")!;
-
-        var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
-        if (scriptComponent?.ScriptableEntity is FlappyBirdGameManager manager)
+        Console.WriteLine("[PipeSpawner] Simplified pipe spawner initialized!");
+        
+        // Connect to Game Manager
+        gameManagerEntity = FindEntity("Game Manager");
+        if (gameManagerEntity != null)
         {
-            gameManager = manager;
-            hasConnectedToGameManager = true;
-            Console.WriteLine("[PipeSpawner] SUCCESS: Found and connected to Game Manager");
+            var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent?.ScriptableEntity is FlappyBirdGameManager manager)
+            {
+                gameManager = manager;
+                hasConnectedToGameManager = true;
+                Console.WriteLine("[PipeSpawner] Connected to Game Manager");
+            }
         }
-        else
-        {
-            Console.WriteLine("[PipeSpawner] WARNING: Game Manager entity found but no FlappyBirdGameManager script");
-        }
+        
+        Console.WriteLine($"[PipeSpawner] Settings - Speed: {pipeSpeed}, Interval: {spawnInterval}s, Gap: {pipeGap}");
+        Console.WriteLine($"[PipeSpawner] Spawn at X: {SCREEN_RIGHT}, Destroy at X: {SCREEN_LEFT}");
     }
 
     public override void OnUpdate(TimeSpan ts)
     {
-        // Check game state - only spawn and move pipes when playing
-        if (gameManager != null)
+        float deltaTime = (float)ts.TotalSeconds;
+        debugLogTimer += deltaTime;
+        
+        // Only spawn and move pipes during gameplay
+        bool shouldBeActive = gameManager?.GetGameState() == GameState.Playing;
+        
+        if (shouldBeActive)
         {
-            var gameState = gameManager.GetGameState();
-            if (gameState != GameState.Playing)
-            {
-                // Don't spawn or move pipes when not playing
-                return;
-            }
+            HandlePipeSpawning(deltaTime);
+            MovePipes(deltaTime);
+            CleanupOffscreenPipes();
+            CheckForScoring();
         }
+        
+        // Debug logging
+        if (enableDebugLogs && debugLogTimer >= 2.0f)
+        {
+            int pipeCount = CountPipes();
+            Console.WriteLine($"[PipeSpawner] Active pipes: {pipeCount}, Next spawn in: {spawnInterval - spawnTimer:F1}s");
+            debugLogTimer = 0.0f;
+        }
+    }
 
-        spawnTimer += (float)ts.TotalSeconds;
-
+    private void HandlePipeSpawning(float deltaTime)
+    {
+        spawnTimer += deltaTime;
+        
         if (spawnTimer >= spawnInterval)
         {
             SpawnPipePair();
             spawnTimer = 0.0f;
         }
-
-        // Move existing pipes and clean up old ones
-        MovePipes(ts);
-        CleanupOldPipes();
     }
 
     private void SpawnPipePair()
     {
-        // Double-check game state before spawning
-        if (gameManager != null && gameManager.GetGameState() != GameState.Playing)
-        {
-            Console.WriteLine("[PipeSpawner] Spawn cancelled - game not in Playing state");
-            return;
-        }
-
         // Random Y position for the gap center
-        float gapCenterY = random.Next(-2, 3); // Random between -2 and 2
-
-        // Create bottom pipe
-        var bottomPipe = CreateEntity($"BottomPipe_{DateTime.Now.Ticks}");
-        var bottomTransform = new TransformComponent
-        {
-            Translation = new Vector3(spawnX, gapCenterY - pipeGap / 2 - 2.0f, 0),
-            Scale = new Vector3(1, 4, 1)
-        };
-
-        bottomPipe.AddComponent(bottomTransform);
-
-        var bottomSprite = new SpriteRendererComponent
-        {
-            // TODO: Load pipe texture
-            Color = Vector4.One
-        };
-
-        bottomPipe.AddComponent(bottomSprite);
-
-        var bottomRigidBody = new RigidBody2DComponent
-        {
-            BodyType = RigidBodyType.Static
-        };
-        bottomPipe.AddComponent(bottomRigidBody);
-
-        var bottomCollider = new BoxCollider2DComponent
-        {
-            Size = new Vector2(0.5f, 2.0f)
-        };
-
-        bottomPipe.AddComponent(bottomCollider);
-
+        float gapCenterY = random.NextSingle() * (maxPipeY - minPipeY) + minPipeY;
+        float topPipeY = gapCenterY + pipeGap / 2.0f + pipeHeight / 2.0f;
+        float bottomPipeY = gapCenterY - pipeGap / 2.0f - pipeHeight / 2.0f;
+        
+        pipeCounter++;
+        
+        Console.WriteLine($"[PipeSpawner] Spawning pipe pair #{pipeCounter} at gap center Y: {gapCenterY:F2}");
+        
         // Create top pipe
-        var topPipe = CreateEntity($"TopPipe_{DateTime.Now.Ticks}");
-        var topTransform = new TransformComponent
-        {
-            Translation = new Vector3(spawnX, gapCenterY + pipeGap / 2 + 2.0f, 0),
-            Scale = new Vector3(1, 4, 1),
-            Rotation = new Vector3(0, 0, MathF.PI) // Flip top pipe
-        };
-
-        topPipe.AddComponent(topTransform);
-
-        var topSprite = new SpriteRendererComponent
-        {
-            Color = Vector4.One
-        };
-
-        topPipe.AddComponent(topSprite);
-
-        var topRigidBody = new RigidBody2DComponent
-        {
-            BodyType = RigidBodyType.Static
-        };
-
-        topPipe.AddComponent(topRigidBody);
-
-        var topCollider = new BoxCollider2DComponent
-        {
-            Size = new Vector2(0.5f, 2.0f)
-        };
-
-        topPipe.AddComponent(topCollider);
-
-        Console.WriteLine($"Spawned pipe pair at gap center Y: {gapCenterY}");
+        CreatePipe($"Pipe_Top_{pipeCounter}", SCREEN_RIGHT, topPipeY, isTopPipe: true);
+        
+        // Create bottom pipe  
+        CreatePipe($"Pipe_Bottom_{pipeCounter}", SCREEN_RIGHT, bottomPipeY, isTopPipe: false);
+        
+        Console.WriteLine($"[PipeSpawner] Pipe pair spawned - Top Y: {topPipeY:F2}, Bottom Y: {bottomPipeY:F2}");
     }
 
-    private void MovePipes(TimeSpan ts)
+    private void CreatePipe(string name, float x, float y, bool isTopPipe)
     {
-        // Double-check game state before moving pipes
-        if (gameManager != null && gameManager.GetGameState() != GameState.Playing)
+        try
         {
-            return; // Don't move pipes when not playing
+            var pipeEntity = CreateEntity(name);
+            
+            // Add transform
+            var transform = new TransformComponent
+            {
+                Translation = new Vector3(x, y, 0.0f),
+                Scale = new Vector3(pipeWidth, pipeHeight, 1.0f)
+            };
+            pipeEntity.AddComponent(transform);
+            
+            // Add visual component (SpriteRenderer)
+            var sprite = new SpriteRendererComponent
+            {
+                Color = isTopPipe ? new Vector4(0.2f, 0.8f, 0.2f, 1.0f) : new Vector4(0.8f, 0.2f, 0.2f, 1.0f)
+            };
+            pipeEntity.AddComponent(sprite);
+            
+            // Add collider for collision detection
+            var collider = new BoxCollider2DComponent
+            {
+                Size = new Vector2(pipeWidth, pipeHeight)
+            };
+            pipeEntity.AddComponent(collider);
+            
+            // Add custom component to track if this pipe has been scored
+            var pipeData = new PipeDataComponent
+            {
+                hasScored = false,
+                pairId = pipeCounter
+            };
+            pipeEntity.AddComponent(pipeData);
+            
+            Console.WriteLine($"[PipeSpawner] Created {name} at ({x:F2}, {y:F2})");
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PipeSpawner] Error creating pipe {name}: {ex.Message}");
+        }
+    }
 
-        // Find all pipe entities and move them left
+    private void MovePipes(float deltaTime)
+    {
+        float moveDistance = pipeSpeed * deltaTime;
+        
         foreach (var entity in CurrentScene.Entities)
         {
-            if (entity.Name.Contains("Pipe"))
+            if (entity.Name.Contains("Pipe_"))
             {
                 var transform = entity.GetComponent<TransformComponent>();
                 if (transform != null)
                 {
-                    var position = transform.Translation;
-                    position.X -= pipeSpeed * (float)ts.TotalSeconds;
-                    transform.Translation = position;
+                    // Move pipe left
+                    var pos = transform.Translation;
+                    transform.Translation = new Vector3(pos.X - moveDistance, pos.Y, pos.Z);
                 }
             }
         }
     }
 
-    private void CleanupOldPipes()
+    private void CleanupOffscreenPipes()
     {
-        // Always clean up old pipes regardless of game state to prevent memory leaks
         var pipesToRemove = new List<Entity>();
-
+        
         foreach (var entity in CurrentScene.Entities)
         {
-            if (entity.Name.Contains("Pipe"))
+            if (entity.Name.Contains("Pipe_"))
             {
                 var transform = entity.GetComponent<TransformComponent>();
-                if (transform != null && transform.Translation.X < -10.0f)
+                if (transform != null && transform.Translation.X < SCREEN_LEFT)
                 {
                     pipesToRemove.Add(entity);
                 }
             }
         }
-
+        
         foreach (var pipe in pipesToRemove)
         {
+            Console.WriteLine($"[PipeSpawner] Destroying offscreen pipe: {pipe.Name}");
             DestroyEntity(pipe);
         }
-
+        
         if (pipesToRemove.Count > 0)
         {
-            Console.WriteLine($"[PipeSpawner] Cleaned up {pipesToRemove.Count} old pipes");
+            Console.WriteLine($"[PipeSpawner] Cleaned up {pipesToRemove.Count} offscreen pipes");
         }
     }
 
-    // Method to pause/resume pipe spawning (can be called by game manager)
-    public void SetSpawningEnabled(bool enabled)
+    private void CheckForScoring()
     {
-        Console.WriteLine($"[PipeSpawner] Spawning {(enabled ? "enabled" : "disabled")}");
-        if (!enabled)
+        // Since bird X is fixed, we just check if any unscored pipe has passed the bird
+        foreach (var entity in CurrentScene.Entities)
         {
-            spawnTimer = 0.0f; // Reset spawn timer when disabled
+            if (entity.Name.Contains("Pipe_Top_")) // Only check top pipes to avoid double scoring
+            {
+                var transform = entity.GetComponent<TransformComponent>();
+                var pipeData = entity.GetComponent<PipeDataComponent>();
+                
+                if (transform != null && pipeData != null && !pipeData.hasScored)
+                {
+                    float pipeX = transform.Translation.X;
+                    
+                    // If pipe has passed the bird (pipe right edge passed bird center)
+                    if (pipeX + pipeWidth/2 < BIRD_X_POSITION)
+                    {
+                        pipeData.hasScored = true;
+                        
+                        // Also mark the corresponding bottom pipe as scored
+                        string bottomPipeName = entity.Name.Replace("Pipe_Top_", "Pipe_Bottom_");
+                        var bottomPipe = FindEntity(bottomPipeName);
+                        if (bottomPipe != null)
+                        {
+                            var bottomPipeData = bottomPipe.GetComponent<PipeDataComponent>();
+                            if (bottomPipeData != null)
+                            {
+                                bottomPipeData.hasScored = true;
+                            }
+                        }
+                        
+                        // Notify game manager
+                        if (gameManager != null)
+                        {
+                            gameManager.IncrementScore();
+                            Console.WriteLine($"[PipeSpawner] Score! Pipe pair {pipeData.pairId} passed bird at X: {BIRD_X_POSITION}");
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // Method to immediately stop all pipe movement (useful for game over)
-    public void StopAllPipeMovement()
-    {
-        Console.WriteLine("[PipeSpawner] Stopping all pipe movement");
-        // This method could be called by the game manager when game over occurs
-        // The Update method will handle the actual stopping based on game state
-    }
-
-    // Method to clean up all pipes (useful for restarting the game)
+    // Public methods for Game Manager
     public void DestroyAllPipes()
     {
         Console.WriteLine("[PipeSpawner] Destroying all pipes for game restart");
         var pipesToRemove = new List<Entity>();
-
+        
         foreach (var entity in CurrentScene.Entities)
         {
-            if (entity.Name.Contains("Pipe"))
+            if (entity.Name.Contains("Pipe_"))
             {
                 pipesToRemove.Add(entity);
             }
         }
-
+        
         foreach (var pipe in pipesToRemove)
         {
             DestroyEntity(pipe);
         }
-
-        Console.WriteLine($"[PipeSpawner] Destroyed {pipesToRemove.Count} pipes for restart");
-        spawnTimer = 0.0f; // Reset spawn timer
+        
+        Console.WriteLine($"[PipeSpawner] Destroyed {pipesToRemove.Count} pipes");
+        
+        // Reset spawning state
+        spawnTimer = 0.0f;
+        pipeCounter = 0;
     }
 
-    // Debug method to check current state
-    public void LogCurrentState()
+    public void SetEnabled(bool enabled)
     {
-        Console.WriteLine($"[PipeSpawner] === CURRENT STATE ===");
-        Console.WriteLine($"Game manager connected: {hasConnectedToGameManager}");
-        Console.WriteLine(
-            $"Current game state: {(gameManager != null ? gameManager.GetGameState().ToString() : "Unknown")}");
-        Console.WriteLine($"Spawn timer: {spawnTimer:F2}/{spawnInterval:F2}");
-        Console.WriteLine($"Pipe speed: {pipeSpeed}");
-        Console.WriteLine($"Pipe gap: {pipeGap}");
-        Console.WriteLine($"Spawn X position: {spawnX}");
+        Console.WriteLine($"[PipeSpawner] Pipe spawning {(enabled ? "enabled" : "disabled")}");
+        if (!enabled)
+        {
+            spawnTimer = 0.0f;
+        }
+    }
 
-        // Count current pipes
-        int pipeCount = 0;
+    private int CountPipes()
+    {
+        int count = 0;
         foreach (var entity in CurrentScene.Entities)
         {
-            if (entity.Name.Contains("Pipe"))
+            if (entity.Name.Contains("Pipe_"))
             {
-                pipeCount++;
+                count++;
             }
         }
-
-        Console.WriteLine($"Current pipes in scene: {pipeCount}");
-        Console.WriteLine($"========================");
+        return count;
     }
+}
+
+// Custom component to track pipe scoring state
+public class PipeDataComponent : Component
+{
+    public bool hasScored = false;
+    public int pairId = 0;
 }

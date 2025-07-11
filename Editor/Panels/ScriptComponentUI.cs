@@ -49,6 +49,7 @@ public static class ScriptComponentUI
                     if (ImGui.MenuItem("Remove"))
                     {
                         entity.RemoveComponent<NativeScriptComponent>();
+                        ScriptEngine.Instance.ForceRecompile();
                     }
                     ImGui.EndPopup();
                 }

@@ -1,394 +1,303 @@
 using System;
-using System.Collections.Generic;
 using System.Numerics;
+using ECS;
 using Engine.Scene;
 using Engine.Core.Input;
 using Engine.Scene.Components;
-using Engine.Math;
-using ECS;
 
 public class FlappyBirdController : ScriptableEntity
 {
-    private float jumpForce = 1.0f;
-    private bool isDead = false;
-    private RigidBody2DComponent rigidBodyComponent;
-    private TransformComponent transformComponent;
-    private BoxCollider2DComponent colliderComponent;
-    private float rotationSmoothness = 3.0f;
-    private float maxRotationAngle = 30.0f; // degrees
+    // Fixed bird position on screen
+    private const float BIRD_X_POSITION = 0.0f; // Bird stays at this X coordinate
+    private const float BIRD_START_Y = 5.0f; // Starting Y position
 
-    // Game Manager communication
+    // Movement settings
+    private float jumpForce = 0.5f;
+    private float gravity = -1.0f;//-12.0f;
+    private float maxFallSpeed = -1.0f;//-8.0f;
+
+    // Current state
+    private float velocityY = 0.0f;
+    private bool isDead = false;
+    private bool canJump = true;
+
+    // Component references
+    private TransformComponent transformComponent;
+    private RigidBody2DComponent rigidBodyComponent;
+
+    // Game Manager reference
     private Entity gameManagerEntity;
     private FlappyBirdGameManager gameManager;
     private bool hasConnectedToGameManager = false;
 
-    public bool hasLoggedComponents = false;
+    // Debug settings
+    private float debugLogTimer = 0.0f;
+    private bool enableDebugLogs = false;
 
     public override void OnCreate()
     {
-        Console.WriteLine("[FlappyBirdController] OnCreate() called");
+        Console.WriteLine("[FlappyBirdController] Simplified bird controller initialized!");
+
+        // Get required components
+        transformComponent = GetComponent<TransformComponent>();
+        rigidBodyComponent = GetComponent<RigidBody2DComponent>();
+
+        if (transformComponent == null)
+        {
+            Console.WriteLine("[FlappyBirdController] ERROR: No TransformComponent found!");
+            return;
+        }
+
+        // Set bird to fixed X position
+        ResetBird();
 
         // Find and connect to Game Manager
         gameManagerEntity = FindEntity("Game Manager");
         if (gameManagerEntity != null)
         {
             var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
-            if (scriptComponent?.ScriptableEntity is FlappyBirdGameManager manager)
+            if (scriptComponent.ScriptableEntity is FlappyBirdGameManager manager)
             {
                 gameManager = manager;
                 hasConnectedToGameManager = true;
-                Console.WriteLine("[FlappyBirdController] SUCCESS: Connected to Game Manager");
-            }
-            else
-            {
-                Console.WriteLine("[FlappyBirdController] WARNING: Game Manager entity found but no script");
+                Console.WriteLine("[FlappyBirdController] Successfully connected to Game Manager");
             }
         }
         else
         {
-            Console.WriteLine("[FlappyBirdController] WARNING: Game Manager entity not found");
+            Console.WriteLine("[FlappyBirdController] WARNING: Game Manager not found!");
         }
 
-        // Get required components
-        rigidBodyComponent = GetComponent<RigidBody2DComponent>();
-        transformComponent = GetComponent<TransformComponent>();
-        colliderComponent = GetComponent<BoxCollider2DComponent>();
-
-        // Debug component check
-        Console.WriteLine("[FlappyBirdController] Component check:");
-        Console.WriteLine($"  - RigidBody2D: {(rigidBodyComponent != null ? "✓" : "✗")}");
-        Console.WriteLine($"  - Transform: {(transformComponent != null ? "✓" : "✗")}");
-        Console.WriteLine($"  - BoxCollider2D: {(colliderComponent != null ? "✓" : "✗")}");
-        Console.WriteLine($"  - Game Manager: {(gameManager != null ? "✓" : "✗")}");
-
-        if (rigidBodyComponent == null)
-        {
-            Console.WriteLine("[FlappyBirdController] ERROR: RigidBody2DComponent required! Add it to bird entity.");
-            return;
-        }
-
-        if (transformComponent == null)
-        {
-            Console.WriteLine("[FlappyBirdController] ERROR: TransformComponent required!");
-            return;
-        }
-
-        // Ensure proper physics setup
-        if (rigidBodyComponent.BodyType != RigidBodyType.Dynamic)
-        {
-            Console.WriteLine("[FlappyBirdController] WARNING: RigidBody should be Dynamic for physics!");
-            rigidBodyComponent.BodyType = RigidBodyType.Dynamic;
-        }
-
-        Console.WriteLine("[FlappyBirdController] Successfully initialized with Box2D physics!");
+        Console.WriteLine($"[FlappyBirdController] Bird positioned at fixed X: {BIRD_X_POSITION}");
     }
 
     public override void OnUpdate(TimeSpan ts)
     {
-        // Check if game manager says we should be dead/inactive
-        if (gameManager != null && gameManager.IsGameOver())
-        {
-            // Game is over - don't process any bird input or movement
-            return;
-        }
-
-        // If game manager exists but game isn't playing, don't handle input
-        if (gameManager != null && !gameManager.IsGamePlaying() && !gameManager.IsInMenu())
-        {
-            return;
-        }
-
         if (isDead) return;
 
-        if (rigidBodyComponent?.RuntimeBody == null)
+        float deltaTime = (float)ts.TotalSeconds;
+        debugLogTimer += deltaTime;
+
+        // Check if we should respond to input (only during gameplay)
+        bool canControl = gameManager?.GetGameState() == GameState.Playing;
+
+        if (canControl)
         {
-            if (!hasLoggedComponents)
-            {
-                Console.WriteLine("[FlappyBirdController] WARNING: RuntimeBody is null. Physics may not be initialized yet.");
-                hasLoggedComponents = true;
-            }
-            return;
+            UpdateMovement(deltaTime);
+            // Mouse input for jump (optional: move to OnMouseButtonPressed)
+            // if (canJump && InputState.Instance.Mouse.IsMouseButtonPressed(0))
+            // {
+            //     Jump();
+            // }
         }
-
-        try
+        else if (gameManager?.GetGameState() == GameState.Menu)
         {
-            // Get physics body velocity for rotation calculation
-            var velocity = rigidBodyComponent.RuntimeBody.GetLinearVelocity();
-
-            // Rotate bird based on physics velocity (visual feedback)
-            UpdateBirdRotation(velocity.Y, (float)ts.TotalSeconds);
-
-            // Check for out-of-bounds death (Y limits)
-            if (transformComponent != null)
+            // Mouse input for start (optional: move to OnMouseButtonPressed)
+            if (InputState.Instance.Mouse.IsMouseButtonPressed(0))
             {
-                var position = transformComponent.Translation;
-                if (position.Y < -5.0f || position.Y > 10.0f)
+                if (gameManager != null)
                 {
-                    Console.WriteLine($"[FlappyBirdController] Bird out of bounds at Y: {position.Y}");
-                    OnDeath();
-                }
-
-                // Debug velocity logging (every 2 seconds)
-                if ((DateTime.Now.Millisecond % 2000) < 50)
-                {
-                    Console.WriteLine($"[FlappyBirdController] Velocity: X={velocity.X:F2}, Y={velocity.Y:F2}, Pos: {position}");
+                    gameManager.StartGame();
                 }
             }
         }
-        catch (Exception ex)
+
+        // Out-of-bounds check (recommended)
+        var position = transformComponent.Translation;
+        if (position.Y < -6.0f || position.Y > 8.0f)
+            TriggerDeath();
+
+        // Debug logging
+        if (enableDebugLogs && debugLogTimer >= 1.0f)
         {
-            Console.WriteLine($"[FlappyBirdController] Error in OnUpdate: {ex.Message}");
+            var pos = transformComponent.Translation;
+            Console.WriteLine(
+                $"[FlappyBirdController] Pos: ({pos.X:F2}, {pos.Y:F2}), VelY: {velocityY:F2}, State: {gameManager?.GetGameState()}");
+            debugLogTimer = 0.0f;
         }
     }
 
-    public override void OnKeyPressed(KeyCodes key)
+    public override void OnKeyPressed(KeyCodes keyCode)
     {
-        // Let game manager handle menu/restart keys
-        if (gameManager != null)
+        if (isDead) return;
+        bool canControl = gameManager?.GetGameState() == GameState.Playing;
+        if (canControl)
         {
-            if (gameManager.IsInMenu() || gameManager.IsGameOver())
+            if (canJump && keyCode == KeyCodes.Space)
             {
-                // Don't handle bird controls in menu or game over - let game manager handle it
-                return;
+                Jump();
             }
         }
-
-        if (key == KeyCodes.Space && !isDead && (gameManager == null || gameManager.IsGamePlaying()))
+        else if (gameManager?.GetGameState() == GameState.Menu)
         {
-            Flap();
-        }
-    }
-
-    public override void OnMouseButtonPressed(int button)
-    {
-        // Same logic as keyboard input
-        if (gameManager != null)
-        {
-            if (gameManager.IsInMenu() || gameManager.IsGameOver())
+            if (keyCode == KeyCodes.Space && gameManager != null)
             {
-                return;
+                gameManager.StartGame();
             }
         }
+    }
 
-        // Left mouse button also triggers flap
-        if (button == 0 && !isDead && (gameManager == null || gameManager.IsGamePlaying()))
+    public override void OnCollisionBegin(Entity other)
+    {
+        // If already dead, ignore further collisions
+        if (isDead) return;
+
+        // Check if collided with a pipe or ground
+        // You may want to refine this check based on your naming or tagging convention
+        if (other.Name.Contains("Pipe"))
         {
-            Flap();
+            Console.WriteLine($"[FlappyBirdController] Collision with {other.Name}, triggering death.");
+            TriggerDeath();
         }
     }
 
-    private void Flap()
+    private void Jump()
     {
+        velocityY = jumpForce;
+        Console.WriteLine($"[FlappyBirdController] Bird jumped! New velocity Y: {velocityY}");
+
+        // If using physics, apply impulse
         if (rigidBodyComponent?.RuntimeBody == null)
-        {
-            Console.WriteLine("[FlappyBirdController] Cannot flap: RuntimeBody is null!");
             return;
-        }
 
         try
         {
+            // Reset Y velocity and apply upward impulse
             var body = rigidBodyComponent.RuntimeBody;
-
-            // Reset Y velocity to 0 first, then apply upward impulse
-            var currentVelocity = body.GetLinearVelocity();
-            body.SetLinearVelocity(new Vector2(currentVelocity.X, 0));
-
-            // Apply upward impulse (Box2D uses impulse for instant velocity change)
-            var impulse = new Vector2(0, jumpForce);
-            body.ApplyLinearImpulse(impulse, body.GetWorldCenter(), true);
-
-            Console.WriteLine($"[FlappyBirdController] Flap! Applied impulse: {impulse}");
+            var currentVel = body.GetLinearVelocity();
+            body.SetLinearVelocity(new Vector2(0, velocityY)); // No X movement!
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[FlappyBirdController] Error during flap: {ex.Message}");
+            Console.WriteLine($"[FlappyBirdController] Physics jump error: {ex.Message}");
         }
     }
 
-    private void UpdateBirdRotation(float velocityY, float deltaTime)
+    private void UpdateMovement(float deltaTime)
     {
-        if (transformComponent == null) return;
-
-        try
+        if (rigidBodyComponent?.RuntimeBody != null)
         {
-            // Calculate target rotation based on velocity
-            var targetRotationDegrees = MathF.Max(-maxRotationAngle,
-                MathF.Min(maxRotationAngle, -velocityY * 15.0f));
+            // Using physics - just ensure X stays fixed and apply gravity
+            try
+            {
+                var body = rigidBodyComponent.RuntimeBody;
+                var vel = body.GetLinearVelocity();
 
-            var targetRotationRadians = MathHelpers.DegreesToRadians(targetRotationDegrees);
+                // Force X velocity to 0 and update Y with gravity
+                velocityY = vel.Y + gravity * deltaTime;
+                velocityY = Math.Max(velocityY, maxFallSpeed);
 
-            // Smoothly interpolate to target rotation
-            var currentRotation = transformComponent.Rotation;
-            var newRotationZ = LerpAngle(currentRotation.Z, targetRotationRadians,
-                rotationSmoothness * deltaTime);
+                body.SetLinearVelocity(new Vector2(0, velocityY));
 
-            transformComponent.Rotation = new Vector3(currentRotation.X, currentRotation.Y, newRotationZ);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[FlappyBirdController] Error updating rotation: {ex.Message}");
-        }
-    }
-
-    private static float LerpAngle(float from, float to, float t)
-    {
-        var difference = to - from;
-        while (difference > MathF.PI) difference -= 2 * MathF.PI;
-        while (difference < -MathF.PI) difference += 2 * MathF.PI;
-        return from + difference * MathF.Max(0, MathF.Min(1, t));
-    }
-
-    private void OnDeath()
-    {
-        if (isDead) return;
-
-        isDead = true;
-        Console.WriteLine("[FlappyBirdController] Bird died!");
-
-        // IMPORTANT: Notify the Game Manager that the bird died
-        if (gameManager != null && hasConnectedToGameManager)
-        {
-            Console.WriteLine("[FlappyBirdController] Notifying Game Manager of bird death");
-            gameManager.TriggerGameOver();
+                // Ensure X position stays fixed
+                var pos = body.GetPosition();
+                if (Math.Abs(pos.X - BIRD_X_POSITION) > 0.1f)
+                {
+                    body.SetTransform(new Vector2(BIRD_X_POSITION, pos.Y), body.GetAngle());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FlappyBirdController] Physics update error: {ex.Message}");
+            }
         }
         else
         {
-            Console.WriteLine("[FlappyBirdController] WARNING: No Game Manager connected - cannot trigger game over");
-        }
+            // Manual movement - apply gravity and update position
+            velocityY += gravity * deltaTime;
+            velocityY = Math.Max(velocityY, maxFallSpeed);
 
-        // Stop bird movement
+            var currentPos = transformComponent.Translation;
+            transformComponent.Translation = new Vector3(
+                BIRD_X_POSITION, // X always stays the same!
+                currentPos.Y + velocityY * deltaTime,
+                currentPos.Z
+            );
+        }
+    }
+
+    private void TriggerDeath()
+    {
+        if (isDead) return;
+
+        Console.WriteLine("[FlappyBirdController] ====== BIRD DEATH ======");
+        isDead = true;
+        canJump = false;
+
+        // Stop movement
+        velocityY = 0;
         if (rigidBodyComponent?.RuntimeBody != null)
         {
             try
             {
                 rigidBodyComponent.RuntimeBody.SetLinearVelocity(Vector2.Zero);
                 rigidBodyComponent.RuntimeBody.SetAngularVelocity(0);
-                Console.WriteLine("[FlappyBirdController] Bird physics stopped successfully");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FlappyBirdController] Error stopping bird physics: {ex.Message}");
+                Console.WriteLine($"[FlappyBirdController] Error stopping physics: {ex.Message}");
             }
         }
 
-        Console.WriteLine("[FlappyBirdController] Game Over! Game Manager will handle restart");
+        // Notify Game Manager
+        if (hasConnectedToGameManager)
+        {
+            Console.WriteLine("[FlappyBirdController] Notifying Game Manager of death");
+            gameManager.TriggerGameOver();
+        }
+        else
+        {
+            Console.WriteLine("[FlappyBirdController] WARNING: Cannot notify Game Manager");
+        }
     }
 
-    // Public method for Game Manager to reset the bird
+    // Public methods for Game Manager
     public void ResetBird()
     {
-        Console.WriteLine("[FlappyBirdController] ResetBird() called by Game Manager");
+        Console.WriteLine("[FlappyBirdController] Resetting bird to initial state");
 
         isDead = false;
+        canJump = true;
+        velocityY = 0;
 
-        // Reset position
-        if (transformComponent != null)
-        {
-            try
-            {
-                transformComponent.Translation = new Vector3(0.0f, 4.71f, 0.0f);
-                transformComponent.Rotation = Vector3.Zero;
-                Console.WriteLine($"[FlappyBirdController] Bird position reset to: {transformComponent.Translation}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[FlappyBirdController] Error resetting transform: {ex.Message}");
-            }
-        }
+        // Reset to fixed position
 
-        // Reset physics body
+        transformComponent.Translation = new Vector3(BIRD_X_POSITION, BIRD_START_Y, 0.0f);
+        transformComponent.Rotation = Vector3.Zero;
+        Console.WriteLine($"[FlappyBirdController] Bird reset to position: ({BIRD_X_POSITION}, {BIRD_START_Y})");
+
+        // Reset physics
         if (rigidBodyComponent?.RuntimeBody != null)
         {
             try
             {
                 var body = rigidBodyComponent.RuntimeBody;
-
-                // Reset position in physics world
-                body.SetTransform(new Vector2(-2.0f, 0.0f), 0);
-
-                // Reset velocities
+                body.SetTransform(new Vector2(BIRD_X_POSITION, BIRD_START_Y), 0);
                 body.SetLinearVelocity(Vector2.Zero);
                 body.SetAngularVelocity(0);
-
-                // Re-enable physics if it was disabled
                 body.SetEnabled(true);
-
-                Console.WriteLine("[FlappyBirdController] Physics body reset successfully");
+                Console.WriteLine("[FlappyBirdController] Physics body reset");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FlappyBirdController] Error resetting physics body: {ex.Message}");
-            }
-        }
-
-        Console.WriteLine("[FlappyBirdController] Bird reset completed!");
-    }
-
-    // Box2D Collision Event Handlers
-    public override void OnCollisionBegin(Entity other)
-    {
-        if (isDead || rigidBodyComponent?.RuntimeBody == null) return;
-
-        Console.WriteLine($"[FlappyBirdController] Collision detected with: {other?.Name ?? "Unknown"}");
-
-        // Handle collision with pipes, floor, or any solid objects
-        if (other?.Name != null && (other.Name.Contains("Pipe") ||
-                                    other.Name.Contains("Floor") ||
-                                    other.Name.Contains("Ground") ||
-                                    other.Name.Contains("Wall")))
-        {
-            Console.WriteLine($"[FlappyBirdController] Fatal collision with: {other.Name}");
-            OnDeath();
-        }
-    }
-
-    public override void OnCollisionEnd(Entity other)
-    {
-        if (rigidBodyComponent?.RuntimeBody == null) return;
-        Console.WriteLine($"[FlappyBirdController] Collision ended with: {other?.Name ?? "Unknown"}");
-    }
-
-    public override void OnTriggerEnter(Entity other)
-    {
-        if (isDead || rigidBodyComponent?.RuntimeBody == null) return;
-
-        Console.WriteLine($"[FlappyBirdController] Entered trigger: {other?.Name ?? "Unknown"}");
-
-        // Handle score triggers
-        if (other?.Name != null && (other.Name.Contains("ScoreZone") || other.Name.Contains("Score")))
-        {
-            Console.WriteLine("[FlappyBirdController] Score triggered!");
-            if (gameManager != null)
-            {
-                gameManager.IncrementScore();
+                Console.WriteLine($"[FlappyBirdController] Physics reset error: {ex.Message}");
             }
         }
     }
 
-    public override void OnTriggerExit(Entity other)
-    {
-        if (rigidBodyComponent?.RuntimeBody == null) return;
-        Console.WriteLine($"[FlappyBirdController] Exited trigger: {other?.Name ?? "Unknown"}");
-    }
-
-    public override void OnDestroy()
-    {
-        Console.WriteLine("[FlappyBirdController] OnDestroy called - cleaning up");
-        isDead = true;
-
-        // Clear references
-        rigidBodyComponent = null;
-        transformComponent = null;
-        colliderComponent = null;
-        gameManager = null;
-        gameManagerEntity = null;
-
-        base.OnDestroy();
-    }
-
-    // Public getter for Game Manager to check bird status
     public bool IsBirdDead()
     {
         return isDead;
+    }
+
+    public Vector3 GetBirdPosition()
+    {
+        return transformComponent?.Translation ?? Vector3.Zero;
+    }
+
+    // Since bird X is fixed, this is just a constant
+    public float GetBirdX()
+    {
+        return BIRD_X_POSITION;
     }
 }
