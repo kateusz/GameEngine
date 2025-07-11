@@ -19,8 +19,8 @@ public class PipeSpawner : ScriptableEntity
     private float pipeWidth = 1.5f;        // Width of pipe for cleanup detection
     
     // Pipe positioning
-    private float minPipeY = -3.0f;        // Minimum Y for gap center
-    private float maxPipeY = 3.0f;         // Maximum Y for gap center
+    private float minPipeY = -2.0f;        // Minimum Y for gap center
+    private float maxPipeY = 2.0f;         // Maximum Y for gap center
     private float pipeHeight = 6.0f;       // Height of each pipe segment
     
     // Spawning state
@@ -100,17 +100,21 @@ public class PipeSpawner : ScriptableEntity
         float gapCenterY = random.NextSingle() * (maxPipeY - minPipeY) + minPipeY;
         float topPipeY = gapCenterY + pipeGap / 2.0f + pipeHeight / 2.0f;
         float bottomPipeY = gapCenterY - pipeGap / 2.0f - pipeHeight / 2.0f;
-        
+
+        // Clamp the calculated Y values
+        topPipeY = Math.Min(topPipeY, 2.5f);
+        bottomPipeY = Math.Max(bottomPipeY, -1.0f);
+
         pipeCounter++;
-        
+
         Console.WriteLine($"[PipeSpawner] Spawning pipe pair #{pipeCounter} at gap center Y: {gapCenterY:F2}");
-        
+
         // Create top pipe
         CreatePipe($"Pipe_Top_{pipeCounter}", SCREEN_RIGHT, topPipeY, isTopPipe: true);
-        
+
         // Create bottom pipe  
         CreatePipe($"Pipe_Bottom_{pipeCounter}", SCREEN_RIGHT, bottomPipeY, isTopPipe: false);
-        
+
         Console.WriteLine($"[PipeSpawner] Pipe pair spawned - Top Y: {topPipeY:F2}, Bottom Y: {bottomPipeY:F2}");
     }
 
@@ -138,9 +142,22 @@ public class PipeSpawner : ScriptableEntity
             // Add collider for collision detection
             var collider = new BoxCollider2DComponent
             {
-                Size = new Vector2(pipeWidth, pipeHeight)
+                Size = new Vector2(pipeWidth, pipeHeight),
+                Offset = new Vector2(0.5f, 0.5f),
+                Density = 0,
+                Friction = 1,
+                Restitution = 0,
+                RestitutionThreshold = 0.5f,
+                IsTrigger = false
             };
             pipeEntity.AddComponent(collider);
+
+            var rigidBody = new RigidBody2DComponent
+            {
+                BodyType = RigidBodyType.Static,
+                FixedRotation = false
+            };
+            pipeEntity.AddComponent(rigidBody);
             
             // Add custom component to track if this pipe has been scored
             var pipeData = new PipeDataComponent
@@ -273,16 +290,7 @@ public class PipeSpawner : ScriptableEntity
         spawnTimer = 0.0f;
         pipeCounter = 0;
     }
-
-    public void SetEnabled(bool enabled)
-    {
-        Console.WriteLine($"[PipeSpawner] Pipe spawning {(enabled ? "enabled" : "disabled")}");
-        if (!enabled)
-        {
-            spawnTimer = 0.0f;
-        }
-    }
-
+    
     private int CountPipes()
     {
         int count = 0;
