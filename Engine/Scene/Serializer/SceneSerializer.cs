@@ -88,17 +88,6 @@ public class SceneSerializer
                          throw new InvalidSceneJsonException("Invalid entity Name");
 
         var entity = Entity.Create(entityId, entityName);
-
-        // Handle special cases for entity names
-        // TODO: NativeScriptComponent-  remove hardcoded logic
-        if (entity.Name == "Primary Camera")
-        {
-            entity.AddComponent(new NativeScriptComponent
-            {
-                ScriptableEntity = new CameraController()
-            });
-        }
-
         var componentsArray = GetJsonArray(entityObj, ComponentsKey);
 
         foreach (var componentNode in componentsArray)

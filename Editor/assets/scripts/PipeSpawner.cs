@@ -8,7 +8,7 @@ using Engine.Scene.Components;
 public class PipeSpawner : ScriptableEntity
 {
     // Screen/camera bounds (adjust based on your camera setup)
-    private const float SCREEN_RIGHT = 16.0f;   // Where pipes spawn (off-screen right)
+    private const float SCREEN_RIGHT = 7.0f;   // Where pipes spawn (off-screen right)
     private const float SCREEN_LEFT = -16.0f;   // Where pipes are destroyed (off-screen left)
     private const float BIRD_X_POSITION = 4.0f; // Must match FlappyBirdController.BIRD_X_POSITION
     
@@ -191,6 +191,7 @@ public class PipeSpawner : ScriptableEntity
                 {
                     // Move pipe left
                     var pos = transform.Translation;
+                    Console.WriteLine(pos.X);
                     transform.Translation = new Vector3(pos.X - moveDistance, pos.Y, pos.Z);
                 }
             }
