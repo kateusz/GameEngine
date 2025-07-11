@@ -168,6 +168,9 @@ public class PipeSpawner : ScriptableEntity
             pipeEntity.AddComponent(pipeData);
             
             Console.WriteLine($"[PipeSpawner] Created {name} at ({x:F2}, {y:F2})");
+
+            // Ensure physics body is created for this pipe using global scene access
+            CurrentScene.Instance?.AddPhysicsBodyForEntity(pipeEntity);
         }
         catch (Exception ex)
         {
@@ -179,7 +182,7 @@ public class PipeSpawner : ScriptableEntity
     {
         float moveDistance = pipeSpeed * deltaTime;
         
-        foreach (var entity in CurrentScene.Entities)
+        foreach (var entity in CurrentScene.Instance?.Entities ?? new System.Collections.Concurrent.ConcurrentBag<Entity>())
         {
             if (entity.Name.Contains("Pipe_"))
             {
@@ -198,7 +201,7 @@ public class PipeSpawner : ScriptableEntity
     {
         var pipesToRemove = new List<Entity>();
         
-        foreach (var entity in CurrentScene.Entities)
+        foreach (var entity in CurrentScene.Instance?.Entities ?? new System.Collections.Concurrent.ConcurrentBag<Entity>())
         {
             if (entity.Name.Contains("Pipe_"))
             {
@@ -225,7 +228,7 @@ public class PipeSpawner : ScriptableEntity
     private void CheckForScoring()
     {
         // Since bird X is fixed, we just check if any unscored pipe has passed the bird
-        foreach (var entity in CurrentScene.Entities)
+        foreach (var entity in CurrentScene.Instance?.Entities ?? new System.Collections.Concurrent.ConcurrentBag<Entity>())
         {
             if (entity.Name.Contains("Pipe_Top_")) // Only check top pipes to avoid double scoring
             {
@@ -271,7 +274,7 @@ public class PipeSpawner : ScriptableEntity
         Console.WriteLine("[PipeSpawner] Destroying all pipes for game restart");
         var pipesToRemove = new List<Entity>();
         
-        foreach (var entity in CurrentScene.Entities)
+        foreach (var entity in CurrentScene.Instance?.Entities ?? new System.Collections.Concurrent.ConcurrentBag<Entity>())
         {
             if (entity.Name.Contains("Pipe_"))
             {
@@ -294,7 +297,7 @@ public class PipeSpawner : ScriptableEntity
     private int CountPipes()
     {
         int count = 0;
-        foreach (var entity in CurrentScene.Entities)
+        foreach (var entity in CurrentScene.Instance?.Entities ?? new System.Collections.Concurrent.ConcurrentBag<Entity>())
         {
             if (entity.Name.Contains("Pipe_"))
             {

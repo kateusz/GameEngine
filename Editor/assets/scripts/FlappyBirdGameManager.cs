@@ -248,7 +248,7 @@ public class FlappyBirdGameManager : ScriptableEntity
 
             // Count pipes
             int pipeCount = 0;
-            foreach (var entity in CurrentScene.Entities)
+            foreach (var entity in CurrentScene.Instance.Entities)
             {
                 if (entity.Name.Contains("Pipe_"))
                 {

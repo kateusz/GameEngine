@@ -30,7 +30,6 @@ public class EditorLayer : Layer
     private bool _viewportFocused;
     private bool _viewportHovered;
     private readonly Vector2[] _viewportBounds = new Vector2[2];
-    private Scene _activeScene;
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
     private ConsolePanel _consolePanel; // Added console panel
@@ -76,9 +75,9 @@ public class EditorLayer : Layer
         
         Renderer3D.Instance.Init();
 
-        _activeScene = new Scene("");
+        CurrentScene.Set(new Scene(""));
         _editorCamera = new EditorCamera(30.0f, 1280.0f / 720.0f, 0.1f, 1000.0f);
-        _sceneHierarchyPanel = new SceneHierarchyPanel(_activeScene);
+        _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel(); // Initialize console panel
@@ -87,8 +86,6 @@ public class EditorLayer : Layer
         string projectRoot = _currentProjectDirectory ?? Environment.CurrentDirectory;
         string scriptsDir = Path.Combine(projectRoot, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
-        
-        ScriptEngine.Instance.Initialize(_activeScene);
         
         // Add some initial console messages to demonstrate functionality
         Console.WriteLine("✅ Editor initialized successfully!");
@@ -118,7 +115,7 @@ public class EditorLayer : Layer
         {
             _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
             _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
-            _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
         Renderer2D.Instance.ResetStats();
@@ -137,7 +134,7 @@ public class EditorLayer : Layer
                 if (_viewportFocused)
                     _orthographicCameraController.OnUpdate(timeSpan);
                 _editorCamera.OnUpdate(mousePos);
-                _activeScene.OnUpdateEditor(timeSpan, _editorCamera);
+                CurrentScene.Instance.OnUpdateEditor(timeSpan, _editorCamera);
                 
                 // should it be called here?
                 //ScriptEngine.Instance.Update(timeSpan);
@@ -145,7 +142,7 @@ public class EditorLayer : Layer
             }
             case SceneState.Play:
             {
-                _activeScene.OnUpdateRuntime(timeSpan);
+                CurrentScene.Instance.OnUpdateRuntime(timeSpan);
                 break;
             }
         }
@@ -167,7 +164,7 @@ public class EditorLayer : Layer
         {
             // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
-            var entity = _activeScene.Entities.FirstOrDefault(x => x.Id == entityId);
+            var entity = CurrentScene.Instance.Entities.FirstOrDefault(x => x.Id == entityId);
             _hoveredEntity = entity;
         }
 
@@ -596,9 +593,9 @@ public class EditorLayer : Layer
 
     private void NewScene()
     {
-        _activeScene = new Scene("");
-        _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(_activeScene);
+        CurrentScene.Set(new Scene(""));
+        CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         Console.WriteLine("📄 New scene created");
     }
 
@@ -613,11 +610,11 @@ public class EditorLayer : Layer
         if (string.IsNullOrWhiteSpace(filePath))
             throw new Exception($"Scene doesnt exists: {filePath}");
         
-        _activeScene = new Scene(filePath);
-        _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(_activeScene);
+        CurrentScene.Set(new Scene(filePath));
+        CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
-        SceneSerializer.Deserialize(_activeScene, filePath);
+        SceneSerializer.Deserialize(CurrentScene.Instance, filePath);
         Console.WriteLine($"📂 Scene opened: {filePath}");
     }
 
@@ -627,11 +624,11 @@ public class EditorLayer : Layer
             OnSceneStop();
 
         _editorScenePath = path;
-        _activeScene = new Scene(path);
-        _activeScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(_activeScene);
+        CurrentScene.Set(new Scene(path));
+        CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
-        SceneSerializer.Deserialize(_activeScene, path);
+        SceneSerializer.Deserialize(CurrentScene.Instance, path);
         Console.WriteLine($"📂 Scene opened: {path}");
     }
     
@@ -651,7 +648,7 @@ public class EditorLayer : Layer
         _editorScenePath = Path.Combine(sceneDir, "scene.scene");
         if (!string.IsNullOrWhiteSpace(_editorScenePath))
         {
-            SceneSerializer.Serialize(_activeScene, _editorScenePath);
+            SceneSerializer.Serialize(CurrentScene.Instance, _editorScenePath);
             Console.WriteLine($"💾 Scene saved: {_editorScenePath}");
         }
     }
@@ -659,19 +656,16 @@ public class EditorLayer : Layer
     private void OnScenePlay()
     {
         _sceneState = SceneState.Play;
-        _activeScene.OnRuntimeStart();
-        _sceneHierarchyPanel.SetContext(_activeScene);
+        CurrentScene.Instance.OnRuntimeStart();
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         Console.WriteLine("▶️ Scene play started");
     }
 
     private void OnSceneStop()
     {
         _sceneState = SceneState.Edit;
-        _activeScene.OnRuntimeStop();
-        _sceneHierarchyPanel.SetContext(_activeScene);
-        
-        // Reinitialize ScriptEngine with current scene
-        ScriptEngine.Instance.Initialize(_activeScene);
+        CurrentScene.Instance.OnRuntimeStop();
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         
         // Reset editor camera to center at origin
         _editorCamera.CenterToPos(System.Numerics.Vector3.Zero);
@@ -688,7 +682,7 @@ public class EditorLayer : Layer
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
         if (selectedEntity is not null)
         {
-            _activeScene.DuplicateEntity(selectedEntity);
+            CurrentScene.Instance.DuplicateEntity(selectedEntity);
             Console.WriteLine($"📋 Entity duplicated: {selectedEntity.Name}");
         }
     }

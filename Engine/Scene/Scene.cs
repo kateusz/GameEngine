@@ -24,6 +24,7 @@ public class Scene
     {
         _path = path;
         Context.Instance.Entities.Clear();
+        CurrentScene.Set(this);
     }
 
     public ConcurrentBag<Entity> Entities => Context.Instance.Entities;
@@ -60,6 +61,8 @@ public class Scene
 
     public void OnRuntimeStart()
     {
+        Console.WriteLine("[Scene] OnRuntimeStart() called - creating physics world");
+        CurrentScene.Set(this);
         _physicsWorld = new World(new Vector2(0, -0.81f));
 
         _contactListener = new SceneContactListener();
@@ -361,5 +364,61 @@ public class Scene
         }
 
         Renderer3D.Instance.EndScene();
+    }
+
+    // Add this method to allow runtime creation of physics bodies for new entities
+    public void AddPhysicsBodyForEntity(Entity entity)
+    {
+        if (_physicsWorld == null)
+        {
+            Console.WriteLine($"[Scene] ERROR: Cannot add physics body for {entity.Name} - physics world is null!");
+            Console.WriteLine($"[Scene] This usually means OnRuntimeStart() hasn't been called or OnRuntimeStop() was called unexpectedly.");
+            return;
+        }
+        
+        if (!entity.HasComponent<RigidBody2DComponent>() || !entity.HasComponent<TransformComponent>())
+        {
+            Console.WriteLine($"[Scene] ERROR: Entity {entity.Name} missing required components for physics body creation.");
+            return;
+        }
+        
+        try
+        {
+            var component = entity.GetComponent<RigidBody2DComponent>();
+            var transform = entity.GetComponent<TransformComponent>();
+            var bodyDef = new BodyDef
+            {
+                position = new Vector2(transform.Translation.X, transform.Translation.Y),
+                angle = transform.Rotation.Z,
+                type = RigidBody2DTypeToBox2DBody(component.BodyType),
+                bullet = component.BodyType == RigidBodyType.Dynamic ? true : false
+            };
+            var body = _physicsWorld.CreateBody(bodyDef);
+            body.SetFixedRotation(component.FixedRotation);
+            body.SetUserData(entity);
+            component.RuntimeBody = body;
+            
+            if (entity.HasComponent<BoxCollider2DComponent>())
+            {
+                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
+                var shape = new PolygonShape();
+                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y);
+                var fixtureDef = new FixtureDef
+                {
+                    shape = shape,
+                    density = boxCollider.Density,
+                    friction = boxCollider.Friction,
+                    restitution = boxCollider.Restitution,
+                    isSensor = boxCollider.IsTrigger
+                };
+                body.CreateFixture(fixtureDef);
+            }
+            
+            Console.WriteLine($"[Scene] Successfully created physics body for {entity.Name}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Scene] ERROR creating physics body for {entity.Name}: {ex.Message}");
+        }
     }
 }

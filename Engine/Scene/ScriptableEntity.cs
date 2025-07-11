@@ -16,22 +16,7 @@ public class ScriptableEntity
     /// </summary>
     public Entity? Entity { get; set; }
 
-    /// <summary>
-    /// A reference to the scene the entity belongs to.
-    /// Provides a cached reference to avoid lookups.
-    /// </summary>
-    protected Scene CurrentScene;
-
     #region Lifecycle Methods
-
-    /// <summary>
-    /// Called once when the script is first initialized.
-    /// Use this for one-time setup that doesn't depend on other entities.
-    /// </summary>
-    public virtual void Init(Scene currentScene)
-    {
-        CurrentScene = currentScene;
-    }
 
     /// <summary>
     /// Called when the entity with this script is created or enabled.
@@ -215,9 +200,10 @@ public class ScriptableEntity
     /// <returns>The entity if found, null otherwise</returns>
     protected Entity? FindEntity(string name)
     {
-        if (CurrentScene == null) return null;
+        var currentScene = CurrentScene.Instance;
+        if (currentScene == null) return null;
 
-        foreach (var entity in CurrentScene.Entities)
+        foreach (var entity in currentScene.Entities)
         {
             if (entity.Name == name)
                 return entity;
@@ -233,7 +219,7 @@ public class ScriptableEntity
     /// <returns>The newly created entity</returns>
     protected Entity CreateEntity(string name)
     {
-        return CurrentScene?.CreateEntity(name);
+        return CurrentScene.Instance?.CreateEntity(name);
     }
 
     /// <summary>
@@ -242,7 +228,7 @@ public class ScriptableEntity
     /// <param name="entity">The entity to destroy</param>
     protected void DestroyEntity(Entity entity)
     {
-        CurrentScene?.DestroyEntity(entity);
+        CurrentScene.Instance?.DestroyEntity(entity);
     }
 
     #endregion

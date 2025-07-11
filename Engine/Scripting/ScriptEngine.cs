@@ -25,8 +25,6 @@ public class ScriptEngine
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
 
-    private GameScene? _activeScene;
-
     // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private bool _debugMode = true; // Enable debugging by default in development
@@ -45,21 +43,15 @@ public class ScriptEngine
         CompileAllScripts();
     }
 
-    public void Initialize(GameScene scene)
-    {
-        _activeScene = scene;
-        Logger.Info("ScriptEngine initialized with scene");
-    }
-
     public void OnUpdate(TimeSpan deltaTime)
     {
         // Check for script changes
         CheckForScriptChanges();
 
         // Update all script components
-        if (_activeScene == null) return;
+        if (CurrentScene.Instance == null) return;
 
-        var scriptEntities = _activeScene.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
+        var scriptEntities = CurrentScene.Instance.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -71,7 +63,6 @@ public class ScriptEngine
                 scriptComponent.ScriptableEntity.Entity = entity;
                 try
                 {
-                    scriptComponent.ScriptableEntity.Init(_activeScene);
                     scriptComponent.ScriptableEntity.OnCreate();
                 }
                 catch (Exception ex)
@@ -94,9 +85,9 @@ public class ScriptEngine
 
     public void ProcessEvent(Event @event)
     {
-        if (_activeScene == null) return;
+        if (CurrentScene.Instance == null) return;
 
-        var scriptEntities = _activeScene.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
+        var scriptEntities = CurrentScene.Instance.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -845,9 +836,9 @@ public class ScriptEngine
         CompileAllScripts();
         
         // Notify all script components to reload
-        if (_activeScene == null) return;
+        if (CurrentScene.Instance == null) return;
 
-        var scriptEntities = _activeScene.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
+        var scriptEntities = CurrentScene.Instance.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -860,7 +851,6 @@ public class ScriptEngine
                 {
                     scriptComponent.ScriptableEntity = newInstance.Value;
                     scriptComponent.ScriptableEntity.Entity = entity;
-                    scriptComponent.ScriptableEntity.Init(_activeScene);
                     scriptComponent.ScriptableEntity.OnCreate();
                 }
             }
