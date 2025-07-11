@@ -91,7 +91,8 @@ public class Scene
             {
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var shape = new PolygonShape();
-                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y);
+                // Box2D SetAsBox takes half-width and half-height
+                shape.SetAsBox(boxCollider.Size.X * 0.5f, boxCollider.Size.Y * 0.5f);
                 var fixtureDef = new FixtureDef
                 {
                     shape = shape,
@@ -402,7 +403,8 @@ public class Scene
             {
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var shape = new PolygonShape();
-                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y);
+                // Box2D SetAsBox takes half-width and half-height
+                shape.SetAsBox(boxCollider.Size.X * 0.5f, boxCollider.Size.Y * 0.5f);
                 var fixtureDef = new FixtureDef
                 {
                     shape = shape,

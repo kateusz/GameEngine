@@ -139,8 +139,24 @@ public class FlappyBirdController : ScriptableEntity
 
     public override void OnCollisionBegin(Entity other)
     {
+        Console.WriteLine($"[FlappyBirdController] OnCollisionBegin called with {other.Name}");
+        Console.WriteLine($"[FlappyBirdController] Bird isDead: {isDead}");
+        
         // If already dead, ignore further collisions
-        if (isDead) return;
+        if (isDead) 
+        {
+            Console.WriteLine($"[FlappyBirdController] Bird is already dead, ignoring collision");
+            return;
+        }
+
+        Console.WriteLine($"[FlappyBirdController] COLLISION DETECTED with {other.Name}");
+        Console.WriteLine($"[FlappyBirdController] Bird position: {GetBirdPosition()}");
+        
+        if (other.HasComponent<TransformComponent>())
+        {
+            var otherTransform = other.GetComponent<TransformComponent>();
+            Console.WriteLine($"[FlappyBirdController] Other entity position: {otherTransform.Translation}");
+        }
 
         // Check if collided with a pipe or ground
         // You may want to refine this check based on your naming or tagging convention
@@ -148,6 +164,10 @@ public class FlappyBirdController : ScriptableEntity
         {
             Console.WriteLine($"[FlappyBirdController] Collision with {other.Name}, triggering death.");
             TriggerDeath();
+        }
+        else
+        {
+            Console.WriteLine($"[FlappyBirdController] Collision with non-pipe entity: {other.Name}");
         }
     }
 
@@ -218,11 +238,19 @@ public class FlappyBirdController : ScriptableEntity
 
     private void TriggerDeath()
     {
-        if (isDead) return;
+        Console.WriteLine("[FlappyBirdController] TriggerDeath() called");
+        
+        if (isDead) 
+        {
+            Console.WriteLine("[FlappyBirdController] Bird is already dead, ignoring TriggerDeath");
+            return;
+        }
 
         Console.WriteLine("[FlappyBirdController] ====== BIRD DEATH ======");
         isDead = true;
         canJump = false;
+
+        Console.WriteLine("[FlappyBirdController] Bird state set to dead");
 
         // Stop movement
         velocityY = 0;
@@ -232,23 +260,39 @@ public class FlappyBirdController : ScriptableEntity
             {
                 rigidBodyComponent.RuntimeBody.SetLinearVelocity(Vector2.Zero);
                 rigidBodyComponent.RuntimeBody.SetAngularVelocity(0);
+                Console.WriteLine("[FlappyBirdController] Physics body stopped");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[FlappyBirdController] Error stopping physics: {ex.Message}");
             }
         }
+        else
+        {
+            Console.WriteLine("[FlappyBirdController] No physics body to stop");
+        }
 
         // Notify Game Manager
+        Console.WriteLine($"[FlappyBirdController] hasConnectedToGameManager: {hasConnectedToGameManager}");
         if (hasConnectedToGameManager)
         {
             Console.WriteLine("[FlappyBirdController] Notifying Game Manager of death");
-            gameManager.TriggerGameOver();
+            try
+            {
+                gameManager.TriggerGameOver();
+                Console.WriteLine("[FlappyBirdController] Game Manager notified successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FlappyBirdController] Error notifying Game Manager: {ex.Message}");
+            }
         }
         else
         {
             Console.WriteLine("[FlappyBirdController] WARNING: Cannot notify Game Manager");
         }
+        
+        Console.WriteLine("[FlappyBirdController] ====== BIRD DEATH COMPLETE ======");
     }
 
     // Public methods for Game Manager

@@ -10,7 +10,7 @@ public class PipeSpawner : ScriptableEntity
     // Screen/camera bounds (adjust based on your camera setup)
     private const float SCREEN_RIGHT = 7.0f;   // Where pipes spawn (off-screen right)
     private const float SCREEN_LEFT = -16.0f;   // Where pipes are destroyed (off-screen left)
-    private const float BIRD_X_POSITION = 4.0f; // Must match FlappyBirdController.BIRD_X_POSITION
+    private const float BIRD_X_POSITION = 0.0f; // Must match FlappyBirdController.BIRD_X_POSITION
     
     // Pipe settings
     private float pipeSpeed = 4.0f;         // Speed pipes move left
@@ -142,7 +142,7 @@ public class PipeSpawner : ScriptableEntity
             // Add collider for collision detection
             var collider = new BoxCollider2DComponent
             {
-                Size = new Vector2(pipeWidth, pipeHeight),
+                Size = new Vector2(0.8f, pipeHeight), // Forgiving: width matches visible pipe, but slightly smaller
                 Offset = new Vector2(0.5f, 0.5f),
                 Density = 0,
                 Friction = 1,
