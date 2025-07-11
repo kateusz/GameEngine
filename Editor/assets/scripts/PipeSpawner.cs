@@ -187,12 +187,17 @@ public class PipeSpawner : ScriptableEntity
             if (entity.Name.Contains("Pipe_"))
             {
                 var transform = entity.GetComponent<TransformComponent>();
-                if (transform != null)
+                var rigidBody = entity.GetComponent<RigidBody2DComponent>();
+                
+                if (transform != null && rigidBody?.RuntimeBody != null)
                 {
-                    // Move pipe left
-                    var pos = transform.Translation;
-                    Console.WriteLine(pos.X);
-                    transform.Translation = new Vector3(pos.X - moveDistance, pos.Y, pos.Z);
+                    // Move pipe left using physics body
+                    var body = rigidBody.RuntimeBody;
+                    var currentPos = body.GetPosition();
+                    var newPos = new Vector2(currentPos.X - moveDistance, currentPos.Y);
+                    
+                    Console.WriteLine($"Moving pipe {entity.Name}: X: {currentPos.X:F2} -> {newPos.X:F2}");
+                    body.SetTransform(newPos, body.GetAngle());
                 }
             }
         }
@@ -210,6 +215,7 @@ public class PipeSpawner : ScriptableEntity
                 if (transform != null && transform.Translation.X < SCREEN_LEFT)
                 {
                     pipesToRemove.Add(entity);
+                    Console.WriteLine($"Removing pipe {entity.Name}");
                 }
             }
         }
