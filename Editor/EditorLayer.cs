@@ -48,6 +48,13 @@ public class EditorLayer : Layer
     private bool _showOpenProjectPopup = false;
     private string _openProjectPath = string.Empty;
     
+    // fps rate
+    private readonly Queue<float> _frameTimes = new();
+    private float _fpsUpdateTimer = 0.0f;
+    private float _currentFps = 0.0f;
+    private const float FpsUpdateInterval = 0.1f; // Update FPS display every 100ms
+    private const int MaxFrameSamples = 60; // Keep last 60 frame times for averaging
+    
     public EditorLayer(string name) : base(name)
     {
         _showOpenProjectPopup = true; // Show Open Project dialog at startup
@@ -107,6 +114,8 @@ public class EditorLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
+        UpdateFPSTracking(timeSpan);
+        
         // Resize
         // TODO: is it needed?
         var spec = _frameBuffer.GetSpecification();
@@ -374,7 +383,10 @@ public class EditorLayer : Layer
             }
 
             ImGui.Text($"Hovered Entity: {name}");
+            
+            RenderPerformanceStats();
 
+            ImGui.Separator();
             var stats = Renderer2D.Instance.GetStats();
             ImGui.Text("Renderer2D Stats:");
             ImGui.Text($"Draw Calls: {stats.DrawCalls}");
@@ -686,4 +698,77 @@ public class EditorLayer : Layer
             Console.WriteLine($"📋 Entity duplicated: {selectedEntity.Name}");
         }
     }
+    
+    
+/// <summary>
+/// Updates FPS tracking with the current frame's delta time
+/// </summary>
+/// <param name="timeSpan">Time elapsed since last frame</param>
+private void UpdateFPSTracking(TimeSpan timeSpan)
+{
+    float deltaTime = (float)timeSpan.TotalSeconds;
+    
+    // Skip invalid frame times
+    if (deltaTime <= 0) return;
+    
+    // Add current frame time to our tracking queue
+    _frameTimes.Enqueue(deltaTime);
+    
+    // Maintain a rolling window of frame times
+    while (_frameTimes.Count > MaxFrameSamples)
+    {
+        _frameTimes.Dequeue();
+    }
+    
+    // Update FPS calculation periodically for stable display
+    _fpsUpdateTimer += deltaTime;
+    if (_fpsUpdateTimer >= FpsUpdateInterval)
+    {
+        CalculateFPS();
+        _fpsUpdateTimer = 0.0f;
+    }
+}
+
+/// <summary>
+/// Calculates the current FPS based on averaged frame times
+/// </summary>
+private void CalculateFPS()
+{
+    if (_frameTimes.Count == 0) return;
+    
+    float averageFrameTime = _frameTimes.Average();
+    _currentFps = 1.0f / averageFrameTime;
+}
+
+/// <summary>
+/// Renders performance statistics in the ImGui Stats panel
+/// </summary>
+private void RenderPerformanceStats()
+{
+    ImGui.Separator();
+    ImGui.Text("Performance:");
+    
+    // Display FPS with appropriate color coding
+    var fpsColor = _currentFps >= 60.0f ? new Vector4(0.0f, 1.0f, 0.0f, 1.0f) :  // Green for 60+ FPS
+                   _currentFps >= 30.0f ? new Vector4(1.0f, 1.0f, 0.0f, 1.0f) :  // Yellow for 30-59 FPS
+                                         new Vector4(1.0f, 0.0f, 0.0f, 1.0f);    // Red for <30 FPS
+    
+    ImGui.PushStyleColor(ImGuiCol.Text, fpsColor);
+    ImGui.Text($"FPS: {_currentFps:F1}");
+    ImGui.PopStyleColor();
+    
+    // Display frame time in milliseconds
+    float currentFrameTime = _frameTimes.Count > 0 ? _frameTimes.Last() * 1000 : 0;
+    ImGui.Text($"Frame Time: {currentFrameTime:F2} ms");
+    
+    // Display additional performance metrics
+    ImGui.Text($"Frame Samples: {_frameTimes.Count}/{MaxFrameSamples}");
+    
+    if (_frameTimes.Count > 1)
+    {
+        float minFrameTime = _frameTimes.Min() * 1000;
+        float maxFrameTime = _frameTimes.Max() * 1000;
+        ImGui.Text($"Min/Max Frame Time: {minFrameTime:F2}/{maxFrameTime:F2} ms");
+    }
+}
 }
