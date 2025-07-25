@@ -170,7 +170,8 @@ public class PipeSpawner : ScriptableEntity
             Console.WriteLine($"[PipeSpawner] Created {name} at ({x:F2}, {y:F2})");
 
             // Ensure physics body is created for this pipe using global scene access
-            CurrentScene.Instance?.AddPhysicsBodyForEntity(pipeEntity);
+            // TODO: finish this
+            //CurrentScene.Instance?.AddPhysicsBodyForEntity(pipeEntity);
         }
         catch (Exception ex)
         {
