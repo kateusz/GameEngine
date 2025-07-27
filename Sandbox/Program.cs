@@ -91,7 +91,5 @@ public class Program
         }
         
         Console.WriteLine("Script serialization test completed.");
-        Console.WriteLine("Press any key to continue to the main application...");
-        Console.ReadKey();
     }
 }

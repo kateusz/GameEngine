@@ -30,22 +30,55 @@
       <None Update="assets\textures\whiteTexture.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\opengl\flatColorShader.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets\shaders\opengl\flatColorShader.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets\shaders\opengl\textureShader.frag">
+      <None Update="assets\shaders\shaders\OpenGL\flatColorShader.frag">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\opengl\textureShader.vert">
+      <None Update="assets\shaders\shaders\OpenGL\flatColorShader.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\opengl\lineShader.frag">
+      <None Update="assets\shaders\shaders\OpenGL\lineShader.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\opengl\lineShader.vert">
+      <None Update="assets\shaders\shaders\OpenGL\lineShader.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\shaders\OpenGL\phong.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\shaders\OpenGL\phong.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\shaders\OpenGL\textureShader.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\shaders\OpenGL\textureShader.vert">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\flatColorShader.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\flatColorShader.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\flatColorShader.vert">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\lineShader.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\lineShader.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\phong.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\phong.vert">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\textureShader.frag">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="assets\shaders\OpenGL\textureShader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

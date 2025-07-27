@@ -15,11 +15,13 @@ public class Entity
         OnComponentAdded?.Invoke(component);
     }
 
-    public void AddComponent<TComponent>() where TComponent : Component, new()
+    public TComponent AddComponent<TComponent>() where TComponent : Component, new()
     {
         var component = new TComponent();
         _components[typeof(TComponent)] = component;
         OnComponentAdded?.Invoke(component);
+
+        return component;
     }
 
     public void RemoveComponent<T>() where T : Component

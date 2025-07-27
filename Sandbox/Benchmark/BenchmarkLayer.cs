@@ -1,0 +1,565 @@
+using System.Diagnostics;
+using System.Numerics;
+using Engine.Core;
+using Engine.Events;
+using Engine.Renderer;
+using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
+using Engine.Scene;
+using Engine.Scene.Components;
+using ImGuiNET;
+
+namespace Sandbox.Benchmark;
+
+public class BenchmarkLayer : Layer
+{
+    private readonly List<BenchmarkResult> _results = new();
+    private readonly Stopwatch _frameTimer = new();
+    private readonly Queue<float> _frameTimes = new();
+    private const int MaxFrameSamples = 120;
+        
+    // Test scenes
+    private Scene? _currentTestScene;
+    private OrthographicCameraController? _cameraController;
+    private readonly Dictionary<string, Texture2D> _testTextures = new();
+        
+    // Benchmark configurations - using fields for ImGui compatibility
+    private int _entityCount = 1000;
+    private int _drawCallsPerFrame = 100;
+    private int _textureCount = 10;
+    private int _scriptEntityCount = 50;
+    private float _testDuration = 5.0f; // seconds
+    private bool _enableVSync = false;
+        
+    // Benchmark state
+    private BenchmarkTestType _currentTestType = BenchmarkTestType.None;
+    private float _testElapsedTime;
+    private bool _isRunning;
+    private int _frameCount;
+
+    public BenchmarkLayer(string name) : base(name)
+    {
+    }
+
+    public override void OnAttach()
+    {
+        _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        LoadTestAssets();
+    }
+
+    public override void OnDetach()
+    {
+        CleanupTestScene();
+        _testTextures.Clear();
+    }
+
+    public override void OnUpdate(TimeSpan ts)
+    {
+        _frameTimer.Restart();
+        
+        // Clear the screen first
+        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark gray background
+        RendererCommand.Clear();
+            
+        if (_isRunning && _currentTestType != BenchmarkTestType.None)
+        {
+            UpdateBenchmark(ts);
+        }
+            
+        // Always update camera for viewport control
+        _cameraController?.OnUpdate(ts);
+            
+        // Render current test scene if active
+        if (_currentTestScene != null && _isRunning)
+        {
+            RenderTestScene();
+        }
+            
+        _frameTimer.Stop();
+        RecordFrameTime((float)_frameTimer.Elapsed.TotalMilliseconds);
+    }
+
+    public override void OnImGuiRender()
+    {
+        RenderBenchmarkUI();
+        RenderResultsWindow();
+        RenderPerformanceMonitor();
+    }
+
+    public override void HandleEvent(Event @event)
+    {
+        _cameraController?.OnEvent(@event);
+    }
+
+    private void LoadTestAssets()
+    {
+        // Create white test texture with proper data
+        _testTextures["white"] = TextureFactory.Create(1, 1);
+        _testTextures["white"].SetData(0xFFFFFFFF, sizeof(uint));
+            
+        // Create colored test textures with proper data initialization
+        var colors = new uint[] { 0xFF0000FF, 0xFF00FF00, 0xFFFF0000, 0xFFFF00FF, 0xFF00FFFF };
+        for (int i = 0; i < colors.Length; i++)
+        {
+            var texture = TextureFactory.Create(1, 1); // Use 1x1 for simplicity
+            texture.SetData(colors[i], sizeof(uint)); // FIXED: Actually set the color data
+            _testTextures[$"color_{i}"] = texture;
+        }
+    }
+
+    private void RenderBenchmarkUI()
+    {
+        ImGui.Begin("Benchmark Control");
+            
+        ImGui.Text("Benchmark Configuration");
+        ImGui.Separator();
+            
+        ImGui.DragInt("Entity Count", ref _entityCount, 100, 100, 50000);
+        ImGui.DragInt("Draw Calls/Frame", ref _drawCallsPerFrame, 10, 10, 10000);
+        ImGui.DragInt("Texture Count", ref _textureCount, 1, 1, 32);
+        ImGui.DragInt("Script Entities", ref _scriptEntityCount, 10, 0, 1000);
+        ImGui.DragFloat("Test Duration (s)", ref _testDuration, 0.5f, 1.0f, 60.0f);
+        ImGui.Checkbox("VSync", ref _enableVSync);
+            
+        ImGui.Separator();
+            
+        if (!_isRunning)
+        {
+            ImGui.Text("Select Benchmark Test:");
+                
+            if (ImGui.Button("Renderer2D Stress Test"))
+                StartBenchmark(BenchmarkTestType.Renderer2DStress);
+                
+            if (ImGui.Button("ECS Performance Test"))
+                StartBenchmark(BenchmarkTestType.ECSPerformance);
+                
+            if (ImGui.Button("Texture Switching Test"))
+                StartBenchmark(BenchmarkTestType.TextureSwitching);
+                
+            if (ImGui.Button("Draw Call Test"))
+                StartBenchmark(BenchmarkTestType.DrawCallOptimization);
+                
+            if (ImGui.Button("Script System Test"))
+                StartBenchmark(BenchmarkTestType.ScriptSystem);
+                
+            if (ImGui.Button("Full Engine Test"))
+                StartBenchmark(BenchmarkTestType.FullEngine);
+                
+            ImGui.Separator();
+                
+            if (ImGui.Button("Run All Tests"))
+                StartAllBenchmarks();
+        }
+        else
+        {
+            ImGui.Text($"Running: {_currentTestType}");
+            ImGui.Text($"Progress: {(_testElapsedTime / _testDuration * 100):F1}%");
+            ImGui.ProgressBar(_testElapsedTime / _testDuration);
+                
+            if (ImGui.Button("Stop"))
+                StopBenchmark();
+        }
+            
+        ImGui.End();
+    }
+
+    private void RenderResultsWindow()
+    {
+        ImGui.Begin("Benchmark Results");
+            
+        if (_results.Count > 0)
+        {
+            if (ImGui.Button("Clear Results"))
+                _results.Clear();
+                
+            ImGui.Separator();
+                
+            foreach (var result in _results)
+            {
+                ImGui.Text($"{result.TestName}:");
+                ImGui.Indent();
+                ImGui.Text($"Avg FPS: {result.AverageFPS:F2}");
+                ImGui.Text($"Min FPS: {result.MinFPS:F2}");
+                ImGui.Text($"Max FPS: {result.MaxFPS:F2}");
+                ImGui.Text($"Avg Frame Time: {result.AverageFrameTime:F2}ms");
+                ImGui.Text($"99th Percentile: {result.Percentile99:F2}ms");
+                ImGui.Text($"Total Frames: {result.TotalFrames}");
+                    
+                if (result.CustomMetrics.Count > 0)
+                {
+                    ImGui.Text("Custom Metrics:");
+                    foreach (var metric in result.CustomMetrics)
+                    {
+                        ImGui.Text($"  {metric.Key}: {metric.Value}");
+                    }
+                }
+                    
+                ImGui.Unindent();
+                ImGui.Separator();
+            }
+        }
+        else
+        {
+            ImGui.Text("No benchmark results yet.");
+        }
+            
+        ImGui.End();
+    }
+
+    private void RenderPerformanceMonitor()
+    {
+        ImGui.Begin("Performance Monitor##Benchmark"); // Added unique ID suffix
+            
+        var frameTimes = _frameTimes.ToArray();
+        if (frameTimes.Length > 0)
+        {
+            var avgFrameTime = frameTimes.Average();
+            var minFrameTime = frameTimes.Min();
+            var maxFrameTime = frameTimes.Max();
+                
+            ImGui.Text($"Current FPS: {(1000.0f / avgFrameTime):F2}");
+            ImGui.Text($"Frame Time: {avgFrameTime:F2}ms (min: {minFrameTime:F2}, max: {maxFrameTime:F2})");
+                
+            // Simple frame time graph
+            if (frameTimes.Length > 1) // Ensure we have enough data for plotting
+            {
+                ImGui.PlotLines("Frame Times", ref frameTimes[0], frameTimes.Length, 0, 
+                    null, 0, maxFrameTime * 1.2f, new Vector2(0, 80));
+            }
+        }
+        else
+        {
+            ImGui.Text("Collecting performance data...");
+        }
+            
+        // Renderer stats
+        var stats2D = Renderer2D.Instance.GetStats();
+        ImGui.Separator();
+        ImGui.Text("Renderer2D Stats:");
+        ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
+        ImGui.Text($"Quads: {stats2D.QuadCount}");
+        ImGui.Text($"Vertices: {stats2D.GetTotalVertexCount()}");
+        ImGui.Text($"Indices: {stats2D.GetTotalIndexCount()}");
+            
+        ImGui.End();
+    }
+
+    private void StartBenchmark(BenchmarkTestType testType)
+    {
+        _currentTestType = testType;
+        _isRunning = true;
+        _testElapsedTime = 0;
+        _frameCount = 0;
+        _frameTimes.Clear();
+            
+        CleanupTestScene();
+        SetupTestScene(testType);
+    }
+
+    private void StartAllBenchmarks()
+    {
+        // TODO: Implement sequential benchmark execution
+        Console.WriteLine("Running all benchmarks sequentially is not yet implemented.");
+    }
+
+    private void StopBenchmark()
+    {
+        if (_isRunning && _currentTestType != BenchmarkTestType.None)
+        {
+            FinalizeBenchmark();
+        }
+            
+        _isRunning = false;
+        _currentTestType = BenchmarkTestType.None;
+        CleanupTestScene();
+    }
+
+    private void UpdateBenchmark(TimeSpan ts)
+    {
+        _testElapsedTime += (float)ts.TotalSeconds;
+        _frameCount++;
+            
+        // Update test scene
+        if (_currentTestScene != null)
+        {
+            _currentTestScene.OnUpdateEditor(ts, new Engine.Renderer.EditorCamera()); // Fixed: use OnUpdateEditor instead of OnUpdateRuntime
+                
+            // Add test-specific updates
+            switch (_currentTestType)
+            {
+                case BenchmarkTestType.Renderer2DStress:
+                    UpdateRenderer2DStress();
+                    break;
+                case BenchmarkTestType.ECSPerformance:
+                    UpdateECSPerformance();
+                    break;
+                case BenchmarkTestType.TextureSwitching:
+                    UpdateTextureSwitching();
+                    break;
+            }
+        }
+            
+        // Check if test is complete
+        if (_testElapsedTime >= _testDuration)
+        {
+            StopBenchmark();
+        }
+    }
+
+    private void SetupTestScene(BenchmarkTestType testType)
+    {
+        _currentTestScene = new Engine.Scene.Scene("Benchmark");
+            
+        // Add camera entity
+        var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
+        cameraEntity.AddComponent<TransformComponent>(); // Add required TransformComponent
+        cameraEntity.AddComponent<CameraComponent>();
+            
+        switch (testType)
+        {
+            case BenchmarkTestType.Renderer2DStress:
+                SetupRenderer2DStressTest();
+                break;
+            case BenchmarkTestType.ECSPerformance:
+                SetupECSPerformanceTest();
+                break;
+            case BenchmarkTestType.TextureSwitching:
+                SetupTextureSwitchingTest();
+                break;
+            case BenchmarkTestType.DrawCallOptimization:
+                SetupDrawCallTest();
+                break;
+            case BenchmarkTestType.ScriptSystem:
+                SetupScriptSystemTest();
+                break;
+            case BenchmarkTestType.FullEngine:
+                SetupFullEngineTest();
+                break;
+        }
+    }
+
+    private void SetupRenderer2DStressTest()
+    {
+        var random = new Random();
+            
+        // Create many sprite entities
+        for (var i = 0; i < _entityCount; i++)
+        {
+            var entity = _currentTestScene.CreateEntity($"Sprite_{i}");
+            entity.AddComponent<TransformComponent>(); // Explicitly add TransformComponent
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                (float)(random.NextDouble() * 20 - 10),
+                (float)(random.NextDouble() * 20 - 10),
+                0);
+            transform.Scale = new Vector3(0.5f, 0.5f, 1.0f);
+
+            var sprite = new SpriteRendererComponent
+            {
+                Color = new Vector4(
+                    (float)random.NextDouble(),
+                    (float)random.NextDouble(),
+                    (float)random.NextDouble(),
+                    1.0f)
+            };
+            entity.AddComponent(sprite);
+        }
+    }
+
+    private void SetupECSPerformanceTest()
+    {
+        // Create entities with multiple components
+        for (int i = 0; i < _entityCount; i++)
+        {
+            var entity = _currentTestScene.CreateEntity($"Entity_{i}");
+            entity.AddComponent<TransformComponent>(); // Add required components
+            entity.AddComponent<SpriteRendererComponent>();
+        }
+    }
+
+    private void SetupTextureSwitchingTest()
+    {
+        var textureKeys = _testTextures.Keys.ToArray();
+        var random = new Random();
+            
+        for (int i = 0; i < _entityCount; i++)
+        {
+            var entity = _currentTestScene.CreateEntity($"TexturedSprite_{i}");
+            entity.AddComponent<TransformComponent>(); // Add required component
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                (float)(random.NextDouble() * 20 - 10),
+                (float)(random.NextDouble() * 20 - 10),
+                0);
+                
+            var sprite = entity.AddComponent<SpriteRendererComponent>();
+            sprite.Texture = _testTextures[textureKeys[i % textureKeys.Length]];
+        }
+    }
+
+    private void SetupDrawCallTest()
+    {
+        // Create entities that will force many draw calls
+        var random = new Random();
+            
+        for (int i = 0; i < _drawCallsPerFrame; i++)
+        {
+            var entity = _currentTestScene.CreateEntity($"DrawCall_{i}");
+            entity.AddComponent<TransformComponent>(); // Add required component
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                (float)(random.NextDouble() * 20 - 10),
+                (float)(random.NextDouble() * 20 - 10),
+                (float)i * 0.001f); // Different Z values to prevent batching
+                
+            var sprite = entity.AddComponent<SpriteRendererComponent>();
+                
+            // Use different textures to force draw call breaks
+            if (i % 2 == 0 && _testTextures.Count > 1)
+            {
+                sprite.Texture = _testTextures.Values.ElementAt(i % _testTextures.Count);
+            }
+        }
+    }
+
+    private void SetupScriptSystemTest()
+    {
+        for (int i = 0; i < _scriptEntityCount; i++)
+        {
+            var entity = _currentTestScene.CreateEntity($"ScriptEntity_{i}");
+            entity.AddComponent<TransformComponent>(); // Add required component
+            var script = entity.AddComponent<NativeScriptComponent>();
+            // Note: You'll need to have a test script in your scripts folder
+            // script.Bind<TestBenchmarkScript>();
+        }
+    }
+
+    private void SetupFullEngineTest()
+    {
+        // Combine multiple test scenarios
+        SetupRenderer2DStressTest();
+            
+        // Add some scripted entities
+        for (int i = 0; i < 10; i++)
+        {
+            var entity = _currentTestScene.CreateEntity($"ScriptedEntity_{i}");
+            entity.AddComponent<TransformComponent>(); // Add required component
+            entity.AddComponent<NativeScriptComponent>();
+        }
+    }
+
+    private void UpdateRenderer2DStress()
+    {
+        // Animate sprites
+        foreach (var entity in _currentTestScene.Entities)
+        {
+            if (entity.HasComponent<SpriteRendererComponent>())
+            {
+                var transform = entity.GetComponent<TransformComponent>();
+                transform.Rotation = new Vector3(0, 0, transform.Rotation.Z + 0.01f);
+            }
+        }
+    }
+
+    private void UpdateECSPerformance()
+    {
+        // Stress test component queries
+        var count = 0;
+        foreach (var entity in _currentTestScene.Entities)
+        {
+            if (entity.HasComponent<TransformComponent>() && 
+                entity.HasComponent<SpriteRendererComponent>())
+            {
+                count++;
+            }
+        }
+    }
+
+    private void UpdateTextureSwitching()
+    {
+        // Randomly switch textures to stress texture binding
+        var random = new Random();
+        var textureValues = _testTextures.Values.ToArray();
+            
+        foreach (var entity in _currentTestScene.Entities)
+        {
+            if (entity.HasComponent<SpriteRendererComponent>() && random.NextDouble() < 0.1)
+            {
+                var sprite = entity.GetComponent<SpriteRendererComponent>();
+                sprite.Texture = textureValues[random.Next(textureValues.Length)];
+            }
+        }
+    }
+
+    private void RenderTestScene()
+    {
+        if (_cameraController?.Camera == null) return;
+        
+        Renderer2D.Instance.BeginScene(_cameraController.Camera);
+            
+        // Render all entities in the test scene
+        foreach (var entity in _currentTestScene.Entities)
+        {
+            if (!entity.HasComponent<TransformComponent>()) continue;
+            
+            var transform = entity.GetComponent<TransformComponent>();
+                
+            if (entity.HasComponent<SpriteRendererComponent>())
+            {
+                var sprite = entity.GetComponent<SpriteRendererComponent>();
+                Renderer2D.Instance.DrawSprite(transform.GetTransform(), sprite, entity.Id);
+            }
+        }
+            
+        Renderer2D.Instance.EndScene();
+    }
+
+    private void CleanupTestScene()
+    {
+        _currentTestScene = null;
+    }
+
+    private void RecordFrameTime(float frameTimeMs)
+    {
+        _frameTimes.Enqueue(frameTimeMs);
+        if (_frameTimes.Count > MaxFrameSamples)
+            _frameTimes.Dequeue();
+    }
+
+    private void FinalizeBenchmark()
+    {
+        var frameTimes = _frameTimes.ToArray();
+        if (frameTimes.Length == 0) return;
+            
+        Array.Sort(frameTimes);
+            
+        var result = new BenchmarkResult
+        {
+            TestName = _currentTestType.ToString(),
+            TotalFrames = _frameCount,
+            AverageFrameTime = frameTimes.Average(),
+            MinFPS = 1000.0f / frameTimes.Max(),
+            MaxFPS = 1000.0f / frameTimes.Min(),
+            AverageFPS = 1000.0f / frameTimes.Average(),
+            Percentile99 = frameTimes[(int)(frameTimes.Length * 0.99)],
+            TestDuration = _testElapsedTime
+        };
+            
+        // Add test-specific metrics
+        switch (_currentTestType)
+        {
+            case BenchmarkTestType.Renderer2DStress:
+                var stats = Renderer2D.Instance.GetStats();
+                result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
+                result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
+                break;
+            case BenchmarkTestType.ECSPerformance:
+                result.CustomMetrics["Entity Count"] = _entityCount.ToString();
+                result.CustomMetrics["Entities/Frame"] = 
+                    (_entityCount * result.AverageFPS).ToString("F0");
+                break;
+        }
+            
+        _results.Add(result);
+    }
+}
