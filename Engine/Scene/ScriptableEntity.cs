@@ -32,12 +32,6 @@ public class ScriptableEntity
     /// <param name="ts">Time since the last frame</param>
     public virtual void OnUpdate(TimeSpan ts)
     {
-        if (HasComponent<TransformComponent>())
-        {
-            var transform = GetComponent<TransformComponent>();
-            transform.Translation += new Vector3(0.1f, 0.0f, 0.0f);
-            AddComponent(transform);
-        }
     }
 
     /// <summary>

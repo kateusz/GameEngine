@@ -183,7 +183,7 @@ public class EditorLayer : Layer
 
     public override void HandleEvent(Event @event)
     {
-        Logger.Debug("EditorLayer OnEvent: {0}", @event);
+        //Logger.Debug("EditorLayer OnEvent: {0}", @event);
 
         // Always handle camera controller events in edit mode
         if (_sceneState == SceneState.Edit)
@@ -364,6 +364,13 @@ public class EditorLayer : Layer
                         _showSettings = true;
                     ImGui.EndMenu();
                 }
+                
+                if (ImGui.BeginMenu("Scripts"))
+                {
+                    if (ImGui.MenuItem("Force reload"))
+                        ForceReloadScripts();
+                    ImGui.EndMenu();
+                }
 
                 ImGui.EndMenuBar();
             }
@@ -479,6 +486,11 @@ public class EditorLayer : Layer
         }
         RenderNewProjectPopup();
         RenderOpenProjectPopup();
+    }
+
+    private void ForceReloadScripts()
+    {
+        throw new NotImplementedException();
     }
 
     private void ResetCamera()

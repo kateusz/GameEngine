@@ -68,7 +68,7 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-        _physicsWorld = new World(new Vector2(0, -0.81f));
+        _physicsWorld = new World(new Vector2(0, 0)); //-0.81f
 
         _contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(_contactListener);
@@ -183,6 +183,7 @@ public class Scene
                 var position = body.GetPosition();
                 transform.Translation = new Vector3(position.X, position.Y, 0);
                 transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+                entity.SetComponent(transform);
             }
         }
 

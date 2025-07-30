@@ -12,7 +12,7 @@ public class OrthographicCameraController
     private float _cameraTranslationSpeed = 2.0f; // Reduced from 0.03f to a reasonable base speed
     private float _cameraRotationSpeed = 10.0f;
     private float _cameraRotation;
-    private float _zoomLevel = 10.0f;
+    private float _zoomLevel = 20.0f;
     
     // Add a speed multiplier for better control
     private float _speedMultiplier = 0.1f; // Adjust this to make camera slower/faster

@@ -364,9 +364,6 @@ public class ScriptEngine
     {
         bool needsRecompile = false;
         
-        // Use ReadOnlySpan<char> for more efficient string operations
-        var scriptsDirectory = _scriptsDirectory.AsSpan();
-        
         foreach (var (scriptName, lastModified) in _scriptLastModified)
         {
             var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");

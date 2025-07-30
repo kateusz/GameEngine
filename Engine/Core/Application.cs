@@ -95,7 +95,7 @@ public class Application : IApplication
 
     private void HandleOnEvent(Event @event)
     {
-        Logger.Debug(@event);
+        //Logger.Debug(@event);
 
         foreach (var layer in _layersStack)
         {
