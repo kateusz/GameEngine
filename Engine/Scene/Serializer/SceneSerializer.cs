@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
-using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scripting;
 using ZLinq;

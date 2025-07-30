@@ -1,6 +1,9 @@
 using System;
+using System.IO;
 using System.Numerics;
 using ECS;
+using Editor;
+using Engine.Platform.SilkNet.Audio;
 using Engine.Scene;
 using Engine.Scene.Components;
 
@@ -200,6 +203,7 @@ public class BallController : ScriptableEntity
         }
         
         Console.WriteLine($"[BallController] New velocity: ({velocity.X:F2}, {velocity.Y:F2}), Speed: {currentSpeed:F2}");
+        AudioEngine.Instance.PlayOneShot(Path.Combine(AssetsManager.AssetsPath, "audio/swing.wav"), 0.5f);
     }
     
     private void OnScore(bool player1Scored)

@@ -1,4 +1,3 @@
-using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using Silk.NET.Input;

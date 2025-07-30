@@ -3,15 +3,23 @@ using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
-public unsafe class SilkNetAudioEngine : AudioEngine
+public class AudioEngine
 {
+    private static IAudioEngine? _instance;
+    public static IAudioEngine Instance => _instance ??= new SilkNetAudioEngine();
+}
+
+public unsafe class SilkNetAudioEngine : IAudioEngine
+{
+    private readonly Dictionary<string, IAudioClip> _loadedClips = new();
+
     private AL _al;
     private ALContext _alc;
     private Device* _device;
     private Context* _context;
     private readonly List<SilkNetAudioSource> _activeSources = new();
 
-    public override void Initialize()
+    public void Initialize()
     {
         try
         {
@@ -30,23 +38,25 @@ public unsafe class SilkNetAudioEngine : AudioEngine
 
             _alc.MakeContextCurrent(_context);
 
-            // Ustaw podstawowe parametry słuchacza
+            // Ustaw podstawowe parametry
             _al.SetListenerProperty(ListenerFloat.Gain, 1.0f);
             _al.SetListenerProperty(ListenerVector3.Position, 0.0f, 0.0f, 0.0f);
             _al.SetListenerProperty(ListenerVector3.Velocity, 0.0f, 0.0f, 0.0f);
 
             // Ustaw orientację słuchacza (forward vector i up vector)
-            // Ustaw orientację słuchacza (forward vector i up vector)
-            var orientation = new float[] { 0.0f, 0.0f, -1.0f,   // Forward
-                0.0f, 1.0f,  0.0f }; // Up
-
-            fixed (float* ptr = orientation)
+            var orientation = new[]
             {
-                _al.SetListenerProperty(ListenerFloatArray.Orientation, ptr);
+                0.0f, 0.0f, -1.0f, // Forward
+                0.0f, 1.0f, 0.0f
+            }; // Up
+
+            unsafe
+            {
+                fixed (float* ptr = orientation)
+                {
+                    _al.SetListenerProperty(ListenerFloatArray.Orientation, ptr);
+                }
             }
-
-
-            Instance = this;
 
             Console.WriteLine("SilkNet AudioEngine zainicjalizowany pomyślnie");
         }
@@ -57,7 +67,7 @@ public unsafe class SilkNetAudioEngine : AudioEngine
         }
     }
 
-    public override void Shutdown()
+    public void Shutdown()
     {
         try
         {
@@ -94,14 +104,14 @@ public unsafe class SilkNetAudioEngine : AudioEngine
         }
     }
 
-    public override IAudioSource CreateAudioSource()
+    public IAudioSource CreateAudioSource()
     {
         var source = new SilkNetAudioSource(_al);
         _activeSources.Add(source);
         return source;
     }
 
-    protected override IAudioClip CreateAudioClip(string path)
+    private static IAudioClip CreateAudioClip(string path)
     {
         return new SilkNetAudioClip(path);
     }
@@ -112,4 +122,70 @@ public unsafe class SilkNetAudioEngine : AudioEngine
     }
 
     public AL GetAL() => _al;
+
+    // Virtual methods with default implementation that can be overridden
+    public IAudioClip LoadAudioClip(string path)
+    {
+        if (_loadedClips.TryGetValue(path, out var existingClip))
+            return existingClip;
+
+        var clip = CreateAudioClip(path);
+        clip.Load();
+        _loadedClips[path] = clip;
+        return clip;
+    }
+
+    public void UnloadAudioClip(string path)
+    {
+        if (_loadedClips.TryGetValue(path, out var clip))
+        {
+            clip.Unload();
+            _loadedClips.Remove(path);
+        }
+    }
+
+    public void PlayOneShot(string clipPath, float volume = 1.0f)
+    {
+        var source = CreateAudioSource();
+        var clip = LoadAudioClip(clipPath);
+
+        source.Clip = clip;
+        source.Volume = volume;
+        source.Play();
+
+        // TODO: Dodać mechanizm automatycznego usuwania źródła po zakończeniu odtwarzania
+    }
+
+    // Cleanup methods
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var clip in _loadedClips.Values)
+            {
+                clip.Unload();
+            }
+
+            _loadedClips.Clear();
+
+            Shutdown();
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    // Protected helper methods for subclasses
+    protected void ClearLoadedClips()
+    {
+        foreach (var clip in _loadedClips.Values)
+        {
+            clip.Unload();
+        }
+
+        _loadedClips.Clear();
+    }
 }

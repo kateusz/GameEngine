@@ -58,10 +58,6 @@
     <ItemGroup>
       <ProjectReference Include="..\ECS\ECS.csproj" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="Performance\" />
-    </ItemGroup>
 
 
 </Project>

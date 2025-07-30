@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Collections.Immutable;
 using CSharpFunctionalExtensions;
 using Engine.Core.Input;
 using Engine.Events;
@@ -10,7 +9,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using NLog;
 using ZLinq;
-using GameScene = Engine.Scene.Scene;
 
 namespace Engine.Scripting;
 

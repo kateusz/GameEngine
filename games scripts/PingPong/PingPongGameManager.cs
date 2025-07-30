@@ -1,5 +1,4 @@
 using System;
-using System.Numerics;
 using ECS;
 using Engine.Scene;
 using Engine.Core.Input;
@@ -331,6 +330,7 @@ public class PingPongGameManager : ScriptableEntity
         switch (newState)
         {
             case PingPongGameState.Menu:
+                RenderMenu();
                 Console.WriteLine("[PingPongGameManager] MENU STATE: Press Space to start");
                 break;
                 
@@ -351,7 +351,13 @@ public class PingPongGameManager : ScriptableEntity
                 break;
         }
     }
-    
+
+    private void RenderMenu()
+    {
+        // render two SubTextures,
+        // 1
+    }
+
     private void SetAIDifficulty(float difficulty)
     {
         if (aiController == null) return;

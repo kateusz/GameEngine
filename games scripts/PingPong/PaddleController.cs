@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using ECS;
 using Engine.Scene;
 using Engine.Core.Input;
 using Engine.Scene.Components;
@@ -134,16 +133,5 @@ public class PaddleController : ScriptableEntity
             body.SetTransform(new Vector2(startPosition.X, startPosition.Y), 0);
             body.SetLinearVelocity(Vector2.Zero);
         }
-    }
-    
-    public Vector3 GetPosition()
-    {
-        return transformComponent.Translation;
-    }
-    
-    public float GetHeight()
-    {
-        // Assuming paddle height is determined by scale
-        return transformComponent.Scale.Y;
     }
 }

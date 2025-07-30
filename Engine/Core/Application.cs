@@ -2,6 +2,7 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using Engine.ImGuiNet;
+using Engine.Platform.SilkNet.Audio;
 using Engine.Renderer;
 using NLog;
 
@@ -49,7 +50,8 @@ public class Application : IApplication
     {
         RendererCommand.Init();
         Renderer2D.Instance.Init();
-        Renderer3D.Instance.Init(); 
+        Renderer3D.Instance.Init();
+        AudioEngine.Instance.Initialize();
         
         foreach (var layer in _layersStack)
         {
