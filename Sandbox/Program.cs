@@ -1,96 +1,88 @@
-﻿using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
-using Engine.Core;
-using Engine.Scene;
-using Engine.Scene.Components;
-using Engine.Scene.Serializer;
-using ZLinq;
+﻿using Engine.Audio;
+using Engine.Platform.SilkNet.Audio;
 
 namespace Sandbox;
 
 public class Program
 {
+    private static SilkNetAudioEngine _audioEngine;
+    
     public static void Main(string[] args)
     {
-        // Test script serialization
-        TestScriptSerialization();
-        
-        // Original sandbox code
-        var app = new SandboxApplication();
-        app.Run();
+        try
+        {
+            InitializeAudio();
+
+            TestBasicAudio();
+            
+            var app = new SandboxApplication();
+            app.Run();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Błąd aplikacji: {e.Message}");
+        }
+        finally
+        {
+            ShutdownAudio();
+        }
+    }
+
+    private static void InitializeAudio()
+    {
+        Console.WriteLine("Inicjalizacja systemu audio...");
+
+        _audioEngine = new SilkNetAudioEngine();
+        _audioEngine.Initialize();
+
+        Console.WriteLine("System audio zainicjalizowany pomyślnie!");
+    }
+
+    private static void ShutdownAudio()
+    {
+        Console.WriteLine("Zamykanie systemu audio...");
+
+        _audioEngine?.Dispose();
+        _audioEngine = null;
+
+        Console.WriteLine("System audio zamknięty.");
     }
     
-    private static void TestScriptSerialization()
+    private static void TestBasicAudio()
     {
-        Console.WriteLine("Testing script serialization...");
-        
-        // Create a test scene
-        var scene = new Scene("test");
-        
-        // Create an entity with a script
-        var entity = scene.CreateEntity("Test Camera");
-        entity.AddComponent(new TransformComponent
+        try
         {
-            Translation = new System.Numerics.Vector3(0, 0, 0),
-            Rotation = new System.Numerics.Vector3(0, 0, 0),
-            Scale = new System.Numerics.Vector3(1, 1, 1)
-        });
-        
-        entity.AddComponent(new CameraComponent
-        {
-            Primary = true,
-            FixedAspectRatio = false
-        });
-        
-        entity.AddComponent(new NativeScriptComponent
-        {
-            ScriptableEntity = new CameraController()
-        });
-        
-        // Save the scene
-        string testPath = "test_script_scene.scene";
-        SceneSerializer.Serialize(scene, testPath);
-        Console.WriteLine($"Scene saved to {testPath}");
-        
-        // Create a new scene and load the saved one
-        var loadedScene = new Scene("loaded_test");
-        SceneSerializer.Deserialize(loadedScene, testPath);
-        Console.WriteLine("Scene loaded successfully");
-        
-        // Verify the script was restored
-        var loadedEntity = loadedScene.Entities.AsValueEnumerable().FirstOrDefault(e => e.Name == "Test Camera");
-        if (loadedEntity != null)
-        {
-            if (loadedEntity.HasComponent<NativeScriptComponent>())
-            {
-                var scriptComponent = loadedEntity.GetComponent<NativeScriptComponent>();
-                if (scriptComponent.ScriptableEntity != null)
-                {
-                    var scriptType = scriptComponent.ScriptableEntity.GetType().Name;
-                    Console.WriteLine($"✓ Script restored successfully: {scriptType}");
-                }
-                else
-                {
-                    Console.WriteLine("✗ Script component exists but ScriptableEntity is null");
-                }
-            }
-            else
-            {
-                Console.WriteLine("✗ NativeScriptComponent not found on loaded entity");
-            }
+            Console.WriteLine("Test podstawowych funkcji audio...");
+
+            // Test 1: PlayOneShot
+            Console.WriteLine("Test PlayOneShot...");
+            AudioEngine.Instance.PlayOneShot("assets/audio/door.wav", 0.5f);
+
+            Console.WriteLine("Czekam");
+            Console.ReadLine();
+
+            // Test 2: Kontrolowane odtwarzanie
+            Console.WriteLine("Test kontrolowanego odtwarzania...");
+            var audioSource = AudioEngine.Instance.CreateAudioSource();
+            var audioClip = AudioEngine.Instance.LoadAudioClip("assets/audio/giant1.wav");
+
+            audioSource.Clip = audioClip;
+            audioSource.Volume = 0.3f;
+            audioSource.Loop = true;
+            audioSource.Play();
+
+            // Poczekaj chwilę
+            Thread.Sleep(2000);
+
+            // Zatrzymaj
+            audioSource.Stop();
+            audioSource.Dispose();
+
+            Console.WriteLine("Testy audio zakończone pomyślnie!");
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine("✗ Test Camera entity not found in loaded scene");
+            Console.WriteLine($"Błąd podczas testów audio: {ex.Message}");
         }
-        
-        // Clean up
-        if (File.Exists(testPath))
-        {
-            File.Delete(testPath);
-            Console.WriteLine($"Test file {testPath} cleaned up");
-        }
-        
-        Console.WriteLine("Script serialization test completed.");
     }
 }
