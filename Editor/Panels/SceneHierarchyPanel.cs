@@ -340,28 +340,30 @@ public class SceneHierarchyPanel
                 {
                     // Optional: Handle button click logic if needed
                 }
-            });
-            // Drag-and-drop for texture
-            if (ImGui.BeginDragDropTarget())
-            {
-                unsafe
+                
+                if (ImGui.BeginDragDropTarget())
                 {
-                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-                    if (payload.NativePtr != null)
+                    unsafe
                     {
-                        var path = Marshal.PtrToStringUni(payload.Data);
-                        if (path is null)
+                        ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                        if (payload.NativePtr != null)
                         {
-                            return;
+                            var path = Marshal.PtrToStringUni(payload.Data);
+                            if (path is null)
+                            {
+                                return;
+                            }
+
+                            string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                            spriteRendererComponent.Texture = TextureFactory.Create(texturePath);
                         }
 
-                        string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-                        spriteRendererComponent.Texture = TextureFactory.Create(texturePath);
+                        ImGui.EndDragDropTarget();
                     }
-
-                    ImGui.EndDragDropTarget();
                 }
-            }
+            });
+            // Drag-and-drop for texture
+            
 
             float tillingFactor = spriteRendererComponent.TilingFactor;
             UIPropertyRenderer.DrawPropertyRow("Tiling Factor",
@@ -388,27 +390,29 @@ public class SceneHierarchyPanel
                 {
                     // Optional: Handle button click logic if needed
                 }
-            });
-            if (ImGui.BeginDragDropTarget())
-            {
-                unsafe
+                
+                if (ImGui.BeginDragDropTarget())
                 {
-                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-                    if (payload.NativePtr != null)
+                    unsafe
                     {
-                        var path = Marshal.PtrToStringUni(payload.Data);
-                        if (path is null)
+                        ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                        if (payload.NativePtr != null)
                         {
-                            return;
+                            var path = Marshal.PtrToStringUni(payload.Data);
+                            if (path is null)
+                            {
+                                return;
+                            }
+
+                            string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                            c.Texture = TextureFactory.Create(texturePath);
                         }
 
-                        string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-                        c.Texture = TextureFactory.Create(texturePath);
+                        ImGui.EndDragDropTarget();
                     }
-
-                    ImGui.EndDragDropTarget();
                 }
-            }
+            });
+            
             
             entity.SetComponent(c);
         });
@@ -542,30 +546,31 @@ public class SceneHierarchyPanel
                 {
                     // Optional: Handle button click logic if needed
                 }
-            });
-            if (ImGui.BeginDragDropTarget())
-            {
-                unsafe
+                
+                if (ImGui.BeginDragDropTarget())
                 {
-                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-                    if (payload.NativePtr != null)
+                    unsafe
                     {
-                        var path = Marshal.PtrToStringUni(payload.Data);
-                        if (path is null)
+                        ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                        if (payload.NativePtr != null)
                         {
-                            return;
+                            var path = Marshal.PtrToStringUni(payload.Data);
+                            if (path is null)
+                            {
+                                return;
+                            }
+
+                            string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                            if (File.Exists(texturePath) && (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
+                            {
+                                modelRendererComponent.OverrideTexture = TextureFactory.Create(texturePath);
+                            }
                         }
 
-                        string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-                        if (File.Exists(texturePath) && (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
-                        {
-                            modelRendererComponent.OverrideTexture = TextureFactory.Create(texturePath);
-                        }
+                        ImGui.EndDragDropTarget();
                     }
-
-                    ImGui.EndDragDropTarget();
                 }
-            }
+            });
 
             // Shadow options
             bool castShadows = modelRendererComponent.CastShadows;

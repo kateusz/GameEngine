@@ -100,6 +100,24 @@ public class ContentBrowserPanel
                 IntPtr itemPathPtr = Marshal.StringToHGlobalUni(relativePath);
                 var itemPathSize = (relativePath.Length + 1) * sizeof(char);
                 ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPathPtr, (uint)itemPathSize);
+                
+                // Pokaż podgląd tego co przeciągamy
+                ImGui.Text($"Dragging: {filenameString}");
+                if (isImage)
+                {
+                    ImGui.Text("Type: Texture");
+                    // Pokaż małą ikonkę
+                    ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
+                }
+                else if (isDirectory)
+                {
+                    ImGui.Text("Type: Directory");
+                }
+                else
+                {
+                    ImGui.Text($"Type: {Path.GetExtension(filenameString)}");
+                }
+                
                 ImGui.EndDragDropSource();
             }
             
