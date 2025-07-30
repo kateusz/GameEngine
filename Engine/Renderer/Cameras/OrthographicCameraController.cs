@@ -9,10 +9,13 @@ public class OrthographicCameraController
     private float _aspectRatio;
     private readonly bool _rotation;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraTranslationSpeed = 0.03f;
-    private float _cameraRotation;
+    private float _cameraTranslationSpeed = 2.0f; // Reduced from 0.03f to a reasonable base speed
     private float _cameraRotationSpeed = 10.0f;
+    private float _cameraRotation;
     private float _zoomLevel = 10.0f;
+    
+    // Add a speed multiplier for better control
+    private float _speedMultiplier = 0.1f; // Adjust this to make camera slower/faster
 
     public OrthographicCameraController(float aspectRatio, bool rotation = false)
     {
@@ -34,14 +37,17 @@ public class OrthographicCameraController
 
     public void OnUpdate(TimeSpan timeSpan)
     {
+        // Calculate actual movement speed based on zoom level but with a reasonable multiplier
+        float actualSpeed = _cameraTranslationSpeed * _speedMultiplier * _zoomLevel;
+        
         if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
-            _cameraPosition.X -= _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.X -= actualSpeed * (float)timeSpan.TotalSeconds;
         else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.D))
-            _cameraPosition.X += _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.X += actualSpeed * (float)timeSpan.TotalSeconds;
         else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.S))
-            _cameraPosition.Y -= _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.Y -= actualSpeed * (float)timeSpan.TotalSeconds;
         else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.W))
-            _cameraPosition.Y += _cameraTranslationSpeed * (float)timeSpan.TotalSeconds;
+            _cameraPosition.Y += actualSpeed * (float)timeSpan.TotalSeconds;
 
         if (_rotation)
         {
@@ -55,7 +61,8 @@ public class OrthographicCameraController
         
         Camera.SetPosition(_cameraPosition);
 
-        _cameraTranslationSpeed = _zoomLevel; 
+        // Remove this line that was causing the high speed:
+        // _cameraTranslationSpeed = _zoomLevel; 
     }
 
     public void OnEvent(Event @event)
@@ -66,6 +73,14 @@ public class OrthographicCameraController
         if (@event is WindowResizeEvent windowResizeEvent)
             OnWindowResized(windowResizeEvent);
     }
+    
+    // Add methods to control camera speed at runtime
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = multiplier;
+    }
+    
+    public float GetSpeedMultiplier() => _speedMultiplier;
 
     private bool OnMouseScrolled(MouseScrolledEvent @event)
     {

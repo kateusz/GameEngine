@@ -282,7 +282,8 @@ public class BenchmarkLayer : Layer
         // Update test scene
         if (_currentTestScene != null)
         {
-            _currentTestScene.OnUpdateEditor(ts, new Engine.Renderer.EditorCamera()); // Fixed: use OnUpdateEditor instead of OnUpdateRuntime
+            // TODO: align to 2d camera
+            //_currentTestScene.OnUpdateEditor(ts, new Engine.Renderer.EditorCamera()); // Fixed: use OnUpdateEditor instead of OnUpdateRuntime
                 
             // Add test-specific updates
             switch (_currentTestType)
