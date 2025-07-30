@@ -51,8 +51,7 @@ public class Renderer2D
     public void Shutdown()
     {
     }
-
-    [Obsolete("Used only for Sandbox testing")]
+    
     public void BeginScene(OrthographicCamera camera)
     {
         _data.QuadShader.Bind();

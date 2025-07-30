@@ -9,7 +9,7 @@ public class OrthographicCameraController
     private float _aspectRatio;
     private readonly bool _rotation;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraTranslationSpeed = 1.0f;
+    private float _cameraTranslationSpeed = 0.03f;
     private float _cameraRotation;
     private float _cameraRotationSpeed = 10.0f;
     private float _zoomLevel = 10.0f;

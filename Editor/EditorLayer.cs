@@ -25,7 +25,7 @@ public class EditorLayer : Layer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
-    private OrthographicCameraController _orthographicCameraController;
+    private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
@@ -33,8 +33,7 @@ public class EditorLayer : Layer
     private readonly Vector2[] _viewportBounds = new Vector2[2];
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
-    private ConsolePanel _consolePanel; // Added console panel
-    private EditorCamera _editorCamera;
+    private ConsolePanel _consolePanel;
     private Entity? _hoveredEntity;
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -53,24 +52,25 @@ public class EditorLayer : Layer
     private readonly Queue<float> _frameTimes = new();
     private float _fpsUpdateTimer = 0.0f;
     private float _currentFps = 0.0f;
-    private const float FpsUpdateInterval = 0.1f; // Update FPS display every 100ms
-    private const int MaxFrameSamples = 60; // Keep last 60 frame times for averaging
+    private const float FpsUpdateInterval = 0.1f;
+    private const int MaxFrameSamples = 60;
     
     public EditorLayer(string name) : base(name)
     {
-        _showOpenProjectPopup = true; // Show Open Project dialog at startup
+        _showOpenProjectPopup = true;
     }
 
     public override void OnAttach()
     {
-        Logger.Debug("ExampleLayer OnAttach.");
+        Logger.Debug("EditorLayer OnAttach.");
 
         _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
         _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
         _sceneState = SceneState.Edit;
 
-        // todo: width and height from window props
-        _orthographicCameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        // Initialize 2D camera controller with reasonable settings for editor
+        _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        
         var frameBufferSpec = new FrameBufferSpecification(1200, 720)
         {
             AttachmentsSpec = new FramebufferAttachmentSpecification([
@@ -84,33 +84,35 @@ public class EditorLayer : Layer
         Renderer3D.Instance.Init();
 
         CurrentScene.Set(new Scene(""));
-        _editorCamera = new EditorCamera(30.0f, 1280.0f / 720.0f, 0.1f, 1000.0f);
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
         _contentBrowserPanel = new ContentBrowserPanel();
-        _consolePanel = new ConsolePanel(); // Initialize console panel
+        _consolePanel = new ConsolePanel();
         
         // Set scripts directory based on current project directory
         string projectRoot = _currentProjectDirectory ?? Environment.CurrentDirectory;
         string scriptsDir = Path.Combine(projectRoot, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
         
-        // Add some initial console messages to demonstrate functionality
         Console.WriteLine("✅ Editor initialized successfully!");
         Console.WriteLine("Console panel is now capturing output.");
     }
 
     private void EntitySelected(Entity entity)
     {
-        // center camera
+        // Center camera on selected entity
         var transformComponent = entity.GetComponent<TransformComponent>();
-        //_editorCamera.CenterToPos(transformComponent.Translation);
+        if (transformComponent != default)
+        {
+            var camera = _cameraController.Camera;
+            camera.SetPosition(transformComponent.Translation);
+        }
     }
 
     public override void OnDetach()
     {
-        Logger.Debug("ExampleLayer OnDetach.");
-        _consolePanel?.Dispose(); // Clean up console panel
+        Logger.Debug("EditorLayer OnDetach.");
+        _consolePanel?.Dispose();
     }
 
     public override void OnUpdate(TimeSpan timeSpan)
@@ -118,36 +120,38 @@ public class EditorLayer : Layer
         UpdateFPSTracking(timeSpan);
         
         // Resize
-        // TODO: is it needed?
         var spec = _frameBuffer.GetSpecification();
-        if (_viewportSize is { X: > 0.0f, Y: > 0.0f } && // zero sized framebuffer is invalid
+        if (_viewportSize is { X: > 0.0f, Y: > 0.0f } && 
             (spec.Width != (uint)_viewportSize.X || spec.Height != (uint)_viewportSize.Y))
         {
             _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-            _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
+            
+            // Update camera aspect ratio when viewport changes
+            float aspectRatio = _viewportSize.X / _viewportSize.Y;
+            _cameraController = new OrthographicCameraController(_cameraController.Camera, aspectRatio, true);
+            
             CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
         Renderer2D.Instance.ResetStats();
+        Renderer3D.Instance.ResetStats();
         _frameBuffer.Bind();
 
         RendererCommand.SetClearColor(_backgroundColor);
         RendererCommand.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
-        var mousePos = ImGui.GetMousePos();
 
         switch (_sceneState)
         {
             case SceneState.Edit:
             {
+                // Update camera controller when viewport is focused
                 if (_viewportFocused)
-                    _orthographicCameraController.OnUpdate(timeSpan);
-                _editorCamera.OnUpdate(mousePos);
-                CurrentScene.Instance.OnUpdateEditor(timeSpan, _editorCamera);
+                    _cameraController.OnUpdate(timeSpan);
                 
-                // should it be called here?
-                //ScriptEngine.Instance.Update(timeSpan);
+                // Use 2D camera for editor scene rendering
+                CurrentScene.Instance.OnUpdateEditor(timeSpan, _cameraController.Camera);
                 break;
             }
             case SceneState.Play:
@@ -157,22 +161,18 @@ public class EditorLayer : Layer
             }
         }
 
-        // Get mouse position from ImGui
+        // Mouse picking logic
+        var mousePos = ImGui.GetMousePos();
         var mx = mousePos.X - _viewportBounds[0].X;
         var my = mousePos.Y - _viewportBounds[0].Y;
-
-        // Calculate viewport size
         var viewportSize = _viewportBounds[1] - _viewportBounds[0];
         my = viewportSize.Y - my; // Flip the Y-axis
 
-        // Convert to integer mouse coordinates
         var mouseX = (int)mx;
         var mouseY = (int)my;
 
-        // Check if the mouse is within the viewport bounds
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
         {
-            // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
             _hoveredEntity = entity;
@@ -183,13 +183,12 @@ public class EditorLayer : Layer
 
     public override void HandleEvent(Event @event)
     {
-        Logger.Debug("ExampleLayer OnEvent: {0}", @event);
+        Logger.Debug("EditorLayer OnEvent: {0}", @event);
 
-        _orthographicCameraController.OnEvent(@event);
-        
+        // Always handle camera controller events in edit mode
         if (_sceneState == SceneState.Edit)
         {
-            _editorCamera.OnEvent(@event);
+            _cameraController.OnEvent(@event);
         }
         else
         {
@@ -222,21 +221,18 @@ public class EditorLayer : Layer
             {
                 if (control)
                     NewScene();
-
                 break;
             }
             case (int)KeyCodes.O:
             {
                 if (control)
                     OpenScene();
-
                 break;
             }
             case (int)KeyCodes.S:
             {
                 if (control)
                     SaveScene();
-
                 break;
             }
             case (int)KeyCodes.D:
@@ -245,6 +241,22 @@ public class EditorLayer : Layer
                     OnDuplicateEntity();
                 break;
             }
+            case (int)KeyCodes.F:
+            {
+                if (control)
+                    FocusOnSelectedEntity();
+                break;
+            }
+        }
+    }
+
+    private void FocusOnSelectedEntity()
+    {
+        var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
+        if (selectedEntity != null && selectedEntity.HasComponent<TransformComponent>())
+        {
+            var transform = selectedEntity.GetComponent<TransformComponent>();
+            _cameraController.Camera.SetPosition(transform.Translation);
         }
     }
 
@@ -255,10 +267,8 @@ public class EditorLayer : Layer
 
     private void UI_Toolbar()
     {
-        // Pushing style variables and colors using ImGui.NET syntax
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 2));
         ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
-
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
 
         var colors = ImGui.GetStyle().Colors;
@@ -268,20 +278,14 @@ public class EditorLayer : Layer
         var buttonActive = colors[(int)ImGuiCol.ButtonActive];
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, buttonActive with { W = 0.5f });
 
-        // Begin toolbar window
         ImGui.Begin("##toolbar",
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
-        // Calculate button size based on window height
         var size = ImGui.GetWindowHeight() - 4.0f;
-
-        // Set the appropriate icon (m_IconPlay or m_IconStop) based on the scene state
         var icon = _sceneState == SceneState.Edit ? _iconPlay : _iconStop;
 
-        // Center the icon button in the window
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
 
-        // Display the icon button and handle button press
         if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0),
                 new Vector2(1, 1)))
         {
@@ -296,11 +300,8 @@ public class EditorLayer : Layer
             }
         }
         
-        // Pop the style and color variables
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);
-
-        // End the toolbar window
         ImGui.End();
     }
 
@@ -321,8 +322,6 @@ public class EditorLayer : Layer
 
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
-            var style = ImGui.GetStyle();
-
             var dockspaceId = ImGui.GetID("MyDockSpace");
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
 
@@ -335,13 +334,10 @@ public class EditorLayer : Layer
                     if (ImGui.MenuItem("Open Project"))
                         _showOpenProjectPopup = true;
                     if (ImGui.MenuItem("Exit"))
-                    {
-                        Environment.Exit(0); // Exit the application
-                    }
+                        Environment.Exit(0);
                     ImGui.EndMenu();
                 }
 
-                // New Scene menu for scene operations
                 if (ImGui.BeginMenu("Scene..."))
                 {
                     if (ImGui.MenuItem("New", "Ctrl+N"))
@@ -350,6 +346,15 @@ public class EditorLayer : Layer
                         OpenScene();
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
                         SaveScene();
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("View"))
+                {
+                    if (ImGui.MenuItem("Focus on Selected", "Ctrl+F"))
+                        FocusOnSelectedEntity();
+                    if (ImGui.MenuItem("Reset Camera"))
+                        ResetCamera();
                     ImGui.EndMenu();
                 }
 
@@ -368,12 +373,29 @@ public class EditorLayer : Layer
                 ImGui.Begin("Editor Settings", ref _showSettings, ImGuiWindowFlags.AlwaysAutoResize);
                 ImGui.Text("Editor Background Color");
                 ImGui.ColorEdit4("Background Color", ref _backgroundColor);
+                
+                // Camera settings
+                ImGui.Separator();
+                ImGui.Text("Camera Settings");
+                
+                var cameraPos = _cameraController.Camera.Position;
+                if (ImGui.DragFloat3("Camera Position", ref cameraPos, 0.1f))
+                {
+                    _cameraController.Camera.SetPosition(cameraPos);
+                }
+                
+                var cameraRot = _cameraController.Camera.Rotation;
+                if (ImGui.DragFloat("Camera Rotation", ref cameraRot, 1.0f))
+                {
+                    _cameraController.Camera.SetRotation(cameraRot);
+                }
+                
                 ImGui.End();
             }
 
             _sceneHierarchyPanel.OnImGuiRender();
             _contentBrowserPanel.OnImGuiRender();
-            _consolePanel.OnImGuiRender(); // Render console panel
+            _consolePanel.OnImGuiRender();
             
             ImGui.Begin("Stats");
 
@@ -394,10 +416,12 @@ public class EditorLayer : Layer
             ImGui.Text($"Quads: {stats.QuadCount}");
             ImGui.Text($"Vertices: {stats.GetTotalVertexCount()}");
             ImGui.Text($"Indices: {stats.GetTotalIndexCount()}");
-            ImGui.Text("Editor Camera:");
-            ImGui.Text($"X: {stats.EditorCameraX}");
-            ImGui.Text($"Y: {stats.EditorCameraY}");
-            ImGui.Text($"Z: {stats.EditorCameraZ}");
+            
+            // Camera info
+            ImGui.Text("Camera:");
+            var camPos = _cameraController.Camera.Position;
+            ImGui.Text($"Position: ({camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2})");
+            ImGui.Text($"Rotation: {_cameraController.Camera.Rotation:F1}°");
             
             // 3D Stats
             var stats3D = Renderer3D.Instance.GetStats();
@@ -436,11 +460,10 @@ public class EditorLayer : Layer
                         ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
                         if (payload.NativePtr != null)
                         {
-                            var path = Marshal.PtrToStringUni(payload.Data); // Converting IntPtr to string (wchar_t* in C#)
+                            var path = Marshal.PtrToStringUni(payload.Data);
                             if (path is not null)
-                                OpenScene(Path.Combine(AssetsManager.AssetsPath, path)); // Combining paths
+                                OpenScene(Path.Combine(AssetsManager.AssetsPath, path));
                         }
-
                         ImGui.EndDragDropTarget();
                     }
                 }
@@ -452,13 +475,18 @@ public class EditorLayer : Layer
             ImGui.PopStyleVar();
 
             UI_Toolbar();
-
             ImGui.End();
         }
         RenderNewProjectPopup();
         RenderOpenProjectPopup();
     }
 
+    private void ResetCamera()
+    {
+        _cameraController.Camera.SetPosition(Vector3.Zero);
+        _cameraController.Camera.SetRotation(0.0f);
+    }
+    
     private void RenderNewProjectPopup()
     {
         if (_showNewProjectPopup)
@@ -609,6 +637,7 @@ public class EditorLayer : Layer
         CurrentScene.Set(new Scene(""));
         CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
+        ResetCamera();
         Console.WriteLine("📄 New scene created");
     }
 
@@ -617,7 +646,6 @@ public class EditorLayer : Layer
         if (_sceneState != SceneState.Edit)
             OnSceneStop();
         
-        // TODO: from configuration
         const string filePath = "assets/scenes/Example.scene";
         
         if (string.IsNullOrWhiteSpace(filePath))
@@ -680,9 +708,8 @@ public class EditorLayer : Layer
         CurrentScene.Instance.OnRuntimeStop();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         
-        // Reset editor camera to center at origin
-        _editorCamera.CenterToPos(System.Numerics.Vector3.Zero);
-        _editorCamera.SetDistance(10.0f);
+        // Reset camera to reasonable editor position
+        ResetCamera();
         
         Console.WriteLine("⏹️ Scene play stopped");
     }
@@ -700,76 +727,58 @@ public class EditorLayer : Layer
         }
     }
     
-    
-/// <summary>
-/// Updates FPS tracking with the current frame's delta time
-/// </summary>
-/// <param name="timeSpan">Time elapsed since last frame</param>
-private void UpdateFPSTracking(TimeSpan timeSpan)
-{
-    float deltaTime = (float)timeSpan.TotalSeconds;
-    
-    // Skip invalid frame times
-    if (deltaTime <= 0) return;
-    
-    // Add current frame time to our tracking queue
-    _frameTimes.Enqueue(deltaTime);
-    
-    // Maintain a rolling window of frame times
-    while (_frameTimes.Count > MaxFrameSamples)
+    private void UpdateFPSTracking(TimeSpan timeSpan)
     {
-        _frameTimes.Dequeue();
+        float deltaTime = (float)timeSpan.TotalSeconds;
+        
+        if (deltaTime <= 0) return;
+        
+        _frameTimes.Enqueue(deltaTime);
+        
+        while (_frameTimes.Count > MaxFrameSamples)
+        {
+            _frameTimes.Dequeue();
+        }
+        
+        _fpsUpdateTimer += deltaTime;
+        if (_fpsUpdateTimer >= FpsUpdateInterval)
+        {
+            CalculateFPS();
+            _fpsUpdateTimer = 0.0f;
+        }
     }
-    
-    // Update FPS calculation periodically for stable display
-    _fpsUpdateTimer += deltaTime;
-    if (_fpsUpdateTimer >= FpsUpdateInterval)
-    {
-        CalculateFPS();
-        _fpsUpdateTimer = 0.0f;
-    }
-}
 
-/// <summary>
-/// Calculates the current FPS based on averaged frame times
-/// </summary>
-private void CalculateFPS()
-{
-    if (_frameTimes.Count == 0) return;
-    
-    float averageFrameTime = _frameTimes.Average();
-    _currentFps = 1.0f / averageFrameTime;
-}
-
-/// <summary>
-/// Renders performance statistics in the ImGui Stats panel
-/// </summary>
-private void RenderPerformanceStats()
-{
-    ImGui.Separator();
-    ImGui.Text("Performance:");
-    
-    // Display FPS with appropriate color coding
-    var fpsColor = _currentFps >= 60.0f ? new Vector4(0.0f, 1.0f, 0.0f, 1.0f) :  // Green for 60+ FPS
-                   _currentFps >= 30.0f ? new Vector4(1.0f, 1.0f, 0.0f, 1.0f) :  // Yellow for 30-59 FPS
-                                         new Vector4(1.0f, 0.0f, 0.0f, 1.0f);    // Red for <30 FPS
-    
-    ImGui.PushStyleColor(ImGuiCol.Text, fpsColor);
-    ImGui.Text($"FPS: {_currentFps:F1}");
-    ImGui.PopStyleColor();
-    
-    // Display frame time in milliseconds
-    float currentFrameTime = _frameTimes.Count > 0 ? _frameTimes.Last() * 1000 : 0;
-    ImGui.Text($"Frame Time: {currentFrameTime:F2} ms");
-    
-    // Display additional performance metrics
-    ImGui.Text($"Frame Samples: {_frameTimes.Count}/{MaxFrameSamples}");
-    
-    if (_frameTimes.Count > 1)
+    private void CalculateFPS()
     {
-        float minFrameTime = _frameTimes.Min() * 1000;
-        float maxFrameTime = _frameTimes.Max() * 1000;
-        ImGui.Text($"Min/Max Frame Time: {minFrameTime:F2}/{maxFrameTime:F2} ms");
+        if (_frameTimes.Count == 0) return;
+        
+        float averageFrameTime = _frameTimes.Average();
+        _currentFps = 1.0f / averageFrameTime;
     }
-}
+
+    private void RenderPerformanceStats()
+    {
+        ImGui.Separator();
+        ImGui.Text("Performance:");
+        
+        var fpsColor = _currentFps >= 60.0f ? new Vector4(0.0f, 1.0f, 0.0f, 1.0f) :  
+                       _currentFps >= 30.0f ? new Vector4(1.0f, 1.0f, 0.0f, 1.0f) :  
+                                             new Vector4(1.0f, 0.0f, 0.0f, 1.0f);    
+        
+        ImGui.PushStyleColor(ImGuiCol.Text, fpsColor);
+        ImGui.Text($"FPS: {_currentFps:F1}");
+        ImGui.PopStyleColor();
+        
+        float currentFrameTime = _frameTimes.Count > 0 ? _frameTimes.Last() * 1000 : 0;
+        ImGui.Text($"Frame Time: {currentFrameTime:F2} ms");
+        
+        ImGui.Text($"Frame Samples: {_frameTimes.Count}/{MaxFrameSamples}");
+        
+        if (_frameTimes.Count > 1)
+        {
+            float minFrameTime = _frameTimes.Min() * 1000;
+            float maxFrameTime = _frameTimes.Max() * 1000;
+            ImGui.Text($"Min/Max Frame Time: {minFrameTime:F2}/{maxFrameTime:F2} ms");
+        }
+    }
 }

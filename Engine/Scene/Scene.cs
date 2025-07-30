@@ -9,7 +9,6 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scripting;
-using ZLinq;
 
 namespace Engine.Scene;
 
@@ -65,7 +64,6 @@ public class Scene
         var updated = new ConcurrentBag<Entity>(entitiesToKeep);
         Context.Instance.Entities = updated;
     }
-
 
     public void OnRuntimeStart()
     {
@@ -225,11 +223,15 @@ public class Scene
             Renderer2D.Instance.EndScene();
         }
     }
-
-    public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
+    
+    public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
-        // First render 3D objects
-        Renderer3D.Instance.BeginScene(camera);
+        //TODO: temp disable 3D
+        /*
+        var baseCamera = camera;
+        Matrix4x4 cameraTransform = Matrix4x4.CreateTranslation(camera.Position);
+        
+        Renderer3D.Instance.BeginScene(baseCamera, cameraTransform);
 
         var modelGroup = Context.Instance.GetGroup([
             typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
@@ -245,8 +247,9 @@ public class Scene
         }
 
         Renderer3D.Instance.EndScene();
+        */
 
-        // Then render 2D objects (existing code)
+        // Then render 2D objects using the orthographic camera directly
         Renderer2D.Instance.BeginScene(camera);
 
         var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
@@ -259,7 +262,6 @@ public class Scene
 
         Renderer2D.Instance.EndScene();
     }
-
 
     public void OnViewportResize(uint width, uint height)
     {
