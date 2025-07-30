@@ -871,12 +871,6 @@ public class ScriptEngine
 
                  public class {{scriptName}} : ScriptableEntity
                  {
-                     public override void Init(Scene currentScene)
-                     {
-                         base.Init(currentScene);
-                         Console.WriteLine("{{scriptName}} initialized!");
-                     }
-                 
                      public override void OnCreate()
                      {
                          Console.WriteLine("{{scriptName}} created!");
