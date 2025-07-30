@@ -365,10 +365,10 @@ public class EditorLayer : Layer
                     ImGui.EndMenu();
                 }
                 
-                if (ImGui.BeginMenu("Scripts"))
+                if (ImGui.BeginMenu("Publish"))
                 {
-                    if (ImGui.MenuItem("Force reload"))
-                        ForceReloadScripts();
+                    if (ImGui.MenuItem("Build & Publish"))
+                        BuildAndPublish();
                     ImGui.EndMenu();
                 }
 
@@ -488,7 +488,7 @@ public class EditorLayer : Layer
         RenderOpenProjectPopup();
     }
 
-    private void ForceReloadScripts()
+    private void BuildAndPublish()
     {
         throw new NotImplementedException();
     }
