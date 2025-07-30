@@ -4,19 +4,28 @@ using Engine.Math;
 
 namespace Engine.Scene.Components;
 
-public class TransformComponent : Component
+public struct TransformComponent : IComponent
 {
     public Vector3 Translation { get; set; }
     
     /// <summary>
     /// Rotation in radians
     /// </summary>
-    public Vector3 Rotation { get; set; } = Vector3.Zero;
-    public Vector3 Scale { get; set; } = Vector3.One;
+    public Vector3 Rotation { get; set; }
+    public Vector3 Scale { get; set; }
 
     public TransformComponent()
     {
         Translation = Vector3.Zero;
+        Rotation = Vector3.Zero;
+        Scale = Vector3.One;
+    }
+    
+    public TransformComponent(Vector3 translation, Vector3 rotation, Vector3 scale)
+    {
+        Translation = translation;
+        Rotation = rotation;
+        Scale = scale;
     }
     
     public Matrix4x4 GetTransform()

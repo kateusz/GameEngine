@@ -2,20 +2,20 @@ namespace ECS;
 
 public class Entity
 {
-    private readonly Dictionary<Type, Component> _components = new();
+    private readonly Dictionary<Type, IComponent> _components = new();
     
     public int Id { get; private set; }
     public required string Name { get; set; }
     
-    public event Action<Component>? OnComponentAdded;
+    public event Action<IComponent>? OnComponentAdded;
 
-    public void AddComponent(Component component)
+    public void AddComponent(IComponent component)
     {
         _components[component.GetType()] = component;
         OnComponentAdded?.Invoke(component);
     }
 
-    public TComponent AddComponent<TComponent>() where TComponent : Component, new()
+    public TComponent AddComponent<TComponent>() where TComponent : IComponent, new()
     {
         var component = new TComponent();
         _components[typeof(TComponent)] = component;
@@ -24,18 +24,18 @@ public class Entity
         return component;
     }
 
-    public void RemoveComponent<T>() where T : Component
+    public void RemoveComponent<T>() where T : IComponent
     {
         _components.Remove(typeof(T));
     }
 
-    public T GetComponent<T>() where T : Component
+    public T GetComponent<T>() where T : IComponent
     {
-        _components.TryGetValue(typeof(T), out Component component);
+        _components.TryGetValue(typeof(T), out IComponent component);
         return (T)component;
     }
 
-    public bool HasComponent<T>() where T : Component
+    public bool HasComponent<T>() where T : IComponent
     {
         return _components.ContainsKey(typeof(T));
     }

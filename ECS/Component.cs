@@ -1,5 +1,9 @@
 namespace ECS;
 
-public abstract class Component
+public interface IComponent
+{
+}
+
+public abstract class Component : IComponent
 {
 }

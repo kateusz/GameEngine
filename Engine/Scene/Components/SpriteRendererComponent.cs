@@ -4,19 +4,30 @@ using Engine.Renderer.Textures;
 
 namespace Engine.Scene.Components;
 
-public class SpriteRendererComponent : Component
+public struct SpriteRendererComponent : IComponent
 {
+    public Vector4 Color { get; set; }
+    public Texture2D? Texture { get; set; }
+    public float TilingFactor { get; set; }
+
     public SpriteRendererComponent()
     {
         Color = Vector4.One;
+        Texture = null;
+        TilingFactor = 1.0f;
     }
     
     public SpriteRendererComponent(Vector4 color)
     {
         Color = color;
+        Texture = null;
+        TilingFactor = 1.0f;
     }
-
-    public Vector4 Color { get; set; }
-    public Texture2D? Texture { get; set; }
-    public float TilingFactor { get; set; } = 1.0f;
+    
+    public SpriteRendererComponent(Vector4 color, Texture2D? texture, float tilingFactor = 1.0f)
+    {
+        Color = color;
+        Texture = texture;
+        TilingFactor = tilingFactor;
+    }
 }

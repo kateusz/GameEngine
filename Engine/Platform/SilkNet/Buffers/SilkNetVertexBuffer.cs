@@ -1,7 +1,8 @@
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Silk.NET.OpenGL;
-using Buffer = System.Buffer;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
@@ -45,57 +46,13 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
 
-        // Create a flat array of bytes from the vertices
-        var data = new byte[dataSize];
-
-        // Copy each vertex's data to the byte array
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            var vertex = vertices[i];
-
-            // Convert each field to bytes and copy to the byte array
-            Buffer.BlockCopy(new[] { vertex.Position.X, vertex.Position.Y, vertex.Position.Z },
-                0,
-                data,
-                i * QuadVertex.GetSize() + 0 * sizeof(float),
-                sizeof(float) * 3); // Position
-
-            Buffer.BlockCopy(new[] { vertex.Color.X, vertex.Color.Y, vertex.Color.Z, vertex.Color.W },
-                0,
-                data,
-                i * QuadVertex.GetSize() + 3 * sizeof(float),
-                sizeof(float) * 4); // Color
-
-            Buffer.BlockCopy(new[] { vertex.TexCoord.X, vertex.TexCoord.Y },
-                0,
-                data,
-                i * QuadVertex.GetSize() + 7 * sizeof(float),
-                sizeof(float) * 2); // TexCoord
-
-            Buffer.BlockCopy(new[] { vertex.TexIndex },
-                0,
-                data,
-                i * QuadVertex.GetSize() + 9 * sizeof(float),
-                sizeof(float)); // TexIndex
-
-            Buffer.BlockCopy(new[] { vertex.TilingFactor },
-                0,
-                data,
-                i * QuadVertex.GetSize() + 10 * sizeof(float),
-                sizeof(float)); // TilingFactor
-
-            Buffer.BlockCopy(new[] { vertex.EntityId },
-                0,
-                data,
-                i * QuadVertex.GetSize() + 11 * sizeof(float),
-                sizeof(int)); // EntityId
-        }
-
         unsafe
         {
-            fixed (byte* pData = data)
+            // Use Span<T> for direct memory access without allocations
+            var vertexSpan = MemoryMarshal.Cast<QuadVertex, byte>(vertices);
+            fixed (byte* pData = vertexSpan)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)data.Length, pData,
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)vertexSpan.Length, pData,
                     BufferUsageARB.StaticDraw);
             }
         }
@@ -108,39 +65,13 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
 
-        // Create a flat array of bytes from the vertices
-        var data = new byte[dataSize];
-
-        // Copy each vertex's data to the byte array
-        for (int i = 0; i < lineVertices.Length; i++)
-        {
-            var vertex = lineVertices[i];
-
-            // Convert each field to bytes and copy to the byte array
-            Buffer.BlockCopy(new[] { vertex.Position.X, vertex.Position.Y, vertex.Position.Z },
-                0,
-                data,
-                i * LineVertex.GetSize() + 0 * sizeof(float),
-                sizeof(float) * 3); // Position
-
-            Buffer.BlockCopy(new[] { vertex.Color.X, vertex.Color.Y, vertex.Color.Z, vertex.Color.W },
-                0,
-                data,
-                i * LineVertex.GetSize() + 3 * sizeof(float),
-                sizeof(float) * 4); // Color
-
-            Buffer.BlockCopy(new[] { vertex.EntityId },
-                0,
-                data,
-                i * LineVertex.GetSize() + 7 * sizeof(float),
-                sizeof(int)); // EntityId
-        }
-
         unsafe
         {
-            fixed (byte* pData = data)
+            // Use Span<T> for direct memory access without allocations
+            var vertexSpan = MemoryMarshal.Cast<LineVertex, byte>(lineVertices);
+            fixed (byte* pData = vertexSpan)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)data.Length, pData,
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)vertexSpan.Length, pData,
                     BufferUsageARB.StaticDraw);
                 var error = SilkNetContext.GL.GetError();
             }
@@ -155,42 +86,18 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
 
-        // Create a flat array of bytes from the vertices
-        var data = new byte[dataSize];
-
-        // Copy each vertex's data to the byte array
-        for (int i = 0; i < vertices.Count; i++)
-        {
-            var vertex = vertices[i];
-            int offset = i * Mesh.Vertex.GetSize();
-
-            // Convert each field to bytes and copy to the byte array
-            Buffer.BlockCopy(new[] { vertex.Position.X, vertex.Position.Y, vertex.Position.Z }, 0, data, offset,
-                sizeof(float) * 3); // Position
-            offset += sizeof(float) * 3;
-
-            Buffer.BlockCopy(new[] { vertex.Normal.X, vertex.Normal.Y, vertex.Normal.Z }, 0, data, offset,
-                sizeof(float) * 3); // Normal
-            offset += sizeof(float) * 3;
-
-            Buffer.BlockCopy(new[] { vertex.TexCoord.X, vertex.TexCoord.Y }, 0, data, offset,
-                sizeof(float) * 2); // TexCoord
-            offset += sizeof(float) * 2;
-
-            Buffer.BlockCopy(new[] { vertex.EntityId }, 0, data, offset, sizeof(int)); // EntityId
-        }
-
-
         unsafe
         {
-            fixed (byte* pData = data)
+            // Use Span<T> for direct memory access without allocations
+            var vertexSpan = CollectionsMarshal.AsSpan(vertices);
+            var byteSpan = MemoryMarshal.Cast<Mesh.Vertex, byte>(vertexSpan);
+            fixed (byte* pData = byteSpan)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)data.Length, pData,
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)byteSpan.Length, pData,
                     BufferUsageARB.StaticDraw);
             }
         }
     }
-
 
     public void Bind()
     {

@@ -6,9 +6,19 @@ using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
 
-public record CameraData
+public struct CameraData
 {
     public Matrix4x4 ViewProjection { get; set; }
+
+    public CameraData()
+    {
+        ViewProjection = Matrix4x4.Identity;
+    }
+    
+    public CameraData(Matrix4x4 viewProjection)
+    {
+        ViewProjection = viewProjection;
+    }
 
     public static int GetSize() => 64;
 }

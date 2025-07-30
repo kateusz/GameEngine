@@ -16,7 +16,7 @@ public class Renderer3D
     private Vector3 _lightColor = new Vector3(1.0f, 1.0f, 1.0f);
     private float _shininess = 32.0f;
     
-    private readonly Statistics _stats = new();
+    private Statistics _stats = new();
 
     public void Init()
     {

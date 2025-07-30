@@ -9,6 +9,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using ZLinq;
 
 namespace Engine.Scene;
 
@@ -42,7 +43,7 @@ public class Scene
 
     public void AddEntity(Entity entity) => Context.Instance.Register(entity);
 
-    private void OnComponentAdded(Component component)
+    private void OnComponentAdded(IComponent component)
     {
         if (component is CameraComponent cameraComponent)
         {
@@ -53,7 +54,15 @@ public class Scene
 
     public void DestroyEntity(Entity entity)
     {
-        var updated = new ConcurrentBag<Entity>(Entities.Where(item => item.Id != entity.Id));
+        var entitiesToKeep = new List<Entity>();
+        foreach (var existingEntity in Entities)
+        {
+            if (existingEntity.Id != entity.Id)
+            {
+                entitiesToKeep.Add(existingEntity);
+            }
+        }
+        var updated = new ConcurrentBag<Entity>(entitiesToKeep);
         Context.Instance.Entities = updated;
     }
 

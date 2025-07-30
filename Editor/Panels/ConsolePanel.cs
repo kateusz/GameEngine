@@ -138,10 +138,12 @@ public class ConsolePanel
 
             if (!levelFilter) return false;
 
-            // Filter by text
+            // Filter by text using ReadOnlySpan<char> for better performance
             if (!string.IsNullOrEmpty(_filterText))
             {
-                return message.Text.Contains(_filterText, StringComparison.OrdinalIgnoreCase);
+                var messageSpan = message.Text.AsSpan();
+                var filterSpan = _filterText.AsSpan();
+                return messageSpan.Contains(filterSpan, StringComparison.OrdinalIgnoreCase);
             }
 
             return true;
@@ -258,16 +260,21 @@ internal class ConsoleTextWriter : TextWriter
 
     private static ConsolePanel.LogLevel DetermineLogLevel(string message)
     {
-        var lowerMessage = message.ToLowerInvariant();
+        var messageSpan = message.AsSpan();
         
-        if (lowerMessage.Contains("error") || lowerMessage.Contains("exception") || 
-            lowerMessage.Contains("failed") || lowerMessage.Contains("❌"))
+        // Use ReadOnlySpan<char> for more efficient string operations
+        if (messageSpan.Contains("error", StringComparison.OrdinalIgnoreCase) || 
+            messageSpan.Contains("exception", StringComparison.OrdinalIgnoreCase) || 
+            messageSpan.Contains("failed", StringComparison.OrdinalIgnoreCase) || 
+            messageSpan.Contains("❌", StringComparison.OrdinalIgnoreCase))
         {
             return ConsolePanel.LogLevel.Error;
         }
         
-        if (lowerMessage.Contains("warning") || lowerMessage.Contains("warn") || 
-            lowerMessage.Contains("⚠") || lowerMessage.StartsWith("warning:"))
+        if (messageSpan.Contains("warning", StringComparison.OrdinalIgnoreCase) || 
+            messageSpan.Contains("warn", StringComparison.OrdinalIgnoreCase) || 
+            messageSpan.Contains("⚠", StringComparison.OrdinalIgnoreCase) || 
+            messageSpan.StartsWith("warning:", StringComparison.OrdinalIgnoreCase))
         {
             return ConsolePanel.LogLevel.Warning;
         }

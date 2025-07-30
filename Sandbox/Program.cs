@@ -4,6 +4,7 @@ using Engine.Core;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
+using ZLinq;
 
 namespace Sandbox;
 
@@ -57,7 +58,7 @@ public class Program
         Console.WriteLine("Scene loaded successfully");
         
         // Verify the script was restored
-        var loadedEntity = loadedScene.Entities.FirstOrDefault(e => e.Name == "Test Camera");
+        var loadedEntity = loadedScene.Entities.AsValueEnumerable().FirstOrDefault(e => e.Name == "Test Camera");
         if (loadedEntity != null)
         {
             if (loadedEntity.HasComponent<NativeScriptComponent>())

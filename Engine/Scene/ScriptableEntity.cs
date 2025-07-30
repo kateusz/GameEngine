@@ -32,6 +32,12 @@ public class ScriptableEntity
     /// <param name="ts">Time since the last frame</param>
     public virtual void OnUpdate(TimeSpan ts)
     {
+        if (HasComponent<TransformComponent>())
+        {
+            var transform = GetComponent<TransformComponent>();
+            transform.Translation += new Vector3(0.1f, 0.0f, 0.0f);
+            AddComponent(transform);
+        }
     }
 
     /// <summary>
@@ -64,8 +70,9 @@ public class ScriptableEntity
     /// Called when a key is pressed.
     /// </summary>
     /// <param name="keyCode">The code of the key that was pressed</param>
-    public virtual void OnKeyPressed(KeyCodes keyCode)
+    public virtual void OnKeyPressed(KeyCodes key)
     {
+        // Key press handling - override in derived classes
     }
 
     /// <summary>
@@ -82,6 +89,7 @@ public class ScriptableEntity
     /// <param name="button">The button that was pressed (0 = left, 1 = right, 2 = middle)</param>
     public virtual void OnMouseButtonPressed(int button)
     {
+        // Mouse button press handling - override in derived classes
     }
 
     /// <summary>
@@ -90,6 +98,7 @@ public class ScriptableEntity
     /// <param name="button">The button that was released (0 = left, 1 = right, 2 = middle)</param>
     public virtual void OnMouseButtonReleased(int button)
     {
+        // Mouse button release handling - override in derived classes
     }
 
     /// <summary>
@@ -98,14 +107,16 @@ public class ScriptableEntity
     /// <param name="position">The new mouse position</param>
     public virtual void OnMouseMoved(Vector2 position)
     {
+        // Mouse movement handling - override in derived classes
     }
 
     /// <summary>
     /// Called when the mouse wheel is scrolled.
     /// </summary>
     /// <param name="offset">The scroll offset (positive = up, negative = down)</param>
-    public virtual void OnMouseScrolled(float offset)
+    public virtual void OnMouseScrolled(Vector2 offset)
     {
+        // Mouse scroll handling - override in derived classes
     }
 
     #endregion
@@ -153,9 +164,9 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to get</typeparam>
     /// <returns>The component instance, or null if not found</returns>
-    protected T? GetComponent<T>() where T : Component
+    public T GetComponent<T>() where T : IComponent
     {
-        return Entity?.GetComponent<T>();
+        return Entity.GetComponent<T>();
     }
 
     /// <summary>
@@ -163,7 +174,7 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to check for</typeparam>
     /// <returns>True if the entity has the component, false otherwise</returns>
-    protected bool HasComponent<T>() where T : Component
+    public bool HasComponent<T>() where T : IComponent
     {
         return Entity.HasComponent<T>();
     }
@@ -173,11 +184,19 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to add</typeparam>
     /// <returns>The newly added component</returns>
-    protected T AddComponent<T>() where T : Component, new()
+    public T AddComponent<T>() where T : IComponent, new()
     {
-        var component = new T();
-        Entity?.AddComponent(component);
-        return component;
+        return Entity.AddComponent<T>();
+    }
+
+    /// <summary>
+    /// Add a component to the entity.
+    /// </summary>
+    /// <typeparam name="T">The component type to add</typeparam>
+    /// <returns>The newly added component</returns>
+    public void AddComponent<T>(T component) where T : IComponent
+    {
+        Entity.AddComponent(component);
     }
 
     /// <summary>
@@ -256,7 +275,9 @@ public class ScriptableEntity
         if (!HasComponent<TransformComponent>())
             return;
 
-        GetComponent<TransformComponent>()!.Translation = position;
+        var transform = GetComponent<TransformComponent>();
+        transform.Translation = position;
+        AddComponent(transform);
     }
 
     /// <summary>
@@ -268,7 +289,7 @@ public class ScriptableEntity
         if (!HasComponent<TransformComponent>())
             return Vector3.Zero;
 
-        return GetComponent<TransformComponent>()!.Rotation;
+        return GetComponent<TransformComponent>().Rotation;
     }
 
     /// <summary>
@@ -280,7 +301,9 @@ public class ScriptableEntity
         if (!HasComponent<TransformComponent>())
             return;
 
-        GetComponent<TransformComponent>()!.Rotation = rotation;
+        var transform = GetComponent<TransformComponent>();
+        transform.Rotation = rotation;
+        AddComponent(transform);
     }
 
     /// <summary>
@@ -292,7 +315,7 @@ public class ScriptableEntity
         if (!HasComponent<TransformComponent>())
             return Vector3.One;
 
-        return GetComponent<TransformComponent>()!.Scale;
+        return GetComponent<TransformComponent>().Scale;
     }
 
     /// <summary>
@@ -304,7 +327,9 @@ public class ScriptableEntity
         if (!HasComponent<TransformComponent>())
             return;
 
-        GetComponent<TransformComponent>()!.Scale = scale;
+        var transform = GetComponent<TransformComponent>();
+        transform.Scale = scale;
+        AddComponent(transform);
     }
 
     /// <summary>

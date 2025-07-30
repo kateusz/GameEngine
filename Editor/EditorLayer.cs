@@ -16,6 +16,7 @@ using Engine.Scripting;
 using ImGuiNET;
 using NLog;
 using Silk.NET.GLFW;
+using ZLinq;
 using Application = Engine.Core.Application;
 
 namespace Editor;
@@ -173,7 +174,7 @@ public class EditorLayer : Layer
         {
             // Read pixel data from the framebuffer (assuming your ReadPixel method is defined)
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
-            var entity = CurrentScene.Instance.Entities.FirstOrDefault(x => x.Id == entityId);
+            var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
             _hoveredEntity = entity;
         }
 

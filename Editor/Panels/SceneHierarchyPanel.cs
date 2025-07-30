@@ -530,7 +530,7 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
     }
 
 
-    public static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : Component
+    public static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
     {
         ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
                                                                           | ImGuiTreeNodeFlags.SpanAvailWidth |
@@ -563,7 +563,155 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
             }
         }
     }
+/*
+    // Specific method for TransformComponent (struct)
+    public static void DrawTransformComponent(string name, Entity entity, Action<TransformComponent> uiFunction)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                                          ImGuiTreeNodeFlags.AllowOverlap |
+                                                                          ImGuiTreeNodeFlags.FramePadding;
 
+        if (entity.HasComponent<TransformComponent>())
+        {
+            TransformComponent component = entity.GetComponent<TransformComponent>();
+            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            ImGui.Separator();
+
+            bool open = ImGui.TreeNodeEx(typeof(TransformComponent).GetHashCode().ToString(), treeNodeFlags, name);
+            ImGui.PopStyleVar();
+
+            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
+            if (ImGui.Button("-", new Vector2(lineHeight, lineHeight)))
+            {
+                entity.RemoveComponent<TransformComponent>();
+                return;
+            }
+
+            if (open)
+            {
+                uiFunction(component);
+                // Always update the component since it's a struct
+                entity.AddComponent(component);
+                ImGui.TreePop();
+            }
+        }
+    }
+
+    // Specific method for SpriteRendererComponent (struct)
+    public static void DrawSpriteRendererComponent(string name, Entity entity, Action<SpriteRendererComponent> uiFunction)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                                          ImGuiTreeNodeFlags.AllowOverlap |
+                                                                          ImGuiTreeNodeFlags.FramePadding;
+
+        if (entity.HasComponent<SpriteRendererComponent>())
+        {
+            SpriteRendererComponent component = entity.GetComponent<SpriteRendererComponent>();
+            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            ImGui.Separator();
+
+            bool open = ImGui.TreeNodeEx(typeof(SpriteRendererComponent).GetHashCode().ToString(), treeNodeFlags, name);
+            ImGui.PopStyleVar();
+
+            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
+            if (ImGui.Button("-", new Vector2(lineHeight, lineHeight)))
+            {
+                entity.RemoveComponent<SpriteRendererComponent>();
+                return;
+            }
+
+            if (open)
+            {
+                uiFunction(component);
+                // Always update the component since it's a struct
+                entity.AddComponent(component);
+                ImGui.TreePop();
+            }
+        }
+    }
+
+    // Specific method for SubTextureRendererComponent (struct)
+    public static void DrawSubTextureRendererComponent(string name, Entity entity, Action<SubTextureRendererComponent> uiFunction)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                                          ImGuiTreeNodeFlags.AllowOverlap |
+                                                                          ImGuiTreeNodeFlags.FramePadding;
+
+        if (entity.HasComponent<SubTextureRendererComponent>())
+        {
+            SubTextureRendererComponent component = entity.GetComponent<SubTextureRendererComponent>();
+            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            ImGui.Separator();
+
+            bool open = ImGui.TreeNodeEx(typeof(SubTextureRendererComponent).GetHashCode().ToString(), treeNodeFlags, name);
+            ImGui.PopStyleVar();
+
+            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
+            if (ImGui.Button("-", new Vector2(lineHeight, lineHeight)))
+            {
+                entity.RemoveComponent<SubTextureRendererComponent>();
+                return;
+            }
+
+            if (open)
+            {
+                uiFunction(component);
+                // Always update the component since it's a struct
+                entity.AddComponent(component);
+                ImGui.TreePop();
+            }
+        }
+    }
+
+    // Specific method for BoxCollider2DComponent (struct)
+    public static void DrawBoxCollider2DComponent(string name, Entity entity, Action<BoxCollider2DComponent> uiFunction)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                                          ImGuiTreeNodeFlags.AllowOverlap |
+                                                                          ImGuiTreeNodeFlags.FramePadding;
+
+        if (entity.HasComponent<BoxCollider2DComponent>())
+        {
+            BoxCollider2DComponent component = entity.GetComponent<BoxCollider2DComponent>();
+            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            ImGui.Separator();
+
+            bool open = ImGui.TreeNodeEx(typeof(BoxCollider2DComponent).GetHashCode().ToString(), treeNodeFlags, name);
+            ImGui.PopStyleVar();
+
+            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
+            if (ImGui.Button("-", new Vector2(lineHeight, lineHeight)))
+            {
+                entity.RemoveComponent<BoxCollider2DComponent>();
+                return;
+            }
+
+            if (open)
+            {
+                uiFunction(component);
+                // Always update the component since it's a struct
+                entity.AddComponent(component);
+                ImGui.TreePop();
+            }
+        }
+    }
+*/
     public void SetSelectedEntity(Entity entity)
     {
         _selectionContext = entity;

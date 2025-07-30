@@ -2,8 +2,14 @@ using Engine.Renderer.Shaders;
 
 namespace Engine.Renderer.Buffers;
 
-public class BufferElement
+public struct BufferElement
 {
+    public string Name { get; set; }
+    public ShaderDataType Type { get; set; }
+    public int Size { get; set; }
+    public int Offset { get; set; }
+    public bool Normalized { get; set; }
+
     public BufferElement(ShaderDataType type, string name, bool normalized = false)
     {
         Type = type;
@@ -12,13 +18,6 @@ public class BufferElement
         Offset = 0;
         Size = type.GetSize();
     }
-
-    public string Name { get; set; }
-    public ShaderDataType Type { get; set; }
-    public int Size { get; set; }
-    public int Offset { get; set; }
-    public bool Normalized { get; set; }
-
 
     public int GetComponentCount()
     {

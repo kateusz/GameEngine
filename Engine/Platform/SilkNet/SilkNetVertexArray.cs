@@ -40,7 +40,7 @@ public class SilkNetVertexArray : IVertexArray
             throw new InvalidOperationException("Vertex buffer has no layout!");
         }
 
-        var layout = vertexBuffer.Layout;
+        var layout = vertexBuffer.Layout.Value; // Access the struct value
 
         for (int index = 0; index < layout.Elements.Count; index++)
         {

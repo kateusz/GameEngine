@@ -187,18 +187,21 @@ public class PipeSpawner : ScriptableEntity
         {
             if (entity.Name.Contains("Pipe_"))
             {
-                var transform = entity.GetComponent<TransformComponent>();
-                var rigidBody = entity.GetComponent<RigidBody2DComponent>();
-                
-                if (transform != null && rigidBody?.RuntimeBody != null)
+                if (entity.HasComponent<TransformComponent>() && entity.HasComponent<RigidBody2DComponent>())
                 {
-                    // Move pipe left using physics body
-                    var body = rigidBody.RuntimeBody;
-                    var currentPos = body.GetPosition();
-                    var newPos = new Vector2(currentPos.X - moveDistance, currentPos.Y);
+                    var transform = entity.GetComponent<TransformComponent>();
+                    var rigidBody = entity.GetComponent<RigidBody2DComponent>();
                     
-                    Console.WriteLine($"Moving pipe {entity.Name}: X: {currentPos.X:F2} -> {newPos.X:F2}");
-                    body.SetTransform(newPos, body.GetAngle());
+                    if (rigidBody?.RuntimeBody != null)
+                    {
+                        // Move pipe left using physics body
+                        var body = rigidBody.RuntimeBody;
+                        var currentPos = body.GetPosition();
+                        var newPos = new Vector2(currentPos.X - moveDistance, currentPos.Y);
+                        
+                        Console.WriteLine($"Moving pipe {entity.Name}: X: {currentPos.X:F2} -> {newPos.X:F2}");
+                        body.SetTransform(newPos, body.GetAngle());
+                    }
                 }
             }
         }
@@ -212,11 +215,14 @@ public class PipeSpawner : ScriptableEntity
         {
             if (entity.Name.Contains("Pipe_"))
             {
-                var transform = entity.GetComponent<TransformComponent>();
-                if (transform != null && transform.Translation.X < SCREEN_LEFT)
+                if (entity.HasComponent<TransformComponent>())
                 {
-                    pipesToRemove.Add(entity);
-                    Console.WriteLine($"Removing pipe {entity.Name}");
+                    var transform = entity.GetComponent<TransformComponent>();
+                    if (transform.Translation.X < SCREEN_LEFT)
+                    {
+                        pipesToRemove.Add(entity);
+                        Console.WriteLine($"Removing pipe {entity.Name}");
+                    }
                 }
             }
         }
@@ -240,35 +246,38 @@ public class PipeSpawner : ScriptableEntity
         {
             if (entity.Name.Contains("Pipe_Top_")) // Only check top pipes to avoid double scoring
             {
-                var transform = entity.GetComponent<TransformComponent>();
-                var pipeData = entity.GetComponent<PipeDataComponent>();
-                
-                if (transform != null && pipeData != null && !pipeData.hasScored)
+                if (entity.HasComponent<TransformComponent>() && entity.HasComponent<PipeDataComponent>())
                 {
-                    float pipeX = transform.Translation.X;
+                    var transform = entity.GetComponent<TransformComponent>();
+                    var pipeData = entity.GetComponent<PipeDataComponent>();
                     
-                    // If pipe has passed the bird (pipe right edge passed bird center)
-                    if (pipeX + pipeWidth/2 < BIRD_X_POSITION)
+                    if (pipeData != null && !pipeData.hasScored)
                     {
-                        pipeData.hasScored = true;
+                        float pipeX = transform.Translation.X;
                         
-                        // Also mark the corresponding bottom pipe as scored
-                        string bottomPipeName = entity.Name.Replace("Pipe_Top_", "Pipe_Bottom_");
-                        var bottomPipe = FindEntity(bottomPipeName);
-                        if (bottomPipe != null)
+                        // If pipe has passed the bird (pipe right edge passed bird center)
+                        if (pipeX + pipeWidth/2 < BIRD_X_POSITION)
                         {
-                            var bottomPipeData = bottomPipe.GetComponent<PipeDataComponent>();
-                            if (bottomPipeData != null)
+                            pipeData.hasScored = true;
+                            
+                            // Also mark the corresponding bottom pipe as scored
+                            string bottomPipeName = entity.Name.Replace("Pipe_Top_", "Pipe_Bottom_");
+                            var bottomPipe = FindEntity(bottomPipeName);
+                            if (bottomPipe != null)
                             {
-                                bottomPipeData.hasScored = true;
+                                var bottomPipeData = bottomPipe.GetComponent<PipeDataComponent>();
+                                if (bottomPipeData != null)
+                                {
+                                    bottomPipeData.hasScored = true;
+                                }
                             }
-                        }
-                        
-                        // Notify game manager
-                        if (gameManager != null)
-                        {
-                            gameManager.IncrementScore();
-                            Console.WriteLine($"[PipeSpawner] Score! Pipe pair {pipeData.pairId} passed bird at X: {BIRD_X_POSITION}");
+                            
+                            // Notify game manager
+                            if (gameManager != null)
+                            {
+                                gameManager.IncrementScore();
+                                Console.WriteLine($"[PipeSpawner] Score! Pipe pair {pipeData.pairId} passed bird at X: {BIRD_X_POSITION}");
+                            }
                         }
                     }
                 }

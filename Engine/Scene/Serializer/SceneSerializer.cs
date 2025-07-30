@@ -6,6 +6,7 @@ using ECS;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using ZLinq;
 
 namespace Engine.Scene.Serializer;
 
@@ -55,7 +56,14 @@ public class SceneSerializer
         {
             WriteIndented = true
         });
-        Directory.CreateDirectory(AssetsDirectory);
+        
+        // Use more efficient directory creation and file writing
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+        
         File.WriteAllText(path, jsonString);
     }
 
@@ -161,7 +169,10 @@ public class SceneSerializer
                     var fieldValueNode = field.Value;
                     if (fieldValueNode != null)
                     {
-                        var exposed = scriptInstance.GetExposedFields().FirstOrDefault(f => f.Name == fieldName);
+                        var exposed = scriptInstance
+                            .GetExposedFields()
+                            .AsValueEnumerable()
+                            .FirstOrDefault(f => f.Name == fieldName);
                         if (exposed.Name != null)
                         {
                             var value = fieldValueNode.Deserialize(exposed.Type, DefaultSerializerOptions);
@@ -201,7 +212,7 @@ public class SceneSerializer
         }
     }
 
-    private static void AddComponent<T>(Entity entity, JsonObject componentObj) where T : Component
+    private static void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)
@@ -262,7 +273,7 @@ public class SceneSerializer
     }
 
     private static void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
-        where T : Component
+        where T : IComponent
     {
         if (!entity.HasComponent<T>())
             return;

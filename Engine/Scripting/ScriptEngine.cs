@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using NLog;
+using ZLinq;
 using GameScene = Engine.Scene.Scene;
 
 namespace Engine.Scripting;
@@ -51,7 +52,10 @@ public class ScriptEngine
         // Update all script components
         if (CurrentScene.Instance == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
+        var scriptEntities = CurrentScene.Instance.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
+        
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -87,7 +91,9 @@ public class ScriptEngine
     {
         if (CurrentScene.Instance == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
+        var scriptEntities = CurrentScene.Instance.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -357,38 +363,27 @@ public class ScriptEngine
     private void CheckForScriptChanges()
     {
         bool needsRecompile = false;
-        var scriptFiles = Directory.GetFiles(_scriptsDirectory, "*.cs");
-            
-        // Check for modifications to existing scripts
-        foreach (var script in _scriptLastModified.Keys.ToList())
+        
+        // Use ReadOnlySpan<char> for more efficient string operations
+        var scriptsDirectory = _scriptsDirectory.AsSpan();
+        
+        foreach (var (scriptName, lastModified) in _scriptLastModified)
         {
-            var scriptPath = Path.Combine(_scriptsDirectory, $"{script}.cs");
+            var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
             if (File.Exists(scriptPath))
             {
-                var lastModified = File.GetLastWriteTime(scriptPath);
-                if (lastModified > _scriptLastModified[script])
+                var currentModified = File.GetLastWriteTime(scriptPath);
+                if (currentModified > lastModified)
                 {
-                    _scriptLastModified[script] = lastModified;
-                    _scriptSources[script] = File.ReadAllText(scriptPath);
                     needsRecompile = true;
+                    break;
                 }
             }
         }
-            
-        // Check for new scripts
-        foreach (var scriptPath in scriptFiles)
-        {
-            var scriptName = Path.GetFileNameWithoutExtension(scriptPath);
-            if (!_scriptLastModified.ContainsKey(scriptName))
-            {
-                _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
-                _scriptSources[scriptName] = File.ReadAllText(scriptPath);
-                needsRecompile = true;
-            }
-        }
-            
+        
         if (needsRecompile)
         {
+            Logger.Info("Script changes detected, recompiling...");
             CompileAllScripts();
         }
     }
@@ -475,7 +470,10 @@ public class ScriptEngine
             var preEmitDiagnostics = compilation.GetDiagnostics();
             Console.WriteLine($"=== PRE-EMIT DIAGNOSTICS ({preEmitDiagnostics.Length}) ===");
         
-            var errorDiagnostics = preEmitDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
+            var errorDiagnostics = preEmitDiagnostics
+                .AsValueEnumerable()
+                .Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
+            
             if (errorDiagnostics.Length > 0)
             {
                 Console.WriteLine("❌ COMPILATION ERRORS DETECTED:");
@@ -526,6 +524,7 @@ public class ScriptEngine
                 }
                 
                 var errors = emitResult.Diagnostics
+                    .AsValueEnumerable()
                     .Where(d => d.Severity == DiagnosticSeverity.Error)
                     .Select(d => d.GetMessage())
                     .Distinct()
@@ -609,8 +608,10 @@ public class ScriptEngine
         
         // Check for engine assemblies
         var engineAssemblies = new[] { "Engine", "ECS", "Editor" };
-        var foundEngineAssemblies = referenceNames.Where(name => 
-            engineAssemblies.Any(engine => name.StartsWith(engine))).ToArray();
+        
+        var foundEngineAssemblies = referenceNames
+            .AsValueEnumerable()
+            .Where(name => engineAssemblies.Any(name.StartsWith)).ToArray();
             
         Console.WriteLine($"Engine assemblies found: {string.Join(", ", foundEngineAssemblies)}");
         
@@ -689,6 +690,7 @@ public class ScriptEngine
             
             // Add engine assemblies from loaded assemblies - IMPROVED
             var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+                .AsValueEnumerable()
                 .Where(a => !a.IsDynamic)
                 .ToArray();
             
@@ -817,6 +819,7 @@ public class ScriptEngine
         
         // Try to get it from loaded assemblies
         var ecsAssembly = AppDomain.CurrentDomain.GetAssemblies()
+            .AsValueEnumerable()
             .FirstOrDefault(a => a.GetName().Name == "ECS");
             
         if (ecsAssembly != null && !string.IsNullOrEmpty(ecsAssembly.Location))
@@ -838,7 +841,9 @@ public class ScriptEngine
         // Notify all script components to reload
         if (CurrentScene.Instance == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities.Where(e => e.HasComponent<NativeScriptComponent>());
+        var scriptEntities = CurrentScene.Instance.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();

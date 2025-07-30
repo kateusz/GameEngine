@@ -36,17 +36,23 @@ public class FlappyBirdController : ScriptableEntity
 
     public override void OnCreate()
     {
-        Console.WriteLine("[FlappyBirdController] Simplified bird controller initialized!");
+        Console.WriteLine("[FlappyBirdController] OnCreate called");
 
         // Get required components
-        transformComponent = GetComponent<TransformComponent>();
-        rigidBodyComponent = GetComponent<RigidBody2DComponent>();
-
-        if (transformComponent == null)
+        if (!HasComponent<TransformComponent>())
         {
             Console.WriteLine("[FlappyBirdController] ERROR: No TransformComponent found!");
             return;
         }
+
+        if (!HasComponent<RigidBody2DComponent>())
+        {
+            Console.WriteLine("[FlappyBirdController] ERROR: No RigidBody2DComponent found!");
+            return;
+        }
+
+        transformComponent = GetComponent<TransformComponent>();
+        rigidBodyComponent = GetComponent<RigidBody2DComponent>();
 
         // Set bird to fixed X position
         ResetBird();
@@ -292,7 +298,7 @@ public class FlappyBirdController : ScriptableEntity
 
     public Vector3 GetBirdPosition()
     {
-        return transformComponent?.Translation ?? Vector3.Zero;
+        return transformComponent.Translation;
     }
 
     // Since bird X is fixed, this is just a constant
