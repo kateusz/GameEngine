@@ -153,7 +153,17 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
         source.Volume = volume;
         source.Play();
 
-        // TODO: Dodać mechanizm automatycznego usuwania źródła po zakończeniu odtwarzania
+        // Automatyczne usuwanie źródła po zakończeniu odtwarzania
+        Timer timer = null!;
+        timer = new Timer(
+            callback: _ => {
+                source.Dispose();
+                timer?.Dispose();
+            },
+            state: null,
+            dueTime: TimeSpan.FromSeconds(clip.Duration),
+            period: Timeout.InfiniteTimeSpan
+        );
     }
 
     // Cleanup methods
