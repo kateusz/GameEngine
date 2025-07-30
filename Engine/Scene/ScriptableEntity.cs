@@ -192,11 +192,6 @@ public class ScriptableEntity
     {
         Entity.AddComponent(component);
     }
-    
-    public void SetComponent<T>(T component) where T : IComponent
-    {
-        Entity.SetComponent<T>(component);
-    }
 
     /// <summary>
     /// Remove a component from the entity.

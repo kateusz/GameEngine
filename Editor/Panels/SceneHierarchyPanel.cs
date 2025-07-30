@@ -222,8 +222,6 @@ public class SceneHierarchyPanel
 
             if (newScale != tc.Scale)
                 tc.Scale = newScale;
-            
-            entity.SetComponent(tc);
         });
 
         DrawComponent<CameraComponent>("Camera", _selectionContext, entity =>
@@ -320,8 +318,6 @@ public class SceneHierarchyPanel
                     cameraComponent.FixedAspectRatio = fixedAspectRatio;
                 }
             }
-            
-            entity.SetComponent(cameraComponent);
         });
 
         DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, entity =>
@@ -372,8 +368,6 @@ public class SceneHierarchyPanel
             {
                 spriteRendererComponent.TilingFactor = tillingFactor;
             }
-            
-            entity.SetComponent(spriteRendererComponent);
         });
 
         DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, entity =>
@@ -412,9 +406,6 @@ public class SceneHierarchyPanel
                     }
                 }
             });
-            
-            
-            entity.SetComponent(c);
         });
 
         DrawComponent<RigidBody2DComponent>("Rigidbody 2D", _selectionContext, entity =>
@@ -446,8 +437,6 @@ public class SceneHierarchyPanel
                 () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
             if (component.FixedRotation != fixedRotation)
                 component.FixedRotation = fixedRotation;
-            
-            entity.SetComponent(component);
         });
 
         DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectionContext, entity =>
@@ -476,8 +465,6 @@ public class SceneHierarchyPanel
                 () => ImGui.DragFloat("##Restitution", ref restitution, 0.1f, 0.0f, 1.0f));
             if (component.Restitution != restitution)
                 component.Restitution = restitution;
-            
-            entity.SetComponent(component);
         });
 
         DrawComponent<MeshComponent>("Mesh", _selectionContext, entity =>
@@ -526,8 +513,6 @@ public class SceneHierarchyPanel
                     ImGui.EndDragDropTarget();
                 }
             }
-            
-            entity.SetComponent(meshComponent);
         });
 
         DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, entity =>
@@ -583,8 +568,6 @@ public class SceneHierarchyPanel
                 () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
             if (modelRendererComponent.ReceiveShadows != receiveShadows)
                 modelRendererComponent.ReceiveShadows = receiveShadows;
-            
-            entity.SetComponent(modelRendererComponent);
         });
 
         ScriptComponentUI.DrawScriptComponent(_selectionContext);

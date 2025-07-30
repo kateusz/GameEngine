@@ -183,7 +183,6 @@ public class Scene
                 var position = body.GetPosition();
                 transform.Translation = new Vector3(position.X, position.Y, 0);
                 transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
-                entity.SetComponent(transform);
             }
         }
 

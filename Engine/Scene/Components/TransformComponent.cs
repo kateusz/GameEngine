@@ -4,10 +4,26 @@ using Engine.Math;
 
 namespace Engine.Scene.Components;
 
-public record struct TransformComponent(Vector3 Translation, Vector3 Rotation, Vector3 Scale) : IComponent
+public class TransformComponent : IComponent
 {
-    public TransformComponent() : this(Vector3.Zero, Vector3.Zero, Vector3.One) { }
-    
+    public Vector3 Translation { get; set; }
+    public Vector3 Rotation { get; set; }
+    public Vector3 Scale { get; set; }
+
+    public TransformComponent()
+    {
+        Translation = Vector3.Zero;
+        Rotation = Vector3.Zero;
+        Scale = Vector3.One;
+    }
+
+    public TransformComponent(Vector3 translation, Vector3 rotation, Vector3 scale)
+    {
+        Translation = translation;
+        Rotation = rotation;
+        Scale = scale;
+    }
+
     public Matrix4x4 GetTransform()
     {
         // Convert Euler angles to Quaternion

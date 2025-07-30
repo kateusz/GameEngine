@@ -22,8 +22,6 @@ public class CameraController : ScriptableEntity
                 transform.Translation -= Vector3.UnitX * _cameraSpeed * (float)ts.TotalSeconds;
             if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.D))
                 transform.Translation += Vector3.UnitX * _cameraSpeed * (float)ts.TotalSeconds;
-            
-            SetComponent(transform);
         }
     }
 }

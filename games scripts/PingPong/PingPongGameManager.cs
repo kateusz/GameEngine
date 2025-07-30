@@ -57,7 +57,7 @@ public class PingPongGameManager : ScriptableEntity
     private MenuButton _playButton;
     private MenuButton _quitButton;
     private readonly string _playButtonTexturePath = Path.Combine(AssetsManager.AssetsPath, "textures/play.png");
-    private readonly string _quitButtonTexturePath = Path.Combine(AssetsManager.AssetsPath, "assets/textures/menu.png");
+    private readonly string _quitButtonTexturePath = Path.Combine(AssetsManager.AssetsPath, "textures/menu.png");
     
     // Camera reference for world-to-screen conversion
     private Entity _cameraEntity;
@@ -204,15 +204,15 @@ public class PingPongGameManager : ScriptableEntity
         _playButton = new MenuButton(
             "PlayButton",
             new Vector2(0.0f, 1.0f), // Position (centered horizontally, above center)
-            new Vector2(4.0f, 1.5f), // Size (width, height)
+            new Vector2(4.0f,2.0f), // Size (width, height)
             () => StartGame()
         );
 
         // Create Quit Button  
         _quitButton = new MenuButton(
             "QuitButton",
-            new Vector2(0.0f, -1.0f), // Position (centered horizontally, below center)
-            new Vector2(4.0f, 1.5f), // Size (width, height)
+            new Vector2(0.0f, 0.0f), // Position (centered horizontally, above center)
+            new Vector2(4.0f,2.0f), // Size (width, height)
             () => QuitGame()
         );
 
@@ -233,7 +233,7 @@ public class PingPongGameManager : ScriptableEntity
         var transform = button.ButtonEntity.AddComponent<TransformComponent>();
         transform.Translation = new Vector3(button.Position.X, button.Position.Y, 0.0f);
         transform.Scale = new Vector3(button.Size.X, button.Size.Y, 1.0f);
-
+        
         // Add sprite renderer with texture
         var spriteRenderer = button.ButtonEntity.AddComponent<SpriteRendererComponent>();
         try
@@ -335,7 +335,8 @@ public class PingPongGameManager : ScriptableEntity
 
     private void HandleMouseClick()
     {
-        if (_gameState != PingPongGameState.Menu) return;
+        if (_gameState != PingPongGameState.Menu) 
+            return;
 
         // Get mouse position
         var mousePos = InputState.Instance.Mouse.GetPos();
@@ -529,16 +530,18 @@ public class PingPongGameManager : ScriptableEntity
         switch (newState)
         {
             case PingPongGameState.Menu:
-                RenderMenu();
+                ShowMenuButtons();
                 Console.WriteLine("[PingPongGameManager] MENU STATE: Press Space to start");
                 break;
 
             case PingPongGameState.Serving:
+                HideMenuButtons();
                 Console.WriteLine(
                     $"[PingPongGameManager] SERVING STATE: Player {(_player1Turn ? "1" : "2")}'s serve - Press Space or wait");
                 break;
 
             case PingPongGameState.Playing:
+                HideMenuButtons();
                 Console.WriteLine("[PingPongGameManager] PLAYING STATE: Game in progress");
                 break;
 
@@ -547,6 +550,7 @@ public class PingPongGameManager : ScriptableEntity
                 break;
 
             case PingPongGameState.GameOver:
+                ShowMenuButtons();
                 Console.WriteLine("[PingPongGameManager] GAME OVER STATE: Press R to restart");
                 break;
         }
@@ -567,7 +571,7 @@ public class PingPongGameManager : ScriptableEntity
     private void SetButtonVisibility(bool visible)
     {
         // Enable/disable button entities
-        if (_playButton?.ButtonEntity != null)
+        if (_playButton.ButtonEntity != null)
         {
             // You might need to implement entity enabling/disabling in your engine
             // For now, we can move them off-screen or set alpha to 0
@@ -596,15 +600,10 @@ public class PingPongGameManager : ScriptableEntity
         }
     }
 
-    private void RenderMenu()
-    {
-        // render two SubTextures,
-        // 1
-    }
-
     private void SetAiDifficulty(float difficulty)
     {
-        if (_aiController == null) return;
+        if (_aiController == null) 
+            return;
 
         // Adjust AI parameters based on difficulty
         float speed = 6.0f;

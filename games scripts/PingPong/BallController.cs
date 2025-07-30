@@ -108,7 +108,6 @@ public class BallController : ScriptableEntity
         var newPos = currentPos + new Vector3(_velocity.X * deltaTime, _velocity.Y * deltaTime, 0);
         
         _transformComponent.Translation = newPos;
-        SetComponent(_transformComponent);
     }
     
     private void CheckBoundaryCollisions()
@@ -142,8 +141,6 @@ public class BallController : ScriptableEntity
             // Player 1 scores
             OnScore(true);
         }
-        
-        SetComponent(_transformComponent);
         
         if (bounced)
         {
@@ -256,7 +253,6 @@ public class BallController : ScriptableEntity
         _currentSpeed = InitialSpeed;
         
         _transformComponent.Translation = _startPosition;
-        SetComponent(_transformComponent);
         
         if (_rigidBodyComponent?.RuntimeBody != null)
         {

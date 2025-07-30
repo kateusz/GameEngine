@@ -23,11 +23,6 @@ public class Entity
 
         return component;
     }
-    
-    public void SetComponent<T>(T component) where T : IComponent
-    {
-        _components[typeof(T)] = component;
-    }
 
     public void RemoveComponent<T>() where T : IComponent
     {

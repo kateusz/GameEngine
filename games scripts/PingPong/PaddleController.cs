@@ -96,7 +96,6 @@ public class PaddleController : ScriptableEntity
                 newY = Math.Clamp(newY, BoundaryBottom, BoundaryTop);
                 
                 _transformComponent.Translation = new Vector3(currentPos.X, newY, currentPos.Z);
-                SetComponent(_transformComponent);
             }
         }
     }
@@ -109,7 +108,6 @@ public class PaddleController : ScriptableEntity
         {
             var clampedY = Math.Clamp(currentPos.Y, BoundaryBottom, BoundaryTop);
             _transformComponent.Translation = new Vector3(currentPos.X, clampedY, currentPos.Z);
-            SetComponent(_transformComponent);
             
             // Also update physics body if present
             if (_rigidBodyComponent?.RuntimeBody != null)
@@ -125,7 +123,6 @@ public class PaddleController : ScriptableEntity
         Console.WriteLine($"[PaddleController] Resetting paddle to start position: {_startPosition}");
         
         _transformComponent.Translation = _startPosition;
-        SetComponent(_transformComponent);
         
         if (_rigidBodyComponent?.RuntimeBody != null)
         {
