@@ -33,6 +33,7 @@ public class EditorLayer : Layer
     private readonly Vector2[] _viewportBounds = new Vector2[2];
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
+    private PropertiesPanel _propertiesPanel;
     private ConsolePanel _consolePanel;
     private Entity? _hoveredEntity;
     private Texture2D _iconPlay;
@@ -88,6 +89,7 @@ public class EditorLayer : Layer
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel();
+        _propertiesPanel = new PropertiesPanel();
         
         // Set scripts directory based on current project directory
         string projectRoot = _currentProjectDirectory ?? Environment.CurrentDirectory;
@@ -401,8 +403,12 @@ public class EditorLayer : Layer
             }
 
             _sceneHierarchyPanel.OnImGuiRender();
+            _propertiesPanel.OnImGuiRender();
             _contentBrowserPanel.OnImGuiRender();
             _consolePanel.OnImGuiRender();
+            
+            var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
+            _propertiesPanel.SetSelectedEntity(selectedEntity);
             
             ImGui.Begin("Stats");
 

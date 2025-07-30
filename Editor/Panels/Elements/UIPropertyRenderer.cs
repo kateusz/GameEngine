@@ -1,6 +1,6 @@
 using ImGuiNET;
 
-namespace Editor.Panels
+namespace Editor.Panels.Elements
 {
     public static class UIPropertyRenderer
     {
