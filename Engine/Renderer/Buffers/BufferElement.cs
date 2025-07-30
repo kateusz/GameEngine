@@ -2,22 +2,11 @@ using Engine.Renderer.Shaders;
 
 namespace Engine.Renderer.Buffers;
 
-public struct BufferElement
+public record struct BufferElement(string Name, ShaderDataType Type, int Size, int Offset, bool Normalized)
 {
-    public string Name { get; set; }
-    public ShaderDataType Type { get; set; }
-    public int Size { get; set; }
-    public int Offset { get; set; }
-    public bool Normalized { get; set; }
-
+    // Keep the computed constructor as a convenience method
     public BufferElement(ShaderDataType type, string name, bool normalized = false)
-    {
-        Type = type;
-        Name = name;
-        Normalized = normalized;
-        Offset = 0;
-        Size = type.GetSize();
-    }
+        : this(name, type, type.GetSize(), 0, normalized) { }
 
     public int GetComponentCount()
     {

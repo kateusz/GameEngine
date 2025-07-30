@@ -2,17 +2,7 @@ using ECS;
 
 namespace Engine.Scene.Components;
 
-public struct IdComponent : IComponent
+public record struct IdComponent(long Id) : IComponent
 {
-    public long Id { get; set; }
-
-    public IdComponent()
-    {
-        Id = 0;
-    }
-    
-    public IdComponent(long id)
-    {
-        Id = id;
-    }
+    public IdComponent() : this(0) { }
 }

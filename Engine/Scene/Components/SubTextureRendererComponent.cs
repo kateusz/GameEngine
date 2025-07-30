@@ -4,20 +4,7 @@ using Engine.Renderer.Textures;
 
 namespace Engine.Scene.Components;
 
-public struct SubTextureRendererComponent : IComponent
+public record struct SubTextureRendererComponent(Vector2 Coords, Texture2D? Texture) : IComponent
 {
-    public Vector2 Coords { get; set; }
-    public Texture2D? Texture { get; set; }
-
-    public SubTextureRendererComponent()
-    {
-        Coords = Vector2.Zero;
-        Texture = null;
-    }
-    
-    public SubTextureRendererComponent(Vector2 coords, Texture2D? texture)
-    {
-        Coords = coords;
-        Texture = texture;
-    }
+    public SubTextureRendererComponent() : this(Vector2.Zero, null) { }
 }

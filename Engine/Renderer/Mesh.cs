@@ -8,21 +8,8 @@ namespace Engine.Renderer;
 
 public class Mesh
 {
-    public struct Vertex
+    public record struct Vertex(Vector3 Position, Vector3 Normal, Vector2 TexCoord, int EntityId = -1)
     {
-        public Vector3 Position;
-        public Vector3 Normal;
-        public Vector2 TexCoord;
-        public int EntityId;
-
-        public Vertex(Vector3 position, Vector3 normal, Vector2 texCoord, int entityId = -1)
-        {
-            Position = position;
-            Normal = normal;
-            TexCoord = texCoord;
-            EntityId = entityId;
-        }
-
         public static int GetSize() => sizeof(float) * (3 + 3 + 2) + sizeof(int);
     }
 

@@ -2,17 +2,7 @@ using ECS;
 
 namespace Engine.Scene.Components;
 
-public struct TagComponent : IComponent
+public record struct TagComponent(string Tag) : IComponent
 {
-    public string Tag { get; set; }
-
-    public TagComponent()
-    {
-        Tag = string.Empty;
-    }
-    
-    public TagComponent(string tag)
-    {
-        Tag = tag;
-    }
+    public TagComponent() : this(string.Empty) { }
 }
