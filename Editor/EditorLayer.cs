@@ -551,18 +551,26 @@ public class EditorLayer : Layer
     {
         try
         {
-            var currentDir = Environment.CurrentDirectory;
-            var projectDir = Path.Combine(currentDir, projectName);
-            if (Directory.Exists(projectDir))
+            if (string.IsNullOrWhiteSpace(projectName))
             {
-                _newProjectError = $"A directory named '{projectName}' already exists.";
+                _newProjectError = "Project name cannot be empty.";
                 return false;
             }
+        
+            var projectDir = Path.Combine(Environment.CurrentDirectory, projectName);
+            if (Directory.Exists(projectDir))
+            {
+                _newProjectError = "A directory with this name already exists.";
+                return false;
+            }
+        
             Directory.CreateDirectory(projectDir);
             Directory.CreateDirectory(Path.Combine(projectDir, "assets"));
             Directory.CreateDirectory(Path.Combine(projectDir, "assets", "scenes"));
             Directory.CreateDirectory(Path.Combine(projectDir, "assets", "textures"));
             Directory.CreateDirectory(Path.Combine(projectDir, "assets", "scripts"));
+            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "prefabs")); // Add this line
+        
             _currentProjectDirectory = projectDir;
             AssetsManager.SetAssetsPath(Path.Combine(projectDir, "assets"));
             _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);

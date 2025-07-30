@@ -6,6 +6,7 @@ using Engine.Renderer.Models;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scene.Serializer;
 using ImGuiNET;
 
 namespace Editor.Panels;
@@ -13,12 +14,15 @@ namespace Editor.Panels;
 public class SceneHierarchyPanel
 {
     private static readonly string[] BodyTypeStrings =
-        [RigidBodyType.Static.ToString(), RigidBodyType.Dynamic.ToString(), RigidBodyType.Kinematic.ToString()];
+        [nameof(RigidBodyType.Static), nameof(RigidBodyType.Dynamic), nameof(RigidBodyType.Kinematic)];
 
     private Scene _context;
     private Entity? _selectionContext;
-
     public Action<Entity> EntitySelected;
+
+    private bool _showSavePrefabPopup = false;
+    private string _prefabName = "";
+    private string _prefabSaveError = "";
 
     public SceneHierarchyPanel(Scene context)
     {
@@ -109,9 +113,21 @@ public class SceneHierarchyPanel
         // Add some vertical spacing
         ImGui.Spacing();
 
+        // Buttons row
         if (ImGui.Button("Add Component"))
             ImGui.OpenPopup("AddComponent");
 
+        ImGui.SameLine();
+
+        // Save as Prefab button
+        if (ImGui.Button("Save as Prefab"))
+        {
+            _prefabName = _selectionContext.Name; // Default to entity name
+            _prefabSaveError = "";
+            _showSavePrefabPopup = true;
+        }
+
+        // Add Component popup
         if (ImGui.BeginPopup("AddComponent"))
         {
             if (!_selectionContext.HasComponent<CameraComponent>())
@@ -121,12 +137,12 @@ public class SceneHierarchyPanel
                     var c = new CameraComponent();
                     c.Camera.SetViewportSize(1280, 720);
                     _selectionContext.AddComponent(c);
-                    
+
                     _selectionContext.AddComponent(new NativeScriptComponent
                     {
                         ScriptableEntity = new CameraController()
                     });
-                    
+
                     ImGui.CloseCurrentPopup();
                 }
             }
@@ -167,15 +183,6 @@ public class SceneHierarchyPanel
                 }
             }
 
-            if (!_selectionContext.HasComponent<MeshComponent>())
-            {
-                if (ImGui.MenuItem("Mesh Component"))
-                {
-                    _selectionContext.AddComponent<MeshComponent>();
-                    ImGui.CloseCurrentPopup();
-                }
-            }
-
             if (!_selectionContext.HasComponent<ModelRendererComponent>())
             {
                 if (ImGui.MenuItem("Model Renderer"))
@@ -185,20 +192,21 @@ public class SceneHierarchyPanel
                 }
             }
 
-            if (!_selectionContext.HasComponent<NativeScriptComponent>())
+            if (!_selectionContext.HasComponent<MeshComponent>())
             {
-                if (ImGui.MenuItem("Script"))
+                if (ImGui.MenuItem("Mesh"))
                 {
-                    _selectionContext.AddComponent<NativeScriptComponent>();
+                    _selectionContext.AddComponent<MeshComponent>();
                     ImGui.CloseCurrentPopup();
                 }
             }
 
-
             ImGui.EndPopup();
         }
 
-        ImGui.PopItemWidth();
+        // Render Save Prefab popup
+        RenderSavePrefabPopup();
+
 
         DrawComponent<TransformComponent>("Transform", _selectionContext, entity =>
         {
@@ -336,7 +344,7 @@ public class SceneHierarchyPanel
                 {
                     // Optional: Handle button click logic if needed
                 }
-                
+
                 if (ImGui.BeginDragDropTarget())
                 {
                     unsafe
@@ -359,7 +367,7 @@ public class SceneHierarchyPanel
                 }
             });
             // Drag-and-drop for texture
-            
+
 
             float tillingFactor = spriteRendererComponent.TilingFactor;
             UIPropertyRenderer.DrawPropertyRow("Tiling Factor",
@@ -384,7 +392,7 @@ public class SceneHierarchyPanel
                 {
                     // Optional: Handle button click logic if needed
                 }
-                
+
                 if (ImGui.BeginDragDropTarget())
                 {
                     unsafe
@@ -531,7 +539,7 @@ public class SceneHierarchyPanel
                 {
                     // Optional: Handle button click logic if needed
                 }
-                
+
                 if (ImGui.BeginDragDropTarget())
                 {
                     unsafe
@@ -546,7 +554,8 @@ public class SceneHierarchyPanel
                             }
 
                             string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-                            if (File.Exists(texturePath) && (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
+                            if (File.Exists(texturePath) &&
+                                (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
                             {
                                 modelRendererComponent.OverrideTexture = TextureFactory.Create(texturePath);
                             }
@@ -613,6 +622,77 @@ public class SceneHierarchyPanel
         _selectionContext = entity;
     }
 
+    private void RenderSavePrefabPopup()
+    {
+        if (_showSavePrefabPopup)
+        {
+            ImGui.OpenPopup("Save as Prefab");
+        }
+
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        if (ImGui.BeginPopupModal("Save as Prefab", ref _showSavePrefabPopup,
+                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        {
+            ImGui.Text("Enter Prefab Name:");
+            ImGui.InputText("##PrefabName", ref _prefabName, 100);
+            ImGui.Separator();
+
+            bool isValid = !string.IsNullOrWhiteSpace(_prefabName) &&
+                           System.Text.RegularExpressions.Regex.IsMatch(_prefabName, @"^[a-zA-Z0-9_\- ]+$");
+
+            if (!isValid && !string.IsNullOrEmpty(_prefabName))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.TextWrapped(
+                    "Prefab name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores.");
+                ImGui.PopStyleColor();
+            }
+
+            if (!string.IsNullOrEmpty(_prefabSaveError))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.TextWrapped(_prefabSaveError);
+                ImGui.PopStyleColor();
+            }
+
+            ImGui.BeginDisabled(!isValid);
+            if (ImGui.Button("Save", new Vector2(120, 0)))
+            {
+                try
+                {
+                    var currentProjectPath = GetCurrentProjectPath(); // You'll need to implement this
+                    PrefabSerializer.SerializeToPrefab(_selectionContext, _prefabName, currentProjectPath);
+                    Console.WriteLine($"Saved prefab: {_prefabName}.prefab");
+                    _showSavePrefabPopup = false;
+                    _prefabSaveError = "";
+                }
+                catch (Exception ex)
+                {
+                    _prefabSaveError = $"Failed to save prefab: {ex.Message}";
+                }
+            }
+
+            ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                _showSavePrefabPopup = false;
+                _prefabSaveError = "";
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    private string GetCurrentProjectPath()
+    {
+        // This should return the root path of the current project
+        // You may need to adjust this based on how your project paths are managed
+        var assetsPath = AssetsManager.AssetsPath;
+        return Path.GetDirectoryName(assetsPath) ?? Environment.CurrentDirectory;
+    }
+
     private void DrawEntityNode(Entity entity)
     {
         var tag = entity.Name;
@@ -620,10 +700,39 @@ public class SceneHierarchyPanel
         var flags = (_selectionContext?.Id == entity.Id ? ImGuiTreeNodeFlags.Selected : 0) |
                     ImGuiTreeNodeFlags.OpenOnArrow;
         var opened = ImGui.TreeNodeEx(tag, flags, tag);
+
         if (ImGui.IsItemClicked())
         {
             EntitySelected.Invoke(entity);
             _selectionContext = entity;
+        }
+
+        // Add drag & drop target functionality for prefabs
+        if (ImGui.BeginDragDropTarget())
+        {
+            unsafe
+            {
+                ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                if (payload.NativePtr != null)
+                {
+                    var path = Marshal.PtrToStringUni(payload.Data);
+                    if (path != null && path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
+                            PrefabSerializer.ApplyPrefabToEntity(entity, fullPath);
+                            Console.WriteLine($"Applied prefab {path} to entity {entity.Name}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Failed to apply prefab: {ex.Message}");
+                        }
+                    }
+                }
+
+                ImGui.EndDragDropTarget();
+            }
         }
 
         bool entityDeleted = false;
@@ -635,8 +744,6 @@ public class SceneHierarchyPanel
             ImGui.EndPopup();
         }
 
-        // Remove the redundant nested TreeNodeEx call
-        // Only display the entity as a single node
         if (opened)
         {
             ImGui.TreePop();

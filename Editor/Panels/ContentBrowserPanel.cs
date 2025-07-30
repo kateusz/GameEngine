@@ -11,6 +11,7 @@ public class ContentBrowserPanel
     private string _currentDirectory;
     private readonly Texture2D _directoryIcon;
     private readonly Texture2D _fileIcon;
+    private readonly Texture2D _prefabIcon;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
 
     public ContentBrowserPanel()
@@ -18,11 +19,12 @@ public class ContentBrowserPanel
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
         _currentDirectory = _assetPath;
-        
+
         _directoryIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/DirectoryIcon.png");
         _fileIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/FileIcon.png");
+        _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
     }
-    
+
     public void OnImGuiRender()
     {
         ImGui.Begin("Content Browser");
@@ -38,7 +40,7 @@ public class ContentBrowserPanel
                 _currentDirectory = Directory.GetParent(_currentDirectory)!.FullName;
             }
         }
-        
+
         var padding = 16.0f;
         var thumbnailSize = 64.0f;
         var cellSize = thumbnailSize + padding;
@@ -47,11 +49,11 @@ public class ContentBrowserPanel
         var columnCount = (int)(panelWidth / cellSize);
         if (columnCount < 1)
             columnCount = 1;
-        
+
         ImGui.Columns(columnCount, "col", false);
 
         var entries = Directory.EnumerateFileSystemEntries(_currentDirectory);
-        
+
         foreach (var entry in entries)
         {
             FileSystemInfo info = new FileInfo(entry);
@@ -59,14 +61,17 @@ public class ContentBrowserPanel
             var isDirectory = (info.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
             var filenameString = info.Name;
             ImGui.PushID(filenameString);
-            
+
             Texture2D icon;
             bool isImage = false;
+            bool isPrefab = false;
+
             if (isDirectory)
             {
                 icon = _directoryIcon;
             }
-            else if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+            else if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                     info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
             {
                 isImage = true;
                 if (!_imageCache.TryGetValue(entry, out icon))
@@ -82,7 +87,13 @@ public class ContentBrowserPanel
                     }
                 }
             }
-            else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+            else if (info.Name.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+            {
+                isPrefab = true;
+                icon = _prefabIcon;
+            }
+            else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase) ||
+                     info.Name.EndsWith(".scene", StringComparison.OrdinalIgnoreCase))
             {
                 icon = _fileIcon;
             }
@@ -90,22 +101,29 @@ public class ContentBrowserPanel
             {
                 icon = _fileIcon;
             }
-            var pointer  = new IntPtr(icon.GetRendererId());
+
+            var pointer = new IntPtr(icon.GetRendererId());
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
-            ImGui.ImageButton("", pointer, new Vector2(thumbnailSize, thumbnailSize), new Vector2(0, 1), new Vector2(1, 0));
-            
+            ImGui.ImageButton("", pointer, new Vector2(thumbnailSize, thumbnailSize),
+                new Vector2(0, 1), new Vector2(1, 0));
+
             if (ImGui.BeginDragDropSource())
             {
                 IntPtr itemPathPtr = Marshal.StringToHGlobalUni(relativePath);
                 var itemPathSize = (relativePath.Length + 1) * sizeof(char);
                 ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPathPtr, (uint)itemPathSize);
-                
-                // Pokaż podgląd tego co przeciągamy
+
+                // Show preview of what we're dragging
                 ImGui.Text($"Dragging: {filenameString}");
                 if (isImage)
                 {
                     ImGui.Text("Type: Texture");
-                    // Pokaż małą ikonkę
+                    // Show small icon
+                    ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
+                }
+                else if (isPrefab)
+                {
+                    ImGui.Text("Type: Prefab");
                     ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
                 }
                 else if (isDirectory)
@@ -116,23 +134,24 @@ public class ContentBrowserPanel
                 {
                     ImGui.Text($"Type: {Path.GetExtension(filenameString)}");
                 }
-                
+
                 ImGui.EndDragDropSource();
             }
-            
+
             ImGui.PopStyleColor();
-            
-            if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && !File.Exists(info.FullName))
+
+            if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) &&
+                !File.Exists(info.FullName))
             {
                 _currentDirectory = info.FullName;
             }
-            
+
             ImGui.TextWrapped(filenameString);
             ImGui.NextColumn();
-            
+
             ImGui.PopID();
         }
-        
+
         ImGui.Columns(1);
         ImGui.End();
     }
