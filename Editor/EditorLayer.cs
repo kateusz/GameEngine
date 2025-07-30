@@ -117,7 +117,7 @@ public class EditorLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        UpdateFPSTracking(timeSpan);
+        UpdateFpsTracking(timeSpan);
         
         // Resize
         var spec = _frameBuffer.GetSpecification();
@@ -739,7 +739,7 @@ public class EditorLayer : Layer
         }
     }
     
-    private void UpdateFPSTracking(TimeSpan timeSpan)
+    private void UpdateFpsTracking(TimeSpan timeSpan)
     {
         float deltaTime = (float)timeSpan.TotalSeconds;
         
@@ -755,12 +755,12 @@ public class EditorLayer : Layer
         _fpsUpdateTimer += deltaTime;
         if (_fpsUpdateTimer >= FpsUpdateInterval)
         {
-            CalculateFPS();
+            CalculateFps();
             _fpsUpdateTimer = 0.0f;
         }
     }
 
-    private void CalculateFPS()
+    private void CalculateFps()
     {
         if (_frameTimes.Count == 0) return;
         

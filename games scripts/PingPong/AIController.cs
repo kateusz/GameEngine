@@ -7,51 +7,51 @@ using Engine.Scene.Components;
 public class AIController : ScriptableEntity
 {
     // Public fields (editable in editor)
-    public float maxAISpeed = 8.0f;
-    public float acceleration = 15.0f;
-    public float reactionTime = 0.1f;
-    public float errorMargin = 0.2f;
-    public float boundaryTop = 4.0f;
-    public float boundaryBottom = -4.0f;
-    public float paddleWidth = 0.5f;
-    public bool enableAI = true;
-    public float difficultyLevel = 0.7f;
+    public float MaxAiSpeed = 8.0f;
+    public float Acceleration = 15.0f;
+    public float ReactionTime = 0.1f;
+    public float ErrorMargin = 0.2f;
+    public float BoundaryTop = 4.0f;
+    public float BoundaryBottom = -4.0f;
+    public float PaddleWidth = 0.5f;
+    public bool EnableAi = true;
+    public float DifficultyLevel = 0.7f;
     
     // AI positioning and strategy
-    public float defensivePosition = 0.0f;
-    public float minimumMoveThreshold = 0.1f;
+    public float DefensivePosition = 0.0f;
+    public float MinimumMoveThreshold = 0.1f;
     
     // Update frequency control - THIS FIXES THE "TOO OFTEN" ISSUE
-    public float aiDecisionInterval = 0.1f;  // How often AI makes decisions (seconds)
-    public float ballSearchInterval = 0.5f;  // How often to search for ball if not found
+    public float AiDecisionInterval = 0.1f;  // How often AI makes decisions (seconds)
+    public float BallSearchInterval = 0.5f;  // How often to search for ball if not found
     
     // Private fields
-    private TransformComponent transformComponent;
-    private RigidBody2DComponent rigidBodyComponent;
-    private Vector3 startPosition;
-    private Entity ballEntity;
-    private BallController ballController;
+    private TransformComponent _transformComponent;
+    private RigidBody2DComponent _rigidBodyComponent;
+    private Vector3 _startPosition;
+    private Entity _ballEntity;
+    private BallController _ballController;
     
     // AI state
-    private float reactionTimer = 0f;
-    private float decisionTimer = 0f;        // NEW: Controls decision frequency
-    private float ballSearchTimer = 0f;      // NEW: Controls ball search frequency
-    private Vector3 targetPosition;
-    private float currentVelocityY = 0f;
-    private bool hasFoundBall = false;
-    private bool isIntercepting = false;
-    private float lastBallDirectionChange = 0f;
-    private Vector2 lastBallVelocity = Vector2.Zero;
+    private float _reactionTimer = 0f;
+    private float _decisionTimer = 0f;        // NEW: Controls decision frequency
+    private float _ballSearchTimer = 0f;      // NEW: Controls ball search frequency
+    private Vector3 _targetPosition;
+    private float _currentVelocityY = 0f;
+    private bool _hasFoundBall = false;
+    private bool _isIntercepting = false;
+    private float _lastBallDirectionChange = 0f;
+    private Vector2 _lastBallVelocity = Vector2.Zero;
     
     // AI error simulation
-    private Random random = new Random();
-    private float currentError = 0f;
-    private float errorUpdateTimer = 0f;
+    private Random _random = new Random();
+    private float _currentError = 0f;
+    private float _errorUpdateTimer = 0f;
     
     // Performance monitoring
-    private int decisionsPerSecond = 0;
-    private float decisionCounter = 0f;
-    private float performanceTimer = 0f;
+    private int _decisionsPerSecond = 0;
+    private float _decisionCounter = 0f;
+    private float _performanceTimer = 0f;
     
     public override void OnCreate()
     {
@@ -64,70 +64,70 @@ public class AIController : ScriptableEntity
             return;
         }
         
-        transformComponent = GetComponent<TransformComponent>();
-        startPosition = transformComponent.Translation;
+        _transformComponent = GetComponent<TransformComponent>();
+        _startPosition = _transformComponent.Translation;
         
         // Get physics component if available
         if (HasComponent<RigidBody2DComponent>())
         {
-            rigidBodyComponent = GetComponent<RigidBody2DComponent>();
+            _rigidBodyComponent = GetComponent<RigidBody2DComponent>();
         }
         
         // Try to find ball immediately
         FindBall();
         
         // Initialize target position
-        targetPosition = startPosition;
+        _targetPosition = _startPosition;
         
         // Set difficulty-based decision frequency
         UpdateDecisionFrequency();
         
-        Console.WriteLine($"[AIController] AI initialized at position: {startPosition}");
-        Console.WriteLine($"[AIController] Decision interval: {aiDecisionInterval:F3}s, Difficulty: {difficultyLevel}");
+        Console.WriteLine($"[AIController] AI initialized at position: {_startPosition}");
+        Console.WriteLine($"[AIController] Decision interval: {AiDecisionInterval:F3}s, Difficulty: {DifficultyLevel}");
     }
     
     public override void OnUpdate(TimeSpan ts)
     {
-        if (!enableAI) return;
+        if (!EnableAi) return;
         
         float deltaTime = (float)ts.TotalSeconds;
         
         // Update timers
-        decisionTimer += deltaTime;
-        ballSearchTimer += deltaTime;
-        reactionTimer += deltaTime;
-        errorUpdateTimer += deltaTime;
-        performanceTimer += deltaTime;
+        _decisionTimer += deltaTime;
+        _ballSearchTimer += deltaTime;
+        _reactionTimer += deltaTime;
+        _errorUpdateTimer += deltaTime;
+        _performanceTimer += deltaTime;
         
         // Performance monitoring
-        if (performanceTimer >= 1.0f)
+        if (_performanceTimer >= 1.0f)
         {
-            decisionsPerSecond = (int)decisionCounter;
-            decisionCounter = 0f;
-            performanceTimer = 0f;
+            _decisionsPerSecond = (int)_decisionCounter;
+            _decisionCounter = 0f;
+            _performanceTimer = 0f;
             
             // Warn if making too many decisions
-            if (decisionsPerSecond > 15)
+            if (_decisionsPerSecond > 15)
             {
-                Console.WriteLine($"[AIController] WARNING: High decision rate: {decisionsPerSecond}/sec");
+                Console.WriteLine($"[AIController] WARNING: High decision rate: {_decisionsPerSecond}/sec");
             }
         }
         
         // CONTROLLED BALL SEARCHING - Only search every ballSearchInterval seconds
-        if (!hasFoundBall && ballSearchTimer >= ballSearchInterval)
+        if (!_hasFoundBall && _ballSearchTimer >= BallSearchInterval)
         {
             FindBall();
-            ballSearchTimer = 0f;
+            _ballSearchTimer = 0f;
         }
         
         // CONTROLLED AI DECISIONS - Only make decisions every aiDecisionInterval seconds
-        if (hasFoundBall && decisionTimer >= aiDecisionInterval && reactionTimer >= reactionTime)
+        if (_hasFoundBall && _decisionTimer >= AiDecisionInterval && _reactionTimer >= ReactionTime)
         {
-            MakeAIDecision();
-            UpdateAIError(deltaTime);
-            decisionTimer = 0f;
-            reactionTimer = 0f;
-            decisionCounter++;
+            MakeAiDecision();
+            UpdateAiError(deltaTime);
+            _decisionTimer = 0f;
+            _reactionTimer = 0f;
+            _decisionCounter++;
         }
         
         // MOVEMENT EXECUTION - This can happen every frame for smooth movement
@@ -143,59 +143,59 @@ public class AIController : ScriptableEntity
         float minFrequency = 5f;  // Hz
         float maxFrequency = 12f; // Hz
         
-        float targetFrequency = Lerp(minFrequency, maxFrequency, difficultyLevel);
-        aiDecisionInterval = 1f / targetFrequency;
+        float targetFrequency = Lerp(minFrequency, maxFrequency, DifficultyLevel);
+        AiDecisionInterval = 1f / targetFrequency;
         
-        Console.WriteLine($"[AIController] Decision frequency: {targetFrequency:F1} Hz ({aiDecisionInterval:F3}s interval)");
+        Console.WriteLine($"[AIController] Decision frequency: {targetFrequency:F1} Hz ({AiDecisionInterval:F3}s interval)");
     }
     
     private void FindBall()
     {
-        ballEntity = FindEntity("Ball");
-        if (ballEntity != null)
+        _ballEntity = FindEntity("Ball");
+        if (_ballEntity != null)
         {
-            var scriptComponent = ballEntity.GetComponent<NativeScriptComponent>();
+            var scriptComponent = _ballEntity.GetComponent<NativeScriptComponent>();
             if (scriptComponent?.ScriptableEntity is BallController ball)
             {
-                ballController = ball;
-                hasFoundBall = true;
+                _ballController = ball;
+                _hasFoundBall = true;
                 Console.WriteLine("[AIController] Ball found and connected");
                 return;
             }
         }
         
         // If we still haven't found it, increase search interval to avoid spam
-        if (ballSearchTimer > 2f)
+        if (_ballSearchTimer > 2f)
         {
-            ballSearchInterval = Math.Min(ballSearchInterval * 1.5f, 2f);
-            Console.WriteLine($"[AIController] Ball not found, increasing search interval to {ballSearchInterval:F1}s");
+            BallSearchInterval = Math.Min(BallSearchInterval * 1.5f, 2f);
+            Console.WriteLine($"[AIController] Ball not found, increasing search interval to {BallSearchInterval:F1}s");
         }
     }
     
-    private void UpdateAIError(float deltaTime)
+    private void UpdateAiError(float deltaTime)
     {
         // Update error less frequently for better performance
-        if (errorUpdateTimer >= 0.8f) // Update every 0.8 seconds instead of 0.5
+        if (_errorUpdateTimer >= 0.8f) // Update every 0.8 seconds instead of 0.5
         {
-            float maxError = errorMargin * (1.0f - difficultyLevel);
-            currentError = (float)(random.NextDouble() - 0.5) * 2.0f * maxError;
-            errorUpdateTimer = 0f;
+            float maxError = ErrorMargin * (1.0f - DifficultyLevel);
+            _currentError = (float)(_random.NextDouble() - 0.5) * 2.0f * maxError;
+            _errorUpdateTimer = 0f;
         }
     }
     
-    private void MakeAIDecision()
+    private void MakeAiDecision()
     {
-        if (ballController == null) return;
+        if (_ballController == null) return;
         
-        var ballPos = ballController.GetPosition();
-        var ballVelocity = ballController.GetVelocity();
+        var ballPos = _ballController.GetPosition();
+        var ballVelocity = _ballController.GetVelocity();
         
         // Get fresh transform data
-        transformComponent = GetComponent<TransformComponent>();
-        var currentPos = transformComponent.Translation;
+        _transformComponent = GetComponent<TransformComponent>();
+        var currentPos = _transformComponent.Translation;
         
         // Only log important decisions to reduce console spam
-        bool shouldLog = isIntercepting != ShouldInterceptBall(ballPos, ballVelocity, currentPos);
+        bool shouldLog = _isIntercepting != ShouldInterceptBall(ballPos, ballVelocity, currentPos);
         
         if (shouldLog)
         {
@@ -208,8 +208,8 @@ public class AIController : ScriptableEntity
         {
             // Calculate interception point with optimized prediction
             Vector3 interceptPoint = CalculateOptimizedInterceptionPoint(ballPos, ballVelocity, currentPos);
-            targetPosition = new Vector3(currentPos.X, interceptPoint.Y + currentError, currentPos.Z);
-            isIntercepting = true;
+            _targetPosition = new Vector3(currentPos.X, interceptPoint.Y + _currentError, currentPos.Z);
+            _isIntercepting = true;
             
             if (shouldLog)
             {
@@ -220,19 +220,19 @@ public class AIController : ScriptableEntity
         {
             // Play defensively
             PlayDefensively(ballPos, ballVelocity, currentPos);
-            isIntercepting = false;
+            _isIntercepting = false;
             
             if (shouldLog)
             {
-                Console.WriteLine($"[AIController] Playing defensively, target Y: {defensivePosition:F2}");
+                Console.WriteLine($"[AIController] Playing defensively, target Y: {DefensivePosition:F2}");
             }
         }
         
         // Clamp to boundaries
-        targetPosition = new Vector3(
-            targetPosition.X,
-            Math.Clamp(targetPosition.Y, boundaryBottom, boundaryTop),
-            targetPosition.Z
+        _targetPosition = new Vector3(
+            _targetPosition.X,
+            Math.Clamp(_targetPosition.Y, BoundaryBottom, BoundaryTop),
+            _targetPosition.Z
         );
     }
     
@@ -251,15 +251,15 @@ public class AIController : ScriptableEntity
         float predictedY = ballPos.Y + ballVelocity.Y * timeToReach;
         
         // Handle one wall bounce if needed
-        if (predictedY > boundaryTop)
+        if (predictedY > BoundaryTop)
         {
-            float overshot = predictedY - boundaryTop;
-            predictedY = boundaryTop - overshot;
+            float overshot = predictedY - BoundaryTop;
+            predictedY = BoundaryTop - overshot;
         }
-        else if (predictedY < boundaryBottom)
+        else if (predictedY < BoundaryBottom)
         {
-            float overshot = boundaryBottom - predictedY;
-            predictedY = boundaryBottom + overshot;
+            float overshot = BoundaryBottom - predictedY;
+            predictedY = BoundaryBottom + overshot;
         }
         
         return new Vector3(currentPos.X, predictedY, currentPos.Z);
@@ -271,30 +271,30 @@ public class AIController : ScriptableEntity
         if (ballVelocity.Length() < 0.1f) return false;
         
         // Check if ball is moving towards AI paddle
-        bool ballMovingTowardsAI = IsMovingTowardsAI(ballPos, ballVelocity, currentPos);
+        bool ballMovingTowardsAi = IsMovingTowardsAi(ballPos, ballVelocity, currentPos);
         
-        if (!ballMovingTowardsAI) return false;
+        if (!ballMovingTowardsAi) return false;
         
         // Simplified time calculation
         float timeToReachPaddle = Math.Abs((currentPos.X - ballPos.X) / ballVelocity.X);
         float distanceToMove = Math.Abs(ballPos.Y - currentPos.Y);
-        float timeNeededToMove = distanceToMove / maxAISpeed;
+        float timeNeededToMove = distanceToMove / MaxAiSpeed;
         
         // Add difficulty-based margin
-        float timeMargin = 0.3f * (1.0f - difficultyLevel);
+        float timeMargin = 0.3f * (1.0f - DifficultyLevel);
         
         return timeToReachPaddle > (timeNeededToMove + timeMargin);
     }
     
-    private bool IsMovingTowardsAI(Vector3 ballPos, Vector2 ballVelocity, Vector3 aiPos)
+    private bool IsMovingTowardsAi(Vector3 ballPos, Vector2 ballVelocity, Vector3 aiPos)
     {
         if (aiPos.X > 0) // AI on right side
         {
-            return ballVelocity.X > 0 && ballPos.X < aiPos.X - paddleWidth;
+            return ballVelocity.X > 0 && ballPos.X < aiPos.X - PaddleWidth;
         }
         else // AI on left side
         {
-            return ballVelocity.X < 0 && ballPos.X > aiPos.X + paddleWidth;
+            return ballVelocity.X < 0 && ballPos.X > aiPos.X + PaddleWidth;
         }
     }
     
@@ -302,107 +302,107 @@ public class AIController : ScriptableEntity
     {
         if (ballVelocity.Length() < 0.1f)
         {
-            targetPosition = new Vector3(currentPos.X, defensivePosition, currentPos.Z);
+            _targetPosition = new Vector3(currentPos.X, DefensivePosition, currentPos.Z);
             return;
         }
         
         // Simplified defensive positioning
-        float strategicY = defensivePosition;
+        float strategicY = DefensivePosition;
         float ballDistance = Math.Abs(ballPos.X - currentPos.X);
         
         if (ballDistance > 3.0f)
         {
-            strategicY = Lerp(defensivePosition, ballPos.Y, 0.2f);
+            strategicY = Lerp(DefensivePosition, ballPos.Y, 0.2f);
         }
         else
         {
-            strategicY = Lerp(defensivePosition, ballPos.Y, 0.4f);
+            strategicY = Lerp(DefensivePosition, ballPos.Y, 0.4f);
         }
         
-        targetPosition = new Vector3(currentPos.X, strategicY, currentPos.Z);
+        _targetPosition = new Vector3(currentPos.X, strategicY, currentPos.Z);
     }
     
     private void UpdateMovement(float deltaTime)
     {
         // Get fresh component data
-        transformComponent = GetComponent<TransformComponent>();
-        var currentPos = transformComponent.Translation;
-        float targetY = targetPosition.Y;
+        _transformComponent = GetComponent<TransformComponent>();
+        var currentPos = _transformComponent.Translation;
+        float targetY = _targetPosition.Y;
         float currentY = currentPos.Y;
         float distance = targetY - currentY;
         
         // Don't move if we're close enough
-        if (Math.Abs(distance) < minimumMoveThreshold)
+        if (Math.Abs(distance) < MinimumMoveThreshold)
         {
-            currentVelocityY = 0f;
+            _currentVelocityY = 0f;
             return;
         }
         
         // Calculate desired velocity with difficulty scaling
-        float desiredVelocity = Math.Sign(distance) * maxAISpeed * Lerp(0.6f, 1.0f, difficultyLevel);
+        float desiredVelocity = Math.Sign(distance) * MaxAiSpeed * Lerp(0.6f, 1.0f, DifficultyLevel);
         
         // Apply smooth acceleration
-        float velocityDiff = desiredVelocity - currentVelocityY;
-        float maxAccelChange = acceleration * deltaTime;
+        float velocityDiff = desiredVelocity - _currentVelocityY;
+        float maxAccelChange = Acceleration * deltaTime;
         
         if (Math.Abs(velocityDiff) <= maxAccelChange)
         {
-            currentVelocityY = desiredVelocity;
+            _currentVelocityY = desiredVelocity;
         }
         else
         {
-            currentVelocityY += Math.Sign(velocityDiff) * maxAccelChange;
+            _currentVelocityY += Math.Sign(velocityDiff) * maxAccelChange;
         }
         
         // Apply movement
-        float moveAmount = currentVelocityY * deltaTime;
+        float moveAmount = _currentVelocityY * deltaTime;
         
         // Don't overshoot target
         if (Math.Abs(moveAmount) > Math.Abs(distance))
         {
             moveAmount = distance;
-            currentVelocityY = 0f;
+            _currentVelocityY = 0f;
         }
         
         // Apply movement to physics or transform
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            var body = rigidBodyComponent.RuntimeBody;
+            var body = _rigidBodyComponent.RuntimeBody;
             var currentPhysicsPos = body.GetPosition();
-            var newY = Math.Clamp(currentPhysicsPos.Y + moveAmount, boundaryBottom, boundaryTop);
+            var newY = Math.Clamp(currentPhysicsPos.Y + moveAmount, BoundaryBottom, BoundaryTop);
             
             body.SetTransform(new Vector2(currentPhysicsPos.X, newY), body.GetAngle());
-            transformComponent.Translation = new Vector3(currentPhysicsPos.X, newY, transformComponent.Translation.Z);
-            AddComponent(transformComponent);
+            _transformComponent.Translation = new Vector3(currentPhysicsPos.X, newY, _transformComponent.Translation.Z);
+            AddComponent(_transformComponent);
         }
         else
         {
-            var newY = Math.Clamp(currentPos.Y + moveAmount, boundaryBottom, boundaryTop);
-            transformComponent.Translation = new Vector3(currentPos.X, newY, currentPos.Z);
-            AddComponent(transformComponent);
+            var newY = Math.Clamp(currentPos.Y + moveAmount, BoundaryBottom, BoundaryTop);
+            _transformComponent.Translation = new Vector3(currentPos.X, newY, currentPos.Z);
+            AddComponent(_transformComponent);
         }
     }
     
     private void EnforceBoundaries()
     {
-        transformComponent = GetComponent<TransformComponent>();
-        var currentPos = transformComponent.Translation;
+        _transformComponent = GetComponent<TransformComponent>();
+        var currentPos = _transformComponent.Translation;
         
-        if (currentPos.Y > boundaryTop || currentPos.Y < boundaryBottom)
+        if (currentPos.Y > BoundaryTop || currentPos.Y < BoundaryBottom)
         {
-            var clampedY = Math.Clamp(currentPos.Y, boundaryBottom, boundaryTop);
+            var clampedY = Math.Clamp(currentPos.Y, BoundaryBottom, BoundaryTop);
             
-            transformComponent.Translation = new Vector3(currentPos.X, clampedY, currentPos.Z);
-            AddComponent(transformComponent);
+            _transformComponent.Translation = new Vector3(currentPos.X, clampedY, currentPos.Z);
+            AddComponent(_transformComponent);
             
-            if (rigidBodyComponent?.RuntimeBody != null)
+            if (_rigidBodyComponent?.RuntimeBody != null)
             {
-                var body = rigidBodyComponent.RuntimeBody;
+                var body = _rigidBodyComponent.RuntimeBody;
                 body.SetTransform(new Vector2(currentPos.X, clampedY), body.GetAngle());
                 body.SetLinearVelocity(Vector2.Zero);
             }
             
-            currentVelocityY = 0f;
+            _currentVelocityY = 0f;
         }
     }
     
@@ -413,50 +413,50 @@ public class AIController : ScriptableEntity
     
     public void ResetPosition()
     {
-        Console.WriteLine($"[AIController] Resetting AI paddle to start position: {startPosition}");
+        Console.WriteLine($"[AIController] Resetting AI paddle to start position: {_startPosition}");
         
-        transformComponent = new TransformComponent
+        _transformComponent = new TransformComponent
         {
-            Translation = startPosition,
+            Translation = _startPosition,
             Rotation = Vector3.Zero,
             Scale = Vector3.One
         };
-        AddComponent(transformComponent);
+        AddComponent(_transformComponent);
         
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            var body = rigidBodyComponent.RuntimeBody;
-            body.SetTransform(new Vector2(startPosition.X, startPosition.Y), 0);
+            var body = _rigidBodyComponent.RuntimeBody;
+            body.SetTransform(new Vector2(_startPosition.X, _startPosition.Y), 0);
             body.SetLinearVelocity(Vector2.Zero);
         }
         
         // Reset AI state and timers
-        reactionTimer = 0f;
-        decisionTimer = 0f;
-        ballSearchTimer = 0f;
-        currentVelocityY = 0f;
-        targetPosition = startPosition;
-        isIntercepting = false;
-        lastBallVelocity = Vector2.Zero;
-        currentError = 0f;
-        decisionCounter = 0f;
-        decisionsPerSecond = 0;
+        _reactionTimer = 0f;
+        _decisionTimer = 0f;
+        _ballSearchTimer = 0f;
+        _currentVelocityY = 0f;
+        _targetPosition = _startPosition;
+        _isIntercepting = false;
+        _lastBallVelocity = Vector2.Zero;
+        _currentError = 0f;
+        _decisionCounter = 0f;
+        _decisionsPerSecond = 0;
     }
     
     public void SetDifficulty(float difficulty)
     {
-        difficultyLevel = Math.Clamp(difficulty, 0f, 1f);
+        DifficultyLevel = Math.Clamp(difficulty, 0f, 1f);
         
         // Adjust parameters based on difficulty
-        reactionTime = Lerp(0.3f, 0.05f, difficulty);
-        errorMargin = Lerp(0.8f, 0.1f, difficulty);
-        maxAISpeed = Lerp(4f, 12f, difficulty);
+        ReactionTime = Lerp(0.3f, 0.05f, difficulty);
+        ErrorMargin = Lerp(0.8f, 0.1f, difficulty);
+        MaxAiSpeed = Lerp(4f, 12f, difficulty);
         
         // Update decision frequency based on new difficulty
         UpdateDecisionFrequency();
         
         Console.WriteLine($"[AIController] Difficulty set to {difficulty:F2}");
-        Console.WriteLine($"  - Reaction: {reactionTime:F2}s, Error: {errorMargin:F2}, Speed: {maxAISpeed:F1}");
-        Console.WriteLine($"  - Decision Rate: {(1f/aiDecisionInterval):F1} Hz");
+        Console.WriteLine($"  - Reaction: {ReactionTime:F2}s, Error: {ErrorMargin:F2}, Speed: {MaxAiSpeed:F1}");
+        Console.WriteLine($"  - Decision Rate: {(1f/AiDecisionInterval):F1} Hz");
     }
 }

@@ -10,27 +10,27 @@ using Engine.Scene.Components;
 public class BallController : ScriptableEntity
 {
     // Public fields (editable in editor)
-    public float initialSpeed = 0.5f;
-    public float maxSpeed = 2.0f;
-    public float speedIncrease = 0.1f; // Speed increase per paddle hit
+    public float InitialSpeed = 0.5f;
+    public float MaxSpeed = 2.0f;
+    public float SpeedIncrease = 0.1f; // Speed increase per paddle hit
     
-    public float boundaryTop = 4.5f;
-    public float boundaryBottom = -4.5f;
-    public float boundaryLeft = -8.0f;
-    public float boundaryRight = 8.0f;
+    public float BoundaryTop = 4.5f;
+    public float BoundaryBottom = -4.5f;
+    public float BoundaryLeft = -8.0f;
+    public float BoundaryRight = 8.0f;
     
     // Private fields
-    private TransformComponent transformComponent;
-    private RigidBody2DComponent rigidBodyComponent;
-    private Vector3 startPosition;
-    private Vector2 velocity;
-    private float currentSpeed;
-    private bool isActive = false;
+    private TransformComponent _transformComponent;
+    private RigidBody2DComponent _rigidBodyComponent;
+    private Vector3 _startPosition;
+    private Vector2 _velocity;
+    private float _currentSpeed;
+    private bool _isActive = false;
     
     // Game Manager reference
-    private Entity gameManagerEntity;
-    private PingPongGameManager gameManager;
-    private Random random = new Random();
+    private Entity _gameManagerEntity;
+    private PingPongGameManager _gameManager;
+    private Random _random = new Random();
     
     public override void OnCreate()
     {
@@ -43,39 +43,39 @@ public class BallController : ScriptableEntity
             return;
         }
         
-        transformComponent = GetComponent<TransformComponent>();
-        startPosition = transformComponent.Translation;
+        _transformComponent = GetComponent<TransformComponent>();
+        _startPosition = _transformComponent.Translation;
         
         // Get physics component if available
         if (HasComponent<RigidBody2DComponent>())
         {
-            rigidBodyComponent = GetComponent<RigidBody2DComponent>();
+            _rigidBodyComponent = GetComponent<RigidBody2DComponent>();
             Console.WriteLine("[BallController] Physics body found");
         }
         
         // Find game manager
-        gameManagerEntity = FindEntity("Game Manager");
-        if (gameManagerEntity != null)
+        _gameManagerEntity = FindEntity("Game Manager");
+        if (_gameManagerEntity != null)
         {
-            var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
+            var scriptComponent = _gameManagerEntity.GetComponent<NativeScriptComponent>();
             if (scriptComponent?.ScriptableEntity is PingPongGameManager manager)
             {
-                gameManager = manager;
+                _gameManager = manager;
                 Console.WriteLine("[BallController] Connected to Game Manager");
             }
         }
         
-        currentSpeed = initialSpeed;
-        Console.WriteLine($"[BallController] Ball initialized at position: {startPosition}");
+        _currentSpeed = InitialSpeed;
+        Console.WriteLine($"[BallController] Ball initialized at position: {_startPosition}");
     }
     
     public override void OnUpdate(TimeSpan ts)
     {
-        if (!isActive) return;
+        if (!_isActive) return;
         
         float deltaTime = (float)ts.TotalSeconds;
         
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
             // Update using physics body
             UpdatePhysicsMovement(deltaTime);
@@ -91,67 +91,67 @@ public class BallController : ScriptableEntity
     
     private void UpdatePhysicsMovement(float deltaTime)
     {
-        var body = rigidBodyComponent.RuntimeBody;
+        var body = _rigidBodyComponent.RuntimeBody;
         var currentVel = body.GetLinearVelocity();
         
         // Maintain consistent speed
         if (currentVel.Length() > 0.1f)
         {
             var normalizedVel = Vector2.Normalize(currentVel);
-            body.SetLinearVelocity(normalizedVel * currentSpeed);
+            body.SetLinearVelocity(normalizedVel * _currentSpeed);
         }
     }
     
     private void UpdateManualMovement(float deltaTime)
     {
-        var currentPos = transformComponent.Translation;
-        var newPos = currentPos + new Vector3(velocity.X * deltaTime, velocity.Y * deltaTime, 0);
+        var currentPos = _transformComponent.Translation;
+        var newPos = currentPos + new Vector3(_velocity.X * deltaTime, _velocity.Y * deltaTime, 0);
         
-        transformComponent.Translation = newPos;
-        SetComponent(transformComponent);
+        _transformComponent.Translation = newPos;
+        SetComponent(_transformComponent);
     }
     
     private void CheckBoundaryCollisions()
     {
-        var body = rigidBodyComponent.RuntimeBody;
+        var body = _rigidBodyComponent.RuntimeBody;
         var currentPos = body.GetPosition();
         bool bounced = false;
         
         // Top and bottom boundaries
-        if (currentPos.Y > boundaryTop)
+        if (currentPos.Y > BoundaryTop)
         {
-            transformComponent.Translation = new Vector3(currentPos.X, boundaryTop, 0);
-            velocity = new Vector2(velocity.X, -Math.Abs(velocity.Y)); // Bounce down
+            _transformComponent.Translation = new Vector3(currentPos.X, BoundaryTop, 0);
+            _velocity = new Vector2(_velocity.X, -Math.Abs(_velocity.Y)); // Bounce down
             bounced = true;
         }
-        else if (currentPos.Y < boundaryBottom)
+        else if (currentPos.Y < BoundaryBottom)
         {
-            transformComponent.Translation = new Vector3(currentPos.X, boundaryBottom,0);
-            velocity = new Vector2(velocity.X, Math.Abs(velocity.Y)); // Bounce up
+            _transformComponent.Translation = new Vector3(currentPos.X, BoundaryBottom,0);
+            _velocity = new Vector2(_velocity.X, Math.Abs(_velocity.Y)); // Bounce up
             bounced = true;
         }
         
         // Left and right boundaries (scoring)
-        if (currentPos.X < boundaryLeft)
+        if (currentPos.X < BoundaryLeft)
         {
             // Player 2 scores
             OnScore(false);
         }
-        else if (currentPos.X > boundaryRight)
+        else if (currentPos.X > BoundaryRight)
         {
             // Player 1 scores
             OnScore(true);
         }
         
-        SetComponent(transformComponent);
+        SetComponent(_transformComponent);
         
         if (bounced)
         {
             // Update physics body if present
-            if (rigidBodyComponent?.RuntimeBody != null)
+            if (_rigidBodyComponent?.RuntimeBody != null)
             {
-                body.SetTransform(new Vector2(transformComponent.Translation.X, transformComponent.Translation.Y), 0);
-                body.SetLinearVelocity(velocity);
+                body.SetTransform(new Vector2(_transformComponent.Translation.X, _transformComponent.Translation.Y), 0);
+                body.SetLinearVelocity(_velocity);
             }
         }
     }
@@ -170,7 +170,7 @@ public class BallController : ScriptableEntity
         Console.WriteLine($"[BallController] Ball hit paddle: {paddle.Name}");
         
         var paddlePos = paddle.GetComponent<TransformComponent>().Translation;
-        var ballPos = transformComponent.Translation;
+        var ballPos = _transformComponent.Translation;
         
         // Calculate bounce angle based on where the ball hit the paddle
         float paddleHeight = paddle.GetComponent<TransformComponent>().Scale.Y;
@@ -188,21 +188,21 @@ public class BallController : ScriptableEntity
         float xDirection = isLeftPaddle ? 1.0f : -1.0f;
         
         // Increase speed
-        currentSpeed = Math.Min(currentSpeed + speedIncrease, maxSpeed);
+        _currentSpeed = Math.Min(_currentSpeed + SpeedIncrease, MaxSpeed);
         
         // Set new velocity
-        velocity = new Vector2(
-            xDirection * currentSpeed * (float)Math.Cos(bounceAngleRad),
-            currentSpeed * (float)Math.Sin(bounceAngleRad)
+        _velocity = new Vector2(
+            xDirection * _currentSpeed * (float)Math.Cos(bounceAngleRad),
+            _currentSpeed * (float)Math.Sin(bounceAngleRad)
         );
         
         // Update physics body if present
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            rigidBodyComponent.RuntimeBody.SetLinearVelocity(velocity);
+            _rigidBodyComponent.RuntimeBody.SetLinearVelocity(_velocity);
         }
         
-        Console.WriteLine($"[BallController] New velocity: ({velocity.X:F2}, {velocity.Y:F2}), Speed: {currentSpeed:F2}");
+        Console.WriteLine($"[BallController] New velocity: ({_velocity.X:F2}, {_velocity.Y:F2}), Speed: {_currentSpeed:F2}");
         AudioEngine.Instance.PlayOneShot(Path.Combine(AssetsManager.AssetsPath, "audio/swing.wav"), 0.5f);
     }
     
@@ -210,15 +210,15 @@ public class BallController : ScriptableEntity
     {
         Console.WriteLine($"[BallController] Score! Player {(player1Scored ? "1" : "2")} scored");
         
-        isActive = false;
+        _isActive = false;
         
         // Notify game manager
-        if (gameManager != null)
+        if (_gameManager != null)
         {
             if (player1Scored)
-                gameManager.Player1Score();
+                _gameManager.Player1Score();
             else
-                gameManager.Player2Score();
+                _gameManager.Player2Score();
         }
     }
     
@@ -226,79 +226,79 @@ public class BallController : ScriptableEntity
     {
         Console.WriteLine($"[BallController] Launching ball towards Player {(towardsPlayer1 ? "1" : "2")}");
         
-        isActive = true;
-        currentSpeed = initialSpeed;
+        _isActive = true;
+        _currentSpeed = InitialSpeed;
         
         // Random angle between -30 and 30 degrees
-        float angle = (float)(random.NextDouble() * 60.0 - 30.0) * (float)Math.PI / 180.0f;
+        float angle = (float)(_random.NextDouble() * 60.0 - 30.0) * (float)Math.PI / 180.0f;
         float xDirection = towardsPlayer1 ? -1.0f : 1.0f;
         
-        velocity = new Vector2(
-            xDirection * currentSpeed * (float)Math.Cos(angle),
-            currentSpeed * (float)Math.Sin(angle)
+        _velocity = new Vector2(
+            xDirection * _currentSpeed * (float)Math.Cos(angle),
+            _currentSpeed * (float)Math.Sin(angle)
         );
         
         // Update physics body if present
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            rigidBodyComponent.RuntimeBody.SetLinearVelocity(velocity);
+            _rigidBodyComponent.RuntimeBody.SetLinearVelocity(_velocity);
         }
         
-        Console.WriteLine($"[BallController] Launch velocity: ({velocity.X:F2}, {velocity.Y:F2})");
+        Console.WriteLine($"[BallController] Launch velocity: ({_velocity.X:F2}, {_velocity.Y:F2})");
     }
     
     public void ResetBall()
     {
         Console.WriteLine("[BallController] Resetting ball");
         
-        isActive = false;
-        velocity = Vector2.Zero;
-        currentSpeed = initialSpeed;
+        _isActive = false;
+        _velocity = Vector2.Zero;
+        _currentSpeed = InitialSpeed;
         
-        transformComponent.Translation = startPosition;
-        SetComponent(transformComponent);
+        _transformComponent.Translation = _startPosition;
+        SetComponent(_transformComponent);
         
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            var body = rigidBodyComponent.RuntimeBody;
-            body.SetTransform(new Vector2(startPosition.X, startPosition.Y), 0);
+            var body = _rigidBodyComponent.RuntimeBody;
+            body.SetTransform(new Vector2(_startPosition.X, _startPosition.Y), 0);
             body.SetLinearVelocity(Vector2.Zero);
         }
     }
     
     public void Stop()
     {
-        isActive = false;
-        velocity = Vector2.Zero;
+        _isActive = false;
+        _velocity = Vector2.Zero;
         
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            rigidBodyComponent.RuntimeBody.SetLinearVelocity(Vector2.Zero);
+            _rigidBodyComponent.RuntimeBody.SetLinearVelocity(Vector2.Zero);
         }
     }
     
     // Public getters
     public Vector3 GetPosition()
     {
-        return transformComponent.Translation;
+        return _transformComponent.Translation;
     }
     
     public Vector2 GetVelocity()
     {
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            return rigidBodyComponent.RuntimeBody.GetLinearVelocity();
+            return _rigidBodyComponent.RuntimeBody.GetLinearVelocity();
         }
-        return velocity;
+        return _velocity;
     }
     
     public float GetSpeed()
     {
-        return currentSpeed;
+        return _currentSpeed;
     }
     
     public bool IsActive()
     {
-        return isActive;
+        return _isActive;
     }
 }

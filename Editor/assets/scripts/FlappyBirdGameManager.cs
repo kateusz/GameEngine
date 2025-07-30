@@ -15,26 +15,26 @@ public enum GameState
 
 public class FlappyBirdGameManager : ScriptableEntity
 {
-    private GameState gameState = GameState.Menu;
-    private int score = 0;
-    private float gameTime = 0.0f;
+    private GameState _gameState = GameState.Menu;
+    private int _score = 0;
+    private float _gameTime = 0.0f;
 
     // Entity references
-    private Entity birdEntity;
-    private Entity pipeSpawnerEntity;
+    private Entity _birdEntity;
+    private Entity _pipeSpawnerEntity;
 
     // Component references
-    private PipeSpawner pipeSpawnerScript;
-    private FlappyBirdController birdScript;
+    private PipeSpawner _pipeSpawnerScript;
+    private FlappyBirdController _birdScript;
 
     // Debug settings
-    private float debugLogInterval = 3.0f;
-    private float lastDebugLogTime = 0.0f;
-    private int lastScore = -1;
-    private GameState lastGameState = GameState.Menu;
+    private float _debugLogInterval = 3.0f;
+    private float _lastDebugLogTime = 0.0f;
+    private int _lastScore = -1;
+    private GameState _lastGameState = GameState.Menu;
 
     // Exposed fields
-    public bool enableDebugLogs = true;
+    public bool EnableDebugLogs = true;
 
     public override void OnCreate()
     {
@@ -42,15 +42,15 @@ public class FlappyBirdGameManager : ScriptableEntity
         Console.WriteLine("[GameManager] Using SIMPLIFIED approach - bird stays fixed, pipes move!");
 
         // Find and connect to bird
-        birdEntity = FindEntity("Bird");
-        if (birdEntity != null)
+        _birdEntity = FindEntity("Bird");
+        if (_birdEntity != null)
         {
-            Console.WriteLine($"[GameManager] Found bird entity: {birdEntity.Name}");
+            Console.WriteLine($"[GameManager] Found bird entity: {_birdEntity.Name}");
 
-            var birdScriptComponent = birdEntity.GetComponent<NativeScriptComponent>();
+            var birdScriptComponent = _birdEntity.GetComponent<NativeScriptComponent>();
             if (birdScriptComponent?.ScriptableEntity is FlappyBirdController bird)
             {
-                birdScript = bird;
+                _birdScript = bird;
                 Console.WriteLine("[GameManager] Connected to FlappyBirdController");
             }
             else
@@ -64,15 +64,15 @@ public class FlappyBirdGameManager : ScriptableEntity
         }
 
         // Find and connect to pipe spawner
-        pipeSpawnerEntity = FindEntity("PipeSpawner");
-        if (pipeSpawnerEntity != null)
+        _pipeSpawnerEntity = FindEntity("PipeSpawner");
+        if (_pipeSpawnerEntity != null)
         {
-            Console.WriteLine($"[GameManager] Found pipe spawner entity: {pipeSpawnerEntity.Name}");
+            Console.WriteLine($"[GameManager] Found pipe spawner entity: {_pipeSpawnerEntity.Name}");
 
-            var spawnerScriptComponent = pipeSpawnerEntity.GetComponent<NativeScriptComponent>();
+            var spawnerScriptComponent = _pipeSpawnerEntity.GetComponent<NativeScriptComponent>();
             if (spawnerScriptComponent?.ScriptableEntity is PipeSpawner spawner)
             {
-                pipeSpawnerScript = spawner;
+                _pipeSpawnerScript = spawner;
                 Console.WriteLine("[GameManager] Connected to PipeSpawner");
             }
             else
@@ -94,9 +94,9 @@ public class FlappyBirdGameManager : ScriptableEntity
     {
         float deltaTime = (float)ts.TotalSeconds;
 
-        if (gameState == GameState.Playing)
+        if (_gameState == GameState.Playing)
         {
-            gameTime += deltaTime;
+            _gameTime += deltaTime;
 
             // Check if bird died
             if (IsBirdDead())
@@ -106,7 +106,7 @@ public class FlappyBirdGameManager : ScriptableEntity
         }
 
         // Handle restart input during game over
-        if (gameState is GameState.GameOver or GameState.Menu)
+        if (_gameState is GameState.GameOver or GameState.Menu)
         {
             if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.R))
             {
@@ -121,21 +121,21 @@ public class FlappyBirdGameManager : ScriptableEntity
     // Public methods for other scripts to call
     public void StartGame()
     {
-        if (gameState != GameState.Menu && gameState != GameState.GameOver) return;
+        if (_gameState != GameState.Menu && _gameState != GameState.GameOver) return;
 
         Console.WriteLine("[GameManager] ====== STARTING NEW GAME ======");
 
         // Reset game state
-        score = 0;
-        gameTime = 0.0f;
+        _score = 0;
+        _gameTime = 0.0f;
 
         // Reset bird
-        birdScript.ResetBird();
+        _birdScript.ResetBird();
         Console.WriteLine("[GameManager] Bird reset completed");
         
 
         // Clear any existing pipes
-        pipeSpawnerScript.DestroyAllPipes();
+        _pipeSpawnerScript.DestroyAllPipes();
         Console.WriteLine("[GameManager] All pipes cleared");
 
         // Change to playing state
@@ -146,11 +146,11 @@ public class FlappyBirdGameManager : ScriptableEntity
 
     public void TriggerGameOver()
     {
-        if (gameState != GameState.Playing) return;
+        if (_gameState != GameState.Playing) return;
 
         Console.WriteLine("[GameManager] ====== GAME OVER TRIGGERED ======");
-        Console.WriteLine($"[GameManager] Final Score: {score}");
-        Console.WriteLine($"[GameManager] Game Duration: {gameTime:F2} seconds");
+        Console.WriteLine($"[GameManager] Final Score: {_score}");
+        Console.WriteLine($"[GameManager] Game Duration: {_gameTime:F2} seconds");
 
         SetGameState(GameState.GameOver);
 
@@ -159,12 +159,12 @@ public class FlappyBirdGameManager : ScriptableEntity
 
     public void IncrementScore()
     {
-        int oldScore = score;
-        score++;
+        int oldScore = _score;
+        _score++;
 
         Console.WriteLine($"[GameManager] ====== SCORE! ======");
-        Console.WriteLine($"[GameManager] {oldScore} -> {score}");
-        Console.WriteLine($"[GameManager] Game time: {gameTime:F2}s");
+        Console.WriteLine($"[GameManager] {oldScore} -> {_score}");
+        Console.WriteLine($"[GameManager] Game time: {_gameTime:F2}s");
 
         // Could trigger score sound effect here
         // AudioManager.PlayScoreSound();
@@ -175,10 +175,10 @@ public class FlappyBirdGameManager : ScriptableEntity
         Console.WriteLine("[GameManager] ====== RESTARTING GAME ======");
 
         // Clean up pipes
-        pipeSpawnerScript.DestroyAllPipes();
+        _pipeSpawnerScript.DestroyAllPipes();
 
         // Reset bird
-        birdScript.ResetBird();
+        _birdScript.ResetBird();
 
         // Start new game
         StartGame();
@@ -188,8 +188,8 @@ public class FlappyBirdGameManager : ScriptableEntity
 
     private void SetGameState(GameState newState)
     {
-        GameState oldState = gameState;
-        gameState = newState;
+        GameState oldState = _gameState;
+        _gameState = newState;
 
         Console.WriteLine($"[GameManager] ====== STATE CHANGE: {oldState} -> {newState} ======");
 
@@ -220,30 +220,30 @@ public class FlappyBirdGameManager : ScriptableEntity
 
     private bool IsBirdDead()
     {
-        if (birdEntity == null || birdScript == null)
+        if (_birdEntity == null || _birdScript == null)
         {
             return false;
         }
 
-        return birdScript.IsBirdDead();
+        return _birdScript.IsBirdDead();
     }
 
     private void PerformDebugLogging(float deltaTime)
     {
-        lastDebugLogTime += deltaTime;
+        _lastDebugLogTime += deltaTime;
 
-        if (enableDebugLogs && lastDebugLogTime >= debugLogInterval)
+        if (EnableDebugLogs && _lastDebugLogTime >= _debugLogInterval)
         {
             Console.WriteLine($"[GameManager] ====== DEBUG STATUS ======");
-            Console.WriteLine($"[GameManager] State: {gameState}");
-            Console.WriteLine($"[GameManager] Score: {score}");
-            Console.WriteLine($"[GameManager] Game Time: {gameTime:F2}s");
+            Console.WriteLine($"[GameManager] State: {_gameState}");
+            Console.WriteLine($"[GameManager] Score: {_score}");
+            Console.WriteLine($"[GameManager] Game Time: {_gameTime:F2}s");
 
-            if (birdScript != null)
+            if (_birdScript != null)
             {
-                var birdPos = birdScript.GetBirdPosition();
+                var birdPos = _birdScript.GetBirdPosition();
                 Console.WriteLine(
-                    $"[GameManager] Bird: ({birdPos.X:F2}, {birdPos.Y:F2}) - Dead: {birdScript.IsBirdDead()}");
+                    $"[GameManager] Bird: ({birdPos.X:F2}, {birdPos.Y:F2}) - Dead: {_birdScript.IsBirdDead()}");
             }
 
             // Count pipes
@@ -259,42 +259,42 @@ public class FlappyBirdGameManager : ScriptableEntity
             Console.WriteLine($"[GameManager] Active Pipes: {pipeCount}");
 
             Console.WriteLine($"[GameManager] ========================");
-            lastDebugLogTime = 0.0f;
+            _lastDebugLogTime = 0.0f;
         }
 
         // Log score changes immediately
-        if (score != lastScore)
+        if (_score != _lastScore)
         {
-            Console.WriteLine($"[GameManager] SCORE CHANGE: {lastScore} -> {score}");
-            lastScore = score;
+            Console.WriteLine($"[GameManager] SCORE CHANGE: {_lastScore} -> {_score}");
+            _lastScore = _score;
         }
 
         // Log state changes immediately
-        if (gameState != lastGameState)
+        if (_gameState != _lastGameState)
         {
-            Console.WriteLine($"[GameManager] STATE CHANGE: {lastGameState} -> {gameState}");
-            lastGameState = gameState;
+            Console.WriteLine($"[GameManager] STATE CHANGE: {_lastGameState} -> {_gameState}");
+            _lastGameState = _gameState;
         }
     }
 
     // Public getters for other scripts
     public GameState GetGameState()
     {
-        return gameState;
+        return _gameState;
     }
 
     public int GetScore()
     {
-        return score;
+        return _score;
     }
 
     public float GetGameTime()
     {
-        return gameTime;
+        return _gameTime;
     }
 
     public Vector3 GetBirdPosition()
     {
-        return birdScript?.GetBirdPosition() ?? Vector3.Zero;
+        return _birdScript?.GetBirdPosition() ?? Vector3.Zero;
     }
 }

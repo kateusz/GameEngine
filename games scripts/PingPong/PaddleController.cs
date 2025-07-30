@@ -7,19 +7,19 @@ using Engine.Scene.Components;
 public class PaddleController : ScriptableEntity
 {
     // Public fields (editable in editor)
-    public float paddleSpeed = 8.0f;
-    public bool isPlayerOne = true; // true = left paddle (WASD), false = right paddle (arrows)
-    public float boundaryTop = 4.0f;
-    public float boundaryBottom = -4.0f;
+    public float PaddleSpeed = 8.0f;
+    public bool IsPlayerOne = true; // true = left paddle (WASD), false = right paddle (arrows)
+    public float BoundaryTop = 4.0f;
+    public float BoundaryBottom = -4.0f;
     
     // Private fields
-    private TransformComponent transformComponent;
-    private RigidBody2DComponent rigidBodyComponent;
-    private Vector3 startPosition;
+    private TransformComponent _transformComponent;
+    private RigidBody2DComponent _rigidBodyComponent;
+    private Vector3 _startPosition;
     
     public override void OnCreate()
     {
-        Console.WriteLine($"[PaddleController] Paddle created - Player {(isPlayerOne ? "One" : "Two")}");
+        Console.WriteLine($"[PaddleController] Paddle created - Player {(IsPlayerOne ? "One" : "Two")}");
         
         // Get required components
         if (!HasComponent<TransformComponent>())
@@ -28,17 +28,17 @@ public class PaddleController : ScriptableEntity
             return;
         }
         
-        transformComponent = GetComponent<TransformComponent>();
-        startPosition = transformComponent.Translation;
+        _transformComponent = GetComponent<TransformComponent>();
+        _startPosition = _transformComponent.Translation;
         
         // Get physics component if available
         if (HasComponent<RigidBody2DComponent>())
         {
-            rigidBodyComponent = GetComponent<RigidBody2DComponent>();
+            _rigidBodyComponent = GetComponent<RigidBody2DComponent>();
             Console.WriteLine("[PaddleController] Physics body found");
         }
         
-        Console.WriteLine($"[PaddleController] Paddle initialized at position: {startPosition}");
+        Console.WriteLine($"[PaddleController] Paddle initialized at position: {_startPosition}");
     }
     
     public override void OnUpdate(TimeSpan ts)
@@ -52,7 +52,7 @@ public class PaddleController : ScriptableEntity
     {
         float moveDirection = 0f;
         
-        if (isPlayerOne)
+        if (IsPlayerOne)
         {
             // Player 1 controls (W/S keys)
             if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.W))
@@ -72,49 +72,49 @@ public class PaddleController : ScriptableEntity
         // Apply movement
         if (Math.Abs(moveDirection) > 0.01f)
         {
-            float moveAmount = moveDirection * paddleSpeed * deltaTime;
+            float moveAmount = moveDirection * PaddleSpeed * deltaTime;
             
-            if (rigidBodyComponent?.RuntimeBody != null)
+            if (_rigidBodyComponent?.RuntimeBody != null)
             {
                 // Use physics movement
-                var body = rigidBodyComponent.RuntimeBody;
+                var body = _rigidBodyComponent.RuntimeBody;
                 var currentPos = body.GetPosition();
                 var newY = currentPos.Y + moveAmount;
                 
                 // Clamp to boundaries
-                newY = Math.Clamp(newY, boundaryBottom, boundaryTop);
+                newY = Math.Clamp(newY, BoundaryBottom, BoundaryTop);
                 
                 body.SetTransform(new Vector2(currentPos.X, newY), body.GetAngle());
             }
             else
             {
                 // Use direct transform movement
-                var currentPos = transformComponent.Translation;
+                var currentPos = _transformComponent.Translation;
                 var newY = currentPos.Y + moveAmount;
                 
                 // Clamp to boundaries
-                newY = Math.Clamp(newY, boundaryBottom, boundaryTop);
+                newY = Math.Clamp(newY, BoundaryBottom, BoundaryTop);
                 
-                transformComponent.Translation = new Vector3(currentPos.X, newY, currentPos.Z);
-                SetComponent(transformComponent);
+                _transformComponent.Translation = new Vector3(currentPos.X, newY, currentPos.Z);
+                SetComponent(_transformComponent);
             }
         }
     }
     
     private void EnforceBoundaries()
     {
-        var currentPos = transformComponent.Translation;
+        var currentPos = _transformComponent.Translation;
         
-        if (currentPos.Y > boundaryTop || currentPos.Y < boundaryBottom)
+        if (currentPos.Y > BoundaryTop || currentPos.Y < BoundaryBottom)
         {
-            var clampedY = Math.Clamp(currentPos.Y, boundaryBottom, boundaryTop);
-            transformComponent.Translation = new Vector3(currentPos.X, clampedY, currentPos.Z);
-            SetComponent(transformComponent);
+            var clampedY = Math.Clamp(currentPos.Y, BoundaryBottom, BoundaryTop);
+            _transformComponent.Translation = new Vector3(currentPos.X, clampedY, currentPos.Z);
+            SetComponent(_transformComponent);
             
             // Also update physics body if present
-            if (rigidBodyComponent?.RuntimeBody != null)
+            if (_rigidBodyComponent?.RuntimeBody != null)
             {
-                var body = rigidBodyComponent.RuntimeBody;
+                var body = _rigidBodyComponent.RuntimeBody;
                 body.SetTransform(new Vector2(currentPos.X, clampedY), body.GetAngle());
             }
         }
@@ -122,15 +122,15 @@ public class PaddleController : ScriptableEntity
     
     public void ResetPosition()
     {
-        Console.WriteLine($"[PaddleController] Resetting paddle to start position: {startPosition}");
+        Console.WriteLine($"[PaddleController] Resetting paddle to start position: {_startPosition}");
         
-        transformComponent.Translation = startPosition;
-        SetComponent(transformComponent);
+        _transformComponent.Translation = _startPosition;
+        SetComponent(_transformComponent);
         
-        if (rigidBodyComponent?.RuntimeBody != null)
+        if (_rigidBodyComponent?.RuntimeBody != null)
         {
-            var body = rigidBodyComponent.RuntimeBody;
-            body.SetTransform(new Vector2(startPosition.X, startPosition.Y), 0);
+            var body = _rigidBodyComponent.RuntimeBody;
+            body.SetTransform(new Vector2(_startPosition.X, _startPosition.Y), 0);
             body.SetLinearVelocity(Vector2.Zero);
         }
     }

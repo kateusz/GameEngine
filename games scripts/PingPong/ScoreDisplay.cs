@@ -6,34 +6,34 @@ using Engine.Scene.Components;
 public class ScoreDisplay : ScriptableEntity
 {
     // Public fields (editable in editor)
-    public float displayUpdateInterval = 0.1f; // How often to update display
-    public bool showDebugInfo = true;
-    public bool showInstructions = true;
+    public float DisplayUpdateInterval = 0.1f; // How often to update display
+    public bool ShowDebugInfo = true;
+    public bool ShowInstructions = true;
     
     // Private fields
-    private Entity gameManagerEntity;
-    private PingPongGameManager gameManager;
-    private float updateTimer = 0f;
-    private bool hasConnectedToGameManager = false;
+    private Entity _gameManagerEntity;
+    private PingPongGameManager _gameManager;
+    private float _updateTimer = 0f;
+    private bool _hasConnectedToGameManager = false;
     
     // Display strings (could be used with UI text components)
-    private string scoreText = "";
-    private string stateText = "";
-    private string instructionText = "";
+    private string _scoreText = "";
+    private string _stateText = "";
+    private string _instructionText = "";
     
     public override void OnCreate()
     {
         Console.WriteLine("[ScoreDisplay] Score Display initialized");
         
         // Find and connect to Game Manager
-        gameManagerEntity = FindEntity("Game Manager");
-        if (gameManagerEntity != null)
+        _gameManagerEntity = FindEntity("Game Manager");
+        if (_gameManagerEntity != null)
         {
-            var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
+            var scriptComponent = _gameManagerEntity.GetComponent<NativeScriptComponent>();
             if (scriptComponent?.ScriptableEntity is PingPongGameManager manager)
             {
-                gameManager = manager;
-                hasConnectedToGameManager = true;
+                _gameManager = manager;
+                _hasConnectedToGameManager = true;
                 Console.WriteLine("[ScoreDisplay] Connected to Game Manager");
             }
         }
@@ -48,33 +48,33 @@ public class ScoreDisplay : ScriptableEntity
     public override void OnUpdate(TimeSpan ts)
     {
         float deltaTime = (float)ts.TotalSeconds;
-        updateTimer += deltaTime;
+        _updateTimer += deltaTime;
         
         // Try to connect to game manager if not connected
-        if (!hasConnectedToGameManager)
+        if (!_hasConnectedToGameManager)
         {
             ConnectToGameManager();
             return;
         }
         
         // Update display at intervals
-        if (updateTimer >= displayUpdateInterval)
+        if (_updateTimer >= DisplayUpdateInterval)
         {
             UpdateDisplayStrings();
-            updateTimer = 0f;
+            _updateTimer = 0f;
         }
     }
     
     private void ConnectToGameManager()
     {
-        gameManagerEntity = FindEntity("Game Manager");
-        if (gameManagerEntity != null)
+        _gameManagerEntity = FindEntity("Game Manager");
+        if (_gameManagerEntity != null)
         {
-            var scriptComponent = gameManagerEntity.GetComponent<NativeScriptComponent>();
+            var scriptComponent = _gameManagerEntity.GetComponent<NativeScriptComponent>();
             if (scriptComponent?.ScriptableEntity is PingPongGameManager manager)
             {
-                gameManager = manager;
-                hasConnectedToGameManager = true;
+                _gameManager = manager;
+                _hasConnectedToGameManager = true;
                 Console.WriteLine("[ScoreDisplay] Connected to Game Manager");
             }
         }
@@ -82,19 +82,19 @@ public class ScoreDisplay : ScriptableEntity
     
     private void UpdateDisplayStrings()
     {
-        if (gameManager == null) return;
+        if (_gameManager == null) return;
         
-        var gameState = gameManager.GetGameState();
-        var player1Score = gameManager.GetPlayer1Score();
-        var player2Score = gameManager.GetPlayer2Score();
-        var gameTime = gameManager.GetGameTime();
-        var isPlayer1Turn = gameManager.IsPlayer1Turn();
+        var gameState = _gameManager.GetGameState();
+        var player1Score = _gameManager.GetPlayer1Score();
+        var player2Score = _gameManager.GetPlayer2Score();
+        var gameTime = _gameManager.GetGameTime();
+        var isPlayer1Turn = _gameManager.IsPlayer1Turn();
         
         // Update score text
-        scoreText = $"Player 1: {player1Score}  |  Player 2: {player2Score}";
+        _scoreText = $"Player 1: {player1Score}  |  Player 2: {player2Score}";
         
         // Update state text
-        stateText = gameState switch
+        _stateText = gameState switch
         {
             PingPongGameState.Menu => "PING PONG - Press SPACE to Start",
             PingPongGameState.Serving => $"Player {(isPlayer1Turn ? "1" : "2")} Serves - Press SPACE",
@@ -105,9 +105,9 @@ public class ScoreDisplay : ScriptableEntity
         };
         
         // Update instruction text
-        if (showInstructions)
+        if (ShowInstructions)
         {
-            instructionText = gameState switch
+            _instructionText = gameState switch
             {
                 PingPongGameState.Menu => "Controls: Player 1 (W/S), Player 2 (Up/Down), Space to Start",
                 PingPongGameState.Serving => "Press SPACE to serve or wait for auto-serve",
@@ -136,17 +136,17 @@ public class ScoreDisplay : ScriptableEntity
         if (ShouldOutputToConsole())
         {
             Console.WriteLine("========================================");
-            Console.WriteLine($"    {scoreText}");
-            Console.WriteLine($"    {stateText}");
-            if (showInstructions && !string.IsNullOrEmpty(instructionText))
+            Console.WriteLine($"    {_scoreText}");
+            Console.WriteLine($"    {_stateText}");
+            if (ShowInstructions && !string.IsNullOrEmpty(_instructionText))
             {
-                Console.WriteLine($"    {instructionText}");
+                Console.WriteLine($"    {_instructionText}");
             }
             Console.WriteLine("========================================");
         }
         
         // Always output debug info if enabled
-        if (showDebugInfo && gameManager != null)
+        if (ShowDebugInfo && _gameManager != null)
         {
             OutputDebugInfo();
         }
@@ -156,53 +156,53 @@ public class ScoreDisplay : ScriptableEntity
     {
         // This is a simple implementation - you might want to track previous state
         // and only output when something changes
-        return gameManager != null && 
-               (gameManager.GetGameState() == PingPongGameState.Menu ||
-                gameManager.GetGameState() == PingPongGameState.GameOver ||
-                gameManager.GetGameState() == PingPongGameState.Serving);
+        return _gameManager != null && 
+               (_gameManager.GetGameState() == PingPongGameState.Menu ||
+                _gameManager.GetGameState() == PingPongGameState.GameOver ||
+                _gameManager.GetGameState() == PingPongGameState.Serving);
     }
     
     private void OutputDebugInfo()
     {
-        var gameState = gameManager.GetGameState();
-        var gameTime = gameManager.GetGameTime();
+        var gameState = _gameManager.GetGameState();
+        var gameTime = _gameManager.GetGameTime();
         
         // Only output debug info occasionally to avoid spam
-        if (updateTimer <= 0.01f) // Only on first update of interval
+        if (_updateTimer <= 0.01f) // Only on first update of interval
         {
             Console.WriteLine($"[ScoreDisplay] Debug - State: {gameState}, Time: {gameTime:F1}s");
         }
     }
     
     // Public methods for UI system integration
-    public string GetScoreText() => scoreText;
-    public string GetStateText() => stateText;
-    public string GetInstructionText() => instructionText;
+    public string GetScoreText() => _scoreText;
+    public string GetStateText() => _stateText;
+    public string GetInstructionText() => _instructionText;
     
     public void SetDisplayUpdateInterval(float interval)
     {
-        displayUpdateInterval = Math.Max(0.05f, interval);
+        DisplayUpdateInterval = Math.Max(0.05f, interval);
     }
     
     public void EnableDebugInfo(bool enable)
     {
-        showDebugInfo = enable;
+        ShowDebugInfo = enable;
     }
     
     public void EnableInstructions(bool enable)
     {
-        showInstructions = enable;
+        ShowInstructions = enable;
     }
     
     // Method to get formatted game info for external systems
     public string GetFormattedGameInfo()
     {
-        if (gameManager == null) return "Game Manager not connected";
+        if (_gameManager == null) return "Game Manager not connected";
         
-        var player1Score = gameManager.GetPlayer1Score();
-        var player2Score = gameManager.GetPlayer2Score();
-        var gameState = gameManager.GetGameState();
-        var gameTime = gameManager.GetGameTime();
+        var player1Score = _gameManager.GetPlayer1Score();
+        var player2Score = _gameManager.GetPlayer2Score();
+        var gameState = _gameManager.GetGameState();
+        var gameTime = _gameManager.GetGameTime();
         
         return $"Score: {player1Score}-{player2Score} | State: {gameState} | Time: {gameTime:F1}s";
     }

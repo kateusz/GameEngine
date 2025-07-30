@@ -4,7 +4,7 @@ namespace Editor.Publisher;
 
 public class GamePublisher
 {
-    private static string BuildDirectory = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Builds");
+    private static string _buildDirectory = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Builds");
     
     public void Publish()
     {
