@@ -15,7 +15,6 @@ namespace Engine.Platform.SilkNet;
 
 public class SilkNetTexture2D : Texture2D
 {
-    private readonly string _path;
     private readonly uint _rendererId;
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
@@ -30,13 +29,13 @@ public class SilkNetTexture2D : Texture2D
         Width = width;
         Height = height;
 
-        _path = string.Empty;
+        Path = string.Empty;
     }
 
     private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat) : this(rendererId, width, height, internalFormat, dataFormat)
     {
-        _path = path;
+        Path = path;
     }
 
     public override uint GetRendererId()

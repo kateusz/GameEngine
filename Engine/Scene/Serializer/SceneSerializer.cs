@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scripting;
 using ZLinq;
@@ -122,7 +123,7 @@ public class SceneSerializer
                 AddComponent<CameraComponent>(entity, componentObj);
                 break;
             case nameof(SpriteRendererComponent):
-                AddComponent<SpriteRendererComponent>(entity, componentObj);
+                DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
@@ -136,6 +137,20 @@ public class SceneSerializer
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
         }
+    }
+
+    private static void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null) 
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = TextureFactory.Create(component.Texture.Path);
+        }
+        
+        entity.AddComponent(component);
     }
 
     private static void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
