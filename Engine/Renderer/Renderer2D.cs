@@ -70,11 +70,11 @@ public class Renderer2D
 
         if (OSInfo.IsWindows)
         {
-            viewProj = camera.Projection * transformInverted;
+            viewProj =  transformInverted * camera.Projection;
         }
         else if (OSInfo.IsMacOS)
         {
-            viewProj = transformInverted * camera.Projection;
+            viewProj = camera.Projection * transformInverted;
         }
         else
             throw new InvalidOperationException("Unsupported OS version!");

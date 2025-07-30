@@ -61,6 +61,7 @@ public class Scene
                 entitiesToKeep.Add(existingEntity);
             }
         }
+
         var updated = new ConcurrentBag<Entity>(entitiesToKeep);
         Context.Instance.Entities = updated;
     }
@@ -223,14 +224,14 @@ public class Scene
             Renderer2D.Instance.EndScene();
         }
     }
-    
+
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
         //TODO: temp disable 3D
         /*
         var baseCamera = camera;
         Matrix4x4 cameraTransform = Matrix4x4.CreateTranslation(camera.Position);
-        
+
         Renderer3D.Instance.BeginScene(baseCamera, cameraTransform);
 
         var modelGroup = Context.Instance.GetGroup([

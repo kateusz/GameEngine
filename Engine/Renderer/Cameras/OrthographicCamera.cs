@@ -9,7 +9,7 @@ public class OrthographicCamera
     {
         Position = Vector3.Zero;
         Rotation = 0.0f;
-        Scale = Vector3.Zero;
+        Scale = Vector3.One;
 
         ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left, right, bottom, top, -1.0f, 1.0f);
         ViewMatrix = Matrix4x4.Identity;

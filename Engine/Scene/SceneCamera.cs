@@ -41,12 +41,12 @@ public class SceneCamera : Camera
     {
         if (OSInfo.IsWindows)
         {
-            OrthographicNear = -1.0f;
+            OrthographicNear = 0.0f;
             OrthographicFar = 1.0f;
         }
         else if (OSInfo.IsMacOS)
         {
-            OrthographicNear = 0.0f;
+            OrthographicNear = -1.0f;
             OrthographicFar = 1.0f;
         }
 
@@ -74,6 +74,7 @@ public class SceneCamera : Camera
     public void SetViewportSize(uint width, uint height)
     {
         AspectRatio = (float)width / (float)height;
+        RecalculateProjection();
     }
 
     public void SetOrthographicSize(float size)
@@ -95,11 +96,13 @@ public class SceneCamera : Camera
             var orthoRight = OrthographicSize * AspectRatio;
             var orthoBottom = -OrthographicSize;
             var orthoTop = OrthographicSize;
-
+            
             Projection = Matrix4x4.CreateOrthographicOffCenter(orthoLeft, orthoRight, orthoBottom, orthoTop,
                 OrthographicNear, OrthographicFar);
         }
     }
+
+    
 
     public void SetPerspectiveVerticalFOV(float verticalFov) { PerspectiveFOV = verticalFov; RecalculateProjection(); }
     public void SetPerspectiveNearClip(float nearClip) { PerspectiveNear = nearClip; RecalculateProjection(); }

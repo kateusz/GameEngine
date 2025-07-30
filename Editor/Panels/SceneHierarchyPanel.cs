@@ -12,7 +12,8 @@ namespace Editor.Panels;
 
 public class SceneHierarchyPanel
 {
-    private static readonly string[] BodyTypeStrings = [RigidBodyType.Static.ToString(), RigidBodyType.Dynamic.ToString(), RigidBodyType.Kinematic.ToString()];
+    private static readonly string[] BodyTypeStrings =
+        [RigidBodyType.Static.ToString(), RigidBodyType.Dynamic.ToString(), RigidBodyType.Kinematic.ToString()];
 
     private Scene _context;
     private Entity? _selectionContext;
@@ -53,7 +54,7 @@ public class SceneHierarchyPanel
                 entity.AddComponent<TransformComponent>();
                 entity.AddComponent<IdComponent>();
             }
-            
+
             // Add a new menu item for 3D objects
             if (ImGui.MenuItem("Create 3D Entity"))
             {
@@ -72,7 +73,7 @@ public class SceneHierarchyPanel
         ImGui.Begin("Properties");
         DrawComponents();
         ImGui.End();
-        
+
         // Render script component UI
         ScriptComponentUI.Render();
     }
@@ -101,12 +102,13 @@ public class SceneHierarchyPanel
             tag = System.Text.Encoding.UTF8.GetString(buffer).TrimEnd('\0');
             _selectionContext.Name = tag; // Update entity's name if needed
         }
+
         ImGui.PopItemWidth();
         ImGui.Columns(1);
 
         // Add some vertical spacing
         ImGui.Spacing();
-        
+
         if (ImGui.Button("Add Component"))
             ImGui.OpenPopup("AddComponent");
 
@@ -116,7 +118,15 @@ public class SceneHierarchyPanel
             {
                 if (ImGui.MenuItem("Camera"))
                 {
-                    _selectionContext.AddComponent<CameraComponent>();
+                    var c = new CameraComponent();
+                    c.Camera.SetViewportSize(1280, 720);
+                    _selectionContext.AddComponent(c);
+                    
+                    _selectionContext.AddComponent(new NativeScriptComponent
+                    {
+                        ScriptableEntity = new CameraController()
+                    });
+                    
                     ImGui.CloseCurrentPopup();
                 }
             }
@@ -129,7 +139,7 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
-            
+
             if (!_selectionContext.HasComponent<SubTextureRendererComponent>())
             {
                 if (ImGui.MenuItem("Sub Texture Renderer"))
@@ -156,7 +166,7 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
-            
+
             if (!_selectionContext.HasComponent<MeshComponent>())
             {
                 if (ImGui.MenuItem("Mesh Component"))
@@ -174,7 +184,7 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
-            
+
             if (!_selectionContext.HasComponent<NativeScriptComponent>())
             {
                 if (ImGui.MenuItem("Script"))
@@ -183,15 +193,16 @@ public class SceneHierarchyPanel
                     ImGui.CloseCurrentPopup();
                 }
             }
-            
-            
+
+
             ImGui.EndPopup();
         }
 
         ImGui.PopItemWidth();
 
-        DrawComponent<TransformComponent>("Transform", _selectionContext, tc =>
+        DrawComponent<TransformComponent>("Transform", _selectionContext, entity =>
         {
+            var tc = entity.GetComponent<TransformComponent>();
             var newTranslation = tc.Translation;
             DrawVec3Control("Translation", ref newTranslation);
 
@@ -211,10 +222,13 @@ public class SceneHierarchyPanel
 
             if (newScale != tc.Scale)
                 tc.Scale = newScale;
+            
+            entity.SetComponent(tc);
         });
 
-        DrawComponent<CameraComponent>("Camera", _selectionContext, cameraComponent =>
+        DrawComponent<CameraComponent>("Camera", _selectionContext, entity =>
         {
+            var cameraComponent = entity.GetComponent<CameraComponent>();
             var camera = cameraComponent.Camera;
 
             bool primary = cameraComponent.Primary;
@@ -237,11 +251,13 @@ public class SceneHierarchyPanel
                             currentProjectionTypeString = projectionTypeStrings[i];
                             camera.SetProjectionType((ProjectionType)i);
                         }
+
                         if (isSelected)
                         {
                             ImGui.SetItemDefaultFocus();
                         }
                     }
+
                     ImGui.EndCombo();
                 }
             });
@@ -249,21 +265,24 @@ public class SceneHierarchyPanel
             if (camera.ProjectionType == ProjectionType.Perspective)
             {
                 float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
-                UIPropertyRenderer.DrawPropertyRow("Vertical FOV", () => ImGui.DragFloat("##VerticalFOV", ref verticalFov));
+                UIPropertyRenderer.DrawPropertyRow("Vertical FOV",
+                    () => ImGui.DragFloat("##VerticalFOV", ref verticalFov));
                 if (verticalFov != MathHelpers.RadiansToDegrees(camera.PerspectiveFOV))
                 {
                     camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
                 }
 
                 float perspectiveNear = camera.PerspectiveNear;
-                UIPropertyRenderer.DrawPropertyRow("Near", () => ImGui.DragFloat("##PerspectiveNear", ref perspectiveNear));
+                UIPropertyRenderer.DrawPropertyRow("Near",
+                    () => ImGui.DragFloat("##PerspectiveNear", ref perspectiveNear));
                 if (camera.PerspectiveNear != perspectiveNear)
                 {
                     camera.SetPerspectiveNearClip(perspectiveNear);
                 }
 
                 float perspectiveFar = camera.PerspectiveFar;
-                UIPropertyRenderer.DrawPropertyRow("Far", () => ImGui.DragFloat("##PerspectiveFar", ref perspectiveFar));
+                UIPropertyRenderer.DrawPropertyRow("Far",
+                    () => ImGui.DragFloat("##PerspectiveFar", ref perspectiveFar));
                 if (camera.PerspectiveFar != perspectiveFar)
                 {
                     camera.SetPerspectiveFarClip(perspectiveFar);
@@ -294,22 +313,27 @@ public class SceneHierarchyPanel
                 }
 
                 bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
-                UIPropertyRenderer.DrawPropertyRow("Fixed Aspect Ratio", () => ImGui.Checkbox("##FixedAspectRatio", ref fixedAspectRatio));
+                UIPropertyRenderer.DrawPropertyRow("Fixed Aspect Ratio",
+                    () => ImGui.Checkbox("##FixedAspectRatio", ref fixedAspectRatio));
                 if (cameraComponent.FixedAspectRatio != fixedAspectRatio)
                 {
                     cameraComponent.FixedAspectRatio = fixedAspectRatio;
                 }
             }
+            
+            entity.SetComponent(cameraComponent);
         });
-        
-        DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, spriteRendererComponent =>
+
+        DrawComponent<SpriteRendererComponent>("Sprite Renderer", _selectionContext, entity =>
         {
+            var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var newColor = spriteRendererComponent.Color;
             UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##Color", ref newColor));
             if (spriteRendererComponent.Color != newColor)
             {
                 spriteRendererComponent.Color = newColor;
             }
+
             UIPropertyRenderer.DrawPropertyRow("Texture", () =>
             {
                 if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
@@ -330,24 +354,32 @@ public class SceneHierarchyPanel
                         {
                             return;
                         }
+
                         string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
                         spriteRendererComponent.Texture = TextureFactory.Create(texturePath);
                     }
+
                     ImGui.EndDragDropTarget();
                 }
             }
+
             float tillingFactor = spriteRendererComponent.TilingFactor;
-            UIPropertyRenderer.DrawPropertyRow("Tiling Factor", () => ImGui.DragFloat("##TilingFactor", ref tillingFactor, 0.1f, 0.0f, 100.0f));
+            UIPropertyRenderer.DrawPropertyRow("Tiling Factor",
+                () => ImGui.DragFloat("##TilingFactor", ref tillingFactor, 0.1f, 0.0f, 100.0f));
             if (spriteRendererComponent.TilingFactor != tillingFactor)
             {
                 spriteRendererComponent.TilingFactor = tillingFactor;
             }
+            
+            entity.SetComponent(spriteRendererComponent);
         });
-        
-        DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, c =>
+
+        DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", _selectionContext, entity =>
         {
+            var c = entity.GetComponent<SubTextureRendererComponent>();
             var newCoords = c.Coords;
-            UIPropertyRenderer.DrawPropertyRow("Sub texture coords", () => ImGui.DragFloat2("##SubTexCoords", ref newCoords));
+            UIPropertyRenderer.DrawPropertyRow("Sub texture coords",
+                () => ImGui.DragFloat2("##SubTexCoords", ref newCoords));
             if (newCoords != c.Coords)
                 c.Coords = newCoords;
             UIPropertyRenderer.DrawPropertyRow("Texture", () =>
@@ -369,16 +401,21 @@ public class SceneHierarchyPanel
                         {
                             return;
                         }
+
                         string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
                         c.Texture = TextureFactory.Create(texturePath);
                     }
+
                     ImGui.EndDragDropTarget();
                 }
             }
+            
+            entity.SetComponent(c);
         });
 
-        DrawComponent<RigidBody2DComponent>("Rigidbody 2D", _selectionContext, component =>
+        DrawComponent<RigidBody2DComponent>("Rigidbody 2D", _selectionContext, entity =>
         {
+            var component = entity.GetComponent<RigidBody2DComponent>();
             var currentBodyTypeString = component.BodyType.ToString();
             UIPropertyRenderer.DrawPropertyRow("Body Type", () =>
             {
@@ -392,20 +429,26 @@ public class SceneHierarchyPanel
                             component.BodyType = (RigidBodyType)i;
                             currentBodyTypeString = BodyTypeStrings[i];
                         }
+
                         if (isSelected)
                             ImGui.SetItemDefaultFocus();
                     }
+
                     ImGui.EndCombo();
                 }
             });
             bool fixedRotation = component.FixedRotation;
-            UIPropertyRenderer.DrawPropertyRow("Fixed Rotation", () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
+            UIPropertyRenderer.DrawPropertyRow("Fixed Rotation",
+                () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
             if (component.FixedRotation != fixedRotation)
                 component.FixedRotation = fixedRotation;
+            
+            entity.SetComponent(component);
         });
 
-        DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectionContext, component =>
+        DrawComponent<BoxCollider2DComponent>("Box Collider 2D", _selectionContext, entity =>
         {
+            var component = entity.GetComponent<BoxCollider2DComponent>();
             var offset = component.Offset;
             UIPropertyRenderer.DrawPropertyRow("Offset", () => ImGui.DragFloat2("##Offset", ref offset));
             if (component.Offset != offset)
@@ -415,122 +458,136 @@ public class SceneHierarchyPanel
             if (component.Size != size)
                 component.Size = size;
             float density = component.Density;
-            UIPropertyRenderer.DrawPropertyRow("Density", () => ImGui.DragFloat("##Density", ref density, 0.1f, 0.0f, 1.0f));
+            UIPropertyRenderer.DrawPropertyRow("Density",
+                () => ImGui.DragFloat("##Density", ref density, 0.1f, 0.0f, 1.0f));
             if (component.Density != density)
                 component.Density = density;
             float friction = component.Friction;
-            UIPropertyRenderer.DrawPropertyRow("Friction", () => ImGui.DragFloat("##Friction", ref friction, 0.1f, 0.0f, 1.0f));
+            UIPropertyRenderer.DrawPropertyRow("Friction",
+                () => ImGui.DragFloat("##Friction", ref friction, 0.1f, 0.0f, 1.0f));
             if (component.Friction != friction)
                 component.Friction = friction;
             float restitution = component.Restitution;
-            UIPropertyRenderer.DrawPropertyRow("Restitution", () => ImGui.DragFloat("##Restitution", ref restitution, 0.1f, 0.0f, 1.0f));
+            UIPropertyRenderer.DrawPropertyRow("Restitution",
+                () => ImGui.DragFloat("##Restitution", ref restitution, 0.1f, 0.0f, 1.0f));
             if (component.Restitution != restitution)
                 component.Restitution = restitution;
+            
+            entity.SetComponent(component);
         });
-        
-        DrawComponent<MeshComponent>("Mesh", _selectionContext, meshComponent =>
-{
-    // Render the "Load OBJ" button
-    if (ImGui.Button("Load OBJ", new Vector2(100.0f, 0.0f)))
-    {
-        // In a real implementation, you'd use a file dialog here
-        // For now, we'll use a hardcoded path for demonstration
-        //string objPath = "assets/objModels/cube.model";
-        //string objPath = "assets/objModels/tetrahedron.model";
-        //string objPath = "assets/objModels/torus.model";
-        string objPath = "assets/objModels/person.model";
-        if (File.Exists(objPath))
-        {
-            var mesh = MeshFactory.Create(objPath);
-            mesh.Initialize();
-            meshComponent.SetMesh(mesh);
-        }
-    }
 
-    // Display the mesh name
-    ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
-    ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
-    ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
-    
-    // Begin drag-and-drop target handling for OBJ files
-    if (ImGui.BeginDragDropTarget())
-    {
-        unsafe
+        DrawComponent<MeshComponent>("Mesh", _selectionContext, entity =>
         {
-            ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-            if (payload.NativePtr != null)
+            var meshComponent = entity.GetComponent<MeshComponent>();
+            // Render the "Load OBJ" button
+            if (ImGui.Button("Load OBJ", new Vector2(100.0f, 0.0f)))
             {
-                var path = Marshal.PtrToStringUni(payload.Data);
-                if (path is not null && path.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+                // In a real implementation, you'd use a file dialog here
+                // For now, we'll use a hardcoded path for demonstration
+                //string objPath = "assets/objModels/cube.model";
+                //string objPath = "assets/objModels/tetrahedron.model";
+                //string objPath = "assets/objModels/torus.model";
+                string objPath = "assets/objModels/person.model";
+                if (File.Exists(objPath))
                 {
-                    string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
-                    var mesh = MeshFactory.Create(fullPath);
+                    var mesh = MeshFactory.Create(objPath);
                     mesh.Initialize();
                     meshComponent.SetMesh(mesh);
                 }
             }
-            ImGui.EndDragDropTarget();
-        }
-    }
-});
 
-DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, modelRendererComponent =>
-{
-    var newColor = modelRendererComponent.Color;
-    UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##ModelColor", ref newColor));
-    if (modelRendererComponent.Color != newColor)
-    {
-        modelRendererComponent.Color = newColor;
-    }
-    UIPropertyRenderer.DrawPropertyRow("Texture", () =>
-    {
-        if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
-        {
-            // Optional: Handle button click logic if needed
-        }
-    });
-    if (ImGui.BeginDragDropTarget())
-    {
-        unsafe
-        {
-            ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-            if (payload.NativePtr != null)
+            // Display the mesh name
+            ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
+            ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
+            ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+
+            // Begin drag-and-drop target handling for OBJ files
+            if (ImGui.BeginDragDropTarget())
             {
-                var path = Marshal.PtrToStringUni(payload.Data);
-                if (path is null)
+                unsafe
                 {
-                    return;
-                }
+                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                    if (payload.NativePtr != null)
+                    {
+                        var path = Marshal.PtrToStringUni(payload.Data);
+                        if (path is not null && path.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
+                            var mesh = MeshFactory.Create(fullPath);
+                            mesh.Initialize();
+                            meshComponent.SetMesh(mesh);
+                        }
+                    }
 
-                string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
-                if (File.Exists(texturePath) && (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
-                {
-                    modelRendererComponent.OverrideTexture = TextureFactory.Create(texturePath);
+                    ImGui.EndDragDropTarget();
                 }
             }
-            ImGui.EndDragDropTarget();
-        }
-    }
-    
-    // Shadow options
-    bool castShadows = modelRendererComponent.CastShadows;
-    UIPropertyRenderer.DrawPropertyRow("Cast Shadows", () => ImGui.Checkbox("##CastShadows", ref castShadows));
-    if (modelRendererComponent.CastShadows != castShadows)
-        modelRendererComponent.CastShadows = castShadows;
-    
-    bool receiveShadows = modelRendererComponent.ReceiveShadows;
-    UIPropertyRenderer.DrawPropertyRow("Receive Shadows", () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
-    if (modelRendererComponent.ReceiveShadows != receiveShadows)
-        modelRendererComponent.ReceiveShadows = receiveShadows;
-});
+            
+            entity.SetComponent(meshComponent);
+        });
+
+        DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, entity =>
+        {
+            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+            var newColor = modelRendererComponent.Color;
+            UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##ModelColor", ref newColor));
+            if (modelRendererComponent.Color != newColor)
+            {
+                modelRendererComponent.Color = newColor;
+            }
+
+            UIPropertyRenderer.DrawPropertyRow("Texture", () =>
+            {
+                if (ImGui.Button("Texture", new Vector2(-1, 0.0f)))
+                {
+                    // Optional: Handle button click logic if needed
+                }
+            });
+            if (ImGui.BeginDragDropTarget())
+            {
+                unsafe
+                {
+                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+                    if (payload.NativePtr != null)
+                    {
+                        var path = Marshal.PtrToStringUni(payload.Data);
+                        if (path is null)
+                        {
+                            return;
+                        }
+
+                        string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                        if (File.Exists(texturePath) && (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
+                        {
+                            modelRendererComponent.OverrideTexture = TextureFactory.Create(texturePath);
+                        }
+                    }
+
+                    ImGui.EndDragDropTarget();
+                }
+            }
+
+            // Shadow options
+            bool castShadows = modelRendererComponent.CastShadows;
+            UIPropertyRenderer.DrawPropertyRow("Cast Shadows", () => ImGui.Checkbox("##CastShadows", ref castShadows));
+            if (modelRendererComponent.CastShadows != castShadows)
+                modelRendererComponent.CastShadows = castShadows;
+
+            bool receiveShadows = modelRendererComponent.ReceiveShadows;
+            UIPropertyRenderer.DrawPropertyRow("Receive Shadows",
+                () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
+            if (modelRendererComponent.ReceiveShadows != receiveShadows)
+                modelRendererComponent.ReceiveShadows = receiveShadows;
+            
+            entity.SetComponent(modelRendererComponent);
+        });
 
         ScriptComponentUI.DrawScriptComponent(_selectionContext);
 
         ImGui.End();
     }
 
-
-    public static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
+    public static void DrawComponent<T>(string name, Entity entity, Action<Entity> uiFunction) where T : IComponent
     {
         ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
                                                                           | ImGuiTreeNodeFlags.SpanAvailWidth |
@@ -539,7 +596,6 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
 
         if (entity.HasComponent<T>())
         {
-            T component = entity.GetComponent<T>();
             Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
@@ -558,7 +614,7 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
 
             if (open)
             {
-                uiFunction(component);
+                uiFunction(entity);
                 ImGui.TreePop();
             }
         }
@@ -649,6 +705,7 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
         ImGui.PopID();
         ImGui.Columns(1);
     }
+
     // todo: remove duplication from DrawVec3Control
     public void DrawVec2Control(string label, ref Vector2 values, float resetValue = 0, float columnWidth = 100.0f)
     {
@@ -684,6 +741,6 @@ DrawComponent<ModelRendererComponent>("Model Renderer", _selectionContext, model
         ImGui.Columns(1);
     }
 
-    
+
     public Entity? GetSelectedEntity() => _selectionContext;
 }
