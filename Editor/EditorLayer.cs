@@ -407,7 +407,7 @@ public class EditorLayer : Layer
             _contentBrowserPanel.OnImGuiRender();
             _consolePanel.OnImGuiRender();
             
-            ScriptComponentUI.Render();
+            ScriptComponentUI.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);

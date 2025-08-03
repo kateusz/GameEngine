@@ -17,31 +17,6 @@ public enum PingPongGameState
     Serving
 }
 
-public class MenuButton
-{
-    public Vector2 Position { get; set; }
-    public Vector2 Size { get; set; }
-    public Entity ButtonEntity { get; set; }
-    public Action OnClick { get; set; }
-    public string ButtonName { get; set; }
-
-    public MenuButton(string name, Vector2 position, Vector2 size, Action onClick)
-    {
-        ButtonName = name;
-        Position = position;
-        Size = size;
-        OnClick = onClick;
-    }
-
-    public bool IsPointInside(Vector2 point)
-    {
-        return point.X >= Position.X - Size.X / 2 &&
-               point.X <= Position.X + Size.X / 2 &&
-               point.Y >= Position.Y - Size.Y / 2 &&
-               point.Y <= Position.Y + Size.Y / 2;
-    }
-}
-
 public class PingPongGameManager : ScriptableEntity
 {
     // Public fields (editable in editor)
@@ -53,12 +28,7 @@ public class PingPongGameManager : ScriptableEntity
     // Game state
     private PingPongGameState _gameState = PingPongGameState.Menu;
 
-    // Menu buttons
-    private MenuButton _playButton;
-    private MenuButton _quitButton;
-    private readonly string _playButtonTexturePath = Path.Combine(AssetsManager.AssetsPath, "textures/play.png");
-    private readonly string _quitButtonTexturePath = Path.Combine(AssetsManager.AssetsPath, "textures/menu.png");
-    
+
     // Camera reference for world-to-screen conversion
     private Entity _cameraEntity;
     private CameraComponent _cameraComponent;
@@ -73,6 +43,8 @@ public class PingPongGameManager : ScriptableEntity
     private Entity _ballEntity;
     private Entity _player1PaddleEntity;
     private Entity _player2PaddleEntity;
+    private Entity _playButtonEntity;
+    private Entity _quitButtonEntity;
 
     // Script references
     private BallController _ballController;
@@ -200,58 +172,7 @@ public class PingPongGameManager : ScriptableEntity
     {
         Console.WriteLine("[PingPongGameManager] Creating menu buttons...");
 
-        // Create Play Button
-        _playButton = new MenuButton(
-            "PlayButton",
-            new Vector2(0.0f, 1.0f), // Position (centered horizontally, above center)
-            new Vector2(4.0f,2.0f), // Size (width, height)
-            () => StartGame()
-        );
-
-        // Create Quit Button  
-        _quitButton = new MenuButton(
-            "QuitButton",
-            new Vector2(0.0f, 0.0f), // Position (centered horizontally, above center)
-            new Vector2(4.0f,2.0f), // Size (width, height)
-            () => QuitGame()
-        );
-
-        // Create visual entities for the buttons
-        CreateButtonEntity(_playButton, _playButtonTexturePath);
-        CreateButtonEntity(_quitButton, _quitButtonTexturePath);
-
         Console.WriteLine("[PingPongGameManager] Menu buttons created successfully!");
-    }
-
-    private void CreateButtonEntity(MenuButton button, string texturePath)
-    {
-        // Create entity for the button
-        var scene = CurrentScene.Instance;
-        button.ButtonEntity = scene.CreateEntity(button.ButtonName);
-
-        // Add transform component
-        var transform = button.ButtonEntity.AddComponent<TransformComponent>();
-        transform.Translation = new Vector3(button.Position.X, button.Position.Y, 0.0f);
-        transform.Scale = new Vector3(button.Size.X, button.Size.Y, 1.0f);
-        
-        // Add sprite renderer with texture
-        var spriteRenderer = button.ButtonEntity.AddComponent<SpriteRendererComponent>();
-        try
-        {
-            spriteRenderer.Texture = TextureFactory.Create(texturePath);
-            Console.WriteLine($"[PingPongGameManager] Texture loaded for {button.ButtonName}: {texturePath}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[PingPongGameManager] Failed to load texture for {button.ButtonName}: {ex.Message}");
-            // Set a default color if texture loading fails
-            spriteRenderer.Color = new Vector4(0.7f, 0.7f, 0.9f, 1.0f); // Light blue
-        }
-
-        // Add ID component
-        button.ButtonEntity.AddComponent<IdComponent>();
-
-        Console.WriteLine($"[PingPongGameManager] Created button entity: {button.ButtonName}");
     }
 
     private void ConnectToEntities()
@@ -296,6 +217,9 @@ public class PingPongGameManager : ScriptableEntity
                 Console.WriteLine("[PingPongGameManager] Connected to Player 2 Paddle");
             }
         }
+
+        _playButtonEntity = FindEntity("PlayButton");
+        _quitButtonEntity = FindEntity("QuitButton");
     }
 
     private void DisplayMenu()
@@ -335,7 +259,7 @@ public class PingPongGameManager : ScriptableEntity
 
     private void HandleMouseClick()
     {
-        if (_gameState != PingPongGameState.Menu) 
+        if (_gameState != PingPongGameState.Menu)
             return;
 
         // Get mouse position
@@ -345,21 +269,21 @@ public class PingPongGameManager : ScriptableEntity
         Console.WriteLine(
             $"[PingPongGameManager] Mouse clicked at screen: ({mousePos.X}, {mousePos.Y}), world: ({worldPos.X}, {worldPos.Y})");
 
-        // Check if click is inside any button
-        if (_playButton.IsPointInside(worldPos))
-        {
-            Console.WriteLine("[PingPongGameManager] Play button clicked!");
-            _playButton.OnClick?.Invoke();
-        }
-        else if (_quitButton.IsPointInside(worldPos))
-        {
-            Console.WriteLine("[PingPongGameManager] Quit button clicked!");
-            _quitButton.OnClick?.Invoke();
-        }
-        else
-        {
-            Console.WriteLine("[PingPongGameManager] Click missed all buttons");
-        }
+        // // Check if click is inside any button
+        // if (_playButton.IsPointInside(worldPos))
+        // {
+        //     Console.WriteLine("[PingPongGameManager] Play button clicked!");
+        //     _playButton.OnClick?.Invoke();
+        // }
+        // else if (_quitButton.IsPointInside(worldPos))
+        // {
+        //     Console.WriteLine("[PingPongGameManager] Quit button clicked!");
+        //     _quitButton.OnClick?.Invoke();
+        // }
+        // else
+        // {
+        //     Console.WriteLine("[PingPongGameManager] Click missed all buttons");
+        // }
     }
 
     private Vector2 ScreenToWorldPosition(Vector2 screenPos)
@@ -570,39 +494,32 @@ public class PingPongGameManager : ScriptableEntity
 
     private void SetButtonVisibility(bool visible)
     {
-        // Enable/disable button entities
-        if (_playButton.ButtonEntity != null)
+        // You might need to implement entity enabling/disabling in your engine
+        // For now, we can move them off-screen or set alpha to 0
+        var playTransform = _playButtonEntity.GetComponent<TransformComponent>();
+        if (!visible)
         {
-            // You might need to implement entity enabling/disabling in your engine
-            // For now, we can move them off-screen or set alpha to 0
-            var playTransform = _playButton.ButtonEntity.GetComponent<TransformComponent>();
-            if (!visible)
-            {
-                playTransform.Translation = new Vector3(-1000, -1000, 0); // Move off-screen
-            }
-            else
-            {
-                playTransform.Translation = new Vector3(_playButton.Position.X, _playButton.Position.Y, 0);
-            }
+            playTransform.Translation = playTransform.Translation with { Z = -5 }; // Move off-screen
         }
-
-        if (_quitButton?.ButtonEntity != null)
+        else
         {
-            var quitTransform = _quitButton.ButtonEntity.GetComponent<TransformComponent>();
-            if (!visible)
-            {
-                quitTransform.Translation = new Vector3(-1000, -1000, 0); // Move off-screen
-            }
-            else
-            {
-                quitTransform.Translation = new Vector3(_quitButton.Position.X, _quitButton.Position.Y, 0);
-            }
+            playTransform.Translation = playTransform.Translation with { Z = 0 };
+        }
+        
+        var quitTransform = _quitButtonEntity.GetComponent<TransformComponent>();
+        if (!visible)
+        {
+            quitTransform.Translation = quitTransform.Translation with { Z = -5 }; // Move off-screen
+        }
+        else
+        {
+            quitTransform.Translation = quitTransform.Translation with { Z = 0 };
         }
     }
 
     private void SetAiDifficulty(float difficulty)
     {
-        if (_aiController == null) 
+        if (_aiController == null)
             return;
 
         // Adjust AI parameters based on difficulty

@@ -60,28 +60,16 @@
       <None Update="libs\cimguizmo.dylib">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\scenes\Example.scene">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
       <None Update="Resources\Icons\PlayButton.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Resources\Icons\StopButton.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\scenes\cube3d.scene">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="assets\scenes\Physics2D.scene">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
       <None Update="assets\textures\bird.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\textures\pipe.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets\scenes\flappy-bird.scene">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\shaders\OpenGL\lineShader.frag">
@@ -130,9 +118,6 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\objModels\torus.model">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets\scenes\person3D.scene">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="assets\textures\skybox\back.png">
@@ -187,17 +172,8 @@
       <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\FlappyBirdController.cs">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      </Compile>
       <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Compile>
-      <Compile Update="assets\scripts\FlappyBirdGameManager.cs">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      </Compile>
-      <Compile Update="assets\scripts\PipeSpawner.cs">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       </Compile>
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\AIController.cs" />
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\BallController.cs" />

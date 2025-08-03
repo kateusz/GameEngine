@@ -10,14 +10,14 @@ using Engine.Scene.Components;
 public class BallController : ScriptableEntity
 {
     // Public fields (editable in editor)
-    public float InitialSpeed = 0.5f;
-    public float MaxSpeed = 2.0f;
-    public float SpeedIncrease = 0.1f; // Speed increase per paddle hit
+    public float InitialSpeed = 5.0f;
+    public float MaxSpeed = 10.0f;
+    public float SpeedIncrease = 0.5f; // Speed increase per paddle hit
     
-    public float BoundaryTop = 4.5f;
-    public float BoundaryBottom = -4.5f;
-    public float BoundaryLeft = -8.0f;
-    public float BoundaryRight = 8.0f;
+    public float BoundaryTop = 6.0f;
+    public float BoundaryBottom = -6.0f;
+    public float BoundaryLeft = -10.0f;
+    public float BoundaryRight = 10.0f;
     
     // Private fields
     private TransformComponent _transformComponent;

@@ -12,18 +12,14 @@ namespace Editor.Panels;
 public static class ScriptComponentUI
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-    private static readonly ScriptEditorWindow ScriptEditor = new ScriptEditorWindow();
 
     private static bool _showCreateScriptPopup = false;
     private static bool _showScriptSelectorPopup = false;
     private static string _newScriptName = string.Empty;
     private static Entity? _selectedEntity = null;
 
-    public static void Render()
+    public static void OnImGuiRender()
     {
-        // Render the script editor window if open
-        ScriptEditor.Render();
-
         // Render popup dialogs
         RenderCreateScriptPopup();
         RenderScriptSelectorPopup();
@@ -44,68 +40,99 @@ public static class ScriptComponentUI
                 ImGui.TextColored(new Vector4(1, 1, 0, 1), $"Script: {scriptType.Name}");
                 if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
                 {
-                    if (ImGui.MenuItem("Edit"))
-                    {
-                        ScriptEditor.Open(scriptType.Name);
-                    }
                     if (ImGui.MenuItem("Remove"))
                     {
                         entity.RemoveComponent<NativeScriptComponent>();
                         ScriptEngine.Instance.ForceRecompile();
                     }
+
                     ImGui.EndPopup();
                 }
+
                 var fields = script.GetExposedFields().ToList();
                 if (!fields.Any())
                 {
                     ImGui.TextColored(new Vector4(1, 0, 0, 1), "No public fields/properties found!");
                 }
+
                 foreach (var (fieldName, fieldType, fieldValue) in fields)
                 {
-                    bool changed = false;
-                    object newValue = fieldValue;
-                    string inputLabel = $"{fieldName}##{fieldName}";
+                    var changed = false;
+                    var newValue = fieldValue;
+                    var inputLabel = $"{fieldName}##{fieldName}";
                     UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
                     {
                         if (fieldType == typeof(int))
                         {
-                            int v = (int)fieldValue;
-                            if (ImGui.DragInt(inputLabel, ref v)) { newValue = v; changed = true; }
+                            var v = (int)fieldValue;
+                            if (ImGui.DragInt(inputLabel, ref v))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(float))
                         {
-                            float v = (float)fieldValue;
-                            if (ImGui.DragFloat(inputLabel, ref v)) { newValue = v; changed = true; }
+                            var v = (float)fieldValue;
+                            if (ImGui.DragFloat(inputLabel, ref v))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(double))
                         {
-                            float v = (float)(double)fieldValue;
-                            if (ImGui.DragFloat(inputLabel, ref v)) { newValue = (double)v; changed = true; }
+                            var v = (float)(double)fieldValue;
+                            if (ImGui.DragFloat(inputLabel, ref v))
+                            {
+                                newValue = (double)v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(bool))
                         {
-                            bool v = (bool)fieldValue;
-                            if (ImGui.Checkbox(inputLabel, ref v)) { newValue = v; changed = true; }
+                            var v = (bool)fieldValue;
+                            if (ImGui.Checkbox(inputLabel, ref v))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(string))
                         {
-                            string v = (string)fieldValue ?? string.Empty;
-                            if (ImGui.InputText(inputLabel, ref v, 256)) { newValue = v; changed = true; }
+                            var v = (string)fieldValue ?? string.Empty;
+                            if (ImGui.InputText(inputLabel, ref v, 256))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(Vector2))
                         {
-                            Vector2 v = (Vector2)fieldValue;
-                            if (ImGui.DragFloat2(inputLabel, ref v)) { newValue = v; changed = true; }
+                            var v = (Vector2)fieldValue;
+                            if (ImGui.DragFloat2(inputLabel, ref v))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(Vector3))
                         {
-                            Vector3 v = (Vector3)fieldValue;
-                            if (ImGui.DragFloat3(inputLabel, ref v)) { newValue = v; changed = true; }
+                            var v = (Vector3)fieldValue;
+                            if (ImGui.DragFloat3(inputLabel, ref v))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                         else if (fieldType == typeof(Vector4))
                         {
-                            Vector4 v = (Vector4)fieldValue;
-                            if (ImGui.ColorEdit4(inputLabel, ref v)) { newValue = v; changed = true; }
+                            var v = (Vector4)fieldValue;
+                            if (ImGui.ColorEdit4(inputLabel, ref v))
+                            {
+                                newValue = v;
+                                changed = true;
+                            }
                         }
                     });
                     if (changed)
@@ -156,8 +183,8 @@ public static class ScriptComponentUI
             ImGui.Separator();
 
             // Validate script name
-            bool isValidName = !string.IsNullOrEmpty(_newScriptName) &&
-                               System.Text.RegularExpressions.Regex.IsMatch(_newScriptName, @"^[a-zA-Z][a-zA-Z0-9_]*$");
+            var isValidName = !string.IsNullOrEmpty(_newScriptName) &&
+                              System.Text.RegularExpressions.Regex.IsMatch(_newScriptName, @"^[a-zA-Z][a-zA-Z0-9_]*$");
 
             if (!isValidName)
             {
@@ -168,41 +195,36 @@ public static class ScriptComponentUI
             }
 
             ImGui.BeginDisabled(!isValidName);
-            if (ImGui.Button("Create and Edit", new Vector2(120, 0)))
+            if (ImGui.Button("Create", new Vector2(120, 0)))
             {
                 _showCreateScriptPopup = false;
-                ScriptEditor.Open(_newScriptName, true, success =>
+                
+                try
                 {
-                    if (success && _selectedEntity != null)
+                    var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(_newScriptName);
+                    if (scriptInstanceResult.IsSuccess)
                     {
-                        try
+                        var scriptInstance = scriptInstanceResult.Value;
+                        if (_selectedEntity.HasComponent<NativeScriptComponent>())
                         {
-                            var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(_newScriptName);
-                            if (scriptInstanceResult.IsSuccess)
+                            _selectedEntity.GetComponent<NativeScriptComponent>().ScriptableEntity =
+                                scriptInstance;
+                        }
+                        else
+                        {
+                            _selectedEntity.AddComponent(new NativeScriptComponent
                             {
-                                var scriptInstance = scriptInstanceResult.Value;
-                                if (_selectedEntity.HasComponent<NativeScriptComponent>())
-                                {
-                                    _selectedEntity.GetComponent<NativeScriptComponent>().ScriptableEntity =
-                                        scriptInstance;
-                                }
-                                else
-                                {
-                                    _selectedEntity.AddComponent(new NativeScriptComponent
-                                    {
-                                        ScriptableEntity = scriptInstance
-                                    });
-                                }
+                                ScriptableEntity = scriptInstance
+                            });
+                        }
 
-                                Logger.Info($"Added script {_newScriptName} to entity {_selectedEntity.Name}");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, $"Failed to create script instance for {_newScriptName}");
-                        }
+                        Logger.Info($"Added script {_newScriptName} to entity {_selectedEntity.Name}");
                     }
-                });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Failed to create script instance for {_newScriptName}");
+                }
             }
 
             ImGui.EndDisabled();
@@ -241,15 +263,15 @@ public static class ScriptComponentUI
             else
             {
                 // Calculate proper height for the listbox
-                float itemHeight = ImGui.GetTextLineHeightWithSpacing();
-                int visibleItems = Math.Min(availableScripts.Length, 10);
-                float listboxHeight = itemHeight * visibleItems + ImGui.GetStyle().FramePadding.Y * 2;
+                var itemHeight = ImGui.GetTextLineHeightWithSpacing();
+                var visibleItems = Math.Min(availableScripts.Length, 10);
+                var listboxHeight = itemHeight * visibleItems + ImGui.GetStyle().FramePadding.Y * 2;
 
                 ImGui.BeginChild("ScriptsList", new Vector2(300, listboxHeight));
 
-                for (int i = 0; i < availableScripts.Length; i++)
+                for (var i = 0; i < availableScripts.Length; i++)
                 {
-                    string scriptName = availableScripts[i];
+                    var scriptName = availableScripts[i];
 
                     if (ImGui.Selectable(scriptName, false, ImGuiSelectableFlags.DontClosePopups))
                     {
@@ -293,12 +315,6 @@ public static class ScriptComponentUI
 
                     if (ImGui.BeginPopup($"ScriptContextMenu_{i}"))
                     {
-                        if (ImGui.MenuItem("Edit"))
-                        {
-                            ScriptEditor.Open(scriptName);
-                            ImGui.CloseCurrentPopup();
-                        }
-
                         if (ImGui.MenuItem("Delete"))
                         {
                             if (ScriptEngine.Instance.DeleteScript(scriptName))
@@ -330,21 +346,21 @@ public static class ScriptComponentUI
     private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : Component
     {
         // Similar to your existing DrawComponent method in SceneHierarchyPanel
-        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
-                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
-                                                                          ImGuiTreeNodeFlags.AllowOverlap |
-                                                                          ImGuiTreeNodeFlags.FramePadding;
+        var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                           | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags.AllowOverlap |
+                                                           ImGuiTreeNodeFlags.FramePadding;
 
         if (entity.HasComponent<T>())
         {
-            T component = entity.GetComponent<T>();
-            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+            var component = entity.GetComponent<T>();
+            var contentRegionAvailable = ImGui.GetContentRegionAvail();
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
-            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            var lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
             ImGui.Separator();
 
-            bool open = ImGui.TreeNodeEx(typeof(T).GetHashCode().ToString(), treeNodeFlags, name);
+            var open = ImGui.TreeNodeEx(typeof(T).GetHashCode().ToString(), treeNodeFlags, name);
             ImGui.PopStyleVar();
 
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
@@ -367,11 +383,11 @@ public static class ScriptComponentUI
             ImGui.Separator();
 
             // Use different tree node flags for placeholder
-            ImGuiTreeNodeFlags placeholderFlags = ImGuiTreeNodeFlags.Framed |
-                                                  ImGuiTreeNodeFlags.SpanAvailWidth |
-                                                  ImGuiTreeNodeFlags.AllowOverlap;
+            var placeholderFlags = ImGuiTreeNodeFlags.Framed |
+                                   ImGuiTreeNodeFlags.SpanAvailWidth |
+                                   ImGuiTreeNodeFlags.AllowOverlap;
 
-            bool open = ImGui.TreeNodeEx($"Add{name}Placeholder", placeholderFlags, $"Add {name}");
+            var open = ImGui.TreeNodeEx($"Add{name}Placeholder", placeholderFlags, $"Add {name}");
             ImGui.PopStyleVar();
 
             if (open)
