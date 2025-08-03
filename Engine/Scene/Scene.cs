@@ -100,8 +100,13 @@ public class Scene
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var shape = new PolygonShape();
                 
-                var center = new Vector2(boxCollider.Offset.X, boxCollider.Offset.Y);
-                shape.SetAsBox(boxCollider.Size.X, boxCollider.Size.Y, center, 0.0f);
+                var actualSizeX = boxCollider.Size.X * transform.Scale.X;
+                var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
+                var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
+                var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
+    
+                var center = new Vector2(actualOffsetX, actualOffsetY);
+                shape.SetAsBox(actualSizeX, actualSizeY, center, 0.0f);
                 
                 var fixtureDef = new FixtureDef
                 {
@@ -252,10 +257,16 @@ public class Scene
             if (entity.HasComponent<BoxCollider2DComponent>())
             {
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
+                var transform = entity.GetComponent<TransformComponent>();
                 var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
 
                 var position = new Vector3(bodyPosition.X, bodyPosition.Y, 0.0f);
-                var size = boxCollider.Size * 2.0f; // Box2D używa half-extents
+                
+                // Box2D używa half-extents
+                var size = new Vector2(
+                    boxCollider.Size.X * 2.0f * transform.Scale.X,
+                    boxCollider.Size.Y * 2.0f * transform.Scale.Y
+                );
 
                 // Używa Twojego istniejącego Renderer2D.DrawRect
                 Renderer2D.Instance.DrawRect(position, size, color, entity.Id);
