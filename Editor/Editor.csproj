@@ -177,6 +177,7 @@
       </Compile>
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\AIController.cs" />
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\BallController.cs" />
+      <Compile Include="bin\Debug\net9.0\pp\assets\scripts\BallDebugger.cs" />
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\PaddleController.cs" />
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\PingPongGameManager.cs" />
       <Compile Include="bin\Debug\net9.0\pp\assets\scripts\ScoreDisplay.cs" />

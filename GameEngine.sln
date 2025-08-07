@@ -20,6 +20,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PingPong", "PingPong", "{D4
 		games scripts\PingPong\PaddleController.cs = games scripts\PingPong\PaddleController.cs
 		games scripts\PingPong\BallController.cs = games scripts\PingPong\BallController.cs
 		games scripts\PingPong\AIController.cs = games scripts\PingPong\AIController.cs
+		games scripts\PingPong\BallDebugger.cs = games scripts\PingPong\BallDebugger.cs
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Runtime", "Runtime\Runtime.csproj", "{8B8D8D73-58E3-4EFE-B546-CE563A3EBAD3}"
