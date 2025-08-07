@@ -36,6 +36,7 @@ public class BenchmarkLayer : Layer
     private float _testElapsedTime;
     private bool _isRunning;
     private int _frameCount;
+    private List<BenchmarkResult> _baselineResults = new();
 
     public BenchmarkLayer(string name) : base(name)
     {
@@ -105,11 +106,13 @@ public class BenchmarkLayer : Layer
             texture.SetData(colors[i], sizeof(uint)); // FIXED: Actually set the color data
             _testTextures[$"color_{i}"] = texture;
         }
+        
+        _testTextures["container"] = TextureFactory.Create("assets/textures/container.png");
     }
 
     private void RenderBenchmarkUI()
     {
-        ImGui.Begin("Benchmark Control");
+        ImGui.Begin("Benchmark Control", ImGuiWindowFlags.AlwaysVerticalScrollbar);
             
         ImGui.Text("Benchmark Configuration");
         ImGui.Separator();
@@ -165,12 +168,25 @@ public class BenchmarkLayer : Layer
 
     private void RenderResultsWindow()
     {
+        ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
         ImGui.Begin("Benchmark Results");
+        
+        
+
             
         if (_results.Count > 0)
         {
             if (ImGui.Button("Clear Results"))
                 _results.Clear();
+            
+            if (ImGui.Button("Save as Baseline"))
+                BenchmarkStorage.SaveBaseline(_results);
+
+            ImGui.SameLine();
+
+            if (ImGui.Button("Load Baseline"))
+                _baselineResults = BenchmarkStorage.LoadBaseline();
+
                 
             ImGui.Separator();
                 
@@ -196,6 +212,29 @@ public class BenchmarkLayer : Layer
                     
                 ImGui.Unindent();
                 ImGui.Separator();
+                
+                var baseline = _baselineResults.FirstOrDefault(b => b.TestName == result.TestName);
+                if (baseline != null)
+                {
+                    ImGui.Text("Comparison with Baseline:");
+                    ImGui.Indent();
+
+                    float fpsDiff = result.AverageFPS - baseline.AverageFPS;
+                    float frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
+
+                    // FPS
+                    ImGui.PushStyleColor(ImGuiCol.Text, fpsDiff >= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
+                    ImGui.Text($"Δ Avg FPS: {fpsDiff:+0.00;-0.00;0.00}");
+                    ImGui.PopStyleColor();
+
+                    // Frame time
+                    ImGui.PushStyleColor(ImGuiCol.Text, frameTimeDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
+                    ImGui.Text($"Δ Frame Time: {frameTimeDiff:+0.00;-0.00;0.00}ms");
+                    ImGui.PopStyleColor();
+
+                    ImGui.Unindent();
+                }
+
             }
         }
         else
@@ -330,9 +369,6 @@ public class BenchmarkLayer : Layer
             case BenchmarkTestType.DrawCallOptimization:
                 SetupDrawCallTest();
                 break;
-            case BenchmarkTestType.ScriptSystem:
-                SetupScriptSystemTest();
-                break;
             case BenchmarkTestType.FullEngine:
                 SetupFullEngineTest();
                 break;
@@ -420,18 +456,6 @@ public class BenchmarkLayer : Layer
             {
                 sprite.Texture = _testTextures.Values.ElementAt(i % _testTextures.Count);
             }
-        }
-    }
-
-    private void SetupScriptSystemTest()
-    {
-        for (int i = 0; i < _scriptEntityCount; i++)
-        {
-            var entity = _currentTestScene.CreateEntity($"ScriptEntity_{i}");
-            entity.AddComponent<TransformComponent>(); // Add required component
-            var script = entity.AddComponent<NativeScriptComponent>();
-            // Note: You'll need to have a test script in your scripts folder
-            // script.Bind<TestBenchmarkScript>();
         }
     }
 
