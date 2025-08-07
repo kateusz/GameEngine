@@ -85,11 +85,11 @@ public class Sandbox2DLayer : Layer
         RendererCommand.Clear();
 
         Renderer2D.Instance.BeginScene(_orthographicCameraController.Camera);
-        
-        Renderer2D.Instance.DrawQuad(new Vector2(0,0), Vector2.One, new Vector4(100, 100, 100, 100));
-        
-        Renderer2D.Instance.DrawLine(new Vector3(0, 0, 0), new Vector3(5, 5, 0), new Vector4(100,100,100,100), 5);
-        Renderer2D.Instance.DrawRect(new Vector3(0, 0, 0), new Vector2(5, 5), new Vector4(100,100,100,100), 5);
+
+        Renderer2D.Instance.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+
+        Renderer2D.Instance.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
+        Renderer2D.Instance.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
 
         // for (var row = 0; row < _mapHeight; row++)
         // {

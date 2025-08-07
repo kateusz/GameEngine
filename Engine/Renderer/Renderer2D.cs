@@ -222,7 +222,7 @@ public class Renderer2D
             var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
                 _data.QuadVertexPositions[i].Z);
 
-            _data.QuadVertexBufferBase.Add(new QuadVertex
+            _data.QuadVertexBufferBase[_data.CurrentVertexBufferIndex] = new QuadVertex
             {
                 Position = Vector3.Transform(vector3, transform),
                 Color = tintColor.Value,
@@ -230,7 +230,7 @@ public class Renderer2D
                 TexIndex = textureIndex,
                 TilingFactor = tilingFactor,
                 EntityId = entityId
-            });
+            };
 
             _data.CurrentVertexBufferIndex++;
         }
@@ -249,21 +249,21 @@ public class Renderer2D
     
     public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
     {
-        _data.LineVertexBufferBase.Add(new LineVertex
+        _data.LineVertexBufferBase[_data.CurrentVertexBufferIndex] = new LineVertex
         {
             Position = p0,
             Color = color,
             EntityId = entityId
-        });
+        };
         
         _data.CurrentLineVertexBufferIndex++;
         
-        _data.LineVertexBufferBase.Add(new LineVertex
+        _data.LineVertexBufferBase[_data.CurrentVertexBufferIndex] = new LineVertex
         {
             Position = p1,
             Color = color,
             EntityId = entityId
-        });
+        };
         
         _data.CurrentLineVertexBufferIndex++;
         _data.LineVertexCount += 2;
@@ -303,12 +303,12 @@ public class Renderer2D
     
     private void StartBatch()
     {
-        _data.QuadVertexBufferBase = [];
+        Array.Clear(_data.QuadVertexBufferBase, 0, _data.QuadVertexBufferBase.Length);
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
         _data.TextureSlotIndex = 1;
 
-        _data.LineVertexBufferBase = [];
+        Array.Clear(_data.LineVertexBufferBase, 0, _data.LineVertexBufferBase.Length);
         _data.LineVertexCount = 0;
         _data.CurrentLineVertexBufferIndex = 0;
     }
@@ -336,7 +336,7 @@ public class Renderer2D
             _data.QuadVertexArray.Bind();
 
             // upload data to GPU
-            _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase.ToArray(), dataSize);
+            _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase, dataSize);
 
             // Bind textures
             for (var i = 0; i < _data.TextureSlotIndex; i++)
@@ -362,7 +362,7 @@ public class Renderer2D
             }
 
             // upload data to GPU
-            _data.LineVertexBuffer.SetData(_data.LineVertexBufferBase.ToArray(), dataSize);
+            _data.LineVertexBuffer.SetData(_data.LineVertexBufferBase, dataSize);
 
             //_data.TextureShader.Bind();
             RendererCommand.SetLineWidth(Renderer2DData.LineWidth);
@@ -387,7 +387,7 @@ public class Renderer2D
         _data.QuadVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
         _data.QuadVertexBuffer.SetLayout(layout);
         _data.QuadVertexArray.AddVertexBuffer(_data.QuadVertexBuffer);
-        _data.QuadVertexBufferBase = new List<QuadVertex>(Renderer2DData.MaxVertices);
+        _data.QuadVertexBufferBase = new QuadVertex[Renderer2DData.MaxVertices];
 
         var quadIndices = CreateQuadIndices();
         var indexBuffer = IndexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
@@ -403,7 +403,7 @@ public class Renderer2D
         _data.LineVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * lineVertexSize));
         _data.LineVertexBuffer.SetLayout(lineLayout);
         _data.LineVertexArray.AddVertexBuffer(_data.LineVertexBuffer);
-        _data.LineVertexBufferBase = new List<LineVertex>(Renderer2DData.MaxVertices);
+        _data.LineVertexBufferBase = new LineVertex[Renderer2DData.MaxVertices];
     }
 
     private void InitWhiteTexture()
@@ -432,10 +432,10 @@ public class Renderer2D
 
     private void InitQuadVertexPositions()
     {
-        _data.QuadVertexPositions.Add(new Vector4(-0.5f, -0.5f, 0.0f, 1.0f));
-        _data.QuadVertexPositions.Add(new Vector4(0.5f, -0.5f, 0.0f, 1.0f));
-        _data.QuadVertexPositions.Add(new Vector4(0.5f, 0.5f, 0.0f, 1.0f));
-        _data.QuadVertexPositions.Add(new Vector4(-0.5f, 0.5f, 0.0f, 1.0f));
+        _data.QuadVertexPositions[0] = new Vector4(-0.5f, -0.5f, 0.0f, 1.0f);
+        _data.QuadVertexPositions[1] = new Vector4(0.5f, -0.5f, 0.0f, 1.0f);
+        _data.QuadVertexPositions[2] = new Vector4(0.5f, 0.5f, 0.0f, 1.0f);
+        _data.QuadVertexPositions[3] = new Vector4(-0.5f, 0.5f, 0.0f, 1.0f);
     }
 
     private static uint[] CreateQuadIndices()

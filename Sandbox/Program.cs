@@ -10,9 +10,9 @@ public class Program
     {
         try
         {
-            InitializeAudio();
+            //InitializeAudio();
 
-            TestBasicAudio();
+            //TestBasicAudio();
             
             var app = new SandboxApplication();
             app.Run();

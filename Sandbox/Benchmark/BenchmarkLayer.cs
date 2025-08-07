@@ -170,9 +170,6 @@ public class BenchmarkLayer : Layer
     {
         ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
         ImGui.Begin("Benchmark Results");
-        
-        
-
             
         if (_results.Count > 0)
         {
