@@ -81,15 +81,15 @@ public class Sandbox2DLayer : Layer
     {
         _orthographicCameraController.OnUpdate(timeSpan);
 
-        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        RendererCommand.Clear();
+        Graphics2D.Instance.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        Graphics2D.Instance.Clear();
 
-        Renderer2D.Instance.BeginScene(_orthographicCameraController.Camera);
+        Graphics2D.Instance.BeginScene(_orthographicCameraController.Camera);
 
-        Renderer2D.Instance.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+        Graphics2D.Instance.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
 
-        Renderer2D.Instance.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
-        Renderer2D.Instance.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
+        Graphics2D.Instance.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
+        Graphics2D.Instance.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
 
         // for (var row = 0; row < _mapHeight; row++)
         // {
@@ -103,7 +103,7 @@ public class Sandbox2DLayer : Layer
         //     }
         // }
 
-        Renderer2D.Instance.EndScene();
+        Graphics2D.Instance.EndScene();
     }
 
     public override void HandleEvent(Event @event)

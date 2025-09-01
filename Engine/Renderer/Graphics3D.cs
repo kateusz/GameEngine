@@ -6,11 +6,12 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-public class Renderer3D
+public class Graphics3D : IGraphics3D
 {
-    private static Renderer3D? _instance;
-    public static Renderer3D Instance => _instance ??= new Renderer3D();
+    private static IGraphics3D? _instance;
+    public static IGraphics3D Instance => _instance ??= new Graphics3D();
     
+    private IRendererAPI _rendererApi = RendererApiFactory.Create();
     private IShader _phongShader;
     private Vector3 _lightPosition = new Vector3(0.0f, 3.0f, 3.0f);
     private Vector3 _lightColor = new Vector3(1.0f, 1.0f, 1.0f);
@@ -89,7 +90,7 @@ public class Renderer3D
         mesh.Bind();
         
         // Draw
-        RendererCommand.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+        _rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
     }
     
@@ -140,4 +141,8 @@ public class Renderer3D
     {
         return _stats;
     }
+    
+    public void SetClearColor(Vector4 color) => _rendererApi.SetClearColor(color);
+
+    public void Clear() => _rendererApi.Clear();
 }

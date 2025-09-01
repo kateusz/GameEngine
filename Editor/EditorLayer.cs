@@ -82,7 +82,7 @@ public class EditorLayer : Layer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
         
-        Renderer3D.Instance.Init();
+        Graphics3D.Instance.Init();
 
         CurrentScene.Set(new Scene(""));
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
@@ -135,12 +135,12 @@ public class EditorLayer : Layer
             CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
-        Renderer2D.Instance.ResetStats();
-        Renderer3D.Instance.ResetStats();
+        Graphics2D.Instance.ResetStats();
+        Graphics3D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        RendererCommand.SetClearColor(_backgroundColor);
-        RendererCommand.Clear();
+        Graphics2D.Instance.SetClearColor(_backgroundColor);
+        Graphics2D.Instance.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
 
@@ -425,7 +425,7 @@ public class EditorLayer : Layer
             RenderPerformanceStats();
 
             ImGui.Separator();
-            var stats = Renderer2D.Instance.GetStats();
+            var stats = Graphics2D.Instance.GetStats();
             ImGui.Text("Renderer2D Stats:");
             ImGui.Text($"Draw Calls: {stats.DrawCalls}");
             ImGui.Text($"Quads: {stats.QuadCount}");
@@ -439,7 +439,7 @@ public class EditorLayer : Layer
             ImGui.Text($"Rotation: {_cameraController.Camera.Rotation:F1}°");
             
             // 3D Stats
-            var stats3D = Renderer3D.Instance.GetStats();
+            var stats3D = Graphics3D.Instance.GetStats();
             ImGui.Text("Renderer3D Stats:");
             ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
 

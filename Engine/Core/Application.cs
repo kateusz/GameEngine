@@ -48,9 +48,8 @@ public class Application : IApplication
 
     private void HandleGameWindowOnLoad()
     {
-        RendererCommand.Init();
-        Renderer2D.Instance.Init();
-        Renderer3D.Instance.Init();
+        Graphics2D.Instance.Init();
+        Graphics3D.Instance.Init();
         AudioEngine.Instance.Initialize();
         
         foreach (var layer in _layersStack)

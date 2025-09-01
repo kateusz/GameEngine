@@ -59,8 +59,8 @@ public class BenchmarkLayer : Layer
         _frameTimer.Restart();
         
         // Clear the screen first
-        RendererCommand.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark gray background
-        RendererCommand.Clear();
+        Graphics2D.Instance.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark gray background
+        Graphics2D.Instance.Clear();
             
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
         {
@@ -269,7 +269,7 @@ public class BenchmarkLayer : Layer
         }
             
         // Renderer stats
-        var stats2D = Renderer2D.Instance.GetStats();
+        var stats2D = Graphics2D.Instance.GetStats();
         ImGui.Separator();
         ImGui.Text("Renderer2D Stats:");
         ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
@@ -517,7 +517,7 @@ public class BenchmarkLayer : Layer
     {
         if (_cameraController?.Camera == null) return;
         
-        Renderer2D.Instance.BeginScene(_cameraController.Camera);
+        Graphics2D.Instance.BeginScene(_cameraController.Camera);
             
         // Render all entities in the test scene
         foreach (var entity in _currentTestScene.Entities)
@@ -529,11 +529,11 @@ public class BenchmarkLayer : Layer
             if (entity.HasComponent<SpriteRendererComponent>())
             {
                 var sprite = entity.GetComponent<SpriteRendererComponent>();
-                Renderer2D.Instance.DrawSprite(transform.GetTransform(), sprite, entity.Id);
+                Graphics2D.Instance.DrawSprite(transform.GetTransform(), sprite, entity.Id);
             }
         }
             
-        Renderer2D.Instance.EndScene();
+        Graphics2D.Instance.EndScene();
     }
 
     private void CleanupTestScene()
@@ -571,7 +571,7 @@ public class BenchmarkLayer : Layer
         switch (_currentTestType)
         {
             case BenchmarkTestType.Renderer2DStress:
-                var stats = Renderer2D.Instance.GetStats();
+                var stats = Graphics2D.Instance.GetStats();
                 result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
                 result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
                 break;

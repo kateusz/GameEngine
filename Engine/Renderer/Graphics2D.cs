@@ -11,16 +11,17 @@ using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
 namespace Engine.Renderer;
 
-public class Renderer2D
+public class Graphics2D : IGraphics2D
 {
-    private static Renderer2D? _instance;
+    private static IGraphics2D? _instance;
 
-    public static Renderer2D Instance => _instance ??= new Renderer2D();
+    public static IGraphics2D Instance => _instance ??= new Graphics2D();
 
+    private IRendererAPI _rendererApi = RendererApiFactory.Create();
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
 
-    static Renderer2D()
+    static Graphics2D()
     {
         DefaultTextureCoords =
         [
@@ -343,7 +344,7 @@ public class Renderer2D
                 _data.TextureSlots[i].Bind(i);
 
             //_data.TextureShader.Bind();
-            RendererCommand.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+            _rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
             _data.Stats.DrawCalls++;
         }
 
@@ -365,8 +366,8 @@ public class Renderer2D
             _data.LineVertexBuffer.SetData(_data.LineVertexBufferBase, dataSize);
 
             //_data.TextureShader.Bind();
-            RendererCommand.SetLineWidth(Renderer2DData.LineWidth);
-            RendererCommand.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
+            _rendererApi.SetLineWidth(Renderer2DData.LineWidth);
+            _rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
             _data.Stats.DrawCalls++;
         }
         
@@ -488,4 +489,8 @@ public class Renderer2D
     }
 
     #endregion
+
+    public void SetClearColor(Vector4 color) => _rendererApi.SetClearColor(color);
+
+    public void Clear() => _rendererApi.Clear();
 }
