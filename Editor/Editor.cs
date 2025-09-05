@@ -1,10 +1,11 @@
 using Engine.Core;
+using Engine.Core.Window;
 
 namespace Editor;
 
 public class Editor : Application
 {
-    public Editor() : base(true)
+    public Editor(IGameWindow gameWindow) : base(gameWindow, true)
     {
         PushLayer(new EditorLayer("Editor Layer"));
     }

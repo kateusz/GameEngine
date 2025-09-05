@@ -83,4 +83,9 @@
       </None>
     </ItemGroup>
 
+
+    <ItemGroup>
+      <PackageReference Include="DryIoc" Version="5.4.3" />
+    </ItemGroup>
+
 </Project>

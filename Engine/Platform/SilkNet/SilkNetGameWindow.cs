@@ -12,13 +12,9 @@ public class SilkNetGameWindow : IGameWindow
 {
     private readonly IWindow _window;
 
-    public SilkNetGameWindow(WindowProps props)
+    public SilkNetGameWindow(IWindow window)
     {
-        WindowOptions options = WindowOptions.Default;
-        options.Size = new Vector2D<int>(props.Width, props.Height);
-        options.Title = "Game Window";
-
-        _window = Window.Create(options);
+        _window = window;
         _window.WindowState = WindowState.Maximized;
 
         _window.Load += WindowOnLoad;
