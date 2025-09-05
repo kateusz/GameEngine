@@ -11,9 +11,9 @@ public class EditorState
     
     public event Action<Entity?> SelectionChanged = delegate { };
     
-    public EditorState()
+    public EditorState(EditorViewportState viewportState)
     {
-        ViewportState = new EditorViewportState();
+        ViewportState = viewportState;
     }
     
     public void SelectEntity(Entity? entity)

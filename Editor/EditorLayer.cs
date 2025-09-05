@@ -1,3 +1,4 @@
+using DryIoc;
 using Editor.Components;
 using Editor.State;
 using Engine.Core;
@@ -22,34 +23,12 @@ public class EditorLayer : Layer
     private ProjectController _projectController;
     private SceneController _sceneController;
     private EditorInputHandler _inputHandler;
+
+    private readonly IContainer _container;
     
-    private readonly Lazy<EditorState> _lazyEditorState;
-    private readonly Lazy<IEditorViewport> _lazyViewport;
-    private readonly Lazy<IEditorUIRenderer> _lazyUiRenderer;
-    private readonly Lazy<IEditorPerformanceMonitor> _lazyPerformanceMonitor;
-    private readonly Lazy<Workspace> _lazyWorkspace;
-    private readonly Lazy<ProjectController> _lazyProjectController;
-    private readonly Lazy<SceneController> _lazySceneController;
-    private readonly Lazy<EditorInputHandler> _lazyInputHandler;
-    
-    public EditorLayer(
-        Lazy<EditorState> editorState,
-        Lazy<IEditorViewport> viewport,
-        Lazy<IEditorUIRenderer> uiRenderer,
-        Lazy<IEditorPerformanceMonitor> performanceMonitor,
-        Lazy<Workspace> workspace,
-        Lazy<ProjectController> projectController,
-        Lazy<SceneController> sceneController,
-        Lazy<EditorInputHandler> inputHandler) : base("EditorLayer")
+    public EditorLayer(IContainer container) : base("EditorLayer")
     {
-        _lazyEditorState = editorState;
-        _lazyViewport = viewport;
-        _lazyUiRenderer = uiRenderer;
-        _lazyPerformanceMonitor = performanceMonitor;
-        _lazyWorkspace = workspace;
-        _lazyProjectController = projectController;
-        _lazySceneController = sceneController;
-        _lazyInputHandler = inputHandler;
+        _container = container;
     }
 
     public override void OnAttach()
@@ -59,7 +38,7 @@ public class EditorLayer : Layer
         CurrentScene.Set(new Scene(""));
         
         InitializeComponents();
-        InitializeManagers();
+        InitializeControllers();
         WireUpEvents();
         InitializeAssets();
         
@@ -69,21 +48,21 @@ public class EditorLayer : Layer
 
     private void InitializeComponents()
     {
-        _editorState = _lazyEditorState.Value;
+        _editorState = _container.Resolve<EditorState>();
         
-        _viewport = _lazyViewport.Value;
+        _viewport = _container.Resolve<IEditorViewport>();
         _viewport.Initialize(1200, 720);
-        
-        _performanceMonitor = _lazyPerformanceMonitor.Value;
-        _uiRenderer = _lazyUiRenderer.Value;
+
+        _performanceMonitor = _container.Resolve<IEditorPerformanceMonitor>();
+        _uiRenderer = _container.Resolve<IEditorUIRenderer>();
     }
 
-    private void InitializeManagers()
+    private void InitializeControllers()
     {
-        _workspace = _lazyWorkspace.Value;
-        _projectController = _lazyProjectController.Value;
-        _sceneController = _lazySceneController.Value;
-        _inputHandler = _lazyInputHandler.Value;
+        _workspace = _container.Resolve<Workspace>();
+        _projectController = _container.Resolve<ProjectController>();
+        _sceneController = _container.Resolve<SceneController>();
+        _inputHandler = _container.Resolve<EditorInputHandler>();
         
         _projectController.Initialize();
         UpdateScriptsDirectory();
@@ -217,19 +196,7 @@ public class EditorLayer : Layer
         _sceneController.OnViewportResize((uint)_editorState.ViewportState.ViewportSize.X, (uint)_editorState.ViewportState.ViewportSize.Y);
     }
 
-    public override void HandleEvent(Event @event)
-    {
-        _inputHandler.HandleEvent(@event, _sceneController.CurrentState);
-    }
+    public override void HandleEvent(Event @event) => _inputHandler.HandleEvent(@event, _sceneController.CurrentState);
 
-    public override void OnImGuiRender()
-    {
-        _uiRenderer.RenderMainUI(
-            _workspace,
-            _viewport,
-            _performanceMonitor,
-            _sceneController,
-            _inputHandler,
-            _projectController);
-    }
+    public override void OnImGuiRender() => _uiRenderer.RenderMainUI();
 }

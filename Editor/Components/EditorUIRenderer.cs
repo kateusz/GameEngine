@@ -10,45 +10,47 @@ namespace Editor.Components;
 
 public interface IEditorUIRenderer
 {
-    void RenderMainUI(
-        Workspace workspace,
-        IEditorViewport viewport,
-        IEditorPerformanceMonitor performanceMonitor,
-        SceneController sceneController,
-        EditorInputHandler inputHandler,
-        ProjectController projectController);
+    void RenderMainUI();
     void Dispose();
 }
 
 public class EditorUIRenderer : IEditorUIRenderer, IDisposable
 {
+    private readonly Workspace? _workspace;
+    private readonly IEditorViewport _viewport;
+    private readonly IEditorPerformanceMonitor _performanceMonitor;
+    private readonly SceneController _sceneController;
+    private readonly EditorInputHandler _inputHandler;
+    private readonly ProjectController? _projectController;
+    
     private readonly Texture2D _iconPlay;
     private readonly Texture2D _iconStop;
     private bool _disposed;
 
-    public EditorUIRenderer()
+    public EditorUIRenderer(Workspace? workspace, IEditorViewport viewport, IEditorPerformanceMonitor performanceMonitor, SceneController sceneController, EditorInputHandler inputHandler, ProjectController? projectController)
     {
+        _workspace = workspace;
+        _viewport = viewport;
+        _performanceMonitor = performanceMonitor;
+        _sceneController = sceneController;
+        _inputHandler = inputHandler;
+        _projectController = projectController;
+        
         _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
         _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
     }
 
-    public void RenderMainUI(
-        Workspace workspace,
-        IEditorViewport viewport,
-        IEditorPerformanceMonitor performanceMonitor,
-        SceneController sceneController,
-        EditorInputHandler inputHandler,
-        ProjectController projectController)
+    public void RenderMainUI()
     {
-        workspace.RenderMainUI(
-            () => RenderToolbar(sceneController),
-            () => RenderViewport(viewport, sceneController, inputHandler, performanceMonitor),
+        _workspace?.RenderMainUI(
+            RenderToolbar,
+            RenderViewport,
             (showSettings) => { });
         
-        projectController.RenderProjectDialogs();
+        _projectController?.RenderProjectDialogs();
     }
 
-    private void RenderToolbar(SceneController sceneController)
+    private void RenderToolbar()
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 2));
         ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
@@ -65,20 +67,20 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         var size = ImGui.GetWindowHeight() - 4.0f;
-        var icon = sceneController.CurrentState == SceneState.Edit ? _iconPlay : _iconStop;
+        var icon = _sceneController.CurrentState == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
 
         if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0),
                 new Vector2(1, 1)))
         {
-            switch (sceneController.CurrentState)
+            switch (_sceneController.CurrentState)
             {
                 case SceneState.Edit:
-                    sceneController.PlayScene();
+                    _sceneController.PlayScene();
                     break;
                 case SceneState.Play:
-                    sceneController.StopScene();
+                    _sceneController.StopScene();
                     break;
             }
         }
@@ -88,11 +90,7 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
         ImGui.End();
     }
 
-    private void RenderViewport(
-        IEditorViewport viewport, 
-        SceneController sceneController, 
-        EditorInputHandler inputHandler,
-        IEditorPerformanceMonitor performanceMonitor)
+    private void RenderViewport()
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
@@ -102,7 +100,7 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
             var viewportMaxRegion = ImGui.GetWindowContentRegionMax();
             var viewportOffset = ImGui.GetWindowPos();
             
-            viewport.UpdateViewportBounds(
+            _viewport.UpdateViewportBounds(
                 new Vector2(viewportMinRegion.X + viewportOffset.X, viewportMinRegion.Y + viewportOffset.Y),
                 new Vector2(viewportMaxRegion.X + viewportOffset.X, viewportMaxRegion.Y + viewportOffset.Y)
             );
@@ -110,15 +108,15 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
             var viewportFocused = ImGui.IsWindowFocused();
             var viewportHovered = ImGui.IsWindowHovered();
             
-            viewport.SetFocusedState(viewportFocused);
-            viewport.SetHoveredState(viewportHovered);
-            inputHandler.ViewportFocused = viewportFocused;
+            _viewport.SetFocusedState(viewportFocused);
+            _viewport.SetHoveredState(viewportHovered);
+            _inputHandler.ViewportFocused = viewportFocused;
             Application.ImGuiLayer.BlockEvents = !viewportFocused && !viewportHovered;
 
             var viewportPanelSize = ImGui.GetContentRegionAvail();
-            viewport.SetViewportSize(viewportPanelSize);
+            _viewport.SetViewportSize(viewportPanelSize);
             
-            var textureId = viewport.GetColorAttachmentId();
+            var textureId = _viewport.GetColorAttachmentId();
             var texturePointer = new IntPtr(textureId);
             ImGui.Image(texturePointer, new Vector2(viewportPanelSize.X, viewportPanelSize.Y), new Vector2(0, 1),
                 new Vector2(1, 0));
@@ -132,7 +130,7 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
                     {
                         var path = Marshal.PtrToStringUni(payload.Data);
                         if (path is not null)
-                            sceneController.OpenScene(Path.Combine(AssetsManager.AssetsPath, path));
+                            _sceneController.OpenScene(Path.Combine(AssetsManager.AssetsPath, path));
                     }
                     ImGui.EndDragDropTarget();
                 }
@@ -143,25 +141,22 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
 
         ImGui.PopStyleVar();
         
-        RenderStatsWindow(viewport, performanceMonitor, inputHandler);
+        RenderStatsWindow();
     }
     
-    private void RenderStatsWindow(
-        IEditorViewport viewport, 
-        IEditorPerformanceMonitor performanceMonitor,
-        EditorInputHandler inputHandler)
+    private void RenderStatsWindow()
     {
         ImGui.Begin("Stats");
 
         var name = "None";
-        if (viewport.HoveredEntity != null)
+        if (_viewport.HoveredEntity != null)
         {
-            name = viewport.HoveredEntity.Name;
+            name = _viewport.HoveredEntity.Name;
         }
 
         ImGui.Text($"Hovered Entity: {name}");
         
-        performanceMonitor.RenderPerformanceStats();
+        _performanceMonitor.RenderPerformanceStats();
 
         ImGui.Separator();
         var stats = Graphics2D.Instance.GetStats();
@@ -172,9 +167,9 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
         ImGui.Text($"Indices: {stats.GetTotalIndexCount()}");
         
         ImGui.Text("Camera:");
-        var camPos = inputHandler.CameraController.Camera.Position;
+        var camPos = _inputHandler.CameraController.Camera.Position;
         ImGui.Text($"Position: ({camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2})");
-        ImGui.Text($"Rotation: {inputHandler.CameraController.Camera.Rotation:F1}°");
+        ImGui.Text($"Rotation: {_inputHandler.CameraController.Camera.Rotation:F1}°");
         
         var stats3D = Graphics3D.Instance.GetStats();
         ImGui.Text("Renderer3D Stats:");
