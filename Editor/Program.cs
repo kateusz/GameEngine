@@ -1,6 +1,26 @@
-﻿using Engine.Scripting;
+﻿using DryIoc;
+using Engine.Core.Window;
+using Engine.Scripting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Silk.NET.Maths;
+using Silk.NET.Windowing;
+
+var props = new WindowProps("Sandbox Engine testing!", 1280, 720);
+
+var container = new Container();
+
+var options = WindowOptions.Default;
+options.Size = new Vector2D<int>(props.Width, props.Height);
+options.Title = "Game Window";
+
+container.Register<IWindow>(Reuse.Singleton, 
+    made: Made.Of(() => Window.Create(options))
+);
+
+container.Register<IGameWindow>(Reuse.Singleton, 
+    made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
+);
 
 var logger = LoggerFactory.Create(builder => builder.AddNLog()).CreateLogger<Program>();
 logger.LogInformation("Program has started.");
@@ -17,6 +37,6 @@ ScriptEngine.Instance.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts
 ScriptEngine.Instance.PrintDebugInfo();
 #endif
 
-
-var editor = new global::Editor.Editor();
+var gameWindow = container.Resolve<IGameWindow>();
+var editor = new global::Editor.Editor(gameWindow);
 editor.Run();

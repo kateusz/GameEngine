@@ -10,7 +10,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Editor\Editor.csproj" />
       <ProjectReference Include="..\Engine\Engine.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
 </Project>
