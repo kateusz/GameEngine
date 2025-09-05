@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PingPong", "PingPong", "{D4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Runtime", "Runtime\Runtime.csproj", "{8B8D8D73-58E3-4EFE-B546-CE563A3EBAD3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark", "Benchmark\Benchmark.csproj", "{08F173A1-0123-4CCA-86F3-E22394B28788}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{8B8D8D73-58E3-4EFE-B546-CE563A3EBAD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B8D8D73-58E3-4EFE-B546-CE563A3EBAD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B8D8D73-58E3-4EFE-B546-CE563A3EBAD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08F173A1-0123-4CCA-86F3-E22394B28788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08F173A1-0123-4CCA-86F3-E22394B28788}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08F173A1-0123-4CCA-86F3-E22394B28788}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08F173A1-0123-4CCA-86F3-E22394B28788}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D452FF13-0617-465B-A066-DB38B6EEFC58} = {38442433-E8CD-406D-95D0-34193C3FED30}
