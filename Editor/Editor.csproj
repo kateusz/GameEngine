@@ -11,174 +11,174 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Engine\Engine.csproj" />
+      <ProjectReference Include="../Engine/Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <None Update="imgui.ini">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\Checkerboard.png">
+      <None Update="assets/textures/Checkerboard.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\ChernoLogo.png">
+      <None Update="assets/textures/ChernoLogo.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\container.png">
+      <None Update="assets/textures/container.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\whiteTexture.png">
+      <None Update="assets/textures/whiteTexture.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\flatColorShader.frag">
+      <None Update="assets/shaders/OpenGL/flatColorShader.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\flatColorShader.vert">
+      <None Update="assets/shaders/OpenGL/flatColorShader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\textureShader.frag">
+      <None Update="assets/shaders/OpenGL/textureShader.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\textureShader.vert">
+      <None Update="assets/shaders/OpenGL/textureShader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\game\textures\RPGpack_sheet.png">
+      <None Update="assets/game/textures/RPGpack_sheet.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\game\textures\RPGpack_sheet_2X.png">
+      <None Update="assets/game/textures/RPGpack_sheet_2X.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\fonts\opensans\OpenSans-Bold.ttf">
+      <None Update="assets/fonts/opensans/OpenSans-Bold.ttf">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Resources\Icons\ContentBrowser\DirectoryIcon.png">
+      <None Update="Resources/Icons/ContentBrowser/DirectoryIcon.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Resources\Icons\ContentBrowser\FileIcon.png">
+      <None Update="Resources/Icons/ContentBrowser/FileIcon.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="libs\cimguizmo.dylib">
+      <None Update="libs/cimguizmo.dylib">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Resources\Icons\PlayButton.png">
+      <None Update="Resources/Icons/PlayButton.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Resources\Icons\StopButton.png">
+      <None Update="Resources/Icons/StopButton.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\bird.png">
+      <None Update="assets/textures/bird.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\pipe.png">
+      <None Update="assets/textures/pipe.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\lineShader.frag">
+      <None Update="assets/shaders/OpenGL/lineShader.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\lineShader.vert">
+      <None Update="assets/shaders/OpenGL/lineShader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\cube.model">
+      <None Update="assets/obj/cube.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\tetrahedron.mtl">
+      <None Update="assets/obj/tetrahedron.mtl">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\tetrahedron.obj">
+      <None Update="assets/obj/tetrahedron.obj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\base.obj">
+      <None Update="assets/obj/base.obj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\torus.mtl">
+      <None Update="assets/obj/torus.mtl">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\torus.obj">
+      <None Update="assets/obj/torus.obj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\obj\person.obj">
+      <None Update="assets/obj/person.obj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\base.model">
+      <None Update="assets/objModels/base.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\cube.model">
+      <None Update="assets/objModels/cube.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\person.model">
+      <None Update="assets/objModels/person.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\tetrahedron.mtl">
+      <None Update="assets/objModels/tetrahedron.mtl">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\tetrahedron.model">
+      <None Update="assets/objModels/tetrahedron.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\torus.mtl">
+      <None Update="assets/objModels/torus.mtl">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\objModels\torus.model">
+      <None Update="assets/objModels/torus.model">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\skybox\back.png">
+      <None Update="assets/textures/skybox/back.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\skybox\bottom.png">
+      <None Update="assets/textures/skybox/bottom.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\skybox\front.png">
+      <None Update="assets/textures/skybox/front.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\skybox\left.png">
+      <None Update="assets/textures/skybox/left.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\skybox\right.png">
+      <None Update="assets/textures/skybox/right.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\textures\skybox\top.png">
+      <None Update="assets/textures/skybox/top.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\phong.frag">
+      <None Update="assets/shaders/OpenGL/phong.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="assets\shaders\OpenGL\phong.vert">
+      <None Update="assets/shaders/OpenGL/phong.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Resources\Icons\ContentBrowser\PrefabIcon.png">
+      <None Update="Resources/Icons/ContentBrowser/PrefabIcon.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="bin\Debug\net8.0\assets\scenes\Physics2D.scene" />
+      <Content Include="bin/Debug/net8.0/assets/scenes/Physics2D.scene" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="assets\scripts\CameraFollow.cs2">
+      <Compile Update="assets/scripts/CameraFollow.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\FlappyBirdController.cs2">
+      <Compile Update="assets/scripts/FlappyBirdController.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
+      <Compile Update="assets/scripts/FlappyBirdGameManager.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\CameraFollow.cs2">
+      <Compile Update="assets/scripts/CameraFollow.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\FlappyBirdController.cs2">
+      <Compile Update="assets/scripts/FlappyBirdController.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
+      <Compile Update="assets/scripts/FlappyBirdGameManager.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
-      <Compile Update="assets\scripts\FlappyBirdGameManager.cs2">
+      <Compile Update="assets/scripts/FlappyBirdGameManager.cs2">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Windows\" />
+      <Folder Include="Windows/" />
     </ItemGroup>
 
     <ItemGroup>

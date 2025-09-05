@@ -31,32 +31,32 @@
         <None Update="nlog.config">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <None Update="Platform\OpenGL\Shaders\flatColorShader.frag">
+        <None Update="Platform/OpenGL/Shaders/flatColorShader.frag">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <None Update="Platform\OpenGL\Shaders\flatColorShader.vert">
+        <None Update="Platform/OpenGL/Shaders/flatColorShader.vert">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <None Update="Platform\OpenGL\Shaders\textureShader.frag">
+        <None Update="Platform/OpenGL/Shaders/textureShader.frag">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <None Update="Platform\OpenGL\Shaders\textureShader.vert">
+        <None Update="Platform/OpenGL/Shaders/textureShader.vert">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <None Update="ImGui\Shaders\imgui-frag.glsl">
+        <None Update="ImGui/Shaders/imgui-frag.glsl">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="ImGui\Shaders\imgui-vertex.glsl">
+        <None Update="ImGui/Shaders/imgui-vertex.glsl">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
     
     <ItemGroup>
-        <Content Include="bin\Debug\net8.0\runtimes\osx-arm64\native\cimgui.dylib" />
+        <Content Include="bin/Debug/net8.0/runtimes/osx-arm64/native/cimgui.dylib" />
     </ItemGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\ECS\ECS.csproj" />
+      <ProjectReference Include="../ECS/ECS.csproj" />
     </ItemGroup>
 
 
