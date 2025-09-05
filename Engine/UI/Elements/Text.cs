@@ -86,8 +86,8 @@ public class Text : UIElement
         // This will be replaced with proper glyph rendering in Phase 2
         
         var textColor = Style.TextColor;
-        var charWidth = FontSize * 0.6f; // Approximate character width
-        var charHeight = FontSize;
+        var charWidth = FontSize * 0.6f; // Approximate character width in screen coordinates
+        var charHeight = FontSize; // Character height in screen coordinates  
         var totalTextWidth = Content.Length * charWidth;
         
         // Calculate starting position based on alignment
@@ -126,15 +126,15 @@ public class Text : UIElement
     {
         if (string.IsNullOrEmpty(Content))
         {
-            Size = new Vector2(0, FontSize);
+            Size = new Vector2(0, FontSize); // Height in screen coordinates
             return;
         }
         
-        // Estimate text size based on content
+        // Estimate text size in SCREEN coordinates (pixels)
         // This will be replaced with proper text measurement in Phase 2
-        var charWidth = FontSize * 0.6f;
+        var charWidth = FontSize * 0.6f; // Character width in pixels
         var estimatedWidth = Content.Length * charWidth;
-        var estimatedHeight = FontSize * 1.2f; // Add some line height
+        var estimatedHeight = FontSize * 1.2f; // Height with some line spacing in pixels
         
         Size = new Vector2(estimatedWidth, estimatedHeight);
     }

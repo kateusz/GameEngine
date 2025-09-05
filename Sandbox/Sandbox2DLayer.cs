@@ -107,12 +107,6 @@ public class Sandbox2DLayer : Layer
         Graphics2D.Instance.Clear();
 
         Graphics2D.Instance.BeginScene(_orthographicCameraController.Camera);
-        
-        // Render UI System (overlay on top of 3D scene)
-        if (_showUI)
-        {
-            _uiManager.Render();
-        }
 
         Graphics2D.Instance.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
 
@@ -132,6 +126,17 @@ public class Sandbox2DLayer : Layer
         // }
 
         Graphics2D.Instance.EndScene();
+        
+        // Render UI System (overlay on top of 3D scene)
+        if (_showUI)
+        {
+            // Test: Render a simple quad directly to ensure rendering works
+            Graphics2D.Instance.BeginScene(new OrthographicCamera(0, 1920, 0, 1080));
+            Graphics2D.Instance.DrawQuad(new Vector3(100, 100, 0), new Vector2(200, 100), new Vector4(1, 0, 0, 1)); // Red quad
+            Graphics2D.Instance.EndScene();
+            
+            _uiManager.Render();
+        }
     }
 
     public override void HandleEvent(Event @event)
@@ -164,84 +169,19 @@ public class Sandbox2DLayer : Layer
         _uiManager = new UIManager(Graphics2D.Instance);
         _uiManager.SetScreenSize(new Vector2(1920, 1080)); // Default screen size
         
-        // Create instruction text
-        _instructionText = new Text("UI System Demo - Press 'U' to toggle UI | WASD to move camera")
+        // Create simple test text with fixed position using screen coordinates
+        _instructionText = new Text("TEST UI - This text should be visible!")
         {
-            Id = "instructions",
-            Position = new Vector2(0.02f, 0.02f), // Top-left corner
-            FontSize = 14
+            Id = "test-text",
+            Position = new Vector2(100, 100), // Screen coordinates (100px from edges)
+            Size = new Vector2(400, 50), // Screen coordinates (400x50 pixels)
+            FontSize = 24
         };
-        _instructionText.Style.TextColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+        _instructionText.Style.TextColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f); // Bright green
+        _instructionText.Style.BackgroundColor = new Vector4(1.0f, 0.0f, 0.0f, 0.5f); // Semi-transparent red background for visibility
         _uiManager.AddElement(_instructionText);
         
-        // Create status text
-        _statusText = new Text($"UI System Ready | Clicks: {_clickCount}")
-        {
-            Id = "status",
-            Position = new Vector2(0.02f, 0.08f),
-            FontSize = 16
-        };
-        _statusText.Style.TextColor = new Vector4(0, 1, 0, 1); // Green
-        _uiManager.AddElement(_statusText);
-        
-        // Create test button
-        _testButton = new Button("Click Me!")
-        {
-            Id = "test-button",
-            Position = new Vector2(0.02f, 0.15f),
-            Size = new Vector2(0.15f, 0.06f),
-            OnClick = () => {
-                _clickCount++;
-                UpdateStatusText();
-                Logger.Info($"Test button clicked! Count: {_clickCount}");
-            }
-        };
-        _uiManager.AddElement(_testButton);
-        
-        // Create styled button
-        _styledButton = new Button("Styled")
-        {
-            Id = "styled-button",
-            Position = new Vector2(0.02f, 0.23f),
-            Size = new Vector2(0.12f, 0.05f)
-        };
-        
-        // Custom styling - red theme
-        _styledButton.Style.BackgroundColor = new Vector4(0.8f, 0.2f, 0.2f, 1.0f);
-        _styledButton.Style.HoverBackgroundColor = new Vector4(1.0f, 0.3f, 0.3f, 1.0f);
-        _styledButton.Style.PressedBackgroundColor = new Vector4(0.6f, 0.1f, 0.1f, 1.0f);
-        _styledButton.Style.TextColor = Vector4.One;
-        _styledButton.Style.BorderWidth = 2.0f;
-        _styledButton.Style.BorderColor = new Vector4(1.0f, 0.5f, 0.5f, 1.0f);
-        
-        _styledButton.OnClick = () => {
-            _clickCount++;
-            UpdateStatusText();
-            Logger.Info("Styled button clicked!");
-        };
-        _uiManager.AddElement(_styledButton);
-        
-        // Create camera control button
-        _cameraButton = new Button("Reset Camera")
-        {
-            Id = "camera-button",
-            Position = new Vector2(0.02f, 0.30f),
-            Size = new Vector2(0.15f, 0.05f),
-            OnClick = () => {
-                // Reset camera to center - we'll use the Camera property
-                _orthographicCameraController.Camera.SetPosition(Vector3.Zero);
-                Logger.Info("Camera reset to center");
-                UpdateStatusText("Camera reset!");
-            }
-        };
-        
-        // Blue theme for camera button
-        _cameraButton.Style.BackgroundColor = new Vector4(0.2f, 0.4f, 0.8f, 1.0f);
-        _cameraButton.Style.HoverBackgroundColor = new Vector4(0.3f, 0.5f, 0.9f, 1.0f);
-        _cameraButton.Style.PressedBackgroundColor = new Vector4(0.1f, 0.3f, 0.7f, 1.0f);
-        _uiManager.AddElement(_cameraButton);
-        
-        Logger.Info("UI System initialized with 5 elements");
+        Logger.Info("UI System initialized with 1 test element");
     }
     
     private bool HandleUIEvent(Event @event)
