@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Editor\Editor.csproj" />
       <ProjectReference Include="..\Engine\Engine.csproj" />
     </ItemGroup>
 
@@ -81,11 +82,6 @@
       <None Update="assets\shaders\OpenGL\textureShader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-    </ItemGroup>
-
-
-    <ItemGroup>
-      <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
 </Project>

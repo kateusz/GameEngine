@@ -38,7 +38,7 @@ public class BenchmarkLayer : Layer
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
 
-    public BenchmarkLayer(string name) : base(name)
+    public BenchmarkLayer() : base("Benchmark Layer")
     {
     }
 
