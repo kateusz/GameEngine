@@ -1,7 +1,6 @@
 using System.Numerics;
 using ECS;
 using Editor.Panels.Elements;
-using Editor.Windows.ScriptEditor;
 using Engine.Scene.Components;
 using Engine.Scripting;
 using ImGuiNET;
