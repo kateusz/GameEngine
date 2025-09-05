@@ -52,7 +52,12 @@ public class EditorLayer : Layer
         _editorState = _container.Resolve<EditorState>();
         
         _viewport = _container.Resolve<IEditorViewport>();
-        _viewport.Initialize(1200, 720);
+        
+        // Initialize with a reasonable default size that will be updated by docking system
+        // Use a 16:9 aspect ratio that's common for most displays
+        var initialWidth = Math.Max(800u, 1200u);
+        var initialHeight = Math.Max(450u, 720u);
+        _viewport.Initialize(initialWidth, initialHeight);
 
         _performanceMonitor = _container.Resolve<IEditorPerformanceMonitor>();
         _uiRenderer = _container.Resolve<IEditorUIRenderer>();

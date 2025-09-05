@@ -56,10 +56,32 @@ public class EditorViewport : IEditorViewport, IDisposable
     public void HandleResize()
     {
         var spec = _frameBuffer.GetSpecification();
+        
+        // Ensure minimum viable viewport size
+        var width = Math.Max(32, (uint)State.ViewportSize.X);
+        var height = Math.Max(32, (uint)State.ViewportSize.Y);
+        
         if (State.ViewportSize is { X: > 0.0f, Y: > 0.0f } && 
-            (spec.Width != (uint)State.ViewportSize.X || spec.Height != (uint)State.ViewportSize.Y))
+            (spec.Width != width || spec.Height != height))
         {
-            _frameBuffer.Resize((uint)State.ViewportSize.X, (uint)State.ViewportSize.Y);
+            try
+            {
+                _frameBuffer.Resize(width, height);
+                
+                // Update state to reflect actual resize
+                State.ViewportSize = new Vector2(width, height);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error resizing framebuffer to {width}x{height}: {ex.Message}");
+                
+                // Fallback to a safe size if resize fails
+                if (spec.Width < 32 || spec.Height < 32)
+                {
+                    _frameBuffer.Resize(320, 240);
+                    State.ViewportSize = new Vector2(320, 240);
+                }
+            }
         }
     }
 

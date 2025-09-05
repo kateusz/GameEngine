@@ -45,8 +45,11 @@ public class Workspace : IDisposable
     {
         var dockspaceOpen = true;
         const bool fullscreenPersistant = true;
-        const ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags.None;
-        const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
+        const ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags.PassthruCentralNode;
+        const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking | 
+                                           ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | 
+                                           ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
+                                           ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus;
         
         if (fullscreenPersistant)
         {
@@ -54,11 +57,17 @@ public class Workspace : IDisposable
             ImGui.SetNextWindowPos(viewPort.Pos);
             ImGui.SetNextWindowSize(viewPort.Size);
             ImGui.SetNextWindowViewport(viewPort.ID);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0.0f, 0.0f));
         }
 
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
-            // Use the DockSpace ID from imgui.ini (0x3BC79352)
+            if (fullscreenPersistant)
+                ImGui.PopStyleVar(3);
+
+            // Use fixed DockSpace ID for consistent layout
             var dockspaceId = 0x3BC79352u;
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
 
@@ -153,6 +162,7 @@ public class Workspace : IDisposable
             ImGui.End();
         }
     }
+
 
     public void UpdateSceneContext()
     {

@@ -93,10 +93,17 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
         
-        // Allow viewport to use full available space
-        ImGui.SetNextWindowSizeConstraints(new Vector2(0, 0), new Vector2(float.MaxValue, float.MaxValue));
+        // Force viewport to dock in the central node
+        ImGui.SetNextWindowDockID(0x3BC79352u, ImGuiCond.Always);
+        
+        // Set reasonable minimum viewport size and allow unlimited maximum size
+        ImGui.SetNextWindowSizeConstraints(new Vector2(100, 100), new Vector2(float.MaxValue, float.MaxValue));
 
-        ImGui.Begin("Viewport");
+        // Add flags to ensure viewport can resize properly within dock node
+        ImGui.Begin("Viewport", 
+            ImGuiWindowFlags.NoScrollbar | 
+            ImGuiWindowFlags.NoScrollWithMouse | 
+            ImGuiWindowFlags.NoCollapse);
         {
             var viewportMinRegion = ImGui.GetWindowContentRegionMin();
             var viewportMaxRegion = ImGui.GetWindowContentRegionMax();
@@ -134,13 +141,21 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
             var windowSize = ImGui.GetWindowSize();
             var dockId = ImGui.GetWindowDockID();
             
-            // Debug all the issues
-            Console.WriteLine($"Viewport Debug - Size: {viewportPanelSize}, WindowSize: {windowSize}, DockID: 0x{dockId:X8}, Focused: {viewportFocused}, Hovered: {viewportHovered}");
+            // Ensure minimum viewport size
+            var minSize = new Vector2(Math.Max(32, viewportPanelSize.X), Math.Max(32, viewportPanelSize.Y));
             
-            // Only update viewport size if it changed
-            if (state.ViewportSize != viewportPanelSize)
+            // Debug viewport sizing information
+            Console.WriteLine($"Viewport Debug - ContentRegion: {viewportPanelSize}, WindowSize: {windowSize}, MinSize: {minSize}, DockID: 0x{dockId:X8}, Focused: {viewportFocused}, Hovered: {viewportHovered}");
+            
+            // Only update viewport size if it changed significantly (avoid micro-updates)
+            var sizeDelta = new Vector2(
+                Math.Abs(state.ViewportSize.X - minSize.X),
+                Math.Abs(state.ViewportSize.Y - minSize.Y)
+            );
+            
+            if (sizeDelta.X > 1.0f || sizeDelta.Y > 1.0f)
             {
-                _viewport.SetViewportSize(viewportPanelSize);
+                _viewport.SetViewportSize(minSize);
             }
             
             var textureId = _viewport.GetColorAttachmentId();
