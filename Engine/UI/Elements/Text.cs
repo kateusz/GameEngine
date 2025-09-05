@@ -114,7 +114,7 @@ public class Text : UIElement
             if (char.IsLetter(char_c))
             {
                 // Slightly different shades for letters vs other characters
-                charColor = new Vector4(textColor.X * 0.9f, textColor.Y, textColor.Z, textColor.W);
+                charColor = textColor with { X = textColor.X * 0.9f };
             }
             
             renderer.DrawQuad(charPosition, charSize, charColor);
