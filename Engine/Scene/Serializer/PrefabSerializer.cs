@@ -4,7 +4,6 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
 using Engine.Scene.Components;
-using Engine.Scripting;
 
 namespace Engine.Scene.Serializer;
 

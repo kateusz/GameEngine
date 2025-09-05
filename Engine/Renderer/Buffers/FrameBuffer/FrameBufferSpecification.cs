@@ -45,9 +45,9 @@ public class FrameBufferSpecification(uint width, uint height, uint samples = 1,
 
     public void Deconstruct(out uint width, out uint height, out uint samples, out bool swapChainTarget)
     {
-        width = this.Width;
-        height = this.Height;
-        samples = this.Samples;
-        swapChainTarget = this.SwapChainTarget;
+        width = Width;
+        height = Height;
+        samples = Samples;
+        swapChainTarget = SwapChainTarget;
     }
 }
