@@ -4,7 +4,7 @@ using Engine.Events;
 using Engine.Renderer.Cameras;
 using Silk.NET.GLFW;
 
-namespace Editor.Managers;
+namespace Editor.Components;
 
 public class EditorInputHandler
 {

@@ -2,7 +2,7 @@ using ECS;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 
-namespace Editor.Managers;
+namespace Editor.Components;
 
 public class SceneController
 {

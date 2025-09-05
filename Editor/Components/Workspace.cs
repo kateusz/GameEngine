@@ -4,7 +4,7 @@ using Editor.Panels;
 using Engine.Scene;
 using ImGuiNET;
 
-namespace Editor.Managers;
+namespace Editor.Components;
 
 public class Workspace : IDisposable
 {

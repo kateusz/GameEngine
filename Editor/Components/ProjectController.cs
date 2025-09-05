@@ -1,9 +1,9 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace Editor.Managers;
+namespace Editor.Components;
 
-public class ProjectManager
+public class ProjectController
 {
     private bool _showNewProjectPopup = false;
     private string _newProjectName = string.Empty;

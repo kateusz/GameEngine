@@ -1,7 +1,7 @@
 using System.Numerics;
 using ECS;
 using Editor.Panels.Elements;
-using Engine.Renderer.Models;
+using Engine.Renderer;
 using Engine.Scene.Components;
 using ImGuiNET;
 
