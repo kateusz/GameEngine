@@ -22,22 +22,20 @@ public class UIRenderer
     
     public void BeginUIPass()
     {
-        // // Set up UI coordinate system where (0,0) is top-left and coordinates are in normalized space
-        // // But we need to account for screen aspect ratio and coordinate system
-        // var left = 0.0f;
-        // var right = 1.0f;
-        // var top = 1.0f;    // UI coordinates have (0,0) at top-left
-        // var bottom = 0.0f; // So flip the Y axis
-        //
-        // var uiCamera = new OrthographicCamera(left, right, bottom, top);
-        // uiCamera.SetPosition(new Vector3(0.5f, 0.5f, 0));
-        //
-        // _graphics2D.BeginScene(uiCamera);
+        // Use screen coordinates directly (pixels) instead of normalized coordinates
+        var left = 0.0f;
+        var right = _screenSize.X;
+        var top = _screenSize.Y;    // UI coordinates have (0,0) at top-left
+        var bottom = 0.0f;          // So flip the Y axis
+        
+        var uiCamera = new OrthographicCamera(left, right, bottom, top);
+        
+        _graphics2D.BeginScene(uiCamera);
     }
     
     public void EndUIPass()
     {
-        //_graphics2D.EndScene();
+        _graphics2D.EndScene();
     }
     
     public void RenderElement(UIElement element)

@@ -46,7 +46,7 @@ public class UIStyle
     
     public static UIStyle Text => new()
     {
-        BackgroundColor = new Vector4(0, 0, 0, 0.5f), // Transparent
+        BackgroundColor = new Vector4(0, 0, 0, 0), // Fully transparent
         TextColor = Vector4.One
     };
 }
