@@ -18,18 +18,41 @@ public class EditorLayer : Layer
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
     private EditorState _editorState;
-    
     private IEditorViewport _viewport;
     private IEditorUIRenderer _uiRenderer;
     private IEditorPerformanceMonitor _performanceMonitor;
-    
     private Workspace _workspace;
     private ProjectController _projectController;
     private SceneController _sceneController;
     private EditorInputHandler _inputHandler;
     
-    public EditorLayer(string name) : base(name)
+    private readonly Lazy<EditorState> _lazyEditorState;
+    private readonly Lazy<IEditorViewport> _lazyViewport;
+    private readonly Lazy<IEditorUIRenderer> _lazyUiRenderer;
+    private readonly Lazy<IEditorPerformanceMonitor> _lazyPerformanceMonitor;
+    private readonly Lazy<Workspace> _lazyWorkspace;
+    private readonly Lazy<ProjectController> _lazyProjectController;
+    private readonly Lazy<SceneController> _lazySceneController;
+    private readonly Lazy<EditorInputHandler> _lazyInputHandler;
+    
+    public EditorLayer(string name,
+        Lazy<EditorState> editorState,
+        Lazy<IEditorViewport> viewport,
+        Lazy<IEditorUIRenderer> uiRenderer,
+        Lazy<IEditorPerformanceMonitor> performanceMonitor,
+        Lazy<Workspace> workspace,
+        Lazy<ProjectController> projectController,
+        Lazy<SceneController> sceneController,
+        Lazy<EditorInputHandler> inputHandler) : base(name)
     {
+        _lazyEditorState = editorState;
+        _lazyViewport = viewport;
+        _lazyUiRenderer = uiRenderer;
+        _lazyPerformanceMonitor = performanceMonitor;
+        _lazyWorkspace = workspace;
+        _lazyProjectController = projectController;
+        _lazySceneController = sceneController;
+        _lazyInputHandler = inputHandler;
     }
 
     public override void OnAttach()
@@ -49,23 +72,21 @@ public class EditorLayer : Layer
 
     private void InitializeComponents()
     {
-        _editorState = new EditorState();
+        _editorState = _lazyEditorState.Value;
         
-        _viewport = new EditorViewport(_editorState.ViewportState);
+        _viewport = _lazyViewport.Value;
         _viewport.Initialize(1200, 720);
         
-        _performanceMonitor = new EditorPerformanceMonitor();
-        _uiRenderer = new EditorUIRenderer();
+        _performanceMonitor = _lazyPerformanceMonitor.Value;
+        _uiRenderer = _lazyUiRenderer.Value;
     }
 
     private void InitializeManagers()
     {
-        _workspace = new Workspace();
-        _projectController = new ProjectController();
-        _sceneController = new SceneController();
-        
-        var cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
-        _inputHandler = new EditorInputHandler(cameraController);
+        _workspace = _lazyWorkspace.Value;
+        _projectController = _lazyProjectController.Value;
+        _sceneController = _lazySceneController.Value;
+        _inputHandler = _lazyInputHandler.Value;
         
         _projectController.Initialize();
         UpdateScriptsDirectory();

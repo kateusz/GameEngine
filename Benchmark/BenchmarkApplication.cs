@@ -1,12 +1,12 @@
 using Engine.Core;
+using Engine.Core.Window;
 using Sandbox.Benchmark;
 
 namespace Benchmark;
 
 public class BenchmarkApplication : Application
 {
-    public BenchmarkApplication() : base(true)
+    public BenchmarkApplication(IGameWindow gameWindow) : base(gameWindow, true)
     {
-        PushLayer(new BenchmarkLayer("Benchmark Layer"));
     }
 }
