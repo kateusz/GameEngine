@@ -345,7 +345,7 @@ public class BenchmarkLayer : Layer
 
     private void SetupTestScene(BenchmarkTestType testType)
     {
-        _currentTestScene = new Engine.Scene.Scene("Benchmark");
+        _currentTestScene = new Scene("Benchmark");
             
         // Add camera entity
         var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
