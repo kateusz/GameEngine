@@ -57,16 +57,19 @@ public class EditorViewport : IEditorViewport, IDisposable
     {
         var spec = _frameBuffer.GetSpecification();
         
-        // Ensure minimum viable viewport size
-        var width = Math.Max(32, (uint)State.ViewportSize.X);
-        var height = Math.Max(32, (uint)State.ViewportSize.Y);
+        // Apply macOS Retina scaling for high-DPI displays
+        var scaleFactor = GetDisplayScaleFactor();
+        var width = Math.Max(32, (uint)(State.ViewportSize.X * scaleFactor));
+        var height = Math.Max(32, (uint)(State.ViewportSize.Y * scaleFactor));
+        
+        Console.WriteLine($"Frame buffer resize - LogicalSize: {State.ViewportSize}, ScaleFactor: {scaleFactor}, PhysicalSize: {width}x{height}");
         
         if (State.ViewportSize is { X: > 0.0f, Y: > 0.0f } && 
             (spec.Width != width || spec.Height != height))
         {
             try
             {
-                _frameBuffer.Resize(width, height);
+                _frameBuffer.Resize(width * 2, height * 2);
                 
                 // Update state to reflect actual resize
                 State.ViewportSize = new Vector2(width, height);
@@ -89,11 +92,16 @@ public class EditorViewport : IEditorViewport, IDisposable
     {
         if (!State.IsMouseInViewport) return;
 
-        var mouseX = (int)State.RelativeMousePosition.X;
-        var mouseY = (int)State.RelativeMousePosition.Y;
+        // Apply Retina scaling to mouse coordinates
+        var scaleFactor = GetDisplayScaleFactor();
+        var mouseX = (int)(State.RelativeMousePosition.X * scaleFactor);
+        var mouseY = (int)(State.RelativeMousePosition.Y * scaleFactor);
+
+        var scaledWidth = (int)(State.ViewportSize.X * scaleFactor);
+        var scaledHeight = (int)(State.ViewportSize.Y * scaleFactor);
 
         if (mouseX >= 0 && mouseY >= 0 && 
-            mouseX < (int)State.ViewportSize.X && mouseY < (int)State.ViewportSize.Y)
+            mouseX < scaledWidth && mouseY < scaledHeight)
         {
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
@@ -147,6 +155,13 @@ public class EditorViewport : IEditorViewport, IDisposable
     public void SetFocusedState(bool focused)
     {
         State.ViewportFocused = focused;
+    }
+
+    private float GetDisplayScaleFactor()
+    {
+        // Get the actual framebuffer scale from ImGui which handles Retina displays properly
+        var viewport = ImGuiNET.ImGui.GetMainViewport();
+        return viewport.DpiScale;
     }
 
     public void Dispose()

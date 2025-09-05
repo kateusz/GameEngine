@@ -13,20 +13,20 @@ public interface IEditorUIRenderer : IDisposable
     void RenderMainUI();
 }
 
-public class EditorUIRenderer : IEditorUIRenderer, IDisposable
+public class EditorUIRenderer : IEditorUIRenderer
 {
-    private readonly Workspace? _workspace;
+    private readonly Workspace _workspace;
     private readonly IEditorViewport _viewport;
     private readonly IEditorPerformanceMonitor _performanceMonitor;
     private readonly SceneController _sceneController;
     private readonly EditorInputHandler _inputHandler;
-    private readonly ProjectController? _projectController;
+    private readonly ProjectController _projectController;
     
     private readonly Texture2D _iconPlay;
     private readonly Texture2D _iconStop;
     private bool _disposed;
 
-    public EditorUIRenderer(Workspace? workspace, IEditorViewport viewport, IEditorPerformanceMonitor performanceMonitor, SceneController sceneController, EditorInputHandler inputHandler, ProjectController? projectController)
+    public EditorUIRenderer(Workspace workspace, IEditorViewport viewport, IEditorPerformanceMonitor performanceMonitor, SceneController sceneController, EditorInputHandler inputHandler, ProjectController projectController)
     {
         _workspace = workspace;
         _viewport = viewport;
@@ -149,13 +149,14 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
             
             // Only update viewport size if it changed significantly (avoid micro-updates)
             var sizeDelta = new Vector2(
-                Math.Abs(state.ViewportSize.X - minSize.X),
-                Math.Abs(state.ViewportSize.Y - minSize.Y)
+                Math.Abs(state.ViewportSize.X - viewportPanelSize.X),
+                Math.Abs(state.ViewportSize.Y - viewportPanelSize.Y)
             );
             
             if (sizeDelta.X > 1.0f || sizeDelta.Y > 1.0f)
             {
-                _viewport.SetViewportSize(minSize);
+                _viewport.SetViewportSize(viewportPanelSize);
+                _viewport.HandleResize();
             }
             
             var textureId = _viewport.GetColorAttachmentId();

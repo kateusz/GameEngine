@@ -16,7 +16,7 @@ public class ProjectController
 
     public void Initialize()
     {
-        _showOpenProjectPopup = true;
+       // _showOpenProjectPopup = true;
     }
 
     public void ShowNewProjectDialog()
