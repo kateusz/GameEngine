@@ -73,7 +73,7 @@ public class Sandbox2DLayer : Layer
     {
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
-        _orthographicCameraController = new OrthographicCameraController(3840.0f / 2160.0f, true);
+        _orthographicCameraController = new OrthographicCameraController(1920.0f / 1080.0f, true);
         _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
 
         _textureBarrel =
@@ -132,7 +132,7 @@ public class Sandbox2DLayer : Layer
         {
             // Test: Render a simple quad directly to ensure rendering works
             Graphics2D.Instance.BeginScene(new OrthographicCamera(0, 1920, 0, 1080));
-            Graphics2D.Instance.DrawQuad(new Vector3(100, 100, 0), new Vector2(200, 100), new Vector4(1, 0, 0, 1)); // Red quad
+            Graphics2D.Instance.DrawQuad(new Vector3(2, 2, 0), new Vector2(200, 200), new Vector4(1, 0, 0, 1)); // Red quad
             Graphics2D.Instance.EndScene();
             
             _uiManager.Render();
@@ -173,8 +173,8 @@ public class Sandbox2DLayer : Layer
         _instructionText = new Text("TEST UI - This text should be visible!")
         {
             Id = "test-text",
-            Position = new Vector2(100, 100), // Screen coordinates (100px from edges)
-            Size = new Vector2(400, 50), // Screen coordinates (400x50 pixels)
+            Position = new Vector2(3, 3), // Screen coordinates (100px from edges)
+            Size = new Vector2(40, 50), // Screen coordinates (400x50 pixels)
             FontSize = 24
         };
         _instructionText.Style.TextColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f); // Bright green
