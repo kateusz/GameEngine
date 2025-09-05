@@ -3,6 +3,7 @@ using Editor;
 using Editor.Components;
 using Editor.State;
 using Engine.Core.Window;
+using Engine.Renderer.Cameras;
 using Engine.Scripting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
@@ -27,6 +28,7 @@ container.Register<IGameWindow>(Reuse.Singleton,
 
 // Register EditorLayer dependencies
 container.Register<EditorState>(Reuse.Singleton);
+container.Register<EditorViewportState>(Reuse.Singleton);
 container.Register<IEditorViewport, EditorViewport>(Reuse.Singleton);
 container.Register<IEditorUIRenderer, EditorUIRenderer>(Reuse.Singleton);
 container.Register<IEditorPerformanceMonitor, EditorPerformanceMonitor>(Reuse.Singleton);
@@ -34,6 +36,7 @@ container.Register<Workspace>(Reuse.Singleton);
 container.Register<ProjectController>(Reuse.Singleton);
 container.Register<SceneController>(Reuse.Singleton);
 container.Register<EditorInputHandler>(Reuse.Singleton);
+container.Use(new OrthographicCameraController(1280.0f / 720.0f, true));
 
 // Register EditorLayer with constructor injection
 container.Register<EditorLayer>(Reuse.Singleton);

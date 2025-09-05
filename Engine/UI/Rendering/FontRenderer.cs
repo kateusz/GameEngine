@@ -78,7 +78,7 @@ public class FontRenderer
         {
             if (!File.Exists(path))
                 continue;
-            
+
             try
             {
                 _defaultFont = LoadFont(path, 16.0f, "SystemDefault");
@@ -103,34 +103,32 @@ public class FontRenderer
         if (string.IsNullOrEmpty(text) || font == null)
             return;
 
-        var currentX = position.X;
-        var currentY = position.Y;
+        float x = position.X;
+        float y = position.Y;
 
         foreach (char character in text)
         {
             if (character == '\n')
             {
-                currentX = position.X;
-                currentY += font.LineHeight * scale;
+                x = position.X;
+                y += font.LineHeight * scale;
                 continue;
             }
 
-            var glyph = font.GetGlyph(character);
+            if (!font.Glyphs.TryGetValue(character, out var glyph))
+                continue;
 
-            // Calculate glyph position
-            var glyphPosition = new Vector3(
-                currentX + glyph.Bearing.X * scale,
-                currentY - (glyph.Size.Y - glyph.Bearing.Y) * scale,
-                0.0f
-            );
+            float xpos = x + glyph.Bearing.X * scale;
+            float ypos = y + (font.Ascender - glyph.Bearing.Y) * scale;
 
+            var glyphPos = new Vector3(xpos, ypos, 0.0f);
             var glyphSize = glyph.Size * scale;
 
-            // Render the glyph as a textured quad
+            
             if (glyph.AtlasSize.X > 0 && glyph.AtlasSize.Y > 0)
             {
                 _graphics2D.DrawQuad(
-                    glyphPosition,
+                    glyphPos,
                     glyphSize,
                     font.AtlasTexture,
                     glyph.TextureCoords,
@@ -139,10 +137,10 @@ public class FontRenderer
                 );
             }
 
-            // Advance to next character
-            currentX += glyph.Advance * scale;
+            x += glyph.Advance * scale;
         }
     }
+
 
     /// <summary>
     /// Measures the size of text when rendered
@@ -204,131 +202,94 @@ public class FontRenderer
     {
         unsafe
         {
-            // Character set to include in atlas
             var characters = GetCharacterSet();
-
-            // First pass: calculate required atlas size
-            var totalWidth = 0;
-            var totalHeight = 0;
-            var maxHeight = 0;
-
-            unsafe
-            {
-                foreach (var character in characters)
-                {
-                    var glyphIndex = StbTrueType.stbtt_FindGlyphIndex(fontInfo, character);
-                    if (glyphIndex == 0) continue;
-
-                    int x0, y0, x1, y1;
-                    StbTrueType.stbtt_GetGlyphBitmapBox(fontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
-
-                    var width = x1 - x0;
-                    var height = y1 - y0;
-
-                    if (width > 0 && height > 0)
-                    {
-                        totalWidth += width + Padding;
-                        maxHeight = System.Math.Max(maxHeight, height + Padding);
-                    }
-                }
-            }
-
-            // Use fixed atlas size for simplicity
             var atlasWidth = AtlasWidth;
             var atlasHeight = AtlasHeight;
 
-            // Create atlas texture data
             var atlasData = new byte[atlasWidth * atlasHeight * 4]; // RGBA
             var currentX = 0;
             var currentY = 0;
             var rowHeight = 0;
 
-            // Second pass: render glyphs into atlas
-            unsafe
+            foreach (var character in characters)
             {
-                foreach (var character in characters)
+                var glyphIndex = StbTrueType.stbtt_FindGlyphIndex(fontInfo, character);
+                if (glyphIndex == 0) continue;
+
+                int advanceWidth, leftSideBearing;
+                StbTrueType.stbtt_GetGlyphHMetrics(fontInfo, glyphIndex, &advanceWidth, &leftSideBearing);
+
+                int x0, y0, x1, y1;
+                StbTrueType.stbtt_GetGlyphBitmapBox(fontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
+
+                var width = x1 - x0;
+                var height = y1 - y0;
+
+                if (width <= 0 || height <= 0)
                 {
-                    var glyphIndex = StbTrueType.stbtt_FindGlyphIndex(fontInfo, character);
-                    if (glyphIndex == 0) continue;
-
-                    int x0, y0, x1, y1;
-                    StbTrueType.stbtt_GetGlyphBitmapBox(fontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
-
-                    var width = x1 - x0;
-                    var height = y1 - y0;
-
-                    if (width <= 0 || height <= 0)
+                    font.Glyphs[character] = new Glyph(character)
                     {
-                        // Create empty glyph for spacing characters
-                        var glyph = new Glyph(character)
-                        {
-                            Size = Vector2.Zero,
-                            Bearing = Vector2.Zero,
-                            Advance = StbTrueType.stbtt_GetCodepointKernAdvance(fontInfo, character, character) * scale
-                        };
-                        font.Glyphs[character] = glyph;
-                        continue;
-                    }
-
-                    // Check if we need to move to next row
-                    if (currentX + width > atlasWidth)
-                    {
-                        currentX = 0;
-                        currentY += rowHeight;
-                        rowHeight = 0;
-                    }
-
-                    // Render glyph bitmap
-                    var bitmap = new byte[width * height];
-                    fixed (byte* bitmapPtr = bitmap)
-                    {
-                        StbTrueType.stbtt_MakeGlyphBitmap(fontInfo, bitmapPtr, width, height, width, scale, scale,
-                            glyphIndex);
-                    }
-
-                    // Copy bitmap to atlas
-                    for (int y = 0; y < height; y++)
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            var atlasIndex = ((currentY + y) * atlasWidth + (currentX + x)) * 4;
-                            var bitmapIndex = y * width + x;
-                            var alpha = bitmap[bitmapIndex];
-
-                            atlasData[atlasIndex + 0] = 255; // R
-                            atlasData[atlasIndex + 1] = 255; // G
-                            atlasData[atlasIndex + 2] = 255; // B
-                            atlasData[atlasIndex + 3] = alpha; // A
-                        }
-                    }
-
-                    // Create glyph
-                    var glyphData = new Glyph(character)
-                    {
-                        Size = new Vector2(width, height),
-                        Bearing = new Vector2(x0, y0),
-                        Advance = StbTrueType.stbtt_GetCodepointKernAdvance(fontInfo, character, character) * scale,
-                        AtlasPosition = new Vector2(currentX, currentY),
-                        AtlasSize = new Vector2(width, height)
+                        Size = Vector2.Zero,
+                        Bearing = new Vector2(leftSideBearing * scale, 0),
+                        Advance = advanceWidth * scale
                     };
-
-                    glyphData.CalculateTextureCoords(atlasWidth, atlasHeight);
-                    font.Glyphs[character] = glyphData;
-
-                    currentX += width + Padding;
-                    rowHeight = System.Math.Max(rowHeight, height + Padding);
+                    continue;
                 }
-            }
 
-            // Create texture from atlas data
+                if (currentX + width > atlasWidth)
+                {
+                    currentX = 0;
+                    currentY += rowHeight;
+                    rowHeight = 0;
+                }
+
+                var bitmap = new byte[width * height];
+                fixed (byte* bitmapPtr = bitmap)
+                {
+                    StbTrueType.stbtt_MakeGlyphBitmap(
+                        fontInfo, bitmapPtr, width, height, width, scale, scale, glyphIndex);
+                }
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        var atlasIndex = ((currentY + y) * atlasWidth + (currentX + x)) * 4;
+                        var bitmapIndex = y * width + x;
+                        var alpha = bitmap[bitmapIndex];
+
+                        atlasData[atlasIndex + 0] = 255;
+                        atlasData[atlasIndex + 1] = 255;
+                        atlasData[atlasIndex + 2] = 255;
+                        atlasData[atlasIndex + 3] = alpha;
+                    }
+                }
+
+                var glyph = new Glyph(character)
+                {
+                    Size = new Vector2(width, height),
+                    Bearing = new Vector2(leftSideBearing * scale, y1), // y1 ≈ top
+                    Advance = advanceWidth * scale, // tylko advance z HMetrics
+                    AtlasPosition = new Vector2(currentX, currentY),
+                    AtlasSize = new Vector2(width, height)
+                };
+
+                glyph.CalculateTextureCoords(atlasWidth, atlasHeight);
+                font.Glyphs[character] = glyph;
+
+                currentX += width + Padding;
+                rowHeight = System.Math.Max(rowHeight, height + Padding);
+            }
+            
             font.AtlasTexture = CreateTextureFromData(atlasData, atlasWidth, atlasHeight);
         }
     }
 
+
     private Texture2D CreateTextureFromData(byte[] data, int width, int height)
     {
         var texture = TextureFactory.Create(width, height);
-        
+
         // Cast to SilkNetTexture2D to use the new SetDataFromBytes method
         if (texture is SilkNetTexture2D silkNetTexture)
         {
@@ -338,7 +299,7 @@ public class FontRenderer
         {
             throw new InvalidOperationException("Expected SilkNetTexture2D for font atlas creation");
         }
-        
+
         return texture;
     }
 
@@ -397,7 +358,7 @@ public class FontRenderer
 
         return [];
     }
-    
+
     private Font CreateFallbackFont()
     {
         // Create a minimal fallback font with basic characters
@@ -407,11 +368,11 @@ public class FontRenderer
             Ascender = 16.0f,
             Descender = -4.0f
         };
-        
+
         // Create a simple 1x1 white texture for all characters
         var atlasData = new byte[4] { 255, 255, 255, 255 }; // Single white pixel
         font.AtlasTexture = CreateTextureFromData(atlasData, 1, 1);
-        
+
         // Create basic glyphs for common characters
         var basicChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?";
         foreach (char c in basicChars)
@@ -424,11 +385,11 @@ public class FontRenderer
                 AtlasPosition = Vector2.Zero,
                 AtlasSize = new Vector2(1, 1)
             };
-            
+
             glyph.CalculateTextureCoords(1, 1);
             font.Glyphs[c] = glyph;
         }
-        
+
         return font;
     }
 }

@@ -8,12 +8,11 @@ namespace Editor.Components;
 
 public class EditorInputHandler
 {
-    private readonly OrthographicCameraController _cameraController;
     private bool _viewportFocused;
 
     public EditorInputHandler(OrthographicCameraController cameraController)
     {
-        _cameraController = cameraController;
+        CameraController = cameraController;
     }
 
     public bool ViewportFocused
@@ -22,14 +21,14 @@ public class EditorInputHandler
         set => _viewportFocused = value;
     }
 
-    public OrthographicCameraController CameraController => _cameraController;
+    public OrthographicCameraController CameraController { get; }
 
     public void HandleEvent(Event @event, Engine.Scene.SceneState sceneState)
     {
         // Always handle camera controller events in edit mode
         if (sceneState == Engine.Scene.SceneState.Edit)
         {
-            _cameraController.OnEvent(@event);
+            CameraController.OnEvent(@event);
         }
         else
         {
@@ -90,13 +89,13 @@ public class EditorInputHandler
         // Update camera controller when viewport is focused and in edit mode
         if (_viewportFocused && sceneState == Engine.Scene.SceneState.Edit)
         {
-            _cameraController.OnUpdate(timeSpan);
+            CameraController.OnUpdate(timeSpan);
         }
     }
 
     public void UpdateCameraAspectRatio(float aspectRatio)
     {
-        var currentCamera = _cameraController.Camera;
+        var currentCamera = CameraController.Camera;
         var newController = new OrthographicCameraController(currentCamera, aspectRatio, true);
         
         // Copy the camera controller's camera reference
@@ -109,14 +108,14 @@ public class EditorInputHandler
         if (entity != null && entity.HasComponent<Engine.Scene.Components.TransformComponent>())
         {
             var transform = entity.GetComponent<Engine.Scene.Components.TransformComponent>();
-            _cameraController.Camera.SetPosition(transform.Translation);
+            CameraController.Camera.SetPosition(transform.Translation);
         }
     }
 
     public void ResetCamera()
     {
-        _cameraController.Camera.SetPosition(System.Numerics.Vector3.Zero);
-        _cameraController.Camera.SetRotation(0.0f);
+        CameraController.Camera.SetPosition(System.Numerics.Vector3.Zero);
+        CameraController.Camera.SetRotation(0.0f);
     }
 
     // Events for decoupling input handling from business logic

@@ -32,7 +32,7 @@ public class EditorLayer : Layer
     private readonly Lazy<SceneController> _lazySceneController;
     private readonly Lazy<EditorInputHandler> _lazyInputHandler;
     
-    public EditorLayer(string name,
+    public EditorLayer(
         Lazy<EditorState> editorState,
         Lazy<IEditorViewport> viewport,
         Lazy<IEditorUIRenderer> uiRenderer,
@@ -40,7 +40,7 @@ public class EditorLayer : Layer
         Lazy<Workspace> workspace,
         Lazy<ProjectController> projectController,
         Lazy<SceneController> sceneController,
-        Lazy<EditorInputHandler> inputHandler) : base(name)
+        Lazy<EditorInputHandler> inputHandler) : base("EditorLayer")
     {
         _lazyEditorState = editorState;
         _lazyViewport = viewport;
