@@ -39,7 +39,7 @@ public abstract class UIElement
     
     protected virtual void RenderBackground(IGraphics2D renderer)
     {
-        var backgroundColor = Style.BackgroundColor;
+        var backgroundColor = GetCurrentBackgroundColor();
         
         if (Style.BackgroundTexture != null)
         {
@@ -95,6 +95,8 @@ public abstract class UIElement
     
     protected abstract void RenderContent(IGraphics2D renderer);
     
+    protected virtual Vector4 GetCurrentBackgroundColor() => Style.BackgroundColor;
+
     protected virtual Vector2[] GetTextureCoords()
     {
         return
@@ -131,8 +133,8 @@ public abstract class UIElement
     {
         // Override in derived classes for mouse exit handling
     }
-
-    protected void MarkDirty()
+    
+    public void MarkDirty()
     {
         _isDirty = true;
     }
