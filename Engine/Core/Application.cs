@@ -26,11 +26,9 @@ public class Application : IApplication
     private bool _isRunning;
     private DateTime _lastTime;
 
-    protected Application(bool enableImGui = false)
+    protected Application(IGameWindow gameWindow, bool enableImGui = false)
     {
-        var windowProps = new WindowProps("Sandbox Engine testing!", 1280, 720);
-
-        _gameWindow = WindowFactory.Create(windowProps);
+        _gameWindow = gameWindow;
         _gameWindow.OnEvent += HandleOnEvent;
         _gameWindow.OnClose += HandleOnGameWindowClose;
         _gameWindow.OnUpdate += HandleOnUpdate;
