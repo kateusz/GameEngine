@@ -421,13 +421,13 @@ public class Graphics2D : IGraphics2D
         for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
             samplers[i] = i;
 
-        _data.QuadShader = ShaderFactory.Create("assets/shaders/opengl/textureShader.vert",
-            "assets/shaders/opengl/textureShader.frag");
+        _data.QuadShader = ShaderFactory.Create("assets/shaders/OpenGL/textureShader.vert",
+            "assets/shaders/OpenGL/textureShader.frag");
         _data.QuadShader.Bind();
         _data.QuadShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
 
-        _data.LineShader = ShaderFactory.Create("assets/shaders/opengl/lineShader.vert",
-            "assets/shaders/opengl/lineShader.frag");
+        _data.LineShader = ShaderFactory.Create("assets/shaders/OpenGL/lineShader.vert",
+            "assets/shaders/OpenGL/lineShader.frag");
         _data.LineShader.Bind();
     }
 

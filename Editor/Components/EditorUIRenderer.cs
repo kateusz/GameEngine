@@ -1,9 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ECS;
-using Editor.Components;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
 using Engine.Scene;

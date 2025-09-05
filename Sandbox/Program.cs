@@ -1,5 +1,4 @@
 ﻿using DryIoc;
-using Editor;
 using Editor.Components;
 using Editor.State;
 using Engine.Core.Window;

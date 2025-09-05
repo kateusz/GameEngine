@@ -16,11 +16,11 @@ namespace Engine.Platform.SilkNet;
 public class SilkNetTexture2D : Texture2D
 {
     private readonly uint _rendererId;
-    private readonly InternalFormat _internalFormat;
-    private readonly PixelFormat _dataFormat;
+    private readonly GLEnum _internalFormat;
+    private readonly GLEnum _dataFormat;
 
-    private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
-        PixelFormat dataFormat)
+    private SilkNetTexture2D(uint rendererId, int width, int height, GLEnum internalFormat,
+        GLEnum dataFormat)
     {
         _rendererId = rendererId;
         _internalFormat = internalFormat;
@@ -32,8 +32,8 @@ public class SilkNetTexture2D : Texture2D
         Path = string.Empty;
     }
 
-    private SilkNetTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
-        PixelFormat dataFormat) : this(rendererId, width, height, internalFormat, dataFormat)
+    private SilkNetTexture2D(string path, uint rendererId, int width, int height, GLEnum internalFormat,
+        GLEnum dataFormat) : this(rendererId, width, height, internalFormat, dataFormat)
     {
         Path = path;
     }
@@ -55,8 +55,8 @@ public class SilkNetTexture2D : Texture2D
 
         var width = 0;
         var height = 0;
-        const InternalFormat internalFormat = InternalFormat.Rgba8;
-        const PixelFormat dataFormat = PixelFormat.Rgba;
+        const GLEnum internalFormat = GLEnum.Rgba8;
+        const GLEnum dataFormat = GLEnum.Rgba;
 
         // Here we open a stream to the file and pass it to StbImageSharp to load.
         using (var stream = File.OpenRead(path))
@@ -121,7 +121,7 @@ public class SilkNetTexture2D : Texture2D
             _ => throw new NotSupportedException("Unsupported platform.")
         };
 
-        var bpp = _dataFormat == PixelFormat.Rgba ? 4 : 3;
+        var bpp = _dataFormat == GLEnum.Rgba ? 4 : 3;
 
         if (size != Width * Height * bpp)
         {
@@ -133,12 +133,34 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0,
             _dataFormat, PixelType.UnsignedByte, intPtrValue);
+        
     }
 
-    public static Texture2D Create(int width, int height)
+    public void SetDataFromBytes(byte[] data, int width, int height)
     {
-        var internalFormat = InternalFormat.Rgba8;
-        var dataFormat = PixelFormat.Rgba;
+        var expectedSize = width * height * 4; // RGBA format
+        
+        if (data.Length != expectedSize)
+        {
+            throw new ArgumentException($"Data size mismatch. Expected {expectedSize} bytes, got {data.Length} bytes");
+        }
+
+        unsafe
+        {
+            fixed (byte* ptr = data)
+            {
+                SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+                SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)width, (uint)height, 0,
+                    _dataFormat, PixelType.UnsignedByte, ptr);
+            }
+        }
+    }
+
+    public static unsafe Texture2D Create(int width, int height)
+    {
+        var internalFormat = GLEnum.Rgba8;
+        var dataFormat = GLEnum.Rgba;
 
         uint[] textures = new uint[1];
         SilkNetContext.GL.GenTextures(1, textures);
@@ -147,8 +169,8 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
         SilkNetContext.GL.BindTexture(GLEnum.Texture2D, rendererId);
 
-        SilkNetContext.GL.TexImage2D(GLEnum.Texture2D, 0, internalFormat, (uint)width, (uint)height, 0, dataFormat,
-            GLEnum.UnsignedByte, IntPtr.Zero);
+        SilkNetContext.GL.TexImage2D(GLEnum.Texture2D, 0, (int)internalFormat, (uint)width, (uint)height, 0, dataFormat,
+            GLEnum.UnsignedByte, null);
 
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.Linear);
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Nearest);

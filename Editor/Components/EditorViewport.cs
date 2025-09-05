@@ -4,7 +4,6 @@ using ECS;
 using Editor.State;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Scene;
-using ImGuiNET;
 using ZLinq;
 
 namespace Editor.Components;

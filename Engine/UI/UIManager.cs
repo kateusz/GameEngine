@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Engine.Renderer;
+using Engine.UI.Rendering;
 
 namespace Engine.UI;
 
@@ -12,6 +10,7 @@ public class UIManager
     private readonly List<UIElement> _elementsToAdd;
     private readonly List<UIElement> _elementsToRemove;
     private readonly UIRenderer _uiRenderer;
+    private readonly FontRenderer _fontRenderer;
     private bool _isUpdating = false;
     
     public UIManager(IGraphics2D graphics2D)
@@ -20,6 +19,7 @@ public class UIManager
         _elementsToAdd = new List<UIElement>();
         _elementsToRemove = new List<UIElement>();
         _uiRenderer = new UIRenderer(graphics2D);
+        _fontRenderer = new FontRenderer(graphics2D);
     }
     
     public void Update(float deltaTime)
@@ -60,6 +60,16 @@ public class UIManager
     {
         if (element == null)
             throw new ArgumentNullException(nameof(element));
+        
+        // Set up font renderer for text elements
+        if (element is Elements.Text textElement)
+        {
+            textElement.SetFontRenderer(_fontRenderer);
+        }
+        else if (element is Elements.Button buttonElement)
+        {
+            buttonElement.SetFontRenderer(_fontRenderer);
+        }
         
         if (_isUpdating)
         {
@@ -204,11 +214,42 @@ public class UIManager
     
     public int ElementCount => _elements.Count;
     
+    /// <summary>
+    /// Loads a font from a TTF file
+    /// </summary>
+    public Font LoadFont(string fontPath, float fontSize, string fontName = "")
+    {
+        return _fontRenderer.LoadFont(fontPath, fontSize, fontName);
+    }
+    
+    /// <summary>
+    /// Gets the default font
+    /// </summary>
+    public Font GetDefaultFont() => _fontRenderer.GetDefaultFont();
+
+    /// <summary>
+    /// Measures text size using the font renderer
+    /// </summary>
+    public Vector2 MeasureText(string text, Font font, float scale = 1.0f)
+    {
+        return _fontRenderer.MeasureText(text, font, scale);
+    }
+    
     private void ProcessPendingChanges()
     {
         // Add pending elements
         foreach (var element in _elementsToAdd)
         {
+            // Set up font renderer for text elements
+            if (element is Elements.Text textElement)
+            {
+                textElement.SetFontRenderer(_fontRenderer);
+            }
+            else if (element is Elements.Button buttonElement)
+            {
+                buttonElement.SetFontRenderer(_fontRenderer);
+            }
+            
             _elements.Add(element);
         }
         _elementsToAdd.Clear();

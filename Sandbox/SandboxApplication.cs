@@ -1,7 +1,5 @@
 using Engine.Core;
 using Engine.Core.Window;
-using Engine.Platform.SilkNet;
-using Silk.NET.Windowing;
 
 namespace Sandbox;
 

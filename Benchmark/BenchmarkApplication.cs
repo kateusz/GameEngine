@@ -1,6 +1,5 @@
 using Engine.Core;
 using Engine.Core.Window;
-using Sandbox.Benchmark;
 
 namespace Benchmark;
 

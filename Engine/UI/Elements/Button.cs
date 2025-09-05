@@ -1,6 +1,6 @@
-using System;
 using System.Numerics;
 using Engine.Renderer;
+using Engine.UI.Rendering;
 
 namespace Engine.UI.Elements;
 
@@ -17,6 +17,8 @@ public class Button : UIElement
     private ButtonState _state = ButtonState.Normal;
     private bool _isHovering = false;
     private bool _isPressed = false;
+    private Font? _font;
+    private FontRenderer? _fontRenderer;
     
     public string Text { get; set; } = string.Empty;
     public Action? OnClick { get; set; }
@@ -81,23 +83,24 @@ public class Button : UIElement
     
     protected override void RenderContent(IGraphics2D renderer)
     {
-        // For now, just render a simple text placeholder in the center
-        // This will be replaced with proper text rendering in Phase 2
         if (string.IsNullOrEmpty(Text)) 
             return;
         
+        var font = GetEffectiveFont();
+        if (font == null) return;
+        
         var textColor = GetCurrentTextColor();
-        var textPosition = Position + Size * 0.5f; // Center of button
-            
-        // Placeholder: render a small colored quad to represent text
-        // This will be replaced with actual font rendering
-        var textSize = new Vector2(System.Math.Min(Size.X - 20, Text.Length * 8), 12);
-        var textPos = textPosition - textSize * 0.5f;
-            
-        renderer.DrawQuad(
-            new Vector3(textPos, 0), 
-            textSize, 
-            textColor);
+        var scale = 1.0f; // Button text scale
+        
+        // Calculate text position (centered in button)
+        var textSize = MeasureText(Text, font, scale);
+        var textPosition = Position + (Size - textSize) * 0.5f;
+        
+        // Render text using font renderer
+        if (_fontRenderer != null)
+        {
+            _fontRenderer.RenderText(Text, textPosition, font, textColor, scale);
+        }
     }
     
     
@@ -175,5 +178,34 @@ public class Button : UIElement
         {
             OnClick?.Invoke();
         }
+    }
+    
+    public void SetFont(Font font)
+    {
+        _font = font;
+        MarkDirty();
+    }
+    
+    public void SetFontRenderer(FontRenderer fontRenderer)
+    {
+        _fontRenderer = fontRenderer;
+    }
+    
+    private Font? GetEffectiveFont()
+    {
+        return _font ?? _fontRenderer?.GetDefaultFont();
+    }
+    
+    private Vector2 MeasureText(string text, Font font, float scale)
+    {
+        if (_fontRenderer != null)
+        {
+            return _fontRenderer.MeasureText(text, font, scale);
+        }
+        
+        // Fallback measurement
+        var width = font.MeasureText(text) * scale;
+        var height = font.LineHeight * scale;
+        return new Vector2(width, height);
     }
 }

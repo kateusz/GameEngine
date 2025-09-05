@@ -21,7 +21,7 @@ public class Graphics3D : IGraphics3D
 
     public void Init()
     {
-        _phongShader = ShaderFactory.Create("assets/shaders/opengl/phong.vert", "assets/shaders/opengl/phong.frag");
+        _phongShader = ShaderFactory.Create("assets/shaders/OpenGL/phong.vert", "assets/shaders/OpenGL/phong.frag");
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)

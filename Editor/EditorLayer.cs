@@ -1,12 +1,9 @@
-using System.Numerics;
-using ECS;
 using Editor.Components;
 using Editor.State;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events;
 using Engine.Renderer;
-using Engine.Renderer.Cameras;
 using Engine.Scene;
 using ImGuiNET;
 using NLog;
