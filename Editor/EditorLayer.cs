@@ -4,6 +4,7 @@ using Editor.State;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events;
+using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Scene;
 using ImGuiNET;
@@ -101,7 +102,7 @@ public class EditorLayer : Layer
         
         // Scene controller events
         _sceneController.OnSceneChanged += () => {
-            _sceneController.OnViewportResize((uint)_editorState.ViewportState.ViewportSize.X, (uint)_editorState.ViewportState.ViewportSize.Y);
+            _sceneController.OnViewportResize((uint)_viewport.State.ViewportSize.X, (uint)_viewport.State.ViewportSize.Y);
             _workspace.UpdateSceneContext();
         };
         _sceneController.OnSceneStateChanged += (state) => {
@@ -119,10 +120,10 @@ public class EditorLayer : Layer
 
     private void HandleEntitySelection()
     {
-        if (_editorState.ViewportState.ViewportHovered && _viewport.HoveredEntity != null && 
+        if (_viewport.State is { ViewportHovered: true, HoveredEntity: not null } && 
             !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
         {
-            _editorState.SelectEntity(_viewport.HoveredEntity);
+            _editorState.SelectEntity(_viewport.State.HoveredEntity);
         }
     }
 
@@ -156,6 +157,13 @@ public class EditorLayer : Layer
         
         _viewport.BindFrameBuffer();
         
+        // Set viewport size to match framebuffer - ensure it matches the current panel size
+        var viewportSize = _viewport.State.ViewportSize;
+        if (viewportSize.X > 0 && viewportSize.Y > 0)
+        {
+            SilkNetContext.GL.Viewport(0, 0, (uint)viewportSize.X, (uint)viewportSize.Y);
+        }
+        
         Graphics2D.Instance.SetClearColor(_workspace.BackgroundColor);
         Graphics2D.Instance.Clear();
         _viewport.ClearAttachment(1, -1);
@@ -163,6 +171,13 @@ public class EditorLayer : Layer
         CurrentScene.Instance.OnUpdateEditor(timeSpan, _inputHandler.CameraController.Camera);
         
         _viewport.UnbindFrameBuffer();
+        
+        // Restore main window viewport
+        var window = SilkNetContext.Window;
+        if (window != null)
+        {
+            SilkNetContext.GL.Viewport(0, 0, (uint)window.Size.X, (uint)window.Size.Y);
+        }
     }
 
     public override void OnDetach()
@@ -180,20 +195,20 @@ public class EditorLayer : Layer
         
         _inputHandler.OnUpdate(timeSpan, _sceneController.CurrentState);
         
-        _editorState.ViewportState.UpdateMousePosition(ImGui.GetMousePos());
+        _viewport.State.UpdateMousePosition(ImGui.GetMousePos());
         
         RenderScene(timeSpan);
         
         _viewport.UpdateMousePicking();
-        _editorState.HoveredEntity = _viewport.HoveredEntity;
+        _editorState.HoveredEntity = _viewport.State.HoveredEntity;
         
-        float aspectRatio = _editorState.ViewportState.ViewportSize.X / _editorState.ViewportState.ViewportSize.Y;
+        float aspectRatio = _viewport.State.ViewportSize.X / _viewport.State.ViewportSize.Y;
         if (aspectRatio > 0)
         {
             _inputHandler.UpdateCameraAspectRatio(aspectRatio);
         }
         
-        _sceneController.OnViewportResize((uint)_editorState.ViewportState.ViewportSize.X, (uint)_editorState.ViewportState.ViewportSize.Y);
+        _sceneController.OnViewportResize((uint)_viewport.State.ViewportSize.X, (uint)_viewport.State.ViewportSize.Y);
     }
 
     public override void HandleEvent(Event @event) => _inputHandler.HandleEvent(@event, _sceneController.CurrentState);

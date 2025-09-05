@@ -10,10 +10,7 @@ namespace Editor.Components;
 
 public interface IEditorViewport
 {
-    Vector2 ViewportSize { get; }
-    bool IsHovered { get; }
-    bool IsFocused { get; }
-    Entity? HoveredEntity { get; }
+    EditorViewportState State { get; }
     
     void Initialize(uint width, uint height);
     void HandleResize();
@@ -31,20 +28,15 @@ public interface IEditorViewport
 
 public class EditorViewport : IEditorViewport, IDisposable
 {
-    private readonly EditorViewportState _state;
     private IFrameBuffer _frameBuffer;
-    private Entity? _hoveredEntity;
     private bool _disposed;
-
-    public Vector2 ViewportSize => _state.ViewportSize;
-    public bool IsHovered => _state.ViewportHovered;
-    public bool IsFocused => _state.ViewportFocused;
-    public Entity? HoveredEntity => _hoveredEntity;
 
     public EditorViewport(EditorViewportState state)
     {
-        _state = state ?? throw new ArgumentNullException(nameof(state));
+        State = state ?? throw new ArgumentNullException(nameof(state));
     }
+
+    public required EditorViewportState State { get; init; }
 
     public void Initialize(uint width, uint height)
     {
@@ -57,37 +49,37 @@ public class EditorViewport : IEditorViewport, IDisposable
             ])
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
-        _state.ViewportSize = new Vector2(width, height);
+        State.ViewportSize = new Vector2(width, height);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void HandleResize()
     {
         var spec = _frameBuffer.GetSpecification();
-        if (_state.ViewportSize is { X: > 0.0f, Y: > 0.0f } && 
-            (spec.Width != (uint)_state.ViewportSize.X || spec.Height != (uint)_state.ViewportSize.Y))
+        if (State.ViewportSize is { X: > 0.0f, Y: > 0.0f } && 
+            (spec.Width != (uint)State.ViewportSize.X || spec.Height != (uint)State.ViewportSize.Y))
         {
-            _frameBuffer.Resize((uint)_state.ViewportSize.X, (uint)_state.ViewportSize.Y);
+            _frameBuffer.Resize((uint)State.ViewportSize.X, (uint)State.ViewportSize.Y);
         }
     }
 
     public void UpdateMousePicking()
     {
-        if (!_state.IsMouseInViewport) return;
+        if (!State.IsMouseInViewport) return;
 
-        var mouseX = (int)_state.RelativeMousePosition.X;
-        var mouseY = (int)_state.RelativeMousePosition.Y;
+        var mouseX = (int)State.RelativeMousePosition.X;
+        var mouseY = (int)State.RelativeMousePosition.Y;
 
         if (mouseX >= 0 && mouseY >= 0 && 
-            mouseX < (int)_state.ViewportSize.X && mouseY < (int)_state.ViewportSize.Y)
+            mouseX < (int)State.ViewportSize.X && mouseY < (int)State.ViewportSize.Y)
         {
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
-            _hoveredEntity = entity;
+            State.HoveredEntity = entity;
         }
         else
         {
-            _hoveredEntity = null;
+            State.HoveredEntity = null;
         }
     }
 
@@ -116,23 +108,23 @@ public class EditorViewport : IEditorViewport, IDisposable
 
     public void UpdateViewportBounds(Vector2 min, Vector2 max)
     {
-        _state.ViewportBounds[0] = min;
-        _state.ViewportBounds[1] = max;
+        State.ViewportBounds[0] = min;
+        State.ViewportBounds[1] = max;
     }
 
     public void SetViewportSize(Vector2 size)
     {
-        _state.ViewportSize = size;
+        State.ViewportSize = size;
     }
 
     public void SetHoveredState(bool hovered)
     {
-        _state.ViewportHovered = hovered;
+        State.ViewportHovered = hovered;
     }
 
     public void SetFocusedState(bool focused)
     {
-        _state.ViewportFocused = focused;
+        State.ViewportFocused = focused;
     }
 
     public void Dispose()

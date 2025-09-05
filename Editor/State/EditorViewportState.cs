@@ -1,4 +1,5 @@
 using System.Numerics;
+using ECS;
 
 namespace Editor.State;
 
@@ -8,6 +9,7 @@ public class EditorViewportState
     public Vector2[] ViewportBounds { get; } = new Vector2[2];
     public bool ViewportHovered { get; set; }
     public bool ViewportFocused { get; set; }
+    public Entity? HoveredEntity { get; set; }
     
     public Vector2 MousePosition { get; set; }
     public Vector2 RelativeMousePosition { get; set; }

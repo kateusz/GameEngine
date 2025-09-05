@@ -8,10 +8,9 @@ using ImGuiNET;
 
 namespace Editor.Components;
 
-public interface IEditorUIRenderer
+public interface IEditorUIRenderer : IDisposable
 {
     void RenderMainUI();
-    void Dispose();
 }
 
 public class EditorUIRenderer : IEditorUIRenderer, IDisposable
@@ -93,6 +92,9 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
     private void RenderViewport()
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+        
+        // Allow viewport to use full available space
+        ImGui.SetNextWindowSizeConstraints(new Vector2(0, 0), new Vector2(float.MaxValue, float.MaxValue));
 
         ImGui.Begin("Viewport");
         {
@@ -100,21 +102,46 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
             var viewportMaxRegion = ImGui.GetWindowContentRegionMax();
             var viewportOffset = ImGui.GetWindowPos();
             
-            _viewport.UpdateViewportBounds(
-                new Vector2(viewportMinRegion.X + viewportOffset.X, viewportMinRegion.Y + viewportOffset.Y),
-                new Vector2(viewportMaxRegion.X + viewportOffset.X, viewportMaxRegion.Y + viewportOffset.Y)
-            );
+            var boundsMin = new Vector2(viewportMinRegion.X + viewportOffset.X, viewportMinRegion.Y + viewportOffset.Y);
+            var boundsMax = new Vector2(viewportMaxRegion.X + viewportOffset.X, viewportMaxRegion.Y + viewportOffset.Y);
+            
+            var state = _viewport.State;
+            
+            // Only update viewport bounds if they've changed
+            if (state.ViewportBounds[0] != boundsMin || state.ViewportBounds[1] != boundsMax)
+            {
+                _viewport.UpdateViewportBounds(boundsMin, boundsMax);
+            }
 
             var viewportFocused = ImGui.IsWindowFocused();
             var viewportHovered = ImGui.IsWindowHovered();
             
-            _viewport.SetFocusedState(viewportFocused);
-            _viewport.SetHoveredState(viewportHovered);
-            _inputHandler.ViewportFocused = viewportFocused;
+            // Only update focused state if it changed
+            if (state.ViewportFocused != viewportFocused)
+            {
+                _viewport.SetFocusedState(viewportFocused);
+            }
+            
+            // Only update hovered state if it changed
+            if (state.ViewportHovered != viewportHovered)
+            {
+                _viewport.SetHoveredState(viewportHovered);
+            }
+            
             Application.ImGuiLayer.BlockEvents = !viewportFocused && !viewportHovered;
 
             var viewportPanelSize = ImGui.GetContentRegionAvail();
-            _viewport.SetViewportSize(viewportPanelSize);
+            var windowSize = ImGui.GetWindowSize();
+            var dockId = ImGui.GetWindowDockID();
+            
+            // Debug all the issues
+            Console.WriteLine($"Viewport Debug - Size: {viewportPanelSize}, WindowSize: {windowSize}, DockID: 0x{dockId:X8}, Focused: {viewportFocused}, Hovered: {viewportHovered}");
+            
+            // Only update viewport size if it changed
+            if (state.ViewportSize != viewportPanelSize)
+            {
+                _viewport.SetViewportSize(viewportPanelSize);
+            }
             
             var textureId = _viewport.GetColorAttachmentId();
             var texturePointer = new IntPtr(textureId);
@@ -149,9 +176,9 @@ public class EditorUIRenderer : IEditorUIRenderer, IDisposable
         ImGui.Begin("Stats");
 
         var name = "None";
-        if (_viewport.HoveredEntity != null)
+        if (_viewport.State.HoveredEntity != null)
         {
-            name = _viewport.HoveredEntity.Name;
+            name = _viewport.State.HoveredEntity.Name;
         }
 
         ImGui.Text($"Hovered Entity: {name}");

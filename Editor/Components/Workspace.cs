@@ -58,7 +58,8 @@ public class Workspace : IDisposable
 
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
-            var dockspaceId = ImGui.GetID("MyDockSpace");
+            // Use the DockSpace ID from imgui.ini (0x3BC79352)
+            var dockspaceId = 0x3BC79352u;
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
 
             RenderMenuBar(onShowSettings);
@@ -66,8 +67,8 @@ public class Workspace : IDisposable
             RenderSettingsWindow();
             
             // Render custom content
-            toolbarRenderer?.Invoke();
-            viewportRenderer?.Invoke();
+            toolbarRenderer.Invoke();
+            viewportRenderer.Invoke();
             
             ImGui.End();
         }

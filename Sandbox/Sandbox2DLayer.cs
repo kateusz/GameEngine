@@ -130,12 +130,6 @@ public class Sandbox2DLayer : Layer
         // Render UI System (overlay on top of 3D scene)
         if (_showUI)
         {
-            // Test: Render a simple quad directly to ensure rendering works
-            Graphics2D.Instance.BeginScene(new OrthographicCamera(0, 1920, 0, 1080));
-            Graphics2D.Instance.DrawQuad(new Vector3(2, 2, 0), new Vector2(200, 200),
-                new Vector4(1, 0, 0, 1)); // Red quad
-            Graphics2D.Instance.EndScene();
-
             _uiManager.Render();
         }
     }
@@ -164,103 +158,41 @@ public class Sandbox2DLayer : Layer
 
     private void InitializeUI()
     {
-        Logger.Info("Initializing UI System with Font Support");
+        Logger.Info("Initializing UI System - Simple Test");
 
         // Create UI manager
         _uiManager = new UIManager(Graphics2D.Instance);
         _uiManager.SetScreenSize(new Vector2(1920, 1080)); // Default screen size
 
-        // Test font loading
-        var testFont = _uiManager.GetDefaultFont();
-
-        // Create test text with font
-        _instructionText = new Text("Font System Test - This text uses the new font renderer!", testFont,
-            TextAlignment.Left)
+        // Create simple test text without font system
+        _instructionText = new Text("Simple UI Test - No Fonts")
         {
             Id = "test-text",
             Position = new Vector2(10, 10), // Screen coordinates
-            FontSize = 24,
-            Style =
-            {
-                TextColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f), // Bright green
-                BackgroundColor = new Vector4(0.0f, 0.0f, 0.0f, 0.7f) // Semi-transparent black background
-            }
+            Size = new Vector2(400, 50), // Fixed size 
+            FontSize = 24
         };
+        _instructionText.Style.TextColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f); // Bright green
+        _instructionText.Style.BackgroundColor = new Vector4(1.0f, 0.0f, 0.0f, 0.5f); // Semi-transparent red background
         _uiManager.AddElement(_instructionText);
 
-        // Create additional test text with different sizes
-        var smallText = new Text("Small text (16px)", testFont, TextAlignment.Left)
+        // Create simple button
+        _testButton = new Button("Simple Button")
         {
-            Id = "small-text",
-            Position = new Vector2(10, 50),
-            FontSize = 16,
-            Style =
-            {
-                TextColor = new Vector4(1.0f, 1.0f, 0.0f, 1.0f) // Yellow
-            }
+            Id = "simple-button",
+            Position = new Vector2(10, 70),
+            Size = new Vector2(150, 40)
         };
-        _uiManager.AddElement(smallText);
-
-        var largeText = new Text("Large text (32px)", testFont, TextAlignment.Left)
-        {
-            Id = "large-text",
-            Position = new Vector2(10, 80),
-            FontSize = 32,
-            Style =
-            {
-                TextColor = new Vector4(0.0f, 1.0f, 1.0f, 1.0f) // Cyan
-            }
-        };
-        _uiManager.AddElement(largeText);
-
-        // Test different alignments
-        var centerText = new Text("Center Aligned", testFont, TextAlignment.Center)
-        {
-            Id = "center-text",
-            Position = new Vector2(960, 150), // Center of screen
-            Size = new Vector2(200, 30),
-            FontSize = 20,
-            Style =
-            {
-                TextColor = new Vector4(1.0f, 0.0f, 1.0f, 1.0f) // Magenta
-            }
-        };
-        _uiManager.AddElement(centerText);
-
-        var rightText = new Text("Right Aligned", testFont, TextAlignment.Right)
-        {
-            Id = "right-text",
-            Position = new Vector2(1910, 200), // Right edge
-            Size = new Vector2(200, 30),
-            FontSize = 20,
-            Style =
-            {
-                TextColor = new Vector4(1.0f, 0.5f, 0.0f, 1.0f) // Orange
-            }
-        };
-        _uiManager.AddElement(rightText);
-
-        // Test button with font
-        _testButton = new Button("Font Button Test")
-        {
-            Id = "font-button",
-            Position = new Vector2(10, 250),
-            Size = new Vector2(200, 40)
-        };
-        if (testFont != null)
-        {
-            _testButton.SetFont(testFont);
-        }
-
+        
         _testButton.OnClick = () =>
         {
             _clickCount++;
             _instructionText.Content = $"Button clicked {_clickCount} times!";
-            Logger.Info("Font button clicked {0} times", _clickCount);
+            Logger.Info("Simple button clicked {0} times", _clickCount);
         };
         _uiManager.AddElement(_testButton);
 
-        Logger.Info("UI System initialized with font support and {0} test elements", _uiManager.ElementCount);
+        Logger.Info("UI System initialized with {0} simple test elements", _uiManager.ElementCount);
     }
 
     private bool HandleUIEvent(Event @event)

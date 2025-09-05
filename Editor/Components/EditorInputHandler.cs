@@ -8,19 +8,11 @@ namespace Editor.Components;
 
 public class EditorInputHandler
 {
-    private bool _viewportFocused;
-
     public EditorInputHandler(OrthographicCameraController cameraController)
     {
         CameraController = cameraController;
     }
-
-    public bool ViewportFocused
-    {
-        get => _viewportFocused;
-        set => _viewportFocused = value;
-    }
-
+    
     public OrthographicCameraController CameraController { get; }
 
     public void HandleEvent(Event @event, Engine.Scene.SceneState sceneState)
@@ -87,7 +79,7 @@ public class EditorInputHandler
     public void OnUpdate(TimeSpan timeSpan, Engine.Scene.SceneState sceneState)
     {
         // Update camera controller when viewport is focused and in edit mode
-        if (_viewportFocused && sceneState == Engine.Scene.SceneState.Edit)
+        if (/*_viewportFocused &&*/ sceneState == Engine.Scene.SceneState.Edit)
         {
             CameraController.OnUpdate(timeSpan);
         }

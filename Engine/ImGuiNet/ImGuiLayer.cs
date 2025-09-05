@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Core;
 using Engine.Events;
 using Engine.Platform.SilkNet;
@@ -26,10 +27,6 @@ public class ImGuiLayer : Layer
     public void Begin(TimeSpan timeSpan)
     {
         _controller.Update((float)timeSpan.TotalSeconds);
-        
-        // ImGui_ImplOpenGL3_NewFrame();
-        // ImGui_ImplGlfw_NewFrame();
-        //ImGui.NewFrame();
         
         // TODO: ImGuizmo CRASH
         //ImGuizmoWrapper.SetOrthographic(false);
