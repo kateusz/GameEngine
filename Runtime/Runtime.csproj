@@ -10,8 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Editor\Editor.csproj" />
-      <ProjectReference Include="..\Engine\Engine.csproj" />
+      <ProjectReference Include="../Editor/Editor.csproj" />
+      <ProjectReference Include="../Engine/Engine.csproj" />
     </ItemGroup>
 
 </Project>
