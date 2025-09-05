@@ -57,19 +57,18 @@ public class EditorViewport : IEditorViewport, IDisposable
     {
         var spec = _frameBuffer.GetSpecification();
         
-        // Apply macOS Retina scaling for high-DPI displays
+        // Use physical pixel size for frame buffer on Retina displays
         var scaleFactor = GetDisplayScaleFactor();
         var width = Math.Max(32, (uint)(State.ViewportSize.X * scaleFactor));
         var height = Math.Max(32, (uint)(State.ViewportSize.Y * scaleFactor));
         
-        Console.WriteLine($"Frame buffer resize - LogicalSize: {State.ViewportSize}, ScaleFactor: {scaleFactor}, PhysicalSize: {width}x{height}");
-        
         if (State.ViewportSize is { X: > 0.0f, Y: > 0.0f } && 
             (spec.Width != width || spec.Height != height))
         {
+            Console.WriteLine($"Frame buffer resize - LogicalSize: {State.ViewportSize}, ScaleFactor: {scaleFactor}, PhysicalSize: {width}x{height}");
             try
             {
-                _frameBuffer.Resize(width * 2, height * 2);
+                _frameBuffer.Resize(width, height);
                 
                 // Update state to reflect actual resize
                 State.ViewportSize = new Vector2(width, height);
@@ -92,19 +91,19 @@ public class EditorViewport : IEditorViewport, IDisposable
     {
         if (!State.IsMouseInViewport) return;
 
-        // Apply Retina scaling to mouse coordinates
+        // Scale mouse coordinates to match frame buffer physical pixels
         var scaleFactor = GetDisplayScaleFactor();
         var mouseX = (int)(State.RelativeMousePosition.X * scaleFactor);
         var mouseY = (int)(State.RelativeMousePosition.Y * scaleFactor);
 
-        var scaledWidth = (int)(State.ViewportSize.X * scaleFactor);
-        var scaledHeight = (int)(State.ViewportSize.Y * scaleFactor);
+        var physicalWidth = (int)(State.ViewportSize.X * scaleFactor);
+        var physicalHeight = (int)(State.ViewportSize.Y * scaleFactor);
 
         if (mouseX >= 0 && mouseY >= 0 && 
-            mouseX < scaledWidth && mouseY < scaledHeight)
+            mouseX < physicalWidth && mouseY < physicalHeight)
         {
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
-            var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
+            var entity = CurrentScene.Instance?.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
             State.HoveredEntity = entity;
         }
         else
@@ -159,9 +158,16 @@ public class EditorViewport : IEditorViewport, IDisposable
 
     private float GetDisplayScaleFactor()
     {
-        // Get the actual framebuffer scale from ImGui which handles Retina displays properly
+        // For MacBook Pro 2560x1600, the scale factor should be 2.0
+        // ImGui's DpiScale might not always return correct values on macOS
+        if (OperatingSystem.IsMacOS())
+        {
+            return 2.0f; // Retina scale factor
+        }
+        
+        // Fallback to ImGui's DPI scale for other platforms
         var viewport = ImGuiNET.ImGui.GetMainViewport();
-        return viewport.DpiScale;
+        return Math.Max(1.0f, viewport.DpiScale);
     }
 
     public void Dispose()

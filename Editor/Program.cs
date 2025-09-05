@@ -10,7 +10,8 @@ using NLog.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
-var props = new WindowProps("Sandbox Engine testing!", 1280, 720);
+// Use logical size (half of physical pixels) for proper Retina handling
+var props = new WindowProps("Sandbox Engine testing!", 1280, 800);
 
 var container = new Container();
 
@@ -36,7 +37,8 @@ container.Register<Workspace>(Reuse.Singleton);
 container.Register<ProjectController>(Reuse.Singleton);
 container.Register<SceneController>(Reuse.Singleton);
 container.Register<EditorInputHandler>(Reuse.Singleton);
-container.Use(new OrthographicCameraController(1280.0f / 720.0f, true));
+// Use proper aspect ratio for MacBook Pro 16" (16:10 aspect ratio)
+container.Use(new OrthographicCameraController(1280.0f / 800.0f, true));
 
 // Register EditorLayer with constructor injection
 container.Register<EditorLayer>(Reuse.Singleton);

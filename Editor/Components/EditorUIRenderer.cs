@@ -141,12 +141,6 @@ public class EditorUIRenderer : IEditorUIRenderer
             var windowSize = ImGui.GetWindowSize();
             var dockId = ImGui.GetWindowDockID();
             
-            // Ensure minimum viewport size
-            var minSize = new Vector2(Math.Max(32, viewportPanelSize.X), Math.Max(32, viewportPanelSize.Y));
-            
-            // Debug viewport sizing information
-            Console.WriteLine($"Viewport Debug - ContentRegion: {viewportPanelSize}, WindowSize: {windowSize}, MinSize: {minSize}, DockID: 0x{dockId:X8}, Focused: {viewportFocused}, Hovered: {viewportHovered}");
-            
             // Only update viewport size if it changed significantly (avoid micro-updates)
             var sizeDelta = new Vector2(
                 Math.Abs(state.ViewportSize.X - viewportPanelSize.X),
@@ -155,8 +149,18 @@ public class EditorUIRenderer : IEditorUIRenderer
             
             if (sizeDelta.X > 1.0f || sizeDelta.Y > 1.0f)
             {
+                // Ensure minimum viewport size
+                var minSize = new Vector2(Math.Max(32, viewportPanelSize.X), Math.Max(32, viewportPanelSize.Y));
+                
+                // Debug viewport sizing information
+                Console.WriteLine($"Viewport Debug - ContentRegion: {viewportPanelSize}, WindowSize: {windowSize}, MinSize: {minSize}, DockID: 0x{dockId:X8}, Focused: {viewportFocused}, Hovered: {viewportHovered}");
+                
                 _viewport.SetViewportSize(viewportPanelSize);
                 _viewport.HandleResize();
+                
+                // Update camera aspect ratio to match viewport
+                var aspectRatio = viewportPanelSize.X / viewportPanelSize.Y;
+                _inputHandler.UpdateCameraAspectRatio(aspectRatio);
             }
             
             var textureId = _viewport.GetColorAttachmentId();
