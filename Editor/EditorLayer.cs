@@ -44,13 +44,8 @@ public class EditorLayer : Layer
     private Vector4 _backgroundColor = new Vector4(232.0f, 232.0f, 232.0f, 1.0f);
     private bool _showSettings = false;
     
-    private readonly IProjectManager _projectManager = new ProjectManager();
-    private bool _showNewProjectPopup = false;
-    private bool _showOpenProjectPopup = false;
-    private string _newProjectName = string.Empty;
-    private string _newProjectError = string.Empty;
-    private string _openProjectPath = string.Empty;
-
+    private ProjectUI _projectUI;
+    private IProjectManager _projectManager;
     
     // fps rate
     private readonly Queue<float> _frameTimes = new();
@@ -61,7 +56,6 @@ public class EditorLayer : Layer
     
     public EditorLayer() : base("EditorLayer")
     {
-        _showOpenProjectPopup = true;
     }
 
     public override void OnAttach()
@@ -93,6 +87,8 @@ public class EditorLayer : Layer
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
+        _projectManager  = new ProjectManager();
+        _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
@@ -334,9 +330,9 @@ public class EditorLayer : Layer
                 if (ImGui.BeginMenu("File"))
                 {
                     if (ImGui.MenuItem("New Project"))
-                        _showNewProjectPopup = true;
+                        _projectUI.ShowNewProjectPopup();
                     if (ImGui.MenuItem("Open Project"))
-                        _showOpenProjectPopup = true;
+                        _projectUI.ShowOpenProjectPopup();
                     if (ImGui.MenuItem("Exit"))
                         Environment.Exit(0);
                     ImGui.EndMenu();
@@ -494,8 +490,8 @@ public class EditorLayer : Layer
             UI_Toolbar();
             ImGui.End();
         }
-        RenderNewProjectPopup();
-        RenderOpenProjectPopup();
+        
+        _projectUI.Render();
     }
 
     private void BuildAndPublish()
@@ -507,114 +503,6 @@ public class EditorLayer : Layer
     {
         _cameraController.Camera.SetPosition(Vector3.Zero);
         _cameraController.Camera.SetRotation(0.0f);
-    }
-    
-    private void RenderNewProjectPopup()
-    {
-        if (_showNewProjectPopup)
-        {
-            ImGui.OpenPopup("New Project");
-        }
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
-        if (ImGui.BeginPopupModal("New Project", ref _showNewProjectPopup, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
-        {
-            ImGui.Text("Enter Project Name:");
-            ImGui.InputText("##ProjectName", ref _newProjectName, 100);
-            ImGui.Separator();
-            bool isValid = _projectManager.IsValidProjectName(_newProjectName);
-            if (!isValid && !string.IsNullOrEmpty(_newProjectName))
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
-                ImGui.TextWrapped("Project name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores.");
-                ImGui.PopStyleColor();
-            }
-            if (!string.IsNullOrEmpty(_newProjectError))
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
-                ImGui.TextWrapped(_newProjectError);
-                ImGui.PopStyleColor();
-            }
-            ImGui.BeginDisabled(!isValid);
-            if (ImGui.Button("Create", new Vector2(120, 0)))
-            {
-                if (_projectManager.TryCreateNewProject(_newProjectName.Trim(), out var err))
-                {
-                    _showNewProjectPopup = false;
-                    _newProjectName = string.Empty;
-                    _newProjectError = string.Empty;
-
-                    // Refresh content browser to new assets path
-                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-                }
-                else
-                {
-                    _newProjectError = err;
-                }
-            }
-
-            ImGui.EndDisabled();
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
-            {
-                _showNewProjectPopup = false;
-                _newProjectName = string.Empty;
-                _newProjectError = string.Empty;
-            }
-            ImGui.EndPopup();
-        }
-    }
-
-    private void RenderOpenProjectPopup()
-    {
-        if (_showOpenProjectPopup)
-        {
-            ImGui.OpenPopup("Open Project");
-        }
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
-        if (ImGui.BeginPopupModal("Open Project", ref _showOpenProjectPopup, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
-        {
-            ImGui.Text("Enter project name:");
-            ImGui.InputText("##OpenProjectName", ref _openProjectPath, 100);
-            ImGui.Separator();
-            bool isValid = !string.IsNullOrWhiteSpace(_openProjectPath);
-            if (!isValid && !string.IsNullOrEmpty(_openProjectPath))
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
-                ImGui.TextWrapped("Project directory does not exist.");
-                ImGui.PopStyleColor();
-            }
-            ImGui.BeginDisabled(!isValid);
-            if (ImGui.Button("Open", new Vector2(120, 0)))
-            {
-                if (_projectManager.TryOpenProject(_openProjectPath.Trim(), out var err))
-                {
-                    _showOpenProjectPopup = false;
-                    _openProjectPath = string.Empty;
-
-                    // Refresh content browser to new assets path
-                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-                }
-                else
-                {
-                    // surface error inline
-                    _openProjectPath = _openProjectPath; // keep input
-                    ImGui.OpenPopup("Open Project");     // keep window open
-                    // Show the error below input:
-                    ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
-                    ImGui.TextWrapped(err);
-                    ImGui.PopStyleColor();
-                }
-            }
-
-            ImGui.EndDisabled();
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
-            {
-                _showOpenProjectPopup = false;
-                _openProjectPath = string.Empty;
-            }
-            ImGui.EndPopup();
-        }
     }
 
     private void OnMouseButtonPressed(MouseButtonPressedEvent e)
