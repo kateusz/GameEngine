@@ -46,4 +46,11 @@
         <ProjectReference Include="../ECS/ECS.csproj" />
     </ItemGroup>
 
+    <Target Name="EnsureOutputFolders" BeforeTargets="Build">
+        <ItemGroup>
+            <AssetDirs Include="assets/**/" />
+        </ItemGroup>
+        <MakeDir Directories="@(AssetDirs->'$(OutputPath)%(RecursiveDir)')" />
+    </Target>
+
 </Project>

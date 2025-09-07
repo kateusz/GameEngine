@@ -27,4 +27,11 @@
         <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
+    <Target Name="EnsureOutputFolders" BeforeTargets="Build">
+        <ItemGroup>
+            <AssetDirs Include="assets/**/" />
+        </ItemGroup>
+        <MakeDir Directories="@(AssetDirs->'$(OutputPath)%(RecursiveDir)')" />
+    </Target>
+
 </Project>
