@@ -4,8 +4,8 @@ namespace Runtime;
 
 public class RuntimeApplication : Application
 {
-    public RuntimeApplication() : base(true)
+    public RuntimeApplication() : base(null!,true)
     {
-        PushLayer(new Runtime2DLayer("Runtime Layer"));
+        PushLayer(new Runtime2DLayer());
     }
 }

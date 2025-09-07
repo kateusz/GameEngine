@@ -51,7 +51,7 @@ public class Sandbox2DLayer : Layer
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
 
-    public Sandbox2DLayer(string name) : base(name)
+    public Sandbox2DLayer() : base("Sandbox2DLayer")
     {
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }

@@ -7,6 +7,5 @@ public class Editor : Application
 {
     public Editor(IGameWindow gameWindow) : base(gameWindow, true)
     {
-        PushLayer(new EditorLayer("Editor Layer"));
     }
 }

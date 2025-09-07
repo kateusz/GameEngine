@@ -1,11 +1,13 @@
 using Engine.Core;
+using Engine.Core.Window;
+using Engine.Platform.SilkNet;
+using Silk.NET.Windowing;
 
 namespace Sandbox;
 
 public class SandboxApplication : Application
 {
-    public SandboxApplication() : base(true)
+    public SandboxApplication(IGameWindow gameWindow) : base(gameWindow, true)
     {
-        PushLayer(new Sandbox2DLayer("Sandbox 2D Layer"));
     }
 }

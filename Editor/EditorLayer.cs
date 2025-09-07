@@ -56,7 +56,7 @@ public class EditorLayer : Layer
     private const float FpsUpdateInterval = 0.1f;
     private const int MaxFrameSamples = 60;
     
-    public EditorLayer(string name) : base(name)
+    public EditorLayer() : base("EditorLayer")
     {
         _showOpenProjectPopup = true;
     }

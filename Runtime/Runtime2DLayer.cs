@@ -5,7 +5,7 @@ namespace Runtime;
 
 public class Runtime2DLayer : Layer
 {
-    public Runtime2DLayer(string name) : base(name)
+    public Runtime2DLayer() : base("Runtime2DLayer")
     {
     }
 
