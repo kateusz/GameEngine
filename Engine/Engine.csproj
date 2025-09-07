@@ -6,7 +6,6 @@
         <Nullable>enable</Nullable>
         <PublishAot>false</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
         <EnableMixedModeDebugging>true</EnableMixedModeDebugging>
     </PropertyGroup>
 
@@ -28,36 +27,23 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="nlog.config">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Platform/OpenGL/Shaders/flatColorShader.frag">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Platform/OpenGL/Shaders/flatColorShader.vert">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Platform/OpenGL/Shaders/textureShader.frag">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Platform/OpenGL/Shaders/textureShader.vert">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="ImGui/Shaders/imgui-frag.glsl">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="ImGui/Shaders/imgui-vertex.glsl">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-    
-    <ItemGroup>
-        <Content Include="bin/Debug/net8.0/runtimes/osx-arm64/native/cimgui.dylib" />
-    </ItemGroup>
-    
-    <ItemGroup>
-      <ProjectReference Include="../ECS/ECS.csproj" />
+        <!-- Plik konfiguracyjny NLog zawsze kopiowany -->
+        <None Update="nlog.config" CopyToOutputDirectory="Always" />
+
+        <!-- Kopiowanie wszystkich shaderów OpenGL -->
+        <None Include="Platform\OpenGL\Shaders\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+
+        <!-- Kopiowanie wszystkich shaderów ImGui -->
+        <None Include="ImGui\Shaders\**\*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Biblioteka natywna -->
+        <Content Include="bin/Debug/net8.0/runtimes/osx-arm64/native/cimgui.dylib" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../ECS/ECS.csproj" />
+    </ItemGroup>
 
 </Project>

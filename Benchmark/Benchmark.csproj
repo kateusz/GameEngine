@@ -10,41 +10,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="../Editor/Editor.csproj" />
-      <ProjectReference Include="../Engine/Engine.csproj" />
+        <ProjectReference Include="../Editor/Editor.csproj" />
+        <ProjectReference Include="../Engine/Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="assets/game/textures/RPGpack_sheet_2X.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/flatColorShader.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/flatColorShader.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/lineShader.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/lineShader.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/textureShader.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/textureShader.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/textures/container.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/phong.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="assets/shaders/OpenGL/phong.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
