@@ -31,10 +31,10 @@
         <None Update="nlog.config" CopyToOutputDirectory="Always" />
 
         <!-- Kopiowanie wszystkich shaderów OpenGL -->
-        <None Include="Platform\OpenGL\Shaders\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="Platform/OpenGL/Shaders/**/*.*" CopyToOutputDirectory="PreserveNewest" />
 
         <!-- Kopiowanie wszystkich shaderów ImGui -->
-        <None Include="ImGui\Shaders\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="ImGui/Shaders/**/*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>

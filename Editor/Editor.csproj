@@ -18,9 +18,9 @@
         <None Update="imgui.ini" CopyToOutputDirectory="Always" />
 
         <!-- Kopiuj rekurencyjnie wszystko z assets i Resources -->
-        <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
-        <None Include="Resources\**\*.*" CopyToOutputDirectory="PreserveNewest" />
-        <None Include="libs\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="Resources/**/*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="libs/**/*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>
