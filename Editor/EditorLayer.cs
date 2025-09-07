@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
+using Editor.Managers;
 using Editor.Panels;
 using Engine.Core;
 using Engine.Core.Input;
@@ -42,12 +43,14 @@ public class EditorLayer : Layer
     private string? _editorScenePath;
     private Vector4 _backgroundColor = new Vector4(232.0f, 232.0f, 232.0f, 1.0f);
     private bool _showSettings = false;
+    
+    private readonly IProjectManager _projectManager = new ProjectManager();
     private bool _showNewProjectPopup = false;
+    private bool _showOpenProjectPopup = false;
     private string _newProjectName = string.Empty;
     private string _newProjectError = string.Empty;
-    private string? _currentProjectDirectory = null;
-    private bool _showOpenProjectPopup = false;
     private string _openProjectPath = string.Empty;
+
     
     // fps rate
     private readonly Queue<float> _frameTimes = new();
@@ -91,9 +94,8 @@ public class EditorLayer : Layer
         _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
         
-        // Set scripts directory based on current project directory
-        string projectRoot = _currentProjectDirectory ?? Environment.CurrentDirectory;
-        string scriptsDir = Path.Combine(projectRoot, "assets", "scripts");
+        // Prefer current project; otherwise default to CWD/assets/scripts
+        var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
         
         Console.WriteLine("✅ Editor initialized successfully!");
@@ -519,7 +521,7 @@ public class EditorLayer : Layer
             ImGui.Text("Enter Project Name:");
             ImGui.InputText("##ProjectName", ref _newProjectName, 100);
             ImGui.Separator();
-            bool isValid = !string.IsNullOrWhiteSpace(_newProjectName) && System.Text.RegularExpressions.Regex.IsMatch(_newProjectName, @"^[a-zA-Z0-9_\- ]+$");
+            bool isValid = _projectManager.IsValidProjectName(_newProjectName);
             if (!isValid && !string.IsNullOrEmpty(_newProjectName))
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
@@ -535,14 +537,21 @@ public class EditorLayer : Layer
             ImGui.BeginDisabled(!isValid);
             if (ImGui.Button("Create", new Vector2(120, 0)))
             {
-                var result = CreateNewProject(_newProjectName.Trim());
-                if (result)
+                if (_projectManager.TryCreateNewProject(_newProjectName.Trim(), out var err))
                 {
                     _showNewProjectPopup = false;
                     _newProjectName = string.Empty;
                     _newProjectError = string.Empty;
+
+                    // Refresh content browser to new assets path
+                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                }
+                else
+                {
+                    _newProjectError = err;
                 }
             }
+
             ImGui.EndDisabled();
             ImGui.SameLine();
             if (ImGui.Button("Cancel", new Vector2(120, 0)))
@@ -552,43 +561,6 @@ public class EditorLayer : Layer
                 _newProjectError = string.Empty;
             }
             ImGui.EndPopup();
-        }
-    }
-
-    private bool CreateNewProject(string projectName)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(projectName))
-            {
-                _newProjectError = "Project name cannot be empty.";
-                return false;
-            }
-        
-            var projectDir = Path.Combine(Environment.CurrentDirectory, projectName);
-            if (Directory.Exists(projectDir))
-            {
-                _newProjectError = "A directory with this name already exists.";
-                return false;
-            }
-        
-            Directory.CreateDirectory(projectDir);
-            Directory.CreateDirectory(Path.Combine(projectDir, "assets"));
-            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "scenes"));
-            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "textures"));
-            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "scripts"));
-            Directory.CreateDirectory(Path.Combine(projectDir, "assets", "prefabs")); // Add this line
-        
-            _currentProjectDirectory = projectDir;
-            AssetsManager.SetAssetsPath(Path.Combine(projectDir, "assets"));
-            _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-            Console.WriteLine($"🆕 Project '{projectName}' created at {projectDir}");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _newProjectError = $"Failed to create project: {ex.Message}";
-            return false;
         }
     }
 
@@ -604,7 +576,7 @@ public class EditorLayer : Layer
             ImGui.Text("Enter project name:");
             ImGui.InputText("##OpenProjectName", ref _openProjectPath, 100);
             ImGui.Separator();
-            bool isValid = !string.IsNullOrWhiteSpace(_openProjectPath) && Directory.Exists(Path.Combine(Environment.CurrentDirectory, _openProjectPath));
+            bool isValid = !string.IsNullOrWhiteSpace(_openProjectPath);
             if (!isValid && !string.IsNullOrEmpty(_openProjectPath))
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
@@ -614,11 +586,26 @@ public class EditorLayer : Layer
             ImGui.BeginDisabled(!isValid);
             if (ImGui.Button("Open", new Vector2(120, 0)))
             {
-                var projectDir = Path.Combine(Environment.CurrentDirectory, _openProjectPath.Trim());
-                OpenProject(projectDir);
-                _showOpenProjectPopup = false;
-                _openProjectPath = string.Empty;
+                if (_projectManager.TryOpenProject(_openProjectPath.Trim(), out var err))
+                {
+                    _showOpenProjectPopup = false;
+                    _openProjectPath = string.Empty;
+
+                    // Refresh content browser to new assets path
+                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                }
+                else
+                {
+                    // surface error inline
+                    _openProjectPath = _openProjectPath; // keep input
+                    ImGui.OpenPopup("Open Project");     // keep window open
+                    // Show the error below input:
+                    ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                    ImGui.TextWrapped(err);
+                    ImGui.PopStyleColor();
+                }
             }
+
             ImGui.EndDisabled();
             ImGui.SameLine();
             if (ImGui.Button("Cancel", new Vector2(120, 0)))
@@ -628,25 +615,6 @@ public class EditorLayer : Layer
             }
             ImGui.EndPopup();
         }
-    }
-
-    private void OpenProject(string projectDir)
-    {
-        _currentProjectDirectory = projectDir;
-        var assetsDir = Path.Combine(projectDir, "assets");
-        if (Directory.Exists(assetsDir))
-        {
-            AssetsManager.SetAssetsPath(assetsDir);
-            _contentBrowserPanel.SetRootDirectory(assetsDir);
-        }
-        else
-        {
-            AssetsManager.SetAssetsPath(projectDir);
-            _contentBrowserPanel.SetRootDirectory(projectDir);
-        }
-        string scriptsDir = Path.Combine(_currentProjectDirectory, "assets", "scripts");
-        ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
-        Console.WriteLine($"📂 Project opened: {projectDir}");
     }
 
     private void OnMouseButtonPressed(MouseButtonPressedEvent e)
@@ -703,24 +671,15 @@ public class EditorLayer : Layer
     
     private void SaveScene()
     {
-        string sceneDir;
-        if (!string.IsNullOrEmpty(_currentProjectDirectory))
-        {
-            sceneDir = Path.Combine(_currentProjectDirectory, "assets", "scenes");
-        }
-        else
-        {
-            sceneDir = Path.Combine(Environment.CurrentDirectory, "assets", "scenes");
-        }
+        var sceneDir = _projectManager.ScenesDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scenes");
         if (!Directory.Exists(sceneDir))
             Directory.CreateDirectory(sceneDir);
+
         _editorScenePath = Path.Combine(sceneDir, "scene.scene");
-        if (!string.IsNullOrWhiteSpace(_editorScenePath))
-        {
-            SceneSerializer.Serialize(CurrentScene.Instance, _editorScenePath);
-            Console.WriteLine($"💾 Scene saved: {_editorScenePath}");
-        }
+        SceneSerializer.Serialize(CurrentScene.Instance, _editorScenePath);
+        Console.WriteLine($"💾 Scene saved: {_editorScenePath}");
     }
+
 
     private void OnScenePlay()
     {
