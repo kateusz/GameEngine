@@ -16,7 +16,7 @@
 
     <ItemGroup>
         <!-- Kopiowanie wszystkiego z katalogu assets -->
-        <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
