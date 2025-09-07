@@ -24,16 +24,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Specjalny plik z Content -->
-        <Content Include="bin/Debug/net8.0/assets/scenes/Physics2D.scene" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- Jeśli chcesz, żeby skrypty .cs2 też były kopiowane -->
-        <None Include="assets\scripts\**\*.cs2" CopyToOutputDirectory="PreserveNewest" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
