@@ -178,10 +178,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Windows/" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
