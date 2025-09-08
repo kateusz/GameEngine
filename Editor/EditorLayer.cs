@@ -12,11 +12,9 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
-using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
 using NLog;
-using Silk.NET.GLFW;
 using ZLinq;
 using Application = Engine.Core.Application;
 
@@ -48,7 +46,7 @@ public class EditorLayer : Layer
     private SceneManager _sceneManager;
     
     private readonly RendererStatsUI _rendererStatsUI = new();
-    
+    private EditorToolbarUI _editorToolbarUI;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     
     public EditorLayer() : base("EditorLayer")
@@ -89,6 +87,7 @@ public class EditorLayer : Layer
         _propertiesPanel = new PropertiesPanel();
         _projectManager  = new ProjectManager();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
+        _editorToolbarUI = new EditorToolbarUI(_sceneManager, _iconPlay, _iconStop);
         
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
@@ -255,46 +254,6 @@ public class EditorLayer : Layer
         SubmitUI();
     }
 
-    private void UI_Toolbar()
-    {
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 2));
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing, new Vector2(0, 0));
-        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
-
-        var colors = ImGui.GetStyle().Colors;
-        var buttonHovered = colors[(int)ImGuiCol.ButtonHovered];
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, buttonHovered with { W = 0.5f });
-
-        var buttonActive = colors[(int)ImGuiCol.ButtonActive];
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, buttonActive with { W = 0.5f });
-
-        ImGui.Begin("##toolbar",
-            ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-
-        var size = ImGui.GetWindowHeight() - 4.0f;
-        var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;
-
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
-
-        if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0),
-                new Vector2(1, 1)))
-        {
-            switch (_sceneManager.SceneState)
-            {
-                case SceneState.Edit:
-                    _sceneManager.Play();
-                    break;
-                case SceneState.Play:
-                    _sceneManager.Stop();
-                    break;
-            }
-        }
-        
-        ImGui.PopStyleVar(2);
-        ImGui.PopStyleColor(3);
-        ImGui.End();
-    }
-
     private void SubmitUI()
     {
         var dockspaceOpen = true;
@@ -417,6 +376,7 @@ public class EditorLayer : Layer
             ImGui.Text($"Rotation: {_cameraController.Camera.Rotation:F1}°");
 
             ImGui.Separator();
+            
             _rendererStatsUI.Render();
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
@@ -463,7 +423,7 @@ public class EditorLayer : Layer
             ImGui.End();
             ImGui.PopStyleVar();
 
-            UI_Toolbar();
+            _editorToolbarUI.Render();
             ImGui.End();
         }
         
