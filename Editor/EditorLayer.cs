@@ -47,6 +47,8 @@ public class EditorLayer : Layer
     private IProjectManager _projectManager;
     private SceneManager _sceneManager;
     
+    private readonly RendererStatsUI _rendererStatsUI = new();
+    
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     
     public EditorLayer() : base("EditorLayer")
@@ -407,27 +409,15 @@ public class EditorLayer : Layer
             ImGui.Text($"Hovered Entity: {name}");
             
             _performanceMonitor.RenderUI();
-
-            ImGui.Separator();
-            var stats = Graphics2D.Instance.GetStats();
-            ImGui.Text("Renderer2D Stats:");
-            ImGui.Text($"Draw Calls: {stats.DrawCalls}");
-            ImGui.Text($"Quads: {stats.QuadCount}");
-            ImGui.Text($"Vertices: {stats.GetTotalVertexCount()}");
-            ImGui.Text($"Indices: {stats.GetTotalIndexCount()}");
             
             // Camera info
             ImGui.Text("Camera:");
             var camPos = _cameraController.Camera.Position;
             ImGui.Text($"Position: ({camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2})");
             ImGui.Text($"Rotation: {_cameraController.Camera.Rotation:F1}°");
-            
-            // 3D Stats
-            var stats3D = Graphics3D.Instance.GetStats();
-            ImGui.Text("Renderer3D Stats:");
-            ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
 
-            ImGui.End();
+            ImGui.Separator();
+            _rendererStatsUI.Render();
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
