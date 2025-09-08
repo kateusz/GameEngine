@@ -19,10 +19,7 @@
     </ItemGroup>
 
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
-        <ItemGroup>
-            <AssetDirs Include="assets/**/" />
-        </ItemGroup>
-        <MakeDir Directories="@(AssetDirs->'$(OutputPath)%(RecursiveDir)')" />
+        <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/opengl" />
     </Target>
 
 </Project>

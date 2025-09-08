@@ -28,10 +28,7 @@
     </ItemGroup>
 
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
-        <ItemGroup>
-            <AssetDirs Include="assets/**/" />
-        </ItemGroup>
-        <MakeDir Directories="@(AssetDirs->'$(OutputPath)%(RecursiveDir)')" />
+        <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/fonts;$(OutputPath)assets/fonts/opensans;$(OutputPath)assets/game;$(OutputPath)assets/game/textures;$(OutputPath)assets/objModels;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures;$(OutputPath)assets/textures/skybox;$(OutputPath)Resources;$(OutputPath)libs" />
     </Target>
 
 </Project>
