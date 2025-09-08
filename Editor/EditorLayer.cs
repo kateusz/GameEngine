@@ -38,8 +38,6 @@ public class EditorLayer : Layer
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
     private string? _editorScenePath;
-    private Vector4 _backgroundColor = new Vector4(232.0f, 232.0f, 232.0f, 1.0f);
-    private bool _showSettings = false;
     
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
@@ -48,6 +46,7 @@ public class EditorLayer : Layer
     private readonly RendererStatsUI _rendererStatsUI = new();
     private EditorToolbarUI _editorToolbarUI;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
+    private EditorSettingsUI _editorSettingsUI;
     
     public EditorLayer() : base("EditorLayer")
     {
@@ -88,6 +87,7 @@ public class EditorLayer : Layer
         _projectManager  = new ProjectManager();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbarUI = new EditorToolbarUI(_sceneManager, _iconPlay, _iconStop);
+        _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
         
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
@@ -136,7 +136,7 @@ public class EditorLayer : Layer
         Graphics3D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        Graphics2D.Instance.SetClearColor(_backgroundColor);
+        Graphics2D.Instance.SetClearColor(_editorSettingsUI.Settings.BackgroundColor);
         Graphics2D.Instance.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
@@ -308,7 +308,7 @@ public class EditorLayer : Layer
                 if (ImGui.BeginMenu("Settings"))
                 {
                     if (ImGui.MenuItem("Editor Settings"))
-                        _showSettings = true;
+                        _editorSettingsUI.Show();
                     ImGui.EndMenu();
                 }
                 
@@ -322,30 +322,7 @@ public class EditorLayer : Layer
                 ImGui.EndMenuBar();
             }
 
-            if (_showSettings)
-            {
-                ImGui.Begin("Editor Settings", ref _showSettings, ImGuiWindowFlags.AlwaysAutoResize);
-                ImGui.Text("Editor Background Color");
-                ImGui.ColorEdit4("Background Color", ref _backgroundColor);
-                
-                // Camera settings
-                ImGui.Separator();
-                ImGui.Text("Camera Settings");
-                
-                var cameraPos = _cameraController.Camera.Position;
-                if (ImGui.DragFloat3("Camera Position", ref cameraPos, 0.1f))
-                {
-                    _cameraController.Camera.SetPosition(cameraPos);
-                }
-                
-                var cameraRot = _cameraController.Camera.Rotation;
-                if (ImGui.DragFloat("Camera Rotation", ref cameraRot, 1.0f))
-                {
-                    _cameraController.Camera.SetRotation(cameraRot);
-                }
-                
-                ImGui.End();
-            }
+            _editorSettingsUI.Render();
 
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
