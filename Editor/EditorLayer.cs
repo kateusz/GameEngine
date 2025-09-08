@@ -35,9 +35,6 @@ public class EditorLayer : Layer
     private PropertiesPanel _propertiesPanel;
     private ConsolePanel _consolePanel;
     private Entity? _hoveredEntity;
-    private Texture2D _iconPlay;
-    private Texture2D _iconStop;
-    private string? _editorScenePath;
     
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
@@ -55,9 +52,6 @@ public class EditorLayer : Layer
     public override void OnAttach()
     {
         Logger.Debug("EditorLayer OnAttach.");
-
-        _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
-        _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
 
         // Initialize 2D camera controller with reasonable settings for editor
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
@@ -86,7 +80,7 @@ public class EditorLayer : Layer
         _propertiesPanel = new PropertiesPanel();
         _projectManager  = new ProjectManager();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
-        _editorToolbarUI = new EditorToolbarUI(_sceneManager, _iconPlay, _iconStop);
+        _editorToolbarUI = new EditorToolbarUI(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
         
         // Prefer current project; otherwise default to CWD/assets/scripts
