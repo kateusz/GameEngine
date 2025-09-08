@@ -11,11 +11,11 @@ public class EditorToolbarUI
     private readonly Texture2D _iconStop;
     private readonly SceneManager _sceneManager;
 
-    public EditorToolbarUI(SceneManager sceneManager, Texture2D iconPlay, Texture2D iconStop)
+    public EditorToolbarUI(SceneManager sceneManager)
     {
         _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
-        _iconPlay = iconPlay ?? throw new ArgumentNullException(nameof(iconPlay));
-        _iconStop = iconStop ?? throw new ArgumentNullException(nameof(iconStop));
+        _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
+        _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
     }
 
     public void Render()
