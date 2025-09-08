@@ -47,12 +47,7 @@ public class EditorLayer : Layer
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
     
-    // fps rate
-    private readonly Queue<float> _frameTimes = new();
-    private float _fpsUpdateTimer = 0.0f;
-    private float _currentFps = 0.0f;
-    private const float FpsUpdateInterval = 0.1f;
-    private const int MaxFrameSamples = 60;
+    private readonly PerformanceMonitorUI _performanceMonitor = new();
     
     public EditorLayer() : base("EditorLayer")
     {
@@ -117,7 +112,7 @@ public class EditorLayer : Layer
 
     public override void OnUpdate(TimeSpan timeSpan)
     {
-        UpdateFpsTracking(timeSpan);
+        _performanceMonitor.Update(timeSpan);
         
         // Resize
         var spec = _frameBuffer.GetSpecification();
@@ -420,7 +415,7 @@ public class EditorLayer : Layer
 
             ImGui.Text($"Hovered Entity: {name}");
             
-            RenderPerformanceStats();
+            _performanceMonitor.RenderUI();
 
             ImGui.Separator();
             var stats = Graphics2D.Instance.GetStats();
@@ -599,61 +594,6 @@ public class EditorLayer : Layer
         {
             CurrentScene.Instance.DuplicateEntity(selectedEntity);
             Console.WriteLine($"📋 Entity duplicated: {selectedEntity.Name}");
-        }
-    }
-    
-    private void UpdateFpsTracking(TimeSpan timeSpan)
-    {
-        float deltaTime = (float)timeSpan.TotalSeconds;
-        
-        if (deltaTime <= 0) return;
-        
-        _frameTimes.Enqueue(deltaTime);
-        
-        while (_frameTimes.Count > MaxFrameSamples)
-        {
-            _frameTimes.Dequeue();
-        }
-        
-        _fpsUpdateTimer += deltaTime;
-        if (_fpsUpdateTimer >= FpsUpdateInterval)
-        {
-            CalculateFps();
-            _fpsUpdateTimer = 0.0f;
-        }
-    }
-
-    private void CalculateFps()
-    {
-        if (_frameTimes.Count == 0) return;
-        
-        float averageFrameTime = _frameTimes.Average();
-        _currentFps = 1.0f / averageFrameTime;
-    }
-
-    private void RenderPerformanceStats()
-    {
-        ImGui.Separator();
-        ImGui.Text("Performance:");
-        
-        var fpsColor = _currentFps >= 60.0f ? new Vector4(0.0f, 1.0f, 0.0f, 1.0f) :  
-                       _currentFps >= 30.0f ? new Vector4(1.0f, 1.0f, 0.0f, 1.0f) :  
-                                             new Vector4(1.0f, 0.0f, 0.0f, 1.0f);    
-        
-        ImGui.PushStyleColor(ImGuiCol.Text, fpsColor);
-        ImGui.Text($"FPS: {_currentFps:F1}");
-        ImGui.PopStyleColor();
-        
-        float currentFrameTime = _frameTimes.Count > 0 ? _frameTimes.Last() * 1000 : 0;
-        ImGui.Text($"Frame Time: {currentFrameTime:F2} ms");
-        
-        ImGui.Text($"Frame Samples: {_frameTimes.Count}/{MaxFrameSamples}");
-        
-        if (_frameTimes.Count > 1)
-        {
-            float minFrameTime = _frameTimes.Min() * 1000;
-            float maxFrameTime = _frameTimes.Max() * 1000;
-            ImGui.Text($"Min/Max Frame Time: {minFrameTime:F2}/{maxFrameTime:F2} ms");
         }
     }
 }
