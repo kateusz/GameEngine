@@ -5,13 +5,13 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class EditorToolbarUI
+public class EditorToolbar
 {
     private readonly Texture2D _iconPlay;
     private readonly Texture2D _iconStop;
     private readonly SceneManager _sceneManager;
 
-    public EditorToolbarUI(SceneManager sceneManager)
+    public EditorToolbar(SceneManager sceneManager)
     {
         _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
         _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");

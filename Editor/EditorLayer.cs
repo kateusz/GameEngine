@@ -40,8 +40,8 @@ public class EditorLayer : Layer
     private IProjectManager _projectManager;
     private SceneManager _sceneManager;
     
-    private readonly RendererStatsUI _rendererStatsUI = new();
-    private EditorToolbarUI _editorToolbarUI;
+    private readonly RendererStatsPanel _rendererStatsPanel = new();
+    private EditorToolbar _editorToolbar;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private EditorSettingsUI _editorSettingsUI;
     
@@ -80,7 +80,7 @@ public class EditorLayer : Layer
         _propertiesPanel = new PropertiesPanel();
         _projectManager  = new ProjectManager();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
-        _editorToolbarUI = new EditorToolbarUI(_sceneManager);
+        _editorToolbar = new EditorToolbar(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
         
         // Prefer current project; otherwise default to CWD/assets/scripts
@@ -348,7 +348,7 @@ public class EditorLayer : Layer
 
             ImGui.Separator();
             
-            _rendererStatsUI.Render();
+            _rendererStatsPanel.Render();
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
@@ -394,7 +394,7 @@ public class EditorLayer : Layer
             ImGui.End();
             ImGui.PopStyleVar();
 
-            _editorToolbarUI.Render();
+            _editorToolbar.Render();
             ImGui.End();
         }
         
