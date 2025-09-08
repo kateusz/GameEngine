@@ -39,13 +39,13 @@ public class EditorLayer : Layer
     private Entity? _hoveredEntity;
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
-    private SceneState _sceneState;
     private string? _editorScenePath;
     private Vector4 _backgroundColor = new Vector4(232.0f, 232.0f, 232.0f, 1.0f);
     private bool _showSettings = false;
     
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
+    private SceneManager _sceneManager;
     
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     
@@ -59,7 +59,6 @@ public class EditorLayer : Layer
 
         _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
         _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
-        _sceneState = SceneState.Edit;
 
         // Initialize 2D camera controller with reasonable settings for editor
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
@@ -77,8 +76,12 @@ public class EditorLayer : Layer
         Graphics3D.Instance.Init();
 
         CurrentScene.Set(new Scene(""));
+        
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
+
+        _sceneManager = new SceneManager(_sceneHierarchyPanel);
+
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
@@ -137,7 +140,7 @@ public class EditorLayer : Layer
 
         _frameBuffer.ClearAttachment(1, -1);
 
-        switch (_sceneState)
+        switch (_sceneManager.SceneState)
         {
             case SceneState.Edit:
             {
@@ -181,7 +184,7 @@ public class EditorLayer : Layer
         //Logger.Debug("EditorLayer OnEvent: {0}", @event);
 
         // Always handle camera controller events in edit mode
-        if (_sceneState == SceneState.Edit)
+        if (_sceneManager.SceneState == SceneState.Edit)
         {
             _cameraController.OnEvent(@event);
         }
@@ -193,10 +196,6 @@ public class EditorLayer : Layer
         if (@event is KeyPressedEvent keyPressedEvent)
         {
             OnKeyPressed(keyPressedEvent);
-        }
-        else if (@event is MouseButtonPressedEvent mouseButtonPressedEvent)
-        {
-            OnMouseButtonPressed(mouseButtonPressedEvent);
         }
     }
 
@@ -215,43 +214,37 @@ public class EditorLayer : Layer
             case (int)KeyCodes.N:
             {
                 if (control)
-                    NewScene();
-                break;
-            }
-            case (int)KeyCodes.O:
-            {
-                if (control)
-                    OpenScene();
+                    _sceneManager.New(_viewportSize);
+                keyPressedEvent.IsHandled = true;
                 break;
             }
             case (int)KeyCodes.S:
             {
                 if (control)
-                    SaveScene();
+                {
+                    _sceneManager.Save(_projectManager.ScenesDir);
+                    keyPressedEvent.IsHandled = true;
+                }
                 break;
             }
             case (int)KeyCodes.D:
             {
-                if (control) 
-                    OnDuplicateEntity();
+                if (control)
+                {
+                    _sceneManager.DuplicateEntity();
+                    keyPressedEvent.IsHandled = true;
+                }
                 break;
             }
             case (int)KeyCodes.F:
             {
                 if (control)
-                    FocusOnSelectedEntity();
+                {
+                    _sceneManager.FocusOnSelectedEntity(_cameraController);
+                    keyPressedEvent.IsHandled = true;
+                }
                 break;
             }
-        }
-    }
-
-    private void FocusOnSelectedEntity()
-    {
-        var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-        if (selectedEntity != null && selectedEntity.HasComponent<TransformComponent>())
-        {
-            var transform = selectedEntity.GetComponent<TransformComponent>();
-            _cameraController.Camera.SetPosition(transform.Translation);
         }
     }
 
@@ -277,20 +270,20 @@ public class EditorLayer : Layer
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         var size = ImGui.GetWindowHeight() - 4.0f;
-        var icon = _sceneState == SceneState.Edit ? _iconPlay : _iconStop;
+        var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
 
         if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0),
                 new Vector2(1, 1)))
         {
-            switch (_sceneState)
+            switch (_sceneManager.SceneState)
             {
                 case SceneState.Edit:
-                    OnScenePlay();
+                    _sceneManager.Play();
                     break;
                 case SceneState.Play:
-                    OnSceneStop();
+                    _sceneManager.Stop();
                     break;
             }
         }
@@ -336,18 +329,16 @@ public class EditorLayer : Layer
                 if (ImGui.BeginMenu("Scene..."))
                 {
                     if (ImGui.MenuItem("New", "Ctrl+N"))
-                        NewScene();
-                    if (ImGui.MenuItem("Open...", "Ctrl+O"))
-                        OpenScene();
+                        _sceneManager.New(_viewportSize);
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
-                        SaveScene();
+                        _sceneManager.Save(_projectManager.ScenesDir);
                     ImGui.EndMenu();
                 }
 
                 if (ImGui.BeginMenu("View"))
                 {
                     if (ImGui.MenuItem("Focus on Selected", "Ctrl+F"))
-                        FocusOnSelectedEntity();
+                        _sceneManager.FocusOnSelectedEntity(_cameraController);
                     if (ImGui.MenuItem("Reset Camera"))
                         ResetCamera();
                     ImGui.EndMenu();
@@ -470,7 +461,7 @@ public class EditorLayer : Layer
                         {
                             var path = Marshal.PtrToStringUni(payload.Data);
                             if (path is not null)
-                                OpenScene(Path.Combine(AssetsManager.AssetsPath, path));
+                                _sceneManager.Open(_viewportSize, Path.Combine(AssetsManager.AssetsPath, path));
                         }
                         ImGui.EndDragDropTarget();
                     }
@@ -498,102 +489,5 @@ public class EditorLayer : Layer
     {
         _cameraController.Camera.SetPosition(Vector3.Zero);
         _cameraController.Camera.SetRotation(0.0f);
-    }
-
-    private void OnMouseButtonPressed(MouseButtonPressedEvent e)
-    {
-        if (e.Button != (int)MouseButton.Left) 
-            return;
-        
-        if (_viewportHovered && _hoveredEntity != null && !InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftAlt))
-        {
-            _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
-        }
-    }
-
-    private void NewScene()
-    {
-        CurrentScene.Set(new Scene(""));
-        CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        ResetCamera();
-        Console.WriteLine("📄 New scene created");
-    }
-
-    private void OpenScene()
-    {
-        if (_sceneState != SceneState.Edit)
-            OnSceneStop();
-        
-        const string filePath = "assets/scenes/Example.scene";
-        
-        if (string.IsNullOrWhiteSpace(filePath))
-            throw new Exception($"Scene doesnt exists: {filePath}");
-        
-        CurrentScene.Set(new Scene(filePath));
-        CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-
-        SceneSerializer.Deserialize(CurrentScene.Instance, filePath);
-        Console.WriteLine($"📂 Scene opened: {filePath}");
-    }
-
-    private void OpenScene(string path)
-    {
-        if (_sceneState != SceneState.Edit)
-            OnSceneStop();
-
-        _editorScenePath = path;
-        CurrentScene.Set(new Scene(path));
-        CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-
-        SceneSerializer.Deserialize(CurrentScene.Instance, path);
-        Console.WriteLine($"📂 Scene opened: {path}");
-    }
-    
-    private void SaveScene()
-    {
-        var sceneDir = _projectManager.ScenesDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scenes");
-        if (!Directory.Exists(sceneDir))
-            Directory.CreateDirectory(sceneDir);
-
-        _editorScenePath = Path.Combine(sceneDir, "scene.scene");
-        SceneSerializer.Serialize(CurrentScene.Instance, _editorScenePath);
-        Console.WriteLine($"💾 Scene saved: {_editorScenePath}");
-    }
-
-
-    private void OnScenePlay()
-    {
-        _sceneState = SceneState.Play;
-        CurrentScene.Instance.OnRuntimeStart();
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Console.WriteLine("▶️ Scene play started");
-    }
-
-    private void OnSceneStop()
-    {
-        _sceneState = SceneState.Edit;
-        CurrentScene.Instance.OnRuntimeStop();
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        
-        // Reset camera to reasonable editor position
-        ResetCamera();
-        
-        Console.WriteLine("⏹️ Scene play stopped");
-    }
-
-    private void OnDuplicateEntity()
-    {
-        if (_sceneState != SceneState.Edit)
-            return;
-        
-        var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-        if (selectedEntity is not null)
-        {
-            CurrentScene.Instance.DuplicateEntity(selectedEntity);
-            Console.WriteLine($"📋 Entity duplicated: {selectedEntity.Name}");
-        }
     }
 }

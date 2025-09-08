@@ -20,7 +20,8 @@ public class PropertiesPanel
 
     public void SetSelectedEntity(Entity? entity)
     {
-        _selectedEntity = entity;
+        if (_selectedEntity?.Id != entity?.Id)
+            _selectedEntity = entity;
     }
 
     public void OnImGuiRender()

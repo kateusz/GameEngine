@@ -60,7 +60,7 @@ public class SceneHierarchyPanel
 
         if (ImGui.IsItemClicked())
         {
-            EntitySelected?.Invoke(entity);
+            EntitySelected.Invoke(entity);
             _selectionContext = entity;
         }
 
