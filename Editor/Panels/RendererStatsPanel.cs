@@ -3,7 +3,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class RendererStatsUI
+public class RendererStatsPanel
 {
     public void Render()
     {
