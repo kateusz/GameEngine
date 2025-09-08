@@ -415,8 +415,6 @@ public class Scene
             var component = entity.GetComponent<BoxCollider2DComponent>();
             newEntity.AddComponent(component);
         }
-
-        Context.Instance.Register(newEntity);
     }
 
     public void Render3D(Camera camera, Matrix4x4 cameraTransform)
