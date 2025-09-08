@@ -22,17 +22,23 @@ public class Application : IApplication
     public static ImGuiLayer ImGuiLayer;
 
     private readonly IGameWindow _gameWindow;
+    private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
     private readonly List<ILayer> _layersStack = new();
     private bool _isRunning;
     private DateTime _lastTime;
 
-    protected Application(IGameWindow gameWindow, bool enableImGui = false)
+    protected Application(IGameWindow gameWindow, IGraphics2D graphics2D, IGraphics3D graphics3D, bool enableImGui = false)
     {
         _gameWindow = gameWindow;
         _gameWindow.OnEvent += HandleOnEvent;
         _gameWindow.OnClose += HandleOnGameWindowClose;
         _gameWindow.OnUpdate += HandleOnUpdate;
         _gameWindow.OnWindowLoad += HandleGameWindowOnLoad;
+        
+        _graphics2D = graphics2D;
+        _graphics3D = graphics3D;
+        
         _isRunning = true;
         
         InputState.Init();
@@ -46,8 +52,8 @@ public class Application : IApplication
 
     private void HandleGameWindowOnLoad()
     {
-        Graphics2D.Instance.Init();
-        Graphics3D.Instance.Init();
+        _graphics2D.Init();
+        _graphics3D.Init();
         AudioEngine.Instance.Initialize();
         
         foreach (var layer in _layersStack)

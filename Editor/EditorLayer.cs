@@ -45,8 +45,13 @@ public class EditorLayer : Layer
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private EditorSettingsUI _editorSettingsUI;
     
-    public EditorLayer() : base("EditorLayer")
+    private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
+    
+    public EditorLayer(IGraphics2D graphics2D, IGraphics3D graphics3D) : base("EditorLayer")
     {
+        _graphics2D = graphics2D;
+        _graphics3D = graphics3D;
     }
 
     public override void OnAttach()
@@ -66,14 +71,16 @@ public class EditorLayer : Layer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
         
-        Graphics3D.Instance.Init();
+        _graphics3D.Init();
 
-        CurrentScene.Set(new Scene(""));
+        CurrentScene.Set(new Scene("", _graphics2D, _graphics3D));
         
-        _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
-        _sceneHierarchyPanel.EntitySelected = EntitySelected;
+        _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance)
+        {
+            EntitySelected = EntitySelected
+        };
 
-        _sceneManager = new SceneManager(_sceneHierarchyPanel);
+        _sceneManager = new SceneManager(_sceneHierarchyPanel, _graphics2D, _graphics3D);
 
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel();
@@ -126,12 +133,12 @@ public class EditorLayer : Layer
             CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
-        Graphics2D.Instance.ResetStats();
-        Graphics3D.Instance.ResetStats();
+        _graphics2D.ResetStats();
+        _graphics3D.ResetStats();
         _frameBuffer.Bind();
 
-        Graphics2D.Instance.SetClearColor(_editorSettingsUI.Settings.BackgroundColor);
-        Graphics2D.Instance.Clear();
+        _graphics2D.SetClearColor(_editorSettingsUI.Settings.BackgroundColor);
+        _graphics2D.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
 
@@ -209,7 +216,7 @@ public class EditorLayer : Layer
             case (int)KeyCodes.N:
             {
                 if (control)
-                    _sceneManager.New(_viewportSize);
+                    _sceneManager.New();
                 keyPressedEvent.IsHandled = true;
                 break;
             }
@@ -284,7 +291,7 @@ public class EditorLayer : Layer
                 if (ImGui.BeginMenu("Scene..."))
                 {
                     if (ImGui.MenuItem("New", "Ctrl+N"))
-                        _sceneManager.New(_viewportSize);
+                        _sceneManager.New();
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
                         _sceneManager.Save(_projectManager.ScenesDir);
                     ImGui.EndMenu();
@@ -348,7 +355,7 @@ public class EditorLayer : Layer
 
             ImGui.Separator();
             
-            _rendererStatsPanel.Render();
+            _rendererStatsPanel.Render(_graphics2D.GetStats(), _graphics3D.GetStats());
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
@@ -382,7 +389,7 @@ public class EditorLayer : Layer
                         {
                             var path = Marshal.PtrToStringUni(payload.Data);
                             if (path is not null)
-                                _sceneManager.Open(_viewportSize, Path.Combine(AssetsManager.AssetsPath, path));
+                                _sceneManager.Open(Path.Combine(AssetsManager.AssetsPath, path));
                         }
                         ImGui.EndDragDropTarget();
                     }

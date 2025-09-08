@@ -1,5 +1,6 @@
 ﻿using DryIoc;
 using Engine.Core.Window;
+using Engine.Renderer;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -32,7 +33,9 @@ public class Program
         {
             var gameWindow = container.Resolve<IGameWindow>();
             var sandboxLayer = container.Resolve<Sandbox2DLayer>();
-            var app = new SandboxApplication(gameWindow);
+            var graphics2D = container.Resolve<IGraphics2D>();
+            var graphics3D = container.Resolve<IGraphics3D>();
+            var app = new SandboxApplication(gameWindow, graphics2D, graphics3D);
             app.PushLayer(sandboxLayer);
             app.Run();
         }

@@ -5,10 +5,9 @@ namespace Editor.Panels;
 
 public class RendererStatsPanel
 {
-    public void Render()
+    public void Render(Statistics stats2D, Statistics stats3D)
     {
         // --- Renderer2D Stats ---
-        var stats2D = Graphics2D.Instance.GetStats();
         ImGui.Text("Renderer2D Stats:");
         ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
         ImGui.Text($"Quads: {stats2D.QuadCount}");
@@ -18,7 +17,6 @@ public class RendererStatsPanel
         ImGui.Separator();
 
         // --- Renderer3D Stats ---
-        var stats3D = Graphics3D.Instance.GetStats();
         ImGui.Text("Renderer3D Stats:");
         ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
 

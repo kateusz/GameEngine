@@ -27,6 +27,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="DryIoc" Version="5.4.3" />
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- Plik konfiguracyjny NLog zawsze kopiowany -->
         <None Update="nlog.config" CopyToOutputDirectory="Always" />
 

@@ -22,10 +22,14 @@ public class Scene
 
     private readonly bool _showPhysicsDebug = true;
 
+    private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
 
-    public Scene(string path)
+    public Scene(string path, IGraphics2D graphics2D, IGraphics3D graphics3D)
     {
         _path = path;
+        _graphics2D = graphics2D;
+        _graphics3D = graphics3D;
         Context.Instance.Entities.Clear();
     }
 
@@ -222,14 +226,14 @@ public class Scene
             Render3D(mainCamera, cameraTransform);
 
             // Render 2D (existing code)
-            Graphics2D.Instance.BeginScene(mainCamera, cameraTransform);
+            _graphics2D.BeginScene(mainCamera, cameraTransform);
 
             var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
             foreach (var entity in group)
             {
                 var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
                 var transformComponent = entity.GetComponent<TransformComponent>();
-                Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+                _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
             }
 
             if (_showPhysicsDebug)
@@ -238,7 +242,7 @@ public class Scene
                 DrawPhysicsDebugSimple();
             }
             
-            Graphics2D.Instance.EndScene();
+            _graphics2D.EndScene();
         }
     }
 
@@ -269,7 +273,7 @@ public class Scene
                 );
 
                 // Używa Twojego istniejącego Renderer2D.DrawRect
-                Graphics2D.Instance.DrawRect(position, size, color, entity.Id);
+                _graphics2D.DrawRect(position, size, color, entity.Id);
             }
         }
     }
@@ -317,17 +321,17 @@ public class Scene
         */
 
         // Then render 2D objects using the orthographic camera directly
-        Graphics2D.Instance.BeginScene(camera);
+        _graphics2D.BeginScene(camera);
 
         var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
-            Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
-        Graphics2D.Instance.EndScene();
+        _graphics2D.EndScene();
     }
 
     public void OnViewportResize(uint width, uint height)
@@ -419,7 +423,7 @@ public class Scene
 
     public void Render3D(Camera camera, Matrix4x4 cameraTransform)
     {
-        Graphics3D.Instance.BeginScene(camera, cameraTransform);
+        _graphics3D.BeginScene(camera, cameraTransform);
 
         // Get entities with MeshComponent and ModelRendererComponent
         var group = Context.Instance.GetGroup([
@@ -432,10 +436,10 @@ public class Scene
             var meshComponent = entity.GetComponent<MeshComponent>();
             var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
 
-            Graphics3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
+            _graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
                 entity.Id);
         }
 
-        Graphics3D.Instance.EndScene();
+        _graphics3D.EndScene();
     }
 }

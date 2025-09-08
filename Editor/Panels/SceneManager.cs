@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
@@ -12,28 +13,30 @@ public class SceneManager
     public string? EditorScenePath { get; private set; }
 
     private readonly SceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
 
-    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel)
+    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel, IGraphics2D graphics2D, IGraphics3D graphics3D)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
+        _graphics2D = graphics2D;
+        _graphics3D = graphics3D;
     }
 
-    public void New(Vector2 viewportSize)
+    public void New()
     {
-        CurrentScene.Set(new Scene(""));
-        //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
+        CurrentScene.Set(new Scene("", _graphics2D, _graphics3D));
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         Console.WriteLine("📄 New scene created");
     }
 
-    public void Open(Vector2 viewportSize, string path)
+    public void Open(string path)
     {
         if (SceneState != SceneState.Edit)
             Stop();
 
         EditorScenePath = path;
-        CurrentScene.Set(new Scene(path));
-        //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
+        CurrentScene.Set(new Scene(path,  _graphics2D, _graphics3D));
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
         SceneSerializer.Deserialize(CurrentScene.Instance, path);

@@ -23,10 +23,6 @@
         <None Include="libs/**/*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="DryIoc" Version="5.4.3" />
-    </ItemGroup>
-
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <ItemGroup>
             <AssetDirs Include="assets/**/" />

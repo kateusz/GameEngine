@@ -37,9 +37,14 @@ public class BenchmarkLayer : Layer
     private bool _isRunning;
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
+    
+    private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
 
-    public BenchmarkLayer() : base("Benchmark Layer")
+    public BenchmarkLayer(IGraphics2D graphics2D, IGraphics3D graphics3D) : base("Benchmark Layer")
     {
+        _graphics2D = graphics2D;
+        _graphics3D = graphics3D;
     }
 
     public override void OnAttach()
@@ -59,8 +64,8 @@ public class BenchmarkLayer : Layer
         _frameTimer.Restart();
         
         // Clear the screen first
-        Graphics2D.Instance.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark gray background
-        Graphics2D.Instance.Clear();
+        _graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark gray background
+        _graphics2D.Clear();
             
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
         {
@@ -269,7 +274,7 @@ public class BenchmarkLayer : Layer
         }
             
         // Renderer stats
-        var stats2D = Graphics2D.Instance.GetStats();
+        var stats2D = _graphics2D.GetStats();
         ImGui.Separator();
         ImGui.Text("Renderer2D Stats:");
         ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
@@ -345,7 +350,7 @@ public class BenchmarkLayer : Layer
 
     private void SetupTestScene(BenchmarkTestType testType)
     {
-        _currentTestScene = new Engine.Scene.Scene("Benchmark");
+        _currentTestScene = new Scene("Benchmark", _graphics2D, _graphics3D);
             
         // Add camera entity
         var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
@@ -517,7 +522,7 @@ public class BenchmarkLayer : Layer
     {
         if (_cameraController?.Camera == null) return;
         
-        Graphics2D.Instance.BeginScene(_cameraController.Camera);
+        _graphics2D.BeginScene(_cameraController.Camera);
             
         // Render all entities in the test scene
         foreach (var entity in _currentTestScene.Entities)
@@ -529,11 +534,11 @@ public class BenchmarkLayer : Layer
             if (entity.HasComponent<SpriteRendererComponent>())
             {
                 var sprite = entity.GetComponent<SpriteRendererComponent>();
-                Graphics2D.Instance.DrawSprite(transform.GetTransform(), sprite, entity.Id);
+                _graphics2D.DrawSprite(transform.GetTransform(), sprite, entity.Id);
             }
         }
             
-        Graphics2D.Instance.EndScene();
+        _graphics2D.EndScene();
     }
 
     private void CleanupTestScene()
@@ -571,7 +576,7 @@ public class BenchmarkLayer : Layer
         switch (_currentTestType)
         {
             case BenchmarkTestType.Renderer2DStress:
-                var stats = Graphics2D.Instance.GetStats();
+                var stats = _graphics2D.GetStats();
                 result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
                 result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
                 break;

@@ -1,30 +1,20 @@
 ﻿using DryIoc;
 using Editor;
+using Engine.Core;
+using Engine.Core.Modules;
 using Engine.Core.Window;
+using Engine.Renderer;
 using Engine.Scripting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
-var props = new WindowProps("Sandbox Engine testing!", 1280, 720);
-
-var container = new Container();
-
-var options = WindowOptions.Default;
-options.Size = new Vector2D<int>(props.Width, props.Height);
-options.Title = "Game Window";
-
-container.Register<IWindow>(Reuse.Singleton, 
-    made: Made.Of(() => Window.Create(options))
-);
-
-container.Register<IGameWindow>(Reuse.Singleton, 
-    made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
-);
-
-// Register EditorLayer with constructor injection
-container.Register<EditorLayer>(Reuse.Singleton);
+var container = new ModuleContainerBuilder()
+    .RegisterModule<CoreModule>()
+    .RegisterModule<RenderingModule>()
+    .RegisterModule<EditorModule>()
+    .Build();
 
 var logger = LoggerFactory.Create(builder => builder.AddNLog()).CreateLogger<Program>();
 logger.LogInformation("Program has started.");
@@ -43,6 +33,8 @@ ScriptEngine.Instance.PrintDebugInfo();
 
 var gameWindow = container.Resolve<IGameWindow>();
 var editorLayer = container.Resolve<EditorLayer>();
-var editor = new global::Editor.Editor(gameWindow);
+var graphics2D = container.Resolve<IGraphics2D>();
+var graphics3D = container.Resolve<IGraphics3D>();
+var editor = new global::Editor.Editor(gameWindow, graphics2D, graphics3D);
 editor.PushLayer(editorLayer);
 editor.Run();

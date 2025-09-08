@@ -1,11 +1,13 @@
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Renderer;
 
 namespace Editor;
 
 public class Editor : Application
 {
-    public Editor(IGameWindow gameWindow) : base(gameWindow, true)
+    public Editor(IGameWindow gameWindow, IGraphics2D graphics2D, IGraphics3D graphics3D) : base(gameWindow, graphics2D,
+        graphics3D, true)
     {
     }
 }
