@@ -30,11 +30,7 @@
         <!-- Plik konfiguracyjny NLog zawsze kopiowany -->
         <None Update="nlog.config" CopyToOutputDirectory="Always" />
 
-        <!-- Kopiowanie wszystkich shaderów OpenGL -->
-        <None Include="Platform/OpenGL/Shaders/**/*.*" CopyToOutputDirectory="PreserveNewest" />
-
-        <!-- Kopiowanie wszystkich shaderów ImGui -->
-        <None Include="ImGui/Shaders/**/*.*" CopyToOutputDirectory="PreserveNewest" />
+        <!-- No shader files to copy - Engine contains only C# interfaces -->
     </ItemGroup>
 
     <ItemGroup>
@@ -46,11 +42,6 @@
         <ProjectReference Include="../ECS/ECS.csproj" />
     </ItemGroup>
 
-    <Target Name="EnsureOutputFolders" BeforeTargets="Build">
-        <ItemGroup>
-            <AssetDirs Include="assets/**/" />
-        </ItemGroup>
-        <MakeDir Directories="@(AssetDirs->'$(OutputPath)%(RecursiveDir)')" />
-    </Target>
+    <!-- No asset directories needed for Engine project -->
 
 </Project>
