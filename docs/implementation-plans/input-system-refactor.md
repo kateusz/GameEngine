@@ -1,251 +1,610 @@
-Comprehensive Refactoring Plan: Input System with Dependency Injection
+# Input System Refactoring Plan - Final Design
 
-Current Architecture Issues Identified:
+## Current Architecture Problems
 
-1. Multiple Singleton Anti-patterns:
-   - InputState.Instance (singleton)
-   - SilkNetGameWindow.Keyboard/Mouse (static access)
-   - KeyboardStateFactory.Create() (static factory)
-2. Tight Coupling: SilkNetKeyboardState directly accesses SilkNetGameWindow.Keyboard
-3. Mixed Responsibilities: SilkNetGameWindow handles both windowing AND input initialization
-4. Missing DI Integration: Input system not registered with existing DryIoc container
-
-  ---
-Phase 1: Core Abstractions & Interfaces
-
-Create new interfaces following game engine standards:
-
-// Engine/Core/Input/IInputManager.cs
-public interface IInputManager : IDisposable
+### SilkNetGameWindow Analysis
+```csharp
+public class SilkNetGameWindow : IGameWindow
 {
-IKeyboardState Keyboard { get; }
-IMouseState Mouse { get; }
-void Update(TimeSpan deltaTime);
-event Action<InputEvent> InputReceived;
+    // ❌ Static dependencies - global state
+    public static IKeyboard Keyboard { get; private set; } = null!;
+    public static IMouse Mouse { get; private set; } = null!;
+
+    // ❌ Mixed responsibilities - window + input + OpenGL
+    private void WindowOnLoad()
+    {
+        SilkNetContext.GL = _window.CreateOpenGL();        // OpenGL concern
+        SilkNetContext.InputContext = _window.CreateInput(); // Input concern
+        Mouse = SilkNetContext.InputContext.Mice[0];       // Static assignment
+    }
+
+    // ❌ Single event pipeline - mixes window and input events
+    public event Action<Event> OnEvent = null!;
+
+    private void KeyDown(IKeyboard keyboard, Key key, int keyCode)
+    {
+        OnEvent(new KeyPressedEvent((int)key, true)); // Input event
+    }
+
+    private void OnFrameBufferResize(Vector2D<int> newSize)
+    {
+        OnEvent(new WindowResizeEvent(newSize.X, newSize.Y)); // Window event
+    }
+}
+```
+
+### Core Issues Identified
+1. **Violation of Single Responsibility**: Window class handles windowing, input, and OpenGL
+2. **Static Dependencies**: Global state prevents testing and creates tight coupling
+3. **Mixed Event Types**: Single event pipeline reduces performance and clarity
+4. **Resource Management**: Manual disposal scattered across different concerns
+5. **Testing Challenges**: Static access makes unit testing impossible
+
+---
+
+## Final Design - Clean Architecture
+
+### Core Interfaces
+
+```csharp
+// Engine/Core/Input/IInputSystem.cs
+public interface IInputSystem : IDisposable
+{
+    IKeyboard Keyboard { get; }
+    IMouse Mouse { get; }
+    void Update(TimeSpan deltaTime);
+    event Action<InputEvent> InputReceived;
 }
 
-// Engine/Core/Input/IInputContext.cs  
-public interface IInputContext : IDisposable
+// Engine/Core/Input/IKeyboard.cs
+public interface IKeyboard
 {
-IKeyboardState Keyboard { get; }
-IMouseState Mouse { get; }
-void Initialize();
+    bool IsKeyPressed(KeyCode key);
+    bool IsKeyDown(KeyCode key);
+    bool IsKeyUp(KeyCode key);
 }
 
-// Engine/Core/Input/IInputContextFactory.cs
-public interface IInputContextFactory
+// Engine/Core/Input/IMouse.cs
+public interface IMouse
 {
-IInputContext CreateContext(object platformContext);
+    Vector2 Position { get; }
+    bool IsButtonPressed(MouseButton button);
+    bool IsButtonDown(MouseButton button);
+    bool IsButtonUp(MouseButton button);
+    float ScrollWheel { get; }
+}
+```
+
+### Window Interface
+
+```csharp
+// Engine/Core/Window/IGameWindow.cs
+public interface IGameWindow : IDisposable
+{
+    event Action<WindowEvent> OnWindowEvent;  // Resize, close, focus, etc.
+    event Action<InputEvent> OnInputEvent;    // Keys, mouse, gamepad, etc.
+    event Action OnUpdate;
+    event Action OnWindowLoad;
+
+    void Run();
+}
+```
+
+### Layer Interface
+
+```csharp
+// Engine/Core/ILayer.cs
+public interface ILayer : IDisposable
+{
+    void OnAttach();
+    void OnDetach();
+    void OnUpdate(TimeSpan deltaTime);
+    void OnImGuiRender();
+
+    void HandleInputEvent(InputEvent inputEvent);
+    void HandleWindowEvent(WindowEvent windowEvent);
+
+    bool WantsInputEvents { get; }
+    bool WantsWindowEvents { get; }
+}
+```
+
+---
+
+## Phase 1: Platform Implementation
+
+### SilkNet Input System with Concurrent Queue
+```csharp
+// Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs
+public class SilkNetInputSystem : IInputSystem
+{
+    private readonly Silk.NET.Input.IInputContext _inputContext;
+    private readonly IKeyboard _keyboard;
+    private readonly IMouse _mouse;
+    private readonly ConcurrentQueue<InputEvent> _inputQueue = new();
+    private volatile bool _disposed;
+
+    public SilkNetInputSystem(Silk.NET.Input.IInputContext inputContext)
+    {
+        _inputContext = inputContext ?? throw new ArgumentNullException(nameof(inputContext));
+
+        // Initialize devices immediately
+        var silkKeyboard = _inputContext.Keyboards.FirstOrDefault()
+            ?? throw new InvalidOperationException("No keyboard found");
+        var silkMouse = _inputContext.Mice.FirstOrDefault()
+            ?? throw new InvalidOperationException("No mouse found");
+
+        _keyboard = new SilkNetKeyboard(silkKeyboard);
+        _mouse = new SilkNetMouse(silkMouse);
+
+        // Subscribe to SilkNet input events
+        silkKeyboard.KeyDown += OnSilkKeyDown;
+        silkKeyboard.KeyUp += OnSilkKeyUp;
+        silkMouse.MouseDown += OnSilkMouseDown;
+        silkMouse.MouseUp += OnSilkMouseUp;
+        silkMouse.Scroll += OnSilkMouseScroll;
+    }
+
+    public IKeyboard Keyboard => _keyboard;
+    public IMouse Mouse => _mouse;
+
+    public void Update(TimeSpan deltaTime)
+    {
+        // Process all queued input events
+        while (_inputQueue.TryDequeue(out var inputEvent))
+        {
+            InputReceived?.Invoke(inputEvent);
+        }
+    }
+
+    public event Action<InputEvent>? InputReceived;
+
+    private void OnSilkKeyDown(Silk.NET.Input.IKeyboard keyboard, Key key, int keyCode)
+    {
+        if (_disposed) return;
+
+        var inputEvent = new KeyPressedEvent((int)key, false);
+        _inputQueue.Enqueue(inputEvent);
+    }
+
+    private void OnSilkKeyUp(Silk.NET.Input.IKeyboard keyboard, Key key, int keyCode)
+    {
+        if (_disposed) return;
+
+        var inputEvent = new KeyReleasedEvent((int)key);
+        _inputQueue.Enqueue(inputEvent);
+    }
+
+    private void OnSilkMouseDown(Silk.NET.Input.IMouse mouse, MouseButton button)
+    {
+        if (_disposed) return;
+
+        var inputEvent = new MouseButtonPressedEvent((int)button);
+        _inputQueue.Enqueue(inputEvent);
+    }
+
+    private void OnSilkMouseUp(Silk.NET.Input.IMouse mouse, MouseButton button)
+    {
+        if (_disposed) return;
+
+        var inputEvent = new MouseButtonReleasedEvent((int)button);
+        _inputQueue.Enqueue(inputEvent);
+    }
+
+    private void OnSilkMouseScroll(Silk.NET.Input.IMouse mouse, ScrollWheel scrollWheel)
+    {
+        if (_disposed) return;
+
+        var inputEvent = new MouseScrolledEvent(scrollWheel.X, scrollWheel.Y);
+        _inputQueue.Enqueue(inputEvent);
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+            _inputContext?.Dispose();
+        }
+    }
+}
+```
+
+### Device Implementations
+```csharp
+// Engine/Platform/SilkNet/Input/SilkNetKeyboard.cs
+public class SilkNetKeyboard : IKeyboard
+{
+    private readonly Silk.NET.Input.IKeyboard _silkKeyboard;
+
+    public SilkNetKeyboard(Silk.NET.Input.IKeyboard silkKeyboard)
+    {
+        _silkKeyboard = silkKeyboard ?? throw new ArgumentNullException(nameof(silkKeyboard));
+    }
+
+    public bool IsKeyPressed(KeyCode keyCode)
+    {
+        return _silkKeyboard.IsKeyPressed((Key)keyCode);
+    }
+
+    public bool IsKeyDown(KeyCode keyCode)
+    {
+        return _silkKeyboard.IsKeyPressed((Key)keyCode);
+    }
+
+    public bool IsKeyUp(KeyCode keyCode)
+    {
+        return !_silkKeyboard.IsKeyPressed((Key)keyCode);
+    }
 }
 
-  ---
-Phase 2: Remove Static Dependencies
-
-2.1 Refactor SilkNetGameWindow:
-- Remove public static IKeyboard Keyboard { get; private set; }
-- Remove public static IMouse Mouse { get; private set; }
-- Inject IInputContextFactory via constructor
-- Delegate input creation to injected factory
-
-2.2 Refactor SilkNetKeyboardState:
-// Before: SilkNetGameWindow.Keyboard.IsKeyPressed((Key)((int)keycode))
-// After: Constructor injection of IKeyboard dependency
-public class SilkNetKeyboardState : IKeyboardState
+// Engine/Platform/SilkNet/Input/SilkNetMouse.cs
+public class SilkNetMouse : IMouse
 {
-private readonly IKeyboard _keyboard;
+    private readonly Silk.NET.Input.IMouse _silkMouse;
 
-      public SilkNetKeyboardState(IKeyboard keyboard)
-      {
-          _keyboard = keyboard ?? throw new ArgumentNullException(nameof(keyboard));
-      }
+    public SilkNetMouse(Silk.NET.Input.IMouse silkMouse)
+    {
+        _silkMouse = silkMouse ?? throw new ArgumentNullException(nameof(silkMouse));
+    }
 
-      public bool IsKeyPressed(KeyCodes keycode)
-      {
-          return _keyboard.IsKeyPressed((Key)((int)keycode));
-      }
+    public Vector2 Position => new(_silkMouse.Position.X, _silkMouse.Position.Y);
+
+    public bool IsButtonPressed(MouseButton button)
+    {
+        return _silkMouse.IsButtonPressed((Silk.NET.Input.MouseButton)button);
+    }
+
+    public bool IsButtonDown(MouseButton button)
+    {
+        return _silkMouse.IsButtonPressed((Silk.NET.Input.MouseButton)button);
+    }
+
+    public bool IsButtonUp(MouseButton button)
+    {
+        return !_silkMouse.IsButtonPressed((Silk.NET.Input.MouseButton)button);
+    }
+
+    public float ScrollWheel { get; private set; }
 }
+```
 
-  ---
-Phase 3: Implement Input Manager
+---
 
-Create centralized input management:
-// Engine/Core/Input/InputManager.cs
-public class InputManager : IInputManager
+## Phase 2: Refactor SilkNetGameWindow
+
+### Clean Separation of Concerns
+```csharp
+// Engine/Platform/SilkNet/SilkNetGameWindow.cs
+public class SilkNetGameWindow : IGameWindow
 {
-private readonly IInputContext _inputContext;
+    private readonly IWindow _window;
+    private readonly IInputSystem _inputSystem;
+    private bool _disposed;
 
-      public InputManager(IInputContext inputContext)
-      {
-          _inputContext = inputContext ?? throw new ArgumentNullException(nameof(inputContext));
-          _inputContext.Initialize();
-      }
+    public SilkNetGameWindow(IWindow window, IInputSystem inputSystem)
+    {
+        _window = window ?? throw new ArgumentNullException(nameof(window));
+        _inputSystem = inputSystem ?? throw new ArgumentNullException(nameof(inputSystem));
 
-      public IKeyboardState Keyboard => _inputContext.Keyboard;
-      public IMouseState Mouse => _inputContext.Mouse;
+        _window.WindowState = WindowState.Maximized;
 
-      public void Update(TimeSpan deltaTime)
-      {
-          // Handle input polling/events
-      }
+        // Only window-related events
+        _window.Load += WindowOnLoad;
+        _window.Update += WindowOnUpdate;
+        _window.Closing += OnWindowClosing;
+        _window.FramebufferResize += OnFrameBufferResize;
 
-      public event Action<InputEvent>? InputReceived;
+        // Input events handled by input system
+        _inputSystem.InputReceived += OnInputReceived;
+    }
 
-      public void Dispose() => _inputContext?.Dispose();
+    public event Action<WindowEvent>? OnWindowEvent;
+    public event Action<InputEvent>? OnInputEvent;
+    public event Action? OnUpdate;
+    public event Action? OnWindowLoad;
+
+    public void Run()
+    {
+        _window.Run();
+    }
+
+    private void WindowOnLoad()
+    {
+        // Only window and OpenGL concerns
+        SilkNetContext.GL = _window.CreateOpenGL();
+        SilkNetContext.Window = _window;
+
+        Console.WriteLine("Window loaded!");
+        OnWindowLoad?.Invoke();
+    }
+
+    private void WindowOnUpdate(double deltaTime)
+    {
+        OnUpdate?.Invoke();
+    }
+
+    private void OnWindowClosing()
+    {
+        var closeEvent = new WindowCloseEvent();
+        OnWindowEvent?.Invoke(closeEvent);
+    }
+
+    private void OnFrameBufferResize(Vector2D<int> newSize)
+    {
+        SilkNetContext.GL.Viewport(newSize);
+
+        var resizeEvent = new WindowResizeEvent(newSize.X, newSize.Y);
+        OnWindowEvent?.Invoke(resizeEvent);
+    }
+
+    private void OnInputReceived(InputEvent inputEvent)
+    {
+        OnInputEvent?.Invoke(inputEvent);
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _inputSystem?.Dispose();
+            SilkNetContext.GL?.Dispose();
+            _window?.Dispose();
+            _disposed = true;
+        }
+    }
 }
+```
 
-  ---
-Phase 4: Platform-Specific Implementation
+---
 
-4.1 SilkNet Input Context:
-// Engine/Platform/SilkNet/Input/SilkNetInputContext.cs
-public class SilkNetInputContext : IInputContext
-{
-private readonly Silk.NET.Input.IInputContext _silkContext;
-private IKeyboardState? _keyboard;
-private IMouseState? _mouse;
+## Phase 3: Update Application Architecture
 
-      public SilkNetInputContext(Silk.NET.Input.IInputContext silkContext)
-      {
-          _silkContext = silkContext ?? throw new ArgumentNullException(nameof(silkContext));
-      }
-
-      public IKeyboardState Keyboard => _keyboard ?? throw new InvalidOperationException("Input not initialized");
-      public IMouseState Mouse => _mouse ?? throw new InvalidOperationException("Input not initialized");
-
-      public void Initialize()
-      {
-          var silkKeyboard = _silkContext.Keyboards[0];
-          var silkMouse = _silkContext.Mice[0];
-
-          _keyboard = new SilkNetKeyboardState(silkKeyboard);
-          _mouse = new SilkNetMouseState(silkMouse);
-      }
-
-      public void Dispose()
-      {
-          _silkContext?.Dispose();
-      }
-}
-
-4.2 SilkNet Factory:
-// Engine/Platform/SilkNet/Input/SilkNetInputContextFactory.cs
-public class SilkNetInputContextFactory : IInputContextFactory
-{
-public IInputContext CreateContext(object platformContext)
-{
-if (platformContext is not Silk.NET.Input.IInputContext silkContext)
-throw new ArgumentException("Expected SilkNet IInputContext", nameof(platformContext));
-
-          return new SilkNetInputContext(silkContext);
-      }
-}
-
-  ---
-Phase 5: DryIoc Registration
-
-Update Program.cs files:
-// Add to Editor/Program.cs, Sandbox/Program.cs, Benchmark/Program.cs
-container.Register<IInputContextFactory, SilkNetInputContextFactory>(Reuse.Singleton);
-container.Register<IInputManager, InputManager>(Reuse.Singleton);
-
-// Modify GameWindow registration to inject dependencies:
-container.Register<IGameWindow>(Reuse.Singleton,
-made: Made.Of(() => new SilkNetGameWindow(
-Arg.Of<IWindow>(),
-Arg.Of<IInputContextFactory>())));
-
-  ---
-Phase 6: Application Integration
-
-6.1 Remove Static Initialization:
+### Application Class
+```csharp
 // Engine/Core/Application.cs
-// REMOVE: InputState.Init();
-// ADD: Constructor injection
-protected Application(IGameWindow gameWindow, IImGuiLayer imGuiLayer, IInputManager inputManager)
+public abstract class Application : IDisposable
 {
-_gameWindow = gameWindow;
-_inputManager = inputManager; // Store reference
-// ... rest of constructor
+    private readonly IGameWindow _gameWindow;
+    private readonly IInputSystem _inputSystem;
+    private readonly IImGuiLayer _imGuiLayer;
+    private readonly LayerStack _layerStack = new();
+
+    protected Application(IGameWindow gameWindow, IInputSystem inputSystem, IImGuiLayer imGuiLayer)
+    {
+        _gameWindow = gameWindow ?? throw new ArgumentNullException(nameof(gameWindow));
+        _inputSystem = inputSystem ?? throw new ArgumentNullException(nameof(inputSystem));
+        _imGuiLayer = imGuiLayer ?? throw new ArgumentNullException(nameof(imGuiLayer));
+
+        // Subscribe to separated event types
+        _gameWindow.OnWindowEvent += HandleWindowEvent;
+        _gameWindow.OnInputEvent += HandleInputEvent;
+        _gameWindow.OnUpdate += Update;
+    }
+
+    protected void Update()
+    {
+        // Update input system - processes queued events
+        _inputSystem.Update(TimeSpan.FromMilliseconds(16)); // TODO: Real delta time
+
+        // Update layers
+        foreach (var layer in _layerStack)
+        {
+            layer.OnUpdate(TimeSpan.FromMilliseconds(16));
+        }
+    }
+
+    private void HandleInputEvent(InputEvent inputEvent)
+    {
+        // Input events handled in reverse order (overlay layers first)
+        foreach (var layer in _layerStack.GetOverlayLayers().Reverse())
+        {
+            if (!layer.WantsInputEvents) continue;
+
+            layer.HandleInputEvent(inputEvent);
+            if (inputEvent.IsHandled) return;
+        }
+
+        // Then regular layers
+        foreach (var layer in _layerStack.GetLayers().Reverse())
+        {
+            if (!layer.WantsInputEvents) continue;
+
+            layer.HandleInputEvent(inputEvent);
+            if (inputEvent.IsHandled) return;
+        }
+    }
+
+    private void HandleWindowEvent(WindowEvent windowEvent)
+    {
+        // Window events affect all layers that want them
+        foreach (var layer in _layerStack)
+        {
+            if (layer.WantsWindowEvents)
+            {
+                layer.HandleWindowEvent(windowEvent);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        _layerStack?.Dispose();
+        _inputSystem?.Dispose();
+        _gameWindow?.Dispose();
+    }
+}
+```
+
+---
+
+## Phase 4: DI Registration
+
+### Container Setup
+```csharp
+// Editor/Program.cs, Sandbox/Program.cs, Benchmark/Program.cs
+public static void ConfigureContainer(Container container)
+{
+    // Register input system with proper lifecycle
+    container.Register<IInputSystem>(
+        made: Made.Of(() => CreateInputSystem(Arg.Of<IWindow>())),
+        Reuse.Singleton);
+
+    // Register window with input system dependency
+    container.Register<IGameWindow>(
+        made: Made.Of(() => new SilkNetGameWindow(
+            Arg.Of<IWindow>(),
+            Arg.Of<IInputSystem>())),
+        Reuse.Singleton);
+
+    // Register application with all dependencies
+    container.Register<Application>(
+        made: Made.Of(() => new SandboxApplication(
+            Arg.Of<IGameWindow>(),
+            Arg.Of<IInputSystem>(),
+            Arg.Of<IImGuiLayer>())),
+        Reuse.Singleton);
 }
 
-6.2 Replace InputState.Instance Usage:
-// Throughout codebase, replace:
-// if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
-//
-// With injected dependency:
-// if (_inputManager.Keyboard.IsKeyPressed(KeyCodes.A))
-
-  ---
-Phase 7: Gradual Migration Strategy
-
-7.1 Backward Compatibility Bridge (Temporary):
-// Engine/Core/Input/InputState.cs (Modified for transition)
-public class InputState
+private static IInputSystem CreateInputSystem(IWindow window)
 {
-private static IInputManager? _inputManager;
+    var inputContext = window.CreateInput();
+    return new SilkNetInputSystem(inputContext);
+}
+```
 
-      public static void SetInputManager(IInputManager inputManager)
-      {
-          _inputManager = inputManager;
-      }
+---
 
-      [Obsolete("Use dependency injection instead")]
-      public static InputState Instance => new();
+## Phase 5: Migration Strategy
 
-      [Obsolete("Use dependency injection instead")]
-      public IKeyboardState Keyboard => _inputManager?.Keyboard ?? throw new InvalidOperationException();
+### Step 1: Create Core Interfaces
+```csharp
+// Engine/Core/Input/IInputSystem.cs
+// Engine/Core/Input/IKeyboard.cs
+// Engine/Core/Input/IMouse.cs
+```
 
-      [Obsolete("Use dependency injection instead")]
-      public IMouseState Mouse => _inputManager?.Mouse ?? throw new InvalidOperationException();
+### Step 2: Implement Platform Code
+```csharp
+// Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs
+// Engine/Platform/SilkNet/Input/SilkNetKeyboard.cs
+// Engine/Platform/SilkNet/Input/SilkNetMouse.cs
+```
+
+### Step 3: Update Window Interface and Implementation
+```csharp
+// Update IGameWindow interface - add event separation
+// Update SilkNetGameWindow implementation - remove static input
+```
+
+### Step 4: Update Application Layer
+```csharp
+// Update Application constructor - inject IInputSystem
+// Update ILayer interface - separate event methods
+// Update all layer implementations
+```
+
+### Step 5: Update DI Registration
+```csharp
+// Update Program.cs files
+// Register IInputSystem
+// Update constructors
+```
+
+### Step 6: Replace Static Usage
+```csharp
+// Replace all InputState.Instance usage
+// Replace all SilkNetGameWindow.Keyboard usage
+// Update game scripts and layers
+```
+
+### Step 7: Cleanup
+```csharp
+// Remove static properties from SilkNetGameWindow
+// Remove InputState.Instance
+```
+
+---
+
+## SOLID Principles Achieved
+
+✅ **Single Responsibility**:
+- `SilkNetGameWindow`: Only handles window concerns
+- `SilkNetInputSystem`: Only handles input concerns
+- `Application`: Only handles application lifecycle and event coordination
+
+✅ **Open/Closed**:
+- Easy to add `XInputInputSystem`, `DirectInputSystem`
+- New input devices supported without changing existing code
+- Event types can be extended without breaking layers
+
+✅ **Liskov Substitution**:
+- Any `IInputSystem` implementation works identically
+- Platform switching is completely transparent
+- Layers work with any input system implementation
+
+✅ **Interface Segregation**:
+- Layers can depend on just `IKeyboard` if needed
+- Event separation allows performance optimizations
+- No forced dependencies on unused functionality
+
+✅ **Dependency Inversion**:
+- Game code depends on `IInputSystem` abstraction
+- Platform-specific code isolated in Platform folder
+- Easy to mock for unit testing
+
+---
+
+## Performance Benefits
+
+### Event Processing
+- **Thread-Safe**: `ConcurrentQueue` handles multi-threaded input callbacks
+- **Batched Processing**: All input events processed during `Update()` call
+- **No Blocking**: Input callbacks never block, just enqueue events
+
+### Event Filtering
+```csharp
+public class GameplayLayer : ILayer
+{
+    public bool WantsInputEvents => true;   // Needs input
+    public bool WantsWindowEvents => false; // Doesn't care about window resize
 }
 
-7.2 Migration Order:
-1. Core interfaces (no breaking changes)
-2. Platform implementations (no breaking changes)
-3. DI registration (no breaking changes)
-4. Application constructor (breaking change)
-5. Update all callsites (breaking changes)
-6. Remove deprecated code (cleanup)
+public class EditorViewportLayer : ILayer
+{
+    public bool WantsInputEvents => true;  // Mouse interaction
+    public bool WantsWindowEvents => true; // Viewport resizing
+}
+```
 
-  ---
-Phase 8: Validation & Testing
+### Input Prioritization
+```csharp
+// UI layers handle input first (ImGui, overlays)
+foreach (var layer in overlayLayers.Reverse())
+{
+    if (!layer.WantsInputEvents) continue;
+    layer.HandleInputEvent(inputEvent);
+    if (inputEvent.IsHandled) return; // Stop propagation
+}
 
-8.1 Integration Points to Test:
-- Window creation and input initialization
-- Keyboard/mouse input in layers (EditorLayer, game scripts)
-- Event propagation through layer stack
-- Resource disposal on window close
+// Then game layers
+foreach (var layer in gameLayers.Reverse())
+{
+    if (!layer.WantsInputEvents) continue;
+    layer.HandleInputEvent(inputEvent);
+    if (inputEvent.IsHandled) return;
+}
+```
 
-8.2 Performance Validation:
-- No additional allocations in hot paths
-- Input polling performance maintained
-- Event dispatch latency acceptable
+---
 
-  ---
-Benefits Achieved:
+## Benefits Summary
+- **No Singletons**: All dependencies properly injected
+- **Thread Safety**: `ConcurrentQueue` eliminates need for locking
+- **Performance**: Event filtering, batched processing
+- **Testability**: Easy to mock input for unit tests
+- **Maintainability**: Clear separation of concerns
+- **Cross-Platform**: Platform code properly isolated
+- **Event Optimization**: Layers only receive events they need
 
-✅ No Singletons: All dependencies injected through constructor✅ Separation of Concerns: Window ≠ Input Management✅ Testable Architecture: Easy to mock input for unit tests✅ Cross-Platform Ready: Platform-specific code
-isolated✅ Resource Management: Proper disposal patterns✅ Game Engine Standards: Follows Unity/Unreal input patterns
-
-  ---
-Files to Modify:
-
-New Files (7):
-- Engine/Core/Input/IInputManager.cs
-- Engine/Core/Input/IInputContext.cs
-- Engine/Core/Input/IInputContextFactory.cs
-- Engine/Core/Input/InputManager.cs
-- Engine/Platform/SilkNet/Input/SilkNetInputContext.cs
-- Engine/Platform/SilkNet/Input/SilkNetInputContextFactory.cs
-
-Modified Files (8):
-- Engine/Platform/SilkNet/SilkNetGameWindow.cs
-- Engine/Platform/SilkNet/Input/SilkNetKeyboardState.cs
-- Engine/Core/Application.cs
-- Engine/Core/Input/InputState.cs (deprecated bridge)
-- Editor/Program.cs
-- Sandbox/Program.cs
-- Benchmark/Program.cs
-- All files using InputState.Instance.*
-
-Estimated Effort: 2-3 days for complete migration with testing
+**Estimated Effort**: 2-3 days with comprehensive testing
