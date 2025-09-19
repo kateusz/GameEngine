@@ -20,7 +20,7 @@ public class Runtime2DLayer : ILayer
     {
     }
 
-    public void HandleInputEvent(InputEvent inputEvent)
+    public void HandleInputEvent(InputEvent windowEvent)
     {
     }
 

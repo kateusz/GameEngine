@@ -101,13 +101,13 @@ public abstract class Application : IApplication
         }
     }
     
-    private void HandleInputEvent(InputEvent @event)
+    private void HandleInputEvent(InputEvent windowEvent)
     {
         // Input events handled in reverse order (overlay layers first)
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
-            _layersStack[index].HandleInputEvent(@event);
-            if (@event.IsHandled)
+            _layersStack[index].HandleInputEvent(windowEvent);
+            if (windowEvent.IsHandled)
                 break;
         }
     }

@@ -11,6 +11,6 @@ public interface ILayer
     void OnDetach();
     void OnUpdate(TimeSpan timeSpan);
     void OnImGuiRender();
-    void HandleInputEvent(InputEvent inputEvent);
+    void HandleInputEvent(InputEvent windowEvent);
     void HandleWindowEvent(WindowEvent windowEvent);
 }

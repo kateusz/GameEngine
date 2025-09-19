@@ -187,10 +187,10 @@ public class EditorLayer : ILayer
         }
     }
     
-    public void HandleInputEvent(InputEvent @event)
+    public void HandleInputEvent(InputEvent windowEvent)
     {
         // Track key state for shortcuts
-        switch (@event)
+        switch (windowEvent)
         {
             case KeyPressedEvent kpe:
                 _pressedKeys.Add((KeyCodes)kpe.KeyCode);
@@ -203,11 +203,11 @@ public class EditorLayer : ILayer
         
         if (_sceneManager.SceneState == SceneState.Edit)
         {
-            _cameraController.OnEvent(@event);
+            _cameraController.OnEvent(windowEvent);
         }
         else
         {
-            ScriptEngine.Instance.ProcessEvent(@event);
+            ScriptEngine.Instance.ProcessEvent(windowEvent);
         }
     }
 

@@ -86,7 +86,7 @@ public class BenchmarkLayer : ILayer
         RenderPerformanceMonitor();
     }
     
-    public void HandleInputEvent(InputEvent inputEvent) => HandleEvent(inputEvent);
+    public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);
 
     public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
 

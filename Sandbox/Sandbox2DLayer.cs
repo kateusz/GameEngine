@@ -109,7 +109,7 @@ public class Sandbox2DLayer : ILayer
         Graphics2D.Instance.EndScene();
     }
 
-    public void HandleInputEvent(InputEvent inputEvent) => HandleEvent(inputEvent);
+    public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);
 
     public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
 

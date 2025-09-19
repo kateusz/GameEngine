@@ -69,13 +69,13 @@ public class ImGuiLayer : IImGuiLayer
         }
     }
     
-    public void HandleInputEvent(InputEvent @event)
+    public void HandleInputEvent(InputEvent windowEvent)
     {
         if (_blockEvents)
         {
             var io = ImGui.GetIO();
-            @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryMouse) & io.WantCaptureMouse;
-            @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryKeyboard) & io.WantCaptureKeyboard;
+            windowEvent.IsHandled |= windowEvent.IsInCategory(EventCategory.EventCategoryMouse) & io.WantCaptureMouse;
+            windowEvent.IsHandled |= windowEvent.IsInCategory(EventCategory.EventCategoryKeyboard) & io.WantCaptureKeyboard;
         }
     }
 
