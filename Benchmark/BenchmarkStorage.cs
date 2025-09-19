@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Sandbox.Benchmark;
+namespace Benchmark;
 
 public static class BenchmarkStorage
 {

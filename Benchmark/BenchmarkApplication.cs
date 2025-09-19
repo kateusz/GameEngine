@@ -2,7 +2,6 @@ using Engine.Core;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
-using Sandbox.Benchmark;
 
 namespace Benchmark;
 

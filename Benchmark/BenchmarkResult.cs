@@ -1,4 +1,4 @@
-namespace Sandbox.Benchmark;
+namespace Benchmark;
 
 public class BenchmarkResult
 {
