@@ -1,5 +1,6 @@
 ﻿using DryIoc;
 using Engine.Core.Window;
+using Engine.ImGuiNet;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -27,12 +28,16 @@ public class Program
 
         // Register EditorLayer with constructor injection
         container.Register<Sandbox2DLayer>(Reuse.Singleton);
+        container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+        
+        container.ValidateAndThrow();
 
         try
         {
             var gameWindow = container.Resolve<IGameWindow>();
             var sandboxLayer = container.Resolve<Sandbox2DLayer>();
-            var app = new SandboxApplication(gameWindow);
+            var imGuiLayer = container.Resolve<IImGuiLayer>();
+            var app = new SandboxApplication(gameWindow, imGuiLayer);
             app.PushLayer(sandboxLayer);
             app.Run();
         }

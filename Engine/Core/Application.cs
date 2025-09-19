@@ -8,25 +8,17 @@ using NLog;
 
 namespace Engine.Core;
 
-public interface IApplication
-{
-    void Run();
-    void PushLayer(ILayer layer);
-    void PushOverlay(ILayer overlay);
-}
-
 public class Application : IApplication
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
-    public static ImGuiLayer ImGuiLayer;
-
     private readonly IGameWindow _gameWindow;
-    private readonly List<ILayer> _layersStack = new();
+    private readonly List<ILayer> _layersStack = [];
     private bool _isRunning;
     private DateTime _lastTime;
+    private readonly IImGuiLayer _imGuiLayer;
 
-    protected Application(IGameWindow gameWindow, bool enableImGui = false)
+    protected Application(IGameWindow gameWindow, IImGuiLayer imGuiLayer)
     {
         _gameWindow = gameWindow;
         _gameWindow.OnEvent += HandleOnEvent;
@@ -36,12 +28,9 @@ public class Application : IApplication
         _isRunning = true;
         
         InputState.Init();
-
-        if (enableImGui)
-        {
-            ImGuiLayer = new ImGuiLayer("ImGUI");
-            PushOverlay(ImGuiLayer);
-        }
+        
+        _imGuiLayer = imGuiLayer;
+        PushOverlay(imGuiLayer);
     }
 
     private void HandleGameWindowOnLoad()
@@ -82,14 +71,14 @@ public class Application : IApplication
             _layersStack[index].OnUpdate(elapsed);
         }
 
-        ImGuiLayer?.Begin(elapsed);
+        _imGuiLayer.Begin(elapsed);
         
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnImGuiRender();
         }
         
-        ImGuiLayer?.End();
+        _imGuiLayer.End();
     }
 
     private void HandleOnEvent(Event @event)

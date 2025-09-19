@@ -20,7 +20,7 @@ using Application = Engine.Core.Application;
 
 namespace Editor;
 
-public class EditorLayer : Layer
+public class EditorLayer : ILayer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
@@ -28,7 +28,6 @@ public class EditorLayer : Layer
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
-    private bool _viewportHovered;
     private readonly Vector2[] _viewportBounds = new Vector2[2];
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
@@ -44,12 +43,8 @@ public class EditorLayer : Layer
     private EditorToolbar _editorToolbar;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private EditorSettingsUI _editorSettingsUI;
-    
-    public EditorLayer() : base("EditorLayer")
-    {
-    }
 
-    public override void OnAttach()
+    public void OnAttach()
     {
         Logger.Debug("EditorLayer OnAttach.");
 
@@ -102,13 +97,13 @@ public class EditorLayer : Layer
         }
     }
 
-    public override void OnDetach()
+    public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
         _consolePanel?.Dispose();
     }
 
-    public override void OnUpdate(TimeSpan timeSpan)
+    public void OnUpdate(TimeSpan timeSpan)
     {
         _performanceMonitor.Update(timeSpan);
         
@@ -174,7 +169,7 @@ public class EditorLayer : Layer
         _frameBuffer.Unbind();
     }
 
-    public override void HandleEvent(Event @event)
+    public void HandleEvent(Event @event)
     {
         //Logger.Debug("EditorLayer OnEvent: {0}", @event);
 
@@ -243,7 +238,7 @@ public class EditorLayer : Layer
         }
     }
 
-    public override void OnImGuiRender()
+    public void OnImGuiRender()
     {
         SubmitUI();
     }
@@ -363,8 +358,6 @@ public class EditorLayer : Layer
                     viewportMaxRegion.Y + viewportOffset.Y);
 
                 _viewportFocused = ImGui.IsWindowFocused();
-                _viewportHovered = ImGui.IsWindowHovered();
-                Application.ImGuiLayer.BlockEvents = !_viewportFocused && !_viewportHovered;
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
                 _viewportSize = viewportPanelSize;
