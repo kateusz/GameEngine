@@ -61,7 +61,7 @@ public class Sandbox2DLayer : Layer
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
         _orthographicCameraController = new OrthographicCameraController(3840.0f / 2160.0f, true);
-        _spriteSheet = TextureFactory.Create("assets/game/textures/RPGpack_sheet_2X.png");
+        _spriteSheet = TextureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
 
         _textureBarrel =
             SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(8, 2), new Vector2(128, 128), new Vector2(1, 1));
