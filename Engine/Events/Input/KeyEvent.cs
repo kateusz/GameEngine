@@ -1,6 +1,6 @@
-namespace Engine.Events;
+namespace Engine.Events.Input;
 
-public abstract record KeyEvent : Event
+public abstract record KeyEvent : InputEvent
 {
     public int KeyCode { get; }
 

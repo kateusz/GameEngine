@@ -10,12 +10,12 @@ public class PropertiesPanel
 {
     private Entity? _selectedEntity;
     private readonly ComponentEditorRegistry _componentEditors;
-    private readonly PrefabManager _prefabManager;
+    private readonly IPrefabManager? _prefabManager;
 
-    public PropertiesPanel()
+    public PropertiesPanel(IPrefabManager? prefabManager = null)
     {
+        _prefabManager = prefabManager;
         _componentEditors = new ComponentEditorRegistry();
-        _prefabManager = new PrefabManager();
     }
 
     public void SetSelectedEntity(Entity? entity)
@@ -35,8 +35,8 @@ public class PropertiesPanel
         }
         
         ImGui.End();
-
-        _prefabManager.RenderPopups();
+        
+        _prefabManager?.RenderPopups();
     }
 
     private void DrawEntityProperties()
@@ -52,7 +52,7 @@ public class PropertiesPanel
         // Save as prefab button
         if (ImGui.Button("Save as Prefab"))
         {
-            _prefabManager.ShowSavePrefabDialog(_selectedEntity);
+            _prefabManager?.ShowSavePrefabDialog(_selectedEntity);
         }
 
         // Render all components

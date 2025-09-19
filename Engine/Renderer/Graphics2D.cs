@@ -90,28 +90,6 @@ public class Graphics2D : IGraphics2D
 
         StartBatch();
     }
-    
-    public void BeginScene(EditorCamera camera)
-    {
-        // debug Camera
-        var cameraPosition = camera.GetPosition();
-        _data.Stats.EditorCameraX = cameraPosition.X;
-        _data.Stats.EditorCameraY = cameraPosition.Y;
-        _data.Stats.EditorCameraZ = cameraPosition.Z;
-        
-        var viewProj = camera.GetViewProjection();
-
-        //_data.CameraBuffer.ViewProjection = viewProj;
-        //_data.CameraUniformBuffer.SetData(_data.CameraBuffer, CameraData.GetSize());
-
-        _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
-        
-        _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
-
-        StartBatch();
-    }
 
     public void EndScene()
     {

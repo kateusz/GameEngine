@@ -1,10 +1,11 @@
+using Engine.Core.Input;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Silk.NET.Windowing;
 
 namespace Engine.Core.Window;
 
-public class GameWindowFactory
+public static class GameWindowFactory
 {
     public static IGameWindow Create(IWindow window)
     {

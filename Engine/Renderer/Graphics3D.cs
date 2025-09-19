@@ -47,18 +47,6 @@ public class Graphics3D : IGraphics3D
         _phongShader.SetFloat3("u_ViewPosition", new Vector3(transform.M41, transform.M42, transform.M43));
         _phongShader.SetFloat("u_Shininess", _shininess);
     }
-    
-    public void BeginScene(EditorCamera camera)
-    {
-        var viewProj = camera.GetViewProjection();
-        
-        _phongShader.Bind();
-        _phongShader.SetMat4("u_ViewProjection", viewProj);
-        _phongShader.SetFloat3("u_LightPosition", _lightPosition);
-        _phongShader.SetFloat3("u_LightColor", _lightColor);
-        _phongShader.SetFloat3("u_ViewPosition", camera.GetPosition());
-        _phongShader.SetFloat("u_Shininess", _shininess);
-    }
 
     public void EndScene()
     {

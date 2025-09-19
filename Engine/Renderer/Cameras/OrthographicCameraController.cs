@@ -1,6 +1,8 @@
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 
 namespace Engine.Renderer.Cameras;
 
@@ -9,13 +11,16 @@ public class OrthographicCameraController
     private float _aspectRatio;
     private readonly bool _rotation;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraTranslationSpeed = 2.0f; // Reduced from 0.03f to a reasonable base speed
+    private float _cameraTranslationSpeed = 0.5f;
     private float _cameraRotationSpeed = 10.0f;
     private float _cameraRotation;
     private float _zoomLevel = 20.0f;
     
     // Add a speed multiplier for better control
     private float _speedMultiplier = 0.1f; // Adjust this to make camera slower/faster
+    
+    // TODO: check concurrency
+    private readonly HashSet<KeyCodes> _pressedKeys = [];
 
     public OrthographicCameraController(float aspectRatio, bool rotation = false)
     {
@@ -40,20 +45,20 @@ public class OrthographicCameraController
         // Calculate actual movement speed based on zoom level but with a reasonable multiplier
         float actualSpeed = _cameraTranslationSpeed * _speedMultiplier * _zoomLevel;
         
-        if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
+        if (_pressedKeys.Contains(KeyCodes.A))
             _cameraPosition.X -= actualSpeed * (float)timeSpan.TotalSeconds;
-        else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.D))
+        else if (_pressedKeys.Contains(KeyCodes.D))
             _cameraPosition.X += actualSpeed * (float)timeSpan.TotalSeconds;
-        else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.S))
+        else if (_pressedKeys.Contains(KeyCodes.S))
             _cameraPosition.Y -= actualSpeed * (float)timeSpan.TotalSeconds;
-        else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.W))
+        else if (_pressedKeys.Contains(KeyCodes.W))
             _cameraPosition.Y += actualSpeed * (float)timeSpan.TotalSeconds;
 
         if (_rotation)
         {
-            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.Q))
+            if (_pressedKeys.Contains(KeyCodes.Q))
                 _cameraRotation += _cameraRotationSpeed * (float)timeSpan.TotalSeconds;
-            else if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.E))
+            else if (_pressedKeys.Contains(KeyCodes.E))
                 _cameraRotation -= _cameraRotationSpeed * (float)timeSpan.TotalSeconds;
             
             Camera.SetRotation(_cameraRotation);
@@ -67,11 +72,21 @@ public class OrthographicCameraController
 
     public void OnEvent(Event @event)
     {
-        if (@event is MouseScrolledEvent mouseScrolledEvent)
-            OnMouseScrolled(mouseScrolledEvent);
-        
-        if (@event is WindowResizeEvent windowResizeEvent)
-            OnWindowResized(windowResizeEvent);
+        switch (@event)
+        {
+            case KeyPressedEvent kpe:
+                _pressedKeys.Add((KeyCodes)kpe.KeyCode);
+                break;
+            case KeyReleasedEvent kre:
+                _pressedKeys.Remove((KeyCodes)kre.KeyCode);
+                break;
+            case MouseScrolledEvent mse:
+                OnMouseScrolled(mse);
+                break;
+            case WindowResizeEvent wre:
+                OnWindowResized(wre);
+                break;
+        }
     }
     
     // Add methods to control camera speed at runtime

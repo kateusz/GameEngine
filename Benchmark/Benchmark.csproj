@@ -10,12 +10,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../Editor/Editor.csproj" />
         <ProjectReference Include="../Engine/Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="imgui.ini">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">

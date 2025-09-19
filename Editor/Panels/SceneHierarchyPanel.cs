@@ -64,8 +64,9 @@ public class SceneHierarchyPanel
             _selectionContext = entity;
         }
 
+        // TODO: finish dependency injection
         // Prefab drag & drop handling
-        PrefabDropTarget.HandleEntityDrop(entity);
+        //PrefabDropTarget.HandleEntityDrop(entity);
 
         // Entity context menu
         bool entityDeleted = false;

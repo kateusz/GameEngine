@@ -1,11 +1,14 @@
 using Engine.Core;
+using Engine.Core.Input;
 using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 
 namespace Runtime;
 
 public class Runtime2DLayer : ILayer
 {
-    public void OnAttach()
+    public void OnAttach(IInputSystem inputSystem)
     {
     }
 
@@ -17,7 +20,11 @@ public class Runtime2DLayer : ILayer
     {
     }
 
-    public void HandleEvent(Event @event)
+    public void HandleInputEvent(InputEvent windowEvent)
+    {
+    }
+
+    public void HandleWindowEvent(WindowEvent windowEvent)
     {
     }
 

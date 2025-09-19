@@ -5,12 +5,19 @@ using ImGuiNET;
 
 namespace Editor.Panels.Elements;
 
-public class PrefabManager
+public class PrefabManager : IPrefabManager
 {
+    private readonly IPrefabSerializer _serializer;
+    
     private bool _showSavePrefabPopup = false;
     private string _prefabName = "";
     private string _prefabSaveError = "";
     private Entity _entityToSave;
+
+    public PrefabManager(IPrefabSerializer serializer)
+    {
+        _serializer = serializer;
+    }
 
     public void ShowSavePrefabDialog(Entity entity)
     {
@@ -63,7 +70,7 @@ public class PrefabManager
                 try
                 {
                     var currentProjectPath = GetCurrentProjectPath();
-                    PrefabSerializer.SerializeToPrefab(_entityToSave, _prefabName, currentProjectPath);
+                    _serializer.SerializeToPrefab(_entityToSave, _prefabName, currentProjectPath);
                     Console.WriteLine($"Saved prefab: {_prefabName}.prefab");
                     _showSavePrefabPopup = false;
                     _prefabSaveError = "";

@@ -2,6 +2,7 @@ using System.Reflection;
 using CSharpFunctionalExtensions;
 using Engine.Core.Input;
 using Engine.Events;
+using Engine.Events.Input;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Microsoft.CodeAnalysis;
@@ -104,6 +105,9 @@ public class ScriptEngine
                 {
                     case KeyPressedEvent kpe:
                         scriptComponent.ScriptableEntity.OnKeyPressed((KeyCodes)kpe.KeyCode);
+                        break;
+                    case KeyReleasedEvent kpe:
+                        scriptComponent.ScriptableEntity.OnKeyReleased((KeyCodes)kpe.KeyCode);
                         break;
                     case MouseButtonPressedEvent mbpe:
                         scriptComponent.ScriptableEntity.OnMouseButtonPressed(mbpe.Button);

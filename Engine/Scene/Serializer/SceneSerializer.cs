@@ -14,7 +14,7 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-public class SceneSerializer
+public class SceneSerializer : ISceneSerializer
 {
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
@@ -37,7 +37,7 @@ public class SceneSerializer
         }
     };
 
-    public static void Serialize(Scene scene, string path)
+    public void Serialize(Scene scene, string path)
     {
         var jsonObj = new JsonObject
         {
@@ -67,7 +67,7 @@ public class SceneSerializer
         File.WriteAllText(path, jsonString);
     }
 
-    public static void Deserialize(Scene scene, string path)
+    public void Deserialize(Scene scene, string path)
     {
         var json = File.ReadAllText(path);
         var jsonObj = JsonNode.Parse(json)?.AsObject() ??
@@ -84,12 +84,12 @@ public class SceneSerializer
         }
     }
 
-    private static JsonArray GetJsonArray(JsonNode jsonObject, string key)
+    private JsonArray GetJsonArray(JsonNode jsonObject, string key)
     {
         return jsonObject[key] as JsonArray ?? throw new InvalidSceneJsonException($"Got invalid {key} JSON");
     }
 
-    private static Entity DeserializeEntity(JsonObject entityObj)
+    private Entity DeserializeEntity(JsonObject entityObj)
     {
         var entityId = entityObj[IdKey]?.GetValue<int>() ?? throw new InvalidSceneJsonException("Invalid entity ID");
         var entityName = entityObj[NameKey]?.GetValue<string>() ??
@@ -107,7 +107,7 @@ public class SceneSerializer
         return entity;
     }
 
-    private static void DeserializeComponent(Entity entity, JsonNode componentNode)
+    private void DeserializeComponent(Entity entity, JsonNode componentNode)
     {
         if (componentNode is not JsonObject componentObj || componentObj[NameKey] is null)
             throw new InvalidSceneJsonException("Invalid component JSON");
@@ -139,7 +139,7 @@ public class SceneSerializer
         }
     }
 
-    private static void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
+    private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
         var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component == null) 
@@ -153,7 +153,7 @@ public class SceneSerializer
         entity.AddComponent(component);
     }
 
-    private static void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
+    private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
     {
         if (!componentObj.ContainsKey(ScriptTypeKey))
         {
@@ -202,7 +202,7 @@ public class SceneSerializer
             });
             return;
         }
-
+        
         // If ScriptEngine fails, try to create built-in script types
         ScriptableEntity? builtInScript = scriptTypeName switch
         {
@@ -226,7 +226,7 @@ public class SceneSerializer
         }
     }
 
-    private static void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
+    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)
@@ -235,7 +235,7 @@ public class SceneSerializer
         }
     }
 
-    private static void SerializeEntity(JsonArray jsonEntities, Entity entity)
+    private void SerializeEntity(JsonArray jsonEntities, Entity entity)
     {
         var entityObj = new JsonObject
         {
@@ -254,7 +254,7 @@ public class SceneSerializer
         jsonEntities.Add(entityObj);
     }
 
-    private static void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)
+    private void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)
     {
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
@@ -286,7 +286,7 @@ public class SceneSerializer
         components.Add(scriptComponentObj);
     }
 
-    private static void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
+    private void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
         where T : IComponent
     {
         if (!entity.HasComponent<T>())

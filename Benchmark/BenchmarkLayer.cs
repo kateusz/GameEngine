@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
+using Engine.Core.Input;
 using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -9,7 +12,7 @@ using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
 
-namespace Sandbox.Benchmark;
+namespace Benchmark;
 
 public class BenchmarkLayer : ILayer
 {
@@ -38,7 +41,7 @@ public class BenchmarkLayer : ILayer
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
     
-    public void OnAttach()
+    public void OnAttach(IInputSystem inputSystem)
     {
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         LoadTestAssets();
@@ -82,11 +85,12 @@ public class BenchmarkLayer : ILayer
         RenderResultsWindow();
         RenderPerformanceMonitor();
     }
+    
+    public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);
 
-    public void HandleEvent(Event @event)
-    {
-        _cameraController?.OnEvent(@event);
-    }
+    public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
+
+    private void HandleEvent(Event @event) => _cameraController?.OnEvent(@event);
 
     private void LoadTestAssets()
     {
@@ -129,25 +133,11 @@ public class BenchmarkLayer : ILayer
             if (ImGui.Button("Renderer2D Stress Test"))
                 StartBenchmark(BenchmarkTestType.Renderer2DStress);
                 
-            if (ImGui.Button("ECS Performance Test"))
-                StartBenchmark(BenchmarkTestType.ECSPerformance);
-                
             if (ImGui.Button("Texture Switching Test"))
                 StartBenchmark(BenchmarkTestType.TextureSwitching);
                 
             if (ImGui.Button("Draw Call Test"))
                 StartBenchmark(BenchmarkTestType.DrawCallOptimization);
-                
-            if (ImGui.Button("Script System Test"))
-                StartBenchmark(BenchmarkTestType.ScriptSystem);
-                
-            if (ImGui.Button("Full Engine Test"))
-                StartBenchmark(BenchmarkTestType.FullEngine);
-                
-            ImGui.Separator();
-                
-            if (ImGui.Button("Run All Tests"))
-                StartAllBenchmarks();
         }
         else
         {
@@ -288,12 +278,6 @@ public class BenchmarkLayer : ILayer
         SetupTestScene(testType);
     }
 
-    private void StartAllBenchmarks()
-    {
-        // TODO: Implement sequential benchmark execution
-        Console.WriteLine("Running all benchmarks sequentially is not yet implemented.");
-    }
-
     private void StopBenchmark()
     {
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
@@ -323,8 +307,8 @@ public class BenchmarkLayer : ILayer
                 case BenchmarkTestType.Renderer2DStress:
                     UpdateRenderer2DStress();
                     break;
-                case BenchmarkTestType.ECSPerformance:
-                    UpdateECSPerformance();
+                case BenchmarkTestType.DrawCallOptimization:
+                    UpdateDrawCall();
                     break;
                 case BenchmarkTestType.TextureSwitching:
                     UpdateTextureSwitching();
@@ -336,6 +320,39 @@ public class BenchmarkLayer : ILayer
         if (_testElapsedTime >= _testDuration)
         {
             StopBenchmark();
+        }
+    }
+
+    private void UpdateDrawCall()
+    {
+        if (_currentTestScene == null) return;
+
+        var random = new Random();
+
+        foreach (var entity in _currentTestScene.Entities)
+        {
+            if (!entity.HasComponent<TransformComponent>()) 
+                continue;
+
+            var transform = entity.GetComponent<TransformComponent>();
+
+            // Slightly animate position or rotation to force updates
+            transform.Translation += new Vector3(
+                (float)(random.NextDouble() * 0.02 - 0.01),
+                (float)(random.NextDouble() * 0.02 - 0.01),
+                0);
+
+            transform.Rotation = transform.Rotation with { Z = transform.Rotation.Z + 0.01f };
+
+            // Optionally, cycle textures to break batching and increase draw calls
+            if (entity.HasComponent<SpriteRendererComponent>() && _testTextures.Count > 1)
+            {
+                var sprite = entity.GetComponent<SpriteRendererComponent>();
+                if (random.NextDouble() < 0.05) // 5% chance per frame
+                {
+                    sprite.Texture = _testTextures.Values.ElementAt(random.Next(_testTextures.Count));
+                }
+            }
         }
     }
 
@@ -353,17 +370,11 @@ public class BenchmarkLayer : ILayer
             case BenchmarkTestType.Renderer2DStress:
                 SetupRenderer2DStressTest();
                 break;
-            case BenchmarkTestType.ECSPerformance:
-                SetupECSPerformanceTest();
-                break;
             case BenchmarkTestType.TextureSwitching:
                 SetupTextureSwitchingTest();
                 break;
             case BenchmarkTestType.DrawCallOptimization:
                 SetupDrawCallTest();
-                break;
-            case BenchmarkTestType.FullEngine:
-                SetupFullEngineTest();
                 break;
         }
     }
@@ -393,17 +404,6 @@ public class BenchmarkLayer : ILayer
                     1.0f)
             };
             entity.AddComponent(sprite);
-        }
-    }
-
-    private void SetupECSPerformanceTest()
-    {
-        // Create entities with multiple components
-        for (int i = 0; i < _entityCount; i++)
-        {
-            var entity = _currentTestScene.CreateEntity($"Entity_{i}");
-            entity.AddComponent<TransformComponent>(); // Add required components
-            entity.AddComponent<SpriteRendererComponent>();
         }
     }
 
@@ -452,20 +452,6 @@ public class BenchmarkLayer : ILayer
         }
     }
 
-    private void SetupFullEngineTest()
-    {
-        // Combine multiple test scenarios
-        SetupRenderer2DStressTest();
-            
-        // Add some scripted entities
-        for (int i = 0; i < 10; i++)
-        {
-            var entity = _currentTestScene.CreateEntity($"ScriptedEntity_{i}");
-            entity.AddComponent<TransformComponent>(); // Add required component
-            entity.AddComponent<NativeScriptComponent>();
-        }
-    }
-
     private void UpdateRenderer2DStress()
     {
         // Animate sprites
@@ -475,20 +461,6 @@ public class BenchmarkLayer : ILayer
             {
                 var transform = entity.GetComponent<TransformComponent>();
                 transform.Rotation = new Vector3(0, 0, transform.Rotation.Z + 0.01f);
-            }
-        }
-    }
-
-    private void UpdateECSPerformance()
-    {
-        // Stress test component queries
-        var count = 0;
-        foreach (var entity in _currentTestScene.Entities)
-        {
-            if (entity.HasComponent<TransformComponent>() && 
-                entity.HasComponent<SpriteRendererComponent>())
-            {
-                count++;
             }
         }
     }
@@ -570,11 +542,6 @@ public class BenchmarkLayer : ILayer
                 var stats = Graphics2D.Instance.GetStats();
                 result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
                 result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
-                break;
-            case BenchmarkTestType.ECSPerformance:
-                result.CustomMetrics["Entity Count"] = _entityCount.ToString();
-                result.CustomMetrics["Entities/Frame"] = 
-                    (_entityCount * result.AverageFPS).ToString("F0");
                 break;
         }
             
