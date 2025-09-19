@@ -50,7 +50,7 @@ public class BenchmarkLayer : ILayer
         _testTextures.Clear();
     }
 
-    public void OnUpdate(TimeSpan ts)
+    public void OnUpdate(TimeSpan timeSpan)
     {
         _frameTimer.Restart();
         
@@ -60,11 +60,11 @@ public class BenchmarkLayer : ILayer
             
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
         {
-            UpdateBenchmark(ts);
+            UpdateBenchmark(timeSpan);
         }
             
         // Always update camera for viewport control
-        _cameraController?.OnUpdate(ts);
+        _cameraController?.OnUpdate(timeSpan);
             
         // Render current test scene if active
         if (_currentTestScene != null && _isRunning)
