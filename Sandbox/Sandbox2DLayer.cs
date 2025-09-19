@@ -1,6 +1,9 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Core.Input;
 using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -56,7 +59,7 @@ public class Sandbox2DLayer : ILayer
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }
 
-    public void OnAttach()
+    public void OnAttach(IInputSystem inputSystem)
     {
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
@@ -106,7 +109,11 @@ public class Sandbox2DLayer : ILayer
         Graphics2D.Instance.EndScene();
     }
 
-    public void HandleEvent(Event @event)
+    public void HandleInputEvent(InputEvent inputEvent) => HandleEvent(inputEvent);
+
+    public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
+
+    private void HandleEvent(Event @event)
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
 

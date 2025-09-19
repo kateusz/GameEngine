@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
+using Engine.Core.Input;
 using Engine.Scene.Components;
 using Engine.Scripting;
 
@@ -12,7 +13,7 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-public class PrefabSerializer
+public class PrefabSerializer : IPrefabSerializer
 {
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
@@ -41,7 +42,7 @@ public class PrefabSerializer
     /// <param name="entity">The entity to serialize</param>
     /// <param name="prefabName">Name of the prefab file (without extension)</param>
     /// <param name="projectPath">Path to the project root</param>
-    public static void SerializeToPrefab(Entity entity, string prefabName, string projectPath)
+    public void SerializeToPrefab(Entity entity, string prefabName, string projectPath)
     {
         var prefabDir = Path.Combine(projectPath, PrefabAssetsDirectory);
         Directory.CreateDirectory(prefabDir);
@@ -72,7 +73,7 @@ public class PrefabSerializer
     /// </summary>
     /// <param name="entity">The entity to apply prefab to</param>
     /// <param name="prefabPath">Path to the prefab file</param>
-    public static void ApplyPrefabToEntity(Entity entity, string prefabPath)
+    public void ApplyPrefabToEntity(Entity entity, string prefabPath)
     {
         if (!File.Exists(prefabPath))
             throw new FileNotFoundException($"Prefab file not found: {prefabPath}");
@@ -100,7 +101,7 @@ public class PrefabSerializer
     /// <param name="entityName">Name for the new entity</param>
     /// <param name="entityId">ID for the new entity</param>
     /// <returns>New entity with prefab components</returns>
-    public static Entity CreateEntityFromPrefab(string prefabPath, string entityName, int entityId)
+    public Entity CreateEntityFromPrefab(string prefabPath, string entityName, int entityId)
     {
         if (!File.Exists(prefabPath))
             throw new FileNotFoundException($"Prefab file not found: {prefabPath}");
@@ -121,7 +122,7 @@ public class PrefabSerializer
         return entity;
     }
 
-    private static void SerializeEntityComponents(Entity entity, JsonArray componentsArray)
+    private void SerializeEntityComponents(Entity entity, JsonArray componentsArray)
     {
         SerializeComponent<TransformComponent>(entity, componentsArray, nameof(TransformComponent));
         SerializeComponent<CameraComponent>(entity, componentsArray, nameof(CameraComponent));
@@ -134,7 +135,7 @@ public class PrefabSerializer
         SerializeNativeScriptComponent(entity, componentsArray);
     }
 
-    private static void SerializeComponent<T>(Entity entity, JsonArray componentsArray, string componentName)
+    private void SerializeComponent<T>(Entity entity, JsonArray componentsArray, string componentName)
         where T : IComponent
     {
         if (!entity.HasComponent<T>())
@@ -149,7 +150,7 @@ public class PrefabSerializer
         }
     }
 
-    private static void SerializeNativeScriptComponent(Entity entity, JsonArray componentsArray)
+    private void SerializeNativeScriptComponent(Entity entity, JsonArray componentsArray)
     {
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
@@ -177,7 +178,7 @@ public class PrefabSerializer
         componentsArray.Add(scriptComponentObj);
     }
 
-    private static void ClearEntityComponents(Entity entity)
+    private void ClearEntityComponents(Entity entity)
     {
         // Remove all components except transform (entities should always have transform)
         if (entity.HasComponent<CameraComponent>())
@@ -198,7 +199,7 @@ public class PrefabSerializer
             entity.RemoveComponent<NativeScriptComponent>();
     }
 
-    private static void DeserializeComponent(Entity entity, JsonNode componentNode)
+    private void DeserializeComponent(Entity entity, JsonNode componentNode)
     {
         if (componentNode is not JsonObject componentObj || componentObj[NameKey] is null)
             throw new InvalidOperationException("Invalid component JSON");
@@ -237,7 +238,7 @@ public class PrefabSerializer
         }
     }
 
-    private static void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
+    private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
     {
         if (componentObj[ScriptTypeKey] is null)
         {
@@ -266,7 +267,7 @@ public class PrefabSerializer
         }
     }
 
-    private static void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
+    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)
@@ -275,7 +276,7 @@ public class PrefabSerializer
         }
     }
 
-    private static JsonArray GetJsonArray(JsonObject jsonObject, string key)
+    private JsonArray GetJsonArray(JsonObject jsonObject, string key)
     {
         return jsonObject[key] as JsonArray ?? 
                throw new InvalidOperationException($"Got invalid {key} JSON");

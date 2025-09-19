@@ -12,10 +12,12 @@ public class SceneManager
     public string? EditorScenePath { get; private set; }
 
     private readonly SceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly ISceneSerializer _sceneSerializer;
 
-    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel)
+    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
+        _sceneSerializer = sceneSerializer;
     }
 
     public void New(Vector2 viewportSize)
@@ -36,7 +38,7 @@ public class SceneManager
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
-        SceneSerializer.Deserialize(CurrentScene.Instance, path);
+        _sceneSerializer.Deserialize(CurrentScene.Instance, path);
         Console.WriteLine($"📂 Scene opened: {path}");
     }
 
@@ -47,7 +49,7 @@ public class SceneManager
             Directory.CreateDirectory(sceneDir);
 
         EditorScenePath = Path.Combine(sceneDir, "scene.scene");
-        SceneSerializer.Serialize(CurrentScene.Instance, EditorScenePath);
+        _sceneSerializer.Serialize(CurrentScene.Instance, EditorScenePath);
         Console.WriteLine($"💾 Scene saved: {EditorScenePath}");
     }
 

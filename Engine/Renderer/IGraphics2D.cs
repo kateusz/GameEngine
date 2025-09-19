@@ -11,7 +11,6 @@ public interface IGraphics2D : IGraphics
     void Shutdown();
     void BeginScene(OrthographicCamera camera);
     void BeginScene(Camera camera, Matrix4x4 transform);
-    void BeginScene(EditorCamera camera);
     void EndScene();
     void DrawQuad(Vector2 position, Vector2 size, Vector4 color);
     void DrawQuad(Vector3 position, Vector2 size, Vector4 color);

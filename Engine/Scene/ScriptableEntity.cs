@@ -14,7 +14,7 @@ public class ScriptableEntity
     /// <summary>
     /// The entity this script is attached to
     /// </summary>
-    public Entity? Entity { get; set; }
+    public Entity Entity { get; set; }
 
     #region Lifecycle Methods
 
@@ -158,7 +158,7 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to get</typeparam>
     /// <returns>The component instance, or null if not found</returns>
-    public T GetComponent<T>() where T : IComponent
+    protected T GetComponent<T>() where T : IComponent
     {
         return Entity.GetComponent<T>();
     }
@@ -168,7 +168,7 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to check for</typeparam>
     /// <returns>True if the entity has the component, false otherwise</returns>
-    public bool HasComponent<T>() where T : IComponent
+    protected bool HasComponent<T>() where T : IComponent
     {
         return Entity.HasComponent<T>();
     }
@@ -178,7 +178,7 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to add</typeparam>
     /// <returns>The newly added component</returns>
-    public T AddComponent<T>() where T : IComponent, new()
+    protected T AddComponent<T>() where T : IComponent, new()
     {
         return Entity.AddComponent<T>();
     }
@@ -188,7 +188,7 @@ public class ScriptableEntity
     /// </summary>
     /// <typeparam name="T">The component type to add</typeparam>
     /// <returns>The newly added component</returns>
-    public void AddComponent<T>(T component) where T : IComponent
+    protected void AddComponent<T>(T component) where T : IComponent
     {
         Entity.AddComponent(component);
     }

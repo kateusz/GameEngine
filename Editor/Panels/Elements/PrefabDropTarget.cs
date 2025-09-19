@@ -22,7 +22,9 @@ public static class PrefabDropTarget
                         try
                         {
                             string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
-                            PrefabSerializer.ApplyPrefabToEntity(entity, fullPath);
+                            
+                            // TODO: finish dependency injection
+                            //PrefabSerializer.ApplyPrefabToEntity(entity, fullPath);
                             Console.WriteLine($"Applied prefab {path} to entity {entity.Name}");
                         }
                         catch (Exception ex)

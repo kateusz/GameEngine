@@ -1,33 +1,51 @@
 ﻿using DryIoc;
 using Editor;
+using Editor.Panels.Elements;
+using Engine.Core;
+using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
+using Engine.Platform.SilkNet;
+using Engine.Platform.SilkNet.Input;
+using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
-var props = new WindowProps("Sandbox Engine testing!", 1280, 720);
+static void ConfigureContainer(Container container)
+{
+    var props = new WindowProps("Editor", 1280, 720);
+    var options = WindowOptions.Default;
+    options.Size = new Vector2D<int>(props.Width, props.Height);
+    options.Title = "Game Window";
+
+    container.Register<IWindow>(Reuse.Singleton, 
+        made: Made.Of(() => Window.Create(options))
+    );
+
+    container.Register<IGameWindow>(Reuse.Singleton, 
+        made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
+    );
+
+    container.Register<ILayer, EditorLayer>(Reuse.Singleton);
+    container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+    
+    // Generic service resolver function
+    container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);
+    
+    container.Register<IPrefabSerializer, PrefabSerializer>(Reuse.Singleton);
+    container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
+    container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
+    container.Register<Editor.Editor>(Reuse.Singleton);
+    
+    container.ValidateAndThrow();
+}
 
 var container = new Container();
-
-var options = WindowOptions.Default;
-options.Size = new Vector2D<int>(props.Width, props.Height);
-options.Title = "Game Window";
-
-container.Register<IWindow>(Reuse.Singleton, 
-    made: Made.Of(() => Window.Create(options))
-);
-
-container.Register<IGameWindow>(Reuse.Singleton, 
-    made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
-);
-
-container.Register<EditorLayer>(Reuse.Singleton);
-container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
-
-container.ValidateAndThrow();
+ConfigureContainer(container);
 
 var logger = LoggerFactory.Create(builder => builder.AddNLog()).CreateLogger<Program>();
 logger.LogInformation("Program has started.");
@@ -44,9 +62,7 @@ ScriptEngine.Instance.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts
 ScriptEngine.Instance.PrintDebugInfo();
 #endif
 
-var gameWindow = container.Resolve<IGameWindow>();
-var editorLayer = container.Resolve<EditorLayer>();
-var imGuiLayer = container.Resolve<IImGuiLayer>();
-var editor = new global::Editor.Editor(gameWindow, imGuiLayer);
+var editor = container.Resolve<Editor.Editor>();
+var editorLayer = container.Resolve<ILayer>();
 editor.PushLayer(editorLayer);
 editor.Run();

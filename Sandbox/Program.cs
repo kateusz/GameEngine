@@ -1,4 +1,5 @@
 ﻿using DryIoc;
+using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
 using Silk.NET.Maths;
@@ -10,34 +11,13 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var props = new WindowProps("Sandbox Engine testing!", 1280, 720);
-
         var container = new Container();
-
-        var options = WindowOptions.Default;
-        options.Size = new Vector2D<int>(props.Width, props.Height);
-        options.Title = "Game Window";
-
-        container.Register<IWindow>(Reuse.Singleton,
-            made: Made.Of(() => Window.Create(options))
-        );
-
-        container.Register<IGameWindow>(Reuse.Singleton,
-            made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
-        );
-
-        // Register EditorLayer with constructor injection
-        container.Register<Sandbox2DLayer>(Reuse.Singleton);
-        container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
-        
-        container.ValidateAndThrow();
+        ConfigureContainer(container);
 
         try
         {
-            var gameWindow = container.Resolve<IGameWindow>();
-            var sandboxLayer = container.Resolve<Sandbox2DLayer>();
-            var imGuiLayer = container.Resolve<IImGuiLayer>();
-            var app = new SandboxApplication(gameWindow, imGuiLayer);
+            var app = container.Resolve<SandboxApplication>();
+            var sandboxLayer = container.Resolve<ILayer>();
             app.PushLayer(sandboxLayer);
             app.Run();
         }
@@ -45,5 +25,26 @@ public class Program
         {
             Console.WriteLine($"Błąd aplikacji: {e.Message}");
         }
+    }
+
+    private static void ConfigureContainer(Container container)
+    {
+        var props = new WindowProps("Editor", 1280, 720);
+        var options = WindowOptions.Default;
+        options.Size = new Vector2D<int>(props.Width, props.Height);
+        options.Title = "Game Window";
+
+        container.Register<IWindow>(Reuse.Singleton, 
+            made: Made.Of(() => Window.Create(options))
+        );
+
+        container.Register<IGameWindow>(Reuse.Singleton, 
+            made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
+        );
+
+        container.Register<ILayer, Sandbox2DLayer>(Reuse.Singleton);
+        container.Register<SandboxApplication>( Reuse.Singleton);
+        
+        container.ValidateAndThrow();
     }
 }

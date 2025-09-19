@@ -5,18 +5,18 @@ using Editor.Managers;
 using Editor.Panels;
 using Engine.Core;
 using Engine.Core.Input;
-using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
-using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
 using NLog;
 using ZLinq;
-using Application = Engine.Core.Application;
 
 namespace Editor;
 
@@ -43,13 +43,23 @@ public class EditorLayer : ILayer
     private EditorToolbar _editorToolbar;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private EditorSettingsUI _editorSettingsUI;
+    
+    private readonly ISceneSerializer  _sceneSerializer;
+    
+    // TODO: check concurrency
+    private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public void OnAttach()
+    public EditorLayer(ISceneSerializer sceneSerializer)
+    {
+        _sceneSerializer = sceneSerializer;
+    }
+
+    public void OnAttach(IInputSystem inputSystem)
     {
         Logger.Debug("EditorLayer OnAttach.");
 
         // Initialize 2D camera controller with reasonable settings for editor
-        _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        _cameraController = new OrthographicCameraController(1280.0f / 720.0f);
         
         var frameBufferSpec = new FrameBufferSpecification(1200, 720)
         {
@@ -68,7 +78,7 @@ public class EditorLayer : ILayer
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
 
-        _sceneManager = new SceneManager(_sceneHierarchyPanel);
+        _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
 
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel();
@@ -169,11 +179,28 @@ public class EditorLayer : ILayer
         _frameBuffer.Unbind();
     }
 
-    public void HandleEvent(Event @event)
+    public void HandleWindowEvent(WindowEvent @event)
     {
-        //Logger.Debug("EditorLayer OnEvent: {0}", @event);
-
-        // Always handle camera controller events in edit mode
+        if (_sceneManager.SceneState == SceneState.Edit)
+        {
+            _cameraController.OnEvent(@event);
+        }
+    }
+    
+    public void HandleInputEvent(InputEvent @event)
+    {
+        // Track key state for shortcuts
+        switch (@event)
+        {
+            case KeyPressedEvent kpe:
+                _pressedKeys.Add((KeyCodes)kpe.KeyCode);
+                OnKeyPressed(kpe);
+                break;
+            case KeyReleasedEvent kre:
+                _pressedKeys.Remove((KeyCodes)kre.KeyCode);
+                break;
+        }
+        
         if (_sceneManager.SceneState == SceneState.Edit)
         {
             _cameraController.OnEvent(@event);
@@ -181,11 +208,6 @@ public class EditorLayer : ILayer
         else
         {
             ScriptEngine.Instance.ProcessEvent(@event);
-        }
-
-        if (@event is KeyPressedEvent keyPressedEvent)
-        {
-            OnKeyPressed(keyPressedEvent);
         }
     }
 
@@ -195,10 +217,10 @@ public class EditorLayer : ILayer
         if (!keyPressedEvent.IsRepeat)
             return;
 
-        var control = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftControl) ||
-                       InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightControl);
-        var shift = InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.LeftShift) ||
-                     InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.RightShift);
+        var control = _pressedKeys.Contains(KeyCodes.LeftControl) ||
+                       _pressedKeys.Contains(KeyCodes.RightControl);
+        var shift = _pressedKeys.Contains(KeyCodes.LeftShift) ||
+                     _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
             case (int)KeyCodes.N:

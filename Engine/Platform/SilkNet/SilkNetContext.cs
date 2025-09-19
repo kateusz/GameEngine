@@ -8,5 +8,4 @@ public class SilkNetContext
 {
     public static GL GL { get; set; }
     public static IWindow Window { get; set; }
-    public static IInputContext InputContext { get; set; }
 }

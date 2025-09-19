@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
+using Engine.Core.Input;
 using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -38,7 +41,7 @@ public class BenchmarkLayer : ILayer
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
     
-    public void OnAttach()
+    public void OnAttach(IInputSystem inputSystem)
     {
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         LoadTestAssets();
@@ -82,11 +85,12 @@ public class BenchmarkLayer : ILayer
         RenderResultsWindow();
         RenderPerformanceMonitor();
     }
+    
+    public void HandleInputEvent(InputEvent inputEvent) => HandleEvent(inputEvent);
 
-    public void HandleEvent(Event @event)
-    {
-        _cameraController?.OnEvent(@event);
-    }
+    public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
+
+    private void HandleEvent(Event @event) => _cameraController?.OnEvent(@event);
 
     private void LoadTestAssets()
     {

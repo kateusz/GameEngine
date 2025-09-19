@@ -1,6 +1,7 @@
 using Engine.Core.Input;
 using Engine.Core.Window;
-using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
 using Engine.ImGuiNet;
 using Engine.Platform.SilkNet.Audio;
 using Engine.Renderer;
@@ -8,40 +9,47 @@ using NLog;
 
 namespace Engine.Core;
 
-public class Application : IApplication
+public abstract class Application : IApplication
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly IGameWindow _gameWindow;
+    private readonly IImGuiLayer? _imGuiLayer;
+    private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
+    
     private bool _isRunning;
     private DateTime _lastTime;
-    private readonly IImGuiLayer _imGuiLayer;
 
-    protected Application(IGameWindow gameWindow, IImGuiLayer imGuiLayer)
+    protected Application(IGameWindow gameWindow, IImGuiLayer? imGuiLayer = null)
     {
         _gameWindow = gameWindow;
-        _gameWindow.OnEvent += HandleOnEvent;
-        _gameWindow.OnClose += HandleOnGameWindowClose;
-        _gameWindow.OnUpdate += HandleOnUpdate;
+        _gameWindow.OnWindowEvent += HandleWindowEvent;
+        _gameWindow.OnInputEvent += HandleInputEvent;
+        _gameWindow.OnClose += HandleGameWindowClose;
+        _gameWindow.OnUpdate += HandleUpdate;
         _gameWindow.OnWindowLoad += HandleGameWindowOnLoad;
         _isRunning = true;
-        
-        InputState.Init();
-        
-        _imGuiLayer = imGuiLayer;
-        PushOverlay(imGuiLayer);
+
+        if (imGuiLayer != null)
+        {
+            _imGuiLayer = imGuiLayer;
+            PushOverlay(imGuiLayer);
+        }
     }
 
-    private void HandleGameWindowOnLoad()
+    private void HandleGameWindowOnLoad(IInputSystem inputSystem)
     {
         Graphics2D.Instance.Init();
         Graphics3D.Instance.Init();
         AudioEngine.Instance.Initialize();
         
+        _inputSystem = inputSystem;
+        
         foreach (var layer in _layersStack)
         {
-            layer.OnAttach();
+            // TODO: there should be better way to pass input system only for ImGuiLayer...
+            layer.OnAttach(inputSystem);
         }
     }
 
@@ -60,42 +68,51 @@ public class Application : IApplication
         _layersStack.Add(overlay);
     }
     
-    private void HandleOnUpdate()
+    private void HandleUpdate()
     {
         var currentTime = DateTime.Now;
         var elapsed = currentTime - _lastTime;
         _lastTime = currentTime;
+
+        _inputSystem?.Update(elapsed);
         
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnUpdate(elapsed);
         }
 
-        _imGuiLayer.Begin(elapsed);
+        _imGuiLayer?.Begin(elapsed);
         
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnImGuiRender();
         }
         
-        _imGuiLayer.End();
+        _imGuiLayer?.End();
     }
 
-    private void HandleOnEvent(Event @event)
+    private void HandleWindowEvent(WindowEvent @event)
     {
-        //Logger.Debug(@event);
-
         foreach (var layer in _layersStack)
         {
-            layer.HandleEvent(@event);
+            layer.HandleWindowEvent(@event);
             if (@event.IsHandled)
-            {
                 break;
-            }
         }
     }
     
-    private void HandleOnGameWindowClose(WindowCloseEvent @event)
+    private void HandleInputEvent(InputEvent @event)
+    {
+        // Input events handled in reverse order (overlay layers first)
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
+        {
+            _layersStack[index].HandleInputEvent(@event);
+            if (@event.IsHandled)
+                break;
+        }
+    }
+    
+    private void HandleGameWindowClose(WindowCloseEvent @event)
     {
         _isRunning = false;
     }

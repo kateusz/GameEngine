@@ -10,12 +10,39 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../Editor/Editor.csproj" />
         <ProjectReference Include="../Engine/Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="assets\shaders\OpenGL\flatColorShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\flatColorShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lineShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lineShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\phong.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\phong.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\textureShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\textureShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">

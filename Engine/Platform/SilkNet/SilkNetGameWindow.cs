@@ -1,20 +1,26 @@
+using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
+using Engine.Events.Input;
+using Engine.Events.Window;
+using Engine.Platform.SilkNet.Input;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using Window = Silk.NET.Windowing.Window;
 
 namespace Engine.Platform.SilkNet;
 
 public class SilkNetGameWindow : IGameWindow
 {
     private readonly IWindow _window;
+    
+    private IInputSystem? _inputSystem;
 
     public SilkNetGameWindow(IWindow window)
     {
-        _window = window;
+        _window = window ?? throw new ArgumentNullException(nameof(window));
+        
         _window.WindowState = WindowState.Maximized;
 
         _window.Load += WindowOnLoad;
@@ -24,25 +30,22 @@ public class SilkNetGameWindow : IGameWindow
     }
 
     public event Action<Event> OnEvent = null!;
+    public event Action<InputEvent> OnInputEvent;
     public event Action OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
-    public event Action OnWindowLoad = null!;
-
-    public static IKeyboard Keyboard { get; private set; } = null!;
-    public static IMouse Mouse { get; private set; } = null!;
+    public event Action<IInputSystem> OnWindowLoad = null!;
 
     public void Run()
     {
         _window.Run();
     }
 
+    public event Action<WindowEvent>? OnWindowEvent;
+
     private void OnWindowClosing()
     {
         OnEvent(new WindowCloseEvent());
         OnClose(new WindowCloseEvent());
-
-        // Dispose the input context
-        SilkNetContext.InputContext.Dispose();
 
         // Unload OpenGL
         SilkNetContext.GL.Dispose();
@@ -54,44 +57,23 @@ public class SilkNetGameWindow : IGameWindow
         SilkNetContext.Window = _window;
 
         Console.WriteLine("Load!");
-
-        SilkNetContext.InputContext = _window.CreateInput();
         
-        var keyboard = SilkNetContext.InputContext.Keyboards[0];
-        var mouse = SilkNetContext.InputContext.Mice[0];
-
-        Mouse = mouse;
-        Mouse.Scroll += OnMouseWheel;
-        Mouse.MouseDown += OnMouseDown;
+        var inputContext = _window.CreateInput();
+        // TODO: move to factory
+        _inputSystem = new SilkNetInputSystem(inputContext);
+        _inputSystem.InputReceived += OnInputReceived;
         
-        Keyboard = keyboard;
-
-        for (int i = 0; i < SilkNetContext.InputContext.Keyboards.Count; i++)
-            SilkNetContext.InputContext.Keyboards[i].KeyDown += KeyDown;
-
-        OnWindowLoad();
-    }
-
-    private void OnMouseDown(IMouse arg1, MouseButton arg2)
-    {
-        var @event = new MouseButtonPressedEvent((int)arg2);
-        OnEvent(@event);
+        OnWindowLoad(_inputSystem);
     }
 
     private void WindowOnUpdate(double deltaTime)
     {
-        Mouse = SilkNetContext.InputContext.Mice[0];
         OnUpdate();
-
-        // if (!InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.))
-        //     return;
-        //
-        // _window.Close();
     }
-
-    private void KeyDown(IKeyboard keyboard, Key key, int keyCode)
+    
+    private void OnInputReceived(InputEvent inputEvent)
     {
-        OnEvent(new KeyPressedEvent((int)key, true));
+        OnInputEvent(inputEvent);
     }
 
     private void OnFrameBufferResize(Vector2D<int> newSize)
@@ -101,12 +83,5 @@ public class SilkNetGameWindow : IGameWindow
 
         var @event = new WindowResizeEvent(newSize.X, newSize.Y);
         OnEvent(@event);
-    }
-
-    private void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
-    {
-        // TEMP DISABLE
-        //var @event = new MouseScrolledEvent(scrollWheel.X, scrollWheel.Y);
-        //OnEvent(@event);
     }
 }

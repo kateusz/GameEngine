@@ -6,22 +6,37 @@ namespace Engine.Scene;
 
 public class CameraController : ScriptableEntity
 {
-    private float _cameraSpeed = 10.0f;
+    private const float CameraSpeed = 0.5f;
+    private Vector3 _inputDirection = Vector3.Zero;
 
     public override void OnUpdate(TimeSpan ts)
     {
-        if (HasComponent<TransformComponent>())
+        if (_inputDirection != Vector3.Zero && HasComponent<TransformComponent>())
         {
             var transform = GetComponent<TransformComponent>();
-            
-            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.W))
-                transform.Translation += Vector3.UnitY * _cameraSpeed * (float)ts.TotalSeconds;
-            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.S))
-                transform.Translation -= Vector3.UnitY * _cameraSpeed * (float)ts.TotalSeconds;
-            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
-                transform.Translation -= Vector3.UnitX * _cameraSpeed * (float)ts.TotalSeconds;
-            if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.D))
-                transform.Translation += Vector3.UnitX * _cameraSpeed * (float)ts.TotalSeconds;
+            transform.Translation += _inputDirection * CameraSpeed * (float)ts.TotalSeconds;
+        }
+    }
+
+    public override void OnKeyPressed(KeyCodes key)
+    {
+        switch (key)
+        {
+            case KeyCodes.W: _inputDirection += Vector3.UnitY; break;
+            case KeyCodes.S: _inputDirection -= Vector3.UnitY; break;
+            case KeyCodes.A: _inputDirection -= Vector3.UnitX; break;
+            case KeyCodes.D: _inputDirection += Vector3.UnitX; break;
+        }
+    }
+
+    public override void OnKeyReleased(KeyCodes key)
+    {
+        switch (key)
+        {
+            case KeyCodes.W: _inputDirection -= Vector3.UnitY; break;
+            case KeyCodes.S: _inputDirection += Vector3.UnitY; break;
+            case KeyCodes.A: _inputDirection += Vector3.UnitX; break;
+            case KeyCodes.D: _inputDirection -= Vector3.UnitX; break;
         }
     }
 }
