@@ -3,29 +3,25 @@ using Engine.Events;
 
 namespace Runtime;
 
-public class Runtime2DLayer : Layer
+public class Runtime2DLayer : ILayer
 {
-    public Runtime2DLayer() : base("Runtime2DLayer")
+    public void OnAttach()
     {
     }
 
-    public override void OnAttach()
+    public void OnDetach()
     {
     }
 
-    public override void OnDetach()
+    public void OnUpdate(TimeSpan timeSpan)
     {
     }
 
-    public override void OnUpdate(TimeSpan timeSpan)
+    public void HandleEvent(Event @event)
     {
     }
 
-    public override void HandleEvent(Event @event)
-    {
-    }
-
-    public override void OnImGuiRender()
+    public void OnImGuiRender()
     {
     }
 }

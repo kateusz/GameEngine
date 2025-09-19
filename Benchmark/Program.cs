@@ -1,5 +1,6 @@
 ﻿using DryIoc;
 using Engine.Core.Window;
+using Engine.ImGuiNet;
 using Sandbox.Benchmark;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -25,15 +26,18 @@ public class Program
         container.Register<IGameWindow>(Reuse.Singleton,
             made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
         );
-
-        // Register EditorLayer with constructor injection
+        
         container.Register<BenchmarkLayer>(Reuse.Singleton);
+        container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+        
+        container.ValidateAndThrow();
 
         try
         {
             var gameWindow = container.Resolve<IGameWindow>();
             var layer = container.Resolve<BenchmarkLayer>();
-            var app = new BenchmarkApplication(gameWindow);
+            var imGuiLayer = container.Resolve<IImGuiLayer>();
+            var app = new BenchmarkApplication(gameWindow, imGuiLayer);
             app.PushLayer(layer);
             app.Run();
         }

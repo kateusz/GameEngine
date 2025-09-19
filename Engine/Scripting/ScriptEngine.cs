@@ -224,17 +224,6 @@ public class ScriptEngine
         }
     }
 
-    // Methods to control debug mode
-    public void EnableDebugMode(bool enable = true)
-    {
-        if (_debugMode != enable)
-        {
-            _debugMode = enable;
-            Logger.Info($"Script debugging {(enable ? "enabled" : "disabled")} - recompiling scripts");
-            CompileAllScripts(); // Recompile with new debug settings
-        }
-    }
-
     public void EnableHybridDebugging(bool enable = true)
     {
         _debugMode = enable; // Also enable script debugging
@@ -245,14 +234,6 @@ public class ScriptEngine
             Logger.Info("Hybrid debugging enabled - engine + scripts");
             CompileAllScripts();
         }
-    }
-
-    public bool IsDebugModeEnabled() => _debugMode;
-
-    // Method to get debug symbols for external debugging tools
-    public byte[]? GetDebugSymbols(string assemblyName = "DynamicScripts")
-    {
-        return _debugSymbols.TryGetValue(assemblyName, out var symbols) ? symbols : null;
     }
 
     // Method to save debug symbols to disk (useful for external debuggers)

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Engine.Core;
 using Engine.Events;
 using Engine.Platform.SilkNet;
 using ImGuiNET;
@@ -7,20 +6,24 @@ using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Engine.ImGuiNet;
 
-public class ImGuiLayer : Layer
+public class ImGuiLayer : IImGuiLayer
 {
     private ImGuiController _controller;
+    private bool _blockEvents;
 
-    public ImGuiLayer(string name) : base(name)
+    public void OnDetach()
     {
     }
 
-    public override void OnUpdate(TimeSpan timeSpan)
+    public void OnUpdate(TimeSpan timeSpan)
     {
     }
 
-    public override void OnImGuiRender()
+    public void OnImGuiRender()
     {
+        var viewportFocused = ImGui.IsWindowFocused();
+        var viewportHovered = ImGui.IsWindowHovered();
+        _blockEvents = !viewportFocused && !viewportHovered;
     }
 
     public void Begin(TimeSpan timeSpan)
@@ -41,7 +44,7 @@ public class ImGuiLayer : Layer
         _controller.Render();
     }
 
-    public override void OnAttach()
+    public void OnAttach()
     {
         var view = SilkNetContext.Window;
         var inputContext = SilkNetContext.InputContext;
@@ -54,24 +57,22 @@ public class ImGuiLayer : Layer
         //ImGuizmoWrapper.SetImGuiContext(ctx);
     }
 
-    public override void HandleEvent(Event @event)
+    public void HandleEvent(Event @event)
     {
         if (@event is WindowCloseEvent)
         {
             _controller.Dispose();
         }
 
-        if (BlockEvents)
+        if (_blockEvents)
         {
             var io = ImGui.GetIO();
             @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryMouse) & io.WantCaptureMouse;
             @event.IsHandled |= @event.IsInCategory(EventCategory.EventCategoryKeyboard) & io.WantCaptureKeyboard;
         }
 
-        base.HandleEvent(@event);
+        @event.IsHandled = true;
     }
-
-    public bool BlockEvents { get; set; }
 
     private static void OnConfigureIo()
     {

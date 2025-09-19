@@ -1,6 +1,7 @@
 ﻿using DryIoc;
 using Editor;
 using Engine.Core.Window;
+using Engine.ImGuiNet;
 using Engine.Scripting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
@@ -23,8 +24,10 @@ container.Register<IGameWindow>(Reuse.Singleton,
     made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
 );
 
-// Register EditorLayer with constructor injection
 container.Register<EditorLayer>(Reuse.Singleton);
+container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+
+container.ValidateAndThrow();
 
 var logger = LoggerFactory.Create(builder => builder.AddNLog()).CreateLogger<Program>();
 logger.LogInformation("Program has started.");
@@ -43,6 +46,7 @@ ScriptEngine.Instance.PrintDebugInfo();
 
 var gameWindow = container.Resolve<IGameWindow>();
 var editorLayer = container.Resolve<EditorLayer>();
-var editor = new global::Editor.Editor(gameWindow);
+var imGuiLayer = container.Resolve<IImGuiLayer>();
+var editor = new global::Editor.Editor(gameWindow, imGuiLayer);
 editor.PushLayer(editorLayer);
 editor.Run();

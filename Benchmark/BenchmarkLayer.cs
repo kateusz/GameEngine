@@ -11,7 +11,7 @@ using ImGuiNET;
 
 namespace Sandbox.Benchmark;
 
-public class BenchmarkLayer : Layer
+public class BenchmarkLayer : ILayer
 {
     private readonly List<BenchmarkResult> _results = new();
     private readonly Stopwatch _frameTimer = new();
@@ -37,24 +37,20 @@ public class BenchmarkLayer : Layer
     private bool _isRunning;
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
-
-    public BenchmarkLayer() : base("Benchmark Layer")
-    {
-    }
-
-    public override void OnAttach()
+    
+    public void OnAttach()
     {
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         LoadTestAssets();
     }
 
-    public override void OnDetach()
+    public void OnDetach()
     {
         CleanupTestScene();
         _testTextures.Clear();
     }
 
-    public override void OnUpdate(TimeSpan ts)
+    public void OnUpdate(TimeSpan ts)
     {
         _frameTimer.Restart();
         
@@ -80,14 +76,14 @@ public class BenchmarkLayer : Layer
         RecordFrameTime((float)_frameTimer.Elapsed.TotalMilliseconds);
     }
 
-    public override void OnImGuiRender()
+    public void OnImGuiRender()
     {
         RenderBenchmarkUI();
         RenderResultsWindow();
         RenderPerformanceMonitor();
     }
 
-    public override void HandleEvent(Event @event)
+    public void HandleEvent(Event @event)
     {
         _cameraController?.OnEvent(@event);
     }

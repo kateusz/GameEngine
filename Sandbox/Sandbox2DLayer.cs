@@ -8,7 +8,7 @@ using NLog;
 
 namespace Sandbox;
 
-public class Sandbox2DLayer : Layer
+public class Sandbox2DLayer : ILayer
 {
     private const int _mapWidth = 24;
     private const int _mapHeight = 24;
@@ -51,12 +51,12 @@ public class Sandbox2DLayer : Layer
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
 
-    public Sandbox2DLayer() : base("Sandbox2DLayer")
+    public Sandbox2DLayer()
     {
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }
 
-    public override void OnAttach()
+    public void OnAttach()
     {
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
@@ -72,12 +72,12 @@ public class Sandbox2DLayer : Layer
             new Vector2(1, 1));
     }
 
-    public override void OnDetach()
+    public void OnDetach()
     {
         Logger.Debug("Sandbox2DLayer OnDetach.");
     }
 
-    public override void OnUpdate(TimeSpan timeSpan)
+    public void OnUpdate(TimeSpan timeSpan)
     {
         _orthographicCameraController.OnUpdate(timeSpan);
 
@@ -106,14 +106,14 @@ public class Sandbox2DLayer : Layer
         Graphics2D.Instance.EndScene();
     }
 
-    public override void HandleEvent(Event @event)
+    public void HandleEvent(Event @event)
     {
         Logger.Debug("ExampleLayer OnEvent: {0}", @event);
 
         _orthographicCameraController.OnEvent(@event);
     }
 
-    public override void OnImGuiRender()
+    public void OnImGuiRender()
     {
     }
 
