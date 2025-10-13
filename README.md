@@ -29,7 +29,12 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Hot Reload** - Modify scripts without restarting
 - **Visual Debugging** - Debug symbols and breakpoint support
 - **Component Integration** - Direct access to ECS components
-- **Event System** - Input and collision event handling
+- **Event System** - Event-driven architecture for input and game events
+
+### 🎧 Audio System
+- **OpenAL Integration** - 3D positional audio support
+- **Sound Management** - Load and play audio files
+- **Multiple Sources** - Support for simultaneous audio playback
 
 ## 📸 Screenshots
 
@@ -87,22 +92,37 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 ### Project Structure
 ```
 ├── Engine/           # Core engine systems
-│   ├── Core/         # Application framework
-│   ├── Renderer/     # Rendering pipeline
+│   ├── Audio/        # Audio system (OpenAL integration)
+│   ├── Core/         # Application framework & layer system
+│   ├── Events/       # Event system (keyboard, mouse, window)
+│   ├── ImGuiNet/     # ImGui integration
+│   ├── Math/         # Mathematics utilities
+│   ├── Platform/     # Platform-specific code
+│   ├── Renderer/     # Rendering pipeline (2D/3D)
 │   ├── Scene/        # Scene management & ECS
-│   ├── Scripting/    # Script engine
-│   └── Platform/     # Platform-specific code
+│   ├── Scripting/    # Script engine (Roslyn-based)
+│   └── UI/           # UI system
 ├── Editor/           # Visual editor application
+│   ├── Managers/     # Editor managers
+│   ├── Panels/       # Editor UI panels
+│   ├── Popups/       # Editor dialogs
+│   ├── Publisher/    # Game publishing tools
+│   └── Resources/    # Editor resources
 ├── ECS/              # Entity Component System
+├── Benchmark/        # Performance benchmarking tools
+├── Runtime/          # Runtime environment
+└── Sandbox/          # Testing & experimentation
 ```
 
 ### Key Systems
 
-- **Renderer2D/3D** - Batched rendering with automatic state management
+- **Renderer2D/3D** - Batched rendering with automatic state management ([docs](docs/opengl-rendering/opengl-2d-workflow.md))
 - **ScriptEngine** - Roslyn-based C# compilation with debugging support
-- **Scene System** - Hierarchical entity management with serialization
-- **Input System** - Cross-platform input handling
-- **Asset Pipeline** - Texture and model loading
+- **Scene System** - Hierarchical entity management with serialization ([docs](docs/modules/scene-management.md))
+- **Event System** - Event-driven input handling with layer-based propagation ([docs](docs/modules/input-system-architecture.md))
+- **Camera System** - Flexible camera system with orthographic and perspective projections ([docs](docs/modules/camera-system.md))
+- **Audio System** - OpenAL-based audio playback
+- **Asset Pipeline** - Texture and model loading with resource management ([docs](docs/modules/resource-management.md))
 
 ## 💻 Usage Examples
 
@@ -135,16 +155,39 @@ player.AddComponent(sprite);
 public class PlayerController : ScriptableEntity
 {
     public float speed = 5.0f;
-    
+    private Vector3 velocity = Vector3.Zero;
+
     public override void OnUpdate(TimeSpan ts)
     {
-        var transform = GetComponent<TransformComponent>();
+        // Apply velocity to position
         float deltaTime = (float)ts.TotalSeconds;
-        
-        if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.A))
-            transform.Translation.X -= speed * deltaTime;
-        if (InputState.Instance.Keyboard.IsKeyPressed(KeyCodes.D))
-            transform.Translation.X += speed * deltaTime;
+        var position = GetPosition();
+        SetPosition(position + velocity * deltaTime);
+
+        // Apply damping
+        velocity *= 0.9f;
+    }
+
+    public override void OnKeyPressed(KeyCodes key)
+    {
+        // Handle input through event system
+        if (key == KeyCodes.A)
+            velocity.X = -speed;
+        if (key == KeyCodes.D)
+            velocity.X = speed;
+        if (key == KeyCodes.W)
+            velocity.Y = speed;
+        if (key == KeyCodes.S)
+            velocity.Y = -speed;
+    }
+
+    public override void OnKeyReleased(KeyCodes key)
+    {
+        // Stop movement when key is released
+        if (key == KeyCodes.A || key == KeyCodes.D)
+            velocity.X = 0;
+        if (key == KeyCodes.W || key == KeyCodes.S)
+            velocity.Y = 0;
     }
 }
 ```
@@ -196,5 +239,26 @@ TBD
 ### Development Dependencies
 - **.NET 9 SDK** - Runtime and development tools
 - **System.Numerics** - Vector and matrix mathematics
+
+## 📚 Documentation
+
+### Module Documentation
+Comprehensive documentation for each major system in the engine:
+
+- [Input System Architecture](docs/modules/input-system-architecture.md) - Event-driven input handling with layer-based propagation
+- [Scene Management](docs/modules/scene-management.md) - Hierarchical entity management with serialization
+- [Camera System](docs/modules/camera-system.md) - Flexible camera system with orthographic and perspective projections
+- [Frame Buffers](docs/modules/frame-buffers.md) - Render-to-texture capabilities
+- [Rendering Pipeline](docs/modules/rendering-pipeline.md) - OpenGL rendering pipeline overview
+- [Resource Management](docs/modules/resource-management.md) - Asset loading and management
+- [ECS & GameObject Architecture](docs/modules/ecs-gameobject.md) - Entity Component System design
+- [Editor Tools](docs/modules/editor.md) - Visual editor features and workflow
+- [Game Loop](docs/modules/game-loop.md) - Core engine execution cycle
+
+### OpenGL Rendering Workflows
+Detailed guides on the OpenGL rendering implementation:
+
+- [OpenGL 2D Rendering Workflow](docs/opengl-rendering/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
+- [OpenGL 3D Rendering Workflow](docs/opengl-rendering/opengl-3d-workflow.md) - 3D model rendering and pipeline
 
 ---
