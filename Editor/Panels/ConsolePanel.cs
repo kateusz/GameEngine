@@ -6,8 +6,9 @@ namespace Editor.Panels;
 
 public class ConsolePanel
 {
-    private readonly List<LogMessage> _logMessages = new();
-    private readonly object _lockObject = new();
+    private volatile List<LogMessage> _logMessages = new();
+    private readonly Lock _writeSync = new();
+
     private bool _autoScroll = true;
     private string _filterText = string.Empty;
     private readonly ConsoleTextWriter _consoleWriter;
@@ -20,11 +21,9 @@ public class ConsolePanel
 
     public ConsolePanel()
     {
-        // Store original console outputs
         _originalOut = Console.Out;
         _originalError = Console.Error;
-        
-        // Create and set our custom writer
+
         _consoleWriter = new ConsoleTextWriter(this);
         Console.SetOut(_consoleWriter);
         Console.SetError(_consoleWriter);
@@ -32,22 +31,31 @@ public class ConsolePanel
 
     public void AddMessage(string message, LogLevel level = LogLevel.Info)
     {
-        lock (_lockObject)
+        var logMessage = new LogMessage
         {
-            var logMessage = new LogMessage
-            {
-                Text = message,
-                Timestamp = DateTime.Now,
-                Level = level
-            };
-            
-            _logMessages.Add(logMessage);
-            
-            // Keep only last N messages to prevent memory issues
-            if (_logMessages.Count > MaxMessages)
-            {
-                _logMessages.RemoveRange(0, _logMessages.Count - MaxMessages);
-            }
+            Text = message,
+            Timestamp = DateTime.Now,
+            Level = level
+        };
+
+        lock (_writeSync)
+        {
+            // Copy current list and modify the copy
+            var newList = new List<LogMessage>(_logMessages) { logMessage };
+
+            if (newList.Count > MaxMessages)
+                newList.RemoveRange(0, newList.Count - MaxMessages);
+
+            // Atomically replace the reference
+            _logMessages = newList;
+        }
+    }
+
+    private void Clear()
+    {
+        lock (_writeSync)
+        {
+            _logMessages = [];
         }
     }
 
@@ -55,12 +63,8 @@ public class ConsolePanel
     {
         ImGui.Begin("Console");
 
-        // Toolbar
         RenderToolbar();
-        
         ImGui.Separator();
-
-        // Log display
         RenderLogDisplay();
 
         ImGui.End();
@@ -104,17 +108,13 @@ public class ConsolePanel
     private void RenderLogDisplay()
     {
         ImGui.BeginChild("ConsoleLog");
-        lock (_lockObject)
+
+        var filteredMessages = GetFilteredMessages();
+        foreach (var message in filteredMessages)
         {
-            var filteredMessages = GetFilteredMessages();
-            
-            foreach (var message in filteredMessages)
-            {
-                RenderLogMessage(message);
-            }
+            RenderLogMessage(message);
         }
 
-        // Auto-scroll to bottom
         if (_autoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
         {
             ImGui.SetScrollHereY(1.0f);
@@ -123,74 +123,59 @@ public class ConsolePanel
         ImGui.EndChild();
     }
 
-    private IEnumerable<LogMessage> GetFilteredMessages()
+    private List<LogMessage> GetFilteredMessages()
     {
-        return _logMessages.Where(message =>
-        {
-            // Filter by log level
-            var levelFilter = message.Level switch
+        var snapshot = _logMessages; // atomic reference read
+
+        return snapshot
+            .Where(message =>
             {
-                LogLevel.Info => _showInfo,
-                LogLevel.Warning => _showWarnings,
-                LogLevel.Error => _showErrors,
-                _ => true
-            };
+                var levelFilter = message.Level switch
+                {
+                    LogLevel.Info => _showInfo,
+                    LogLevel.Warning => _showWarnings,
+                    LogLevel.Error => _showErrors,
+                    _ => true
+                };
 
-            if (!levelFilter) return false;
+                if (!levelFilter)
+                    return false;
 
-            // Filter by text using ReadOnlySpan<char> for better performance
-            if (!string.IsNullOrEmpty(_filterText))
-            {
-                var messageSpan = message.Text.AsSpan();
-                var filterSpan = _filterText.AsSpan();
-                return messageSpan.Contains(filterSpan, StringComparison.OrdinalIgnoreCase);
-            }
+                if (!string.IsNullOrEmpty(_filterText))
+                {
+                    return message.Text.Contains(_filterText, StringComparison.OrdinalIgnoreCase);
+                }
 
-            return true;
-        });
+                return true;
+            })
+            .ToList(); // materialize to prevent race on deferred LINQ
     }
 
     private void RenderLogMessage(LogMessage message)
     {
-        // Set color based on log level
         Vector4 color = message.Level switch
         {
-            LogLevel.Warning => new Vector4(1.0f, 1.0f, 0.0f, 1.0f),  // Yellow
-            LogLevel.Error => new Vector4(1.0f, 0.3f, 0.3f, 1.0f),    // Red
-            _ => new Vector4(0.9f, 0.9f, 0.9f, 1.0f)                  // Light gray
+            LogLevel.Warning => new Vector4(1.0f, 1.0f, 0.0f, 1.0f),
+            LogLevel.Error => new Vector4(1.0f, 0.3f, 0.3f, 1.0f),
+            _ => new Vector4(0.9f, 0.9f, 0.9f, 1.0f)
         };
 
         ImGui.PushStyleColor(ImGuiCol.Text, color);
 
-        // Display only the message text, no timestamp
         var displayText = message.Text;
-
         ImGui.TextUnformatted(displayText);
-        
         ImGui.PopStyleColor();
 
-        // Context menu for individual messages
         if (ImGui.BeginPopupContextItem($"MessageContext_{message.GetHashCode()}"))
         {
             if (ImGui.MenuItem("Copy"))
-            {
                 ImGui.SetClipboardText(displayText);
-            }
             ImGui.EndPopup();
-        }
-    }
-
-    public void Clear()
-    {
-        lock (_lockObject)
-        {
-            _logMessages.Clear();
         }
     }
 
     public void Dispose()
     {
-        // Restore original console outputs
         Console.SetOut(_originalOut);
         Console.SetError(_originalError);
         _consoleWriter?.Dispose();
@@ -229,56 +214,53 @@ internal class ConsoleTextWriter : TextWriter
     {
         if (value != null)
         {
-            // Determine log level based on content
             var level = DetermineLogLevel(value);
             _panel.AddMessage(value, level);
-            _originalOut.WriteLine(value); // Also write to original console
+            _originalOut.WriteLine(value);
         }
     }
 
     public override void Write(string? value)
     {
-        if (value != null)
+        if (value == null)
+            return;
+
+        _lineBuffer.Append(value);
+
+        if (value.EndsWith('\n'))
         {
-            _lineBuffer.Append(value);
-            
-            // If we have a complete line, process it
-            if (value.EndsWith('\n'))
+            var line = _lineBuffer.ToString().TrimEnd('\n', '\r');
+            if (!string.IsNullOrEmpty(line))
             {
-                var line = _lineBuffer.ToString().TrimEnd('\n', '\r');
-                if (!string.IsNullOrEmpty(line))
-                {
-                    var level = DetermineLogLevel(line);
-                    _panel.AddMessage(line, level);
-                }
-                _lineBuffer.Clear();
+                var level = DetermineLogLevel(line);
+                _panel.AddMessage(line, level);
             }
-            
-            _originalOut.Write(value);
+            _lineBuffer.Clear();
         }
+
+        _originalOut.Write(value);
     }
 
     private static ConsolePanel.LogLevel DetermineLogLevel(string message)
     {
         var messageSpan = message.AsSpan();
-        
-        // Use ReadOnlySpan<char> for more efficient string operations
-        if (messageSpan.Contains("error", StringComparison.OrdinalIgnoreCase) || 
-            messageSpan.Contains("exception", StringComparison.OrdinalIgnoreCase) || 
-            messageSpan.Contains("failed", StringComparison.OrdinalIgnoreCase) || 
+
+        if (messageSpan.Contains("error", StringComparison.OrdinalIgnoreCase) ||
+            messageSpan.Contains("exception", StringComparison.OrdinalIgnoreCase) ||
+            messageSpan.Contains("failed", StringComparison.OrdinalIgnoreCase) ||
             messageSpan.Contains("❌", StringComparison.OrdinalIgnoreCase))
         {
             return ConsolePanel.LogLevel.Error;
         }
-        
-        if (messageSpan.Contains("warning", StringComparison.OrdinalIgnoreCase) || 
-            messageSpan.Contains("warn", StringComparison.OrdinalIgnoreCase) || 
-            messageSpan.Contains("⚠", StringComparison.OrdinalIgnoreCase) || 
+
+        if (messageSpan.Contains("warning", StringComparison.OrdinalIgnoreCase) ||
+            messageSpan.Contains("warn", StringComparison.OrdinalIgnoreCase) ||
+            messageSpan.Contains("⚠", StringComparison.OrdinalIgnoreCase) ||
             messageSpan.StartsWith("warning:", StringComparison.OrdinalIgnoreCase))
         {
             return ConsolePanel.LogLevel.Warning;
         }
-        
+
         return ConsolePanel.LogLevel.Info;
     }
 

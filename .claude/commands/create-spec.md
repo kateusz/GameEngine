@@ -8,4 +8,6 @@ Rules to follow:
 - Be concise in your sentences/explanations
 - Produce an implementation steps plan at the end.
   Once the specification is done, save it in a Markdown file
-  If you loop or get lost, ask me a question so I can guide you.
+  If you loop or get lost, 
+
+Write results to docs/specs directory

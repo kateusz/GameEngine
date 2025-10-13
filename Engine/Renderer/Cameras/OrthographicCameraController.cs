@@ -26,7 +26,6 @@ public class OrthographicCameraController
     {
         _aspectRatio = aspectRatio;
         Camera = new OrthographicCamera(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
-        _aspectRatio = aspectRatio;
         _rotation = rotation;
     }
 
@@ -34,7 +33,6 @@ public class OrthographicCameraController
     {
         _aspectRatio = aspectRatio;
         Camera = camera;
-        _aspectRatio = aspectRatio;
         _rotation = rotation;
     }
 
@@ -99,7 +97,7 @@ public class OrthographicCameraController
 
     private bool OnMouseScrolled(MouseScrolledEvent @event)
     {
-        _zoomLevel = @event.YOffset * 0.25f;
+        _zoomLevel += @event.YOffset * 0.25f;  // Add delta, not replace
         _zoomLevel = System.Math.Max(_zoomLevel, 0.25f);
         Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
         return true;

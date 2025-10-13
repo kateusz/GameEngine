@@ -49,9 +49,10 @@ public class EditorLayer : ILayer
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager)
     {
         _sceneSerializer = sceneSerializer;
+        _projectManager = projectManager;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -83,7 +84,6 @@ public class EditorLayer : ILayer
         _contentBrowserPanel = new ContentBrowserPanel();
         _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
-        _projectManager  = new ProjectManager();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());

@@ -1,17 +1,14 @@
 ﻿using DryIoc;
 using Editor;
+using Editor.Managers;
 using Editor.Panels.Elements;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
-using Engine.Platform.SilkNet;
-using Engine.Platform.SilkNet.Input;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
-using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -32,6 +29,7 @@ static void ConfigureContainer(Container container)
 
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+    container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);
