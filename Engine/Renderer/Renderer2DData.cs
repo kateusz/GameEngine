@@ -8,7 +8,7 @@ namespace Engine.Renderer;
 
 public class Renderer2DData
 {
-    private const int MaxQuads = 10;
+    private const int MaxQuads = 10000;  // Industry standard for 2D batch renderers
 
     public const int MaxVertices = MaxQuads * 4; // 4 vertex per quad
     public const int MaxIndices = MaxQuads * 6; // 6 indices oer quad
