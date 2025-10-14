@@ -6,6 +6,24 @@ using Engine.Events.Window;
 
 namespace Engine.Renderer.Cameras;
 
+/// <summary>
+/// Legacy orthographic camera controller. This class is part of the deprecated non-ECS camera system.
+/// </summary>
+/// <remarks>
+/// <para><b>DEPRECATED:</b> This class is part of the legacy camera system and will be removed in a future version.</para>
+/// <para><b>Migration Path:</b> Use <see cref="Engine.Scene.CameraController"/> as a scriptable entity with the ECS system.</para>
+/// <para>
+/// Key differences when migrating:
+/// <list type="bullet">
+/// <item><description>CameraController inherits from ScriptableEntity and uses ECS components</description></item>
+/// <item><description>Attach CameraController to an entity with CameraComponent and TransformComponent</description></item>
+/// <item><description>CameraController uses OnUpdate, OnKeyPressed, OnKeyReleased lifecycle methods</description></item>
+/// <item><description>Camera movement is applied through TransformComponent instead of direct camera position</description></item>
+/// </list>
+/// </para>
+/// <para><b>Current Usage:</b> Currently used in editor mode. This will be migrated in Phase 3.</para>
+/// </remarks>
+[Obsolete("Use CameraController scriptable entity with CameraComponent for ECS-based camera system. This legacy camera system will be removed in a future version.")]
 public class OrthographicCameraController
 {
     private float _aspectRatio;

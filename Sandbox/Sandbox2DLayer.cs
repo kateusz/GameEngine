@@ -11,6 +11,7 @@ using NLog;
 
 namespace Sandbox;
 
+#pragma warning disable CS0618 // Type or member is obsolete - Sandbox uses legacy camera for testing purposes
 public class Sandbox2DLayer : ILayer
 {
     private const int _mapWidth = 24;
@@ -140,3 +141,4 @@ public class Sandbox2DLayer : ILayer
         return mapArray;
     }
 }
+#pragma warning restore CS0618 // Type or member is obsolete

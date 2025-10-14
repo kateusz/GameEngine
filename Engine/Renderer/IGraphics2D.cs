@@ -9,7 +9,18 @@ public interface IGraphics2D : IGraphics
 {
     void Init();
     void Shutdown();
+
+    /// <summary>
+    /// Begins a scene with a legacy OrthographicCamera. This method is deprecated.
+    /// </summary>
+    /// <param name="camera">The legacy orthographic camera.</param>
+    /// <remarks>
+    /// <para><b>DEPRECATED:</b> This method uses the legacy camera system.</para>
+    /// <para><b>Migration:</b> Use <see cref="BeginScene(Camera, Matrix4x4)"/> with SceneCamera instead.</para>
+    /// </remarks>
+    [Obsolete("Use BeginScene(Camera, Matrix4x4) with SceneCamera instead. This legacy camera system will be removed in a future version.")]
     void BeginScene(OrthographicCamera camera);
+
     void BeginScene(Camera camera, Matrix4x4 transform);
     void EndScene();
     void DrawQuad(Vector2 position, Vector2 size, Vector4 color);

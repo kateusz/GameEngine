@@ -82,6 +82,7 @@ public class SceneManager
         }
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete - Editor still uses legacy camera system until Phase 3 migration
     public void FocusOnSelectedEntity(OrthographicCameraController cameraController)
     {
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
@@ -91,4 +92,5 @@ public class SceneManager
             cameraController.Camera.SetPosition(transform.Translation);
         }
     }
+#pragma warning restore CS0618 // Type or member is obsolete
 }
