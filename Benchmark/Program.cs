@@ -8,7 +8,50 @@ namespace Benchmark;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
+    {
+        // Parse command line arguments
+        var config = BenchmarkConfig.ParseArgs(args);
+
+        // Run in headless mode if specified
+        if (config.Headless)
+        {
+            return RunHeadless(config);
+        }
+
+        // Otherwise run with GUI
+        return RunWithGUI();
+    }
+
+    private static int RunHeadless(BenchmarkConfig config)
+    {
+        Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
+        Console.WriteLine("║        Game Engine Benchmark - Headless Mode              ║");
+        Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
+        Console.WriteLine();
+
+        try
+        {
+            var runner = new HeadlessBenchmarkRunner(config);
+            return runner.Run();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\nFatal error: {ex.Message}");
+            Console.ResetColor();
+
+            if (config.Verbose)
+            {
+                Console.WriteLine("\nStack trace:");
+                Console.WriteLine(ex.StackTrace);
+            }
+
+            return 2; // Error exit code
+        }
+    }
+
+    private static int RunWithGUI()
     {
         var props = new WindowProps("Benchmark Engine", 1280, 720);
 
@@ -25,11 +68,11 @@ public class Program
         container.Register<IGameWindow>(Reuse.Singleton,
             made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
         );
-        
+
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);
         container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
-        
+
         container.ValidateAndThrow();
 
         try
@@ -38,10 +81,12 @@ public class Program
             var app = container.Resolve<BenchmarkApplication>();
             app.PushLayer(layer);
             app.Run();
+            return 0;
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Błąd aplikacji: {e.Message}");
+            Console.WriteLine($"Application error: {e.Message}");
+            return 2;
         }
     }
 }
