@@ -36,6 +36,12 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Sound Management** - Load and play audio files
 - **Multiple Sources** - Support for simultaneous audio playback
 
+### 📊 Performance & Benchmarking
+- **Automated Benchmarking** - Headless performance testing suite
+- **Regression Detection** - Automatic performance comparison
+- **CI/CD Integration** - GitHub Actions workflow for continuous benchmarking
+- **Detailed Metrics** - FPS, frame time, percentiles, and custom metrics
+
 ## 📸 Screenshots
 
 *Screenshots will be added here*
@@ -226,6 +232,30 @@ TBD
 - Configure rendering pipeline
 - Shader hot-reloading options
 
+## 📊 Performance Benchmarking
+
+The engine includes a comprehensive automated benchmarking system for tracking and comparing performance:
+
+```bash
+# Run benchmarks locally
+./run-benchmark.sh --tests all
+
+# Compare with baseline
+./run-benchmark.sh --compare-with-baseline
+
+# Save new baseline
+./run-benchmark.sh --save-baseline
+```
+
+**Features:**
+- **Headless Mode** - Run benchmarks without GUI for CI/CD
+- **Regression Detection** - Automatic performance comparison with configurable thresholds
+- **Multiple Test Scenarios** - Renderer stress tests, texture switching, draw call optimization
+- **GitHub Actions Integration** - Automatic benchmarking on commits and PRs
+- **Statistical Analysis** - FPS, frame time, percentiles, and custom metrics
+
+See [BENCHMARK_SETUP.md](BENCHMARK_SETUP.md) for complete setup guide and [Benchmark/README.md](Benchmark/README.md) for detailed documentation.
+
 ## 📦 Dependencies
 
 ### Core Dependencies
@@ -254,6 +284,7 @@ Comprehensive documentation for each major system in the engine:
 - [ECS & GameObject Architecture](docs/modules/ecs-gameobject.md) - Entity Component System design
 - [Editor Tools](docs/modules/editor.md) - Visual editor features and workflow
 - [Game Loop](docs/modules/game-loop.md) - Core engine execution cycle
+- [Performance Benchmarking](Benchmark/README.md) - Automated benchmarking and regression detection
 
 ### OpenGL Rendering Workflows
 Detailed guides on the OpenGL rendering implementation:

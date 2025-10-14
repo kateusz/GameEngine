@@ -1,0 +1,146 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Fetch all history for baseline comparison
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Setup display for headless OpenGL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb libgl1-mesa-dri mesa-vulkan-drivers
+
+    - name: Download baseline (if exists)
+      id: download-baseline
+      continue-on-error: true
+      run: |
+        if [ -f benchmark-baseline.json ]; then
+          echo "Baseline found in repository"
+          echo "baseline_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "No baseline found"
+          echo "baseline_exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run benchmarks
+      run: |
+        cd Benchmark
+        # Use xvfb-run for headless OpenGL support
+        xvfb-run -a dotnet run --configuration Release -- \
+          --headless \
+          --tests all \
+          --duration 5 \
+          --threshold 10 \
+          --output ../benchmark-results.json \
+          --verbose
+      env:
+        DISPLAY: :99
+
+    - name: Compare with baseline
+      id: compare
+      if: steps.download-baseline.outputs.baseline_exists == 'true'
+      continue-on-error: true
+      run: |
+        cd Benchmark
+        xvfb-run -a dotnet run --configuration Release -- \
+          --headless \
+          --tests all \
+          --duration 5 \
+          --baseline ../benchmark-baseline.json \
+          --output ../benchmark-results.json \
+          --threshold 10 \
+          --verbose
+      env:
+        DISPLAY: :99
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: benchmark-results.json
+        retention-days: 90
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          // Read benchmark results
+          let resultsContent = '';
+          try {
+            const results = JSON.parse(fs.readFileSync('benchmark-results.json', 'utf8'));
+
+            resultsContent = '## 📊 Benchmark Results\n\n';
+            resultsContent += '| Test | Avg FPS | Avg Frame Time | Min FPS | Max FPS | 99th Percentile |\n';
+            resultsContent += '|------|---------|----------------|---------|---------|------------------|\n';
+
+            for (const result of results) {
+              resultsContent += `| ${result.TestName} | ${result.AverageFPS.toFixed(2)} | ${result.AverageFrameTime.toFixed(2)}ms | ${result.MinFPS.toFixed(2)} | ${result.MaxFPS.toFixed(2)} | ${result.Percentile99.toFixed(2)}ms |\n`;
+            }
+
+            resultsContent += '\n*Benchmark ran for ' + results[0].TestDuration.toFixed(1) + 's per test*\n';
+          } catch (error) {
+            resultsContent = '## ⚠️ Benchmark Results\n\nFailed to read benchmark results.';
+          }
+
+          // Post comment
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: resultsContent
+          });
+
+    - name: Check for regressions
+      if: steps.download-baseline.outputs.baseline_exists == 'true'
+      run: |
+        echo "Checking for performance regressions..."
+        if [ ${{ steps.compare.outcome }} == 'failure' ]; then
+          echo "❌ Performance regression detected!"
+          exit 1
+        else
+          echo "✓ No performance regressions detected"
+        fi
+
+    - name: Save as new baseline (main branch only)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        echo "Updating baseline for main branch..."
+        cp benchmark-results.json benchmark-baseline.json
+
+        # Configure git
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+        # Commit and push baseline
+        git add benchmark-baseline.json
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update benchmark baseline [skip ci]" && git push)
