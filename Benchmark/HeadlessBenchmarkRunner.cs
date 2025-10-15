@@ -83,22 +83,33 @@ public class HeadlessBenchmarkRunner
 
     private void Initialize()
     {
-        // Initialize graphics
-        Graphics2D.Instance.Init();
-        Graphics3D.Instance.Init();
-
-        // Create camera for rendering
-        _camera = new OrthographicCamera(-10, 10, -10, 10);
-
-        // Load test assets
-        LoadTestAssets();
-
-        if (_config.Verbose)
+        try
         {
-            Console.WriteLine("Initialization complete.");
-            Console.WriteLine($"  Entity Count: {_config.EntityCount}");
-            Console.WriteLine($"  Test Duration: {_config.TestDuration}s");
-            Console.WriteLine($"  Regression Threshold: {_config.RegressionThreshold}%");
+            // Initialize graphics
+            Graphics2D.Instance.Init();
+            Graphics3D.Instance.Init();
+
+            // Create camera for rendering
+            _camera = new OrthographicCamera(-10, 10, -10, 10);
+
+            // Load test assets
+            LoadTestAssets();
+
+            if (_config.Verbose)
+            {
+                Console.WriteLine("Initialization complete.");
+                Console.WriteLine($"  Entity Count: {_config.EntityCount}");
+                Console.WriteLine($"  Test Duration: {_config.TestDuration}s");
+                Console.WriteLine($"  Regression Threshold: {_config.RegressionThreshold}%");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Failed to initialize OpenGL context for headless benchmarking. " +
+                "On macOS, you need to run with a display context. " +
+                "On Linux, use 'xvfb-run' to create a virtual framebuffer. " +
+                "Alternatively, run the benchmark in GUI mode without --headless flag.", ex);
         }
     }
 
