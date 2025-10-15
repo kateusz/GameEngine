@@ -38,7 +38,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public BufferLayout? Layout { get; private set; }
 
-    public void SetData(QuadVertex[] vertices, int dataSize)
+    public void SetData(Span<QuadVertex> vertices, int dataSize)
     {
         if (vertices.Length == 0)
             return;
@@ -51,13 +51,12 @@ public class SilkNetVertexBuffer : IVertexBuffer
             var vertexSpan = MemoryMarshal.Cast<QuadVertex, byte>(vertices);
             fixed (byte* pData = vertexSpan)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)vertexSpan.Length, pData,
-                    BufferUsageARB.StaticDraw);
+                SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
             }
         }
     }
 
-    public void SetData(LineVertex[] lineVertices, int dataSize)
+    public void SetData(Span<LineVertex> lineVertices, int dataSize)
     {
         if (lineVertices.Length == 0)
             return;
@@ -70,9 +69,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             var vertexSpan = MemoryMarshal.Cast<LineVertex, byte>(lineVertices);
             fixed (byte* pData = vertexSpan)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)vertexSpan.Length, pData,
-                    BufferUsageARB.StaticDraw);
-                var error = SilkNetContext.GL.GetError();
+                SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
             }
         }
     }

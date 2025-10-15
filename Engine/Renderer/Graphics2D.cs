@@ -302,20 +302,19 @@ public class Graphics2D : IGraphics2D
     {
         if (_data.QuadIndexBufferCount > 0)
         {
-            var dataSize = 0;
-            for (var i = 0; i < _data.CurrentVertexBufferIndex; i++)
-            {
-                dataSize += QuadVertex.GetSize();
-            }
-            
+            // Calculate actual data size (already known from index)
+            int vertexCount = _data.CurrentVertexBufferIndex;
+            int dataSize = vertexCount * QuadVertex.GetSize();
+
             // Make sure we're using the quad shader
             _data.QuadShader.Bind();
-        
+
             // Explicitly bind the quad vertex array
             _data.QuadVertexArray.Bind();
 
-            // upload data to GPU
-            _data.QuadVertexBuffer.SetData(_data.QuadVertexBufferBase, dataSize);
+            // Upload only used portion to GPU
+            Span<QuadVertex> usedVertices = _data.QuadVertexBufferBase.AsSpan(0, vertexCount);
+            _data.QuadVertexBuffer.SetData(usedVertices, dataSize);
 
             // Bind textures
             for (var i = 0; i < _data.TextureSlotIndex; i++)
@@ -330,25 +329,24 @@ public class Graphics2D : IGraphics2D
         {
             // Switch to line shader
             _data.LineShader.Bind();
-        
+
             // Explicitly bind line vertex array
             _data.LineVertexArray.Bind();
-            
-            var dataSize = 0;
-            for (var i = 0; i < _data.CurrentLineVertexBufferIndex; i++)
-            {
-                dataSize += LineVertex.GetSize();
-            }
 
-            // upload data to GPU
-            _data.LineVertexBuffer.SetData(_data.LineVertexBufferBase, dataSize);
+            // Calculate actual data size (already known from index)
+            int lineVertexCount = _data.CurrentLineVertexBufferIndex;
+            int dataSize = lineVertexCount * LineVertex.GetSize();
+
+            // Upload only used portion to GPU
+            Span<LineVertex> usedLineVertices = _data.LineVertexBufferBase.AsSpan(0, lineVertexCount);
+            _data.LineVertexBuffer.SetData(usedLineVertices, dataSize);
 
             //_data.TextureShader.Bind();
             _rendererApi.SetLineWidth(Renderer2DData.LineWidth);
             _rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
             _data.Stats.DrawCalls++;
         }
-        
+
     }
 
     private void InitBuffers()
