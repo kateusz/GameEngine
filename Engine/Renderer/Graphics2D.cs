@@ -228,22 +228,26 @@ public class Graphics2D : IGraphics2D
     
     public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
     {
-        _data.LineVertexBufferBase[_data.CurrentVertexBufferIndex] = new LineVertex
+        // Check if we need to flush before adding 2 more vertices
+        if (_data.CurrentLineVertexBufferIndex + 2 >= Renderer2DData.MaxVertices)
+            NextBatch();
+        
+        _data.LineVertexBufferBase[_data.CurrentLineVertexBufferIndex] = new LineVertex
         {
             Position = p0,
             Color = color,
             EntityId = entityId
         };
-        
+
         _data.CurrentLineVertexBufferIndex++;
-        
-        _data.LineVertexBufferBase[_data.CurrentVertexBufferIndex] = new LineVertex
+
+        _data.LineVertexBufferBase[_data.CurrentLineVertexBufferIndex] = new LineVertex
         {
             Position = p1,
             Color = color,
             EntityId = entityId
         };
-        
+
         _data.CurrentLineVertexBufferIndex++;
         _data.LineVertexCount += 2;
     }

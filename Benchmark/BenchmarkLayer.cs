@@ -27,11 +27,11 @@ public class BenchmarkLayer : ILayer
     private readonly Dictionary<string, Texture2D> _testTextures = new();
         
     // Benchmark configurations - using fields for ImGui compatibility
-    private int _entityCount = 1000;
-    private int _drawCallsPerFrame = 100;
-    private int _textureCount = 10;
+    private int _entityCount = 10000;
+    private int _drawCallsPerFrame = 10000;
+    private int _textureCount = 1000;
     private int _scriptEntityCount = 50;
-    private float _testDuration = 5.0f; // seconds
+    private float _testDuration = 10.0f; // seconds
     private bool _enableVSync = false;
         
     // Benchmark state
