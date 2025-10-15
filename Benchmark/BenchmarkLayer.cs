@@ -14,6 +14,7 @@ using ImGuiNET;
 
 namespace Benchmark;
 
+#pragma warning disable CS0618 // Type or member is obsolete - Benchmark uses legacy camera for testing purposes
 public class BenchmarkLayer : ILayer
 {
     private readonly List<BenchmarkResult> _results = new();
@@ -548,3 +549,4 @@ public class BenchmarkLayer : ILayer
         _results.Add(result);
     }
 }
+#pragma warning restore CS0618 // Type or member is obsolete

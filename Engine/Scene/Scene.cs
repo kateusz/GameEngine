@@ -291,6 +291,16 @@ public class Scene
         };
     }
 
+    /// <summary>
+    /// Updates the scene in editor mode using a legacy OrthographicCamera.
+    /// </summary>
+    /// <param name="ts">Time step for this frame.</param>
+    /// <param name="camera">The legacy orthographic camera used by the editor.</param>
+    /// <remarks>
+    /// <para><b>NOTE:</b> This method uses the legacy camera system for editor compatibility.</para>
+    /// <para>In Phase 3 of the camera system refactoring, this will be migrated to use the ECS camera system.</para>
+    /// </remarks>
+#pragma warning disable CS0618 // Type or member is obsolete
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
         //TODO: temp disable 3D
@@ -329,6 +339,7 @@ public class Scene
 
         Graphics2D.Instance.EndScene();
     }
+#pragma warning restore CS0618 // Type or member is obsolete
 
     public void OnViewportResize(uint width, uint height)
     {

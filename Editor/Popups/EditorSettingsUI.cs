@@ -4,6 +4,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
+#pragma warning disable CS0618 // Type or member is obsolete - Editor still uses legacy camera system until Phase 3 migration
 public class EditorSettingsUI
 {
     private bool _open = false;
@@ -49,6 +50,7 @@ public class EditorSettingsUI
         ImGui.End();
     }
 }
+#pragma warning restore CS0618 // Type or member is obsolete
 
 /// <summary>
 /// Simple class to hold editor-wide settings.

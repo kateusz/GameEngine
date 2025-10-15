@@ -20,6 +20,7 @@ using ZLinq;
 
 namespace Editor;
 
+#pragma warning disable CS0618 // Type or member is obsolete - Editor still uses legacy camera system until Phase 3 migration
 public class EditorLayer : ILayer
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
@@ -427,3 +428,4 @@ public class EditorLayer : ILayer
         _cameraController.Camera.SetRotation(0.0f);
     }
 }
+#pragma warning restore CS0618 // Type or member is obsolete

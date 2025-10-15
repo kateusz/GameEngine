@@ -52,15 +52,24 @@ public class Graphics2D : IGraphics2D
     public void Shutdown()
     {
     }
-    
+
+    /// <summary>
+    /// Begins a scene with a legacy OrthographicCamera. This method is deprecated.
+    /// </summary>
+    /// <param name="camera">The legacy orthographic camera.</param>
+    /// <remarks>
+    /// <para><b>DEPRECATED:</b> This method uses the legacy camera system.</para>
+    /// <para><b>Migration:</b> Use <see cref="BeginScene(Camera, Matrix4x4)"/> with SceneCamera instead.</para>
+    /// </remarks>
+    [Obsolete("Use BeginScene(Camera, Matrix4x4) with SceneCamera instead. This legacy camera system will be removed in a future version.")]
     public void BeginScene(OrthographicCamera camera)
     {
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
-        
+
         _data.LineShader.Bind();
         _data.LineShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
-        
+
         StartBatch();
     }
 
