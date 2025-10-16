@@ -30,6 +30,7 @@ public interface IProjectManager
 public class ProjectManager : IProjectManager
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<ProjectManager>();
+    private readonly EditorPreferences _editorPreferences;
 
     private static readonly string[] RequiredDirs =
     [
@@ -39,6 +40,11 @@ public class ProjectManager : IProjectManager
         Path.Combine("assets", "scripts"),
         Path.Combine("assets", "prefabs")
     ];
+
+    public ProjectManager(EditorPreferences editorPreferences)
+    {
+        _editorPreferences = editorPreferences;
+    }
 
     public string? CurrentProjectDirectory { get; private set; }
 
@@ -87,6 +93,7 @@ public class ProjectManager : IProjectManager
             SetCurrentProject(projectDir);
 
             Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
+            _editorPreferences.AddRecentProject(projectDir, projectName.Trim());
             return true;
         }
         catch (Exception ex)
@@ -110,10 +117,11 @@ public class ProjectManager : IProjectManager
             if (!Directory.Exists(full))
             {
                 error = "Project directory does not exist.";
+                _editorPreferences.RemoveRecentProject(full);
                 return false;
             }
 
-            // If /assets doesn't exist, fallback to the root as assets path to keep old samples working.
+            // If /assets doesn’t exist, fallback to the root as assets path to keep old samples working.
             if (!Directory.Exists(Path.Combine(full, "assets")))
             {
                 Logger.Warning("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
@@ -122,6 +130,9 @@ public class ProjectManager : IProjectManager
             SetCurrentProject(full);
 
             Logger.Information("📂 Project opened: {ProjectPath}", full);
+            var projectName = System.IO.Path.GetFileName(full);
+            _editorPreferences.AddRecentProject(full, projectName);
+
             return true;
         }
         catch (Exception ex)

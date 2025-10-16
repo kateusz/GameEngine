@@ -39,6 +39,7 @@ public class EditorLayer : ILayer
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
     private SceneManager _sceneManager;
+    private EditorPreferences _editorPreferences;
     
     private readonly RendererStatsPanel _rendererStatsPanel = new();
     private EditorToolbar _editorToolbar;
@@ -50,11 +51,12 @@ public class EditorLayer : ILayer
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, ConsolePanel consolePanel)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
         _consolePanel = consolePanel;
+        _editorPreferences = editorPreferences;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -84,11 +86,12 @@ public class EditorLayer : ILayer
         _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
 
         _contentBrowserPanel = new ContentBrowserPanel();
+        _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
-
+        
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
@@ -294,6 +297,51 @@ public class EditorLayer : ILayer
                         _projectUI.ShowNewProjectPopup();
                     if (ImGui.MenuItem("Open Project"))
                         _projectUI.ShowOpenProjectPopup();
+
+                    // Add Recent Projects submenu
+                    if (ImGui.BeginMenu("Recent Projects"))
+                    {
+                        var recentProjects = _editorPreferences.RecentProjects;
+                        
+                        if (recentProjects.Count == 0)
+                        {
+                            ImGui.MenuItem("(No recent projects)", false);
+                        }
+                        else
+                        {
+                            foreach (var recent in recentProjects)
+                            {
+                                var displayName = $"{recent.Name}";
+                                if (ImGui.MenuItem(displayName))
+                                {
+                                    if (!_projectManager.TryOpenProject(recent.Path, out var error))
+                                    {
+                                        Console.WriteLine($"Failed to open recent project: {error}");
+                                    }
+                                }
+                                
+                                // Show tooltip with full path
+                                if (ImGui.IsItemHovered())
+                                {
+                                    ImGui.BeginTooltip();
+                                    ImGui.Text(recent.Path);
+                                    ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
+                                    ImGui.EndTooltip();
+                                }
+                            }
+                            
+                            ImGui.Separator();
+                            if (ImGui.MenuItem("Clear Recent Projects"))
+                            {
+                                _editorPreferences.RecentProjects.Clear();
+                                _editorPreferences.Save();
+                            }
+                        }
+                        
+                        ImGui.EndMenu();
+                    }
+
+                    ImGui.Separator();
                     if (ImGui.MenuItem("Exit"))
                         Environment.Exit(0);
                     ImGui.EndMenu();
