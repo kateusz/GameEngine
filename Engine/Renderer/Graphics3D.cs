@@ -82,8 +82,9 @@ public class Graphics3D : IGraphics3D
         _stats.DrawCalls++;
     }
     
-    public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, int entityId = -1)
+    public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, Guid entityId)
     {
+        int entityIdHash = entityId.GetHashCode();
         var mesh = meshComponent.Mesh;
         var color = modelRenderer.Color;
         
@@ -94,7 +95,7 @@ public class Graphics3D : IGraphics3D
             mesh.DiffuseTexture = modelRenderer.OverrideTexture;
         }
         
-        DrawMesh(transform, mesh, color, entityId);
+        DrawMesh(transform, mesh, color, entityIdHash);
         
         // Restore the original texture
         if (modelRenderer.OverrideTexture != null)

@@ -4,7 +4,7 @@ public class Entity
 {
     private readonly Dictionary<Type, IComponent> _components = new();
     
-    public int Id { get; private set; }
+    public Guid Id { get; private set; }
     public required string Name { get; set; }
     
     public event Action<IComponent>? OnComponentAdded;
@@ -67,7 +67,7 @@ public class Entity
         return HashCode.Combine(_components, Id, Name);
     }
 
-    public static Entity Create(int id, string name)
+    public static Entity Create(Guid id, string name)
     {
         return new Entity
         {

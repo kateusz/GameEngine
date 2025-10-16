@@ -26,5 +26,5 @@ public interface IPrefabSerializer
     /// <param name="entityName">Name for the new entity</param>
     /// <param name="entityId">ID for the new entity</param>
     /// <returns>New entity with prefab components</returns>
-    Entity CreateEntityFromPrefab(string prefabPath, string entityName, int entityId);
+    Entity CreateEntityFromPrefab(string prefabPath, string entityName, Guid entityId);
 }

@@ -101,7 +101,7 @@ public class PrefabSerializer : IPrefabSerializer
     /// <param name="entityName">Name for the new entity</param>
     /// <param name="entityId">ID for the new entity</param>
     /// <returns>New entity with prefab components</returns>
-    public Entity CreateEntityFromPrefab(string prefabPath, string entityName, int entityId)
+    public Entity CreateEntityFromPrefab(string prefabPath, string entityName, Guid entityId)
     {
         if (!File.Exists(prefabPath))
             throw new FileNotFoundException($"Prefab file not found: {prefabPath}");

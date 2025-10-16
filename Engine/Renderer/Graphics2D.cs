@@ -218,16 +218,18 @@ public class Graphics2D : IGraphics2D
         _data.Stats.QuadCount++;
     }
     
-    public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
+    public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, Guid entityId)
     {
+        int entityIdHash = entityId.GetHashCode();
         if (src.Texture is not null)
-            DrawQuad(transform, src.Texture, DefaultTextureCoords, src.TilingFactor, src.Color, entityId);
+            DrawQuad(transform, src.Texture, DefaultTextureCoords, src.TilingFactor, src.Color, entityIdHash);
         else
-            DrawQuad(transform, src.Color, entityId);
+            DrawQuad(transform, src.Color, entityIdHash);
     }
     
-    public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
+    public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, Guid entityId)
     {
+        int entityIdHash = entityId.GetHashCode();
         // Check if we need to flush before adding 2 more vertices
         if (_data.CurrentLineVertexBufferIndex + 2 >= Renderer2DData.MaxVertices)
             NextBatch();
@@ -236,7 +238,7 @@ public class Graphics2D : IGraphics2D
         {
             Position = p0,
             Color = color,
-            EntityId = entityId
+            EntityId = entityIdHash
         };
 
         _data.CurrentLineVertexBufferIndex++;
@@ -245,14 +247,14 @@ public class Graphics2D : IGraphics2D
         {
             Position = p1,
             Color = color,
-            EntityId = entityId
+            EntityId = entityIdHash
         };
 
         _data.CurrentLineVertexBufferIndex++;
         _data.LineVertexCount += 2;
     }
     
-    public void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId)
+    public void DrawRect(Vector3 position, Vector2 size, Vector4 color, Guid entityId)
     {
         // Calculate the four corners of the rectangle
         Vector3 p0 = new Vector3(position.X - size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
@@ -267,7 +269,7 @@ public class Graphics2D : IGraphics2D
         DrawLine(p3, p0, color, entityId);
     }
     
-    public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId)
+    public void DrawRect(Matrix4x4 transform, Vector4 color, Guid entityId)
     {
         Vector3[] lineVertices = new Vector3[4];
         for (var i = 0; i < 4; i++)

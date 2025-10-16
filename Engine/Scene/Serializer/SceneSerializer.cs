@@ -91,7 +91,7 @@ public class SceneSerializer : ISceneSerializer
 
     private Entity DeserializeEntity(JsonObject entityObj)
     {
-        var entityId = entityObj[IdKey]?.GetValue<int>() ?? throw new InvalidSceneJsonException("Invalid entity ID");
+        var entityId = entityObj[IdKey]?.GetValue<Guid>() ?? throw new InvalidSceneJsonException("Invalid entity ID");
         var entityName = entityObj[NameKey]?.GetValue<string>() ??
                          throw new InvalidSceneJsonException("Invalid entity Name");
 

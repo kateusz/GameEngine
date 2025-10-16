@@ -33,10 +33,7 @@ public class Scene
 
     public Entity CreateEntity(string name)
     {
-        Random random = new Random();
-        var randomNumber = random.Next(0, 10001);
-
-        var entity = Entity.Create(randomNumber, name);
+        var entity = Entity.Create(Guid.NewGuid(), name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
 

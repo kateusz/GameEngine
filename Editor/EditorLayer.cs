@@ -171,8 +171,8 @@ public class EditorLayer : ILayer
 
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
         {
-            var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
-            var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
+            var entityIdHash = _frameBuffer.ReadPixel(1, mouseX, mouseY);
+            var entity = CurrentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id.GetHashCode() == entityIdHash);
             _hoveredEntity = entity;
         }
 
