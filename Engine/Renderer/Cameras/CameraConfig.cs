@@ -11,13 +11,13 @@ public static class CameraConfig
     /// Default translation speed in units per second.
     /// This is the base speed before zoom multipliers are applied.
     /// </summary>
-    public const float DefaultTranslationSpeed = 5.0f;
+    public const float DefaultTranslationSpeed = 0.5f;
     
     /// <summary>
     /// Default rotation speed in degrees per second.
     /// Used for camera rotation controls (Q/E keys).
     /// </summary>
-    public const float DefaultRotationSpeed = 90.0f;
+    public const float DefaultRotationSpeed = 10.0f;
     
     /// <summary>
     /// Fine control multiplier for camera movement.
@@ -61,9 +61,9 @@ public static class CameraConfig
     /// <summary>
     /// Default near clip plane for perspective cameras.
     /// Objects closer than this won't be rendered.
-    /// Set to 0.1f to prevent z-fighting while allowing close objects.
+    /// Set to 0.01f to allow very close objects while preventing z-fighting.
     /// </summary>
-    public const float DefaultPerspectiveNear = 0.1f;
+    public const float DefaultPerspectiveNear = 0.01f;
     
     /// <summary>
     /// Default far clip plane for perspective cameras.
