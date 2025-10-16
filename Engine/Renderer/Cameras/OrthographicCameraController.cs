@@ -106,7 +106,27 @@ public class OrthographicCameraController
 
     private bool OnWindowResized(WindowResizeEvent @event)
     {
-        _aspectRatio = (float)@event.Width / (float)@event.Height;
+        // Validate dimensions
+        if (@event.Width == 0 || @event.Height == 0)
+        {
+            Console.WriteLine($"[Camera] Invalid window dimensions: {@event.Width}x{@event.Height}, ignoring resize");
+            return false;
+        }
+
+        // Ensure minimum dimensions to prevent extreme aspect ratios
+        const uint minDimension = 1;
+        uint width = (uint)System.Math.Max(@event.Width, minDimension);
+        uint height = (uint)System.Math.Max(@event.Height, minDimension);
+
+        _aspectRatio = (float)width / (float)height;
+
+        // Validate result
+        if (float.IsNaN(_aspectRatio) || float.IsInfinity(_aspectRatio))
+        {
+            Console.WriteLine($"[Camera] Invalid aspect ratio calculated, using fallback");
+            _aspectRatio = 16.0f / 9.0f; // Fallback to common aspect ratio
+        }
+
         Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
         return true;
     }

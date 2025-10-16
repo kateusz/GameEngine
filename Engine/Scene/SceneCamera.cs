@@ -73,7 +73,21 @@ public class SceneCamera : Camera
 
     public void SetViewportSize(uint width, uint height)
     {
+        if (width == 0 || height == 0)
+        {
+            Console.WriteLine($"[SceneCamera] Invalid viewport size: {width}x{height}");
+            return;
+        }
+
         AspectRatio = (float)width / (float)height;
+
+        // Validate aspect ratio
+        if (float.IsNaN(AspectRatio) || float.IsInfinity(AspectRatio))
+        {
+            Console.WriteLine("[SceneCamera] Invalid aspect ratio, using 16:9");
+            AspectRatio = 16.0f / 9.0f;
+        }
+
         RecalculateProjection();
     }
 
