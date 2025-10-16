@@ -30,6 +30,7 @@ public interface IProjectManager
 public class ProjectManager : IProjectManager
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private readonly EditorPreferences _editorPreferences;
 
     private static readonly string[] RequiredDirs =
     [
@@ -39,6 +40,11 @@ public class ProjectManager : IProjectManager
         Path.Combine("assets", "scripts"),
         Path.Combine("assets", "prefabs")
     ];
+
+    public ProjectManager(EditorPreferences editorPreferences)
+    {
+        _editorPreferences = editorPreferences;
+    }
 
     public string? CurrentProjectDirectory { get; private set; }
 
@@ -86,6 +92,9 @@ public class ProjectManager : IProjectManager
 
             SetCurrentProject(projectDir);
 
+            // Add to recent projects
+            _editorPreferences.AddRecentProject(projectDir, projectName.Trim());
+
             Console.WriteLine($"🆕 Project '{projectName}' created at {projectDir}");
             return true;
         }
@@ -110,6 +119,9 @@ public class ProjectManager : IProjectManager
             if (!Directory.Exists(full))
             {
                 error = "Project directory does not exist.";
+                
+                // Clean up invalid recent project
+                _editorPreferences.RemoveRecentProject(full);
                 return false;
             }
 
@@ -120,6 +132,10 @@ public class ProjectManager : IProjectManager
             }
 
             SetCurrentProject(full);
+
+            // Add to recent projects
+            var projectName = System.IO.Path.GetFileName(full);
+            _editorPreferences.AddRecentProject(full, projectName);
 
             Console.WriteLine($"📂 Project opened: {full}");
             return true;
