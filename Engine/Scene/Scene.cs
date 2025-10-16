@@ -9,11 +9,14 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using NLog;
 
 namespace Engine.Scene;
 
 public class Scene
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
@@ -21,6 +24,11 @@ public class Scene
     private SceneContactListener _contactListener;
 
     private readonly bool _showPhysicsDebug = true;
+    
+    // Fixed timestep physics constants
+    private const float FixedTimestep = 1.0f / 60.0f;  // 60 Hz physics
+    private float _physicsAccumulator = 0.0f;
+    private const float MaxAccumulation = 0.25f;  // Prevent spiral of death (max 15 frames at 60Hz)
 
 
     public Scene(string path)
@@ -72,6 +80,7 @@ public class Scene
     public void OnRuntimeStart()
     {
         _physicsWorld = new World(new Vector2(0, 0)); //-0.81f
+        _physicsAccumulator = 0.0f; // Reset accumulator for clean physics state
 
         _contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(_contactListener);
@@ -166,15 +175,34 @@ public class Scene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // Update scripts (existing code)
+        // Update scripts with variable delta time (they can handle it)
         ScriptEngine.Instance.OnUpdate(ts);
 
-        // Physics (existing code)
+        // Accumulate time for fixed physics steps
+        _physicsAccumulator += (float)ts.TotalSeconds;
+
+        // Clamp accumulator to prevent spiral of death
+        if (_physicsAccumulator > MaxAccumulation)
+        {
+            #if DEBUG
+            Logger.Warn($"Physics accumulator exceeded {MaxAccumulation}s, clamping to prevent spiral of death. " +
+                       $"Frame time: {ts.TotalSeconds:F4}s. Consider optimizing physics or reducing entity count.");
+            #endif
+            _physicsAccumulator = MaxAccumulation;
+        }
+
+        // Execute fixed timestep physics updates
+        const int maxPhysicsSteps = 5;  // Safety limit
         const int velocityIterations = 6;
         const int positionIterations = 2;
-        var deltaSeconds = (float)ts.TotalSeconds;
-        deltaSeconds = 1.0f / 60.0f;
-        _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
+        int stepCount = 0;
+
+        while (_physicsAccumulator >= FixedTimestep && stepCount < maxPhysicsSteps)
+        {
+            _physicsWorld.Step(FixedTimestep, velocityIterations, positionIterations);
+            _physicsAccumulator -= FixedTimestep;
+            stepCount++;
+        }
 
         // Retrieve transform from Box2D (existing code)
         var view = Context.Instance.View<RigidBody2DComponent>();
