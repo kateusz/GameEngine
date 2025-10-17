@@ -2,6 +2,7 @@ using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Math;
 using Engine.Platform;
+using NLog;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace Engine.Scene;
@@ -14,6 +15,8 @@ public enum ProjectionType
 
 public class SceneCamera : Camera
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
     private float _aspectRatio;
     private Vector3 _cameraPosition = new(0.0f, 0.0f, CameraConfig.DefaultCameraZPosition);
     private Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
@@ -75,7 +78,7 @@ public class SceneCamera : Camera
     {
         if (width == 0 || height == 0)
         {
-            Console.WriteLine($"[SceneCamera] Invalid viewport size: {width}x{height}");
+            Logger.Warn("[SceneCamera] Invalid viewport size: {Width}x{Height}", width, height);
             return;
         }
 
@@ -84,7 +87,7 @@ public class SceneCamera : Camera
         // Validate aspect ratio
         if (float.IsNaN(AspectRatio) || float.IsInfinity(AspectRatio))
         {
-            Console.WriteLine("[SceneCamera] Invalid aspect ratio, using 16:9");
+            Logger.Warn("[SceneCamera] Invalid aspect ratio, using 16:9");
             AspectRatio = CameraConfig.DefaultAspectRatio;
         }
 
