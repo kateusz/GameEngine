@@ -348,9 +348,61 @@ public class ComponentArray<T> where T : class
 - **Interfaces**: IPascalCase (`IDisposable`, `ISerializable`)
 - **Methods**: PascalCase (`UpdateCamera`, `GetComponent`)
 - **Properties**: PascalCase (`IsEnabled`, `EntityCount`)
-- **Private Fields**: _camelCase (`_rendererID`, _entityMap`)
+- **Private Fields**: _camelCase (`_rendererID`, `_entityMap`)
 - **Local Variables**: camelCase (`deltaTime`, `worldMatrix`)
 - **Constants**: PascalCase (`MaxEntities`, `DefaultBufferSize`)
+
+### Editor UI Constants
+
+The Editor project uses a centralized constants class to maintain consistent UI styling and avoid magic numbers:
+
+```csharp
+using Editor.UI;
+
+// Always import the EditorUIConstants namespace for UI code
+namespace Editor.Panels;
+
+public class MyPanel
+{
+    public void Render()
+    {
+        // Use named constants instead of magic numbers
+        if (ImGui.Button("Save", new Vector2(EditorUIConstants.StandardButtonWidth, 
+                                              EditorUIConstants.StandardButtonHeight)))
+        {
+            Save();
+        }
+        
+        // Use standard colors for consistent UX
+        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
+        ImGui.Text("Error message");
+        ImGui.PopStyleColor();
+        
+        // Use standard padding for consistent spacing
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 
+            new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
+        
+        // Use layout ratios for property editors
+        ImGui.SetColumnWidth(0, totalWidth * EditorUIConstants.PropertyLabelRatio);
+    }
+}
+```
+
+**Available Constants:**
+- **Button Sizes**: `StandardButtonWidth`, `WideButtonWidth`, `MediumButtonWidth`, `SmallButtonSize`
+- **Layout Ratios**: `PropertyLabelRatio` (0.33f), `PropertyInputRatio` (0.67f)
+- **Column Widths**: `DefaultColumnWidth`, `WideColumnWidth`, `FilterInputWidth`
+- **Spacing**: `StandardPadding`, `LargePadding`, `SmallPadding`
+- **Input Buffers**: `MaxTextInputLength`, `MaxNameLength`, `MaxPathLength`
+- **Colors**: `ErrorColor`, `WarningColor`, `SuccessColor`, `InfoColor`
+- **Axis Colors**: `AxisXColor` (red), `AxisYColor` (green), `AxisZColor` (blue)
+- **UI Sizes**: `SelectorListBoxWidth`, `MaxVisibleListItems`
+
+**Benefits:**
+- Consistent UI appearance across all editor panels
+- Easy to adjust styling globally by changing constants
+- Self-documenting code with descriptive constant names
+- Prevents typos and inconsistencies from duplicated literals
 
 ---
 
