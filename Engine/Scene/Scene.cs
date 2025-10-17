@@ -82,7 +82,7 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-        _physicsWorld = new World(new Vector2(0, 0)); //-0.81f
+        _physicsWorld = new World(new Vector2(0, -9.8f)); // Standardowa grawitacja ziemska
 
         _contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(_contactListener);

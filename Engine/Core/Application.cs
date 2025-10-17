@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
@@ -19,7 +20,9 @@ public abstract class Application : IApplication
     private readonly List<ILayer> _layersStack = [];
     
     private bool _isRunning;
-    private DateTime _lastTime;
+    private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
+    private double _lastFrameTime = -1.0;
+    private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
     protected Application(IGameWindow gameWindow, IImGuiLayer? imGuiLayer = null)
     {
@@ -70,9 +73,30 @@ public abstract class Application : IApplication
     
     private void HandleUpdate()
     {
-        var currentTime = DateTime.Now;
-        var elapsed = currentTime - _lastTime;
-        _lastTime = currentTime;
+        double currentTime = _frameTimer.Elapsed.TotalSeconds;
+
+        // First frame initialization - use zero delta to avoid massive spike
+        double deltaTime;
+        if (_lastFrameTime < 0)
+        {
+            _lastFrameTime = currentTime;
+            deltaTime = 0.0; // First frame gets zero delta
+        }
+        else
+        {
+            deltaTime = currentTime - _lastFrameTime;
+            _lastFrameTime = currentTime;
+        }
+
+        // Clamp delta time to prevent "spiral of death" on lag spikes
+        // Maximum 250ms (4 FPS) - anything longer is clamped
+        if (deltaTime > MaxDeltaTime)
+        {
+            Logger.Warn($"Frame spike detected: {deltaTime * 1000:F2}ms, clamping to {MaxDeltaTime * 1000}ms");
+            deltaTime = MaxDeltaTime;
+        }
+
+        var elapsed = TimeSpan.FromSeconds(deltaTime);
 
         _inputSystem?.Update(elapsed);
         
