@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.Managers;
 using Editor.Panels;
+using Editor.Logging;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -15,14 +16,14 @@ using Engine.Scene.Components;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
-using NLog;
+using Serilog;
 using ZLinq;
 
 namespace Editor;
 
 public class EditorLayer : ILayer
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<EditorLayer>();
 
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -87,13 +88,27 @@ public class EditorLayer : ILayer
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
-        
+
+        // Now that ConsolePanel is created, reconfigure Serilog to include ConsolePanelSink
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .Enrich.WithProperty("Application", "GameEngine")
+            .Enrich.WithThreadId()
+            .Enrich.With<FrameNumberEnricher>()
+            .Enrich.With<SceneNameEnricher>()
+            .WriteTo.Async(a => a.ConsolePanel(_consolePanel))
+            .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
+            .WriteTo.Async(a => a.File("logs/engine-.log",
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"))
+            .CreateLogger();
+
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
-        
-        Logger.Info("✅ Editor initialized successfully!");
-        Logger.Info("Console panel is now capturing output.");
+
+        Logger.Information("✅ Editor initialized successfully!");
+        Logger.Information("Console panel is now capturing output.");
     }
 
     private void EntitySelected(Entity entity)
@@ -111,6 +126,7 @@ public class EditorLayer : ILayer
     {
         Logger.Debug("EditorLayer OnDetach.");
         _consolePanel?.Dispose();
+        Log.CloseAndFlush();
     }
 
     public void OnUpdate(TimeSpan timeSpan)

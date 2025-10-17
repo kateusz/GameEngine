@@ -9,13 +9,13 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scripting;
-using NLog;
+using Serilog;
 
 namespace Engine.Scene;
 
 public class Scene
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<Scene>();
     
     private readonly string _path;
     private uint _viewportWidth;

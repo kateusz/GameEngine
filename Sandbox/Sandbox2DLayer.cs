@@ -7,7 +7,7 @@ using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
-using NLog;
+using Serilog;
 
 namespace Sandbox;
 
@@ -45,7 +45,7 @@ public class Sandbox2DLayer : ILayer
         """;
 
 
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<Sandbox2DLayer>();
 
     private OrthographicCameraController _orthographicCameraController;
     private Texture2D _spriteSheet;

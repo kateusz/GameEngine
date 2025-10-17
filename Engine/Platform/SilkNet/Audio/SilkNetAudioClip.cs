@@ -1,12 +1,12 @@
 using Engine.Audio;
-using NLog;
+using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioClip : IAudioClip
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioClip>();
     
     private uint _bufferId;
     private bool _disposed = false;
@@ -56,7 +56,7 @@ public class SilkNetAudioClip : IAudioClip
             Duration = (float)DataSize / (SampleRate * bytesPerSample);
 
             IsLoaded = true;
-            Logger.Info("Załadowano klip audio: {Path} ({Duration:F2}s)", Path, Duration);
+            Logger.Information("Załadowano klip audio: {Path} ({Duration:F2}s)", Path, Duration);
         }
         catch (Exception ex)
         {
@@ -83,7 +83,7 @@ public class SilkNetAudioClip : IAudioClip
             DataSize = 0;
             IsLoaded = false;
 
-            Logger.Info("Zwolniono klip audio: {Path}", Path);
+            Logger.Information("Zwolniono klip audio: {Path}", Path);
         }
         catch (Exception ex)
         {
@@ -136,7 +136,7 @@ public class SilkNetAudioClip : IAudioClip
     {
         if (!_disposed && IsLoaded)
         {
-            Logger.Warn("Uwaga: AudioClip {Path} nie został prawidłowo zwolniony. Wywołaj Unload().", Path);
+            Logger.Warning("Uwaga: AudioClip {Path} nie został prawidłowo zwolniony. Wywołaj Unload().", Path);
         }
     }
 }

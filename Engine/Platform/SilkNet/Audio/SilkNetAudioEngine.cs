@@ -1,5 +1,5 @@
 using Engine.Audio;
-using NLog;
+using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
@@ -12,7 +12,7 @@ public class AudioEngine
 
 public unsafe class SilkNetAudioEngine : IAudioEngine
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioEngine>();
     
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
@@ -61,7 +61,7 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
                 }
             }
 
-            Logger.Info("SilkNet AudioEngine zainicjalizowany pomyślnie");
+            Logger.Information("SilkNet AudioEngine zainicjalizowany pomyślnie");
         }
         catch (Exception ex)
         {
@@ -99,7 +99,7 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
             _al?.Dispose();
             _alc?.Dispose();
 
-            Logger.Info("SilkNet AudioEngine zamknięty");
+            Logger.Information("SilkNet AudioEngine zamknięty");
         }
         catch (Exception ex)
         {

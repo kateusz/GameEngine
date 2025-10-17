@@ -1,12 +1,12 @@
 using System.Text;
 using Engine.Audio;
-using NLog;
+using Serilog;
 
 namespace Engine.Platform.SilkNet.Audio.Loaders;
 
 public class WavLoader : IAudioLoader
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<WavLoader>();
     
     public bool CanLoad(string path)
         {
@@ -95,7 +95,7 @@ public class WavLoader : IAudioLoader
             }
 
             Logger.Debug("Załadowano WAV: {Path}", path);
-            Logger.Debug("  - Kanały: {Channels}, Sample Rate: {SampleRate} Hz, Original: {OriginalBits}bit -> 16bit", 
+            Logger.Debug("  - Kanały: {Channels}, Sample Rate: {SampleRate} Hz, Original: {OriginalBits}bit -> 16bit",
                 channels, sampleRate, originalBitsPerSample);
 
             return new AudioData(audioData, (int)sampleRate, channels, bitsPerSample, AudioFormat.WAV);

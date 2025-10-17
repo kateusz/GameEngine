@@ -4,14 +4,14 @@ using Editor.Panels.Elements;
 using Engine.Scene.Components;
 using Engine.Scripting;
 using ImGuiNET;
-using NLog;
+using Serilog;
 using Editor.UI;
 
 namespace Editor.Panels;
 
 public static class ScriptComponentUI
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext(typeof(ScriptComponentUI));
 
     private static bool _showCreateScriptPopup = false;
     private static bool _showScriptSelectorPopup = false;
@@ -218,12 +218,12 @@ public static class ScriptComponentUI
                             });
                         }
 
-                        Logger.Info($"Added script {_newScriptName} to entity {_selectedEntity.Name}");
+                        Logger.Information("Added script {ScriptName} to entity {EntityName}", _newScriptName, _selectedEntity.Name);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, $"Failed to create script instance for {_newScriptName}");
+                    Logger.Error(ex, "Failed to create script instance for {ScriptName}", _newScriptName);
                 }
             }
 
@@ -298,12 +298,12 @@ public static class ScriptComponentUI
                                         });
                                     }
 
-                                    Logger.Info($"Added script {scriptName} to entity {_selectedEntity.Name}");
+                                    Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                Logger.Error(ex, $"Failed to create script instance for {scriptName}");
+                                Logger.Error(ex, "Failed to create script instance for {ScriptName}", scriptName);
                             }
                         }
                     }
@@ -319,7 +319,7 @@ public static class ScriptComponentUI
                         {
                             if (ScriptEngine.Instance.DeleteScript(scriptName))
                             {
-                                Logger.Info($"Deleted script {scriptName}");
+                                Logger.Information("Deleted script {ScriptName}", scriptName);
                             }
 
                             ImGui.CloseCurrentPopup();
