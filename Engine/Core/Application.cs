@@ -70,6 +70,21 @@ public abstract class Application : IApplication
     {
         _layersStack.Add(overlay);
     }
+
+    public void PopLayer(ILayer layer)
+    {
+        if (_layersStack.Remove(layer))
+        {
+            try
+            {
+                layer.OnDetach();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Error detaching layer {layer.GetType().Name}");
+            }
+        }
+    }
     
     private void HandleUpdate()
     {
@@ -139,5 +154,20 @@ public abstract class Application : IApplication
     private void HandleGameWindowClose(WindowCloseEvent @event)
     {
         _isRunning = false;
+
+        // Detach all layers in reverse order (LIFO) to ensure proper cleanup
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
+        {
+            try
+            {
+                _layersStack[index].OnDetach();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Error detaching layer {_layersStack[index].GetType().Name}");
+            }
+        }
+
+        _layersStack.Clear();
     }
 }
