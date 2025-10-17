@@ -1,11 +1,14 @@
 using System.Text;
 using Engine.Audio;
+using NLog;
 
 namespace Engine.Platform.SilkNet.Audio.Loaders;
 
 public class WavLoader : IAudioLoader
-    {
-        public bool CanLoad(string path)
+{
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
+    public bool CanLoad(string path)
         {
             return Path.GetExtension(path).ToLowerInvariant() == ".wav";
         }
@@ -91,8 +94,9 @@ public class WavLoader : IAudioLoader
                 bitsPerSample = 16;
             }
 
-            Console.WriteLine($"Załadowano WAV: {path}");
-            Console.WriteLine($"  - Kanały: {channels}, Sample Rate: {sampleRate} Hz, Original: {originalBitsPerSample}bit -> 16bit");
+            Logger.Debug("Załadowano WAV: {Path}", path);
+            Logger.Debug("  - Kanały: {Channels}, Sample Rate: {SampleRate} Hz, Original: {OriginalBits}bit -> 16bit", 
+                channels, sampleRate, originalBitsPerSample);
 
             return new AudioData(audioData, (int)sampleRate, channels, bitsPerSample, AudioFormat.WAV);
         }
