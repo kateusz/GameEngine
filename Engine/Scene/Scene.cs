@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Numerics;
 using Box2D.NetStandard.Collision.Shapes;
 using Box2D.NetStandard.Dynamics.Bodies;
@@ -29,10 +28,15 @@ public class Scene
     public Scene(string path)
     {
         _path = path;
-        Context.Instance.Entities.Clear();
+        // Clear will be handled via deferred commands
+        foreach (var entity in Context.Instance.Entities.ToList())
+        {
+            Context.Instance.Remove(entity);
+        }
+        Context.Instance.ProcessDeferredCommands();
     }
 
-    public ConcurrentBag<Entity> Entities => Context.Instance.Entities;
+    public IReadOnlyList<Entity> Entities => Context.Instance.Entities;
 
     public Entity CreateEntity(string name)
     {
@@ -59,17 +63,8 @@ public class Scene
 
     public void DestroyEntity(Entity entity)
     {
-        var entitiesToKeep = new List<Entity>();
-        foreach (var existingEntity in Entities)
-        {
-            if (existingEntity.Id != entity.Id)
-            {
-                entitiesToKeep.Add(existingEntity);
-            }
-        }
-
-        var updated = new ConcurrentBag<Entity>(entitiesToKeep);
-        Context.Instance.Entities = updated;
+        Context.Instance.Remove(entity);
+        // Commands will be processed at a safe point in the frame
     }
 
     public void OnRuntimeStart()
@@ -169,6 +164,9 @@ public class Scene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
+        // Process any pending entity additions/removals from previous frame
+        Context.Instance.ProcessDeferredCommands();
+
         // Update scripts (existing code)
         ScriptEngine.Instance.OnUpdate(ts);
 
@@ -296,6 +294,9 @@ public class Scene
 
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
+        // Process any pending entity additions/removals from previous frame
+        Context.Instance.ProcessDeferredCommands();
+
         //TODO: temp disable 3D
         /*
         var baseCamera = camera;
