@@ -69,9 +69,26 @@ public class SceneSerializer : ISceneSerializer
 
     public void Deserialize(Scene scene, string path)
     {
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Scene file not found: {path}");
+
         var json = File.ReadAllText(path);
-        var jsonObj = JsonNode.Parse(json)?.AsObject() ??
-                      throw new InvalidSceneJsonException("Got null JSON Object from JSON");
+
+        if (string.IsNullOrWhiteSpace(json))
+            throw new InvalidSceneJsonException("Scene file is empty or contains only whitespace");
+
+        JsonNode? parsedNode;
+        try
+        {
+            parsedNode = JsonNode.Parse(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidSceneJsonException($"Invalid JSON format: {ex.Message}", ex);
+        }
+
+        var jsonObj = parsedNode?.AsObject() ??
+                      throw new InvalidSceneJsonException("Invalid JSON format - could not parse as JSON object");
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
 
@@ -86,7 +103,11 @@ public class SceneSerializer : ISceneSerializer
 
     private JsonArray GetJsonArray(JsonNode jsonObject, string key)
     {
-        return jsonObject[key] as JsonArray ?? throw new InvalidSceneJsonException($"Got invalid {key} JSON");
+        if (!jsonObject.AsObject().ContainsKey(key))
+            throw new InvalidSceneJsonException($"Missing required '{key}' key in JSON");
+        
+        return jsonObject[key] as JsonArray ?? 
+               throw new InvalidSceneJsonException($"'{key}' must be a JSON array");
     }
 
     private Entity DeserializeEntity(JsonObject entityObj)
