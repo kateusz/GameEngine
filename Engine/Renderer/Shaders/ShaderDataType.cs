@@ -13,17 +13,17 @@ public static class ShaderDataTypeExtensions
     {
         return type switch
         {
-            ShaderDataType.Float => 4,
-            ShaderDataType.Float2 => 4 * 2,
-            ShaderDataType.Float3 => 4 * 3,
-            ShaderDataType.Float4 => 4 * 4,
-            ShaderDataType.Mat3 => 4 * 3 * 3,
-            ShaderDataType.Mat4 => 4 * 4 * 4,
-            ShaderDataType.Int => 4,
-            ShaderDataType.Int2 => 4 * 2,
-            ShaderDataType.Int3 => 4 * 3,
-            ShaderDataType.Int4 => 4 * 4,
-            ShaderDataType.Bool => 1,
+            ShaderDataType.Float => RenderingConstants.FloatSize,
+            ShaderDataType.Float2 => RenderingConstants.FloatSize * 2,
+            ShaderDataType.Float3 => RenderingConstants.FloatSize * 3,
+            ShaderDataType.Float4 => RenderingConstants.FloatSize * 4,
+            ShaderDataType.Mat3 => RenderingConstants.FloatSize * 3 * 3,
+            ShaderDataType.Mat4 => RenderingConstants.FloatSize * 4 * 4,
+            ShaderDataType.Int => RenderingConstants.IntSize,
+            ShaderDataType.Int2 => RenderingConstants.IntSize * 2,
+            ShaderDataType.Int3 => RenderingConstants.IntSize * 3,
+            ShaderDataType.Int4 => RenderingConstants.IntSize * 4,
+            ShaderDataType.Bool => RenderingConstants.BoolSize,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

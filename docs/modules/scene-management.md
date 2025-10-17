@@ -308,9 +308,12 @@ flowchart LR
    - Texture paths are loaded into actual texture resources
    - Script types are looked up and instantiated
    - Script field values are restored via reflection
-   - The fully reconstructed entity is added to the scene
+   - The fully reconstructed entity is added to the scene via `AddEntity()`
+   - The Scene tracks the maximum entity ID to ensure new entities get higher IDs
    - Entity is registered in the global context for querying
 5. The scene is now populated and ready for use
+
+**ID Continuity**: When entities are loaded from a saved scene, the `AddEntity()` method tracks the highest entity ID encountered. This ensures that any new entities created after loading will receive IDs greater than all existing entities, preventing ID collisions and maintaining uniqueness.
 
 ## Lifecycle & Timing
 

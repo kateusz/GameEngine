@@ -8,12 +8,10 @@ namespace Engine.Renderer;
 
 public class Renderer2DData
 {
-    private const int MaxQuads = 10000;  // Industry standard for 2D batch renderers
-
-    public const int MaxVertices = MaxQuads * 4; // 4 vertex per quad
-    public const int MaxIndices = MaxQuads * 6; // 6 indices oer quad
-    public const int MaxTextureSlots = 16;
-    public const float LineWidth = 1.0f;
+    public const int MaxVertices = RenderingConstants.MaxVertices;
+    public const int MaxIndices = RenderingConstants.MaxIndices;
+    public const int MaxTextureSlots = RenderingConstants.MaxTextureSlots;
+    public const float LineWidth = RenderingConstants.DefaultLineWidth;
 
     public IVertexArray QuadVertexArray { get; set; }
     public IVertexBuffer QuadVertexBuffer { get; set; }
@@ -22,7 +20,7 @@ public class Renderer2DData
     public QuadVertex[] QuadVertexBufferBase = new QuadVertex[MaxVertices];
     public int CurrentVertexBufferIndex { get; set; }
     public uint QuadIndexBufferCount { get; set; }
-    public readonly Vector4[] QuadVertexPositions = new Vector4[4];
+    public readonly Vector4[] QuadVertexPositions = new Vector4[RenderingConstants.QuadVertexCount];
 
     public IVertexArray LineVertexArray { get; set; }
     public IVertexBuffer LineVertexBuffer { get; set; }

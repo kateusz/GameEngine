@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Engine.Scene.Components;
 using ImGuiNET;
+using Editor.UI;
 
 namespace Editor.Panels.ComponentEditors;
 
@@ -46,7 +47,7 @@ public class ComponentEditorRegistry
         {
             Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
 
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
             float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
             ImGui.Separator();
 

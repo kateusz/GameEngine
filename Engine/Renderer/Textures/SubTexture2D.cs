@@ -5,7 +5,7 @@ namespace Engine.Renderer.Textures;
 public record SubTexture2D
 {
     public Texture2D Texture { get; }
-    public Vector2[] TexCoords { get; } = new Vector2[4];
+    public Vector2[] TexCoords { get; } = new Vector2[RenderingConstants.QuadVertexCount];
 
     public SubTexture2D(Texture2D texture, Vector2 min, Vector2 max)
     {

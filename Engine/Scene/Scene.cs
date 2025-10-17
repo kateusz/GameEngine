@@ -22,6 +22,7 @@ public class Scene
     private uint _viewportHeight;
     private World _physicsWorld;
     private SceneContactListener _contactListener;
+    private int _nextEntityId = 1;
 
     private readonly bool _showPhysicsDebug = true;
     
@@ -41,17 +42,24 @@ public class Scene
 
     public Entity CreateEntity(string name)
     {
-        Random random = new Random();
-        var randomNumber = random.Next(0, 10001);
-
-        var entity = Entity.Create(randomNumber, name);
+        var entity = Entity.Create(_nextEntityId++, name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
 
         return entity;
     }
 
-    public void AddEntity(Entity entity) => Context.Instance.Register(entity);
+    public void AddEntity(Entity entity)
+    {
+        if (entity.Id <= 0)
+            throw new ArgumentException($"Entity ID must be positive, got {entity.Id}", nameof(entity));
+        
+        // Track highest ID when adding existing entities (e.g., from deserialization)
+        if (entity.Id >= _nextEntityId)
+            _nextEntityId = entity.Id + 1;
+            
+        Context.Instance.Register(entity);
+    }
 
     private void OnComponentAdded(IComponent component)
     {
@@ -79,8 +87,8 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-        _physicsWorld = new World(new Vector2(0, 0)); //-0.81f
         _physicsAccumulator = 0.0f; // Reset accumulator for clean physics state
+        _physicsWorld = new World(new Vector2(0, -9.8f));
 
         _contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(_contactListener);
@@ -146,7 +154,7 @@ public class Scene
                 catch (Exception ex)
                 {
                     // Log but don't crash
-                    Console.WriteLine($"Error in script OnDestroy: {ex.Message}");
+                    Logger.Error(ex, "Error in script OnDestroy");
                 }
             }
         }

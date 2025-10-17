@@ -1,10 +1,13 @@
 using Engine.Audio;
+using NLog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioClip : IAudioClip
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
     private uint _bufferId;
     private bool _disposed = false;
 
@@ -53,11 +56,11 @@ public class SilkNetAudioClip : IAudioClip
             Duration = (float)DataSize / (SampleRate * bytesPerSample);
 
             IsLoaded = true;
-            Console.WriteLine($"Załadowano klip audio: {Path} ({Duration:F2}s)");
+            Logger.Info("Załadowano klip audio: {Path} ({Duration:F2}s)", Path, Duration);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd ładowania klipu audio {Path}: {ex.Message}");
+            Logger.Error(ex, "Błąd ładowania klipu audio {Path}", Path);
             throw;
         }
     }
@@ -80,11 +83,11 @@ public class SilkNetAudioClip : IAudioClip
             DataSize = 0;
             IsLoaded = false;
 
-            Console.WriteLine($"Zwolniono klip audio: {Path}");
+            Logger.Info("Zwolniono klip audio: {Path}", Path);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd zwalniania klipu audio {Path}: {ex.Message}");
+            Logger.Error(ex, "Błąd zwalniania klipu audio {Path}", Path);
         }
     }
 
@@ -103,15 +106,15 @@ public class SilkNetAudioClip : IAudioClip
             Channels = audioData.Channels;
             Format = audioData.Format;
         
-            Console.WriteLine($"Załadowano dane audio: {Path}");
-            Console.WriteLine($"  - Sample Rate: {SampleRate} Hz");
-            Console.WriteLine($"  - Kanały: {Channels}");
-            Console.WriteLine($"  - Rozmiar: {DataSize} bajtów");
-            Console.WriteLine($"  - Format: {Format}");
+            Logger.Debug("Załadowano dane audio: {Path}", Path);
+            Logger.Debug("  - Sample Rate: {SampleRate} Hz", SampleRate);
+            Logger.Debug("  - Kanały: {Channels}", Channels);
+            Logger.Debug("  - Rozmiar: {DataSize} bajtów", DataSize);
+            Logger.Debug("  - Format: {Format}", Format);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd ładowania pliku audio {Path}: {ex.Message}");
+            Logger.Error(ex, "Błąd ładowania pliku audio {Path}", Path);
             throw;
         }
     }
@@ -133,7 +136,7 @@ public class SilkNetAudioClip : IAudioClip
     {
         if (!_disposed && IsLoaded)
         {
-            Console.WriteLine($"Uwaga: AudioClip {Path} nie został prawidłowo zwolniony. Wywołaj Unload().");
+            Logger.Warn("Uwaga: AudioClip {Path} nie został prawidłowo zwolniony. Wywołaj Unload().", Path);
         }
     }
 }

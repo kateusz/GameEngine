@@ -86,7 +86,7 @@ public class ProjectManager : IProjectManager
 
             SetCurrentProject(projectDir);
 
-            Console.WriteLine($"🆕 Project '{projectName}' created at {projectDir}");
+            Logger.Info("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
             return true;
         }
         catch (Exception ex)
@@ -116,12 +116,12 @@ public class ProjectManager : IProjectManager
             // If /assets doesn’t exist, fallback to the root as assets path to keep old samples working.
             if (!Directory.Exists(Path.Combine(full, "assets")))
             {
-                Console.WriteLine("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
+                Logger.Warn("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
             }
 
             SetCurrentProject(full);
 
-            Console.WriteLine($"📂 Project opened: {full}");
+            Logger.Info("📂 Project opened: {ProjectPath}", full);
             return true;
         }
         catch (Exception ex)

@@ -171,7 +171,7 @@ public class Graphics2D : IGraphics2D
         if (_data.QuadIndexBufferCount >= Renderer2DData.MaxIndices)
             NextBatch();
 
-        const int quadVertexCount = 4;
+        const int quadVertexCount = RenderingConstants.QuadVertexCount;
 
         var textureIndex = 0.0f;
         if (texture is not null)
@@ -214,7 +214,7 @@ public class Graphics2D : IGraphics2D
             _data.CurrentVertexBufferIndex++;
         }
 
-        _data.QuadIndexBufferCount += 6;
+        _data.QuadIndexBufferCount += RenderingConstants.QuadIndexCount;
         _data.Stats.QuadCount++;
     }
     
@@ -269,8 +269,8 @@ public class Graphics2D : IGraphics2D
     
     public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId)
     {
-        Vector3[] lineVertices = new Vector3[4];
-        for (var i = 0; i < 4; i++)
+        Vector3[] lineVertices = new Vector3[RenderingConstants.QuadVertexCount];
+        for (var i = 0; i < RenderingConstants.QuadVertexCount; i++)
         {
             var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
                 _data.QuadVertexPositions[i].Z);
@@ -390,7 +390,7 @@ public class Graphics2D : IGraphics2D
     private void InitWhiteTexture()
     {
         _data.WhiteTexture = TextureFactory.Create(1, 1);
-        const uint whiteTextureData = 0xffffffff;
+        const uint whiteTextureData = RenderingConstants.WhiteTextureColor;
         _data.WhiteTexture.SetData(whiteTextureData, sizeof(uint));
         _data.TextureSlots[0] = _data.WhiteTexture;
     }
@@ -424,7 +424,7 @@ public class Graphics2D : IGraphics2D
         var quadIndices = new uint[Renderer2DData.MaxIndices];
 
         uint offset = 0;
-        for (uint i = 0; i < Renderer2DData.MaxIndices; i += 6)
+        for (uint i = 0; i < Renderer2DData.MaxIndices; i += RenderingConstants.QuadIndexCount)
         {
             // first triangle
             quadIndices[i + 0] = offset + 0;
@@ -436,7 +436,7 @@ public class Graphics2D : IGraphics2D
             quadIndices[i + 4] = offset + 3;
             quadIndices[i + 5] = offset + 0;
 
-            offset += 4;
+            offset += RenderingConstants.QuadVertexCount;
         }
 
         return quadIndices;
