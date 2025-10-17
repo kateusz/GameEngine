@@ -43,6 +43,9 @@ public class Scene
 
     public void AddEntity(Entity entity)
     {
+        if (entity.Id <= 0)
+            throw new ArgumentException($"Entity ID must be positive, got {entity.Id}", nameof(entity));
+        
         // Track highest ID when adding existing entities (e.g., from deserialization)
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
