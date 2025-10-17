@@ -22,7 +22,7 @@ The rendering workflow manages:
 
 **Batch Rendering**: Instead of issuing one draw call per sprite, the system accumulates multiple quads into large vertex buffers and submits them in batches. This dramatically reduces CPU-GPU communication overhead.
 
-**Texture Atlasing**: Up to 16 different textures can be bound simultaneously. The shader uses a texture index to sample from the correct texture slot, allowing diverse sprites to be rendered in a single draw call.
+**Texture Atlasing**: Up to 16 different textures can be bound simultaneously (configurable via `RenderingConstants.MaxTextureSlots`). The shader uses a texture index to sample from the correct texture slot, allowing diverse sprites to be rendered in a single draw call.
 
 **Dynamic Vertex Buffers**: Vertex data is built on the CPU each frame and uploaded to GPU memory before drawing. This supports fully dynamic scenes where every sprite can move, change color, or swap textures.
 
@@ -71,8 +71,8 @@ The system maintains two separate batches:
 
 **Quad Batch** (for filled rectangles and sprites):
 - Accumulates quad vertices with position, color, texture coordinates, texture index, tiling factor, and entity ID
-- Each quad requires 4 vertices and 6 indices (two triangles)
-- Maximum capacity: configured number of quads (e.g., 10,000 quads = 40,000 vertices)
+- Each quad requires `RenderingConstants.QuadVertexCount` (4) vertices and `RenderingConstants.QuadIndexCount` (6) indices (two triangles)
+- Maximum capacity: `RenderingConstants.DefaultMaxQuads` quads (10,000 by default = 40,000 vertices)
 
 **Line Batch** (for debug wireframes and primitive shapes):
 - Accumulates line vertices with position, color, and entity ID
@@ -145,7 +145,7 @@ flowchart TD
 
 ### 6. Texture Management
 
-The system maintains an array of texture slots (typically 16):
+The system maintains an array of texture slots (`RenderingConstants.MaxTextureSlots`, typically 16):
 
 **Slot 0**: Reserved for the default white texture (used for solid color quads)
 
@@ -337,16 +337,16 @@ Each vertex includes an entity ID attribute:
 
 The system automatically balances batch size with flush frequency:
 
-**Batch Size Limits**:
-- Maximum vertices per batch (e.g., 40,000)
-- Maximum indices per batch (e.g., 60,000)
-- Maximum texture slots (16)
+**Batch Size Limits** (defined in `RenderingConstants`):
+- Maximum vertices per batch: `RenderingConstants.MaxVertices` (40,000 by default)
+- Maximum indices per batch: `RenderingConstants.MaxIndices` (60,000 by default)
+- Maximum texture slots: `RenderingConstants.MaxTextureSlots` (16)
 
 **Automatic Flushing**:
 When any limit is reached, the current batch is submitted and a new one begins. This happens transparently to the application code.
 
 **Performance Tuning**:
-Increasing batch sizes reduces draw calls but increases memory usage and upload time. The current configuration is tuned for typical 2D game workloads.
+Increasing batch sizes (via `RenderingConstants.DefaultMaxQuads`) reduces draw calls but increases memory usage and upload time. The current configuration is tuned for typical 2D game workloads.
 
 ### Solid Color Optimization
 
