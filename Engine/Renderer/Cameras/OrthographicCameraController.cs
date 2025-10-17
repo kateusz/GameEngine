@@ -15,13 +15,13 @@ public class OrthographicCameraController
     private float _aspectRatio;
     private readonly bool _rotation;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraTranslationSpeed = 0.5f;
-    private float _cameraRotationSpeed = 10.0f;
+    private float _cameraTranslationSpeed = CameraConfig.DefaultTranslationSpeed;
+    private float _cameraRotationSpeed = CameraConfig.DefaultRotationSpeed;
     private float _cameraRotation;
-    private float _zoomLevel = 20.0f;
+    private float _zoomLevel = CameraConfig.DefaultZoomLevel;
     
     // Add a speed multiplier for better control
-    private float _speedMultiplier = 0.1f; // Adjust this to make camera slower/faster
+    private float _speedMultiplier = CameraConfig.DefaultSpeedMultiplier;
 
     // Thread-safe collection for tracking pressed keys (accessed from event thread and update thread)
     private readonly ConcurrentDictionary<KeyCodes, byte> _pressedKeys = new();
@@ -101,8 +101,9 @@ public class OrthographicCameraController
 
     private bool OnMouseScrolled(MouseScrolledEvent @event)
     {
-        _zoomLevel += @event.YOffset * 0.25f;  // Add delta, not replace
-        _zoomLevel = System.Math.Max(_zoomLevel, 0.25f);
+        _zoomLevel += @event.YOffset * CameraConfig.ZoomSensitivity;
+        _zoomLevel = System.Math.Max(_zoomLevel, CameraConfig.MinZoomLevel);
+        _zoomLevel = System.Math.Min(_zoomLevel, CameraConfig.MaxZoomLevel);
         Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
         return true;
     }
@@ -127,7 +128,7 @@ public class OrthographicCameraController
         if (float.IsNaN(_aspectRatio) || float.IsInfinity(_aspectRatio))
         {
             Logger.Warn("[Camera] Invalid aspect ratio calculated, using fallback");
-            _aspectRatio = 16.0f / 9.0f; // Fallback to common aspect ratio
+            _aspectRatio = CameraConfig.DefaultAspectRatio;
         }
 
         Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);

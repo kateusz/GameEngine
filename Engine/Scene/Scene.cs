@@ -176,7 +176,7 @@ public class Scene
         const int velocityIterations = 6;
         const int positionIterations = 2;
         var deltaSeconds = (float)ts.TotalSeconds;
-        deltaSeconds = 1.0f / 60.0f;
+        deltaSeconds = CameraConfig.PhysicsTimestep;
         _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
 
         // Retrieve transform from Box2D (existing code)

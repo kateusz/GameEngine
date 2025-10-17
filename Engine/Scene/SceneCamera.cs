@@ -18,7 +18,7 @@ public class SceneCamera : Camera
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
     
     private float _aspectRatio;
-    private Vector3 _cameraPosition = new(0.0f, 0.0f, 3.0f);
+    private Vector3 _cameraPosition = new(0.0f, 0.0f, CameraConfig.DefaultCameraZPosition);
     private Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
     private Vector3 _cameraUp = Vector3.UnitY;
     
@@ -36,9 +36,9 @@ public class SceneCamera : Camera
         }
     }
 
-    public float PerspectiveFOV { get; set; } = MathHelpers.DegreesToRadians(45.0f);
-    public float PerspectiveNear { get; set; } = 0.01f;
-    public float PerspectiveFar { get; set; } = 1000.0f;
+    public float PerspectiveFOV { get; set; } = MathHelpers.DegreesToRadians(CameraConfig.DefaultFOV);
+    public float PerspectiveNear { get; set; } = CameraConfig.DefaultPerspectiveNear;
+    public float PerspectiveFar { get; set; } = CameraConfig.DefaultPerspectiveFar;
 
     public SceneCamera() : base(Matrix4x4.Identity)
     {
@@ -49,8 +49,8 @@ public class SceneCamera : Camera
         }
         else if (OSInfo.IsMacOS)
         {
-            OrthographicNear = -1.0f;
-            OrthographicFar = 1.0f;
+            OrthographicNear = CameraConfig.DefaultOrthographicNear;
+            OrthographicFar = CameraConfig.DefaultOrthographicFar;
         }
 
         RecalculateProjection();
@@ -88,7 +88,7 @@ public class SceneCamera : Camera
         if (float.IsNaN(AspectRatio) || float.IsInfinity(AspectRatio))
         {
             Logger.Warn("[SceneCamera] Invalid aspect ratio, using 16:9");
-            AspectRatio = 16.0f / 9.0f;
+            AspectRatio = CameraConfig.DefaultAspectRatio;
         }
 
         RecalculateProjection();
