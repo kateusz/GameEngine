@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
+using NLog;
 
 namespace Editor;
 
@@ -18,39 +20,66 @@ public class RecentProject
 /// </summary>
 public class EditorPreferences
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+
+    public int Version { get; set; } = 1;
     public List<RecentProject> RecentProjects { get; set; } = new();
     public const int MaxRecentProjects = 10;
 
-    private static readonly string PreferencesPath = 
+    private static readonly string PreferencesPath =
         System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "GameEngine",
             "editor-preferences.json"
         );
 
+    private static readonly StringComparison PathComparison =
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+    private readonly object _lock = new();
+    private readonly SemaphoreSlim _saveSemaphore = new(1, 1);
+    private CancellationTokenSource? _pendingSaveCts;
+
     /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.
     /// </summary>
+    /// <param name="path">Absolute path to the project directory.</param>
+    /// <param name="name">Display name of the project.</param>
     public void AddRecentProject(string path, string name)
     {
-        // Remove existing entry if present
-        var existing = RecentProjects.FirstOrDefault(p => p.Path == path);
-        if (existing != null)
-            RecentProjects.Remove(existing);
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Path cannot be null or whitespace", nameof(path));
 
-        // Add to front of list
-        RecentProjects.Insert(0, new RecentProject
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name cannot be null or whitespace", nameof(name));
+
+        lock (_lock)
         {
-            Path = path,
-            Name = name,
-            LastOpened = DateTime.Now
-        });
+            // Normalize path to prevent duplicates
+            path = System.IO.Path.GetFullPath(path);
 
-        // Trim to max size
-        if (RecentProjects.Count > MaxRecentProjects)
-            RecentProjects.RemoveRange(MaxRecentProjects, 
-                                      RecentProjects.Count - MaxRecentProjects);
+            // Remove existing entry if present
+            var existing = RecentProjects.FirstOrDefault(p =>
+                string.Equals(p.Path, path, PathComparison));
+            if (existing != null)
+                RecentProjects.Remove(existing);
+
+            // Add to front of list
+            RecentProjects.Insert(0, new RecentProject
+            {
+                Path = path,
+                Name = name,
+                LastOpened = DateTime.UtcNow
+            });
+
+            // Trim to max size
+            if (RecentProjects.Count > MaxRecentProjects)
+                RecentProjects.RemoveRange(MaxRecentProjects,
+                                          RecentProjects.Count - MaxRecentProjects);
+        }
 
         Save();
     }
@@ -59,32 +88,94 @@ public class EditorPreferences
     /// Removes a project from the recent projects list (e.g., if deleted or invalid).
     /// Automatically saves preferences after update.
     /// </summary>
+    /// <param name="path">Absolute path to the project directory.</param>
     public void RemoveRecentProject(string path)
     {
-        RecentProjects.RemoveAll(p => p.Path == path);
+        lock (_lock)
+        {
+            path = System.IO.Path.GetFullPath(path);
+            RecentProjects.RemoveAll(p =>
+                string.Equals(p.Path, path, PathComparison));
+        }
         Save();
     }
 
     /// <summary>
-    /// Saves preferences to disk in JSON format.
+    /// Gets a thread-safe snapshot of the recent projects list.
+    /// </summary>
+    /// <returns>A read-only copy of the recent projects list.</returns>
+    public IReadOnlyList<RecentProject> GetRecentProjects()
+    {
+        lock (_lock)
+        {
+            return RecentProjects.ToList();
+        }
+    }
+
+    /// <summary>
+    /// Clears all recent projects from the list.
+    /// Automatically saves preferences after update.
+    /// </summary>
+    public void ClearRecentProjects()
+    {
+        lock (_lock)
+        {
+            RecentProjects.Clear();
+        }
+        Save();
+    }
+
+    /// <summary>
+    /// Saves preferences to disk in JSON format asynchronously.
+    /// Debounces rapid save calls to avoid excessive I/O.
     /// </summary>
     public void Save()
     {
+        // Cancel any pending save and schedule a new one
+        _pendingSaveCts?.Cancel();
+        _pendingSaveCts = new CancellationTokenSource();
+        _ = SaveAsync(_pendingSaveCts.Token);
+    }
+
+    private async Task SaveAsync(CancellationToken ct)
+    {
         try
         {
-            var directory = System.IO.Path.GetDirectoryName(PreferencesPath);
-            if (!Directory.Exists(directory))
-                Directory.CreateDirectory(directory!);
+            // Debounce rapid saves
+            await Task.Delay(100, ct).ConfigureAwait(false);
+            if (ct.IsCancellationRequested) return;
 
-            var json = JsonSerializer.Serialize(this, new JsonSerializerOptions 
-            { 
-                WriteIndented = true 
-            });
-            File.WriteAllText(PreferencesPath, json);
+            await _saveSemaphore.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                string json;
+                lock (_lock)
+                {
+                    json = JsonSerializer.Serialize(this, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                }
+
+                var directory = System.IO.Path.GetDirectoryName(PreferencesPath);
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory!);
+
+                await File.WriteAllTextAsync(PreferencesPath, json, ct).ConfigureAwait(false);
+                Logger.Debug("Editor preferences saved to {Path}", PreferencesPath);
+            }
+            finally
+            {
+                _saveSemaphore.Release();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when debouncing, no action needed
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to save editor preferences: {ex.Message}");
+            Logger.Error(ex, "Failed to save editor preferences to {Path}", PreferencesPath);
         }
     }
 
@@ -98,13 +189,47 @@ public class EditorPreferences
             if (File.Exists(PreferencesPath))
             {
                 var json = File.ReadAllText(PreferencesPath);
-                return JsonSerializer.Deserialize<EditorPreferences>(json) 
-                       ?? new EditorPreferences();
+                var prefs = JsonSerializer.Deserialize<EditorPreferences>(json);
+
+                if (prefs == null)
+                {
+                    Logger.Warn("Failed to deserialize preferences, using defaults");
+                    return new EditorPreferences();
+                }
+
+                // Version migration logic can be added here if needed in the future
+                if (prefs.Version < 1)
+                {
+                    Logger.Info("Migrating preferences from version {Old} to {New}",
+                        prefs.Version, 1);
+                    // Perform migration if needed
+                }
+
+                Logger.Info("Editor preferences loaded from {Path}", PreferencesPath);
+                return prefs;
+            }
+            else
+            {
+                Logger.Info("No preferences file found, using defaults");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Logger.Error(ex, "Corrupted preferences file, resetting to defaults");
+            // Optionally backup corrupted file
+            try
+            {
+                File.Move(PreferencesPath, PreferencesPath + ".corrupted");
+                Logger.Info("Corrupted preferences backed up to {Path}", PreferencesPath + ".corrupted");
+            }
+            catch
+            {
+                // Ignore backup failure
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to load editor preferences: {ex.Message}");
+            Logger.Error(ex, "Failed to load editor preferences from {Path}", PreferencesPath);
         }
 
         return new EditorPreferences();

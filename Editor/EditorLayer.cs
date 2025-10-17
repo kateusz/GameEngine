@@ -50,6 +50,12 @@ public class EditorLayer : ILayer
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
+    /// <summary>
+    /// Initializes a new instance of the EditorLayer.
+    /// </summary>
+    /// <param name="sceneSerializer">Scene serializer for saving/loading scenes.</param>
+    /// <param name="projectManager">Project manager for handling project operations.</param>
+    /// <param name="editorPreferences">Editor preferences for accessing recent projects and settings.</param>
     public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences)
     {
         _sceneSerializer = sceneSerializer;
@@ -299,8 +305,8 @@ public class EditorLayer : ILayer
                     // Add Recent Projects submenu
                     if (ImGui.BeginMenu("Recent Projects"))
                     {
-                        var recentProjects = _editorPreferences.RecentProjects;
-                        
+                        var recentProjects = _editorPreferences.GetRecentProjects();
+
                         if (recentProjects.Count == 0)
                         {
                             ImGui.MenuItem("(No recent projects)", false);
@@ -314,10 +320,10 @@ public class EditorLayer : ILayer
                                 {
                                     if (!_projectManager.TryOpenProject(recent.Path, out var error))
                                     {
-                                        Console.WriteLine($"Failed to open recent project: {error}");
+                                        Logger.Warn("Failed to open recent project {Path}: {Error}", recent.Path, error);
                                     }
                                 }
-                                
+
                                 // Show tooltip with full path
                                 if (ImGui.IsItemHovered())
                                 {
@@ -327,15 +333,14 @@ public class EditorLayer : ILayer
                                     ImGui.EndTooltip();
                                 }
                             }
-                            
+
                             ImGui.Separator();
                             if (ImGui.MenuItem("Clear Recent Projects"))
                             {
-                                _editorPreferences.RecentProjects.Clear();
-                                _editorPreferences.Save();
+                                _editorPreferences.ClearRecentProjects();
                             }
                         }
-                        
+
                         ImGui.EndMenu();
                     }
 
