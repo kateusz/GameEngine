@@ -116,11 +116,4 @@ public static class CameraConfig
     /// Positioned 3 units back from origin to have a good view of the scene.
     /// </summary>
     public const float DefaultCameraZPosition = 3.0f;
-
-    // Physics simulation
-    /// <summary>
-    /// Target physics timestep in seconds (60 FPS).
-    /// Used for fixed timestep physics simulation.
-    /// </summary>
-    public const float PhysicsTimestep = 1.0f / 60.0f;
 }
