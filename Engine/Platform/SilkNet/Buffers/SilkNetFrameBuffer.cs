@@ -80,10 +80,10 @@ public class SilkNetFrameBuffer : FrameBuffer
         }
 
         // Must bind framebuffer before reading
-        var previousFBO = SilkNetContext.GL.GetInteger(GLEnum.DrawFramebufferBinding);
+        var previousFBO = SilkNetContext.GL.GetInteger(GLEnum.ReadFramebufferBinding);
         if (previousFBO != (int)_rendererId)
         {
-            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _rendererId);
         }
 
         unsafe
@@ -92,10 +92,18 @@ public class SilkNetFrameBuffer : FrameBuffer
             int redValue = 0;
             SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, PixelType.Int, &redValue);
 
+#if DEBUG
+            var error = SilkNetContext.GL.GetError();
+            if (error != GLEnum.NoError)
+            {
+                Debug.WriteLine($"Warning: ReadPixels failed with OpenGL error: {error}");
+            }
+#endif
+
             // Restore previous binding
             if (previousFBO != (int)_rendererId)
             {
-                SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)previousFBO);
+                SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)previousFBO);
             }
 
             return redValue;
