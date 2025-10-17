@@ -11,18 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor", "Editor\Editor.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECS", "ECS\ECS.csproj", "{F54D6FA1-9938-4CBB-87BF-139CA184C16E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "games scripts", "games scripts", "{38442433-E8CD-406D-95D0-34193C3FED30}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PingPong", "PingPong", "{D452FF13-0617-465B-A066-DB38B6EEFC58}"
-	ProjectSection(SolutionItems) = preProject
-		games scripts\PingPong\ScoreDisplay.cs = games scripts\PingPong\ScoreDisplay.cs
-		games scripts\PingPong\PingPongGameManager.cs = games scripts\PingPong\PingPongGameManager.cs
-		games scripts\PingPong\PaddleController.cs = games scripts\PingPong\PaddleController.cs
-		games scripts\PingPong\BallController.cs = games scripts\PingPong\BallController.cs
-		games scripts\PingPong\AIController.cs = games scripts\PingPong\AIController.cs
-		games scripts\PingPong\BallDebugger.cs = games scripts\PingPong\BallDebugger.cs
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Runtime", "Runtime\Runtime.csproj", "{8B8D8D73-58E3-4EFE-B546-CE563A3EBAD3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark", "Benchmark\Benchmark.csproj", "{08F173A1-0123-4CCA-86F3-E22394B28788}"
@@ -128,6 +116,5 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{D452FF13-0617-465B-A066-DB38B6EEFC58} = {38442433-E8CD-406D-95D0-34193C3FED30}
 	EndGlobalSection
 EndGlobal
