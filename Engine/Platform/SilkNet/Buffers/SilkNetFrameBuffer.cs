@@ -48,14 +48,12 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     ~SilkNetFrameBuffer()
     {
+        // IMPORTANT: Never throw exceptions in finalizers - they run on the GC thread
+        // and throwing will terminate the entire process. OpenGL context may not even
+        // be valid during finalization, so we skip error checking here.
         SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
-        GLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffers (destructor)");
-        
         SilkNetContext.GL.DeleteTextures(_colorAttachments);
-        GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures color (destructor)");
-        
         SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
-        GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures depth (destructor)");
 
         Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
         _depthAttachment = 0;
@@ -95,12 +93,8 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     public override void ClearAttachment(int attachmentIndex, int value)
     {
-        unsafe
-        {
-            var spec = _colorAttachmentSpecs[attachmentIndex];
-            SilkNetContext.GL.ClearBuffer (BufferKind.Color,attachmentIndex, value);
-            GLDebug.CheckError(SilkNetContext.GL, "ClearBuffer");
-        }
+        SilkNetContext.GL.ClearBuffer(BufferKind.Color, attachmentIndex, value);
+        GLDebug.CheckError(SilkNetContext.GL, "ClearBuffer");
     }
     
     public override void Bind()
@@ -172,7 +166,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         {
             // Handle draw buffers
             case > 4:
-                throw new Exception("Too many color attachments!");
+                throw new InvalidOperationException($"Too many color attachments! Maximum is 4, but {_colorAttachments.Length} were specified.");
             case >= 1:
             {
                 DrawBufferMode[] drawBuffers = new DrawBufferMode[4];
@@ -192,9 +186,12 @@ public class SilkNetFrameBuffer : FrameBuffer
                 break;
         }
 
-        if (SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
+        var status = SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        GLDebug.CheckError(SilkNetContext.GL, "CheckFramebufferStatus");
+
+        if (status != GLEnum.FramebufferComplete)
         {
-            throw new Exception("Framebuffer is not complete!");
+            throw new InvalidOperationException($"Framebuffer is not complete! Status: {status} (0x{(int)status:X})");
         }
     }
 
