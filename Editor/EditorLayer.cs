@@ -47,7 +47,7 @@ public class EditorLayer : ILayer
     private EditorSettingsUI _editorSettingsUI;
     
     private readonly ISceneSerializer  _sceneSerializer;
-
+    
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 

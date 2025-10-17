@@ -41,6 +41,10 @@ public class ProjectManager : IProjectManager
         Path.Combine("assets", "prefabs")
     ];
 
+    /// <summary>
+    /// Initializes a new instance of the ProjectManager.
+    /// </summary>
+    /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
     public ProjectManager(EditorPreferences editorPreferences)
     {
         _editorPreferences = editorPreferences;
