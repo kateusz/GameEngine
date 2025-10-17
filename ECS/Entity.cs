@@ -1,6 +1,11 @@
 namespace ECS;
 
-public class Entity
+/// <summary>
+/// Represents an entity in the Entity Component System.
+/// Entities are uniquely identified by their Id property.
+/// Equality comparisons are based solely on the immutable Id to ensure stable behavior in collections.
+/// </summary>
+public class Entity : IEquatable<Entity>
 {
     private readonly Dictionary<Type, IComponent> _components = new();
     
@@ -52,19 +57,58 @@ public class Entity
         return true;
     }
 
+    /// <summary>
+    /// Determines whether the specified object is an Entity with the same Id.
+    /// </summary>
+    /// <param name="obj">The object to compare with the current entity.</param>
+    /// <returns>true if the specified object is an Entity with the same Id; otherwise, false.</returns>
     public override bool Equals(object? obj)
     {
-        return Id == ((Entity)obj).Id;
+        return obj is Entity other && Id == other.Id;
     }
 
-    protected bool Equals(Entity other)
+    /// <summary>
+    /// Determines whether the specified entity has the same Id as the current entity.
+    /// </summary>
+    /// <param name="other">The entity to compare with the current entity.</param>
+    /// <returns>true if the specified entity has the same Id; otherwise, false.</returns>
+    public bool Equals(Entity? other)
     {
-        return _components.Equals(other._components) && Id.Equals(other.Id) && Name == other.Name;
+        return other is not null && Id == other.Id;
     }
 
+    /// <summary>
+    /// Returns a hash code for this entity based on its immutable Id.
+    /// The hash code remains stable throughout the entity's lifetime.
+    /// </summary>
+    /// <returns>A hash code for the current entity.</returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(_components, Id, Name);
+        return Id.GetHashCode();
+    }
+
+    /// <summary>
+    /// Determines whether two entities are equal based on their Id.
+    /// </summary>
+    /// <param name="left">The first entity to compare.</param>
+    /// <param name="right">The second entity to compare.</param>
+    /// <returns>true if both entities have the same Id; otherwise, false.</returns>
+    public static bool operator ==(Entity? left, Entity? right)
+    {
+        if (ReferenceEquals(left, right)) return true;
+        if (left is null || right is null) return false;
+        return left.Equals(right);
+    }
+
+    /// <summary>
+    /// Determines whether two entities are not equal based on their Id.
+    /// </summary>
+    /// <param name="left">The first entity to compare.</param>
+    /// <param name="right">The second entity to compare.</param>
+    /// <returns>true if both entities have different Ids; otherwise, false.</returns>
+    public static bool operator !=(Entity? left, Entity? right)
+    {
+        return !(left == right);
     }
 
     public static Entity Create(int id, string name)
