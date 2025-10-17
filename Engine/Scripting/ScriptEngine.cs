@@ -269,25 +269,25 @@ public class ScriptEngine
     // Enhanced debugging information
     public void PrintDebugInfo()
     {
-        Console.WriteLine("=== SCRIPT ENGINE DEBUG INFO ===");
-        Console.WriteLine($"Debug Mode: {_debugMode}");
-        Console.WriteLine($"Scripts Directory: {_scriptsDirectory}");
-        Console.WriteLine($"Loaded Scripts: {_scriptTypes.Count}");
+        Logger.Debug("=== SCRIPT ENGINE DEBUG INFO ===");
+        Logger.Debug("Debug Mode: {DebugMode}", _debugMode);
+        Logger.Debug("Scripts Directory: {ScriptsDirectory}", _scriptsDirectory);
+        Logger.Debug("Loaded Scripts: {ScriptCount}", _scriptTypes.Count);
         
         foreach (var (name, type) in _scriptTypes)
         {
-            Console.WriteLine($"  - {name}: {type.FullName}");
+            Logger.Debug("  - {ScriptName}: {TypeFullName}", name, type.FullName);
         }
         
-        Console.WriteLine($"Debug Symbols Available: {_debugSymbols.Count > 0}");
+        Logger.Debug("Debug Symbols Available: {DebugSymbolsAvailable}", _debugSymbols.Count > 0);
         
         if (_dynamicAssembly != null)
         {
-            Console.WriteLine($"Assembly Location: {_dynamicAssembly.Location}");
-            Console.WriteLine($"Assembly Full Name: {_dynamicAssembly.FullName}");
+            Logger.Debug("Assembly Location: {AssemblyLocation}", _dynamicAssembly.Location);
+            Logger.Debug("Assembly Full Name: {AssemblyFullName}", _dynamicAssembly.FullName);
         }
         
-        Console.WriteLine("================================");
+        Logger.Debug("================================");
     }
 
     // Force recompile method for hot reload
@@ -324,12 +324,11 @@ public class ScriptEngine
                     encoding: System.Text.Encoding.UTF8); // FIXED: Add encoding for debug symbols
                     
                 syntaxTrees.Add(syntaxTree);
-                Console.WriteLine($"✅ Loaded script: {scriptName} with encoding: UTF-8");
+                Logger.Debug("✅ Loaded script: {ScriptName} with encoding: UTF-8", scriptName);
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Failed to load script: {scriptName}");
-                Console.WriteLine($"❌ Failed to load script: {scriptName} - {ex.Message}");
+                Logger.Error(ex, "Failed to load script: {ScriptName}", scriptName);
             }
         }
             
@@ -448,7 +447,7 @@ public class ScriptEngine
             
             // CHECK DIAGNOSTICS BEFORE EMITTING - This is crucial!
             var preEmitDiagnostics = compilation.GetDiagnostics();
-            Console.WriteLine($"=== PRE-EMIT DIAGNOSTICS ({preEmitDiagnostics.Length}) ===");
+            Logger.Debug("=== PRE-EMIT DIAGNOSTICS ({DiagnosticsCount}) ===", preEmitDiagnostics.Length);
         
             var errorDiagnostics = preEmitDiagnostics
                 .AsValueEnumerable()
@@ -456,12 +455,12 @@ public class ScriptEngine
             
             if (errorDiagnostics.Length > 0)
             {
-                Console.WriteLine("❌ COMPILATION ERRORS DETECTED:");
+                Logger.Error("❌ COMPILATION ERRORS DETECTED:");
                 foreach (var diagnostic in errorDiagnostics)
                 {
-                    Console.WriteLine($"ERROR: {diagnostic.GetMessage()}");
-                    Console.WriteLine($"  Location: {diagnostic.Location}");
-                    Console.WriteLine($"  Id: {diagnostic.Id}");
+                    Logger.Error("ERROR: {Message}", diagnostic.GetMessage());
+                    Logger.Error("  Location: {Location}", diagnostic.Location);
+                    Logger.Error("  Id: {DiagnosticId}", diagnostic.Id);
                 }
                 
                 var errors = errorDiagnostics.Select(d => d.GetMessage()).ToArray();
@@ -470,13 +469,13 @@ public class ScriptEngine
             
             foreach (var diagnostic in preEmitDiagnostics)
             {
-                Console.WriteLine($"{diagnostic.Severity}: {diagnostic.GetMessage()}");
+                Logger.Debug("{Severity}: {Message}", diagnostic.Severity, diagnostic.GetMessage());
                 if (diagnostic.Location != Location.None)
                 {
-                    Console.WriteLine($"  Location: {diagnostic.Location}");
+                    Logger.Debug("  Location: {Location}", diagnostic.Location);
                 }
-                Console.WriteLine($"  Id: {diagnostic.Id}");
-                Console.WriteLine();
+                Logger.Debug("  Id: {DiagnosticId}", diagnostic.Id);
+                Logger.Debug("");
             }
             
             // Configure emit options for debugging
@@ -493,14 +492,14 @@ public class ScriptEngine
                 pdbStream: symbolsStream,
                 options: emitOptions);
             
-            Console.WriteLine($"=== EMIT RESULT: {emitResult.Success} ===");
+            Logger.Debug("=== EMIT RESULT: {EmitSuccess} ===", emitResult.Success);
         
             if (!emitResult.Success)
             {
-                Console.WriteLine("=== EMIT DIAGNOSTICS ===");
+                Logger.Error("=== EMIT DIAGNOSTICS ===");
                 foreach (var diagnostic in emitResult.Diagnostics)
                 {
-                    Console.WriteLine($"{diagnostic.Severity}: {diagnostic.GetMessage()}");
+                    Logger.Error("{Severity}: {Message}", diagnostic.Severity, diagnostic.GetMessage());
                 }
                 
                 var errors = emitResult.Diagnostics
@@ -561,7 +560,7 @@ public class ScriptEngine
             }
         }
         
-        Console.WriteLine($"=== REFERENCE VALIDATION ({referenceNames.Count} references) ===");
+        Logger.Debug("=== REFERENCE VALIDATION ({ReferenceCount} references) ===", referenceNames.Count);
         
         // Check for required assemblies
         var requiredAssemblies = new[]
@@ -576,12 +575,12 @@ public class ScriptEngine
         {
             if (referenceNames.Contains(required))
             {
-                Console.WriteLine($"✅ Required assembly found: {required}");
+                Logger.Debug("✅ Required assembly found: {AssemblyName}", required);
             }
             else
             {
                 var error = $"❌ MISSING REQUIRED ASSEMBLY: {required}";
-                Console.WriteLine(error);
+                Logger.Error(error);
                 errors.Add($"Missing required assembly: {required}");
             }
         }
@@ -593,14 +592,14 @@ public class ScriptEngine
             .AsValueEnumerable()
             .Where(name => engineAssemblies.Any(name.StartsWith)).ToArray();
             
-        Console.WriteLine($"Engine assemblies found: {string.Join(", ", foundEngineAssemblies)}");
+        Logger.Debug("Engine assemblies found: {EngineAssemblies}", string.Join(", ", foundEngineAssemblies));
         
         if (!foundEngineAssemblies.Any(name => name == "ECS"))
         {
             errors.Add("ECS assembly is required but not found. Scripts cannot access Entity class without it.");
         }
         
-        Console.WriteLine($"=== VALIDATION RESULT: {(errors.Count == 0 ? "SUCCESS" : "FAILED")} ===");
+        Logger.Debug("=== VALIDATION RESULT: {ValidationResult} ===", errors.Count == 0 ? "SUCCESS" : "FAILED");
         
         return (errors.Count == 0, errors.ToArray());
     }
@@ -624,13 +623,13 @@ public class ScriptEngine
 
     private MetadataReference[] GetReferencesFromRuntimeDirectory()
     {
-        Console.WriteLine("=== LOADING REFERENCES FOR SCRIPT COMPILATION ===");
+        Logger.Debug("=== LOADING REFERENCES FOR SCRIPT COMPILATION ===");
         var references = new List<MetadataReference>();
         
         try
         {
             var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
-            Console.WriteLine($"Runtime directory: {runtimeDir}");
+            Logger.Debug("Runtime directory: {RuntimeDir}", runtimeDir);
             
             // Essential .NET 8 assemblies
             var essentialAssemblies = new[]
@@ -655,16 +654,16 @@ public class ScriptEngine
                     try
                     {
                         references.Add(MetadataReference.CreateFromFile(path));
-                        Console.WriteLine($"✅ Added .NET: {assemblyName}");
+                        Logger.Debug("✅ Added .NET: {AssemblyName}", assemblyName);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"❌ Error adding {assemblyName}: {ex.Message}");
+                        Logger.Warn(ex, "❌ Error adding {AssemblyName}", assemblyName);
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"❌ Missing: {assemblyName}");
+                    Logger.Warn("❌ Missing: {AssemblyName}", assemblyName);
                 }
             }
             
@@ -674,12 +673,12 @@ public class ScriptEngine
                 .Where(a => !a.IsDynamic)
                 .ToArray();
             
-            Console.WriteLine($"Found {loadedAssemblies.Length} loaded assemblies");
+            Logger.Debug("Found {AssemblyCount} loaded assemblies", loadedAssemblies.Length);
             
             foreach (var assembly in loadedAssemblies)
             {
                 var name = assembly.GetName().Name;
-                Console.WriteLine($"Checking assembly: {name}");
+                Logger.Trace("Checking assembly: {AssemblyName}", name);
                 
                 // Check for engine-related assemblies
                 if (name.StartsWith("Engine") || name.StartsWith("ECS") || name.StartsWith("Editor"))
@@ -690,7 +689,7 @@ public class ScriptEngine
                         if (!string.IsNullOrEmpty(assembly.Location))
                         {
                             references.Add(MetadataReference.CreateFromFile(assembly.Location));
-                            Console.WriteLine($"✅ Added engine assembly: {name} from {assembly.Location}");
+                            Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Location}", name, assembly.Location);
                         }
                         else
                         {
@@ -709,7 +708,7 @@ public class ScriptEngine
                                 if (File.Exists(possiblePath))
                                 {
                                     references.Add(MetadataReference.CreateFromFile(possiblePath));
-                                    Console.WriteLine($"✅ Added engine assembly: {name} from {possiblePath}");
+                                    Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Path}", name, possiblePath);
                                     found = true;
                                     break;
                                 }
@@ -717,13 +716,13 @@ public class ScriptEngine
                             
                             if (!found)
                             {
-                                Console.WriteLine($"❌ Could not find assembly file for: {name}");
+                                Logger.Warn("❌ Could not find assembly file for: {AssemblyName}", name);
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"❌ Error adding engine assembly {name}: {ex.Message}");
+                        Logger.Warn(ex, "❌ Error adding engine assembly {AssemblyName}", name);
                     }
                 }
             }
@@ -735,16 +734,16 @@ public class ScriptEngine
                 try
                 {
                     references.Add(MetadataReference.CreateFromFile(ecsAssemblyPath));
-                    Console.WriteLine($"✅ Added ECS assembly: {ecsAssemblyPath}");
+                    Logger.Debug("✅ Added ECS assembly: {ECSAssemblyPath}", ecsAssemblyPath);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"❌ Error adding ECS assembly: {ex.Message}");
+                    Logger.Error(ex, "❌ Error adding ECS assembly");
                 }
             }
             else
             {
-                Console.WriteLine("❌ CRITICAL: ECS assembly not found! Scripts will fail to compile.");
+                Logger.Error("❌ CRITICAL: ECS assembly not found! Scripts will fail to compile.");
             }
             
             // Add Box2D if available
@@ -754,24 +753,24 @@ public class ScriptEngine
                 if (File.Exists(box2dPath))
                 {
                     references.Add(MetadataReference.CreateFromFile(box2dPath));
-                    Console.WriteLine($"✅ Added Box2D: {box2dPath}");
+                    Logger.Debug("✅ Added Box2D: {Box2DPath}", box2dPath);
                 }
                 else
                 {
-                    Console.WriteLine($"❌ Box2D not found at: {box2dPath}");
+                    Logger.Debug("❌ Box2D not found at: {Box2DPath}", box2dPath);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error adding Box2D: {ex.Message}");
+                Logger.Warn(ex, "❌ Error adding Box2D");
             }
             
-            Console.WriteLine($"Total references added: {references.Count}");
+            Logger.Debug("Total references added: {ReferenceCount}", references.Count);
             return references.ToArray();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error loading references: {ex}");
+            Logger.Error(ex, "❌ Error loading references");
             throw;
         }
     }
@@ -792,7 +791,7 @@ public class ScriptEngine
         {
             if (File.Exists(path))
             {
-                Console.WriteLine($"Found ECS assembly at: {path}");
+                Logger.Debug("Found ECS assembly at: {Path}", path);
                 return path;
             }
         }
@@ -804,11 +803,11 @@ public class ScriptEngine
             
         if (ecsAssembly != null && !string.IsNullOrEmpty(ecsAssembly.Location))
         {
-            Console.WriteLine($"Found ECS assembly from loaded assemblies: {ecsAssembly.Location}");
+            Logger.Debug("Found ECS assembly from loaded assemblies: {Location}", ecsAssembly.Location);
             return ecsAssembly.Location;
         }
         
-        Console.WriteLine("ECS assembly not found in any location");
+        Logger.Warn("ECS assembly not found in any location");
         return null;
     }
 

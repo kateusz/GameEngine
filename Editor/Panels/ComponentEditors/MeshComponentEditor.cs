@@ -4,6 +4,7 @@ using Editor.Panels.Elements;
 using Engine.Renderer.Models;
 using Engine.Scene.Components;
 using ImGuiNET;
+using Editor.UI;
 
 namespace Editor.Panels.ComponentEditors;
 
@@ -15,7 +16,7 @@ public class MeshComponentEditor : IComponentEditor
         {
             var meshComponent = entity.GetComponent<MeshComponent>();
             
-            if (ImGui.Button("Load OBJ", new Vector2(100.0f, 0.0f)))
+            if (ImGui.Button("Load OBJ", new Vector2(EditorUIConstants.MediumButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 string objPath = "assets/objModels/person.model";
                 if (File.Exists(objPath))

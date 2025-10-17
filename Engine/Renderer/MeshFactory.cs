@@ -1,9 +1,11 @@
 using System.Numerics;
+using NLog;
 
 namespace Engine.Renderer.Models;
 
 public static class MeshFactory
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
     private static readonly Dictionary<string, Mesh> _loadedMeshes = new();
     
     // In MeshFactory.cs
@@ -22,7 +24,8 @@ public static class MeshFactory
         // Log information about mesh size
         if (mesh.Vertices.Count > 50000 || mesh.Indices.Count > 100000)
         {
-            Console.WriteLine($"WARNING: Large mesh loaded from {objFilePath}: {mesh.Vertices.Count} vertices, {mesh.Indices.Count} indices");
+            Logger.Warn("Large mesh loaded from {ObjFilePath}: {VertexCount} vertices, {IndexCount} indices", 
+                objFilePath, mesh.Vertices.Count, mesh.Indices.Count);
         }
     
         _loadedMeshes[objFilePath] = mesh;

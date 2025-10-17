@@ -8,6 +8,6 @@ public class Statistics
     public float EditorCameraY { get; set; }
     public float EditorCameraZ { get; set; }
 
-    public uint GetTotalVertexCount() { return QuadCount * 4; }
-    public uint GetTotalIndexCount() { return QuadCount * 6; }
+    public uint GetTotalVertexCount() => QuadCount * RenderingConstants.QuadVertexCount;
+    public uint GetTotalIndexCount() => QuadCount * RenderingConstants.QuadIndexCount;
 }

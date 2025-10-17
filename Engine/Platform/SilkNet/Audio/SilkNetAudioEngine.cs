@@ -1,4 +1,5 @@
 using Engine.Audio;
+using NLog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
@@ -11,6 +12,8 @@ public class AudioEngine
 
 public unsafe class SilkNetAudioEngine : IAudioEngine
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
     private AL _al;
@@ -58,11 +61,11 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
                 }
             }
 
-            Console.WriteLine("SilkNet AudioEngine zainicjalizowany pomyślnie");
+            Logger.Info("SilkNet AudioEngine zainicjalizowany pomyślnie");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd inicjalizacji AudioEngine: {ex.Message}");
+            Logger.Error(ex, "Błąd inicjalizacji AudioEngine");
             throw;
         }
     }
@@ -96,11 +99,11 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
             _al?.Dispose();
             _alc?.Dispose();
 
-            Console.WriteLine("SilkNet AudioEngine zamknięty");
+            Logger.Info("SilkNet AudioEngine zamknięty");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd zamykania AudioEngine: {ex.Message}");
+            Logger.Error(ex, "Błąd zamykania AudioEngine");
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Numerics;
 using ImGuiNET;
+using Editor.UI;
 
 namespace Editor.Panels;
 
@@ -10,8 +11,8 @@ public static class VectorPanel
         // Setup columns (1/3 label, 2/3 controls)
         float totalWidth = ImGui.GetContentRegionAvail().X;
         ImGui.Columns(2, null, false);
-        ImGui.SetColumnWidth(0, totalWidth * 0.33f);
-        ImGui.SetColumnWidth(1, totalWidth * 0.67f);
+        ImGui.SetColumnWidth(0, totalWidth * EditorUIConstants.PropertyLabelRatio);
+        ImGui.SetColumnWidth(1, totalWidth * EditorUIConstants.PropertyInputRatio);
 
         // Label column
         ImGui.Text(label);
@@ -19,7 +20,7 @@ public static class VectorPanel
 
         // Calculate available width for each component (button + input)
         float columnWidth = ImGui.GetContentRegionAvail().X;
-        float buttonWidth = 20.0f;
+        float buttonWidth = EditorUIConstants.SmallButtonSize;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
 
         float sectionWidth = columnWidth / componentCount;
@@ -32,7 +33,7 @@ public static class VectorPanel
         ImGui.PushStyleColor(ImGuiCol.Button, color);
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, color * new Vector4(1.1f, 1.1f, 1.1f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, color);
-        if (ImGui.Button(axisLabel, new Vector2(20.0f, ImGui.GetFrameHeight())))
+        if (ImGui.Button(axisLabel, new Vector2(EditorUIConstants.SmallButtonSize, ImGui.GetFrameHeight())))
             value = resetValue;
         ImGui.PopStyleColor(3);
 
@@ -51,11 +52,11 @@ public static class VectorPanel
         DrawVectorControlHeader(label, 3, out float inputWidth);
 
         // X, Y, Z
-        DrawAxisControl("X", ref values.X, resetValue, new Vector4(0.8f, 0.1f, 0.15f, 1.0f), inputWidth);
+        DrawAxisControl("X", ref values.X, resetValue, EditorUIConstants.AxisXColor, inputWidth);
         ImGui.SameLine();
-        DrawAxisControl("Y", ref values.Y, resetValue, new Vector4(0.2f, 0.7f, 0.2f, 1.0f), inputWidth);
+        DrawAxisControl("Y", ref values.Y, resetValue, EditorUIConstants.AxisYColor, inputWidth);
         ImGui.SameLine();
-        DrawAxisControl("Z", ref values.Z, resetValue, new Vector4(0.1f, 0.25f, 0.8f, 1.0f), inputWidth);
+        DrawAxisControl("Z", ref values.Z, resetValue, EditorUIConstants.AxisZColor, inputWidth);
 
         ImGui.PopID();
         ImGui.Columns(1);
@@ -68,9 +69,9 @@ public static class VectorPanel
         DrawVectorControlHeader(label, 2, out float inputWidth);
 
         // X, Y
-        DrawAxisControl("X", ref values.X, resetValue, new Vector4(0.8f, 0.1f, 0.15f, 1.0f), inputWidth, false);
+        DrawAxisControl("X", ref values.X, resetValue, EditorUIConstants.AxisXColor, inputWidth, false);
         ImGui.SameLine();
-        DrawAxisControl("Y", ref values.Y, resetValue, new Vector4(0.2f, 0.7f, 0.2f, 1.0f), inputWidth, false);
+        DrawAxisControl("Y", ref values.Y, resetValue, EditorUIConstants.AxisYColor, inputWidth, false);
 
         ImGui.PopID();
         ImGui.Columns(1);

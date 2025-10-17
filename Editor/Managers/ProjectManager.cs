@@ -95,7 +95,7 @@ public class ProjectManager : IProjectManager
             // Add to recent projects
             _editorPreferences.AddRecentProject(projectDir, projectName.Trim());
 
-            Console.WriteLine($"🆕 Project '{projectName}' created at {projectDir}");
+            Logger.Info("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
             return true;
         }
         catch (Exception ex)
@@ -128,7 +128,7 @@ public class ProjectManager : IProjectManager
             // If /assets doesn’t exist, fallback to the root as assets path to keep old samples working.
             if (!Directory.Exists(Path.Combine(full, "assets")))
             {
-                Console.WriteLine("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
+                Logger.Warn("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
             }
 
             SetCurrentProject(full);
@@ -137,7 +137,7 @@ public class ProjectManager : IProjectManager
             var projectName = System.IO.Path.GetFileName(full);
             _editorPreferences.AddRecentProject(full, projectName);
 
-            Console.WriteLine($"📂 Project opened: {full}");
+            Logger.Info("📂 Project opened: {ProjectPath}", full);
             return true;
         }
         catch (Exception ex)
