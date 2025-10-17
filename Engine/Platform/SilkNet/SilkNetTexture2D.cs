@@ -17,7 +17,7 @@ public class SilkNetTexture2D : Texture2D
 {
     // StbImageSharp flag to flip texture vertically during loading
     // OpenGL expects texture coordinates with origin at bottom-left, but most image formats have origin at top-left
-    private const int STBI_FLIP_VERTICALLY_ENABLED = 1;
+    private const int StbiFlipVerticallyEnabled = 1;
     
     private readonly uint _rendererId;
     private readonly InternalFormat _internalFormat;
@@ -55,7 +55,7 @@ public class SilkNetTexture2D : Texture2D
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
 
         // Flip texture vertically to match OpenGL's coordinate system (bottom-left origin)
-        StbImage.stbi_set_flip_vertically_on_load(STBI_FLIP_VERTICALLY_ENABLED);
+        StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 
         var width = 0;
         var height = 0;
