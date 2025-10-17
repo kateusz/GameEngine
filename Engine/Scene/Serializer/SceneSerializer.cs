@@ -47,7 +47,7 @@ public class SceneSerializer : ISceneSerializer
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
 
-        foreach (var entity in scene.Entities.ToList())
+        foreach (var entity in scene.Entities)
         {
             SerializeEntity(jsonEntities, entity);
         }
