@@ -134,13 +134,19 @@ public class SilkNetFrameBuffer : FrameBuffer
                 throw new Exception("Too many color attachments!");
             case >= 1:
             {
-                DrawBufferMode[] drawBuffers = new DrawBufferMode[4];
+                Span<DrawBufferMode> drawBuffers = stackalloc DrawBufferMode[4];
                 for (int i = 0; i < 4; i++)
                 {
                     drawBuffers[i] = DrawBufferMode.ColorAttachment0 + i;
                 }
 
-                SilkNetContext.GL.DrawBuffers((uint)_colorAttachments.Length, drawBuffers);
+                unsafe
+                {
+                    fixed (DrawBufferMode* ptr = drawBuffers)
+                    {
+                        SilkNetContext.GL.DrawBuffers((uint)_colorAttachments.Length, ptr);
+                    }
+                }
                 break;
             }
             case 0:
