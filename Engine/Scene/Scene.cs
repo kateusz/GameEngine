@@ -16,7 +16,10 @@ namespace Engine.Scene;
 public class Scene
 {
     private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-    
+
+    // Thread-safe entity ID generation
+    private static int _nextEntityId = 0;
+
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
@@ -36,17 +39,28 @@ public class Scene
 
     public Entity CreateEntity(string name)
     {
-        Random random = new Random();
-        var randomNumber = random.Next(0, 10001);
+        // Use atomic increment for thread-safe, collision-free ID generation
+        var id = Interlocked.Increment(ref _nextEntityId);
 
-        var entity = Entity.Create(randomNumber, name);
+        var entity = Entity.Create(id, name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
 
         return entity;
     }
 
-    public void AddEntity(Entity entity) => Context.Instance.Register(entity);
+    public void AddEntity(Entity entity)
+    {
+        Context.Instance.Register(entity);
+
+        // Update the counter to prevent ID collisions with deserialized entities
+        // This ensures newly created entities won't reuse IDs from loaded scenes
+        int currentMax = _nextEntityId;
+        while (entity.Id > currentMax)
+        {
+            currentMax = Interlocked.CompareExchange(ref _nextEntityId, entity.Id, currentMax);
+        }
+    }
 
     private void OnComponentAdded(IComponent component)
     {
