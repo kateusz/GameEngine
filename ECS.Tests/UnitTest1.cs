@@ -151,6 +151,119 @@ public class EntityEqualityTests
         Assert.True(entity1.Equals(entity2));
     }
 
+    [Fact]
+    public void EqualityOperator_WithSameId_ReturnsTrue()
+    {
+        // Arrange
+        var entity1 = Entity.Create(1, "Entity1");
+        var entity2 = Entity.Create(1, "Entity2");
+
+        // Act & Assert
+        Assert.True(entity1 == entity2);
+    }
+
+    [Fact]
+    public void EqualityOperator_WithDifferentId_ReturnsFalse()
+    {
+        // Arrange
+        var entity1 = Entity.Create(1, "Entity1");
+        var entity2 = Entity.Create(2, "Entity1");
+
+        // Act & Assert
+        Assert.False(entity1 == entity2);
+    }
+
+    [Fact]
+    public void EqualityOperator_WithBothNull_ReturnsTrue()
+    {
+        // Arrange
+        Entity? entity1 = null;
+        Entity? entity2 = null;
+
+        // Act & Assert
+        Assert.True(entity1 == entity2);
+    }
+
+    [Fact]
+    public void EqualityOperator_WithOneNull_ReturnsFalse()
+    {
+        // Arrange
+        var entity = Entity.Create(1, "Entity");
+        Entity? nullEntity = null;
+
+        // Act & Assert
+        Assert.False(entity == nullEntity);
+        Assert.False(nullEntity == entity);
+    }
+
+    [Fact]
+    public void EqualityOperator_WithSameReference_ReturnsTrue()
+    {
+        // Arrange
+        var entity = Entity.Create(1, "Entity");
+
+        // Act & Assert
+        Assert.True(entity == entity);
+    }
+
+    [Fact]
+    public void InequalityOperator_WithSameId_ReturnsFalse()
+    {
+        // Arrange
+        var entity1 = Entity.Create(1, "Entity1");
+        var entity2 = Entity.Create(1, "Entity2");
+
+        // Act & Assert
+        Assert.False(entity1 != entity2);
+    }
+
+    [Fact]
+    public void InequalityOperator_WithDifferentId_ReturnsTrue()
+    {
+        // Arrange
+        var entity1 = Entity.Create(1, "Entity1");
+        var entity2 = Entity.Create(2, "Entity1");
+
+        // Act & Assert
+        Assert.True(entity1 != entity2);
+    }
+
+    [Fact]
+    public void InequalityOperator_WithBothNull_ReturnsFalse()
+    {
+        // Arrange
+        Entity? entity1 = null;
+        Entity? entity2 = null;
+
+        // Act & Assert
+        Assert.False(entity1 != entity2);
+    }
+
+    [Fact]
+    public void InequalityOperator_WithOneNull_ReturnsTrue()
+    {
+        // Arrange
+        var entity = Entity.Create(1, "Entity");
+        Entity? nullEntity = null;
+
+        // Act & Assert
+        Assert.True(entity != nullEntity);
+        Assert.True(nullEntity != entity);
+    }
+
+    [Fact]
+    public void EqualityOperator_ConsistentWithEqualsMethod()
+    {
+        // Arrange
+        var entity1 = Entity.Create(1, "Entity1");
+        var entity2 = Entity.Create(1, "Entity2");
+        var entity3 = Entity.Create(2, "Entity3");
+
+        // Act & Assert - == should match Equals()
+        Assert.Equal(entity1.Equals(entity2), entity1 == entity2);
+        Assert.Equal(entity1.Equals(entity3), entity1 == entity3);
+    }
+
     // Test component for validation
     private class TestComponent : IComponent
     {

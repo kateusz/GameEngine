@@ -87,6 +87,30 @@ public class Entity : IEquatable<Entity>
         return Id.GetHashCode();
     }
 
+    /// <summary>
+    /// Determines whether two entities are equal based on their Id.
+    /// </summary>
+    /// <param name="left">The first entity to compare.</param>
+    /// <param name="right">The second entity to compare.</param>
+    /// <returns>true if both entities have the same Id; otherwise, false.</returns>
+    public static bool operator ==(Entity? left, Entity? right)
+    {
+        if (ReferenceEquals(left, right)) return true;
+        if (left is null || right is null) return false;
+        return left.Equals(right);
+    }
+
+    /// <summary>
+    /// Determines whether two entities are not equal based on their Id.
+    /// </summary>
+    /// <param name="left">The first entity to compare.</param>
+    /// <param name="right">The second entity to compare.</param>
+    /// <returns>true if both entities have different Ids; otherwise, false.</returns>
+    public static bool operator !=(Entity? left, Entity? right)
+    {
+        return !(left == right);
+    }
+
     public static Entity Create(int id, string name)
     {
         return new Entity
