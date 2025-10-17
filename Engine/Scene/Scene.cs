@@ -26,6 +26,10 @@ public class Scene
 
     private readonly bool _showPhysicsDebug = true;
 
+    // Fixed timestep accumulator for deterministic physics
+    private float _physicsAccumulator = 0f;
+    private const int MaxPhysicsStepsPerFrame = 5; // Prevent spiral of death
+
 
     public Scene(string path)
     {
@@ -92,6 +96,9 @@ public class Scene
 
         _contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(_contactListener);
+
+        // Reset physics accumulator for clean state
+        _physicsAccumulator = 0f;
 
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
@@ -183,17 +190,33 @@ public class Scene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // Update scripts (existing code)
+        // Update scripts with variable delta time for smooth rendering
         ScriptEngine.Instance.OnUpdate(ts);
 
-        // Physics (existing code)
+        // Fixed timestep physics simulation
         const int velocityIterations = 6;
         const int positionIterations = 2;
         var deltaSeconds = (float)ts.TotalSeconds;
-        deltaSeconds = CameraConfig.PhysicsTimestep;
-        _physicsWorld.Step(deltaSeconds, velocityIterations, positionIterations);
 
-        // Retrieve transform from Box2D (existing code)
+        // Accumulate time
+        _physicsAccumulator += deltaSeconds;
+
+        // Step physics multiple times if needed to catch up
+        int stepCount = 0;
+        while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
+        {
+            _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
+            _physicsAccumulator -= CameraConfig.PhysicsTimestep;
+            stepCount++;
+        }
+
+        // If we're still behind after max steps, reset accumulator to prevent spiral of death
+        if (_physicsAccumulator >= CameraConfig.PhysicsTimestep)
+        {
+            _physicsAccumulator = 0f;
+        }
+
+        // Retrieve transform from Box2D
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
