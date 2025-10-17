@@ -3,11 +3,14 @@ using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
+using NLog;
 
 namespace Editor.Panels;
 
 public class SceneManager
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
     public SceneState SceneState { get; private set; } = SceneState.Edit;
     public string? EditorScenePath { get; private set; }
 
@@ -25,7 +28,7 @@ public class SceneManager
         CurrentScene.Set(new Scene(""));
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Console.WriteLine("📄 New scene created");
+        Logger.Info("📄 New scene created");
     }
 
     public void Open(Vector2 viewportSize, string path)
@@ -39,7 +42,7 @@ public class SceneManager
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
         _sceneSerializer.Deserialize(CurrentScene.Instance, path);
-        Console.WriteLine($"📂 Scene opened: {path}");
+        Logger.Info("📂 Scene opened: {Path}", path);
     }
 
     public void Save(string? scenesDir)
@@ -50,7 +53,7 @@ public class SceneManager
 
         EditorScenePath = Path.Combine(sceneDir, "scene.scene");
         _sceneSerializer.Serialize(CurrentScene.Instance, EditorScenePath);
-        Console.WriteLine($"💾 Scene saved: {EditorScenePath}");
+        Logger.Info("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }
 
     public void Play()
@@ -58,7 +61,7 @@ public class SceneManager
         SceneState = SceneState.Play;
         CurrentScene.Instance.OnRuntimeStart();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Console.WriteLine("▶️ Scene play started");
+        Logger.Info("▶️ Scene play started");
     }
 
     public void Stop()
@@ -66,7 +69,7 @@ public class SceneManager
         SceneState = SceneState.Edit;
         CurrentScene.Instance.OnRuntimeStop();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Console.WriteLine("⏹️ Scene play stopped");
+        Logger.Info("⏹️ Scene play stopped");
     }
 
     public void DuplicateEntity()
@@ -78,7 +81,7 @@ public class SceneManager
         if (selectedEntity is not null)
         {
             CurrentScene.Instance.DuplicateEntity(selectedEntity);
-            Console.WriteLine($"📋 Entity duplicated: {selectedEntity.Name}");
+            Logger.Info("📋 Entity duplicated: {EntityName}", selectedEntity.Name);
         }
     }
 

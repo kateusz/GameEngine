@@ -9,11 +9,14 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using NLog;
 
 namespace Engine.Scene;
 
 public class Scene
 {
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
@@ -137,7 +140,7 @@ public class Scene
                 catch (Exception ex)
                 {
                     // Log but don't crash
-                    Console.WriteLine($"Error in script OnDestroy: {ex.Message}");
+                    Logger.Error(ex, "Error in script OnDestroy");
                 }
             }
         }
