@@ -88,9 +88,8 @@ public class SceneManager
     public void FocusOnSelectedEntity(OrthographicCameraController cameraController)
     {
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-        if (selectedEntity != null && selectedEntity.HasComponent<TransformComponent>())
+        if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
-            var transform = selectedEntity.GetComponent<TransformComponent>();
             cameraController.Camera.SetPosition(transform.Translation);
         }
     }

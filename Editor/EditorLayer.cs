@@ -99,8 +99,7 @@ public class EditorLayer : ILayer
     private void EntitySelected(Entity entity)
     {
         // Center camera on selected entity
-        var transformComponent = entity.GetComponent<TransformComponent>();
-        if (transformComponent != default)
+        if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
         {
             var camera = _cameraController.Camera;
             camera.SetPosition(transformComponent.Translation);
