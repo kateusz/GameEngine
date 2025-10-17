@@ -47,8 +47,8 @@ This architecture enables the editor to display the game view in a resizable pan
 ### Batch Rendering System
 
 2D rendering accumulates multiple quads into a single vertex buffer before submitting them to the GPU. Each batch can contain:
-- Up to 10 quads (40 vertices)
-- Up to 16 unique textures
+- Up to 10,000 quads (40,000 vertices) - configurable via `RenderingConstants.DefaultMaxQuads`
+- Up to 16 unique textures - limited by `RenderingConstants.MaxTextureSlots`
 - Mixed colored and textured quads
 
 When a batch fills up or encounters too many unique textures, the renderer flushes the current batch and starts a new one. This dramatically reduces draw calls compared to rendering each sprite individually.
@@ -295,7 +295,7 @@ sequenceDiagram
     loop For Each Sprite
         Client->>G2D: DrawQuad(transform, texture, color)
 
-        alt Batch Full (10 quads) OR Texture Slots Full (16 textures)
+        alt Batch Full (10,000 quads) OR Texture Slots Full (16 textures)
             G2D->>G2D: Flush()
             Note over G2D: Submit current batch
             G2D->>G2D: StartBatch()
@@ -612,7 +612,7 @@ Total: ~8-22ms (45-120 FPS)
 ### Batch Flush Timing
 
 Each Graphics2D batch flush involves:
-- **Vertex Upload** (~0.2-0.5ms): Transfer 40 vertices (640 bytes) to GPU
+- **Vertex Upload** (~0.2-0.5ms): Transfer vertices to GPU (up to 40,000 vertices per batch)
 - **Texture Binding** (~0.1-0.3ms): Bind up to 16 textures
 - **Draw Call** (~0.2-1ms): Execute indexed draw command
 
@@ -682,7 +682,7 @@ Shaders compile once and persist for the application lifetime. No runtime recomp
 - GPU stalls: Reading frame buffer every frame for picking
 
 **Optimization Opportunities**:
-- Increase batch size beyond 10 quads
+- Increase batch size beyond 10,000 quads (via `RenderingConstants.DefaultMaxQuads`)
 - Implement 3D instanced rendering
 - Cache entity picking results between frames
 - Implement frustum culling to skip off-screen entities
