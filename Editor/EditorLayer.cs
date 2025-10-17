@@ -92,8 +92,8 @@ public class EditorLayer : ILayer
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
         
-        Console.WriteLine("✅ Editor initialized successfully!");
-        Console.WriteLine("Console panel is now capturing output.");
+        Logger.Info("✅ Editor initialized successfully!");
+        Logger.Info("Console panel is now capturing output.");
     }
 
     private void EntitySelected(Entity entity)
