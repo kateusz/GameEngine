@@ -205,10 +205,9 @@ public static class ScriptComponentUI
                     if (scriptInstanceResult.IsSuccess)
                     {
                         var scriptInstance = scriptInstanceResult.Value;
-                        if (_selectedEntity.HasComponent<NativeScriptComponent>())
+                        if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
                         {
-                            _selectedEntity.GetComponent<NativeScriptComponent>().ScriptableEntity =
-                                scriptInstance;
+                            scriptComponent.ScriptableEntity = scriptInstance;
                         }
                         else
                         {
@@ -285,10 +284,9 @@ public static class ScriptComponentUI
                                 if (scriptInstanceResult.IsSuccess)
                                 {
                                     var scriptInstance = scriptInstanceResult.Value;
-                                    if (_selectedEntity.HasComponent<NativeScriptComponent>())
+                                    if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
                                     {
-                                        _selectedEntity.GetComponent<NativeScriptComponent>().ScriptableEntity =
-                                            scriptInstance;
+                                        scriptComponent.ScriptableEntity = scriptInstance;
                                     }
                                     else
                                     {
@@ -351,9 +349,8 @@ public static class ScriptComponentUI
                                                            ImGuiTreeNodeFlags.AllowOverlap |
                                                            ImGuiTreeNodeFlags.FramePadding;
 
-        if (entity.HasComponent<T>())
+        if (entity.TryGetComponent<T>(out var component))
         {
-            var component = entity.GetComponent<T>();
             var contentRegionAvailable = ImGui.GetContentRegionAvail();
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));

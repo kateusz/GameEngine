@@ -34,10 +34,36 @@ public class Entity : IEquatable<Entity>
         _components.Remove(typeof(T));
     }
 
+    /// <summary>
+    /// Gets a component of the specified type from this entity.
+    /// </summary>
+    /// <typeparam name="T">The type of component to retrieve.</typeparam>
+    /// <returns>The component instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the entity does not have the specified component.</exception>
     public T GetComponent<T>() where T : IComponent
     {
-        _components.TryGetValue(typeof(T), out IComponent component);
-        return (T)component;
+        if (_components.TryGetValue(typeof(T), out var component))
+            return (T)component;
+
+        throw new InvalidOperationException($"Entity {Id} ('{Name}') does not have component {typeof(T).Name}");
+    }
+
+    /// <summary>
+    /// Attempts to get a component of the specified type from this entity.
+    /// </summary>
+    /// <typeparam name="T">The type of component to retrieve.</typeparam>
+    /// <param name="component">When this method returns, contains the component if found; otherwise, the default value.</param>
+    /// <returns>true if the component was found; otherwise, false.</returns>
+    public bool TryGetComponent<T>(out T component) where T : IComponent
+    {
+        if (_components.TryGetValue(typeof(T), out var comp))
+        {
+            component = (T)comp;
+            return true;
+        }
+
+        component = default!;
+        return false;
     }
 
     public bool HasComponent<T>() where T : IComponent
