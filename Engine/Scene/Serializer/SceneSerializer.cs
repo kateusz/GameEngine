@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -10,10 +9,6 @@ using ZLinq;
 
 namespace Engine.Scene.Serializer;
 
-[SuppressMessage("AOT",
-    "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
-[SuppressMessage("Trimming",
-    "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class SceneSerializer : ISceneSerializer
 {
     private const string SceneKey = "Scene";
@@ -28,6 +23,7 @@ public class SceneSerializer : ISceneSerializer
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
+        TypeInfoResolver = SceneSerializationContext.Default,
         Converters =
         {
             new Vector2Converter(),
