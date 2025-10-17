@@ -19,6 +19,7 @@ public class Scene
     private uint _viewportHeight;
     private World _physicsWorld;
     private SceneContactListener _contactListener;
+    private int _nextEntityId = 1;
 
     private readonly bool _showPhysicsDebug = true;
 
@@ -33,17 +34,21 @@ public class Scene
 
     public Entity CreateEntity(string name)
     {
-        Random random = new Random();
-        var randomNumber = random.Next(0, 10001);
-
-        var entity = Entity.Create(randomNumber, name);
+        var entity = Entity.Create(_nextEntityId++, name);
         entity.OnComponentAdded += OnComponentAdded;
         Context.Instance.Register(entity);
 
         return entity;
     }
 
-    public void AddEntity(Entity entity) => Context.Instance.Register(entity);
+    public void AddEntity(Entity entity)
+    {
+        // Track highest ID when adding existing entities (e.g., from deserialization)
+        if (entity.Id >= _nextEntityId)
+            _nextEntityId = entity.Id + 1;
+            
+        Context.Instance.Register(entity);
+    }
 
     private void OnComponentAdded(IComponent component)
     {
