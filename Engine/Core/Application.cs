@@ -22,6 +22,7 @@ public abstract class Application : IApplication
     private bool _isRunning;
     private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
     private double _lastFrameTime = -1.0;
+    private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
     protected Application(IGameWindow gameWindow, IImGuiLayer? imGuiLayer = null)
     {
@@ -74,22 +75,25 @@ public abstract class Application : IApplication
     {
         double currentTime = _frameTimer.Elapsed.TotalSeconds;
 
-        // First frame initialization - skip update to avoid massive delta
+        // First frame initialization - use zero delta to avoid massive spike
+        double deltaTime;
         if (_lastFrameTime < 0)
         {
             _lastFrameTime = currentTime;
-            return;
+            deltaTime = 0.0; // First frame gets zero delta
         }
-
-        double deltaTime = currentTime - _lastFrameTime;
-        _lastFrameTime = currentTime;
+        else
+        {
+            deltaTime = currentTime - _lastFrameTime;
+            _lastFrameTime = currentTime;
+        }
 
         // Clamp delta time to prevent "spiral of death" on lag spikes
         // Maximum 250ms (4 FPS) - anything longer is clamped
-        if (deltaTime > 0.25)
+        if (deltaTime > MaxDeltaTime)
         {
-            Logger.Warn($"Frame spike detected: {deltaTime * 1000:F2}ms, clamping to 250ms");
-            deltaTime = 0.25;
+            Logger.Warn($"Frame spike detected: {deltaTime * 1000:F2}ms, clamping to {MaxDeltaTime * 1000}ms");
+            deltaTime = MaxDeltaTime;
         }
 
         var elapsed = TimeSpan.FromSeconds(deltaTime);
