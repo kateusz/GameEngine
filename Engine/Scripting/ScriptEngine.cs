@@ -678,7 +678,7 @@ public class ScriptEngine
             foreach (var assembly in loadedAssemblies)
             {
                 var name = assembly.GetName().Name;
-                Logger.Trace("Checking assembly: {AssemblyName}", name);
+                Logger.Debug("Checking assembly: {AssemblyName}", name);
                 
                 // Check for engine-related assemblies
                 if (name.StartsWith("Engine") || name.StartsWith("ECS") || name.StartsWith("Editor"))
