@@ -29,24 +29,24 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
             _alc = ALContext.GetApi(true);
             _al = AL.GetApi(true);
 
-            // Otwórz domyślne urządzenie audio
+            // Open default audio device
             _device = _alc.OpenDevice("");
             if (_device == null)
-                throw new InvalidOperationException("Nie można otworzyć urządzenia audio");
+                throw new InvalidOperationException("Cannot open audio device");
 
-            // Utwórz kontekst audio
+            // Create audio context
             _context = _alc.CreateContext(_device, null);
             if (_context == null)
-                throw new InvalidOperationException("Nie można utworzyć kontekstu audio");
+                throw new InvalidOperationException("Cannot create audio context");
 
             _alc.MakeContextCurrent(_context);
 
-            // Ustaw podstawowe parametry
+            // Set basic parameters
             _al.SetListenerProperty(ListenerFloat.Gain, 1.0f);
             _al.SetListenerProperty(ListenerVector3.Position, 0.0f, 0.0f, 0.0f);
             _al.SetListenerProperty(ListenerVector3.Velocity, 0.0f, 0.0f, 0.0f);
 
-            // Ustaw orientację słuchacza (forward vector i up vector)
+            // Set listener orientation (forward vector and up vector)
             var orientation = new[]
             {
                 0.0f, 0.0f, -1.0f, // Forward
@@ -61,11 +61,11 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
                 }
             }
 
-            Logger.Information("SilkNet AudioEngine zainicjalizowany pomyślnie");
+            Logger.Information("SilkNet AudioEngine initialized successfully");
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Błąd inicjalizacji AudioEngine");
+            Logger.Error(ex, "Error initializing AudioEngine");
             throw;
         }
     }
@@ -74,7 +74,7 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
     {
         try
         {
-            // Zatrzymaj i usuń wszystkie aktywne źródła
+            // Stop and remove all active sources
             foreach (var source in _activeSources.ToArray())
             {
                 source.Dispose();
@@ -82,7 +82,7 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
 
             _activeSources.Clear();
 
-            // Zamknij kontekst i urządzenie
+            // Close context and device
             if (_context != null)
             {
                 _alc.MakeContextCurrent(null);
@@ -99,11 +99,11 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
             _al?.Dispose();
             _alc?.Dispose();
 
-            Logger.Information("SilkNet AudioEngine zamknięty");
+            Logger.Information("SilkNet AudioEngine shut down");
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Błąd zamykania AudioEngine");
+            Logger.Error(ex, "Error shutting down AudioEngine");
         }
     }
 
@@ -156,7 +156,7 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
         source.Volume = volume;
         source.Play();
 
-        // Automatyczne usuwanie źródła po zakończeniu odtwarzania
+        // Automatically remove source after playback finishes
         Timer timer = null!;
         timer = new Timer(
             callback: _ => {

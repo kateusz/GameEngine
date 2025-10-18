@@ -1,6 +1,7 @@
 ﻿using DryIoc;
 using Editor;
 using Editor.Managers;
+using Editor.Panels;
 using Editor.Panels.Elements;
 using Engine.Core;
 using Engine.Core.Window;
@@ -38,21 +39,25 @@ static void ConfigureContainer(Container container)
     container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
     container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
     container.Register<Editor.Editor>(Reuse.Singleton);
-    
+
+    // Register ConsolePanel as singleton so it can be resolved early for logging
+    container.Register<ConsolePanel>(Reuse.Singleton);
+
     container.ValidateAndThrow();
 }
 
 var container = new Container();
 ConfigureContainer(container);
 
-// Configure Serilog early (before ConsolePanel)
-// We'll reconfigure it after ConsolePanel is created
+// Create ConsolePanel early so we can configure logging with it
+var consolePanel = container.Resolve<ConsolePanel>();
+
+// Configure Serilog with all sinks in one place
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.WithProperty("Application", "GameEngine")
     .Enrich.WithThreadId()
-    .Enrich.With<FrameNumberEnricher>()
-    .Enrich.With<SceneNameEnricher>()
+    .WriteTo.Async(a => a.ConsolePanel(consolePanel))
     .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
     .WriteTo.Async(a => a.File("logs/engine-.log",
         rollingInterval: RollingInterval.Day,

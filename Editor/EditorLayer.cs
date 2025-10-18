@@ -46,14 +46,15 @@ public class EditorLayer : ILayer
     private EditorSettingsUI _editorSettingsUI;
     
     private readonly ISceneSerializer  _sceneSerializer;
-    
+
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, ConsolePanel consolePanel)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
+        _consolePanel = consolePanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -83,25 +84,10 @@ public class EditorLayer : ILayer
         _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
 
         _contentBrowserPanel = new ContentBrowserPanel();
-        _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
-
-        // Now that ConsolePanel is created, reconfigure Serilog to include ConsolePanelSink
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .Enrich.WithProperty("Application", "GameEngine")
-            .Enrich.WithThreadId()
-            .Enrich.With<FrameNumberEnricher>()
-            .Enrich.With<SceneNameEnricher>()
-            .WriteTo.Async(a => a.ConsolePanel(_consolePanel))
-            .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
-            .WriteTo.Async(a => a.File("logs/engine-.log",
-                rollingInterval: RollingInterval.Day,
-                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"))
-            .CreateLogger();
 
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
