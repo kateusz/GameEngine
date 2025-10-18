@@ -89,6 +89,9 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     private void Invalidate()
     {
+        bool attachmentCountChanged = _colorAttachments == null ||
+                                       _colorAttachments.Length != _colorAttachmentSpecs.Count;
+
         if (_rendererId != 0)
         {
             SilkNetContext.GL.DeleteFramebuffer(_rendererId);
@@ -99,7 +102,10 @@ public class SilkNetFrameBuffer : FrameBuffer
         _rendererId = SilkNetContext.GL.GenFramebuffer();
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
 
-        _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+        // Only allocate if attachment count changed
+        if (attachmentCountChanged)
+            _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+
         SilkNetContext.GL.GenTextures(_colorAttachments);
 
         for (var i = 0; i < _colorAttachments.Length; i++)
