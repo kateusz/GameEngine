@@ -6,13 +6,13 @@ using Engine.Events.Window;
 using Engine.ImGuiNet;
 using Engine.Platform.SilkNet.Audio;
 using Engine.Renderer;
-using NLog;
+using Serilog;
 
 namespace Engine.Core;
 
 public abstract class Application : IApplication
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<Application>();
 
     private readonly IGameWindow _gameWindow;
     private readonly IImGuiLayer? _imGuiLayer;
@@ -92,7 +92,7 @@ public abstract class Application : IApplication
         // Maximum 250ms (4 FPS) - anything longer is clamped
         if (deltaTime > MaxDeltaTime)
         {
-            Logger.Warn($"Frame spike detected: {deltaTime * 1000:F2}ms, clamping to {MaxDeltaTime * 1000}ms");
+            Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms", deltaTime * 1000, MaxDeltaTime * 1000);
             deltaTime = MaxDeltaTime;
         }
 

@@ -1,5 +1,5 @@
 using Engine.Scripting;
-using NLog;
+using Serilog;
 
 namespace Editor.Managers;
 
@@ -29,7 +29,7 @@ public interface IProjectManager
 
 public class ProjectManager : IProjectManager
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<ProjectManager>();
 
     private static readonly string[] RequiredDirs =
     [
@@ -86,7 +86,7 @@ public class ProjectManager : IProjectManager
 
             SetCurrentProject(projectDir);
 
-            Logger.Info("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
+            Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
             return true;
         }
         catch (Exception ex)
@@ -113,15 +113,15 @@ public class ProjectManager : IProjectManager
                 return false;
             }
 
-            // If /assets doesn’t exist, fallback to the root as assets path to keep old samples working.
+            // If /assets doesn't exist, fallback to the root as assets path to keep old samples working.
             if (!Directory.Exists(Path.Combine(full, "assets")))
             {
-                Logger.Warn("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
+                Logger.Warning("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
             }
 
             SetCurrentProject(full);
 
-            Logger.Info("📂 Project opened: {ProjectPath}", full);
+            Logger.Information("📂 Project opened: {ProjectPath}", full);
             return true;
         }
         catch (Exception ex)

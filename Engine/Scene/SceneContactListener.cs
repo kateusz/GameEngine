@@ -4,13 +4,13 @@ using Box2D.NetStandard.Dynamics.World;
 using Box2D.NetStandard.Dynamics.World.Callbacks;
 using ECS;
 using Engine.Scene.Components;
-using NLog;
+using Serilog;
 
 namespace Engine.Scene;
 
 public class SceneContactListener : ContactListener
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneContactListener>();
     
     public override void BeginContact(in Contact contact)
     {
@@ -39,14 +39,14 @@ public class SceneContactListener : ContactListener
             
             if (isTrigger)
             {
-                Logger.Debug($"Trigger began between {entityA.Name} and {entityB.Name}");
+                Logger.Debug("Trigger began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
                 // Notify trigger events
                 NotifyEntityTrigger(entityA, entityB, true);
                 NotifyEntityTrigger(entityB, entityA, true);
             }
             else
             {
-                Logger.Debug($"Collision began between {entityA.Name} and {entityB.Name}");
+                Logger.Debug("Collision began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
                 // Notify collision events
                 NotifyEntityCollision(entityA, entityB, true);
                 NotifyEntityCollision(entityB, entityA, true);
@@ -77,13 +77,13 @@ public class SceneContactListener : ContactListener
             
             if (isTrigger)
             {
-                Logger.Debug($"Trigger ended between {entityA.Name} and {entityB.Name}");
+                Logger.Debug("Trigger ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
                 NotifyEntityTrigger(entityA, entityB, false);
                 NotifyEntityTrigger(entityB, entityA, false);
             }
             else
             {
-                Logger.Debug($"Collision ended between {entityA.Name} and {entityB.Name}");
+                Logger.Debug("Collision ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
                 NotifyEntityCollision(entityA, entityB, false);
                 NotifyEntityCollision(entityB, entityA, false);
             }
@@ -127,7 +127,7 @@ public class SceneContactListener : ContactListener
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error calling trigger event on {entity.Name}");
+            Logger.Error(ex, "Error calling trigger event on {EntityName}", entity.Name);
         }
     }
     
@@ -156,7 +156,7 @@ public class SceneContactListener : ContactListener
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error calling collision event on {entity.Name}");
+            Logger.Error(ex, "Error calling collision event on {EntityName}", entity.Name);
         }
     }
 }

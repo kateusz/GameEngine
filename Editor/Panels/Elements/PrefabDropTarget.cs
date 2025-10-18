@@ -2,13 +2,13 @@ using System.Runtime.InteropServices;
 using ECS;
 using Engine.Scene.Serializer;
 using ImGuiNET;
-using NLog;
+using Serilog;
 
 namespace Editor.Panels.Elements;
 
 public static class PrefabDropTarget
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext(typeof(PrefabDropTarget));
     
     public static void HandleEntityDrop(Entity entity)
     {
@@ -28,7 +28,7 @@ public static class PrefabDropTarget
                             
                             // TODO: finish dependency injection
                             //PrefabSerializer.ApplyPrefabToEntity(entity, fullPath);
-                            Logger.Info("Applied prefab {Path} to entity {EntityName}", path, entity.Name);
+                            Logger.Information("Applied prefab {Path} to entity {EntityName}", path, entity.Name);
                         }
                         catch (Exception ex)
                         {
