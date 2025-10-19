@@ -48,11 +48,14 @@ public class Scene
     {
         if (entity.Id <= 0)
             throw new ArgumentException($"Entity ID must be positive, got {entity.Id}", nameof(entity));
-        
+
         // Track highest ID when adding existing entities (e.g., from deserialization)
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
-            
+
+        // Subscribe to component events to maintain consistency with CreateEntity
+        entity.OnComponentAdded += OnComponentAdded;
+
         Context.Instance.Register(entity);
     }
 
@@ -67,6 +70,9 @@ public class Scene
 
     public void DestroyEntity(Entity entity)
     {
+        // Unsubscribe from all events before removing to prevent memory leak
+        entity.OnComponentAdded -= OnComponentAdded;
+
         var entitiesToKeep = new List<Entity>();
         foreach (var existingEntity in Entities)
         {
