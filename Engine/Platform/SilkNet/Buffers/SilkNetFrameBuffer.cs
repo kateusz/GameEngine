@@ -6,7 +6,14 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetFrameBuffer : FrameBuffer
 {
-    private const uint MaxFramebufferSize = 8192;
+    private static readonly Lazy<uint> MaxFramebufferSize = new(() =>
+    {
+        int maxWidth = SilkNetContext.GL.GetInteger(GetPName.MaxFramebufferWidth);
+        int maxHeight = SilkNetContext.GL.GetInteger(GetPName.MaxFramebufferHeight);
+        uint maxSize = (uint)Math.Min(maxWidth, maxHeight);
+        Debug.WriteLine($"OpenGL Max Framebuffer Size: {maxSize}x{maxSize} (Width: {maxWidth}, Height: {maxHeight})");
+        return maxSize;
+    });
 
     private uint _rendererId = 0;
     private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
@@ -49,9 +56,12 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     public override void Resize(uint width, uint height)
     {
-        if (width == 0 || height == 0 || width > MaxFramebufferSize || height > MaxFramebufferSize)
+        if (width == 0 || height == 0 ||
+            width > MaxFramebufferSize.Value ||
+            height > MaxFramebufferSize.Value)
         {
-            Debug.WriteLine("Attempted to resize framebuffer to {0}, {1}", width, height);
+            Debug.WriteLine($"Attempted to resize framebuffer to {width}x{height}. " +
+                          $"Max supported size: {MaxFramebufferSize.Value}x{MaxFramebufferSize.Value}");
             return;
         }
 

@@ -48,11 +48,14 @@ public static class RenderingConstants
     /// Default line width for line rendering in pixels.
     /// </summary>
     public const float DefaultLineWidth = 1.0f;
-    
+
     /// <summary>
-    /// Maximum framebuffer size in pixels.
-    /// Common hardware limit for texture/framebuffer dimensions.
+    /// Maximum framebuffer size in pixels (fallback/estimate).
+    /// NOTE: This is a conservative estimate. Actual hardware capabilities should be queried
+    /// at runtime via OpenGL (GL_MAX_FRAMEBUFFER_WIDTH/GL_MAX_FRAMEBUFFER_HEIGHT).
+    /// See SilkNetFrameBuffer for runtime capability detection.
     /// </summary>
+    [Obsolete("Use runtime OpenGL capability queries instead. See SilkNetFrameBuffer.MaxFramebufferSize")]
     public const uint MaxFramebufferSize = 8192;
 
     // Data type sizes (bytes)
