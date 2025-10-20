@@ -1,3 +1,5 @@
+using Silk.NET.OpenGL;
+
 namespace Engine.Renderer.Buffers.FrameBuffer;
 public class FramebufferAttachmentSpecification
 {
@@ -28,10 +30,17 @@ public enum FramebufferTextureFormat
 public struct FramebufferTextureSpecification
 {
     public FramebufferTextureFormat TextureFormat = FramebufferTextureFormat.None;
+    public TextureMinFilter MinFilter = TextureMinFilter.Linear;
+    public TextureMagFilter MagFilter = TextureMagFilter.Linear;
 
-    public FramebufferTextureSpecification(FramebufferTextureFormat textureFormat)
+    public FramebufferTextureSpecification(
+        FramebufferTextureFormat textureFormat,
+        TextureMinFilter minFilter = TextureMinFilter.Linear,
+        TextureMagFilter magFilter = TextureMagFilter.Linear)
     {
         TextureFormat = textureFormat;
+        MinFilter = minFilter;
+        MagFilter = magFilter;
     }
 }
 

@@ -177,9 +177,9 @@ public class SilkNetFrameBuffer : FrameBuffer
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
             _specification.Height, 0, format, PixelType.Int, (void*)0);
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-            (int)TextureMinFilter.Nearest);
+            (int)_colorAttachmentSpecs[attachmentIndex].MinFilter);
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-            (int)TextureMagFilter.Nearest);
+            (int)_colorAttachmentSpecs[attachmentIndex].MagFilter);
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
             FramebufferAttachment.ColorAttachment0 + attachmentIndex, TextureTarget.Texture2D, _colorAttachments[attachmentIndex], 0);
     }
@@ -218,9 +218,9 @@ public class SilkNetFrameBuffer : FrameBuffer
             // Regular 2D texture
             SilkNetContext.GL.TexStorage2D(TextureTarget.Texture2D, 1, format, width, height);
 
-            // Set texture parameters
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+            // Set texture parameters using specification
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)_depthAttachmentSpec.MinFilter);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)_depthAttachmentSpec.MagFilter);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
