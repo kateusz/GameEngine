@@ -1,6 +1,8 @@
 using System.Numerics;
 using ECS;
 using Editor.Panels.Elements;
+using Editor.Panels.FieldEditors;
+using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scripting;
 using ImGuiNET;
@@ -31,137 +33,101 @@ public static class ScriptComponentUI
 
         DrawComponent<NativeScriptComponent>("Script", entity, component =>
         {
-            var script = component.ScriptableEntity;
-
-            // Display current script info
-            if (script != null)
-            {
-                var scriptType = script.GetType();
-                ImGui.TextColored(EditorUIConstants.WarningColor, $"Script: {scriptType.Name}");
-                if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
-                {
-                    if (ImGui.MenuItem("Remove"))
-                    {
-                        entity.RemoveComponent<NativeScriptComponent>();
-                        ScriptEngine.Instance.ForceRecompile();
-                    }
-
-                    ImGui.EndPopup();
-                }
-
-                var fields = script.GetExposedFields().ToList();
-                if (!fields.Any())
-                {
-                    ImGui.TextColored(EditorUIConstants.ErrorColor, "No public fields/properties found!");
-                }
-
-                foreach (var (fieldName, fieldType, fieldValue) in fields)
-                {
-                    var changed = false;
-                    var newValue = fieldValue;
-                    var inputLabel = $"{fieldName}##{fieldName}";
-                    UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
-                    {
-                        if (fieldType == typeof(int))
-                        {
-                            var v = (int)fieldValue;
-                            if (ImGui.DragInt(inputLabel, ref v))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(float))
-                        {
-                            var v = (float)fieldValue;
-                            if (ImGui.DragFloat(inputLabel, ref v))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(double))
-                        {
-                            var v = (float)(double)fieldValue;
-                            if (ImGui.DragFloat(inputLabel, ref v))
-                            {
-                                newValue = (double)v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(bool))
-                        {
-                            var v = (bool)fieldValue;
-                            if (ImGui.Checkbox(inputLabel, ref v))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(string))
-                        {
-                            var v = (string)fieldValue ?? string.Empty;
-                            if (ImGui.InputText(inputLabel, ref v, EditorUIConstants.MaxTextInputLength))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(Vector2))
-                        {
-                            var v = (Vector2)fieldValue;
-                            if (ImGui.DragFloat2(inputLabel, ref v))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(Vector3))
-                        {
-                            var v = (Vector3)fieldValue;
-                            if (ImGui.DragFloat3(inputLabel, ref v))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                        else if (fieldType == typeof(Vector4))
-                        {
-                            var v = (Vector4)fieldValue;
-                            if (ImGui.ColorEdit4(inputLabel, ref v))
-                            {
-                                newValue = v;
-                                changed = true;
-                            }
-                        }
-                    });
-                    if (changed)
-                    {
-                        script.SetFieldValue(fieldName, newValue);
-                    }
-                }
-                // --- End editable fields ---
-            }
+            if (component.ScriptableEntity != null)
+                DrawAttachedScript(entity, component);
             else
-            {
-                ImGui.TextColored(EditorUIConstants.ErrorColor, "No script instance attached!");
-            }
+                DrawNoScriptMessage();
 
             ImGui.Separator();
+            DrawScriptActions();
+        });
+    }
 
-            // Add Script buttons
-            if (ImGui.Button("Add Existing Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
+    private static void DrawAttachedScript(Entity entity, NativeScriptComponent component)
+    {
+        var script = component.ScriptableEntity;
+        var scriptType = script.GetType();
+
+        DrawScriptHeader(entity, scriptType);
+        DrawScriptFields(script);
+    }
+
+    private static void DrawScriptHeader(Entity entity, Type scriptType)
+    {
+        ImGui.TextColored(EditorUIConstants.WarningColor, $"Script: {scriptType.Name}");
+
+        if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
+        {
+            if (ImGui.MenuItem("Remove"))
             {
-                _showScriptSelectorPopup = true;
+                entity.RemoveComponent<NativeScriptComponent>();
+                ScriptEngine.Instance.ForceRecompile();
             }
 
-            ImGui.SameLine();
-            if (ImGui.Button("Create New Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
+            ImGui.EndPopup();
+        }
+    }
+
+    private static void DrawScriptFields(ScriptableEntity script)
+    {
+        var fields = script.GetExposedFields().ToList();
+
+        if (!fields.Any())
+        {
+            ImGui.TextColored(EditorUIConstants.ErrorColor, "No public fields/properties found!");
+            return;
+        }
+
+        foreach (var (fieldName, fieldType, fieldValue) in fields)
+        {
+            DrawScriptField(script, fieldName, fieldType, fieldValue);
+        }
+    }
+
+    private static void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
+    {
+        UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
+        {
+            var inputLabel = $"{fieldName}##{fieldName}";
+
+            if (TryDrawFieldEditor(inputLabel, fieldType, fieldValue, out var newValue))
             {
-                _showCreateScriptPopup = true;
-                _newScriptName = $"Script_{DateTime.Now.Ticks % 1000:000}";
+                script.SetFieldValue(fieldName, newValue);
             }
         });
+    }
+
+    private static bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
+    {
+        newValue = value;
+
+        var editor = FieldEditorRegistry.GetEditor(type);
+        if (editor != null)
+            return editor.Draw(label, value, out newValue);
+
+        // Fallback: unsupported type
+        ImGui.TextDisabled($"Unsupported type: {type.Name}");
+        return false;
+    }
+
+    private static void DrawNoScriptMessage()
+    {
+        ImGui.TextColored(EditorUIConstants.ErrorColor, "No script instance attached!");
+    }
+
+    private static void DrawScriptActions()
+    {
+        if (ImGui.Button("Add Existing Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
+        {
+            _showScriptSelectorPopup = true;
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Create New Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
+        {
+            _showCreateScriptPopup = true;
+            _newScriptName = $"Script_{DateTime.Now.Ticks % 1000:000}";
+        }
     }
 
     private static void RenderCreateScriptPopup()
