@@ -6,7 +6,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class SceneHierarchyPanel
+public class SceneHierarchyPanel : ISceneView
 {
     private Scene _context;
     private Entity? _selectionContext;
@@ -20,9 +20,9 @@ public class SceneHierarchyPanel
         _contextMenu = new EntityContextMenu();
     }
 
-    public void SetContext(Scene context)
+    public void SetContext(Scene? context)
     {
-        _context = context;
+        _context = context!;
         _selectionContext = null;
     }
 
