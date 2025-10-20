@@ -213,6 +213,51 @@ public class EntityComponentTests
         Assert.True(entity.HasComponent<TestComponentWithParams>());
     }
 
+    [Fact]
+    public void AddComponent_WithDerivedComponentAsBaseType_StoresAsBaseType()
+    {
+        // Arrange
+        var entity = Entity.Create(1, "TestEntity");
+        var derivedComponent = new DerivedTestComponent();
+
+        // Act
+        entity.AddComponent<BaseTestComponent>(derivedComponent);
+
+        // Assert
+        Assert.True(entity.HasComponent<BaseTestComponent>());
+        Assert.False(entity.HasComponent<DerivedTestComponent>());
+    }
+
+    [Fact]
+    public void AddComponent_CanAddBothBaseAndDerivedTypes_WhenStoredAsDifferentTypes()
+    {
+        // Arrange
+        var entity = Entity.Create(1, "TestEntity");
+
+        // Act
+        entity.AddComponent<BaseTestComponent>(new DerivedTestComponent());
+        entity.AddComponent<DerivedTestComponent>(new DerivedTestComponent());
+
+        // Assert
+        Assert.True(entity.HasComponent<BaseTestComponent>());
+        Assert.True(entity.HasComponent<DerivedTestComponent>());
+    }
+
+    [Fact]
+    public void AddComponent_DuplicateBaseTypeWithDerivedInstance_ThrowsException()
+    {
+        // Arrange
+        var entity = Entity.Create(1, "TestEntity");
+        entity.AddComponent<BaseTestComponent>(new DerivedTestComponent());
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            entity.AddComponent<BaseTestComponent>(new DerivedTestComponent()));
+
+        Assert.Contains("already has component", exception.Message);
+        Assert.Contains("BaseTestComponent", exception.Message);
+    }
+
     // Test components
     private class TestComponent : IComponent
     {
@@ -232,5 +277,13 @@ public class EntityComponentTests
             Name = name;
             Value = value;
         }
+    }
+
+    private class BaseTestComponent : IComponent
+    {
+    }
+
+    private class DerivedTestComponent : BaseTestComponent
+    {
     }
 }

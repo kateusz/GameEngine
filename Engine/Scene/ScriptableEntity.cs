@@ -190,7 +190,7 @@ public class ScriptableEntity
     /// <returns>The newly added component</returns>
     protected void AddComponent<T>(T component) where T : IComponent
     {
-        Entity.AddComponent(component);
+        Entity.AddComponent<T>(component);
     }
 
     /// <summary>

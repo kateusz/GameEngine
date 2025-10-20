@@ -18,8 +18,8 @@ public static class ComponentSelector
             {
                 var c = new CameraComponent();
                 c.Camera.SetViewportSize(1280, 720);
-                entity.AddComponent(c);
-                entity.AddComponent(new NativeScriptComponent
+                entity.AddComponent<CameraComponent>(c);
+                entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                 {
                     ScriptableEntity = new CameraController()
                 });

@@ -394,43 +394,43 @@ public class Scene
         if (entity.HasComponent<TransformComponent>())
         {
             var component = entity.GetComponent<TransformComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<TransformComponent>(component);
         }
 
         if (entity.HasComponent<SpriteRendererComponent>())
         {
             var component = entity.GetComponent<SpriteRendererComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<SpriteRendererComponent>(component);
         }
 
         if (entity.HasComponent<SubTextureRendererComponent>())
         {
             var component = entity.GetComponent<SubTextureRendererComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<SubTextureRendererComponent>(component);
         }
 
         if (entity.HasComponent<CameraComponent>())
         {
             var component = entity.GetComponent<CameraComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<CameraComponent>(component);
         }
 
         if (entity.HasComponent<NativeScriptComponent>())
         {
             var component = entity.GetComponent<NativeScriptComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<NativeScriptComponent>(component);
         }
 
         if (entity.HasComponent<RigidBody2DComponent>())
         {
             var component = entity.GetComponent<RigidBody2DComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<RigidBody2DComponent>(component);
         }
 
         if (entity.HasComponent<BoxCollider2DComponent>())
         {
             var component = entity.GetComponent<BoxCollider2DComponent>();
-            newEntity.AddComponent(component);
+            newEntity.AddComponent<BoxCollider2DComponent>(component);
         }
     }
 

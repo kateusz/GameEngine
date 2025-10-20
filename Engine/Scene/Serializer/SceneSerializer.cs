@@ -198,15 +198,15 @@ public class SceneSerializer : ISceneSerializer
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
         var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
-        if (component == null) 
+        if (component == null)
             return;
 
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
             component.Texture = TextureFactory.Create(component.Texture.Path);
         }
-        
-        entity.AddComponent(component);
+
+        entity.AddComponent<SpriteRendererComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -214,14 +214,14 @@ public class SceneSerializer : ISceneSerializer
         if (!componentObj.ContainsKey(ScriptTypeKey))
         {
             // If no script type is specified, just add an empty NativeScriptComponent
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             return;
         }
 
         var scriptTypeName = componentObj[ScriptTypeKey]?.GetValue<string>();
         if (string.IsNullOrEmpty(scriptTypeName))
         {
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             return;
         }
 
@@ -252,7 +252,7 @@ public class SceneSerializer : ISceneSerializer
                 }
             }
             // --- End deserialize fields ---
-            entity.AddComponent(new NativeScriptComponent
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
             {
                 ScriptableEntity = scriptInstance
             });
@@ -269,7 +269,7 @@ public class SceneSerializer : ISceneSerializer
 
         if (builtInScript != null)
         {
-            entity.AddComponent(new NativeScriptComponent
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
             {
                 ScriptableEntity = builtInScript
             });
@@ -277,7 +277,7 @@ public class SceneSerializer : ISceneSerializer
         else
         {
             // If script creation fails, add empty component and log warning
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             // Note: In a production system, you might want to log this warning
         }
     }
@@ -287,7 +287,7 @@ public class SceneSerializer : ISceneSerializer
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)
         {
-            entity.AddComponent(component);
+            entity.AddComponent<T>(component);
         }
     }
 
