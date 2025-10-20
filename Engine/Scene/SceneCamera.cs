@@ -188,21 +188,29 @@ public class SceneCamera : Camera
         RecalculateProjection();
     }
 
+    /// <summary>
+    /// Configures the camera for orthographic projection with multiple parameters.
+    /// This method sets all parameters and recalculates the projection matrix only once.
+    /// </summary>
     public void SetOrthographic(float size, float nearClip, float farClip)
     {
-        ProjectionType = ProjectionType.Orthographic;
-        OrthographicSize = size;
-        OrthographicNear = nearClip;
-        OrthographicFar = farClip;
+        _projectionType = ProjectionType.Orthographic;
+        _orthographicSize = size;
+        _orthographicNear = nearClip;
+        _orthographicFar = farClip;
         RecalculateProjection();
     }
 
+    /// <summary>
+    /// Configures the camera for perspective projection with multiple parameters.
+    /// This method sets all parameters and recalculates the projection matrix only once.
+    /// </summary>
     public void SetPerspective(float verticalFov, float nearClip, float farClip)
     {
-        ProjectionType = ProjectionType.Perspective; 
-        PerspectiveFOV = verticalFov;
-        PerspectiveNear = nearClip;
-        PerspectiveFar = farClip;
+        _projectionType = ProjectionType.Perspective; 
+        _perspectiveFOV = verticalFov;
+        _perspectiveNear = nearClip;
+        _perspectiveFar = farClip;
         RecalculateProjection();
     }
 
@@ -214,22 +222,23 @@ public class SceneCamera : Camera
             return;
         }
 
-        AspectRatio = (float)width / (float)height;
+        var newAspectRatio = (float)width / (float)height;
 
         // Validate aspect ratio
-        if (float.IsNaN(AspectRatio) || float.IsInfinity(AspectRatio))
+        if (float.IsNaN(newAspectRatio) || float.IsInfinity(newAspectRatio))
         {
             Logger.Warning("[SceneCamera] Invalid aspect ratio, using 16:9");
-            AspectRatio = CameraConfig.DefaultAspectRatio;
+            newAspectRatio = CameraConfig.DefaultAspectRatio;
         }
 
-        RecalculateProjection();
+        // Use the AspectRatio property which has change detection
+        AspectRatio = newAspectRatio;
     }
 
     public void SetOrthographicSize(float size)
     {
+        // Use the property which has change detection and projection type check
         OrthographicSize = size;
-        RecalculateProjection();
     }
 
     private void RecalculateProjection()
