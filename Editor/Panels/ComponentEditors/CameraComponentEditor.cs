@@ -34,7 +34,7 @@ public class CameraComponentEditor : IComponentEditor
                         bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
                         if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
                         {
-                            camera.SetProjectionType((ProjectionType)i);
+                            camera.ProjectionType = (ProjectionType)i;
                         }
                         if (isSelected) ImGui.SetItemDefaultFocus();
                     }
@@ -47,34 +47,34 @@ public class CameraComponentEditor : IComponentEditor
                 float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
                 UIPropertyRenderer.DrawPropertyRow("Vertical FOV", () => ImGui.DragFloat("##VerticalFOV", ref verticalFov));
                 if (verticalFov != MathHelpers.RadiansToDegrees(camera.PerspectiveFOV))
-                    camera.SetPerspectiveVerticalFOV(MathHelpers.DegreesToRadians(verticalFov));
+                    camera.PerspectiveFOV = MathHelpers.DegreesToRadians(verticalFov);
 
                 float perspectiveNear = camera.PerspectiveNear;
                 UIPropertyRenderer.DrawPropertyRow("Near", () => ImGui.DragFloat("##PerspectiveNear", ref perspectiveNear));
                 if (camera.PerspectiveNear != perspectiveNear)
-                    camera.SetPerspectiveNearClip(perspectiveNear);
+                    camera.PerspectiveNear = perspectiveNear;
 
                 float perspectiveFar = camera.PerspectiveFar;
                 UIPropertyRenderer.DrawPropertyRow("Far", () => ImGui.DragFloat("##PerspectiveFar", ref perspectiveFar));
                 if (camera.PerspectiveFar != perspectiveFar)
-                    camera.SetPerspectiveFarClip(perspectiveFar);
+                    camera.PerspectiveFar = perspectiveFar;
             }
             else if (camera.ProjectionType == ProjectionType.Orthographic)
             {
                 float orthoSize = camera.OrthographicSize;
                 UIPropertyRenderer.DrawPropertyRow("Size", () => ImGui.DragFloat("##OrthoSize", ref orthoSize));
                 if (camera.OrthographicSize != orthoSize)
-                    camera.SetOrthographicSize(orthoSize);
+                    camera.OrthographicSize = orthoSize;
 
                 float orthoNear = camera.OrthographicNear;
                 UIPropertyRenderer.DrawPropertyRow("Near", () => ImGui.DragFloat("##OrthoNear", ref orthoNear));
                 if (camera.OrthographicNear != orthoNear)
-                    camera.SetOrthographicNearClip(orthoNear);
+                    camera.OrthographicNear = orthoNear;
 
                 float orthoFar = camera.OrthographicFar;
                 UIPropertyRenderer.DrawPropertyRow("Far", () => ImGui.DragFloat("##OrthoFar", ref orthoFar));
                 if (camera.OrthographicFar != orthoFar)
-                    camera.SetOrthographicFarClip(orthoFar);
+                    camera.OrthographicFar = orthoFar;
 
                 bool fixedAspectRatio = cameraComponent.FixedAspectRatio;
                 UIPropertyRenderer.DrawPropertyRow("Fixed Aspect Ratio", () => ImGui.Checkbox("##FixedAspectRatio", ref fixedAspectRatio));
