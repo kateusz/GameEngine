@@ -398,8 +398,7 @@ public class Scene
         var view = Context.Instance.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
-            var camera = entity.GetComponent<CameraComponent>();
-            if (camera.Primary)
+            if (component.Primary)
                 return entity;
         }
 
