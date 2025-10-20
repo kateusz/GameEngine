@@ -14,14 +14,51 @@ public class Entity : IEquatable<Entity>
     
     public event Action<IComponent>? OnComponentAdded;
 
+    /// <summary>
+    /// Adds a component instance to this entity.
+    /// </summary>
+    /// <param name="component">The component instance to add.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the entity already has a component of the same type.</exception>
     public void AddComponent(IComponent component)
     {
-        _components[component.GetType()] = component;
+        var componentType = component.GetType();
+        if (_components.ContainsKey(componentType))
+            throw new InvalidOperationException($"Entity {Id} ('{Name}') already has component {componentType.Name}");
+
+        _components[componentType] = component;
         OnComponentAdded?.Invoke(component);
     }
 
+    /// <summary>
+    /// Adds a pre-constructed component instance to this entity.
+    /// This overload allows components with parameterized constructors to be added.
+    /// </summary>
+    /// <typeparam name="TComponent">The type of component to add.</typeparam>
+    /// <param name="component">The component instance to add.</param>
+    /// <returns>The added component instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the entity already has a component of the specified type.</exception>
+    public TComponent AddComponent<TComponent>(TComponent component) where TComponent : IComponent
+    {
+        if (_components.ContainsKey(typeof(TComponent)))
+            throw new InvalidOperationException($"Entity {Id} ('{Name}') already has component {typeof(TComponent).Name}");
+
+        _components[typeof(TComponent)] = component;
+        OnComponentAdded?.Invoke(component);
+        return component;
+    }
+
+    /// <summary>
+    /// Creates and adds a new component instance to this entity.
+    /// The component type must have a parameterless constructor.
+    /// </summary>
+    /// <typeparam name="TComponent">The type of component to create and add.</typeparam>
+    /// <returns>The newly created component instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the entity already has a component of the specified type.</exception>
     public TComponent AddComponent<TComponent>() where TComponent : IComponent, new()
     {
+        if (_components.ContainsKey(typeof(TComponent)))
+            throw new InvalidOperationException($"Entity {Id} ('{Name}') already has component {typeof(TComponent).Name}");
+
         var component = new TComponent();
         _components[typeof(TComponent)] = component;
         OnComponentAdded?.Invoke(component);
