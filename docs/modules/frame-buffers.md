@@ -394,6 +394,125 @@ Flow:
   5. Render scene with shadow mapping shader
 ```
 
+## Texture Filtering Configuration
+
+Frame buffer attachments support configurable texture filtering to control how textures are sampled when rendering. This affects visual quality and performance based on the use case.
+
+### Filtering Options
+
+**TextureMinFilter** (Minification - when texture is smaller than screen space):
+- `Linear`: Smooth blending between pixels (default)
+- `Nearest`: Sharp, pixel-perfect sampling
+- `LinearMipmapLinear`: Trilinear filtering with mipmaps
+- `NearestMipmapNearest`: Sharp sampling with mipmaps
+
+**TextureMagFilter** (Magnification - when texture is larger than screen space):
+- `Linear`: Smooth blending between pixels (default)
+- `Nearest`: Sharp, pixel-perfect sampling
+
+### Configuration Examples
+
+**Default Configuration (Consistent Linear Filtering)**:
+```csharp
+var frameBufferSpec = new FrameBufferSpecification(1920, 1080)
+{
+    AttachmentsSpec = new FramebufferAttachmentSpecification([
+        // All attachments default to Linear filtering
+        new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8),
+        new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
+        new FramebufferTextureSpecification(FramebufferTextureFormat.Depth)
+    ])
+};
+```
+
+**Pixel-Perfect Rendering (Nearest Filtering)**:
+```csharp
+var frameBufferSpec = new FrameBufferSpecification(1920, 1080)
+{
+    AttachmentsSpec = new FramebufferAttachmentSpecification([
+        // Use Nearest for crisp, pixel-art style rendering
+        new FramebufferTextureSpecification(
+            FramebufferTextureFormat.RGBA8,
+            TextureMinFilter.Nearest,
+            TextureMagFilter.Nearest
+        ),
+        new FramebufferTextureSpecification(
+            FramebufferTextureFormat.RED_INTEGER,
+            TextureMinFilter.Nearest,
+            TextureMagFilter.Nearest
+        ),
+        new FramebufferTextureSpecification(
+            FramebufferTextureFormat.Depth,
+            TextureMinFilter.Nearest,
+            TextureMagFilter.Nearest
+        )
+    ])
+};
+```
+
+**Mixed Filtering Configuration**:
+```csharp
+// Color attachment with Linear filtering for smooth visuals
+var colorSpec = new FramebufferTextureSpecification(
+    FramebufferTextureFormat.RGBA8,
+    TextureMinFilter.Linear,
+    TextureMagFilter.Linear
+);
+
+// Entity ID attachment with Nearest filtering for accurate picking
+var idSpec = new FramebufferTextureSpecification(
+    FramebufferTextureFormat.RED_INTEGER,
+    TextureMinFilter.Nearest,
+    TextureMagFilter.Nearest
+);
+
+// Depth attachment with Linear filtering
+var depthSpec = new FramebufferTextureSpecification(
+    FramebufferTextureFormat.Depth,
+    TextureMinFilter.Linear,
+    TextureMagFilter.Linear
+);
+
+var frameBufferSpec = new FrameBufferSpecification(1920, 1080)
+{
+    AttachmentsSpec = new FramebufferAttachmentSpecification([
+        colorSpec, idSpec, depthSpec
+    ])
+};
+```
+
+### Use Case Recommendations
+
+**Linear Filtering (Default)** - Best for:
+- Modern 3D games with realistic graphics
+- Smooth visual output in editor viewports
+- Post-processing effects
+- General-purpose rendering
+
+**Nearest Filtering** - Best for:
+- Pixel art games and retro-style graphics
+- UI rendering requiring crisp edges
+- Technical visualization where precision matters
+- Debug rendering and wireframes
+
+**Performance Considerations**:
+- Linear filtering: Slightly slower due to interpolation, smoother visuals
+- Nearest filtering: Faster sampling, sharper edges, may show aliasing
+- Performance difference is minimal on modern GPUs
+- Choice should prioritize visual style over performance
+
+### Historical Context
+
+Prior to this feature, framebuffer attachments had inconsistent filtering:
+- Color attachments used `Nearest` filtering
+- Depth attachments used `Linear` filtering
+
+This inconsistency could cause unexpected visual artifacts and confusion. The new configurable system provides:
+- **Consistency**: All attachments default to the same filtering mode
+- **Flexibility**: Per-attachment control for specialized use cases
+- **Clarity**: Explicit configuration makes behavior predictable
+- **Backward Compatibility**: Existing code continues to work with sensible defaults
+
 ## Error Handling
 
 ### Validation Checks
