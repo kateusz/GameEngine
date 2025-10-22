@@ -797,17 +797,17 @@ public class BenchmarkLayer : ILayer
         // Create static floor
         var floor = _currentTestScene.CreateEntity("Floor");
         var floorTransform = floor.AddComponent<TransformComponent>();
-        floorTransform.Translation = new Vector3(0, -5, 0);
+        floorTransform.Translation = new Vector3(0, -4, 0);
         floorTransform.Scale = new Vector3(20, 1, 1);
 
         var floorRb = floor.AddComponent<RigidBody2DComponent>();
         floorRb.BodyType = RigidBodyType.Static;
 
         var floorCollider = floor.AddComponent<BoxCollider2DComponent>();
-        floorCollider.Size = new Vector2(1.0f, 1.0f);
-        floorCollider.Density = 1.0f;
+        floorCollider.Size = new Vector2(0.5f, 0.5f);
+        floorCollider.Density = 0.0f;
         floorCollider.Friction = 0.5f;
-        floorCollider.Restitution = 0.8f;
+        floorCollider.Restitution = 0.4f;
 
         var floorSprite = floor.AddComponent<SpriteRendererComponent>();
         floorSprite.Color = new Vector4(0.3f, 0.3f, 0.3f, 1.0f);
@@ -828,12 +828,13 @@ public class BenchmarkLayer : ILayer
 
             var ballRb = ball.AddComponent<RigidBody2DComponent>();
             ballRb.BodyType = RigidBodyType.Dynamic;
+            ballRb.FixedRotation = true;  // Prevent rotation for pure bouncing
 
             var ballCollider = ball.AddComponent<BoxCollider2DComponent>();
-            ballCollider.Size = new Vector2(1.0f, 1.0f);
-            ballCollider.Density = 2.0f;
-            ballCollider.Friction = 0.1f;
-            ballCollider.Restitution = 0.85f;
+            ballCollider.Size = new Vector2(0.5f, 0.5f);
+            ballCollider.Density = 1.0f;
+            ballCollider.Friction = 0.3f;
+            ballCollider.Restitution = 0.6f;
 
             var ballSprite = ball.AddComponent<SpriteRendererComponent>();
             ballSprite.Color = new Vector4(
@@ -858,10 +859,10 @@ public class BenchmarkLayer : ILayer
         groundRb.BodyType = RigidBodyType.Static;
 
         var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
-        groundCollider.Size = new Vector2(1.0f, 1.0f);
-        groundCollider.Density = 1.0f;
-        groundCollider.Friction = 0.3f;
-        groundCollider.Restitution = 0.0f;
+        groundCollider.Size = new Vector2(0.5f,0.5f);
+        groundCollider.Density = 0.0f;
+        groundCollider.Friction = 0.5f;
+        groundCollider.Restitution = 0.4f;
 
         var groundSprite = ground.AddComponent<SpriteRendererComponent>();
         groundSprite.Color = new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -885,12 +886,13 @@ public class BenchmarkLayer : ILayer
 
             var bodyRb = body.AddComponent<RigidBody2DComponent>();
             bodyRb.BodyType = RigidBodyType.Dynamic;
+            bodyRb.FixedRotation = true;
 
             var bodyCollider = body.AddComponent<BoxCollider2DComponent>();
-            bodyCollider.Size = new Vector2(1.0f, 1.0f);
+            bodyCollider.Size = new Vector2(0.5f, 0.5f);
             bodyCollider.Density = 1.0f;
             bodyCollider.Friction = 0.3f;
-            bodyCollider.Restitution = 0.0f;
+            bodyCollider.Restitution = 0.6f;
 
             var bodySprite = body.AddComponent<SpriteRendererComponent>();
             bodySprite.Color = new Vector4(
@@ -915,10 +917,10 @@ public class BenchmarkLayer : ILayer
         groundRb.BodyType = RigidBodyType.Static;
 
         var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
-        groundCollider.Size = new Vector2(1.0f, 1.0f);
-        groundCollider.Density = 1.0f;
-        groundCollider.Friction = 0.6f;
-        groundCollider.Restitution = 0.0f;
+        groundCollider.Size = new Vector2(0.5f, 0.5f);
+        groundCollider.Density = 0.0f;
+        groundCollider.Friction = 0.5f;
+        groundCollider.Restitution = 0.4f;
 
         var groundSprite = ground.AddComponent<SpriteRendererComponent>();
         groundSprite.Color = new Vector4(0.3f, 0.3f, 0.3f, 1.0f);
@@ -936,12 +938,13 @@ public class BenchmarkLayer : ILayer
 
             var boxRb = box.AddComponent<RigidBody2DComponent>();
             boxRb.BodyType = RigidBodyType.Dynamic;
+            boxRb.FixedRotation = true;
 
             var boxCollider = box.AddComponent<BoxCollider2DComponent>();
-            boxCollider.Size = new Vector2(1.0f, 1.0f);
+            boxCollider.Size = new Vector2(0.5f, 0.5f);
             boxCollider.Density = 1.0f;
-            boxCollider.Friction = 0.6f;
-            boxCollider.Restitution = 0.0f;
+            boxCollider.Friction = 0.3f;
+            boxCollider.Restitution = 0.6f;
 
             var boxSprite = box.AddComponent<SpriteRendererComponent>();
             // Color gradient from bottom (red) to top (blue)
