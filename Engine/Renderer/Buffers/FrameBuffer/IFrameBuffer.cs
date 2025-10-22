@@ -7,4 +7,5 @@ public interface IFrameBuffer : IBindable
     void Resize(uint width, uint height);
     int ReadPixel(int attachmentIndex, int x, int y);
     void ClearAttachment(int attachmentIndex, int value);
+    void RegenerateMipmaps();
 }

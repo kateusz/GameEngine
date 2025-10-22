@@ -28,10 +28,14 @@ public enum FramebufferTextureFormat
 public struct FramebufferTextureSpecification
 {
     public FramebufferTextureFormat TextureFormat = FramebufferTextureFormat.None;
+    public bool GenerateMipmaps = false;
+    public int MipLevels = 1;
 
-    public FramebufferTextureSpecification(FramebufferTextureFormat textureFormat)
+    public FramebufferTextureSpecification(FramebufferTextureFormat textureFormat, bool generateMipmaps = false, int mipLevels = 1)
     {
         TextureFormat = textureFormat;
+        GenerateMipmaps = generateMipmaps;
+        MipLevels = mipLevels;
     }
 }
 

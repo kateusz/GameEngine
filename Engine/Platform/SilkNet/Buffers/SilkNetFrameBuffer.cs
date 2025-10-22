@@ -80,7 +80,21 @@ public class SilkNetFrameBuffer : FrameBuffer
             SilkNetContext.GL.ClearBuffer (BufferKind.Color,attachmentIndex, value);
         }
     }
-    
+
+    public override void RegenerateMipmaps()
+    {
+        for (var i = 0; i < _colorAttachmentSpecs.Count; i++)
+        {
+            var spec = _colorAttachmentSpecs[i];
+            if (spec.GenerateMipmaps)
+            {
+                SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[i]);
+                SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+            }
+        }
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
+    }
+
     public override void Bind()
     {
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
@@ -180,27 +194,47 @@ public class SilkNetFrameBuffer : FrameBuffer
     {
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[attachmentIndex]);
 
+        var spec = _colorAttachmentSpecs[attachmentIndex];
+
         InternalFormat internalFormat = InternalFormat.Rgba8;
-        PixelFormat format = PixelFormat.Rgba;
-        switch (_colorAttachmentSpecs[attachmentIndex].TextureFormat)
+        switch (spec.TextureFormat)
         {
             case FramebufferTextureFormat.RGBA8:
                 internalFormat = InternalFormat.Rgba8;
-                format = PixelFormat.Rgba;
                 break;
             case FramebufferTextureFormat.RED_INTEGER:
                 internalFormat = InternalFormat.R32i;
-                format = PixelFormat.RedInteger;
                 break;
         }
-                
-        // Create our texture and upload the image data.
-        SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
-            _specification.Height, 0, format, PixelType.Int, (void*)0);
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-            (int)TextureMinFilter.Nearest);
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-            (int)TextureMagFilter.Nearest);
+
+        // Determine actual mip levels
+        int mipLevels = spec.GenerateMipmaps ? spec.MipLevels : 1;
+
+        // Create texture storage with mipmap support using glTexStorage2D
+        SilkNetContext.GL.TexStorage2D(TextureTarget.Texture2D, (uint)mipLevels,
+            (SizedInternalFormat)internalFormat, _specification.Width, _specification.Height);
+
+        // Configure texture parameters based on mipmap settings
+        if (spec.GenerateMipmaps)
+        {
+            SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.LinearMipmapLinear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Linear);
+        }
+        else
+        {
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.Nearest);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Nearest);
+        }
+
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
             FramebufferAttachment.ColorAttachment0 + attachmentIndex, TextureTarget.Texture2D, _colorAttachments[attachmentIndex], 0);
     }
