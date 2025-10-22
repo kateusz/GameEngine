@@ -11,7 +11,7 @@ public class SilkNetFrameBuffer : FrameBuffer
     private uint _rendererId = 0;
     private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
-    private uint _depthAttachment;
+    private uint _depthAttachment = 0;
     private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
 
@@ -34,7 +34,11 @@ public class SilkNetFrameBuffer : FrameBuffer
     {
         SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
         SilkNetContext.GL.DeleteTextures(_colorAttachments);
-        SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+
+        if (_depthAttachment != 0)
+        {
+            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+        }
 
         Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
         _depthAttachment = 0;
@@ -96,7 +100,13 @@ public class SilkNetFrameBuffer : FrameBuffer
         {
             SilkNetContext.GL.DeleteFramebuffer(_rendererId);
             SilkNetContext.GL.DeleteTextures(_colorAttachments);
-            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+
+            // Only delete if we actually have a depth attachment
+            if (_depthAttachment != 0)
+            {
+                SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+                _depthAttachment = 0;
+            }
         }
 
         _rendererId = SilkNetContext.GL.GenFramebuffer();
@@ -112,18 +122,23 @@ public class SilkNetFrameBuffer : FrameBuffer
         {
             AttachColorTexture(i);
         }
-            
+
         if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
         {
             _depthAttachment = SilkNetContext.GL.GenTexture();
             SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
-                
+
             switch (_depthAttachmentSpec.TextureFormat)
             {
                 case FramebufferTextureFormat.DEPTH24STENCIL8:
                     AttachDepthTexture(_depthAttachment, _specification.Samples, GLEnum.Depth24Stencil8, FramebufferAttachment.DepthStencilAttachment, _specification.Width, _specification.Height);
                     break;
             }
+        }
+        else
+        {
+            // Explicitly set to no attachment
+            _depthAttachment = 0;
         }
 
         DrawBuffers();
