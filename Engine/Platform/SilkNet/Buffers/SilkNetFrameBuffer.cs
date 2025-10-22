@@ -63,11 +63,49 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     public override int ReadPixel(int attachmentIndex, int x, int y)
     {
+        // Validate attachment index
+        if (attachmentIndex < 0 || attachmentIndex >= _colorAttachmentSpecs.Count)
+        {
+            Debug.WriteLine($"Warning: Invalid attachment index {attachmentIndex}, " +
+                           $"valid range is 0-{_colorAttachmentSpecs.Count - 1}");
+            return -1;
+        }
+
+        // Validate coordinates
+        if (x < 0 || x >= _specification.Width || y < 0 || y >= _specification.Height)
+        {
+            Debug.WriteLine($"Warning: Pixel coordinates ({x}, {y}) out of bounds " +
+                           $"for framebuffer size ({_specification.Width}, {_specification.Height})");
+            return -1;
+        }
+
+        // Must bind framebuffer before reading
+        var previousFBO = SilkNetContext.GL.GetInteger(GLEnum.ReadFramebufferBinding);
+        if (previousFBO != (int)_rendererId)
+        {
+            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _rendererId);
+        }
+
         unsafe
         {
             SilkNetContext.GL.ReadBuffer(GLEnum.ColorAttachment0 + attachmentIndex);
             int redValue = 0;
             SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, PixelType.Int, &redValue);
+
+#if DEBUG
+            var error = SilkNetContext.GL.GetError();
+            if (error != GLEnum.NoError)
+            {
+                Debug.WriteLine($"Warning: ReadPixels failed with OpenGL error: {error}");
+            }
+#endif
+
+            // Restore previous binding
+            if (previousFBO != (int)_rendererId)
+            {
+                SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)previousFBO);
+            }
+
             return redValue;
         }
     }
