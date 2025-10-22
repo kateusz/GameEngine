@@ -28,7 +28,13 @@ public class Scene
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
-    private const int MaxPhysicsStepsPerFrame = 5; // Prevent spiral of death
+
+    /// <summary>
+    /// Maximum physics steps per frame to prevent spiral of death.
+    /// At 60Hz physics with 16ms frames, this allows catching up from frame spikes up to ~83ms.
+    /// Beyond this threshold, the accumulator is clamped to prevent unbounded physics execution.
+    /// </summary>
+    private const int MaxPhysicsStepsPerFrame = 5;
 
 
     public Scene(string path)
@@ -210,10 +216,11 @@ public class Scene
             stepCount++;
         }
 
-        // If we're still behind after max steps, reset accumulator to prevent spiral of death
+        // If we hit max steps, clamp accumulator to prevent unbounded growth
+        // while preserving some time debt for the next frame
         if (_physicsAccumulator >= CameraConfig.PhysicsTimestep)
         {
-            _physicsAccumulator = 0f;
+            _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
         }
 
         // Retrieve transform from Box2D
