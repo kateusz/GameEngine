@@ -12,13 +12,13 @@ public class ContextViewTests : IDisposable
     public ContextViewTests()
     {
         // Clear entities before each test
-        Context.Instance.Entities.Clear();
+        Context.Instance.Clear();
     }
 
     public void Dispose()
     {
         // Clean up after each test
-        Context.Instance.Entities.Clear();
+        Context.Instance.Clear();
     }
 
     [Fact]
