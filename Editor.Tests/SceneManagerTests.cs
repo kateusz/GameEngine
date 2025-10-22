@@ -174,13 +174,14 @@ public class SceneManagerTests
         // Arrange
         _sceneManager.New(new Vector2(800, 600));
         var entity = CurrentScene.Instance.CreateEntity("TestEntity");
+        var tc = new TransformComponent(Vector3.One, Vector3.Zero, Vector3.One);
+        entity.AddComponent(tc);
+        
         var transform = entity.GetComponent<TransformComponent>();
         transform.Translation = new Vector3(10, 20, 30);
 
         _mockSceneView.Setup(v => v.GetSelectedEntity()).Returns(entity);
-
-        var mockCamera = new Mock<OrthographicCamera>(800, 600);
-        var cameraController = new OrthographicCameraController(mockCamera.Object);
+        var cameraController = new OrthographicCameraController(800 / 600);
 
         // Act
         _sceneManager.FocusOnSelectedEntity(cameraController);
@@ -195,9 +196,7 @@ public class SceneManagerTests
         // Arrange
         _sceneManager.New(new Vector2(800, 600));
         _mockSceneView.Setup(v => v.GetSelectedEntity()).Returns((Entity?)null);
-
-        var mockCamera = new Mock<OrthographicCamera>(800, 600);
-        var cameraController = new OrthographicCameraController(mockCamera.Object);
+        var cameraController = new OrthographicCameraController(800 / 600);
         var originalPosition = cameraController.Camera.Position;
 
         // Act

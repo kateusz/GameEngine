@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECS.Tests", "ECS.Tests\ECS.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor.Tests", "Editor.Tests\Editor.Tests.csproj", "{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B8211546-2EE0-42B5-9143-79EBB97D0C4C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -130,5 +132,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F} = {B8211546-2EE0-42B5-9143-79EBB97D0C4C}
+		{39660852-A3DC-4B2F-A492-8468D991E0DC} = {B8211546-2EE0-42B5-9143-79EBB97D0C4C}
 	EndGlobalSection
 EndGlobal
