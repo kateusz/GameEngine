@@ -5,10 +5,11 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public class SilkNetVertexBuffer : IVertexBuffer
+public class SilkNetVertexBuffer : IVertexBuffer, IDisposable
 {
-    private readonly uint _rendererId;
-    
+    private uint _rendererId;
+    private bool _disposed;
+
     // Maximum buffer size limit: 256 MB
     // This prevents accidental allocation of excessive GPU memory which could lead to:
     // - Out-of-memory crashes
@@ -27,29 +28,61 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
         _rendererId = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
-        unsafe
+
+        try
         {
-            SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, size, null, BufferUsageARB.DynamicDraw);
+            unsafe
+            {
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, size, null, BufferUsageARB.DynamicDraw);
+            }
+
+            // Check for OpenGL errors after buffer allocation
+            var error = SilkNetContext.GL.GetError();
+            if (error != GLEnum.NoError)
+            {
+                throw new InvalidOperationException($"OpenGL error during vertex buffer creation: {error}");
+            }
         }
-        
-        // Check for OpenGL errors after buffer allocation
-        var error = SilkNetContext.GL.GetError();
-        if (error != GLEnum.NoError)
+        catch
         {
-            throw new InvalidOperationException($"OpenGL error during vertex buffer creation: {error}");
+            // Clean up buffer on failure to prevent resource leak
+            SilkNetContext.GL.DeleteBuffer(_rendererId);
+            throw;
         }
     }
 
     ~SilkNetVertexBuffer()
     {
+        Dispose(false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
         try
         {
-            SilkNetContext.GL.DeleteBuffer(_rendererId);
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteBuffer(_rendererId);
+                _rendererId = 0;
+            }
         }
         catch (Exception e)
         {
-            // todo: 
+            // Finalizers and Dispose must not throw exceptions
+            // Log the error but suppress it to prevent application crashes
+            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex buffer {_rendererId}: {e.Message}");
         }
+
+        _disposed = true;
     }
 
     public void SetLayout(BufferLayout layout)
