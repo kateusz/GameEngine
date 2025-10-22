@@ -156,6 +156,8 @@ public class Scene
     {
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
+        var errors = new List<Exception>();
+
         foreach (var (entity, component) in scriptEntities)
         {
             if (component.ScriptableEntity != null)
@@ -166,10 +168,16 @@ public class Scene
                 }
                 catch (Exception ex)
                 {
-                    // Log but don't crash
-                    Logger.Error(ex, "Error in script OnDestroy");
+                    Logger.Error(ex, $"Error in script OnDestroy for entity '{entity.Name}' (ID: {entity.Id})");
+                    errors.Add(ex);
                 }
             }
+        }
+
+        // Log summary if there were errors during script cleanup
+        if (errors.Count > 0)
+        {
+            Logger.Warn($"Scene stopped with {errors.Count} script error(s) during OnDestroy. Check logs above for details.");
         }
 
         // Clear ContactListener
