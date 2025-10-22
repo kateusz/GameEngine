@@ -13,24 +13,24 @@ public class Renderer2DData
     public const int MaxTextureSlots = RenderingConstants.MaxTextureSlots;
     public const float LineWidth = RenderingConstants.DefaultLineWidth;
 
-    public IVertexArray QuadVertexArray { get; set; }
-    public IVertexBuffer QuadVertexBuffer { get; set; }
-    public IShader QuadShader { get; set; }
-    public Texture2D WhiteTexture { get; set; }
+    public IVertexArray QuadVertexArray { get; internal set; }
+    public IVertexBuffer QuadVertexBuffer { get; internal set; }
+    public IShader QuadShader { get; internal set; }
+    public Texture2D WhiteTexture { get; internal set; }
     public QuadVertex[] QuadVertexBufferBase = new QuadVertex[MaxVertices];
-    public int CurrentVertexBufferIndex { get; set; }
-    public uint QuadIndexBufferCount { get; set; }
+    public int CurrentVertexBufferIndex { get; internal set; }
+    public uint QuadIndexBufferCount { get; internal set; }
     public readonly Vector4[] QuadVertexPositions = new Vector4[RenderingConstants.QuadVertexCount];
 
-    public IVertexArray LineVertexArray { get; set; }
-    public IVertexBuffer LineVertexBuffer { get; set; }
-    public IShader LineShader { get; set; }
+    public IVertexArray LineVertexArray { get; internal set; }
+    public IVertexBuffer LineVertexBuffer { get; internal set; }
+    public IShader LineShader { get; internal set; }
     public LineVertex[] LineVertexBufferBase = new LineVertex[MaxVertices];
-    public int CurrentLineVertexBufferIndex { get; set; }
-    public uint LineVertexCount { get; set; }
+    public int CurrentLineVertexBufferIndex { get; internal set; }
+    public uint LineVertexCount { get; internal set; }
 
 
     public readonly Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
-    public int TextureSlotIndex { get; set; }
-    public Statistics Stats { get; set; }
+    public int TextureSlotIndex { get; internal set; }
+    public Statistics Stats { get; internal set; }
 }
