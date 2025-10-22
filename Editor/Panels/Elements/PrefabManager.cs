@@ -2,11 +2,15 @@ using System.Numerics;
 using ECS;
 using Engine.Scene.Serializer;
 using ImGuiNET;
+using Editor.UI;
+using Serilog;
 
 namespace Editor.Panels.Elements;
 
 public class PrefabManager : IPrefabManager
 {
+    private static readonly Serilog.ILogger Logger = Log.ForContext<PrefabManager>();
+    
     private readonly IPrefabSerializer _serializer;
     
     private bool _showSavePrefabPopup = false;
@@ -44,7 +48,7 @@ public class PrefabManager : IPrefabManager
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
         {
             ImGui.Text("Enter Prefab Name:");
-            ImGui.InputText("##PrefabName", ref _prefabName, 100);
+            ImGui.InputText("##PrefabName", ref _prefabName, EditorUIConstants.MaxNameLength);
             ImGui.Separator();
 
             bool isValid = !string.IsNullOrWhiteSpace(_prefabName) &&
@@ -52,26 +56,26 @@ public class PrefabManager : IPrefabManager
 
             if (!isValid && !string.IsNullOrEmpty(_prefabName))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped("Prefab name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores.");
                 ImGui.PopStyleColor();
             }
 
             if (!string.IsNullOrEmpty(_prefabSaveError))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped(_prefabSaveError);
                 ImGui.PopStyleColor();
             }
 
             ImGui.BeginDisabled(!isValid);
-            if (ImGui.Button("Save", new Vector2(120, 0)))
+            if (ImGui.Button("Save", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 try
                 {
                     var currentProjectPath = GetCurrentProjectPath();
                     _serializer.SerializeToPrefab(_entityToSave, _prefabName, currentProjectPath);
-                    Console.WriteLine($"Saved prefab: {_prefabName}.prefab");
+                    Logger.Information("Saved prefab: {PrefabName}.prefab", _prefabName);
                     _showSavePrefabPopup = false;
                     _prefabSaveError = "";
                 }
@@ -83,7 +87,7 @@ public class PrefabManager : IPrefabManager
             ImGui.EndDisabled();
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            if (ImGui.Button("Cancel", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showSavePrefabPopup = false;
                 _prefabSaveError = "";

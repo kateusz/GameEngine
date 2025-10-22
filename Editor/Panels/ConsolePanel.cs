@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text;
 using ImGuiNET;
+using Editor.UI;
 
 namespace Editor.Panels;
 
@@ -85,22 +86,22 @@ public class ConsolePanel
 
         // Filter controls
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(200);
-        ImGui.InputText("Filter", ref _filterText, 256);
+        ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
+        ImGui.InputText("Filter", ref _filterText, EditorUIConstants.MaxTextInputLength);
 
         // Log level filters
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.7f, 0.7f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
         ImGui.Checkbox("Info", ref _showInfo);
         ImGui.PopStyleColor();
 
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 0.0f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.WarningColor);
         ImGui.Checkbox("Warnings", ref _showWarnings);
         ImGui.PopStyleColor();
 
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.3f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
         ImGui.Checkbox("Errors", ref _showErrors);
         ImGui.PopStyleColor();
     }

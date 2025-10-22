@@ -27,7 +27,7 @@ public class SilkNetFrameBuffer : FrameBuffer
     private uint _rendererId = 0;
     private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
-    private uint _depthAttachment;
+    private uint _depthAttachment = 0;
     private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
 
@@ -53,7 +53,11 @@ public class SilkNetFrameBuffer : FrameBuffer
         // be valid during finalization, so we skip error checking here.
         SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
         SilkNetContext.GL.DeleteTextures(_colorAttachments);
-        SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+
+        if (_depthAttachment != 0)
+        {
+            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+        }
 
         Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
         _depthAttachment = 0;
@@ -78,6 +82,29 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     public override int ReadPixel(int attachmentIndex, int x, int y)
     {
+        // Validate attachment index
+        if (attachmentIndex < 0 || attachmentIndex >= _colorAttachmentSpecs.Count)
+        {
+            Debug.WriteLine($"Warning: Invalid attachment index {attachmentIndex}, " +
+                           $"valid range is 0-{_colorAttachmentSpecs.Count - 1}");
+            return -1;
+        }
+
+        // Validate coordinates
+        if (x < 0 || x >= _specification.Width || y < 0 || y >= _specification.Height)
+        {
+            Debug.WriteLine($"Warning: Pixel coordinates ({x}, {y}) out of bounds " +
+                           $"for framebuffer size ({_specification.Width}, {_specification.Height})");
+            return -1;
+        }
+
+        // Must bind framebuffer before reading
+        var previousFBO = SilkNetContext.GL.GetInteger(GLEnum.ReadFramebufferBinding);
+        if (previousFBO != (int)_rendererId)
+        {
+            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _rendererId);
+        }
+
         unsafe
         {
             SilkNetContext.GL.ReadBuffer(GLEnum.ColorAttachment0 + attachmentIndex);
@@ -85,8 +112,21 @@ public class SilkNetFrameBuffer : FrameBuffer
             
             int redValue = 0;
             SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, PixelType.Int, &redValue);
-            GLDebug.CheckError(SilkNetContext.GL, "ReadPixels");
-            
+
+#if DEBUG
+            var error = SilkNetContext.GL.GetError();
+            if (error != GLEnum.NoError)
+            {
+                Debug.WriteLine($"Warning: ReadPixels failed with OpenGL error: {error}");
+            }
+#endif
+
+            // Restore previous binding
+            if (previousFBO != (int)_rendererId)
+            {
+                SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)previousFBO);
+            }
+
             return redValue;
         }
     }
@@ -111,16 +151,22 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     private void Invalidate()
     {
+        bool attachmentCountChanged = _colorAttachments == null ||
+                                       _colorAttachments.Length != _colorAttachmentSpecs.Count;
+
         if (_rendererId != 0)
         {
             SilkNetContext.GL.DeleteFramebuffer(_rendererId);
             GLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffer");
             
             SilkNetContext.GL.DeleteTextures(_colorAttachments);
-            GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (color)");
-            
-            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
-            GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (depth)");
+
+            // Only delete if we actually have a depth attachment
+            if (_depthAttachment != 0)
+            {
+                SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+                _depthAttachment = 0;
+            }
         }
 
         _rendererId = SilkNetContext.GL.GenFramebuffer();
@@ -129,7 +175,10 @@ public class SilkNetFrameBuffer : FrameBuffer
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
         GLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
 
-        _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+        // Only allocate if attachment count changed
+        if (attachmentCountChanged)
+            _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+
         SilkNetContext.GL.GenTextures(_colorAttachments);
         GLDebug.CheckError(SilkNetContext.GL, "GenTextures");
 
@@ -137,21 +186,25 @@ public class SilkNetFrameBuffer : FrameBuffer
         {
             AttachColorTexture(i);
         }
-            
+
         if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
         {
             _depthAttachment = SilkNetContext.GL.GenTexture();
             GLDebug.CheckError(SilkNetContext.GL, "GenTexture (depth)");
             
             SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
-            GLDebug.CheckError(SilkNetContext.GL, "BindTexture (depth)");
-                
+
             switch (_depthAttachmentSpec.TextureFormat)
             {
                 case FramebufferTextureFormat.DEPTH24STENCIL8:
                     AttachDepthTexture(_depthAttachment, _specification.Samples, GLEnum.Depth24Stencil8, FramebufferAttachment.DepthStencilAttachment, _specification.Width, _specification.Height);
                     break;
             }
+        }
+        else
+        {
+            // Explicitly set to no attachment
+            _depthAttachment = 0;
         }
 
         DrawBuffers();

@@ -1,6 +1,7 @@
 using System.Numerics;
 using Editor.Managers;
 using ImGuiNET;
+using Editor.UI;
 
 namespace Editor.Panels;
 
@@ -44,26 +45,26 @@ public class ProjectUI
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
         {
             ImGui.Text("Enter Project Name:");
-            ImGui.InputText("##ProjectName", ref _newProjectName, 100);
+            ImGui.InputText("##ProjectName", ref _newProjectName, EditorUIConstants.MaxNameLength);
             ImGui.Separator();
 
             bool isValid = _projectManager.IsValidProjectName(_newProjectName);
 
             if (!isValid && !string.IsNullOrEmpty(_newProjectName))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped("Project name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores.");
                 ImGui.PopStyleColor();
             }
             if (!string.IsNullOrEmpty(_newProjectError))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped(_newProjectError);
                 ImGui.PopStyleColor();
             }
 
             ImGui.BeginDisabled(!isValid);
-            if (ImGui.Button("Create", new Vector2(120, 0)))
+            if (ImGui.Button("Create", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 if (_projectManager.TryCreateNewProject(_newProjectName.Trim(), out var err))
                 {
@@ -81,7 +82,7 @@ public class ProjectUI
             ImGui.EndDisabled();
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            if (ImGui.Button("Cancel", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showNewProjectPopup = false;
                 _newProjectName = string.Empty;
@@ -104,12 +105,12 @@ public class ProjectUI
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
         {
             ImGui.Text("Enter Project Path:");
-            ImGui.InputText("##OpenProjectName", ref _openProjectPath, 100);
+            ImGui.InputText("##OpenProjectName", ref _openProjectPath, EditorUIConstants.MaxNameLength);
             ImGui.Separator();
 
             if (!string.IsNullOrEmpty(_openProjectError))
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped(_openProjectError);
                 ImGui.PopStyleColor();
             }
@@ -117,7 +118,7 @@ public class ProjectUI
             bool hasInput = !string.IsNullOrWhiteSpace(_openProjectPath);
 
             ImGui.BeginDisabled(!hasInput);
-            if (ImGui.Button("Open", new Vector2(120, 0)))
+            if (ImGui.Button("Open", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 if (_projectManager.TryOpenProject(_openProjectPath.Trim(), out var err))
                 {
@@ -135,7 +136,7 @@ public class ProjectUI
             ImGui.EndDisabled();
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            if (ImGui.Button("Cancel", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showOpenProjectPopup = false;
                 _openProjectPath = string.Empty;

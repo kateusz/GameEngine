@@ -50,6 +50,24 @@ Think of an entity as an empty vessel or a container that you fill with capabili
 
 An entity without components is valid but does nothing - it's the components that give entities meaning and functionality.
 
+#### Entity ID Generation
+
+Entity IDs are generated using a sequential counter maintained by each Scene instance:
+
+- **Sequential Generation**: IDs start at 1 and increment for each new entity created via `CreateEntity()`
+- **Collision-Free**: Sequential generation eliminates the possibility of ID collisions
+- **Deterministic**: Same entity creation order produces same IDs, aiding debugging and reproducibility
+- **Serialization-Safe**: When loading entities from a saved scene, the Scene tracks the highest ID and continues from there
+- **Scene-Local**: Each Scene instance maintains its own ID counter, starting fresh at 1 when created
+
+This approach ensures that:
+- Entity IDs remain small and debuggable (1, 2, 3...)
+- No birthday paradox collision issues occur (previous random generation had 50% collision risk at ~118 entities)
+- Entity references in saved scenes remain valid across sessions
+- Debugging is simplified with predictable, sequential IDs
+
+**Note**: Since the engine uses a single active scene architecture (via `CurrentScene.Instance`), ID uniqueness is guaranteed within the active scene context.
+
 ### Component as Pure Data
 
 Components are simple data holders implementing the `IComponent` marker interface. They describe "what something is" rather than "what something does":

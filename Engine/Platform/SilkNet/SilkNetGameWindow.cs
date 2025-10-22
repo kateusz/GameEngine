@@ -4,6 +4,7 @@ using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Platform.SilkNet.Input;
+using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -13,6 +14,8 @@ namespace Engine.Platform.SilkNet;
 
 public class SilkNetGameWindow : IGameWindow
 {
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetGameWindow>();
+    
     private readonly IWindow _window;
     
     private IInputSystem? _inputSystem;
@@ -56,7 +59,7 @@ public class SilkNetGameWindow : IGameWindow
         SilkNetContext.GL = _window.CreateOpenGL();
         SilkNetContext.Window = _window;
 
-        Console.WriteLine("Load!");
+        Logger.Information("SilkNet window loaded");
         
         var inputContext = _window.CreateInput();
         // TODO: move to factory

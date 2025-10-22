@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.Managers;
 using Editor.Panels;
+using Editor.Logging;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -15,14 +16,14 @@ using Engine.Scene.Components;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
-using NLog;
+using Serilog;
 using ZLinq;
 
 namespace Editor;
 
 public class EditorLayer : ILayer
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<EditorLayer>();
 
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -45,14 +46,15 @@ public class EditorLayer : ILayer
     private EditorSettingsUI _editorSettingsUI;
     
     private readonly ISceneSerializer  _sceneSerializer;
-    
+
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, ConsolePanel consolePanel)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
+        _consolePanel = consolePanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -82,25 +84,23 @@ public class EditorLayer : ILayer
         _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
 
         _contentBrowserPanel = new ContentBrowserPanel();
-        _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
         _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
-        
+
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
-        
-        Console.WriteLine("✅ Editor initialized successfully!");
-        Console.WriteLine("Console panel is now capturing output.");
+
+        Logger.Information("✅ Editor initialized successfully!");
+        Logger.Information("Console panel is now capturing output.");
     }
 
     private void EntitySelected(Entity entity)
     {
         // Center camera on selected entity
-        var transformComponent = entity.GetComponent<TransformComponent>();
-        if (transformComponent != default)
+        if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
         {
             var camera = _cameraController.Camera;
             camera.SetPosition(transformComponent.Translation);
@@ -111,6 +111,7 @@ public class EditorLayer : ILayer
     {
         Logger.Debug("EditorLayer OnDetach.");
         _consolePanel?.Dispose();
+        Log.CloseAndFlush();
     }
 
     public void OnUpdate(TimeSpan timeSpan)

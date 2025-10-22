@@ -8,31 +8,29 @@ namespace Engine.Renderer;
 
 public class Renderer2DData
 {
-    private const int MaxQuads = 10000;  // Industry standard for 2D batch renderers
+    public const int MaxVertices = RenderingConstants.MaxVertices;
+    public const int MaxIndices = RenderingConstants.MaxIndices;
+    public const int MaxTextureSlots = RenderingConstants.MaxTextureSlots;
+    public const float LineWidth = RenderingConstants.DefaultLineWidth;
 
-    public const int MaxVertices = MaxQuads * 4; // 4 vertex per quad
-    public const int MaxIndices = MaxQuads * 6; // 6 indices oer quad
-    public const int MaxTextureSlots = 16;
-    public const float LineWidth = 1.0f;
-
-    public IVertexArray QuadVertexArray { get; set; }
-    public IVertexBuffer QuadVertexBuffer { get; set; }
-    public IShader QuadShader { get; set; }
-    public Texture2D WhiteTexture { get; set; }
+    public IVertexArray QuadVertexArray { get; internal set; }
+    public IVertexBuffer QuadVertexBuffer { get; internal set; }
+    public IShader QuadShader { get; internal set; }
+    public Texture2D WhiteTexture { get; internal set; }
     public QuadVertex[] QuadVertexBufferBase = new QuadVertex[MaxVertices];
-    public int CurrentVertexBufferIndex { get; set; }
-    public uint QuadIndexBufferCount { get; set; }
-    public readonly Vector4[] QuadVertexPositions = new Vector4[4];
+    public int CurrentVertexBufferIndex { get; internal set; }
+    public uint QuadIndexBufferCount { get; internal set; }
+    public readonly Vector4[] QuadVertexPositions = new Vector4[RenderingConstants.QuadVertexCount];
 
-    public IVertexArray LineVertexArray { get; set; }
-    public IVertexBuffer LineVertexBuffer { get; set; }
-    public IShader LineShader { get; set; }
+    public IVertexArray LineVertexArray { get; internal set; }
+    public IVertexBuffer LineVertexBuffer { get; internal set; }
+    public IShader LineShader { get; internal set; }
     public LineVertex[] LineVertexBufferBase = new LineVertex[MaxVertices];
-    public int CurrentLineVertexBufferIndex { get; set; }
-    public uint LineVertexCount { get; set; }
+    public int CurrentLineVertexBufferIndex { get; internal set; }
+    public uint LineVertexCount { get; internal set; }
 
 
     public readonly Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
-    public int TextureSlotIndex { get; set; }
-    public Statistics Stats { get; set; }
+    public int TextureSlotIndex { get; internal set; }
+    public Statistics Stats { get; internal set; }
 }

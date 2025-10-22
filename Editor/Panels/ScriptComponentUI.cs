@@ -4,13 +4,14 @@ using Editor.Panels.Elements;
 using Engine.Scene.Components;
 using Engine.Scripting;
 using ImGuiNET;
-using NLog;
+using Serilog;
+using Editor.UI;
 
 namespace Editor.Panels;
 
 public static class ScriptComponentUI
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext(typeof(ScriptComponentUI));
 
     private static bool _showCreateScriptPopup = false;
     private static bool _showScriptSelectorPopup = false;
@@ -36,7 +37,7 @@ public static class ScriptComponentUI
             if (script != null)
             {
                 var scriptType = script.GetType();
-                ImGui.TextColored(new Vector4(1, 1, 0, 1), $"Script: {scriptType.Name}");
+                ImGui.TextColored(EditorUIConstants.WarningColor, $"Script: {scriptType.Name}");
                 if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
                 {
                     if (ImGui.MenuItem("Remove"))
@@ -51,7 +52,7 @@ public static class ScriptComponentUI
                 var fields = script.GetExposedFields().ToList();
                 if (!fields.Any())
                 {
-                    ImGui.TextColored(new Vector4(1, 0, 0, 1), "No public fields/properties found!");
+                    ImGui.TextColored(EditorUIConstants.ErrorColor, "No public fields/properties found!");
                 }
 
                 foreach (var (fieldName, fieldType, fieldValue) in fields)
@@ -100,7 +101,7 @@ public static class ScriptComponentUI
                         else if (fieldType == typeof(string))
                         {
                             var v = (string)fieldValue ?? string.Empty;
-                            if (ImGui.InputText(inputLabel, ref v, 256))
+                            if (ImGui.InputText(inputLabel, ref v, EditorUIConstants.MaxTextInputLength))
                             {
                                 newValue = v;
                                 changed = true;
@@ -143,19 +144,19 @@ public static class ScriptComponentUI
             }
             else
             {
-                ImGui.TextColored(new Vector4(1, 0, 0, 1), "No script instance attached!");
+                ImGui.TextColored(EditorUIConstants.ErrorColor, "No script instance attached!");
             }
 
             ImGui.Separator();
 
             // Add Script buttons
-            if (ImGui.Button("Add Existing Script", new Vector2(150, 0)))
+            if (ImGui.Button("Add Existing Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showScriptSelectorPopup = true;
             }
 
             ImGui.SameLine();
-            if (ImGui.Button("Create New Script", new Vector2(150, 0)))
+            if (ImGui.Button("Create New Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showCreateScriptPopup = true;
                 _newScriptName = $"Script_{DateTime.Now.Ticks % 1000:000}";
@@ -177,7 +178,7 @@ public static class ScriptComponentUI
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
         {
             ImGui.Text("Enter name for the new script:");
-            ImGui.InputText("##ScriptName", ref _newScriptName, 100);
+            ImGui.InputText("##ScriptName", ref _newScriptName, EditorUIConstants.MaxNameLength);
 
             ImGui.Separator();
 
@@ -187,14 +188,14 @@ public static class ScriptComponentUI
 
             if (!isValidName)
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0.3f, 0.3f, 1));
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped(
                     "Script name must start with a letter and contain only letters, numbers, and underscores.");
                 ImGui.PopStyleColor();
             }
 
             ImGui.BeginDisabled(!isValidName);
-            if (ImGui.Button("Create", new Vector2(120, 0)))
+            if (ImGui.Button("Create", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showCreateScriptPopup = false;
                 
@@ -204,32 +205,31 @@ public static class ScriptComponentUI
                     if (scriptInstanceResult.IsSuccess)
                     {
                         var scriptInstance = scriptInstanceResult.Value;
-                        if (_selectedEntity.HasComponent<NativeScriptComponent>())
+                        if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
                         {
-                            _selectedEntity.GetComponent<NativeScriptComponent>().ScriptableEntity =
-                                scriptInstance;
+                            scriptComponent.ScriptableEntity = scriptInstance;
                         }
                         else
                         {
-                            _selectedEntity.AddComponent(new NativeScriptComponent
+                            _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                             {
                                 ScriptableEntity = scriptInstance
                             });
                         }
 
-                        Logger.Info($"Added script {_newScriptName} to entity {_selectedEntity.Name}");
+                        Logger.Information("Added script {ScriptName} to entity {EntityName}", _newScriptName, _selectedEntity.Name);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, $"Failed to create script instance for {_newScriptName}");
+                    Logger.Error(ex, "Failed to create script instance for {ScriptName}", _newScriptName);
                 }
             }
 
             ImGui.EndDisabled();
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            if (ImGui.Button("Cancel", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showCreateScriptPopup = false;
             }
@@ -257,16 +257,16 @@ public static class ScriptComponentUI
 
             if (availableScripts.Length == 0)
             {
-                ImGui.TextColored(new Vector4(1, 1, 0, 1), "No scripts available. Create one first!");
+                ImGui.TextColored(EditorUIConstants.WarningColor, "No scripts available. Create one first!");
             }
             else
             {
                 // Calculate proper height for the listbox
                 var itemHeight = ImGui.GetTextLineHeightWithSpacing();
-                var visibleItems = Math.Min(availableScripts.Length, 10);
+                var visibleItems = Math.Min(availableScripts.Length, EditorUIConstants.MaxVisibleListItems);
                 var listboxHeight = itemHeight * visibleItems + ImGui.GetStyle().FramePadding.Y * 2;
 
-                ImGui.BeginChild("ScriptsList", new Vector2(300, listboxHeight));
+                ImGui.BeginChild("ScriptsList", new Vector2(EditorUIConstants.SelectorListBoxWidth, listboxHeight));
 
                 for (var i = 0; i < availableScripts.Length; i++)
                 {
@@ -284,25 +284,24 @@ public static class ScriptComponentUI
                                 if (scriptInstanceResult.IsSuccess)
                                 {
                                     var scriptInstance = scriptInstanceResult.Value;
-                                    if (_selectedEntity.HasComponent<NativeScriptComponent>())
+                                    if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
                                     {
-                                        _selectedEntity.GetComponent<NativeScriptComponent>().ScriptableEntity =
-                                            scriptInstance;
+                                        scriptComponent.ScriptableEntity = scriptInstance;
                                     }
                                     else
                                     {
-                                        _selectedEntity.AddComponent(new NativeScriptComponent
+                                        _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                                         {
                                             ScriptableEntity = scriptInstance
                                         });
                                     }
 
-                                    Logger.Info($"Added script {scriptName} to entity {_selectedEntity.Name}");
+                                    Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                Logger.Error(ex, $"Failed to create script instance for {scriptName}");
+                                Logger.Error(ex, "Failed to create script instance for {ScriptName}", scriptName);
                             }
                         }
                     }
@@ -318,7 +317,7 @@ public static class ScriptComponentUI
                         {
                             if (ScriptEngine.Instance.DeleteScript(scriptName))
                             {
-                                Logger.Info($"Deleted script {scriptName}");
+                                Logger.Information("Deleted script {ScriptName}", scriptName);
                             }
 
                             ImGui.CloseCurrentPopup();
@@ -333,7 +332,7 @@ public static class ScriptComponentUI
 
             ImGui.Separator();
 
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            if (ImGui.Button("Cancel", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showScriptSelectorPopup = false;
             }
@@ -350,12 +349,11 @@ public static class ScriptComponentUI
                                                            ImGuiTreeNodeFlags.AllowOverlap |
                                                            ImGuiTreeNodeFlags.FramePadding;
 
-        if (entity.HasComponent<T>())
+        if (entity.TryGetComponent<T>(out var component))
         {
-            var component = entity.GetComponent<T>();
             var contentRegionAvailable = ImGui.GetContentRegionAvail();
 
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
             var lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
             ImGui.Separator();
 
@@ -378,7 +376,7 @@ public static class ScriptComponentUI
         else
         {
             // If entity doesn't have this component, we'll create a placeholder for adding it
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
             ImGui.Separator();
 
             // Use different tree node flags for placeholder
@@ -394,7 +392,7 @@ public static class ScriptComponentUI
                 // Add NativeScriptComponent button
                 if (ImGui.Button($"Add {name} Component", new Vector2(ImGui.GetContentRegionAvail().X, 0)))
                 {
-                    entity.AddComponent(new NativeScriptComponent());
+                    entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
 
                     // After adding, call UI function with newly created component
                     uiFunction(entity.GetComponent<T>());

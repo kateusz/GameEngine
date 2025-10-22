@@ -1,10 +1,13 @@
 using Engine.Audio;
+using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioClip : IAudioClip
 {
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioClip>();
+    
     private uint _bufferId;
     private bool _disposed = false;
 
@@ -25,7 +28,7 @@ public class SilkNetAudioClip : IAudioClip
         Format = AudioClipFactory.DetectFormat(path);
 
         if (!AudioClipFactory.IsSupportedFormat(path))
-            throw new NotSupportedException($"Nieobsługiwany format audio: {path}");
+            throw new NotSupportedException($"Unsupported audio format: {path}");
     }
 
     public void Load()
@@ -35,29 +38,29 @@ public class SilkNetAudioClip : IAudioClip
 
         try
         {
-            // Ładowanie zostanie zaimplementowane w punkcie 3
+            // Load audio file
             LoadAudioFile();
 
-            // Utwórz bufor OpenAL
+            // Create OpenAL buffer
             var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
             _bufferId = al.GenBuffer();
 
-            // Określ format OpenAL na podstawie kanałów i głębi bitowej
+            // Determine OpenAL format based on channels and bit depth
             var alFormat = GetOpenALFormat();
 
-            // Prześlij dane do bufora OpenAL
+            // Upload data to OpenAL buffer
             al.BufferData(_bufferId, alFormat, RawData, SampleRate);
 
-            // Oblicz czas trwania
-            int bytesPerSample = Channels * 2; // Zakładając 16-bit
+            // Calculate duration
+            int bytesPerSample = Channels * 2; // Assuming 16-bit
             Duration = (float)DataSize / (SampleRate * bytesPerSample);
 
             IsLoaded = true;
-            Console.WriteLine($"Załadowano klip audio: {Path} ({Duration:F2}s)");
+            Logger.Information("Loaded audio clip: {Path} ({Duration:F2}s)", Path, Duration);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd ładowania klipu audio {Path}: {ex.Message}");
+            Logger.Error(ex, "Error loading audio clip {Path}", Path);
             throw;
         }
     }
@@ -80,11 +83,11 @@ public class SilkNetAudioClip : IAudioClip
             DataSize = 0;
             IsLoaded = false;
 
-            Console.WriteLine($"Zwolniono klip audio: {Path}");
+            Logger.Information("Unloaded audio clip: {Path}", Path);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd zwalniania klipu audio {Path}: {ex.Message}");
+            Logger.Error(ex, "Error unloading audio clip {Path}", Path);
         }
     }
 
@@ -93,37 +96,37 @@ public class SilkNetAudioClip : IAudioClip
         try
         {
             if (!AudioLoaderRegistry.IsSupported(Path))
-                throw new NotSupportedException($"Nieobsługiwany format pliku: {Path}");
+                throw new NotSupportedException($"Unsupported file format: {Path}");
 
             var audioData = AudioLoaderRegistry.LoadAudio(Path);
-        
+
             RawData = audioData.Data;
             DataSize = audioData.Data.Length;
             SampleRate = audioData.SampleRate;
             Channels = audioData.Channels;
             Format = audioData.Format;
-        
-            Console.WriteLine($"Załadowano dane audio: {Path}");
-            Console.WriteLine($"  - Sample Rate: {SampleRate} Hz");
-            Console.WriteLine($"  - Kanały: {Channels}");
-            Console.WriteLine($"  - Rozmiar: {DataSize} bajtów");
-            Console.WriteLine($"  - Format: {Format}");
+
+            Logger.Debug("Loaded audio data: {Path}", Path);
+            Logger.Debug("  - Sample Rate: {SampleRate} Hz", SampleRate);
+            Logger.Debug("  - Channels: {Channels}", Channels);
+            Logger.Debug("  - Size: {DataSize} bytes", DataSize);
+            Logger.Debug("  - Format: {Format}", Format);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd ładowania pliku audio {Path}: {ex.Message}");
+            Logger.Error(ex, "Error loading audio file {Path}", Path);
             throw;
         }
     }
 
     private BufferFormat GetOpenALFormat()
     {
-        // Zakładając 16-bit samples
+        // Assuming 16-bit samples
         return Channels switch
         {
             1 => BufferFormat.Mono16,
             2 => BufferFormat.Stereo16,
-            _ => throw new NotSupportedException($"Nieobsługiwana liczba kanałów: {Channels}")
+            _ => throw new NotSupportedException($"Unsupported number of channels: {Channels}")
         };
     }
     
@@ -133,7 +136,7 @@ public class SilkNetAudioClip : IAudioClip
     {
         if (!_disposed && IsLoaded)
         {
-            Console.WriteLine($"Uwaga: AudioClip {Path} nie został prawidłowo zwolniony. Wywołaj Unload().");
+            Logger.Warning("Warning: AudioClip {Path} was not properly unloaded. Call Unload().", Path);
         }
     }
 }

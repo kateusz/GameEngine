@@ -1,10 +1,13 @@
 using Engine.Audio;
+using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioSource : IAudioSource
 {
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioSource>();
+    
     private readonly AL _al;
     private uint _sourceId;
     private IAudioClip _clip;
@@ -15,7 +18,7 @@ public class SilkNetAudioSource : IAudioSource
         _al = al;
         _sourceId = _al.GenSource();
 
-        // Ustaw domyślne właściwości
+        // Set default properties
         _al.SetSourceProperty(_sourceId, SourceFloat.Gain, 1.0f);
         _al.SetSourceProperty(_sourceId, SourceFloat.Pitch, 1.0f);
         _al.SetSourceProperty(_sourceId, SourceBoolean.Looping, false);
@@ -101,13 +104,13 @@ public class SilkNetAudioSource : IAudioSource
     {
         if (_clip == null)
         {
-            Console.WriteLine("Nie można odtworzyć - brak przypisanego klipu audio");
+            Logger.Warning("Cannot play - no audio clip assigned");
             return;
         }
 
         if (!_clip.IsLoaded)
         {
-            Console.WriteLine("Nie można odtworzyć - klip audio nie jest załadowany");
+            Logger.Warning("Cannot play - audio clip is not loaded");
             return;
         }
 
@@ -136,7 +139,7 @@ public class SilkNetAudioSource : IAudioSource
                 _sourceId = 0;
             }
 
-            // Wyrejestruj się z engine'a
+            // Unregister from engine
             if (AudioEngine.Instance is SilkNetAudioEngine silkEngine)
             {
                 silkEngine.UnregisterSource(this);
@@ -150,7 +153,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         if (!_disposed)
         {
-            Console.WriteLine("Uwaga: SilkNetAudioSource nie został prawidłowo zwolniony. Wywołaj Dispose().");
+            Logger.Warning("Warning: SilkNetAudioSource was not properly disposed. Call Dispose().");
         }
     }
 }

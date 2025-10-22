@@ -1,9 +1,12 @@
 using System.Diagnostics;
+using Serilog;
 
 namespace Editor.Publisher;
 
 public class GamePublisher
 {
+    private static readonly Serilog.ILogger Logger = Log.ForContext<GamePublisher>();
+    
     private static string _buildDirectory = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Builds");
     
     public void Publish()
@@ -29,8 +32,8 @@ public class GamePublisher
         };
 
         using var process = Process.Start(psi);
-        process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
-        process.ErrorDataReceived += (s, e) => Console.WriteLine("ERR: " + e.Data);
+        process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Logger.Information(e.Data); };
+        process.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Logger.Error("ERR: {ErrorData}", e.Data); };
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         process.WaitForExit();
