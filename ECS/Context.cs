@@ -1,12 +1,7 @@
-using System.Collections.Concurrent;
-
 namespace ECS;
 
 /// <summary>
-/// Manages the global entity registry with optimized O(1) lookup and removal.
-/// Uses dual data structures for performance:
-/// - Dictionary for O(1) ID-based operations (add, remove, lookup)
-/// - List for efficient iteration over all entities
+/// Manages the global entity registry
 /// Thread-safe for concurrent access.
 /// </summary>
 public class Context
@@ -18,8 +13,8 @@ public class Context
     // - Dictionary enables O(1) entity lookup and removal by ID
     // - List enables efficient iteration without boxing overhead
     private readonly Dictionary<int, Entity> _entitiesById = new();
-    private readonly List<Entity> _entitiesList = new();
-    private readonly object _lock = new();
+    private readonly List<Entity> _entitiesList = [];
+    private readonly Lock _lock = new();
 
     /// <summary>
     /// Gets a read-only view of all entities.
@@ -84,9 +79,7 @@ public class Context
         {
             if (!_entitiesById.Remove(entityId, out var entity))
                 return false;
-
-            // O(n) list removal, but unavoidable for maintaining iteration order
-            // Still much better than previous O(n) + allocations approach
+            
             _entitiesList.Remove(entity);
             return true;
         }
