@@ -316,7 +316,7 @@ public class EditorLayer : ILayer
                                 {
                                     if (!_projectManager.TryOpenProject(recent.Path, out var error))
                                     {
-                                        Logger.Warn("Failed to open recent project {Path}: {Error}", recent.Path, error);
+                                        Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
                                     }
                                 }
 
