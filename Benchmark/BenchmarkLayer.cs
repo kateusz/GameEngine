@@ -49,6 +49,12 @@ public class BenchmarkLayer : ILayer
     private bool _isRunning;
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
+
+    // Physics-specific metrics tracking
+    private int _totalActiveBodyCount;
+    private int _totalSleepingBodyCount;
+    private float _totalVelocityMagnitude;
+    private int _physicsFrameCount;
     
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -141,11 +147,11 @@ public class BenchmarkLayer : ILayer
         ImGui.Checkbox("VSync", ref _enableVSync);
             
         ImGui.Separator();
-            
+
         if (!_isRunning)
         {
-            ImGui.Text("Select Benchmark Test:");
-                
+            ImGui.Text("Rendering Tests:");
+
             if (ImGui.Button("Renderer2D Stress Test"))
                 StartBenchmark(BenchmarkTestType.Renderer2DStress);
                 
@@ -154,6 +160,18 @@ public class BenchmarkLayer : ILayer
                 
             if (ImGui.Button("Draw Call Test"))
                 StartBenchmark(BenchmarkTestType.DrawCallOptimization);
+
+            ImGui.Separator();
+            ImGui.Text("Physics Tests:");
+
+            if (ImGui.Button("Bouncing Ball Test"))
+                StartBenchmark(BenchmarkTestType.PhysicsBouncingBall);
+
+            if (ImGui.Button("Falling Bodies Stress"))
+                StartBenchmark(BenchmarkTestType.PhysicsFallingBodies);
+
+            if (ImGui.Button("Stacking Stability Test"))
+                StartBenchmark(BenchmarkTestType.PhysicsStacking);
         }
         else
         {
@@ -250,10 +268,12 @@ public class BenchmarkLayer : ILayer
                     float fpsDiff = result.AverageFPS - baseline.AverageFPS;
                     float frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
 
+                    // FPS
                     ImGui.PushStyleColor(ImGuiCol.Text, fpsDiff >= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
                     ImGui.Text($"Δ Avg FPS: {fpsDiff:+0.00;-0.00;0.00}");
                     ImGui.PopStyleColor();
 
+                    // Frame time
                     ImGui.PushStyleColor(ImGuiCol.Text, frameTimeDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
                     ImGui.Text($"Δ Frame Time: {frameTimeDiff:+0.00;-0.00;0.00}ms");
                     ImGui.PopStyleColor();
@@ -354,8 +374,14 @@ public class BenchmarkLayer : ILayer
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
         {
             FinalizeBenchmark();
+
+            // Cleanup physics world for physics tests
+            if (_currentTestScene != null && IsPhysicsTest(_currentTestType))
+            {
+                _currentTestScene.OnRuntimeStop();
+            }
         }
-            
+
         _isRunning = false;
         _currentTestType = BenchmarkTestType.None;
         CleanupTestScene();
@@ -365,13 +391,16 @@ public class BenchmarkLayer : ILayer
     {
         _testElapsedTime += (float)ts.TotalSeconds;
         _frameCount++;
-            
+
         // Update test scene
         if (_currentTestScene != null)
         {
-            // TODO: align to 2d camera
-            //_currentTestScene.OnUpdateEditor(ts, new Engine.Renderer.EditorCamera()); // Fixed: use OnUpdateEditor instead of OnUpdateRuntime
-                
+            // For physics tests, call OnUpdateRuntime to step physics simulation
+            if (IsPhysicsTest(_currentTestType))
+            {
+                _currentTestScene.OnUpdateRuntime(ts);
+            }
+
             // Add test-specific updates
             switch (_currentTestType)
             {
@@ -384,9 +413,18 @@ public class BenchmarkLayer : ILayer
                 case BenchmarkTestType.TextureSwitching:
                     UpdateTextureSwitching();
                     break;
+                case BenchmarkTestType.PhysicsBouncingBall:
+                    UpdatePhysicsBouncingBall();
+                    break;
+                case BenchmarkTestType.PhysicsFallingBodies:
+                    UpdatePhysicsFallingBodies();
+                    break;
+                case BenchmarkTestType.PhysicsStacking:
+                    UpdatePhysicsStacking();
+                    break;
             }
         }
-            
+
         // Check if test is complete
         if (_testElapsedTime >= _testDuration)
         {
@@ -427,12 +465,12 @@ public class BenchmarkLayer : ILayer
     private void SetupTestScene(BenchmarkTestType testType)
     {
         _currentTestScene = new Engine.Scene.Scene("Benchmark");
-            
+
         // Add camera entity
         var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
         cameraEntity.AddComponent<TransformComponent>(); // Add required TransformComponent
         cameraEntity.AddComponent<CameraComponent>();
-            
+
         switch (testType)
         {
             case BenchmarkTestType.Renderer2DStress:
@@ -444,6 +482,22 @@ public class BenchmarkLayer : ILayer
             case BenchmarkTestType.DrawCallOptimization:
                 SetupDrawCallTest();
                 break;
+            case BenchmarkTestType.PhysicsBouncingBall:
+                SetupPhysicsBouncingBallTest();
+                break;
+            case BenchmarkTestType.PhysicsFallingBodies:
+                SetupPhysicsFallingBodiesTest();
+                break;
+            case BenchmarkTestType.PhysicsStacking:
+                SetupPhysicsStackingTest();
+                break;
+        }
+
+        // Initialize physics world for physics tests
+        if (IsPhysicsTest(testType))
+        {
+            _currentTestScene.OnRuntimeStart();
+            ResetPhysicsMetrics();
         }
     }
 
@@ -471,7 +525,7 @@ public class BenchmarkLayer : ILayer
                     (float)random.NextDouble(),
                     1.0f)
             };
-            entity.AddComponent<SpriteRendererComponent>(sprite);
+            entity.AddComponent(sprite);
         }
     }
 
@@ -672,9 +726,244 @@ public class BenchmarkLayer : ILayer
                 result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
                 result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
                 break;
+
+            case BenchmarkTestType.PhysicsBouncingBall:
+            case BenchmarkTestType.PhysicsFallingBodies:
+            case BenchmarkTestType.PhysicsStacking:
+                if (_physicsFrameCount > 0)
+                {
+                    result.CustomMetrics["Avg Active Bodies"] = (_totalActiveBodyCount / _physicsFrameCount).ToString();
+                    result.CustomMetrics["Avg Sleeping Bodies"] = (_totalSleepingBodyCount / _physicsFrameCount).ToString();
+                    result.CustomMetrics["Avg Velocity"] = (_totalVelocityMagnitude / _physicsFrameCount).ToString("F2");
+                }
+                break;
         }
 
         _results.Add(result);
+    }
+
+    // Helper methods
+    private bool IsPhysicsTest(BenchmarkTestType testType)
+    {
+        return testType == BenchmarkTestType.PhysicsBouncingBall ||
+               testType == BenchmarkTestType.PhysicsFallingBodies ||
+               testType == BenchmarkTestType.PhysicsStacking;
+    }
+
+    private void ResetPhysicsMetrics()
+    {
+        _totalActiveBodyCount = 0;
+        _totalSleepingBodyCount = 0;
+        _totalVelocityMagnitude = 0;
+        _physicsFrameCount = 0;
+    }
+
+    private void TrackPhysicsMetrics()
+    {
+        if (_currentTestScene == null) return;
+
+        int activeBodyCount = 0;
+        int sleepingBodyCount = 0;
+        float totalVelocity = 0f;
+
+        foreach (var entity in _currentTestScene.Entities)
+        {
+            if (entity.TryGetComponent<RigidBody2DComponent>(out var rb) && rb.RuntimeBody != null)
+            {
+                if (rb.RuntimeBody.IsAwake())
+                {
+                    activeBodyCount++;
+                    var velocity = rb.RuntimeBody.GetLinearVelocity();
+                    totalVelocity += MathF.Sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y);
+                }
+                else
+                {
+                    sleepingBodyCount++;
+                }
+            }
+        }
+
+        _totalActiveBodyCount += activeBodyCount;
+        _totalSleepingBodyCount += sleepingBodyCount;
+        _totalVelocityMagnitude += totalVelocity;
+        _physicsFrameCount++;
+    }
+
+    // Physics test setup methods
+    private void SetupPhysicsBouncingBallTest()
+    {
+        if (_currentTestScene == null) return;
+
+        // Create static floor
+        var floor = _currentTestScene.CreateEntity("Floor");
+        var floorTransform = floor.AddComponent<TransformComponent>();
+        floorTransform.Translation = new Vector3(0, -5, 0);
+        floorTransform.Scale = new Vector3(20, 1, 1);
+
+        var floorRb = floor.AddComponent<RigidBody2DComponent>();
+        floorRb.BodyType = RigidBodyType.Static;
+
+        var floorCollider = floor.AddComponent<BoxCollider2DComponent>();
+        floorCollider.Size = new Vector2(1.0f, 1.0f);
+        floorCollider.Density = 1.0f;
+        floorCollider.Friction = 0.5f;
+        floorCollider.Restitution = 0.8f;
+
+        var floorSprite = floor.AddComponent<SpriteRendererComponent>();
+        floorSprite.Color = new Vector4(0.3f, 0.3f, 0.3f, 1.0f);
+
+        // Create bouncing balls
+        var random = new Random();
+        for (int i = 0; i < _entityCount; i++)
+        {
+            var ball = _currentTestScene.CreateEntity($"Ball_{i}");
+            var ballTransform = ball.AddComponent<TransformComponent>();
+
+            // Spawn at random X positions, high Y
+            ballTransform.Translation = new Vector3(
+                (float)(random.NextDouble() * 10 - 5),
+                5.0f + i * 0.5f,
+                0);
+            ballTransform.Scale = Vector3.One * 0.5f;
+
+            var ballRb = ball.AddComponent<RigidBody2DComponent>();
+            ballRb.BodyType = RigidBodyType.Dynamic;
+
+            var ballCollider = ball.AddComponent<BoxCollider2DComponent>();
+            ballCollider.Size = new Vector2(1.0f, 1.0f);
+            ballCollider.Density = 2.0f;
+            ballCollider.Friction = 0.1f;
+            ballCollider.Restitution = 0.85f;
+
+            var ballSprite = ball.AddComponent<SpriteRendererComponent>();
+            ballSprite.Color = new Vector4(
+                (float)random.NextDouble(),
+                (float)random.NextDouble(),
+                (float)random.NextDouble(),
+                1.0f);
+        }
+    }
+
+    private void SetupPhysicsFallingBodiesTest()
+    {
+        if (_currentTestScene == null) return;
+
+        // Create static ground
+        var ground = _currentTestScene.CreateEntity("Ground");
+        var groundTransform = ground.AddComponent<TransformComponent>();
+        groundTransform.Translation = new Vector3(0, -10, 0);
+        groundTransform.Scale = new Vector3(50, 1, 1);
+
+        var groundRb = ground.AddComponent<RigidBody2DComponent>();
+        groundRb.BodyType = RigidBodyType.Static;
+
+        var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
+        groundCollider.Size = new Vector2(1.0f, 1.0f);
+        groundCollider.Density = 1.0f;
+        groundCollider.Friction = 0.3f;
+        groundCollider.Restitution = 0.0f;
+
+        var groundSprite = ground.AddComponent<SpriteRendererComponent>();
+        groundSprite.Color = new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
+
+        // Create falling bodies
+        var random = new Random();
+        for (int i = 0; i < _entityCount; i++)
+        {
+            var body = _currentTestScene.CreateEntity($"FallingBody_{i}");
+            var bodyTransform = body.AddComponent<TransformComponent>();
+
+            // Random positions at various heights
+            bodyTransform.Translation = new Vector3(
+                (float)(random.NextDouble() * 40 - 20),
+                (float)(random.NextDouble() * 20 + 5),
+                0);
+
+            // Random sizes
+            float size = (float)(random.NextDouble() * 0.8 + 0.2);
+            bodyTransform.Scale = Vector3.One * size;
+
+            var bodyRb = body.AddComponent<RigidBody2DComponent>();
+            bodyRb.BodyType = RigidBodyType.Dynamic;
+
+            var bodyCollider = body.AddComponent<BoxCollider2DComponent>();
+            bodyCollider.Size = new Vector2(1.0f, 1.0f);
+            bodyCollider.Density = 1.0f;
+            bodyCollider.Friction = 0.3f;
+            bodyCollider.Restitution = 0.0f;
+
+            var bodySprite = body.AddComponent<SpriteRendererComponent>();
+            bodySprite.Color = new Vector4(
+                (float)random.NextDouble(),
+                (float)random.NextDouble(),
+                (float)random.NextDouble(),
+                1.0f);
+        }
+    }
+
+    private void SetupPhysicsStackingTest()
+    {
+        if (_currentTestScene == null) return;
+
+        // Create static ground
+        var ground = _currentTestScene.CreateEntity("Ground");
+        var groundTransform = ground.AddComponent<TransformComponent>();
+        groundTransform.Translation = new Vector3(0, -5, 0);
+        groundTransform.Scale = new Vector3(20, 1, 1);
+
+        var groundRb = ground.AddComponent<RigidBody2DComponent>();
+        groundRb.BodyType = RigidBodyType.Static;
+
+        var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
+        groundCollider.Size = new Vector2(1.0f, 1.0f);
+        groundCollider.Density = 1.0f;
+        groundCollider.Friction = 0.6f;
+        groundCollider.Restitution = 0.0f;
+
+        var groundSprite = ground.AddComponent<SpriteRendererComponent>();
+        groundSprite.Color = new Vector4(0.3f, 0.3f, 0.3f, 1.0f);
+
+        // Create stacked boxes
+        int stackCount = Math.Min(_entityCount, 50); // Cap at 50 for stability
+        for (int i = 0; i < stackCount; i++)
+        {
+            var box = _currentTestScene.CreateEntity($"Box_{i}");
+            var boxTransform = box.AddComponent<TransformComponent>();
+
+            // Stack boxes vertically with slight spacing
+            boxTransform.Translation = new Vector3(0, -4 + i * 1.05f, 0);
+            boxTransform.Scale = Vector3.One;
+
+            var boxRb = box.AddComponent<RigidBody2DComponent>();
+            boxRb.BodyType = RigidBodyType.Dynamic;
+
+            var boxCollider = box.AddComponent<BoxCollider2DComponent>();
+            boxCollider.Size = new Vector2(1.0f, 1.0f);
+            boxCollider.Density = 1.0f;
+            boxCollider.Friction = 0.6f;
+            boxCollider.Restitution = 0.0f;
+
+            var boxSprite = box.AddComponent<SpriteRendererComponent>();
+            // Color gradient from bottom (red) to top (blue)
+            float t = i / (float)stackCount;
+            boxSprite.Color = new Vector4(1.0f - t, 0.3f, t, 1.0f);
+        }
+    }
+
+    // Physics test update methods
+    private void UpdatePhysicsBouncingBall()
+    {
+        TrackPhysicsMetrics();
+    }
+
+    private void UpdatePhysicsFallingBodies()
+    {
+        TrackPhysicsMetrics();
+    }
+
+    private void UpdatePhysicsStacking()
+    {
+        TrackPhysicsMetrics();
     }
 
     /// <summary>
