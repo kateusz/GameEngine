@@ -8,6 +8,7 @@ using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
+using Engine.Scene.Systems;
 using Engine.Scripting;
 using Serilog;
 
@@ -16,13 +17,14 @@ namespace Engine.Scene;
 public class Scene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
-    
+
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
     private World _physicsWorld;
     private SceneContactListener _contactListener;
     private int _nextEntityId = 1;
+    private readonly SystemManager _systemManager = new();
 
     private readonly bool _showPhysicsDebug = true;
 
@@ -99,6 +101,10 @@ public class Scene
 
     public void OnRuntimeStart()
     {
+        // Initialize systems
+        _systemManager.RegisterSystem(new ScriptUpdateSystem());
+        _systemManager.Initialize();
+
         _physicsWorld = new World(new Vector2(0, -9.8f)); // Standardowa grawitacja ziemska
 
         _contactListener = new SceneContactListener();
@@ -155,6 +161,9 @@ public class Scene
 
     public void OnRuntimeStop()
     {
+        // Shutdown systems first
+        _systemManager.Shutdown();
+
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
         var errors = new List<Exception>();
@@ -205,8 +214,8 @@ public class Scene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // Update scripts with variable delta time for smooth rendering
-        ScriptEngine.Instance.OnUpdate(ts);
+        // Update all systems (including scripts) with variable delta time
+        _systemManager.Update(ts);
 
         // Fixed timestep physics simulation
         const int velocityIterations = 6;
