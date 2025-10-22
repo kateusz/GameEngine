@@ -211,7 +211,7 @@ public static class ScriptComponentUI
                         }
                         else
                         {
-                            _selectedEntity.AddComponent(new NativeScriptComponent
+                            _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                             {
                                 ScriptableEntity = scriptInstance
                             });
@@ -290,7 +290,7 @@ public static class ScriptComponentUI
                                     }
                                     else
                                     {
-                                        _selectedEntity.AddComponent(new NativeScriptComponent
+                                        _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                                         {
                                             ScriptableEntity = scriptInstance
                                         });
@@ -392,7 +392,7 @@ public static class ScriptComponentUI
                 // Add NativeScriptComponent button
                 if (ImGui.Button($"Add {name} Component", new Vector2(ImGui.GetContentRegionAvail().X, 0)))
                 {
-                    entity.AddComponent(new NativeScriptComponent());
+                    entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
 
                     // After adding, call UI function with newly created component
                     uiFunction(entity.GetComponent<T>());
