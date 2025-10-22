@@ -8,11 +8,16 @@ namespace Editor.Panels;
 
 public class SceneHierarchyPanel : ISceneView
 {
-    private Scene _context;
+    private Scene? _context;
     private Entity? _selectionContext;
     private readonly EntityContextMenu _contextMenu;
-    
+
     public Action<Entity> EntitySelected;
+
+    /// <summary>
+    /// Event raised when the selected entity changes.
+    /// </summary>
+    public event Action<Entity?>? SelectionChanged;
 
     public SceneHierarchyPanel(Scene context)
     {
@@ -22,8 +27,10 @@ public class SceneHierarchyPanel : ISceneView
 
     public void SetContext(Scene? context)
     {
-        _context = context!;
+        _context = context;
         _selectionContext = null;
+        // Raise event to notify subscribers that selection was cleared
+        SelectionChanged?.Invoke(null);
     }
 
     public void OnImGuiRender()
@@ -31,15 +38,24 @@ public class SceneHierarchyPanel : ISceneView
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");
 
-        foreach (var entity in _context.Entities)
+        if (_context != null)
         {
-            DrawEntityNode(entity);
+            foreach (var entity in _context.Entities)
+            {
+                DrawEntityNode(entity);
+            }
+
+            if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
+            {
+                if (_selectionContext != null)
+                {
+                    _selectionContext = null;
+                    SelectionChanged?.Invoke(null);
+                }
+            }
+
+            EntityContextMenu.Render(_context);
         }
-
-        if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
-            _selectionContext = null;
-
-        EntityContextMenu.Render(_context);
 
         ImGui.End();
     }
@@ -47,6 +63,7 @@ public class SceneHierarchyPanel : ISceneView
     public void SetSelectedEntity(Entity entity)
     {
         _selectionContext = entity;
+        SelectionChanged?.Invoke(entity);
     }
 
     public Entity? GetSelectedEntity() => _selectionContext;
@@ -60,8 +77,9 @@ public class SceneHierarchyPanel : ISceneView
 
         if (ImGui.IsItemClicked())
         {
-            EntitySelected.Invoke(entity);
+            EntitySelected?.Invoke(entity);
             _selectionContext = entity;
+            SelectionChanged?.Invoke(entity);
         }
 
         // TODO: finish dependency injection
@@ -84,9 +102,12 @@ public class SceneHierarchyPanel : ISceneView
 
         if (entityDeleted)
         {
-            _context.DestroyEntity(entity);
+            _context?.DestroyEntity(entity);
             if (Equals(_selectionContext, entity))
+            {
                 _selectionContext = null;
+                SelectionChanged?.Invoke(null);
+            }
         }
     }
 }

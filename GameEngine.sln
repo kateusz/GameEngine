@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark", "Benchmark\Benc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECS.Tests", "ECS.Tests\ECS.Tests.csproj", "{39660852-A3DC-4B2F-A492-8468D991E0DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor.Tests", "Editor.Tests\Editor.Tests.csproj", "{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{39660852-A3DC-4B2F-A492-8468D991E0DC}.Release|x64.Build.0 = Release|Any CPU
 		{39660852-A3DC-4B2F-A492-8468D991E0DC}.Release|x86.ActiveCfg = Release|Any CPU
 		{39660852-A3DC-4B2F-A492-8468D991E0DC}.Release|x86.Build.0 = Release|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Debug|x64.Build.0 = Debug|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Debug|x86.Build.0 = Debug|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Release|x64.ActiveCfg = Release|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Release|x64.Build.0 = Release|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Release|x86.ActiveCfg = Release|Any CPU
+		{C7F8A2E1-5D4F-4B2E-9A1C-6E8F3B4D5A2F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
