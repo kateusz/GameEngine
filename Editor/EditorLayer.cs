@@ -110,6 +110,7 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+        _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
         Log.CloseAndFlush();
     }
