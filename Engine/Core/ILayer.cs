@@ -30,7 +30,11 @@ public interface ILayer
     /// Called when the layer is attached to the application.
     /// Use this method to initialize resources, subscribe to events, and perform setup.
     /// </summary>
-    /// <param name="inputSystem">The input system for handling user input.</param>
+    /// <param name="inputSystem">The input system for handling user input. This parameter is primarily used by ImGuiLayer to integrate with the input system. Most layers can ignore this parameter as input events are handled via <see cref="HandleInputEvent"/>.</param>
+    /// <remarks>
+    /// <b>Note:</b> The <paramref name="inputSystem"/> parameter is passed for compatibility with ImGuiLayer's input integration requirements.
+    /// Regular game layers should handle input through the event system (<see cref="HandleInputEvent"/>) instead.
+    /// </remarks>
     void OnAttach(IInputSystem inputSystem);
 
     /// <summary>

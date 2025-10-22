@@ -71,21 +71,34 @@ public abstract class Application : IApplication
         _layersStack.Add(overlay);
     }
 
+    public void PopOverlay(ILayer overlay)
+    {
+        if (_layersStack.Remove(overlay))
+        {
+            SafeDetachLayer(overlay);
+        }
+    }
+
     public void PopLayer(ILayer layer)
     {
         if (_layersStack.Remove(layer))
         {
-            try
-            {
-                layer.OnDetach();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Error detaching layer {layer.GetType().Name}");
-            }
+            SafeDetachLayer(layer);
         }
     }
-    
+
+    private void SafeDetachLayer(ILayer layer)
+    {
+        try
+        {
+            layer.OnDetach();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Error detaching layer {layer.GetType().Name}");
+        }
+    }
+
     private void HandleUpdate()
     {
         double currentTime = _frameTimer.Elapsed.TotalSeconds;
@@ -158,14 +171,7 @@ public abstract class Application : IApplication
         // Detach all layers in reverse order (LIFO) to ensure proper cleanup
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
-            try
-            {
-                _layersStack[index].OnDetach();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Error detaching layer {_layersStack[index].GetType().Name}");
-            }
+            SafeDetachLayer(_layersStack[index]);
         }
 
         _layersStack.Clear();

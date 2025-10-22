@@ -50,6 +50,12 @@ public class BenchmarkLayer : ILayer
     public void OnDetach()
     {
         CleanupTestScene();
+
+        // Dispose all test textures
+        foreach (var texture in _testTextures.Values)
+        {
+            texture?.Dispose();
+        }
         _testTextures.Clear();
     }
 
