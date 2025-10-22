@@ -177,9 +177,9 @@ public class SilkNetFrameBuffer : FrameBuffer
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
             _specification.Height, 0, format, PixelType.Int, (void*)0);
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-            (int)_colorAttachmentSpecs[attachmentIndex].MinFilter);
+            (int)ToGLMinFilter(_colorAttachmentSpecs[attachmentIndex].MinFilter));
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-            (int)_colorAttachmentSpecs[attachmentIndex].MagFilter);
+            (int)ToGLMagFilter(_colorAttachmentSpecs[attachmentIndex].MagFilter));
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
             FramebufferAttachment.ColorAttachment0 + attachmentIndex, TextureTarget.Texture2D, _colorAttachments[attachmentIndex], 0);
     }
@@ -192,7 +192,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             _ => false
         };
     }
-    
+
     private GLEnum TextureFormatToGL(FramebufferTextureFormat format)
     {
         switch (format)
@@ -202,6 +202,34 @@ public class SilkNetFrameBuffer : FrameBuffer
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Converts engine-specific TextureMinFilter to OpenGL TextureMinFilter.
+    /// </summary>
+    private static Silk.NET.OpenGL.TextureMinFilter ToGLMinFilter(Engine.Renderer.Buffers.FrameBuffer.TextureMinFilter filter)
+    {
+        return filter switch
+        {
+            Engine.Renderer.Buffers.FrameBuffer.TextureMinFilter.Linear => Silk.NET.OpenGL.TextureMinFilter.Linear,
+            Engine.Renderer.Buffers.FrameBuffer.TextureMinFilter.Nearest => Silk.NET.OpenGL.TextureMinFilter.Nearest,
+            Engine.Renderer.Buffers.FrameBuffer.TextureMinFilter.LinearMipmapLinear => Silk.NET.OpenGL.TextureMinFilter.LinearMipmapLinear,
+            Engine.Renderer.Buffers.FrameBuffer.TextureMinFilter.NearestMipmapNearest => Silk.NET.OpenGL.TextureMinFilter.NearestMipmapNearest,
+            _ => throw new ArgumentOutOfRangeException(nameof(filter), filter, "Unknown TextureMinFilter")
+        };
+    }
+
+    /// <summary>
+    /// Converts engine-specific TextureMagFilter to OpenGL TextureMagFilter.
+    /// </summary>
+    private static Silk.NET.OpenGL.TextureMagFilter ToGLMagFilter(Engine.Renderer.Buffers.FrameBuffer.TextureMagFilter filter)
+    {
+        return filter switch
+        {
+            Engine.Renderer.Buffers.FrameBuffer.TextureMagFilter.Linear => Silk.NET.OpenGL.TextureMagFilter.Linear,
+            Engine.Renderer.Buffers.FrameBuffer.TextureMagFilter.Nearest => Silk.NET.OpenGL.TextureMagFilter.Nearest,
+            _ => throw new ArgumentOutOfRangeException(nameof(filter), filter, "Unknown TextureMagFilter")
+        };
     }
     
     private void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
@@ -219,8 +247,8 @@ public class SilkNetFrameBuffer : FrameBuffer
             SilkNetContext.GL.TexStorage2D(TextureTarget.Texture2D, 1, format, width, height);
 
             // Set texture parameters using specification
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)_depthAttachmentSpec.MinFilter);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)_depthAttachmentSpec.MagFilter);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)ToGLMinFilter(_depthAttachmentSpec.MinFilter));
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)ToGLMagFilter(_depthAttachmentSpec.MagFilter));
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);

@@ -511,7 +511,7 @@ This inconsistency could cause unexpected visual artifacts and confusion. The ne
 - **Consistency**: All attachments default to the same filtering mode
 - **Flexibility**: Per-attachment control for specialized use cases
 - **Clarity**: Explicit configuration makes behavior predictable
-- **Backward Compatibility**: Existing code continues to work with sensible defaults
+- **Platform Independence**: Engine-specific filter enums abstract away OpenGL implementation details
 
 ## Error Handling
 

@@ -1,6 +1,5 @@
-using Silk.NET.OpenGL;
-
 namespace Engine.Renderer.Buffers.FrameBuffer;
+
 public class FramebufferAttachmentSpecification
 {
     public List<FramebufferTextureSpecification> Attachments;
@@ -17,7 +16,7 @@ public enum FramebufferTextureFormat
 
     // Color
     RGBA8,
-    
+
     RED_INTEGER,
 
     // Depth/stencil
@@ -27,10 +26,67 @@ public enum FramebufferTextureFormat
     Depth = DEPTH24STENCIL8
 }
 
+/// <summary>
+/// Texture minification filter modes for framebuffer attachments.
+/// Controls how textures are sampled when appearing smaller than their original size.
+/// </summary>
+public enum TextureMinFilter
+{
+    /// <summary>
+    /// Linear interpolation between texels - produces smooth results.
+    /// </summary>
+    Linear,
+
+    /// <summary>
+    /// Nearest-neighbor sampling - produces sharp, pixelated results.
+    /// Ideal for pixel-art or when exact values are needed (e.g., entity IDs).
+    /// </summary>
+    Nearest,
+
+    /// <summary>
+    /// Linear interpolation with mipmaps using linear interpolation between mipmap levels.
+    /// Provides best quality for textures with mipmaps.
+    /// </summary>
+    LinearMipmapLinear,
+
+    /// <summary>
+    /// Nearest-neighbor sampling with mipmaps using nearest mipmap level.
+    /// </summary>
+    NearestMipmapNearest
+}
+
+/// <summary>
+/// Texture magnification filter modes for framebuffer attachments.
+/// Controls how textures are sampled when appearing larger than their original size.
+/// </summary>
+public enum TextureMagFilter
+{
+    /// <summary>
+    /// Linear interpolation between texels - produces smooth results.
+    /// </summary>
+    Linear,
+
+    /// <summary>
+    /// Nearest-neighbor sampling - produces sharp, pixelated results.
+    /// Ideal for pixel-art or when exact values are needed (e.g., entity IDs).
+    /// </summary>
+    Nearest
+}
+
 public struct FramebufferTextureSpecification
 {
     public FramebufferTextureFormat TextureFormat = FramebufferTextureFormat.None;
+
+    /// <summary>
+    /// Texture minification filter applied when texture appears smaller than screen space.
+    /// Defaults to Linear for smooth rendering.
+    /// </summary>
     public TextureMinFilter MinFilter = TextureMinFilter.Linear;
+
+    /// <summary>
+    /// Texture magnification filter applied when texture appears larger than screen space.
+    /// Defaults to Linear for smooth rendering.
+    /// </summary>
     public TextureMagFilter MagFilter = TextureMagFilter.Linear;
 
     public FramebufferTextureSpecification(
