@@ -197,10 +197,19 @@ public class SilkNetFrameBuffer : FrameBuffer
         // Create our texture and upload the image data.
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
             _specification.Height, 0, format, PixelType.Int, (void*)0);
+
+        // Configure texture filtering
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
             (int)TextureMinFilter.Nearest);
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
             (int)TextureMagFilter.Nearest);
+
+        // Configure wrap modes to match depth attachment behavior
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+            (int)GLEnum.ClampToEdge);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+            (int)GLEnum.ClampToEdge);
+
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
             FramebufferAttachment.ColorAttachment0 + attachmentIndex, TextureTarget.Texture2D, _colorAttachments[attachmentIndex], 0);
     }
