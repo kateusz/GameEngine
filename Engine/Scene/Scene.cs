@@ -199,7 +199,7 @@ public class Scene
         if (_physicsAccumulator > MaxAccumulation)
         {
             #if DEBUG
-            Logger.Warn($"Physics accumulator exceeded {MaxAccumulation}s, clamping to prevent spiral of death. " +
+            Logger.Warning($"Physics accumulator exceeded {MaxAccumulation}s, clamping to prevent spiral of death. " +
                        $"Frame time: {ts.TotalSeconds:F4}s. Consider optimizing physics or reducing entity count.");
             #endif
             _physicsAccumulator = MaxAccumulation;
