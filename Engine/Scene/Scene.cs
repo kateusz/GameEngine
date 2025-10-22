@@ -15,7 +15,7 @@ namespace Engine.Scene;
 
 public class Scene
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<Scene>();
+    private static readonly ILogger Logger = Log.ForContext<Scene>();
     
     private readonly string _path;
     private uint _viewportWidth;
@@ -177,7 +177,7 @@ public class Scene
         // Log summary if there were errors during script cleanup
         if (errors.Count > 0)
         {
-            Logger.Warn($"Scene stopped with {errors.Count} script error(s) during OnDestroy. Check logs above for details.");
+            Logger.Warning($"Scene stopped with {errors.Count} script error(s) during OnDestroy. Check logs above for details.");
         }
 
         // Clear ContactListener
