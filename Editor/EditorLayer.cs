@@ -301,8 +301,8 @@ public class EditorLayer : ILayer
                     // Add Recent Projects submenu
                     if (ImGui.BeginMenu("Recent Projects"))
                     {
-                        var recentProjects = _editorPreferences.RecentProjects;
-                        
+                        var recentProjects = _editorPreferences.GetRecentProjects();
+
                         if (recentProjects.Count == 0)
                         {
                             ImGui.MenuItem("(No recent projects)", false);
@@ -316,10 +316,10 @@ public class EditorLayer : ILayer
                                 {
                                     if (!_projectManager.TryOpenProject(recent.Path, out var error))
                                     {
-                                        Console.WriteLine($"Failed to open recent project: {error}");
+                                        Logger.Warn("Failed to open recent project {Path}: {Error}", recent.Path, error);
                                     }
                                 }
-                                
+
                                 // Show tooltip with full path
                                 if (ImGui.IsItemHovered())
                                 {
@@ -329,15 +329,14 @@ public class EditorLayer : ILayer
                                     ImGui.EndTooltip();
                                 }
                             }
-                            
+
                             ImGui.Separator();
                             if (ImGui.MenuItem("Clear Recent Projects"))
                             {
-                                _editorPreferences.RecentProjects.Clear();
-                                _editorPreferences.Save();
+                                _editorPreferences.ClearRecentProjects();
                             }
                         }
-                        
+
                         ImGui.EndMenu();
                     }
 
