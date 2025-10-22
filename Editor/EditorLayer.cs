@@ -314,7 +314,11 @@ public class EditorLayer : ILayer
                                 var displayName = $"{recent.Name}";
                                 if (ImGui.MenuItem(displayName))
                                 {
-                                    if (!_projectManager.TryOpenProject(recent.Path, out var error))
+                                    if (_projectManager.TryOpenProject(recent.Path, out var error))
+                                    {
+                                        _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                                    }
+                                    else
                                     {
                                         Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
                                     }
