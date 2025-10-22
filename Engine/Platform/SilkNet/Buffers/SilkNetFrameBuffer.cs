@@ -28,7 +28,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             return 8192;
         }
 
-        uint maxSize = (uint)Math.Min(maxWidth, maxHeight);
+        uint maxSize = (uint)System.Math.Min(maxWidth, maxHeight);
         Logger.Information("OpenGL Max Framebuffer Size: {MaxSize}x{MaxSize} (Width: {MaxWidth}, Height: {MaxHeight})",
             maxSize, maxSize, maxWidth, maxHeight);
         return maxSize;
@@ -95,16 +95,16 @@ public class SilkNetFrameBuffer : FrameBuffer
         // Validate attachment index
         if (attachmentIndex < 0 || attachmentIndex >= _colorAttachmentSpecs.Count)
         {
-            Debug.WriteLine($"Warning: Invalid attachment index {attachmentIndex}, " +
-                           $"valid range is 0-{_colorAttachmentSpecs.Count - 1}");
+            Logger.Warning($"Warning: Invalid attachment index {attachmentIndex}, " +
+                             $"valid range is 0-{_colorAttachmentSpecs.Count - 1}");
             return -1;
         }
 
         // Validate coordinates
         if (x < 0 || x >= _specification.Width || y < 0 || y >= _specification.Height)
         {
-            Debug.WriteLine($"Warning: Pixel coordinates ({x}, {y}) out of bounds " +
-                           $"for framebuffer size ({_specification.Width}, {_specification.Height})");
+            Logger.Warning($"Warning: Pixel coordinates ({x}, {y}) out of bounds " +
+                             $"for framebuffer size ({_specification.Width}, {_specification.Height})");
             return -1;
         }
 
@@ -127,7 +127,7 @@ public class SilkNetFrameBuffer : FrameBuffer
             var error = SilkNetContext.GL.GetError();
             if (error != GLEnum.NoError)
             {
-                Debug.WriteLine($"Warning: ReadPixels failed with OpenGL error: {error}");
+                Logger.Warning("Warning: ReadPixels failed with OpenGL error: {error}", error);
             }
 #endif
 
