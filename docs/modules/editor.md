@@ -268,13 +268,20 @@ Each component editor:
 - Provides specialized controls (color pickers, texture drop targets, vector editors)
 - Can show/hide fields based on component state
 
-### Script Component Field Editor System
+### Field Editor System
 
-The Script Component UI uses a similar registry-based pattern for rendering script fields with type-specific editors:
+The editor uses a centralized field editor registry for rendering typed properties across all component editors:
 
 ```mermaid
 graph LR
-    ScriptUI[ScriptComponentUI] --> Registry[FieldEditorRegistry]
+    ScriptUI[ScriptComponentUI] --> UIRenderer[UIPropertyRenderer]
+    CameraEditor[CameraComponentEditor] --> UIRenderer
+    SpriteEditor[SpriteRendererComponentEditor] --> UIRenderer
+    ModelEditor[ModelRendererComponentEditor] --> UIRenderer
+    ColliderEditor[BoxCollider2DComponentEditor] --> UIRenderer
+    OtherEditors[... Other Component Editors] --> UIRenderer
+
+    UIRenderer --> Registry[FieldEditorRegistry]
     Registry --> Editor1[IntFieldEditor]
     Registry --> Editor2[FloatFieldEditor]
     Registry --> Editor3[BoolFieldEditor]
@@ -293,6 +300,7 @@ graph LR
     Editor7 --> IEditor
     EditorN --> IEditor
 
+    style UIRenderer fill:#3498db,stroke:#2980b9,color:#fff
     style Registry fill:#f39c12,stroke:#c87f0a,color:#fff
     style IEditor fill:#9b59b6,stroke:#6a3a8a,color:#fff
 ```
@@ -301,7 +309,30 @@ graph LR
 - `IFieldEditor` interface defines `Draw(label, value, out newValue)` method
 - `FieldEditorRegistry` maintains a dictionary mapping `Type` to `IFieldEditor`
 - Each concrete editor (e.g., `IntFieldEditor`) handles one specific type
+- `UIPropertyRenderer.DrawPropertyField()` provides a unified interface for all component editors
 - Strategy pattern allows extensible type support without modifying existing code
+
+**Usage in Component Editors**:
+```csharp
+// Old pattern (3 lines per field)
+float density = component.Density;
+UIPropertyRenderer.DrawPropertyRow("Density", () => ImGui.DragFloat("##Density", ref density));
+if (component.Density != density)
+    component.Density = density;
+
+// New pattern using field editors (1 line per field)
+UIPropertyRenderer.DrawPropertyField("Density", component.Density,
+    newValue => component.Density = (float)newValue);
+```
+
+**Component Editors Using Field Editors** (19 total fields):
+- `CameraComponentEditor` - Primary, FOV, Near, Far, Size, Fixed Aspect Ratio (7 fields)
+- `SpriteRendererComponentEditor` - Color, Tiling Factor (2 fields)
+- `ModelRendererComponentEditor` - Color, Cast Shadows, Receive Shadows (3 fields)
+- `BoxCollider2DComponentEditor` - Offset, Size, Density, Friction, Restitution (5 fields)
+- `SubTextureRendererComponentEditor` - Sub texture coords (1 field)
+- `RigidBody2DComponentEditor` - Fixed Rotation (1 field)
+- `ScriptComponentUI` - All exposed script fields (dynamic)
 
 **ScriptComponentUI Method Breakdown**:
 - `DrawScriptComponent()` - Entry point, delegates to focused helpers (14 lines)
@@ -318,6 +349,7 @@ graph LR
 - Open/Closed Principle: Add new types without modifying existing code
 - Testability: Each editor can be unit tested independently
 - Maintainability: Small, focused methods (average 12 lines)
+- Code Reduction: ~38 lines of boilerplate eliminated across component editors
 - Extensibility: Register new field types by implementing `IFieldEditor`
 
 **Adding Custom Field Types**:
