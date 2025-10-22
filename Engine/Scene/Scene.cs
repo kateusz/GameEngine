@@ -15,7 +15,7 @@ namespace Engine.Scene;
 
 public class Scene
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<Scene>();
+    private static readonly ILogger Logger = Log.ForContext<Scene>();
     
     private readonly string _path;
     private uint _viewportWidth;

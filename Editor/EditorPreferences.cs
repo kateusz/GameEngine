@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using NLog;
+using Serilog;
 
 namespace Editor;
 
@@ -20,8 +20,8 @@ public class RecentProject
 /// </summary>
 public class EditorPreferences
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-
+    private static readonly ILogger Logger = Log.ForContext<EditorPreferences>();
+    
     public int Version { get; set; } = 1;
     public List<RecentProject> RecentProjects { get; set; } = new();
     public const int MaxRecentProjects = 10;
@@ -193,25 +193,23 @@ public class EditorPreferences
 
                 if (prefs == null)
                 {
-                    Logger.Warn("Failed to deserialize preferences, using defaults");
+                    Logger.Warning("Failed to deserialize preferences, using defaults");
                     return new EditorPreferences();
                 }
 
                 // Version migration logic can be added here if needed in the future
                 if (prefs.Version < 1)
                 {
-                    Logger.Info("Migrating preferences from version {Old} to {New}",
+                    Logger.Information("Migrating preferences from version {Old} to {New}",
                         prefs.Version, 1);
                     // Perform migration if needed
                 }
 
-                Logger.Info("Editor preferences loaded from {Path}", PreferencesPath);
+                Logger.Information("Editor preferences loaded from {Path}", PreferencesPath);
                 return prefs;
             }
-            else
-            {
-                Logger.Info("No preferences file found, using defaults");
-            }
+
+            Logger.Information("No preferences file found, using defaults");
         }
         catch (JsonException ex)
         {
@@ -220,7 +218,7 @@ public class EditorPreferences
             try
             {
                 File.Move(PreferencesPath, PreferencesPath + ".corrupted");
-                Logger.Info("Corrupted preferences backed up to {Path}", PreferencesPath + ".corrupted");
+                Logger.Information("Corrupted preferences backed up to {Path}", PreferencesPath + ".corrupted");
             }
             catch
             {
