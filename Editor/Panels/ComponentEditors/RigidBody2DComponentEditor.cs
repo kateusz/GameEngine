@@ -36,10 +36,8 @@ public class RigidBody2DComponentEditor : IComponentEditor
                 }
             });
 
-            bool fixedRotation = component.FixedRotation;
-            UIPropertyRenderer.DrawPropertyRow("Fixed Rotation", () => ImGui.Checkbox("##FixedRotation", ref fixedRotation));
-            if (component.FixedRotation != fixedRotation)
-                component.FixedRotation = fixedRotation;
+            UIPropertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
+                newValue => component.FixedRotation = (bool)newValue);
         });
     }
 }

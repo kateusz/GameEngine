@@ -12,25 +12,19 @@ public class ModelRendererComponentEditor : IComponentEditor
         ComponentEditorRegistry.DrawComponent<ModelRendererComponent>("Model Renderer", e, entity =>
         {
             var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
-            
-            var newColor = modelRendererComponent.Color;
-            UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##ModelColor", ref newColor));
-            if (modelRendererComponent.Color != newColor)
-                modelRendererComponent.Color = newColor;
+
+            UIPropertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
+                newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);
 
             // Use specialized texture drop target for override texture
             ModelTextureDropTarget.Draw("Texture", texture => modelRendererComponent.OverrideTexture = texture);
 
             // Shadow options
-            bool castShadows = modelRendererComponent.CastShadows;
-            UIPropertyRenderer.DrawPropertyRow("Cast Shadows", () => ImGui.Checkbox("##CastShadows", ref castShadows));
-            if (modelRendererComponent.CastShadows != castShadows)
-                modelRendererComponent.CastShadows = castShadows;
+            UIPropertyRenderer.DrawPropertyField("Cast Shadows", modelRendererComponent.CastShadows,
+                newValue => modelRendererComponent.CastShadows = (bool)newValue);
 
-            bool receiveShadows = modelRendererComponent.ReceiveShadows;
-            UIPropertyRenderer.DrawPropertyRow("Receive Shadows", () => ImGui.Checkbox("##ReceiveShadows", ref receiveShadows));
-            if (modelRendererComponent.ReceiveShadows != receiveShadows)
-                modelRendererComponent.ReceiveShadows = receiveShadows;
+            UIPropertyRenderer.DrawPropertyField("Receive Shadows", modelRendererComponent.ReceiveShadows,
+                newValue => modelRendererComponent.ReceiveShadows = (bool)newValue);
         });
     }
 }
