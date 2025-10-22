@@ -1,17 +1,36 @@
-using System.Diagnostics;
 using Engine.Renderer.Buffers.FrameBuffer;
+using Serilog;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetFrameBuffer : FrameBuffer
 {
+    private static readonly ILogger Logger = Log.ForContext<SilkNetFrameBuffer>();
+
     private static readonly Lazy<uint> MaxFramebufferSize = new(() =>
     {
+        // Ensure OpenGL context is initialized before querying capabilities
+        if (SilkNetContext.GL == null)
+        {
+            Logger.Warning("Attempting to query MaxFramebufferSize before OpenGL context initialization. Using fallback value of 8192.");
+            return 8192;
+        }
+
         int maxWidth = SilkNetContext.GL.GetInteger(GetPName.MaxFramebufferWidth);
         int maxHeight = SilkNetContext.GL.GetInteger(GetPName.MaxFramebufferHeight);
+
+        // Validate OpenGL query results
+        if (maxWidth <= 0 || maxHeight <= 0)
+        {
+            Logger.Warning("Invalid OpenGL framebuffer size query results (Width: {MaxWidth}, Height: {MaxHeight}). Using fallback value of 8192.",
+                maxWidth, maxHeight);
+            return 8192;
+        }
+
         uint maxSize = (uint)Math.Min(maxWidth, maxHeight);
-        Debug.WriteLine($"OpenGL Max Framebuffer Size: {maxSize}x{maxSize} (Width: {maxWidth}, Height: {maxHeight})");
+        Logger.Information("OpenGL Max Framebuffer Size: {MaxSize}x{MaxSize} (Width: {MaxWidth}, Height: {MaxHeight})",
+            maxSize, maxSize, maxWidth, maxHeight);
         return maxSize;
     });
 
@@ -60,8 +79,8 @@ public class SilkNetFrameBuffer : FrameBuffer
             width > MaxFramebufferSize.Value ||
             height > MaxFramebufferSize.Value)
         {
-            Debug.WriteLine($"Attempted to resize framebuffer to {width}x{height}. " +
-                          $"Max supported size: {MaxFramebufferSize.Value}x{MaxFramebufferSize.Value}");
+            Logger.Warning("Attempted to resize framebuffer to {Width}x{Height}. Max supported size: {MaxSize}x{MaxSize}",
+                width, height, MaxFramebufferSize.Value, MaxFramebufferSize.Value);
             return;
         }
 
