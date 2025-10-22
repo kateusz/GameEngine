@@ -6,22 +6,6 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetFrameBuffer : FrameBuffer
 {
-    /// <summary>
-    /// OpenGL debug utility for error checking in DEBUG builds.
-    /// </summary>
-    private static class GLDebug
-    {
-        [Conditional("DEBUG")]
-        public static void CheckError(GL gl, string operation)
-        {
-            GLEnum error;
-            while ((error = gl.GetError()) != GLEnum.NoError)
-            {
-                Debug.WriteLine($"OpenGL Error after {operation}: {error} (0x{(int)error:X})");
-                throw new InvalidOperationException($"OpenGL Error after {operation}: {error} (0x{(int)error:X})");
-            }
-        }
-    }
     private const uint MaxFramebufferSize = 8192;
 
     private uint _rendererId = 0;
@@ -48,9 +32,6 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     ~SilkNetFrameBuffer()
     {
-        // IMPORTANT: Never throw exceptions in finalizers - they run on the GC thread
-        // and throwing will terminate the entire process. OpenGL context may not even
-        // be valid during finalization, so we skip error checking here.
         SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
         SilkNetContext.GL.DeleteTextures(_colorAttachments);
 
