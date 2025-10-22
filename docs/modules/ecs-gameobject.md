@@ -470,12 +470,6 @@ Component checking is fast (dictionary lookup by type), but iterating all entiti
 - **No Caching**: Query results are not stored between frames
 - **Multi-Pass**: Different systems query independently, potentially checking the same entities multiple times
 
-### When This is Efficient
-
-- **Small to Medium Entity Counts**: Up to a few thousand entities, modern CPUs handle this easily
-- **Simple Queries**: Checking component presence via dictionary lookup is very fast
-- **Heterogeneous Worlds**: When entity types are varied and queries select small subsets
-
 ### Optimization Opportunities (Not Implemented)
 
 For very large entity counts (tens of thousands), potential optimizations include:
