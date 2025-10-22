@@ -22,23 +22,155 @@ public class SceneCamera : Camera
     private Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
     private Vector3 _cameraUp = Vector3.UnitY;
     
-    public ProjectionType ProjectionType { get; set; } = ProjectionType.Orthographic;
-    public float OrthographicSize { get; set; }
-    public float OrthographicNear { get; set; }
-    public float OrthographicFar { get; set; }
+    private ProjectionType _projectionType = ProjectionType.Orthographic;
+    private float _orthographicSize;
+    private float _orthographicNear;
+    private float _orthographicFar;
+    private float _perspectiveFOV = MathHelpers.DegreesToRadians(CameraConfig.DefaultFOV);
+    private float _perspectiveNear = CameraConfig.DefaultPerspectiveNear;
+    private float _perspectiveFar = CameraConfig.DefaultPerspectiveFar;
+    
+    /// <summary>
+    /// Gets or sets the projection type (Perspective or Orthographic).
+    /// Changing this property triggers a projection matrix recalculation.
+    /// </summary>
+    public ProjectionType ProjectionType
+    {
+        get => _projectionType;
+        set
+        {
+            if (_projectionType != value)
+            {
+                _projectionType = value;
+                RecalculateProjection();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the orthographic size (half-height of the orthographic view volume).
+    /// Only triggers recalculation if the projection type is Orthographic and the value has changed.
+    /// </summary>
+    public float OrthographicSize
+    {
+        get => _orthographicSize;
+        set
+        {
+            if (System.Math.Abs(_orthographicSize - value) > float.Epsilon)
+            {
+                _orthographicSize = value;
+                if (ProjectionType == ProjectionType.Orthographic)
+                    RecalculateProjection();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the near clip plane for orthographic projection.
+    /// Only triggers recalculation if the projection type is Orthographic and the value has changed.
+    /// </summary>
+    public float OrthographicNear
+    {
+        get => _orthographicNear;
+        set
+        {
+            if (System.Math.Abs(_orthographicNear - value) > float.Epsilon)
+            {
+                _orthographicNear = value;
+                if (ProjectionType == ProjectionType.Orthographic)
+                    RecalculateProjection();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the far clip plane for orthographic projection.
+    /// Only triggers recalculation if the projection type is Orthographic and the value has changed.
+    /// </summary>
+    public float OrthographicFar
+    {
+        get => _orthographicFar;
+        set
+        {
+            if (System.Math.Abs(_orthographicFar - value) > float.Epsilon)
+            {
+                _orthographicFar = value;
+                if (ProjectionType == ProjectionType.Orthographic)
+                    RecalculateProjection();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the aspect ratio (width / height).
+    /// Changing this property triggers a projection matrix recalculation.
+    /// </summary>
     public float AspectRatio
     {
         get => _aspectRatio;
         set
         {
-            _aspectRatio = value;
-            RecalculateProjection();
+            if (System.Math.Abs(_aspectRatio - value) > float.Epsilon)
+            {
+                _aspectRatio = value;
+                RecalculateProjection();
+            }
         }
     }
 
-    public float PerspectiveFOV { get; set; } = MathHelpers.DegreesToRadians(CameraConfig.DefaultFOV);
-    public float PerspectiveNear { get; set; } = CameraConfig.DefaultPerspectiveNear;
-    public float PerspectiveFar { get; set; } = CameraConfig.DefaultPerspectiveFar;
+    /// <summary>
+    /// Gets or sets the vertical field of view for perspective projection (in radians).
+    /// Only triggers recalculation if the projection type is Perspective and the value has changed.
+    /// </summary>
+    public float PerspectiveFOV
+    {
+        get => _perspectiveFOV;
+        set
+        {
+            if (System.Math.Abs(_perspectiveFOV - value) > float.Epsilon)
+            {
+                _perspectiveFOV = value;
+                if (ProjectionType == ProjectionType.Perspective)
+                    RecalculateProjection();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the near clip plane for perspective projection.
+    /// Only triggers recalculation if the projection type is Perspective and the value has changed.
+    /// </summary>
+    public float PerspectiveNear
+    {
+        get => _perspectiveNear;
+        set
+        {
+            if (System.Math.Abs(_perspectiveNear - value) > float.Epsilon)
+            {
+                _perspectiveNear = value;
+                if (ProjectionType == ProjectionType.Perspective)
+                    RecalculateProjection();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the far clip plane for perspective projection.
+    /// Only triggers recalculation if the projection type is Perspective and the value has changed.
+    /// </summary>
+    public float PerspectiveFar
+    {
+        get => _perspectiveFar;
+        set
+        {
+            if (System.Math.Abs(_perspectiveFar - value) > float.Epsilon)
+            {
+                _perspectiveFar = value;
+                if (ProjectionType == ProjectionType.Perspective)
+                    RecalculateProjection();
+            }
+        }
+    }
 
     public SceneCamera() : base(Matrix4x4.Identity)
     {
@@ -56,21 +188,29 @@ public class SceneCamera : Camera
         RecalculateProjection();
     }
 
+    /// <summary>
+    /// Configures the camera for orthographic projection with multiple parameters.
+    /// This method sets all parameters and recalculates the projection matrix only once.
+    /// </summary>
     public void SetOrthographic(float size, float nearClip, float farClip)
     {
-        ProjectionType = ProjectionType.Orthographic;
-        OrthographicSize = size;
-        OrthographicNear = nearClip;
-        OrthographicFar = farClip;
+        _projectionType = ProjectionType.Orthographic;
+        _orthographicSize = size;
+        _orthographicNear = nearClip;
+        _orthographicFar = farClip;
         RecalculateProjection();
     }
 
+    /// <summary>
+    /// Configures the camera for perspective projection with multiple parameters.
+    /// This method sets all parameters and recalculates the projection matrix only once.
+    /// </summary>
     public void SetPerspective(float verticalFov, float nearClip, float farClip)
     {
-        ProjectionType = ProjectionType.Perspective; 
-        PerspectiveFOV = verticalFov;
-        PerspectiveNear = nearClip;
-        PerspectiveFar = farClip;
+        _projectionType = ProjectionType.Perspective; 
+        _perspectiveFOV = verticalFov;
+        _perspectiveNear = nearClip;
+        _perspectiveFar = farClip;
         RecalculateProjection();
     }
 
@@ -82,22 +222,23 @@ public class SceneCamera : Camera
             return;
         }
 
-        AspectRatio = (float)width / (float)height;
+        var newAspectRatio = (float)width / (float)height;
 
         // Validate aspect ratio
-        if (float.IsNaN(AspectRatio) || float.IsInfinity(AspectRatio))
+        if (float.IsNaN(newAspectRatio) || float.IsInfinity(newAspectRatio))
         {
             Logger.Warning("[SceneCamera] Invalid aspect ratio, using 16:9");
-            AspectRatio = CameraConfig.DefaultAspectRatio;
+            newAspectRatio = CameraConfig.DefaultAspectRatio;
         }
 
-        RecalculateProjection();
+        // Use the AspectRatio property which has change detection
+        AspectRatio = newAspectRatio;
     }
 
     public void SetOrthographicSize(float size)
     {
+        // Use the property which has change detection and projection type check
         OrthographicSize = size;
-        RecalculateProjection();
     }
 
     private void RecalculateProjection()
@@ -119,12 +260,4 @@ public class SceneCamera : Camera
         }
     }
 
-    
-
-    public void SetPerspectiveVerticalFOV(float verticalFov) { PerspectiveFOV = verticalFov; RecalculateProjection(); }
-    public void SetPerspectiveNearClip(float nearClip) { PerspectiveNear = nearClip; RecalculateProjection(); }
-    public void SetPerspectiveFarClip(float farClip) { PerspectiveFar = farClip; RecalculateProjection(); }
-    public void SetOrthographicNearClip(float nearClip) { OrthographicNear = nearClip; RecalculateProjection(); }
-    public void SetOrthographicFarClip(float farClip) { OrthographicFar = farClip; RecalculateProjection(); }
-    public void SetProjectionType(ProjectionType type) { ProjectionType = type; RecalculateProjection(); }
 }
