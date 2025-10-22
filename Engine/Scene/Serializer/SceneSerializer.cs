@@ -23,14 +23,7 @@ public class SceneSerializer : ISceneSerializer
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
-        TypeInfoResolver = SceneSerializationContext.Default,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new JsonStringEnumConverter()
-        }
+        TypeInfoResolver = SceneSerializationContext.Default
     };
 
     public void Serialize(Scene scene, string path)
@@ -151,6 +144,21 @@ public class SceneSerializer : ISceneSerializer
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
+            case nameof(MeshComponent):
+                DeserializeMeshComponent(entity, componentObj);
+                break;
+            case nameof(ModelRendererComponent):
+                DeserializeModelRendererComponent(entity, componentObj);
+                break;
+            case nameof(SubTextureRendererComponent):
+                DeserializeSubTextureRendererComponent(entity, componentObj);
+                break;
+            case nameof(TagComponent):
+                AddComponent<TagComponent>(entity, componentObj);
+                break;
+            case nameof(IdComponent):
+                AddComponent<IdComponent>(entity, componentObj);
+                break;
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
         }
@@ -159,14 +167,52 @@ public class SceneSerializer : ISceneSerializer
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
         var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
-        if (component == null) 
+        if (component == null)
             return;
 
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
             component.Texture = TextureFactory.Create(component.Texture.Path);
         }
-        
+
+        entity.AddComponent(component);
+    }
+
+    private void DeserializeMeshComponent(Entity entity, JsonObject componentObj)
+    {
+        // MeshComponent contains OpenGL resources that cannot be serialized directly.
+        // For now, we create a default cube mesh on deserialization.
+        // TODO: Add mesh path tracking to MeshComponent to support loading from files
+        entity.AddComponent(new MeshComponent());
+    }
+
+    private void DeserializeModelRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<ModelRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Handle texture override if present
+        if (!string.IsNullOrWhiteSpace(component.OverrideTexture?.Path))
+        {
+            component.OverrideTexture = TextureFactory.Create(component.OverrideTexture.Path);
+        }
+
+        entity.AddComponent(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Handle texture if present
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = TextureFactory.Create(component.Texture.Path);
+        }
+
         entity.AddComponent(component);
     }
 
@@ -266,6 +312,11 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
+        SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
+        SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
+        SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
+        SerializeComponent<TagComponent>(entity, entityObj, nameof(TagComponent));
+        SerializeComponent<IdComponent>(entity, entityObj, nameof(IdComponent));
         SerializeNativeScriptComponent(entity, entityObj);
 
         jsonEntities.Add(entityObj);
