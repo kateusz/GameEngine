@@ -94,9 +94,8 @@ public class BenchmarkLayer : ILayer
 
     private void LoadTestAssets()
     {
-        // Create white test texture with proper data
-        _testTextures["white"] = TextureFactory.Create(1, 1);
-        _testTextures["white"].SetData(0xFFFFFFFF, sizeof(uint));
+        // Use shared white test texture
+        _testTextures["white"] = TextureFactory.GetWhiteTexture();
             
         // Create colored test textures with proper data initialization
         var colors = new uint[] { 0xFF0000FF, 0xFF00FF00, 0xFFFF0000, 0xFFFF00FF, 0xFF00FFFF };
