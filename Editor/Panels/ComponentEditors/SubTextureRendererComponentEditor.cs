@@ -12,11 +12,9 @@ public class SubTextureRendererComponentEditor : IComponentEditor
         ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", e, entity =>
         {
             var component = entity.GetComponent<SubTextureRendererComponent>();
-            
-            var newCoords = component.Coords;
-            UIPropertyRenderer.DrawPropertyRow("Sub texture coords", () => ImGui.DragFloat2("##SubTexCoords", ref newCoords));
-            if (newCoords != component.Coords)
-                component.Coords = newCoords;
+
+            UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
+                newValue => component.Coords = (System.Numerics.Vector2)newValue);
 
             TextureDropTarget.Draw("Texture", texture => component.Texture = texture);
         });

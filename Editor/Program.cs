@@ -31,6 +31,9 @@ static void ConfigureContainer(Container container)
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
     container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
+    container.Register<EditorPreferences>(Reuse.Singleton,
+        made: Made.Of(() => EditorPreferences.Load())
+    );
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);
