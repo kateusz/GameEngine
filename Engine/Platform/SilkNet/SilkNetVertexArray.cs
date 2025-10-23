@@ -5,9 +5,10 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetVertexArray : IVertexArray
+public class SilkNetVertexArray : IVertexArray, IDisposable
 {
     private readonly uint _vertexArrayObject;
+    private bool _disposed = false;
 
     public SilkNetVertexArray()
     {
@@ -26,7 +27,7 @@ public class SilkNetVertexArray : IVertexArray
 
     public void Unbind()
     {
-        SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
+        SilkNetContext.GL.BindVertexArray(0);
     }
 
     public void AddVertexBuffer(IVertexBuffer vertexBuffer)
@@ -113,5 +114,37 @@ public class SilkNetVertexArray : IVertexArray
         }
 
         return 0;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                VertexBuffers?.Clear();
+                IndexBuffer = null;
+            }
+
+            // Delete the VAO only during disposal
+            if (_vertexArrayObject != 0)
+            {
+                SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
+            }
+
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~SilkNetVertexArray()
+    {
+        Dispose(false);
     }
 }
