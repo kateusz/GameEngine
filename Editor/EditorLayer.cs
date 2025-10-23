@@ -23,7 +23,7 @@ namespace Editor;
 
 public class EditorLayer : ILayer
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<EditorLayer>();
+    private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -225,14 +225,14 @@ public class EditorLayer : ILayer
                      _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
-            case (int)KeyCodes.N:
+            case KeyCodes.N:
             {
                 if (control)
                     _sceneManager.New(_viewportSize);
                 keyPressedEvent.IsHandled = true;
                 break;
             }
-            case (int)KeyCodes.S:
+            case KeyCodes.S:
             {
                 if (control)
                 {
@@ -241,7 +241,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.D:
+            case KeyCodes.D:
             {
                 if (control)
                 {
@@ -250,7 +250,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.F:
+            case KeyCodes.F:
             {
                 if (control)
                 {
