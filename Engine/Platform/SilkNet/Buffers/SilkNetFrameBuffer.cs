@@ -75,7 +75,20 @@ public class SilkNetFrameBuffer : FrameBuffer
         Dispose(false);
     }
 
-    public override uint GetColorAttachmentRendererId() => _colorAttachments[0];
+    /// <summary>
+    /// Gets the renderer ID of the first color attachment.
+    /// </summary>
+    /// <returns>The OpenGL texture ID of the first color attachment, or 0 if there are no color attachments (e.g., depth-only framebuffers).</returns>
+    public override uint GetColorAttachmentRendererId()
+    {
+        if (_colorAttachments == null || _colorAttachments.Length == 0)
+        {
+            Debug.WriteLine("Warning: Attempted to get color attachment from framebuffer with no color attachments");
+            return 0;
+        }
+        return _colorAttachments[0];
+    }
+
     public override FrameBufferSpecification GetSpecification() => _specification;
 
     public override void Resize(uint width, uint height)
