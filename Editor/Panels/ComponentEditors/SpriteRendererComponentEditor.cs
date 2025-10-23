@@ -13,18 +13,13 @@ public class SpriteRendererComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<SpriteRendererComponent>();
 
-            var newColor = component.Color;
-            UIPropertyRenderer.DrawPropertyRow("Color", () => ImGui.ColorEdit4("##Color", ref newColor));
-            if (component.Color != newColor)
-                component.Color = newColor;
+            UIPropertyRenderer.DrawPropertyField("Color", component.Color,
+                newValue => component.Color = (System.Numerics.Vector4)newValue);
 
             TextureDropTarget.Draw("Texture", texture => component.Texture = texture);
 
-            float tillingFactor = component.TilingFactor;
-            UIPropertyRenderer.DrawPropertyRow("Tiling Factor",
-                () => ImGui.DragFloat("##TilingFactor", ref tillingFactor, 0.1f, 0.0f, 100.0f));
-            if (component.TilingFactor != tillingFactor)
-                component.TilingFactor = tillingFactor;
+            UIPropertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
+                newValue => component.TilingFactor = (float)newValue);
         });
     }
 }

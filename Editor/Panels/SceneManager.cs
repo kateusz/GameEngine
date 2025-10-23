@@ -3,13 +3,13 @@ using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
-using NLog;
+using Serilog;
 
 namespace Editor.Panels;
 
 public class SceneManager
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneManager>();
     
     public SceneState SceneState { get; private set; } = SceneState.Edit;
     public string? EditorScenePath { get; private set; }
@@ -28,7 +28,7 @@ public class SceneManager
         CurrentScene.Set(new Scene(""));
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Logger.Info("📄 New scene created");
+        Logger.Information("📄 New scene created");
     }
 
     public void Open(Vector2 viewportSize, string path)
@@ -42,7 +42,7 @@ public class SceneManager
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
         _sceneSerializer.Deserialize(CurrentScene.Instance, path);
-        Logger.Info("📂 Scene opened: {Path}", path);
+        Logger.Information("📂 Scene opened: {Path}", path);
     }
 
     public void Save(string? scenesDir)
@@ -53,7 +53,7 @@ public class SceneManager
 
         EditorScenePath = Path.Combine(sceneDir, "scene.scene");
         _sceneSerializer.Serialize(CurrentScene.Instance, EditorScenePath);
-        Logger.Info("💾 Scene saved: {EditorScenePath}", EditorScenePath);
+        Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }
 
     public void Play()
@@ -61,7 +61,7 @@ public class SceneManager
         SceneState = SceneState.Play;
         CurrentScene.Instance.OnRuntimeStart();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Logger.Info("▶️ Scene play started");
+        Logger.Information("▶️ Scene play started");
     }
 
     public void Stop()
@@ -69,7 +69,7 @@ public class SceneManager
         SceneState = SceneState.Edit;
         CurrentScene.Instance.OnRuntimeStop();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Logger.Info("⏹️ Scene play stopped");
+        Logger.Information("⏹️ Scene play stopped");
     }
 
     public void DuplicateEntity()
@@ -81,16 +81,15 @@ public class SceneManager
         if (selectedEntity is not null)
         {
             CurrentScene.Instance.DuplicateEntity(selectedEntity);
-            Logger.Info("📋 Entity duplicated: {EntityName}", selectedEntity.Name);
+            Logger.Information("📋 Entity duplicated: {EntityName}", selectedEntity.Name);
         }
     }
 
     public void FocusOnSelectedEntity(OrthographicCameraController cameraController)
     {
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-        if (selectedEntity != null && selectedEntity.HasComponent<TransformComponent>())
+        if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
-            var transform = selectedEntity.GetComponent<TransformComponent>();
             cameraController.Camera.SetPosition(transform.Translation);
         }
     }

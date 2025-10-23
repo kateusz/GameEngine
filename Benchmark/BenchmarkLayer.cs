@@ -331,10 +331,8 @@ public class BenchmarkLayer : ILayer
 
         foreach (var entity in _currentTestScene.Entities)
         {
-            if (!entity.HasComponent<TransformComponent>()) 
+            if (!entity.TryGetComponent<TransformComponent>(out var transform)) 
                 continue;
-
-            var transform = entity.GetComponent<TransformComponent>();
 
             // Slightly animate position or rotation to force updates
             transform.Translation += new Vector3(
@@ -345,9 +343,8 @@ public class BenchmarkLayer : ILayer
             transform.Rotation = transform.Rotation with { Z = transform.Rotation.Z + 0.01f };
 
             // Optionally, cycle textures to break batching and increase draw calls
-            if (entity.HasComponent<SpriteRendererComponent>() && _testTextures.Count > 1)
+            if (_testTextures.Count > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
-                var sprite = entity.GetComponent<SpriteRendererComponent>();
                 if (random.NextDouble() < 0.05) // 5% chance per frame
                 {
                     sprite.Texture = _testTextures.Values.ElementAt(random.Next(_testTextures.Count));
@@ -403,7 +400,7 @@ public class BenchmarkLayer : ILayer
                     (float)random.NextDouble(),
                     1.0f)
             };
-            entity.AddComponent(sprite);
+            entity.AddComponent<SpriteRendererComponent>(sprite);
         }
     }
 
@@ -457,9 +454,8 @@ public class BenchmarkLayer : ILayer
         // Animate sprites
         foreach (var entity in _currentTestScene.Entities)
         {
-            if (entity.HasComponent<SpriteRendererComponent>())
+            if (entity.HasComponent<SpriteRendererComponent>() && entity.TryGetComponent<TransformComponent>(out var transform))
             {
-                var transform = entity.GetComponent<TransformComponent>();
                 transform.Rotation = new Vector3(0, 0, transform.Rotation.Z + 0.01f);
             }
         }
@@ -473,9 +469,8 @@ public class BenchmarkLayer : ILayer
             
         foreach (var entity in _currentTestScene.Entities)
         {
-            if (entity.HasComponent<SpriteRendererComponent>() && random.NextDouble() < 0.1)
+            if (random.NextDouble() < 0.1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
-                var sprite = entity.GetComponent<SpriteRendererComponent>();
                 sprite.Texture = textureValues[random.Next(textureValues.Length)];
             }
         }
@@ -490,13 +485,10 @@ public class BenchmarkLayer : ILayer
         // Render all entities in the test scene
         foreach (var entity in _currentTestScene.Entities)
         {
-            if (!entity.HasComponent<TransformComponent>()) continue;
-            
-            var transform = entity.GetComponent<TransformComponent>();
+            if (!entity.TryGetComponent<TransformComponent>(out var transform)) continue;
                 
-            if (entity.HasComponent<SpriteRendererComponent>())
+            if (entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
-                var sprite = entity.GetComponent<SpriteRendererComponent>();
                 Graphics2D.Instance.DrawSprite(transform.GetTransform(), sprite, entity.Id);
             }
         }

@@ -43,7 +43,7 @@ public class ComponentEditorRegistry
                                                                           ImGuiTreeNodeFlags.AllowOverlap |
                                                                           ImGuiTreeNodeFlags.FramePadding;
 
-        if (entity.HasComponent<T>())
+        if (entity.TryGetComponent<T>(out _))
         {
             Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
 

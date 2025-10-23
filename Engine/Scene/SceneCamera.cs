@@ -2,7 +2,7 @@ using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Math;
 using Engine.Platform;
-using NLog;
+using Serilog;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace Engine.Scene;
@@ -15,9 +15,10 @@ public enum ProjectionType
 
 public class SceneCamera : Camera
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneCamera>();
 
     private bool _projectionDirty = true;
+    
     private float _aspectRatio;
     private float _orthographicSize;
     private float _orthographicNear;
@@ -164,6 +165,10 @@ public class SceneCamera : Camera
         _projectionDirty = true;
     }
 
+    /// <summary>
+    /// Configures the camera for orthographic projection with multiple parameters.
+    /// This method sets all parameters and recalculates the projection matrix only once.
+    /// </summary>
     public void SetOrthographic(float size, float nearClip, float farClip)
     {
         _projectionType = ProjectionType.Orthographic;
@@ -173,6 +178,10 @@ public class SceneCamera : Camera
         _projectionDirty = true;
     }
 
+    /// <summary>
+    /// Configures the camera for perspective projection with multiple parameters.
+    /// This method sets all parameters and recalculates the projection matrix only once.
+    /// </summary>
     public void SetPerspective(float verticalFov, float nearClip, float farClip)
     {
         _projectionType = ProjectionType.Perspective;
@@ -186,7 +195,7 @@ public class SceneCamera : Camera
     {
         if (width == 0 || height == 0)
         {
-            Logger.Warn("[SceneCamera] Invalid viewport size: {Width}x{Height}", width, height);
+            Logger.Warning("[SceneCamera] Invalid viewport size: {Width}x{Height}", width, height);
             return;
         }
 
@@ -205,6 +214,7 @@ public class SceneCamera : Camera
 
     public void SetOrthographicSize(float size)
     {
+        // Use the property which has change detection and projection type check
         OrthographicSize = size;
         // _projectionDirty is already set by OrthographicSize setter
     }
