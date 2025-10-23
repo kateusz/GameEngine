@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.Managers;
 using Editor.Panels;
+using Editor.Logging;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -15,14 +16,14 @@ using Engine.Scene.Components;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
-using NLog;
+using Serilog;
 using ZLinq;
 
 namespace Editor;
 
 public class EditorLayer : ILayer
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -38,6 +39,7 @@ public class EditorLayer : ILayer
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
     private SceneManager _sceneManager;
+    private EditorPreferences _editorPreferences;
     
     private readonly RendererStatsPanel _rendererStatsPanel = new();
     private EditorToolbar _editorToolbar;
@@ -49,10 +51,12 @@ public class EditorLayer : ILayer
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
+        _consolePanel = consolePanel;
+        _editorPreferences = editorPreferences;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -91,9 +95,9 @@ public class EditorLayer : ILayer
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
-        
-        Logger.Info("✅ Editor initialized successfully!");
-        Logger.Info("Console panel is now capturing output.");
+
+        Logger.Information("✅ Editor initialized successfully!");
+        Logger.Information("Console panel is now capturing output.");
     }
 
     private void EntitySelected(Entity entity)
@@ -109,7 +113,9 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+        _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
+        Log.CloseAndFlush();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -222,14 +228,14 @@ public class EditorLayer : ILayer
                      _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
-            case (int)KeyCodes.N:
+            case KeyCodes.N:
             {
                 if (control)
                     _sceneManager.New(_viewportSize);
                 keyPressedEvent.IsHandled = true;
                 break;
             }
-            case (int)KeyCodes.S:
+            case KeyCodes.S:
             {
                 if (control)
                 {
@@ -238,7 +244,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.D:
+            case KeyCodes.D:
             {
                 if (control)
                 {
@@ -247,7 +253,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.F:
+            case KeyCodes.F:
             {
                 if (control)
                 {
@@ -292,6 +298,54 @@ public class EditorLayer : ILayer
                         _projectUI.ShowNewProjectPopup();
                     if (ImGui.MenuItem("Open Project"))
                         _projectUI.ShowOpenProjectPopup();
+
+                    // Add Recent Projects submenu
+                    if (ImGui.BeginMenu("Recent Projects"))
+                    {
+                        var recentProjects = _editorPreferences.GetRecentProjects();
+
+                        if (recentProjects.Count == 0)
+                        {
+                            ImGui.MenuItem("(No recent projects)", false);
+                        }
+                        else
+                        {
+                            foreach (var recent in recentProjects)
+                            {
+                                var displayName = $"{recent.Name}";
+                                if (ImGui.MenuItem(displayName))
+                                {
+                                    if (_projectManager.TryOpenProject(recent.Path, out var error))
+                                    {
+                                        _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                                    }
+                                    else
+                                    {
+                                        Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
+                                    }
+                                }
+
+                                // Show tooltip with full path
+                                if (ImGui.IsItemHovered())
+                                {
+                                    ImGui.BeginTooltip();
+                                    ImGui.Text(recent.Path);
+                                    ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
+                                    ImGui.EndTooltip();
+                                }
+                            }
+
+                            ImGui.Separator();
+                            if (ImGui.MenuItem("Clear Recent Projects"))
+                            {
+                                _editorPreferences.ClearRecentProjects();
+                            }
+                        }
+
+                        ImGui.EndMenu();
+                    }
+
+                    ImGui.Separator();
                     if (ImGui.MenuItem("Exit"))
                         Environment.Exit(0);
                     ImGui.EndMenu();

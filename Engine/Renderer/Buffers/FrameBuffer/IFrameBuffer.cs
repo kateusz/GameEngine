@@ -1,6 +1,6 @@
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
-public interface IFrameBuffer : IBindable
+public interface IFrameBuffer : IBindable, IDisposable
 {
     uint GetColorAttachmentRendererId();
     FrameBufferSpecification GetSpecification();

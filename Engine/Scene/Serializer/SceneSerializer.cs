@@ -37,6 +37,12 @@ public class SceneSerializer : ISceneSerializer
         }
     };
 
+    /// <summary>
+    /// Serializes a scene to a JSON file at the specified path.
+    /// </summary>
+    /// <param name="scene">The scene to serialize.</param>
+    /// <param name="path">The file path where the scene will be saved.</param>
+    /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be written due to I/O errors or access restrictions.</exception>
     public void Serialize(Scene scene, string path)
     {
         var jsonObj = new JsonObject
@@ -56,23 +62,52 @@ public class SceneSerializer : ISceneSerializer
         {
             WriteIndented = true
         });
-        
-        // Use more efficient directory creation and file writing
-        var directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
+
+        try
         {
-            Directory.CreateDirectory(directory);
+            // Use more efficient directory creation and file writing
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(path, jsonString);
         }
-        
-        File.WriteAllText(path, jsonString);
+        catch (IOException ex)
+        {
+            throw new InvalidSceneJsonException($"Failed to write scene to {path}: {ex.Message}", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new InvalidSceneJsonException($"Access denied writing to {path}: {ex.Message}", ex);
+        }
     }
 
+    /// <summary>
+    /// Deserializes a scene from a JSON file at the specified path.
+    /// </summary>
+    /// <param name="scene">The scene to populate with deserialized entities.</param>
+    /// <param name="path">The file path from which to load the scene.</param>
+    /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be read, doesn't exist, or contains invalid JSON.</exception>
     public void Deserialize(Scene scene, string path)
     {
         if (!File.Exists(path))
-            throw new FileNotFoundException($"Scene file not found: {path}");
+            throw new InvalidSceneJsonException($"Scene file not found: {path}");
 
-        var json = File.ReadAllText(path);
+        string json;
+        try
+        {
+            json = File.ReadAllText(path);
+        }
+        catch (IOException ex)
+        {
+            throw new InvalidSceneJsonException($"Failed to read scene from {path}: {ex.Message}", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new InvalidSceneJsonException($"Access denied reading from {path}: {ex.Message}", ex);
+        }
 
         if (string.IsNullOrWhiteSpace(json))
             throw new InvalidSceneJsonException("Scene file is empty or contains only whitespace");
@@ -163,15 +198,15 @@ public class SceneSerializer : ISceneSerializer
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
         var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
-        if (component == null) 
+        if (component == null)
             return;
 
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
             component.Texture = TextureFactory.Create(component.Texture.Path);
         }
-        
-        entity.AddComponent(component);
+
+        entity.AddComponent<SpriteRendererComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -179,14 +214,14 @@ public class SceneSerializer : ISceneSerializer
         if (!componentObj.ContainsKey(ScriptTypeKey))
         {
             // If no script type is specified, just add an empty NativeScriptComponent
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             return;
         }
 
         var scriptTypeName = componentObj[ScriptTypeKey]?.GetValue<string>();
         if (string.IsNullOrEmpty(scriptTypeName))
         {
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             return;
         }
 
@@ -217,7 +252,7 @@ public class SceneSerializer : ISceneSerializer
                 }
             }
             // --- End deserialize fields ---
-            entity.AddComponent(new NativeScriptComponent
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
             {
                 ScriptableEntity = scriptInstance
             });
@@ -234,7 +269,7 @@ public class SceneSerializer : ISceneSerializer
 
         if (builtInScript != null)
         {
-            entity.AddComponent(new NativeScriptComponent
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
             {
                 ScriptableEntity = builtInScript
             });
@@ -242,7 +277,7 @@ public class SceneSerializer : ISceneSerializer
         else
         {
             // If script creation fails, add empty component and log warning
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             // Note: In a production system, you might want to log this warning
         }
     }
@@ -252,7 +287,7 @@ public class SceneSerializer : ISceneSerializer
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)
         {
-            entity.AddComponent(component);
+            entity.AddComponent<T>(component);
         }
     }
 

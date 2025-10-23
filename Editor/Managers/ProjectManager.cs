@@ -1,35 +1,13 @@
 using Engine.Scripting;
-using NLog;
+using Serilog;
 
 namespace Editor.Managers;
 
-public interface IProjectManager
-{
-    /// <summary>Absolute path to the current project directory or null if none.</summary>
-    string? CurrentProjectDirectory { get; }
-
-    /// <summary>Absolute path to the project's /assets directory (null if no project).</summary>
-    string? AssetsDir { get; }
-
-    /// <summary>Absolute path to /assets/scripts (null if no project).</summary>
-    string? ScriptsDir { get; }
-
-    /// <summary>Absolute path to /assets/scenes (null if no project).</summary>
-    string? ScenesDir { get; }
-
-    /// <summary>Validate a project name for creation UI.</summary>
-    bool IsValidProjectName(string? name);
-
-    /// <summary>Create a new project under the given name in the current working directory.</summary>
-    bool TryCreateNewProject(string projectName, out string error);
-
-    /// <summary>Open an existing project directory (absolute or relative to current working directory).</summary>
-    bool TryOpenProject(string projectDir, out string error);
-}
-
 public class ProjectManager : IProjectManager
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
+    
+    private readonly EditorPreferences _editorPreferences;
 
     private static readonly string[] RequiredDirs =
     [
@@ -39,6 +17,15 @@ public class ProjectManager : IProjectManager
         Path.Combine("assets", "scripts"),
         Path.Combine("assets", "prefabs")
     ];
+
+    /// <summary>
+    /// Initializes a new instance of the ProjectManager.
+    /// </summary>
+    /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
+    public ProjectManager(EditorPreferences editorPreferences)
+    {
+        _editorPreferences = editorPreferences;
+    }
 
     public string? CurrentProjectDirectory { get; private set; }
 
@@ -86,7 +73,8 @@ public class ProjectManager : IProjectManager
 
             SetCurrentProject(projectDir);
 
-            Logger.Info("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
+            Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
+            _editorPreferences.AddRecentProject(projectDir, projectName.Trim());
             return true;
         }
         catch (Exception ex)
@@ -110,18 +98,22 @@ public class ProjectManager : IProjectManager
             if (!Directory.Exists(full))
             {
                 error = "Project directory does not exist.";
+                _editorPreferences.RemoveRecentProject(full);
                 return false;
             }
 
             // If /assets doesn’t exist, fallback to the root as assets path to keep old samples working.
             if (!Directory.Exists(Path.Combine(full, "assets")))
             {
-                Logger.Warn("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
+                Logger.Warning("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
             }
 
             SetCurrentProject(full);
 
-            Logger.Info("📂 Project opened: {ProjectPath}", full);
+            Logger.Information("📂 Project opened: {ProjectPath}", full);
+            var projectName = System.IO.Path.GetFileName(full);
+            _editorPreferences.AddRecentProject(full, projectName);
+
             return true;
         }
         catch (Exception ex)

@@ -4,13 +4,13 @@ using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
-using NLog;
+using Serilog;
 
 namespace Engine.Renderer.Cameras;
 
 public class OrthographicCameraController
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<OrthographicCameraController>();
     
     private float _aspectRatio;
     private readonly bool _rotation;
@@ -113,7 +113,7 @@ public class OrthographicCameraController
         // Validate dimensions
         if (@event.Width == 0 || @event.Height == 0)
         {
-            Logger.Warn("[Camera] Invalid window dimensions: {Width}x{Height}, ignoring resize", @event.Width, @event.Height);
+            Logger.Warning("[Camera] Invalid window dimensions: {Width}x{Height}, ignoring resize", @event.Width, @event.Height);
             return false;
         }
 
@@ -127,7 +127,7 @@ public class OrthographicCameraController
         // Validate result
         if (float.IsNaN(_aspectRatio) || float.IsInfinity(_aspectRatio))
         {
-            Logger.Warn("[Camera] Invalid aspect ratio calculated, using fallback");
+            Logger.Warning("[Camera] Invalid aspect ratio calculated, using fallback");
             _aspectRatio = CameraConfig.DefaultAspectRatio;
         }
 

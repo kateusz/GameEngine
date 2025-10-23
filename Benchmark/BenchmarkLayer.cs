@@ -400,7 +400,7 @@ public class BenchmarkLayer : ILayer
                     (float)random.NextDouble(),
                     1.0f)
             };
-            entity.AddComponent(sprite);
+            entity.AddComponent<SpriteRendererComponent>(sprite);
         }
     }
 

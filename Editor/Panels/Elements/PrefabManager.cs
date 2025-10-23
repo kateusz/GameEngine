@@ -3,13 +3,13 @@ using ECS;
 using Engine.Scene.Serializer;
 using ImGuiNET;
 using Editor.UI;
-using NLog;
+using Serilog;
 
 namespace Editor.Panels.Elements;
 
 public class PrefabManager : IPrefabManager
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<PrefabManager>();
     
     private readonly IPrefabSerializer _serializer;
     
@@ -75,7 +75,7 @@ public class PrefabManager : IPrefabManager
                 {
                     var currentProjectPath = GetCurrentProjectPath();
                     _serializer.SerializeToPrefab(_entityToSave, _prefabName, currentProjectPath);
-                    Logger.Info("Saved prefab: {PrefabName}.prefab", _prefabName);
+                    Logger.Information("Saved prefab: {PrefabName}.prefab", _prefabName);
                     _showSavePrefabPopup = false;
                     _prefabSaveError = "";
                 }

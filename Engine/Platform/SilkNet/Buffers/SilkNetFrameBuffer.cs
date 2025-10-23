@@ -11,9 +11,10 @@ public class SilkNetFrameBuffer : FrameBuffer
     private uint _rendererId = 0;
     private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
-    private uint _depthAttachment;
+    private uint _depthAttachment = 0;
     private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
+    private bool _disposed = false;
 
     public SilkNetFrameBuffer(FrameBufferSpecification spec)
     {
@@ -30,14 +31,48 @@ public class SilkNetFrameBuffer : FrameBuffer
         Invalidate();
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Dispose managed state
+                _colorAttachmentSpecs?.Clear();
+            }
+
+            // Free unmanaged OpenGL resources
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+                _rendererId = 0;
+            }
+
+            if (_colorAttachments != null && _colorAttachments.Length > 0)
+            {
+                SilkNetContext.GL.DeleteTextures(_colorAttachments);
+                Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
+            }
+
+            if (_depthAttachment != 0)
+            {
+                SilkNetContext.GL.DeleteTexture(_depthAttachment);
+                _depthAttachment = 0;
+            }
+
+            _disposed = true;
+        }
+    }
+
+    public override void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
     ~SilkNetFrameBuffer()
     {
-        SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
-        SilkNetContext.GL.DeleteTextures(_colorAttachments);
-        SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
-
-        Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
-        _depthAttachment = 0;
+        Dispose(false);
     }
 
     public override uint GetColorAttachmentRendererId() => _colorAttachments[0];
@@ -59,59 +94,124 @@ public class SilkNetFrameBuffer : FrameBuffer
 
     public override int ReadPixel(int attachmentIndex, int x, int y)
     {
+        // Validate attachment index
+        if (attachmentIndex < 0 || attachmentIndex >= _colorAttachmentSpecs.Count)
+        {
+            Debug.WriteLine($"Warning: Invalid attachment index {attachmentIndex}, " +
+                           $"valid range is 0-{_colorAttachmentSpecs.Count - 1}");
+            return -1;
+        }
+
+        // Validate coordinates
+        if (x < 0 || x >= _specification.Width || y < 0 || y >= _specification.Height)
+        {
+            Debug.WriteLine($"Warning: Pixel coordinates ({x}, {y}) out of bounds " +
+                           $"for framebuffer size ({_specification.Width}, {_specification.Height})");
+            return -1;
+        }
+
+        // Must bind framebuffer before reading
+        var previousFBO = SilkNetContext.GL.GetInteger(GLEnum.ReadFramebufferBinding);
+        if (previousFBO != (int)_rendererId)
+        {
+            SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _rendererId);
+        }
+
         unsafe
         {
             SilkNetContext.GL.ReadBuffer(GLEnum.ColorAttachment0 + attachmentIndex);
+            GLDebug.CheckError(SilkNetContext.GL, "ReadBuffer");
+            
             int redValue = 0;
             SilkNetContext.GL.ReadPixels(x, y, 1, 1, GLEnum.RedInteger, PixelType.Int, &redValue);
+
+#if DEBUG
+            var error = SilkNetContext.GL.GetError();
+            if (error != GLEnum.NoError)
+            {
+                Debug.WriteLine($"Warning: ReadPixels failed with OpenGL error: {error}");
+            }
+#endif
+
+            // Restore previous binding
+            if (previousFBO != (int)_rendererId)
+            {
+                SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)previousFBO);
+            }
+
             return redValue;
         }
     }
 
     public override void ClearAttachment(int attachmentIndex, int value)
     {
-        unsafe
-        {
-            var spec = _colorAttachmentSpecs[attachmentIndex];
-            SilkNetContext.GL.ClearBuffer (BufferKind.Color,attachmentIndex, value);
-        }
+        SilkNetContext.GL.ClearBuffer(BufferKind.Color, attachmentIndex, value);
+        GLDebug.CheckError(SilkNetContext.GL, "ClearBuffer");
     }
     
     public override void Bind()
     {
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
     }
 
     public override void Unbind()
     {
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        GLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer (unbind)");
     }
 
     private void Invalidate()
     {
+        bool attachmentCountChanged = _colorAttachments == null ||
+                                       _colorAttachments.Length != _colorAttachmentSpecs.Count;
+
+        // Properly dispose existing resources before creating new ones
         if (_rendererId != 0)
         {
             SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+            GLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffer");
+            _rendererId = 0;
+        }
+
+        if (_colorAttachments != null && _colorAttachments.Length > 0)
+        {
             SilkNetContext.GL.DeleteTextures(_colorAttachments);
-            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
+            GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (color attachments)");
+        }
+
+        if (_depthAttachment != 0)
+        {
+            SilkNetContext.GL.DeleteTexture(_depthAttachment);
+            GLDebug.CheckError(SilkNetContext.GL, "DeleteTexture (depth attachment)");
+            _depthAttachment = 0;
         }
 
         _rendererId = SilkNetContext.GL.GenFramebuffer();
+        GLDebug.CheckError(SilkNetContext.GL, "GenFramebuffer");
+        
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
 
-        _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+        // Only allocate if attachment count changed
+        if (attachmentCountChanged)
+            _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+
         SilkNetContext.GL.GenTextures(_colorAttachments);
+        GLDebug.CheckError(SilkNetContext.GL, "GenTextures");
 
         for (var i = 0; i < _colorAttachments.Length; i++)
         {
             AttachColorTexture(i);
         }
-            
+
         if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
         {
             _depthAttachment = SilkNetContext.GL.GenTexture();
+            GLDebug.CheckError(SilkNetContext.GL, "GenTexture (depth)");
+            
             SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
-                
+
             switch (_depthAttachmentSpec.TextureFormat)
             {
                 case FramebufferTextureFormat.DEPTH24STENCIL8:
@@ -119,10 +219,16 @@ public class SilkNetFrameBuffer : FrameBuffer
                     break;
             }
         }
+        else
+        {
+            // Explicitly set to no attachment
+            _depthAttachment = 0;
+        }
 
         DrawBuffers();
 
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        GLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer (unbind after invalidate)");
     }
 
     private void DrawBuffers()
@@ -131,7 +237,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         {
             // Handle draw buffers
             case > 4:
-                throw new Exception("Too many color attachments!");
+                throw new InvalidOperationException($"Too many color attachments! Maximum is 4, but {_colorAttachments.Length} were specified.");
             case >= 1:
             {
                 Span<DrawBufferMode> drawBuffers = stackalloc DrawBufferMode[4];
@@ -145,6 +251,7 @@ public class SilkNetFrameBuffer : FrameBuffer
                     fixed (DrawBufferMode* ptr = drawBuffers)
                     {
                         SilkNetContext.GL.DrawBuffers((uint)_colorAttachments.Length, ptr);
+                        GLDebug.CheckError(SilkNetContext.GL, "DrawBuffers");
                     }
                 }
                 break;
@@ -152,18 +259,23 @@ public class SilkNetFrameBuffer : FrameBuffer
             case 0:
                 // Only depth-pass
                 SilkNetContext.GL.DrawBuffer(GLEnum.None);
+                GLDebug.CheckError(SilkNetContext.GL, "DrawBuffer (None)");
                 break;
         }
 
-        if (SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
+        var status = SilkNetContext.GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        GLDebug.CheckError(SilkNetContext.GL, "CheckFramebufferStatus");
+
+        if (status != GLEnum.FramebufferComplete)
         {
-            throw new Exception("Framebuffer is not complete!");
+            throw new InvalidOperationException($"Framebuffer is not complete! Status: {status} (0x{(int)status:X})");
         }
     }
 
     private unsafe void AttachColorTexture(int attachmentIndex)
     {
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[attachmentIndex]);
+        GLDebug.CheckError(SilkNetContext.GL, $"BindTexture (color attachment {attachmentIndex})");
 
         InternalFormat internalFormat = InternalFormat.Rgba8;
         PixelFormat format = PixelFormat.Rgba;
@@ -182,12 +294,19 @@ public class SilkNetFrameBuffer : FrameBuffer
         // Create our texture and upload the image data.
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
             _specification.Height, 0, format, PixelType.Int, (void*)0);
+        GLDebug.CheckError(SilkNetContext.GL, $"TexImage2D (color attachment {attachmentIndex})");
+        
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
             (int)TextureMinFilter.Nearest);
+        GLDebug.CheckError(SilkNetContext.GL, $"TexParameter MinFilter (color attachment {attachmentIndex})");
+        
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
             (int)TextureMagFilter.Nearest);
+        GLDebug.CheckError(SilkNetContext.GL, $"TexParameter MagFilter (color attachment {attachmentIndex})");
+        
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
             FramebufferAttachment.ColorAttachment0 + attachmentIndex, TextureTarget.Texture2D, _colorAttachments[attachmentIndex], 0);
+        GLDebug.CheckError(SilkNetContext.GL, $"FramebufferTexture2D (color attachment {attachmentIndex})");
     }
 
     private static bool IsDepthFormat(FramebufferTextureFormat format)
@@ -218,21 +337,33 @@ public class SilkNetFrameBuffer : FrameBuffer
         {
             // Multisampled texture
             SilkNetContext.GL.TexImage2DMultisample(TextureTarget.Texture2DMultisample, samples, format, width, height, false);
+            GLDebug.CheckError(SilkNetContext.GL, "TexImage2DMultisample (depth)");
         }
         else
         {
             // Regular 2D texture
             SilkNetContext.GL.TexStorage2D(TextureTarget.Texture2D, 1, format, width, height);
+            GLDebug.CheckError(SilkNetContext.GL, "TexStorage2D (depth)");
 
             // Set texture parameters
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+            GLDebug.CheckError(SilkNetContext.GL, "TexParameter MinFilter (depth)");
+            
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+            GLDebug.CheckError(SilkNetContext.GL, "TexParameter MagFilter (depth)");
+            
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
+            GLDebug.CheckError(SilkNetContext.GL, "TexParameter WrapR (depth)");
+            
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+            GLDebug.CheckError(SilkNetContext.GL, "TexParameter WrapS (depth)");
+            
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+            GLDebug.CheckError(SilkNetContext.GL, "TexParameter WrapT (depth)");
         }
 
         // Attach the texture to the framebuffer
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachmentType, multisampled ? TextureTarget.Texture2DMultisample : TextureTarget.Texture2D, id, 0);
+        GLDebug.CheckError(SilkNetContext.GL, "FramebufferTexture2D (depth)");
     }
 }

@@ -6,13 +6,13 @@ using Engine.Events.Window;
 using Engine.ImGuiNet;
 using Engine.Platform.SilkNet.Audio;
 using Engine.Renderer;
-using NLog;
+using Serilog;
 
 namespace Engine.Core;
 
 public abstract class Application : IApplication
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<Application>();
 
     private readonly IGameWindow _gameWindow;
     private readonly IImGuiLayer? _imGuiLayer;
@@ -70,7 +70,35 @@ public abstract class Application : IApplication
     {
         _layersStack.Add(overlay);
     }
-    
+
+    public void PopOverlay(ILayer overlay)
+    {
+        if (_layersStack.Remove(overlay))
+        {
+            SafeDetachLayer(overlay);
+        }
+    }
+
+    public void PopLayer(ILayer layer)
+    {
+        if (_layersStack.Remove(layer))
+        {
+            SafeDetachLayer(layer);
+        }
+    }
+
+    private void SafeDetachLayer(ILayer layer)
+    {
+        try
+        {
+            layer.OnDetach();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Error detaching layer {layer.GetType().Name}");
+        }
+    }
+
     private void HandleUpdate()
     {
         double currentTime = _frameTimer.Elapsed.TotalSeconds;
@@ -92,34 +120,45 @@ public abstract class Application : IApplication
         // Maximum 250ms (4 FPS) - anything longer is clamped
         if (deltaTime > MaxDeltaTime)
         {
-            Logger.Warn($"Frame spike detected: {deltaTime * 1000:F2}ms, clamping to {MaxDeltaTime * 1000}ms");
+            Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms", deltaTime * 1000, MaxDeltaTime * 1000);
             deltaTime = MaxDeltaTime;
         }
 
         var elapsed = TimeSpan.FromSeconds(deltaTime);
 
         _inputSystem?.Update(elapsed);
-        
+
+        // LAYER ITERATION POLICY: Updates propagate in REVERSE order (overlays first, game layers last)
+        // This ensures UI overlays update before the underlying game logic, allowing UI to:
+        // - Capture and handle input before game logic processes it
+        // - Update visual state based on the most recent frame
+        // - Render on top of game content with correct state
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnUpdate(elapsed);
         }
 
         _imGuiLayer?.Begin(elapsed);
-        
+
+        // ImGui rendering also uses reverse order to maintain consistent layer ordering
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].OnImGuiRender();
         }
-        
+
         _imGuiLayer?.End();
     }
 
     private void HandleWindowEvent(WindowEvent @event)
     {
-        foreach (var layer in _layersStack)
+        // LAYER ITERATION POLICY: Window events propagate in REVERSE order (overlays first, game layers last)
+        // This ensures UI overlays handle window events (resize, focus, etc.) before game layers:
+        // - UI can adjust layout and viewport before game logic processes the event
+        // - Overlays can intercept and handle window events to prevent game logic from responding
+        // - Consistent with input event and update iteration order
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
-            layer.HandleWindowEvent(@event);
+            _layersStack[index].HandleWindowEvent(@event);
             if (@event.IsHandled)
                 break;
         }
@@ -127,7 +166,11 @@ public abstract class Application : IApplication
     
     private void HandleInputEvent(InputEvent windowEvent)
     {
-        // Input events handled in reverse order (overlay layers first)
+        // LAYER ITERATION POLICY: Input events propagate in REVERSE order (overlays first, game layers last)
+        // This ensures UI overlays receive input events before game logic:
+        // - UI buttons and controls can consume clicks before game logic processes them
+        // - Menus and dialogs can block input from reaching the game when active
+        // - Consistent with window event and update iteration order
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].HandleInputEvent(windowEvent);
@@ -139,5 +182,13 @@ public abstract class Application : IApplication
     private void HandleGameWindowClose(WindowCloseEvent @event)
     {
         _isRunning = false;
+
+        // Detach all layers in reverse order (LIFO) to ensure proper cleanup
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
+        {
+            SafeDetachLayer(_layersStack[index]);
+        }
+
+        _layersStack.Clear();
     }
 }

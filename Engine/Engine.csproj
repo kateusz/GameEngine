@@ -14,8 +14,11 @@
         <PackageReference Include="CSharpFunctionalExtensions" Version="3.6.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.14.0" />
-        <PackageReference Include="NLog" Version="6.0.3" />
-        <PackageReference Include="NLog.Extensions.Logging" Version="6.0.3" />
+        <PackageReference Include="Serilog" Version="4.2.0" />
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+        <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
         <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />
         <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenAL" Version="2.22.0" />
@@ -27,9 +30,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Plik konfiguracyjny NLog zawsze kopiowany -->
-        <None Update="nlog.config" CopyToOutputDirectory="Always" />
-
         <!-- No shader files to copy - Engine contains only C# interfaces -->
     </ItemGroup>
 
