@@ -53,6 +53,9 @@ public abstract class Application : IApplication
     /// </remarks>
     private void HandleGameWindowOnLoad(IInputSystem inputSystem)
     {
+        // Initialize component registry for entity duplication
+        Engine.Scene.Components.ComponentRegistryInitializer.Initialize();
+
         // Initialize core graphics and audio subsystems - owned by Application
         Graphics2D.Instance.Init();
         Graphics3D.Instance.Init();

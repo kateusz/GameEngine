@@ -118,6 +118,15 @@ public class Entity : IEquatable<Entity>
     }
 
     /// <summary>
+    /// Gets all components attached to this entity.
+    /// </summary>
+    /// <returns>An enumerable collection of all components.</returns>
+    public IEnumerable<IComponent> GetAllComponents()
+    {
+        return _components.Values;
+    }
+
+    /// <summary>
     /// Determines whether the specified object is an Entity with the same Id.
     /// </summary>
     /// <param name="obj">The object to compare with the current entity.</param>
