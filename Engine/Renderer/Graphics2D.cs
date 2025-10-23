@@ -11,7 +11,7 @@ using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
 namespace Engine.Renderer;
 
-public class Graphics2D : IGraphics2D
+public class Graphics2D : IGraphics2D, IDisposable
 {
     private static IGraphics2D? _instance;
 
@@ -20,6 +20,7 @@ public class Graphics2D : IGraphics2D
     private IRendererAPI _rendererApi = RendererApiFactory.Create();
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
+    private bool _disposed;
 
     static Graphics2D()
     {
@@ -51,6 +52,8 @@ public class Graphics2D : IGraphics2D
 
     public void Shutdown()
     {
+        // Deprecated: Use Dispose() instead
+        Dispose();
     }
     
     public void BeginScene(OrthographicCamera camera)
@@ -473,4 +476,36 @@ public class Graphics2D : IGraphics2D
     public void SetClearColor(Vector4 color) => _rendererApi.SetClearColor(color);
 
     public void Clear() => _rendererApi.Clear();
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            // Dispose managed resources
+            (_data.QuadShader as IDisposable)?.Dispose();
+            (_data.LineShader as IDisposable)?.Dispose();
+            (_data.QuadVertexArray as IDisposable)?.Dispose();
+            (_data.LineVertexArray as IDisposable)?.Dispose();
+            (_data.QuadVertexBuffer as IDisposable)?.Dispose();
+            (_data.LineVertexBuffer as IDisposable)?.Dispose();
+            _data.WhiteTexture?.Dispose();
+
+            // Dispose textures in texture slots
+            foreach (var texture in _data.TextureSlots)
+            {
+                texture?.Dispose();
+            }
+        }
+
+        _disposed = true;
+    }
 }
