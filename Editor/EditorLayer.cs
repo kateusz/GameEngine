@@ -76,8 +76,6 @@ public class EditorLayer : ILayer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
         
-        Graphics3D.Instance.Init();
-
         CurrentScene.Set(new Scene(""));
         
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);

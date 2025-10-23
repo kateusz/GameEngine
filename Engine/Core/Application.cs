@@ -41,14 +41,26 @@ public abstract class Application : IApplication
         }
     }
 
+    /// <summary>
+    /// Initializes core engine subsystems and attaches all registered layers.
+    /// </summary>
+    /// <remarks>
+    /// INITIALIZATION OWNERSHIP: Application is responsible for initializing all core
+    /// graphics and audio subsystems (Graphics2D, Graphics3D, AudioEngine). Layers should
+    /// NOT call Init() on these subsystems - they are guaranteed to be initialized before
+    /// layer.OnAttach() is called. This prevents double initialization and ensures consistent
+    /// resource management across all application types (Editor, Runtime, Sandbox).
+    /// </remarks>
     private void HandleGameWindowOnLoad(IInputSystem inputSystem)
     {
+        // Initialize core graphics and audio subsystems - owned by Application
         Graphics2D.Instance.Init();
         Graphics3D.Instance.Init();
         AudioEngine.Instance.Initialize();
-        
+
         _inputSystem = inputSystem;
-        
+
+        // Attach all layers - graphics subsystems are already initialized at this point
         foreach (var layer in _layersStack)
         {
             // TODO: there should be better way to pass input system only for ImGuiLayer...
