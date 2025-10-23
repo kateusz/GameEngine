@@ -8,6 +8,7 @@ public class SilkNetShader : IShader
 {
     private readonly uint _handle;
     private readonly Dictionary<string, int> _uniformLocations;
+    private bool _disposed;
 
     public SilkNetShader(string vertPath, string fragPath)
     {
@@ -186,5 +187,32 @@ public class SilkNetShader : IShader
         }
 
         return handle;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        try
+        {
+            if (_handle != 0)
+            {
+                SilkNetContext.GL.DeleteProgram(_handle);
+            }
+        }
+        catch (Exception e)
+        {
+            // Finalizers and Dispose must not throw exceptions
+            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL shader program {_handle}: {e.Message}");
+        }
+
+        _disposed = true;
     }
 }

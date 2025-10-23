@@ -18,10 +18,11 @@ public class SilkNetTexture2D : Texture2D
     // StbImageSharp flag to flip texture vertically during loading
     // OpenGL expects texture coordinates with origin at bottom-left, but most image formats have origin at top-left
     private const int StbiFlipVerticallyEnabled = 1;
-    
-    private readonly uint _rendererId;
+
+    private uint _rendererId;
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
+    private bool _disposed;
 
     private SilkNetTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
         PixelFormat dataFormat)
@@ -112,8 +113,7 @@ public class SilkNetTexture2D : Texture2D
 
     public override void Unbind()
     {
-        //In order to dispose we need to delete the opengl handle for the texture.
-        SilkNetContext.GL.DeleteTexture(_rendererId);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
     }
 
     public override void SetData(uint data, int size)
@@ -174,5 +174,28 @@ public class SilkNetTexture2D : Texture2D
     {
         // Use a hash code derived from the unique renderer ID, which represents this texture in OpenGL.
         return _rendererId.GetHashCode();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        try
+        {
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteTexture(_rendererId);
+                _rendererId = 0;
+            }
+        }
+        catch (Exception e)
+        {
+            // Finalizers and Dispose must not throw exceptions
+            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL texture {_rendererId}: {e.Message}");
+        }
+
+        _disposed = true;
+        base.Dispose(disposing);
     }
 }

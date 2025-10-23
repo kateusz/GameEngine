@@ -5,10 +5,10 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetVertexArray : IVertexArray, IDisposable
+public class SilkNetVertexArray : IVertexArray
 {
     private readonly uint _vertexArrayObject;
-    private bool _disposed = false;
+    private bool _disposed;
 
     public SilkNetVertexArray()
     {
@@ -116,35 +116,41 @@ public class SilkNetVertexArray : IVertexArray, IDisposable
         return 0;
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                // Dispose managed resources
-                VertexBuffers?.Clear();
-                IndexBuffer = null;
-            }
-
-            // Delete the VAO only during disposal
-            if (_vertexArrayObject != 0)
-            {
-                SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
-            }
-
-            _disposed = true;
-        }
-    }
-
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    ~SilkNetVertexArray()
+    protected virtual void Dispose(bool disposing)
     {
-        Dispose(false);
+        if (_disposed)
+            return;
+
+        try
+        {
+            if (_vertexArrayObject != 0)
+            {
+                SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
+            }
+
+            if (disposing)
+            {
+                // Dispose managed resources (vertex buffers and index buffer)
+                foreach (var vertexBuffer in VertexBuffers)
+                {
+                    vertexBuffer?.Dispose();
+                }
+
+                IndexBuffer?.Dispose();
+            }
+        }
+        catch (Exception e)
+        {
+            // Finalizers and Dispose must not throw exceptions
+            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex array {_vertexArrayObject}: {e.Message}");
+        }
+
+        _disposed = true;
     }
 }
