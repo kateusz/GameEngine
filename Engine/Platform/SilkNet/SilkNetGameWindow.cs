@@ -31,8 +31,7 @@ public class SilkNetGameWindow : IGameWindow
         _window.Closing += OnWindowClosing;
         _window.FramebufferResize += OnFrameBufferResize;
     }
-
-    public event Action<Event> OnEvent = null!;
+    
     public event Action<InputEvent> OnInputEvent;
     public event Action OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
@@ -47,7 +46,6 @@ public class SilkNetGameWindow : IGameWindow
 
     private void OnWindowClosing()
     {
-        OnEvent(new WindowCloseEvent());
         OnClose(new WindowCloseEvent());
 
         // Unload OpenGL
@@ -76,6 +74,11 @@ public class SilkNetGameWindow : IGameWindow
     
     private void OnInputReceived(InputEvent inputEvent)
     {
+        if (inputEvent is KeyPressedEvent { KeyCode: KeyCodes.Escape })
+        {
+            _window.Close();
+        }
+        
         OnInputEvent(inputEvent);
     }
 
@@ -85,6 +88,6 @@ public class SilkNetGameWindow : IGameWindow
         SilkNetContext.GL.Viewport(newSize);
 
         var @event = new WindowResizeEvent(newSize.X, newSize.Y);
-        OnEvent(@event);
+        OnWindowEvent(@event);
     }
 }
