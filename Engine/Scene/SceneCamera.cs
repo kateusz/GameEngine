@@ -35,7 +35,7 @@ public class SceneCamera : Camera
     /// Gets the projection matrix, lazily recalculating it only when needed.
     /// The matrix is recalculated only when camera properties change and this property is accessed.
     /// </summary>
-    public new Matrix4x4 Projection
+    public override Matrix4x4 Projection
     {
         get
         {
@@ -46,6 +46,7 @@ public class SceneCamera : Camera
             }
             return base.Projection;
         }
+        protected set => base.Projection = value;
     }
 
     /// <summary>
