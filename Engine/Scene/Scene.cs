@@ -43,7 +43,11 @@ public class Scene
         Context.Instance.Clear();
     }
 
-    public IEnumerable<Entity> Entities => Context.Instance.Entities;
+    /// <summary>
+    /// Gets all entities in this scene.
+    /// For high-performance iteration, access Context.Instance.Entities (ReadOnlySpan).
+    /// </summary>
+    public IEnumerable<Entity> Entities => Context.Instance.EntitiesEnumerable;
 
     public Entity CreateEntity(string name)
     {
