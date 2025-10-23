@@ -75,8 +75,11 @@ public class EditorLayer : ILayer
             ])
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
-        
-        Graphics3D.Instance.Init();
+
+        // NOTE: Graphics3D initialization is handled by Application.HandleGameWindowOnLoad()
+        // All core graphics subsystems (Graphics2D, Graphics3D, AudioEngine) are initialized
+        // by the Application base class before layers are attached. Layers should NOT
+        // re-initialize these subsystems.
 
         CurrentScene.Set(new Scene(""));
         
