@@ -6,7 +6,7 @@ using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
 
-public class Mesh
+public class Mesh : IDisposable
 {
     public record struct Vertex(Vector3 Position, Vector3 Normal, Vector2 TexCoord, int EntityId = -1)
     {
@@ -18,16 +18,16 @@ public class Mesh
     public List<uint> Indices { get; set; }
     public Texture2D DiffuseTexture { get; set; }
     public List<Texture2D> Textures { get; set; }
-    
+
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
     private bool _initialized = false;
-    
+
     public IVertexArray GetVertexArray()
     {
         if (!_initialized)
-            Initialize();
+            throw new InvalidOperationException($"Mesh '{Name}' not initialized. Call Initialize() first.");
         return _vertexArray;
     }
 
@@ -40,16 +40,24 @@ public class Mesh
         DiffuseTexture = TextureFactory.Create(1, 1); // Default white texture
     }
 
+    /// <summary>
+    /// Uploads mesh data to GPU. Must be called before rendering.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">If already initialized or no vertices</exception>
     public void Initialize()
     {
-        if (_initialized) return;
-        
+        if (_initialized)
+            throw new InvalidOperationException($"Mesh '{Name}' already initialized");
+
+        if (Vertices.Count == 0)
+            throw new InvalidOperationException($"Cannot initialize mesh '{Name}' with no vertices");
+
         // Create vertex array
         _vertexArray = VertexArrayFactory.Create();
-        
+
         // Create vertex buffer
         _vertexBuffer = VertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
-        
+
         var layout = new BufferLayout(new []
         {
             new BufferElement(ShaderDataType.Float3, "a_Position"),
@@ -57,17 +65,17 @@ public class Mesh
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         });
-        
+
         _vertexBuffer.SetLayout(layout);
         _vertexArray.AddVertexBuffer(_vertexBuffer);
-        
+
         // Upload vertex data
         UploadVertexData();
-        
+
         // Create index buffer
         _indexBuffer = IndexBufferFactory.Create(Indices.ToArray(), Indices.Count);
         _vertexArray.SetIndexBuffer(_indexBuffer);
-        
+
         _initialized = true;
     }
 
@@ -80,8 +88,8 @@ public class Mesh
     public void Bind()
     {
         if (!_initialized)
-            Initialize();
-            
+            throw new InvalidOperationException($"Mesh '{Name}' not initialized. Call Initialize() first.");
+
         _vertexArray.Bind();
         DiffuseTexture.Bind();
     }
@@ -92,4 +100,15 @@ public class Mesh
     }
 
     public int GetIndexCount() => Indices.Count;
+
+    public void Dispose()
+    {
+        if (_initialized)
+        {
+            _vertexArray?.Dispose();
+            _vertexBuffer?.Dispose();
+            _indexBuffer?.Dispose();
+            _initialized = false;
+        }
+    }
 }

@@ -22,7 +22,7 @@ public class MeshComponentEditor : IComponentEditor
                 if (File.Exists(objPath))
                 {
                     var mesh = MeshFactory.Create(objPath);
-                    mesh.Initialize();
+                    // Mesh is already initialized by MeshFactory.Create()
                     meshComponent.SetMesh(mesh);
                 }
             }

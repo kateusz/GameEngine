@@ -21,7 +21,7 @@ public static class MeshDropTarget
                     {
                         string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
                         var mesh = MeshFactory.Create(fullPath);
-                        mesh.Initialize();
+                        // Mesh is already initialized by MeshFactory.Create()
                         meshComponent.SetMesh(mesh);
                     }
                 }

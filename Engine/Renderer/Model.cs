@@ -188,8 +188,7 @@ public class Model : IDisposable
     {
         foreach (var mesh in Meshes)
         {
-            // todo:
-            //mesh.Dispose();
+            mesh.Dispose();
         }
 
         _texturesLoaded = null;
