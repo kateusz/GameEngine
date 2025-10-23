@@ -20,7 +20,12 @@ static void ConfigureContainer(Container container)
     options.Size = new Vector2D<int>(props.Width, props.Height);
     options.Title = "Game Window";
 
-    container.Register<IWindow>(Reuse.Singleton, 
+    // Configure frame timing to prevent unbounded frame rates and screen tearing
+    options.UpdatesPerSecond = 60;      // Physics/logic updates at 60 Hz
+    options.FramesPerSecond = 60;       // Render at 60 Hz
+    options.VSync = true;               // Enable VSync to prevent tearing
+
+    container.Register<IWindow>(Reuse.Singleton,
         made: Made.Of(() => Window.Create(options))
     );
 
