@@ -12,13 +12,13 @@ public class SilkNetIndexBuffer : IIndexBuffer
         Count = count;
         
         _rendererId = SilkNetContext.GL.GenBuffer();
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
-        
+        SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, _rendererId);
+
         unsafe
         {
             fixed (uint* buf = indices)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)count * sizeof(uint), buf, BufferUsageARB.StaticDraw);
+                SilkNetContext.GL.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)count * sizeof(uint), buf, BufferUsageARB.StaticDraw);
             }
         }
     }
