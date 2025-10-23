@@ -80,8 +80,6 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetInt(string name, int data)
     {
-        int uniformLocation = SilkNetContext.GL.GetUniformLocation(_handle, "u_Texture");
-
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
     }
