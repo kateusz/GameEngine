@@ -272,7 +272,8 @@ public class Graphics2D : IGraphics2D, IDisposable
     
     public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId)
     {
-        Vector3[] lineVertices = new Vector3[RenderingConstants.QuadVertexCount];
+        // Stack allocation - zero heap allocations
+        Span<Vector3> lineVertices = stackalloc Vector3[RenderingConstants.QuadVertexCount];
         for (var i = 0; i < RenderingConstants.QuadVertexCount; i++)
         {
             var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
