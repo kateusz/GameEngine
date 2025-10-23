@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
@@ -18,10 +17,8 @@ public abstract class Application : IApplication
     private readonly IImGuiLayer? _imGuiLayer;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
-    
+
     private bool _isRunning;
-    private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
-    private double _lastFrameTime = -1.0;
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
     protected Application(IGameWindow gameWindow, IImGuiLayer? imGuiLayer = null)
@@ -111,29 +108,17 @@ public abstract class Application : IApplication
         }
     }
 
-    private void HandleUpdate()
+    private void HandleUpdate(double platformDeltaTime)
     {
-        double currentTime = _frameTimer.Elapsed.TotalSeconds;
+        // Use platform-provided delta time (from Silk.NET's high-resolution timer)
+        // Clamp to reasonable range to protect against system sleep, debugger pauses, etc.
+        double deltaTime = Math.Clamp(platformDeltaTime, 0.0, MaxDeltaTime);
 
-        // First frame initialization - use zero delta to avoid massive spike
-        double deltaTime;
-        if (_lastFrameTime < 0)
+        // Log warning if we had to clamp (indicates lag spike or system pause)
+        if (deltaTime != platformDeltaTime && platformDeltaTime > MaxDeltaTime)
         {
-            _lastFrameTime = currentTime;
-            deltaTime = 0.0; // First frame gets zero delta
-        }
-        else
-        {
-            deltaTime = currentTime - _lastFrameTime;
-            _lastFrameTime = currentTime;
-        }
-
-        // Clamp delta time to prevent "spiral of death" on lag spikes
-        // Maximum 250ms (4 FPS) - anything longer is clamped
-        if (deltaTime > MaxDeltaTime)
-        {
-            Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms", deltaTime * 1000, MaxDeltaTime * 1000);
-            deltaTime = MaxDeltaTime;
+            Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms",
+                platformDeltaTime * 1000, MaxDeltaTime * 1000);
         }
 
         var elapsed = TimeSpan.FromSeconds(deltaTime);
