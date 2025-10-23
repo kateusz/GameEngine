@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public class SilkNetVertexBuffer : IVertexBuffer, IDisposable
+public class SilkNetVertexBuffer : IVertexBuffer
 {
     private uint _rendererId;
     private bool _disposed;

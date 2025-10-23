@@ -491,12 +491,12 @@ public class Graphics2D : IGraphics2D, IDisposable
         if (disposing)
         {
             // Dispose managed resources
-            (_data.QuadShader as IDisposable)?.Dispose();
-            (_data.LineShader as IDisposable)?.Dispose();
-            (_data.QuadVertexArray as IDisposable)?.Dispose();
-            (_data.LineVertexArray as IDisposable)?.Dispose();
-            (_data.QuadVertexBuffer as IDisposable)?.Dispose();
-            (_data.LineVertexBuffer as IDisposable)?.Dispose();
+            _data.QuadShader?.Dispose();
+            _data.LineShader?.Dispose();
+            _data.QuadVertexArray?.Dispose();
+            _data.LineVertexArray?.Dispose();
+            _data.QuadVertexBuffer?.Dispose();
+            _data.LineVertexBuffer?.Dispose();
             _data.WhiteTexture?.Dispose();
 
             // Dispose textures in texture slots
