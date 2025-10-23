@@ -242,10 +242,15 @@ public class Scene
 
             if (body != null)
             {
-                var fixture = body.GetFixtureList();
-                fixture.Density = collision.Density;
-                fixture.m_friction = collision.Friction;
-                fixture.Restitution = collision.Restitution;
+                // Only update fixture properties if they have changed
+                if (collision.IsDirty)
+                {
+                    var fixture = body.GetFixtureList();
+                    fixture.Density = collision.Density;
+                    fixture.m_friction = collision.Friction;
+                    fixture.Restitution = collision.Restitution;
+                    collision.ClearDirtyFlag();
+                }
 
                 var position = body.GetPosition();
                 transform.Translation = new Vector3(position.X, position.Y, 0);
