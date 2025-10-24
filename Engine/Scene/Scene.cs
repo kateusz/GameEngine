@@ -8,6 +8,7 @@ using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
+using Engine.Scene.Systems;
 using Engine.Scripting;
 using Serilog;
 
@@ -16,13 +17,15 @@ namespace Engine.Scene;
 public class Scene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
-    
+
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
     private World _physicsWorld;
     private SceneContactListener _contactListener;
     private int _nextEntityId = 1;
+    private readonly SystemManager _systemManager;
+    private readonly ModelRenderingSystem _modelRenderingSystem;
 
     private readonly bool _showPhysicsDebug = true;
 
@@ -41,6 +44,12 @@ public class Scene
     {
         _path = path;
         Context.Instance.Clear();
+
+        // Initialize ECS systems
+        _systemManager = new SystemManager();
+        _modelRenderingSystem = new ModelRenderingSystem(Graphics3D.Instance);
+        _systemManager.RegisterSystem(_modelRenderingSystem);
+        _systemManager.Initialize();
     }
 
     public IEnumerable<Entity> Entities => Context.Instance.Entities;
@@ -99,6 +108,12 @@ public class Scene
 
     public void OnRuntimeStart()
     {
+        // Re-initialize systems for runtime
+        if (!_systemManager.IsInitialized)
+        {
+            _systemManager.Initialize();
+        }
+
         _physicsWorld = new World(new Vector2(0, -9.8f)); // Standardowa grawitacja ziemska
 
         _contactListener = new SceneContactListener();
@@ -155,6 +170,9 @@ public class Scene
 
     public void OnRuntimeStop()
     {
+        // Shutdown ECS systems
+        _systemManager.Shutdown();
+
         // Early exit if physics world was never initialized
         if (_physicsWorld == null)
             return;
@@ -178,7 +196,7 @@ public class Scene
                 }
             }
         }
-      
+
         if (errors.Count > 0)
         {
             Logger.Warning("Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.", errors.Count);
@@ -283,8 +301,11 @@ public class Scene
 
         if (mainCamera != null)
         {
-            // Render 3D (new code)
-            Render3D(mainCamera, cameraTransform);
+            // Set camera for 3D rendering system
+            _modelRenderingSystem.SetCamera(mainCamera, cameraTransform);
+
+            // Update all systems (including 3D rendering)
+            _systemManager.Update(ts);
 
             // Render 2D (existing code)
             Graphics2D.Instance.BeginScene(mainCamera, cameraTransform);
@@ -467,25 +488,4 @@ public class Scene
         return newEntity;
     }
 
-    public void Render3D(Camera camera, Matrix4x4 cameraTransform)
-    {
-        Graphics3D.Instance.BeginScene(camera, cameraTransform);
-
-        // Get entities with MeshComponent and ModelRendererComponent
-        var group = Context.Instance.GetGroup([
-            typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
-        ]);
-
-        foreach (var entity in group)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var meshComponent = entity.GetComponent<MeshComponent>();
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
-
-            Graphics3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
-                entity.Id);
-        }
-
-        Graphics3D.Instance.EndScene();
-    }
 }
