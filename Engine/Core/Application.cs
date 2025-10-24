@@ -110,9 +110,8 @@ public abstract class Application : IApplication
 
     private void HandleUpdate(double platformDeltaTime)
     {
-        // Use platform-provided delta time (from Silk.NET's high-resolution timer)
         // Clamp to reasonable range to protect against system sleep, debugger pauses, etc.
-        double deltaTime = Math.Clamp(platformDeltaTime, 0.0, MaxDeltaTime);
+        var deltaTime = System.Math.Clamp(platformDeltaTime, 0.0, MaxDeltaTime);
 
         // Log warning if we had to clamp (indicates lag spike or system pause)
         if (deltaTime != platformDeltaTime && platformDeltaTime > MaxDeltaTime)

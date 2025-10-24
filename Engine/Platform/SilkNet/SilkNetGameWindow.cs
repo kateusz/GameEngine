@@ -34,7 +34,7 @@ public class SilkNetGameWindow : IGameWindow
     
     public event Action<InputEvent> OnInputEvent;
     public event Action<double> OnUpdate = null!;
-    public event Action<WindowCloseEvent> OnClose = null!
+    public event Action<WindowCloseEvent> OnClose = null!;
     public event Action<IInputSystem> OnWindowLoad = null!;
 
     public void Run()
