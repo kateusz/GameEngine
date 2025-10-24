@@ -1,4 +1,4 @@
-name: Claude Code
+name: Claude Engine Agent
 
 on:
   issue_comment:
