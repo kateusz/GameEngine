@@ -43,7 +43,7 @@ jobs:
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
             Use the game-engine-expert agent. Be concise.
             Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
             Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
