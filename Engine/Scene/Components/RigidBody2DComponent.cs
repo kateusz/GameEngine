@@ -15,7 +15,18 @@ public class RigidBody2DComponent : Component
 {
     public RigidBodyType BodyType { get; set; }
     public bool FixedRotation { get; set; }
-    
+
     [JsonIgnore]
     public Body RuntimeBody { get; set; }
+
+    public override IComponent Clone()
+    {
+        // Do not clone RuntimeBody as it's managed by the physics system
+        return new RigidBody2DComponent
+        {
+            BodyType = BodyType,
+            FixedRotation = FixedRotation,
+            RuntimeBody = null
+        };
+    }
 }

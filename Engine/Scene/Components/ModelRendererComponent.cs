@@ -19,4 +19,15 @@ public class ModelRendererComponent : Component
     {
         Color = color;
     }
+
+    public override IComponent Clone()
+    {
+        return new ModelRendererComponent
+        {
+            Color = Color,
+            OverrideTexture = OverrideTexture,
+            CastShadows = CastShadows,
+            ReceiveShadows = ReceiveShadows
+        };
+    }
 }

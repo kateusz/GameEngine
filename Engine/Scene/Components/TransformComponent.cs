@@ -75,4 +75,9 @@ public class TransformComponent : IComponent
 
         return _cachedTransform;
     }
+
+    public IComponent Clone()
+    {
+        return new TransformComponent(_translation, _rotation, _scale);
+    }
 }

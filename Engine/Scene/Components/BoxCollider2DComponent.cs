@@ -88,4 +88,9 @@ public class BoxCollider2DComponent : IComponent
         IsTrigger = isTrigger;
         IsDirty = true; // Initially dirty to ensure first-time setup
     }
+
+    public IComponent Clone()
+    {
+        return new BoxCollider2DComponent(Size, Offset, _density, _friction, _restitution, RestitutionThreshold, IsTrigger);
+    }
 }
