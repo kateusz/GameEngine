@@ -430,51 +430,37 @@ public class Scene
         };
     }
 
-    public void DuplicateEntity(Entity entity)
+    /// <summary>
+    /// Duplicates an entity by cloning all of its components.
+    /// This method uses reflection to automatically handle all component types,
+    /// eliminating the need for manual updates when new components are added.
+    /// </summary>
+    /// <param name="entity">The entity to duplicate.</param>
+    /// <returns>The newly created entity with cloned components.</returns>
+    public Entity DuplicateEntity(Entity entity)
     {
-        var name = entity.Name;
-        var newEntity = CreateEntity(name);
-        if (entity.HasComponent<TransformComponent>())
+        var newEntity = CreateEntity(entity.Name);
+
+        // Clone all components using their Clone() implementation
+        foreach (var component in entity.GetAllComponents())
         {
-            var component = entity.GetComponent<TransformComponent>();
-            newEntity.AddComponent<TransformComponent>(component);
+            var clonedComponent = component.Clone();
+
+            // Use reflection to call AddComponent with the correct type
+            var componentType = component.GetType();
+            var addComponentMethod = typeof(Entity).GetMethod(nameof(Entity.AddComponent), new[] { componentType });
+
+            if (addComponentMethod != null)
+            {
+                addComponentMethod.Invoke(newEntity, new[] { clonedComponent });
+            }
+            else
+            {
+                Logger.Warning($"Could not find AddComponent method for type {componentType.Name}");
+            }
         }
 
-        if (entity.HasComponent<SpriteRendererComponent>())
-        {
-            var component = entity.GetComponent<SpriteRendererComponent>();
-            newEntity.AddComponent<SpriteRendererComponent>(component);
-        }
-
-        if (entity.HasComponent<SubTextureRendererComponent>())
-        {
-            var component = entity.GetComponent<SubTextureRendererComponent>();
-            newEntity.AddComponent<SubTextureRendererComponent>(component);
-        }
-
-        if (entity.HasComponent<CameraComponent>())
-        {
-            var component = entity.GetComponent<CameraComponent>();
-            newEntity.AddComponent<CameraComponent>(component);
-        }
-
-        if (entity.HasComponent<NativeScriptComponent>())
-        {
-            var component = entity.GetComponent<NativeScriptComponent>();
-            newEntity.AddComponent<NativeScriptComponent>(component);
-        }
-
-        if (entity.HasComponent<RigidBody2DComponent>())
-        {
-            var component = entity.GetComponent<RigidBody2DComponent>();
-            newEntity.AddComponent<RigidBody2DComponent>(component);
-        }
-
-        if (entity.HasComponent<BoxCollider2DComponent>())
-        {
-            var component = entity.GetComponent<BoxCollider2DComponent>();
-            newEntity.AddComponent<BoxCollider2DComponent>(component);
-        }
+        return newEntity;
     }
 
     public void Render3D(Camera camera, Matrix4x4 cameraTransform)

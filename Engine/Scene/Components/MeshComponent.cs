@@ -20,4 +20,10 @@ public class MeshComponent : Component
     }
 
     public void SetMesh(Mesh mesh) => Mesh = mesh;
+
+    public override IComponent Clone()
+    {
+        // Share the same Mesh reference (meshes are typically immutable resources)
+        return new MeshComponent(Mesh);
+    }
 }
