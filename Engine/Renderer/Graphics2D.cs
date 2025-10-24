@@ -392,9 +392,7 @@ public class Graphics2D : IGraphics2D, IDisposable
 
     private void InitWhiteTexture()
     {
-        _data.WhiteTexture = TextureFactory.Create(1, 1);
-        const uint whiteTextureData = RenderingConstants.WhiteTextureColor;
-        _data.WhiteTexture.SetData(whiteTextureData, sizeof(uint));
+        _data.WhiteTexture = TextureFactory.GetWhiteTexture();
         _data.TextureSlots[0] = _data.WhiteTexture;
     }
 
