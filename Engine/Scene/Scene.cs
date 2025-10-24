@@ -155,6 +155,10 @@ public class Scene
 
     public void OnRuntimeStop()
     {
+        // Early exit if physics world was never initialized
+        if (_physicsWorld == null)
+            return;
+
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
         var errors = new List<Exception>();
@@ -174,29 +178,29 @@ public class Scene
                 }
             }
         }
-
-        // Log summary if there were errors during script cleanup
+      
         if (errors.Count > 0)
         {
             Logger.Warning("Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.", errors.Count);
         }
 
-        // Clear ContactListener
-        if (_physicsWorld != null && _contactListener != null)
-        {
-            _physicsWorld.SetContactListener(null);
-            _contactListener = null;
-        }
-
-        // Clear UserData from bodies
+        // Properly destroy all physics bodies before clearing references
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.RuntimeBody != null)
             {
                 component.RuntimeBody.SetUserData(null);
+                _physicsWorld.DestroyBody(component.RuntimeBody);
                 component.RuntimeBody = null;
             }
+        }
+
+        // Clear ContactListener
+        if (_contactListener != null)
+        {
+            _physicsWorld.SetContactListener(null);
+            _contactListener = null;
         }
 
         // Destroy physics world
