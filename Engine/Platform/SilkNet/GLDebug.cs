@@ -11,8 +11,8 @@ public static class GLDebug
     [Conditional("DEBUG")]
     public static void CheckError(GL gl, string operation)
     {
-        GLEnum error;
-        while ((error = gl.GetError()) != GLEnum.NoError)
+        GLEnum error = gl.GetError();
+        if (error != GLEnum.NoError)
         {
             Debug.WriteLine($"OpenGL Error after {operation}: {error} (0x{(int)error:X})");
             throw new InvalidOperationException($"OpenGL Error after {operation}: {error} (0x{(int)error:X})");

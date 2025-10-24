@@ -86,7 +86,7 @@ public static class MathHelpers
 
         // Extract rotation (assuming no scale shearing)
         rotation.Y = (float)System.Math.Asin(-rows[0].Z);
-        if (System.Math.Cos(rotation.Y) != 0)
+        if (System.Math.Abs(System.Math.Cos(rotation.Y)) > float.Epsilon)
         {
             rotation.X = (float)System.Math.Atan2(rows[1].Z, rows[2].Z);
             rotation.Z = (float)System.Math.Atan2(rows[0].Y, rows[0].X);

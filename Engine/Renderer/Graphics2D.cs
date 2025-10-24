@@ -188,7 +188,7 @@ public class Graphics2D : IGraphics2D, IDisposable
                 }
             }
 
-            if (textureIndex == 0.0f)
+            if (System.Math.Abs(textureIndex) < float.Epsilon)
             {
                 if (_data.TextureSlotIndex >= Renderer2DData.MaxTextureSlots)
                     NextBatch();
@@ -446,8 +446,8 @@ public class Graphics2D : IGraphics2D, IDisposable
     private static Matrix4x4 CalculateTransform(Vector3 position, Vector2 size, float rotation)
     {
         var transform = Matrix4x4.CreateTranslation(position);
-        
-        if (rotation != 0)
+
+        if (System.Math.Abs(rotation) > float.Epsilon)
         {
             transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
         }

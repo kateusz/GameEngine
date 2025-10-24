@@ -114,7 +114,7 @@ public abstract class Application : IApplication
         var deltaTime = System.Math.Clamp(platformDeltaTime, 0.0, MaxDeltaTime);
 
         // Log warning if we had to clamp (indicates lag spike or system pause)
-        if (deltaTime != platformDeltaTime && platformDeltaTime > MaxDeltaTime)
+        if (System.Math.Abs(deltaTime - platformDeltaTime) > double.Epsilon && platformDeltaTime > MaxDeltaTime)
         {
             Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms",
                 platformDeltaTime * 1000, MaxDeltaTime * 1000);

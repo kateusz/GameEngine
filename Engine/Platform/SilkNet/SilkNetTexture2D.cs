@@ -20,6 +20,7 @@ public class SilkNetTexture2D : Texture2D
     private const int StbiFlipVerticallyEnabled = 1;
 
     private uint _rendererId;
+    private readonly int _hashCode;
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
     private bool _disposed;
@@ -28,6 +29,7 @@ public class SilkNetTexture2D : Texture2D
         PixelFormat dataFormat)
     {
         _rendererId = rendererId;
+        _hashCode = rendererId.GetHashCode();
         _internalFormat = internalFormat;
         _dataFormat = dataFormat;
 
@@ -173,7 +175,8 @@ public class SilkNetTexture2D : Texture2D
     public override int GetHashCode()
     {
         // Use a hash code derived from the unique renderer ID, which represents this texture in OpenGL.
-        return _rendererId.GetHashCode();
+        // Cached at construction to avoid issues with mutability when _rendererId is set to 0 during disposal.
+        return _hashCode;
     }
 
     protected override void Dispose(bool disposing)
