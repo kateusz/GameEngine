@@ -55,7 +55,7 @@ jobs:
             ISSUE NUMBER: ${{ github.event.issue.number }}
             Use the game-editor-architect agent. Be concise.
             Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            Use `gh issue comment` with your Bash tool to leave your review as a comment on the issue.
           trigger_phrase: "/editor"
         env:
           GH_TOKEN: ${{ github.token }}
