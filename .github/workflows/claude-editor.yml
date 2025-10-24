@@ -13,10 +13,10 @@ on:
 jobs:
   claude:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@editor')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@editor')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@editor')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@editor') || contains(github.event.issue.title, '@editor')))
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/editor')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '/editor')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '/editor')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@/editor') || contains(github.event.issue.title, '/editor')))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,5 +42,5 @@ jobs:
 
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           prompt: 'Use the game-editor-architect agent. Be concise.'
-          trigger_phrase: "@editor"
+          trigger_phrase: "/editor"
 
