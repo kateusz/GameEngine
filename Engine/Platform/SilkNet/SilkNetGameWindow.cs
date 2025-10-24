@@ -33,7 +33,7 @@ public class SilkNetGameWindow : IGameWindow
     }
     
     public event Action<InputEvent> OnInputEvent;
-    public event Action OnUpdate = null!;
+    public event Action<double> OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
     public event Action<IInputSystem> OnWindowLoad = null!;
 
@@ -69,7 +69,7 @@ public class SilkNetGameWindow : IGameWindow
 
     private void WindowOnUpdate(double deltaTime)
     {
-        OnUpdate();
+        OnUpdate(deltaTime);
     }
     
     private void OnInputReceived(InputEvent inputEvent)
