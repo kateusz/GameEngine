@@ -60,7 +60,7 @@ public class BenchmarkLayer : ILayer
     {
         _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
         LoadTestAssets();
-
+        
         // Initialize process monitoring
         _currentProcess = Process.GetCurrentProcess();
         _lastTotalProcessorTime = _currentProcess.TotalProcessorTime;
@@ -358,6 +358,14 @@ public class BenchmarkLayer : ILayer
     private void StartBenchmark(BenchmarkTestType testType)
     {
         _currentTestType = testType;
+
+        // If a physics test is selected, adjust defaults for stability and runtime
+        if (IsPhysicsTest(testType))
+        {
+            _entityCount = 100;
+            _testDuration = 10.0f;
+        }
+
         _isRunning = true;
         _testElapsedTime = 0;
         _frameCount = 0;
@@ -850,7 +858,7 @@ public class BenchmarkLayer : ILayer
         if (_currentTestScene == null) return;
 
         // Create static ground
-        var ground = _currentTestScene.CreateEntity("Ground");
+        var ground = _currentTestScene.CreateEntity("Floor");
         var groundTransform = ground.AddComponent<TransformComponent>();
         groundTransform.Translation = new Vector3(0, -10, 0);
         groundTransform.Scale = new Vector3(50, 1, 1);
@@ -859,10 +867,10 @@ public class BenchmarkLayer : ILayer
         groundRb.BodyType = RigidBodyType.Static;
 
         var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
-        groundCollider.Size = new Vector2(0.5f,0.5f);
+        groundCollider.Size = new Vector2(0.5f, 0.5f);
         groundCollider.Density = 0.0f;
         groundCollider.Friction = 0.5f;
-        groundCollider.Restitution = 0.4f;
+        groundCollider.Restitution = 0.1f;  // Reduced from 0.4 to minimize bouncing and improve stability
 
         var groundSprite = ground.AddComponent<SpriteRendererComponent>();
         groundSprite.Color = new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -871,13 +879,14 @@ public class BenchmarkLayer : ILayer
         var random = new Random();
         for (int i = 0; i < _entityCount; i++)
         {
-            var body = _currentTestScene.CreateEntity($"FallingBody_{i}");
+            var body = _currentTestScene.CreateEntity($"Ball_{i}");
             var bodyTransform = body.AddComponent<TransformComponent>();
 
-            // Random positions at various heights
+            // Random positions at various heights - reduced max height to prevent tunneling
+            // Lower heights mean lower terminal velocities, reducing chance of passing through floor
             bodyTransform.Translation = new Vector3(
                 (float)(random.NextDouble() * 40 - 20),
-                (float)(random.NextDouble() * 20 + 5),
+                (float)(random.NextDouble() * 10 + 2),  // Reduced from 20+5 to 10+2 (max height 12 instead of 25)
                 0);
 
             // Random sizes
@@ -892,7 +901,7 @@ public class BenchmarkLayer : ILayer
             bodyCollider.Size = new Vector2(0.5f, 0.5f);
             bodyCollider.Density = 1.0f;
             bodyCollider.Friction = 0.3f;
-            bodyCollider.Restitution = 0.6f;
+            bodyCollider.Restitution = 0.2f;  // Reduced from 0.6 to reduce bounce and improve stability
 
             var bodySprite = body.AddComponent<SpriteRendererComponent>();
             bodySprite.Color = new Vector4(
@@ -908,7 +917,7 @@ public class BenchmarkLayer : ILayer
         if (_currentTestScene == null) return;
 
         // Create static ground
-        var ground = _currentTestScene.CreateEntity("Ground");
+        var ground = _currentTestScene.CreateEntity("Floor");
         var groundTransform = ground.AddComponent<TransformComponent>();
         groundTransform.Translation = new Vector3(0, -5, 0);
         groundTransform.Scale = new Vector3(20, 1, 1);
@@ -929,7 +938,7 @@ public class BenchmarkLayer : ILayer
         int stackCount = Math.Min(_entityCount, 50); // Cap at 50 for stability
         for (int i = 0; i < stackCount; i++)
         {
-            var box = _currentTestScene.CreateEntity($"Box_{i}");
+            var box = _currentTestScene.CreateEntity($"Ball_{i}");
             var boxTransform = box.AddComponent<TransformComponent>();
 
             // Stack boxes vertically with slight spacing
@@ -1085,3 +1094,4 @@ public class BenchmarkLayer : ILayer
         }
     }
 }
+
