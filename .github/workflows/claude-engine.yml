@@ -47,6 +47,7 @@ jobs:
           claude_args: |
             --model sonnet
             --allowedTools Edit,Read,Write,Bash
+          bot_name: game-engine-expert
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
