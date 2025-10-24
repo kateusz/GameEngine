@@ -261,10 +261,18 @@ public class EntityComponentTests
     // Test components
     private class TestComponent : IComponent
     {
+        public IComponent Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private class AnotherTestComponent : IComponent
     {
+        public IComponent Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private class TestComponentWithParams : IComponent
@@ -277,10 +285,19 @@ public class EntityComponentTests
             Name = name;
             Value = value;
         }
+
+        public IComponent Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private class BaseTestComponent : IComponent
     {
+        public IComponent Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private class DerivedTestComponent : BaseTestComponent

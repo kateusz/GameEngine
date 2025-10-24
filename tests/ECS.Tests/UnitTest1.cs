@@ -267,5 +267,9 @@ public class EntityEqualityTests
     // Test component for validation
     private class TestComponent : IComponent
     {
+        public IComponent Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

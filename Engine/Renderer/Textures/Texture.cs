@@ -5,7 +5,7 @@ public abstract class Texture : IDisposable
     public int Width { get; set; }
     public int Height { get; set; }
 
-    public string Path { get; set; }
+    public string? Path { get; set; }
 
     public virtual void Bind(int slot = 0)
     {
