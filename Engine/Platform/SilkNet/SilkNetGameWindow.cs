@@ -4,7 +4,7 @@ using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Platform.SilkNet.Input;
-using NLog;
+using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -14,7 +14,7 @@ namespace Engine.Platform.SilkNet;
 
 public class SilkNetGameWindow : IGameWindow
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetGameWindow>();
     
     private readonly IWindow _window;
     
@@ -31,10 +31,9 @@ public class SilkNetGameWindow : IGameWindow
         _window.Closing += OnWindowClosing;
         _window.FramebufferResize += OnFrameBufferResize;
     }
-
-    public event Action<Event> OnEvent = null!;
+    
     public event Action<InputEvent> OnInputEvent;
-    public event Action OnUpdate = null!;
+    public event Action<double> OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
     public event Action<IInputSystem> OnWindowLoad = null!;
 
@@ -47,7 +46,6 @@ public class SilkNetGameWindow : IGameWindow
 
     private void OnWindowClosing()
     {
-        OnEvent(new WindowCloseEvent());
         OnClose(new WindowCloseEvent());
 
         // Unload OpenGL
@@ -59,7 +57,7 @@ public class SilkNetGameWindow : IGameWindow
         SilkNetContext.GL = _window.CreateOpenGL();
         SilkNetContext.Window = _window;
 
-        Logger.Info("SilkNet window loaded");
+        Logger.Information("SilkNet window loaded");
         
         var inputContext = _window.CreateInput();
         // TODO: move to factory
@@ -71,11 +69,16 @@ public class SilkNetGameWindow : IGameWindow
 
     private void WindowOnUpdate(double deltaTime)
     {
-        OnUpdate();
+        OnUpdate(deltaTime);
     }
     
     private void OnInputReceived(InputEvent inputEvent)
     {
+        if (inputEvent is KeyPressedEvent { KeyCode: KeyCodes.Escape })
+        {
+            _window.Close();
+        }
+        
         OnInputEvent(inputEvent);
     }
 
@@ -85,6 +88,6 @@ public class SilkNetGameWindow : IGameWindow
         SilkNetContext.GL.Viewport(newSize);
 
         var @event = new WindowResizeEvent(newSize.X, newSize.Y);
-        OnEvent(@event);
+        OnWindowEvent(@event);
     }
 }

@@ -7,28 +7,82 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetVertexBuffer : IVertexBuffer
 {
-    private readonly uint _rendererId;
+    private uint _rendererId;
+    private bool _disposed;
+
+    // Maximum buffer size limit: 256 MB
+    // This prevents accidental allocation of excessive GPU memory which could lead to:
+    // - Out-of-memory crashes
+    // - System instability
+    // - Difficult debugging of size calculation errors
+    private const uint MaxBufferSize = 256 * 1024 * 1024;
 
     public SilkNetVertexBuffer(uint size)
     {
+        // Validate buffer size to prevent memory allocation issues
+        if (size == 0)
+            throw new ArgumentException("Buffer size must be greater than zero", nameof(size));
+
+        if (size > MaxBufferSize)
+            throw new ArgumentException($"Buffer size {size} bytes exceeds maximum {MaxBufferSize} bytes ({MaxBufferSize / (1024 * 1024)} MB)", nameof(size));
+
         _rendererId = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
-        unsafe
+
+        try
         {
-            SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, size, null, BufferUsageARB.DynamicDraw);
+            unsafe
+            {
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, size, null, BufferUsageARB.DynamicDraw);
+            }
+
+            // Check for OpenGL errors after buffer allocation
+            var error = SilkNetContext.GL.GetError();
+            if (error != GLEnum.NoError)
+            {
+                throw new InvalidOperationException($"OpenGL error during vertex buffer creation: {error}");
+            }
+        }
+        catch
+        {
+            // Clean up buffer on failure to prevent resource leak
+            SilkNetContext.GL.DeleteBuffer(_rendererId);
+            throw;
         }
     }
 
     ~SilkNetVertexBuffer()
     {
+        Dispose(false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
         try
         {
-            SilkNetContext.GL.DeleteBuffer(_rendererId);
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteBuffer(_rendererId);
+                _rendererId = 0;
+            }
         }
         catch (Exception e)
         {
-            // todo: 
+            // Finalizers and Dispose must not throw exceptions
+            // Log the error but suppress it to prevent application crashes
+            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex buffer {_rendererId}: {e.Message}");
         }
+
+        _disposed = true;
     }
 
     public void SetLayout(BufferLayout layout)
@@ -56,9 +110,9 @@ public class SilkNetVertexBuffer : IVertexBuffer
         }
     }
 
-    public void SetData(Span<LineVertex> lineVertices, int dataSize)
+    public void SetData(Span<LineVertex> vertices, int dataSize)
     {
-        if (lineVertices.Length == 0)
+        if (vertices.Length == 0)
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
@@ -66,7 +120,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
         unsafe
         {
             // Use Span<T> for direct memory access without allocations
-            var vertexSpan = MemoryMarshal.Cast<LineVertex, byte>(lineVertices);
+            var vertexSpan = MemoryMarshal.Cast<LineVertex, byte>(vertices);
             fixed (byte* pData = vertexSpan)
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);

@@ -8,14 +8,14 @@ using Engine.Scene.Components;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
-using NLog;
+using Serilog;
 using ZLinq;
 
 namespace Engine.Scripting;
 
 public class ScriptEngine
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
 
     public static ScriptEngine Instance { get; } = new();
 
@@ -70,7 +70,7 @@ public class ScriptEngine
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, $"Error initializing script on entity {entity.Name}");
+                    Logger.Error(ex, "Error initializing script on entity {EntityName}", entity.Name);
                 }
             }
 
@@ -81,7 +81,7 @@ public class ScriptEngine
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Error updating script on entity {entity.Name}");
+                Logger.Error(ex, "Error updating script on entity {EntityName}", entity.Name);
             }
         }
     }
@@ -116,7 +116,7 @@ public class ScriptEngine
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Error processing event in script on entity {entity.Name}");
+                Logger.Error(ex, "Error processing event in script on entity {EntityName}", entity.Name);
             }
         }
     }
@@ -187,16 +187,16 @@ public class ScriptEngine
                 
             if (success)
             {
-                Logger.Info($"Script '{scriptName}' successfully compiled");
+                Logger.Information("Script '{ScriptName}' successfully compiled", scriptName);
                 return (true, []);
             }
 
-            Logger.Error($"Failed to compile script '{scriptName}': {string.Join(", ", errors)}");
+            Logger.Error("Failed to compile script '{ScriptName}': {Errors}", scriptName, string.Join(", ", errors));
             return (false, errors);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error saving or compiling script '{scriptName}'");
+            Logger.Error(ex, "Error saving or compiling script '{ScriptName}'", scriptName);
             return (false, [ex.Message]);
         }
     }
@@ -223,7 +223,7 @@ public class ScriptEngine
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error deleting script '{scriptName}'");
+            Logger.Error(ex, "Error deleting script '{ScriptName}'", scriptName);
             return false;
         }
     }
@@ -235,7 +235,7 @@ public class ScriptEngine
         if (enable)
         {
             // Ensure scripts are compiled with debug info
-            Logger.Info("Hybrid debugging enabled - engine + scripts");
+            Logger.Information("Hybrid debugging enabled - engine + scripts");
             CompileAllScripts();
         }
     }
@@ -261,7 +261,7 @@ public class ScriptEngine
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Failed to save debug symbols to {outputPath}");
+            Logger.Error(ex, "Failed to save debug symbols to {OutputPath}", outputPath);
             return false;
         }
     }
@@ -293,12 +293,12 @@ public class ScriptEngine
     // Force recompile method for hot reload
     public void CompileAllScripts()
     {
-        Logger.Info("Compiling all scripts...");
+        Logger.Information("Compiling all scripts...");
             
         var scriptFiles = Directory.GetFiles(_scriptsDirectory, "*.cs");
         if (scriptFiles.Length == 0)
         {
-            Logger.Info("No scripts found to compile");
+            Logger.Information("No scripts found to compile");
             return;
         }
             
@@ -338,7 +338,7 @@ public class ScriptEngine
         }
         else
         {
-            Logger.Warn("No scripts successfully loaded for compilation");
+            Logger.Warning("No scripts successfully loaded for compilation");
         }
     }
 
@@ -362,7 +362,7 @@ public class ScriptEngine
         
         if (needsRecompile)
         {
-            Logger.Info("Script changes detected, recompiling...");
+            Logger.Information("Script changes detected, recompiling...");
             CompileAllScripts();
         }
     }
@@ -410,7 +410,7 @@ public class ScriptEngine
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Error preparing compilation for script: {scriptName}");
+            Logger.Error(ex, "Error preparing compilation for script: {ScriptName}", scriptName);
             return (false, new[] { ex.Message });
         }
     }
@@ -508,8 +508,8 @@ public class ScriptEngine
                     .Select(d => d.GetMessage())
                     .Distinct()
                     .ToArray();
-                    
-                Logger.Error($"Script compilation failed with {errors.Length} errors");
+
+                Logger.Error("Script compilation failed with {ErrorCount} errors", errors.Length);
                 return (false, errors);
             }
 
@@ -534,8 +534,8 @@ public class ScriptEngine
                     
             // Update script types dictionary - FIXED: Added missing method
             UpdateScriptTypes();
-                    
-            Logger.Info($"Successfully compiled {_scriptTypes.Count} scripts with debug support: {_debugMode}");
+
+            Logger.Information("Successfully compiled {ScriptCount} scripts with debug support: {DebugMode}", _scriptTypes.Count, _debugMode);
             return (true, []);
         }
         catch (Exception ex)
@@ -616,7 +616,7 @@ public class ScriptEngine
             if (typeof(ScriptableEntity).IsAssignableFrom(type) && !type.IsAbstract)
             {
                 _scriptTypes[type.Name] = type;
-                Logger.Debug($"Registered script type: {type.Name}");
+                Logger.Debug("Registered script type: {TypeName}", type.Name);
             }
         }
     }
@@ -658,12 +658,12 @@ public class ScriptEngine
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warn(ex, "❌ Error adding {AssemblyName}", assemblyName);
+                        Logger.Warning(ex, "❌ Error adding {AssemblyName}", assemblyName);
                     }
                 }
                 else
                 {
-                    Logger.Warn("❌ Missing: {AssemblyName}", assemblyName);
+                    Logger.Warning("❌ Missing: {AssemblyName}", assemblyName);
                 }
             }
             
@@ -678,7 +678,7 @@ public class ScriptEngine
             foreach (var assembly in loadedAssemblies)
             {
                 var name = assembly.GetName().Name;
-                Logger.Trace("Checking assembly: {AssemblyName}", name);
+                Logger.Debug("Checking assembly: {AssemblyName}", name);
                 
                 // Check for engine-related assemblies
                 if (name.StartsWith("Engine") || name.StartsWith("ECS") || name.StartsWith("Editor"))
@@ -716,13 +716,13 @@ public class ScriptEngine
                             
                             if (!found)
                             {
-                                Logger.Warn("❌ Could not find assembly file for: {AssemblyName}", name);
+                                Logger.Warning("❌ Could not find assembly file for: {AssemblyName}", name);
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warn(ex, "❌ Error adding engine assembly {AssemblyName}", name);
+                        Logger.Warning(ex, "❌ Error adding engine assembly {AssemblyName}", name);
                     }
                 }
             }
@@ -762,7 +762,7 @@ public class ScriptEngine
             }
             catch (Exception ex)
             {
-                Logger.Warn(ex, "❌ Error adding Box2D");
+                Logger.Warning(ex, "❌ Error adding Box2D");
             }
             
             Logger.Debug("Total references added: {ReferenceCount}", references.Count);
@@ -807,14 +807,14 @@ public class ScriptEngine
             return ecsAssembly.Location;
         }
         
-        Logger.Warn("ECS assembly not found in any location");
+        Logger.Warning("ECS assembly not found in any location");
         return null;
     }
 
     // Force recompile method for debugging
     public void ForceRecompile()
     {
-        Logger.Info("Force recompiling scripts for debugging...");
+        Logger.Information("Force recompiling scripts for debugging...");
         CompileAllScripts();
         
         // Notify all script components to reload

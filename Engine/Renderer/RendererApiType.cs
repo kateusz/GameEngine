@@ -1,6 +1,6 @@
 namespace Engine.Renderer;
 
-public class RendererApiType
+public static class RendererApiType
 {
-    public static ApiType Type = ApiType.SilkNet;
+    public static readonly ApiType Type = ApiType.SilkNet;
 }

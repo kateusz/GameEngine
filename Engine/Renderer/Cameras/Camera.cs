@@ -4,5 +4,5 @@ namespace Engine.Renderer.Cameras;
 
 public class Camera(Matrix4x4 projection)
 {
-    public Matrix4x4 Projection { get; protected set; } = projection;
+    public virtual Matrix4x4 Projection { get; protected set; } = projection;
 }

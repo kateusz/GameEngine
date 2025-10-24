@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ECS\ECS.csproj" />
+    <ProjectReference Include="..\..\ECS\ECS.csproj" />
   </ItemGroup>
 
 </Project>

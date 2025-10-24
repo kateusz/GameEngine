@@ -40,23 +40,23 @@ public class SilkNetInputSystem : IInputSystem
 
     public event Action<InputEvent>? InputReceived;
 
-    private void OnSilkKeyDown(Silk.NET.Input.IKeyboard keyboard, Key key, int keyCode)
+    private void OnSilkKeyDown(IKeyboard keyboard, Key key, int keyCode)
     {
         if (_disposed) return;
 
-        var inputEvent = new KeyPressedEvent((int)key, false);
+        var inputEvent = new KeyPressedEvent((KeyCodes)key, false);
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkKeyUp(Silk.NET.Input.IKeyboard keyboard, Key key, int keyCode)
+    private void OnSilkKeyUp(IKeyboard keyboard, Key key, int keyCode)
     {
         if (_disposed) return;
 
-        var inputEvent = new KeyReleasedEvent((int)key);
+        var inputEvent = new KeyReleasedEvent((KeyCodes)key);
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseDown(Silk.NET.Input.IMouse mouse, MouseButton button)
+    private void OnSilkMouseDown(IMouse mouse, MouseButton button)
     {
         if (_disposed) return;
 
@@ -64,7 +64,7 @@ public class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseUp(Silk.NET.Input.IMouse mouse, MouseButton button)
+    private void OnSilkMouseUp(IMouse mouse, MouseButton button)
     {
         if (_disposed) return;
 
@@ -72,7 +72,7 @@ public class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseScroll(Silk.NET.Input.IMouse mouse, ScrollWheel scrollWheel)
+    private void OnSilkMouseScroll(IMouse mouse, ScrollWheel scrollWheel)
     {
         if (_disposed) return;
 

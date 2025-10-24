@@ -1,12 +1,12 @@
 using Engine.Audio;
-using NLog;
+using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
-public class SilkNetAudioClip : IAudioClip
+public class SilkNetAudioClip : IAudioClip, IDisposable
 {
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioClip>();
     
     private uint _bufferId;
     private bool _disposed = false;
@@ -28,67 +28,87 @@ public class SilkNetAudioClip : IAudioClip
         Format = AudioClipFactory.DetectFormat(path);
 
         if (!AudioClipFactory.IsSupportedFormat(path))
-            throw new NotSupportedException($"Nieobsługiwany format audio: {path}");
+            throw new NotSupportedException($"Unsupported audio format: {path}");
     }
 
     public void Load()
     {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(SilkNetAudioClip));
+
         if (IsLoaded)
             return;
 
         try
         {
-            // Ładowanie zostanie zaimplementowane w punkcie 3
+            // Load audio file
             LoadAudioFile();
 
-            // Utwórz bufor OpenAL
+            // Create OpenAL buffer
             var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
             _bufferId = al.GenBuffer();
 
-            // Określ format OpenAL na podstawie kanałów i głębi bitowej
+            // Determine OpenAL format based on channels and bit depth
             var alFormat = GetOpenALFormat();
 
-            // Prześlij dane do bufora OpenAL
+            // Upload data to OpenAL buffer
             al.BufferData(_bufferId, alFormat, RawData, SampleRate);
 
-            // Oblicz czas trwania
-            int bytesPerSample = Channels * 2; // Zakładając 16-bit
+            // Calculate duration
+            int bytesPerSample = Channels * 2; // Assuming 16-bit
             Duration = (float)DataSize / (SampleRate * bytesPerSample);
 
             IsLoaded = true;
-            Logger.Info("Załadowano klip audio: {Path} ({Duration:F2}s)", Path, Duration);
+            Logger.Information("Loaded audio clip: {Path} ({Duration:F2}s)", Path, Duration);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Błąd ładowania klipu audio {Path}", Path);
+            Logger.Error(ex, "Error loading audio clip {Path}", Path);
             throw;
         }
     }
 
     public void Unload()
     {
-        if (!IsLoaded)
-            return;
+        // Unload becomes an alias for Dispose for backward compatibility
+        Dispose();
+    }
 
-        try
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            if (_bufferId != 0)
+            if (disposing)
             {
-                var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
-                al.DeleteBuffer(_bufferId);
-                _bufferId = 0;
+                // Dispose managed state
+                RawData = null;
             }
 
-            RawData = null;
-            DataSize = 0;
-            IsLoaded = false;
+            // Unload OpenAL resources (unmanaged resources)
+            if (IsLoaded && _bufferId != 0)
+            {
+                try
+                {
+                    var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
+                    al.DeleteBuffer(_bufferId);
+                    _bufferId = 0;
+                    IsLoaded = false;
+                    Logger.Information("Unloaded audio clip: {Path}", Path);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error disposing audio clip {Path}", Path);
+                }
+            }
 
-            Logger.Info("Zwolniono klip audio: {Path}", Path);
+            _disposed = true;
         }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Błąd zwalniania klipu audio {Path}", Path);
-        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     private void LoadAudioFile()
@@ -96,37 +116,37 @@ public class SilkNetAudioClip : IAudioClip
         try
         {
             if (!AudioLoaderRegistry.IsSupported(Path))
-                throw new NotSupportedException($"Nieobsługiwany format pliku: {Path}");
+                throw new NotSupportedException($"Unsupported file format: {Path}");
 
             var audioData = AudioLoaderRegistry.LoadAudio(Path);
-        
+
             RawData = audioData.Data;
             DataSize = audioData.Data.Length;
             SampleRate = audioData.SampleRate;
             Channels = audioData.Channels;
             Format = audioData.Format;
-        
-            Logger.Debug("Załadowano dane audio: {Path}", Path);
+
+            Logger.Debug("Loaded audio data: {Path}", Path);
             Logger.Debug("  - Sample Rate: {SampleRate} Hz", SampleRate);
-            Logger.Debug("  - Kanały: {Channels}", Channels);
-            Logger.Debug("  - Rozmiar: {DataSize} bajtów", DataSize);
+            Logger.Debug("  - Channels: {Channels}", Channels);
+            Logger.Debug("  - Size: {DataSize} bytes", DataSize);
             Logger.Debug("  - Format: {Format}", Format);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Błąd ładowania pliku audio {Path}", Path);
+            Logger.Error(ex, "Error loading audio file {Path}", Path);
             throw;
         }
     }
 
     private BufferFormat GetOpenALFormat()
     {
-        // Zakładając 16-bit samples
+        // Assuming 16-bit samples
         return Channels switch
         {
             1 => BufferFormat.Mono16,
             2 => BufferFormat.Stereo16,
-            _ => throw new NotSupportedException($"Nieobsługiwana liczba kanałów: {Channels}")
+            _ => throw new NotSupportedException($"Unsupported number of channels: {Channels}")
         };
     }
     
@@ -134,9 +154,6 @@ public class SilkNetAudioClip : IAudioClip
 
     ~SilkNetAudioClip()
     {
-        if (!_disposed && IsLoaded)
-        {
-            Logger.Warn("Uwaga: AudioClip {Path} nie został prawidłowo zwolniony. Wywołaj Unload().", Path);
-        }
+        Dispose(false);
     }
 }

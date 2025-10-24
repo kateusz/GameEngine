@@ -6,18 +6,19 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-public class Graphics3D : IGraphics3D
+public class Graphics3D : IGraphics3D, IDisposable
 {
     private static IGraphics3D? _instance;
     public static IGraphics3D Instance => _instance ??= new Graphics3D();
-    
+
     private IRendererAPI _rendererApi = RendererApiFactory.Create();
     private IShader _phongShader;
     private Vector3 _lightPosition = new Vector3(0.0f, 3.0f, 3.0f);
     private Vector3 _lightColor = new Vector3(1.0f, 1.0f, 1.0f);
     private float _shininess = 32.0f;
-    
+
     private Statistics _stats = new();
+    private bool _disposed;
 
     public void Init()
     {
@@ -133,4 +134,24 @@ public class Graphics3D : IGraphics3D
     public void SetClearColor(Vector4 color) => _rendererApi.SetClearColor(color);
 
     public void Clear() => _rendererApi.Clear();
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            // Dispose managed resources
+            (_phongShader as IDisposable)?.Dispose();
+        }
+
+        _disposed = true;
+    }
 }
