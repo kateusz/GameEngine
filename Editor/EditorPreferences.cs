@@ -18,7 +18,7 @@ public class RecentProject
 /// Manages editor preferences including recent projects list.
 /// Persists data to AppData/GameEngine/editor-preferences.json
 /// </summary>
-public class EditorPreferences
+public class EditorPreferences : IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<EditorPreferences>();
     
@@ -133,6 +133,7 @@ public class EditorPreferences
     {
         // Cancel any pending save and schedule a new one
         _pendingSaveCts?.Cancel();
+        _pendingSaveCts?.Dispose();
         _pendingSaveCts = new CancellationTokenSource();
         _ = SaveAsync(_pendingSaveCts.Token);
     }
@@ -231,5 +232,15 @@ public class EditorPreferences
         }
 
         return new EditorPreferences();
+    }
+
+    /// <summary>
+    /// Disposes resources used by EditorPreferences.
+    /// </summary>
+    public void Dispose()
+    {
+        _pendingSaveCts?.Cancel();
+        _pendingSaveCts?.Dispose();
+        _saveSemaphore?.Dispose();
     }
 }

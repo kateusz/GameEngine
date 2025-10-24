@@ -263,8 +263,8 @@ public class SilkNetFrameBuffer : FrameBuffer
                 GLDebug.CheckError(SilkNetContext.GL, "DrawBuffers");
                 break;
             }
-            case 0:
-                // Only depth-pass
+            default:
+                // Only depth-pass (when 0 attachments)
                 SilkNetContext.GL.DrawBuffer(GLEnum.None);
                 GLDebug.CheckError(SilkNetContext.GL, "DrawBuffer (None)");
                 break;
@@ -325,7 +325,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         };
     }
     
-    private GLEnum TextureFormatToGL(FramebufferTextureFormat format)
+    private static GLEnum TextureFormatToGL(FramebufferTextureFormat format)
     {
         switch (format)
         {
@@ -335,8 +335,8 @@ public class SilkNetFrameBuffer : FrameBuffer
 
         return 0;
     }
-    
-    private void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
+
+    private static void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
     {
         bool multisampled = samples > 1;
 
