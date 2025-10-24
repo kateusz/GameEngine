@@ -6,4 +6,9 @@ public enum BenchmarkTestType
     Renderer2DStress,
     TextureSwitching,
     DrawCallOptimization,
+
+    // Physics tests
+    PhysicsBouncingBall,
+    PhysicsFallingBodies,
+    PhysicsStacking,
 }
