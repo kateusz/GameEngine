@@ -50,7 +50,7 @@ public class PhysicsSimulationSystem : ISystem
     {
         // Reset physics accumulator for clean state
         _physicsAccumulator = 0f;
-        Logger.Debug("PhysicsSimulationSystem initialized");
+        Logger.Debug("PhysicsSimulationSystem initialized with priority {Priority}", Priority);
     }
 
     /// <summary>

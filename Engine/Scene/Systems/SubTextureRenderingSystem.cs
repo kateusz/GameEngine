@@ -5,6 +5,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Systems;
 
@@ -22,6 +23,8 @@ namespace Engine.Scene.Systems;
 /// </remarks>
 public class SubTextureRenderingSystem : ISystem
 {
+    private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
+    
     private readonly IGraphics2D _renderer;
 
     // Default cell size for sprite sheets (in pixels)
@@ -50,7 +53,7 @@ public class SubTextureRenderingSystem : ISystem
     /// </summary>
     public void OnInit()
     {
-        // No initialization required
+        Logger.Debug("SubTextureRenderingSystem initialized with priority {Priority}", Priority);
     }
 
     /// <summary>

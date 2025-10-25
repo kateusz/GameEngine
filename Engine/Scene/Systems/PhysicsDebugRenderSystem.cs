@@ -3,6 +3,7 @@ using Box2D.NetStandard.Dynamics.Bodies;
 using ECS;
 using Engine.Renderer;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Systems;
 
@@ -12,6 +13,8 @@ namespace Engine.Scene.Systems;
 /// </summary>
 public class PhysicsDebugRenderSystem : ISystem
 {
+    private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
+    
     private readonly IGraphics2D _renderer;
     private readonly bool _isEnabled;
 
@@ -37,7 +40,7 @@ public class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     public void OnInit()
     {
-        // No initialization required
+        Logger.Debug("PhysicsDebugRenderSystem initialized with priority {Priority}", Priority);
     }
 
     /// <summary>

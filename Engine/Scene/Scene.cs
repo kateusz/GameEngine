@@ -63,8 +63,6 @@ public class Scene
         // Create and register physics simulation system with the physics world
         _physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
         _systemManager.RegisterSystem(_physicsSimulationSystem);
-
-        _systemManager.Initialize();
     }
 
     public IEnumerable<Entity> Entities => Context.Instance.Entities;
@@ -123,6 +121,8 @@ public class Scene
 
     public void OnRuntimeStart()
     {
+        _systemManager.Initialize();
+        
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -171,10 +171,6 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        // Early exit if physics world was never initialized
-        if (_physicsWorld == null)
-            return;
-
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
         var errors = new List<Exception>();
@@ -213,9 +209,8 @@ public class Scene
                 component.RuntimeBody = null;
             }
         }
-
-        // Clear ContactListener from the world but keep the reference for reuse
-        _physicsWorld.SetContactListener(null);
+        
+        _systemManager.Shutdown();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
