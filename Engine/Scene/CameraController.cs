@@ -19,9 +19,9 @@ public class CameraController : ScriptableEntity
         }
     }
 
-    public override void OnKeyPressed(KeyCodes key)
+    public override void OnKeyPressed(KeyCodes keyCode)
     {
-        switch (key)
+        switch (keyCode)
         {
             case KeyCodes.W: _inputDirection += Vector3.UnitY; break;
             case KeyCodes.S: _inputDirection -= Vector3.UnitY; break;
@@ -30,9 +30,9 @@ public class CameraController : ScriptableEntity
         }
     }
 
-    public override void OnKeyReleased(KeyCodes key)
+    public override void OnKeyReleased(KeyCodes keyCode)
     {
-        switch (key)
+        switch (keyCode)
         {
             case KeyCodes.W: _inputDirection -= Vector3.UnitY; break;
             case KeyCodes.S: _inputDirection += Vector3.UnitY; break;

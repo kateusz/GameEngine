@@ -8,6 +8,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scene.Systems;
+using Engine.Scripting;
 using Serilog;
 
 namespace Engine.Scene;
@@ -22,9 +23,11 @@ public class Scene
     private World _physicsWorld;
     private SceneContactListener _contactListener;
     private int _nextEntityId = 1;
-    private readonly SystemManager _systemManager = new();
+    private readonly SystemManager _systemManager;
+    private readonly ModelRenderingSystem _modelRenderingSystem;
 
     private readonly bool _showPhysicsDebug = true;
+    private PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
@@ -41,6 +44,12 @@ public class Scene
     {
         _path = path;
         Context.Instance.Clear();
+
+        // Initialize ECS systems
+        _systemManager = new SystemManager();
+        _modelRenderingSystem = new ModelRenderingSystem(Graphics3D.Instance);
+        _systemManager.RegisterSystem(_modelRenderingSystem);
+        _systemManager.Initialize();
     }
 
     public IEnumerable<Entity> Entities => Context.Instance.Entities;
@@ -102,6 +111,11 @@ public class Scene
         // Initialize systems
         _systemManager.RegisterSystem(new ScriptUpdateSystem());
         _systemManager.Initialize();
+        // Re-initialize systems for runtime
+        if (!_systemManager.IsInitialized)
+        {
+            _systemManager.Initialize();
+        }
 
         _physicsWorld = new World(new Vector2(0, -9.8f)); // Standardowa grawitacja ziemska
 
@@ -110,6 +124,10 @@ public class Scene
 
         // Reset physics accumulator for clean state
         _physicsAccumulator = 0f;
+
+        // Initialize physics debug rendering system
+        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
+        _physicsDebugRenderSystem.OnInit();
 
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
@@ -159,8 +177,12 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        // Shutdown systems first
+        // Shutdown ECS systems
         _systemManager.Shutdown();
+
+        // Early exit if physics world was never initialized
+        if (_physicsWorld == null)
+            return;
 
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
@@ -182,28 +204,28 @@ public class Scene
             }
         }
 
-        // Log summary if there were errors during script cleanup
         if (errors.Count > 0)
         {
-            Logger.Warning($"Scene stopped with {errors.Count} script error(s) during OnDestroy. Check logs above for details.");
+            Logger.Warning("Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.", errors.Count);
         }
 
-        // Clear ContactListener
-        if (_physicsWorld != null && _contactListener != null)
-        {
-            _physicsWorld.SetContactListener(null);
-            _contactListener = null;
-        }
-
-        // Clear UserData from bodies
+        // Properly destroy all physics bodies before clearing references
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.RuntimeBody != null)
             {
                 component.RuntimeBody.SetUserData(null);
+                _physicsWorld.DestroyBody(component.RuntimeBody);
                 component.RuntimeBody = null;
             }
+        }
+
+        // Clear ContactListener
+        if (_contactListener != null)
+        {
+            _physicsWorld.SetContactListener(null);
+            _contactListener = null;
         }
 
         // Destroy physics world
@@ -249,10 +271,15 @@ public class Scene
 
             if (body != null)
             {
-                var fixture = body.GetFixtureList();
-                fixture.Density = collision.Density;
-                fixture.m_friction = collision.Friction;
-                fixture.Restitution = collision.Restitution;
+                // Only update fixture properties if they have changed
+                if (collision.IsDirty)
+                {
+                    var fixture = body.GetFixtureList();
+                    fixture.Density = collision.Density;
+                    fixture.m_friction = collision.Friction;
+                    fixture.Restitution = collision.Restitution;
+                    collision.ClearDirtyFlag();
+                }
 
                 var position = body.GetPosition();
                 transform.Translation = new Vector3(position.X, position.Y, 0);
@@ -281,8 +308,11 @@ public class Scene
 
         if (mainCamera != null)
         {
-            // Render 3D (new code)
-            Render3D(mainCamera, cameraTransform);
+            // Set camera for 3D rendering system
+            _modelRenderingSystem.SetCamera(mainCamera, cameraTransform);
+
+            // Update all systems (including 3D rendering)
+            _systemManager.Update(ts);
 
             // Render 2D (existing code)
             Graphics2D.Instance.BeginScene(mainCamera, cameraTransform);
@@ -295,64 +325,13 @@ public class Scene
                 Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
             }
 
-            if (_showPhysicsDebug)
-            {
-                // todo: decorator
-                DrawPhysicsDebugSimple();
-            }
-            
+            // Render physics debug visualization using the system
+            _physicsDebugRenderSystem?.OnUpdate(TimeSpan.Zero);
+
             Graphics2D.Instance.EndScene();
         }
     }
 
-    private void DrawPhysicsDebugSimple()
-    {
-        var rigidBodyView = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, rigidBodyComponent) in rigidBodyView)
-        {
-            if (rigidBodyComponent.RuntimeBody == null) 
-                continue;
-            
-            // Pobierz pozycję z Box2D body
-            var bodyPosition = rigidBodyComponent.RuntimeBody.GetPosition();
-
-            // Rysuj BoxCollider2D jeśli istnieje
-            if (entity.HasComponent<BoxCollider2DComponent>())
-            {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-                var transform = entity.GetComponent<TransformComponent>();
-                var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
-
-                var position = new Vector3(bodyPosition.X, bodyPosition.Y, 0.0f);
-                
-                // Box2D używa half-extents
-                var size = new Vector2(
-                    boxCollider.Size.X * 2.0f * transform.Scale.X,
-                    boxCollider.Size.Y * 2.0f * transform.Scale.Y
-                );
-
-                // Używa Twojego istniejącego Renderer2D.DrawRect
-                Graphics2D.Instance.DrawRect(position, size, color, entity.Id);
-            }
-        }
-    }
-
-    private static Vector4 GetBodyDebugColor(Body body)
-    {
-        if (!body.IsEnabled())
-            return new Vector4(0.5f, 0.5f, 0.3f, 1.0f); // Nieaktywne
-
-        return body.Type() switch
-        {
-            BodyType.Static => new Vector4(0.5f, 0.9f, 0.5f, 1.0f) // Zielone
-            ,
-            BodyType.Kinematic => new Vector4(0.5f, 0.5f, 0.9f, 1.0f) // Niebieskie
-            ,
-            _ => body.IsAwake()
-                ? new Vector4(0.9f, 0.7f, 0.7f, 1.0f) // Różowe (aktywne)
-                : new Vector4(0.6f, 0.6f, 0.6f, 1.0f)
-        };
-    }
 
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
@@ -432,72 +411,37 @@ public class Scene
         };
     }
 
-    public void DuplicateEntity(Entity entity)
+    /// <summary>
+    /// Duplicates an entity by cloning all of its components.
+    /// This method uses reflection to automatically handle all component types,
+    /// eliminating the need for manual updates when new components are added.
+    /// </summary>
+    /// <param name="entity">The entity to duplicate.</param>
+    /// <returns>The newly created entity with cloned components.</returns>
+    public Entity DuplicateEntity(Entity entity)
     {
-        var name = entity.Name;
-        var newEntity = CreateEntity(name);
-        if (entity.HasComponent<TransformComponent>())
+        var newEntity = CreateEntity(entity.Name);
+
+        // Clone all components using their Clone() implementation
+        foreach (var component in entity.GetAllComponents())
         {
-            var component = entity.GetComponent<TransformComponent>();
-            newEntity.AddComponent<TransformComponent>(component);
+            var clonedComponent = component.Clone();
+
+            // Use reflection to call AddComponent with the correct type
+            var componentType = component.GetType();
+            var addComponentMethod = typeof(Entity).GetMethod(nameof(Entity.AddComponent), new[] { componentType });
+
+            if (addComponentMethod != null)
+            {
+                addComponentMethod.Invoke(newEntity, new[] { clonedComponent });
+            }
+            else
+            {
+                Logger.Warning($"Could not find AddComponent method for type {componentType.Name}");
+            }
         }
 
-        if (entity.HasComponent<SpriteRendererComponent>())
-        {
-            var component = entity.GetComponent<SpriteRendererComponent>();
-            newEntity.AddComponent<SpriteRendererComponent>(component);
-        }
-
-        if (entity.HasComponent<SubTextureRendererComponent>())
-        {
-            var component = entity.GetComponent<SubTextureRendererComponent>();
-            newEntity.AddComponent<SubTextureRendererComponent>(component);
-        }
-
-        if (entity.HasComponent<CameraComponent>())
-        {
-            var component = entity.GetComponent<CameraComponent>();
-            newEntity.AddComponent<CameraComponent>(component);
-        }
-
-        if (entity.HasComponent<NativeScriptComponent>())
-        {
-            var component = entity.GetComponent<NativeScriptComponent>();
-            newEntity.AddComponent<NativeScriptComponent>(component);
-        }
-
-        if (entity.HasComponent<RigidBody2DComponent>())
-        {
-            var component = entity.GetComponent<RigidBody2DComponent>();
-            newEntity.AddComponent<RigidBody2DComponent>(component);
-        }
-
-        if (entity.HasComponent<BoxCollider2DComponent>())
-        {
-            var component = entity.GetComponent<BoxCollider2DComponent>();
-            newEntity.AddComponent<BoxCollider2DComponent>(component);
-        }
+        return newEntity;
     }
 
-    public void Render3D(Camera camera, Matrix4x4 cameraTransform)
-    {
-        Graphics3D.Instance.BeginScene(camera, cameraTransform);
-
-        // Get entities with MeshComponent and ModelRendererComponent
-        var group = Context.Instance.GetGroup([
-            typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
-        ]);
-
-        foreach (var entity in group)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var meshComponent = entity.GetComponent<MeshComponent>();
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
-
-            Graphics3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
-                entity.Id);
-        }
-
-        Graphics3D.Instance.EndScene();
-    }
 }

@@ -20,4 +20,9 @@ public class SubTextureRendererComponent : IComponent
         Coords = coords;
         Texture = texture;
     }
+
+    public IComponent Clone()
+    {
+        return new SubTextureRendererComponent(Coords, Texture);
+    }
 }

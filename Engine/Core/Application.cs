@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
@@ -18,10 +17,8 @@ public abstract class Application : IApplication
     private readonly IImGuiLayer? _imGuiLayer;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
-    
+
     private bool _isRunning;
-    private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
-    private double _lastFrameTime = -1.0;
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
     protected Application(IGameWindow gameWindow, IImGuiLayer? imGuiLayer = null)
@@ -41,14 +38,26 @@ public abstract class Application : IApplication
         }
     }
 
+    /// <summary>
+    /// Initializes core engine subsystems and attaches all registered layers.
+    /// </summary>
+    /// <remarks>
+    /// INITIALIZATION OWNERSHIP: Application is responsible for initializing all core
+    /// graphics and audio subsystems (Graphics2D, Graphics3D, AudioEngine). Layers should
+    /// NOT call Init() on these subsystems - they are guaranteed to be initialized before
+    /// layer.OnAttach() is called. This prevents double initialization and ensures consistent
+    /// resource management across all application types (Editor, Runtime, Sandbox).
+    /// </remarks>
     private void HandleGameWindowOnLoad(IInputSystem inputSystem)
     {
+        // Initialize core graphics and audio subsystems - owned by Application
         Graphics2D.Instance.Init();
         Graphics3D.Instance.Init();
         AudioEngine.Instance.Initialize();
-        
+
         _inputSystem = inputSystem;
-        
+
+        // Attach all layers - graphics subsystems are already initialized at this point
         foreach (var layer in _layersStack)
         {
             // TODO: there should be better way to pass input system only for ImGuiLayer...
@@ -99,29 +108,16 @@ public abstract class Application : IApplication
         }
     }
 
-    private void HandleUpdate()
+    private void HandleUpdate(double platformDeltaTime)
     {
-        double currentTime = _frameTimer.Elapsed.TotalSeconds;
+        // Clamp to reasonable range to protect against system sleep, debugger pauses, etc.
+        var deltaTime = System.Math.Clamp(platformDeltaTime, 0.0, MaxDeltaTime);
 
-        // First frame initialization - use zero delta to avoid massive spike
-        double deltaTime;
-        if (_lastFrameTime < 0)
+        // Log warning if we had to clamp (indicates lag spike or system pause)
+        if (System.Math.Abs(deltaTime - platformDeltaTime) > double.Epsilon && platformDeltaTime > MaxDeltaTime)
         {
-            _lastFrameTime = currentTime;
-            deltaTime = 0.0; // First frame gets zero delta
-        }
-        else
-        {
-            deltaTime = currentTime - _lastFrameTime;
-            _lastFrameTime = currentTime;
-        }
-
-        // Clamp delta time to prevent "spiral of death" on lag spikes
-        // Maximum 250ms (4 FPS) - anything longer is clamped
-        if (deltaTime > MaxDeltaTime)
-        {
-            Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms", deltaTime * 1000, MaxDeltaTime * 1000);
-            deltaTime = MaxDeltaTime;
+            Logger.Warning("Frame spike detected: {DeltaMs:F2}ms, clamping to {MaxDeltaMs}ms",
+                platformDeltaTime * 1000, MaxDeltaTime * 1000);
         }
 
         var elapsed = TimeSpan.FromSeconds(deltaTime);

@@ -14,6 +14,7 @@ public class SilkNetFrameBuffer : FrameBuffer
     private uint _depthAttachment = 0;
     private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
+    private bool _disposed = false;
 
     public SilkNetFrameBuffer(FrameBufferSpecification spec)
     {
@@ -30,21 +31,64 @@ public class SilkNetFrameBuffer : FrameBuffer
         Invalidate();
     }
 
-    ~SilkNetFrameBuffer()
+    protected virtual void Dispose(bool disposing)
     {
-        SilkNetContext.GL.DeleteFramebuffers(1, _rendererId);
-        SilkNetContext.GL.DeleteTextures(_colorAttachments);
-
-        if (_depthAttachment != 0)
+        if (!_disposed)
         {
-            SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
-        }
+            if (disposing)
+            {
+                // Dispose managed state
+                _colorAttachmentSpecs?.Clear();
+            }
 
-        Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
-        _depthAttachment = 0;
+            // Free unmanaged OpenGL resources
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+                _rendererId = 0;
+            }
+
+            if (_colorAttachments != null && _colorAttachments.Length > 0)
+            {
+                SilkNetContext.GL.DeleteTextures(_colorAttachments);
+                Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
+            }
+
+            if (_depthAttachment != 0)
+            {
+                SilkNetContext.GL.DeleteTexture(_depthAttachment);
+                _depthAttachment = 0;
+            }
+
+            _disposed = true;
+        }
     }
 
-    public override uint GetColorAttachmentRendererId() => _colorAttachments[0];
+    public override void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~SilkNetFrameBuffer()
+    {
+        Dispose(false);
+    }
+
+    /// <summary>
+    /// Gets the renderer ID of the first color attachment.
+    /// </summary>
+    /// <returns>The OpenGL texture ID of the first color attachment, or 0 if there are no color attachments (e.g., depth-only framebuffers).</returns>
+    public override uint GetColorAttachmentRendererId()
+    {
+        if (_colorAttachments == null || _colorAttachments.Length == 0)
+        {
+            Debug.WriteLine("Warning: Attempted to get color attachment from framebuffer with no color attachments");
+            return 0;
+        }
+        return _colorAttachments[0];
+    }
+
     public override FrameBufferSpecification GetSpecification() => _specification;
 
     public override void Resize(uint width, uint height)
@@ -135,19 +179,25 @@ public class SilkNetFrameBuffer : FrameBuffer
         bool attachmentCountChanged = _colorAttachments == null ||
                                        _colorAttachments.Length != _colorAttachmentSpecs.Count;
 
+        // Properly dispose existing resources before creating new ones
         if (_rendererId != 0)
         {
             SilkNetContext.GL.DeleteFramebuffer(_rendererId);
             GLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffer");
-            
-            SilkNetContext.GL.DeleteTextures(_colorAttachments);
+            _rendererId = 0;
+        }
 
-            // Only delete if we actually have a depth attachment
-            if (_depthAttachment != 0)
-            {
-                SilkNetContext.GL.DeleteTextures(1, _depthAttachment);
-                _depthAttachment = 0;
-            }
+        if (_colorAttachments != null && _colorAttachments.Length > 0)
+        {
+            SilkNetContext.GL.DeleteTextures(_colorAttachments);
+            GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (color attachments)");
+        }
+
+        if (_depthAttachment != 0)
+        {
+            SilkNetContext.GL.DeleteTexture(_depthAttachment);
+            GLDebug.CheckError(SilkNetContext.GL, "DeleteTexture (depth attachment)");
+            _depthAttachment = 0;
         }
 
         _rendererId = SilkNetContext.GL.GenFramebuffer();
@@ -213,8 +263,8 @@ public class SilkNetFrameBuffer : FrameBuffer
                 GLDebug.CheckError(SilkNetContext.GL, "DrawBuffers");
                 break;
             }
-            case 0:
-                // Only depth-pass
+            default:
+                // Only depth-pass (when 0 attachments)
                 SilkNetContext.GL.DrawBuffer(GLEnum.None);
                 GLDebug.CheckError(SilkNetContext.GL, "DrawBuffer (None)");
                 break;
@@ -275,7 +325,7 @@ public class SilkNetFrameBuffer : FrameBuffer
         };
     }
     
-    private GLEnum TextureFormatToGL(FramebufferTextureFormat format)
+    private static GLEnum TextureFormatToGL(FramebufferTextureFormat format)
     {
         switch (format)
         {
@@ -285,8 +335,8 @@ public class SilkNetFrameBuffer : FrameBuffer
 
         return 0;
     }
-    
-    private void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
+
+    private static void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
     {
         bool multisampled = samples > 1;
 

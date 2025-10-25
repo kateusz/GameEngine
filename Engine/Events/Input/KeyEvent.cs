@@ -1,10 +1,12 @@
+using Engine.Core.Input;
+
 namespace Engine.Events.Input;
 
 public abstract record KeyEvent : InputEvent
 {
-    public int KeyCode { get; }
+    public KeyCodes KeyCode { get; }
 
-    protected KeyEvent(int keyCode, EventType eventType)
+    protected KeyEvent(KeyCodes keyCode, EventType eventType)
     {
         KeyCode = keyCode;
         EventType = eventType;
@@ -20,7 +22,7 @@ public record KeyPressedEvent : KeyEvent
 {
     public bool IsRepeat { get; }
 
-    public KeyPressedEvent(int keyCode, bool isRepeat) : base(keyCode, EventType.KeyPressed)
+    public KeyPressedEvent(KeyCodes keyCode, bool isRepeat) : base(keyCode, EventType.KeyPressed)
     {
         IsRepeat = isRepeat;
     }
@@ -28,7 +30,7 @@ public record KeyPressedEvent : KeyEvent
 
 public record KeyReleasedEvent : KeyEvent
 {
-    public KeyReleasedEvent(int keyCode) : base(keyCode, EventType.KeyReleased)
+    public KeyReleasedEvent(KeyCodes keyCode) : base(keyCode, EventType.KeyReleased)
     {
     }
 }

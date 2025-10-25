@@ -282,7 +282,7 @@ public class SceneSerializer : ISceneSerializer
         }
     }
 
-    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
+    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)

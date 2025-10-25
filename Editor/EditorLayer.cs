@@ -23,7 +23,7 @@ namespace Editor;
 
 public class EditorLayer : ILayer
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<EditorLayer>();
+    private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -76,8 +76,6 @@ public class EditorLayer : ILayer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
         
-        Graphics3D.Instance.Init();
-
         CurrentScene.Set(new Scene(""));
         
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
@@ -86,7 +84,6 @@ public class EditorLayer : ILayer
         _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
 
         _contentBrowserPanel = new ContentBrowserPanel();
-        _consolePanel = new ConsolePanel();
         _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
@@ -113,6 +110,7 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+        _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
         Log.CloseAndFlush();
     }
@@ -227,14 +225,14 @@ public class EditorLayer : ILayer
                      _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
-            case (int)KeyCodes.N:
+            case KeyCodes.N:
             {
                 if (control)
                     _sceneManager.New(_viewportSize);
                 keyPressedEvent.IsHandled = true;
                 break;
             }
-            case (int)KeyCodes.S:
+            case KeyCodes.S:
             {
                 if (control)
                 {
@@ -243,7 +241,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.D:
+            case KeyCodes.D:
             {
                 if (control)
                 {
@@ -252,7 +250,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.F:
+            case KeyCodes.F:
             {
                 if (control)
                 {
