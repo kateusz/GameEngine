@@ -33,7 +33,7 @@ public class PhysicsDebugRenderSystem : ISystem
     }
 
     /// <summary>
-    /// System initialization. Currently no setup is required.
+    /// System initialization
     /// </summary>
     public void OnInit()
     {
@@ -54,7 +54,7 @@ public class PhysicsDebugRenderSystem : ISystem
     }
 
     /// <summary>
-    /// System shutdown. Currently no cleanup is required.
+    /// System shutdown.
     /// </summary>
     public void OnShutdown()
     {
@@ -81,10 +81,10 @@ public class PhysicsDebugRenderSystem : ISystem
             // Get position from Box2D body
             var bodyPosition = rigidBodyComponent.RuntimeBody.GetPosition();
 
+            
             // Draw BoxCollider2D if it exists
-            if (entity.HasComponent<BoxCollider2DComponent>())
+            if (entity.TryGetComponent<BoxCollider2DComponent>(out var boxCollider))
             {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var transform = entity.GetComponent<TransformComponent>();
                 var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
 
