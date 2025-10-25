@@ -171,12 +171,6 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        _systemManager.Shutdown();
-
-        // Clear physics simulation system reference
-        // (Note: Don't unregister manually - Shutdown() already handles cleanup)
-        _physicsSimulationSystem = null;
-
         // Early exit if physics world was never initialized
         if (_physicsWorld == null)
             return;
@@ -220,15 +214,8 @@ public class Scene
             }
         }
 
-        // Clear ContactListener
-        if (_contactListener != null)
-        {
-            _physicsWorld.SetContactListener(null);
-            _contactListener = null;
-        }
-
-        // Destroy physics world
-        _physicsWorld = null;
+        // Clear ContactListener from the world but keep the reference for reuse
+        _physicsWorld.SetContactListener(null);
     }
 
     public void OnUpdateRuntime(TimeSpan ts)

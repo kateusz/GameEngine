@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Engine.Math;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -105,16 +106,23 @@ public class SubTextureRenderingSystem : ISystem
                 _defaultSpriteSize
             );
 
-            // Get transform matrix and extract position/rotation
-            var transform = transformComponent.GetTransform();
+            // Extract position and rotation from transform component
             var position = transformComponent.Translation;
             var rotation = transformComponent.Rotation.Z; // 2D rotation around Z axis
 
-            // Use the scale to determine quad size (defaults to cell size if scale is 1)
+            // Compute size from scale and cell size
             var size = _defaultCellSize * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
 
-            // Draw the subtexture quad
-            _renderer.DrawQuad(position, size, rotation, subTexture);
+            // Build transform matrix: Translation * Rotation * Scale
+            var transform = Matrix4x4.CreateTranslation(position);
+            if (System.Math.Abs(rotation) > float.Epsilon)
+            {
+                transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
+            }
+            transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+
+            // Draw the subtexture quad with entity ID for picking
+            _renderer.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, 1.0f, Vector4.One, entity.Id);
         }
 
         // End the rendering batch
