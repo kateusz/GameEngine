@@ -25,9 +25,8 @@ public class Scene
     private int _nextEntityId = 1;
     private readonly SystemManager _systemManager;
     private readonly ModelRenderingSystem _modelRenderingSystem;
-
     private readonly bool _showPhysicsDebug = true;
-    private PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
+    private readonly PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
@@ -47,8 +46,14 @@ public class Scene
 
         // Initialize ECS systems
         _systemManager = new SystemManager();
+        
         _modelRenderingSystem = new ModelRenderingSystem(Graphics3D.Instance);
         _systemManager.RegisterSystem(_modelRenderingSystem);
+        
+        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
+        _systemManager.RegisterSystem(_physicsDebugRenderSystem);
+        
+        _systemManager.RegisterSystem(new ScriptUpdateSystem());
         _systemManager.Initialize();
     }
 
@@ -108,9 +113,6 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-        // Initialize systems
-        _systemManager.RegisterSystem(new ScriptUpdateSystem());
-        _systemManager.Initialize();
         // Re-initialize systems for runtime
         if (!_systemManager.IsInitialized)
         {
@@ -124,10 +126,7 @@ public class Scene
 
         // Reset physics accumulator for clean state
         _physicsAccumulator = 0f;
-
-        // Initialize physics debug rendering system
-        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
-        _physicsDebugRenderSystem.OnInit();
+        
 
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
@@ -234,6 +233,7 @@ public class Scene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
+        // TODO: check
         // Update all systems (including scripts) with variable delta time
         _systemManager.Update(ts);
 
@@ -311,8 +311,9 @@ public class Scene
             // Set camera for 3D rendering system
             _modelRenderingSystem.SetCamera(mainCamera, cameraTransform);
 
+            // TODO: check 
             // Update all systems (including 3D rendering)
-            _systemManager.Update(ts);
+            //_systemManager.Update(ts);
 
             // Render 2D (existing code)
             Graphics2D.Instance.BeginScene(mainCamera, cameraTransform);
