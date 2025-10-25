@@ -102,5 +102,7 @@ Before reviewing, consider asking:
 
 ---
 
+Be concise.
+
 **Note**: Prioritize issues based on their frequency (hot path vs cold path) and impact on player experience.
 Write results to docs/code-review folder

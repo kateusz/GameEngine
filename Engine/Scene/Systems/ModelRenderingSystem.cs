@@ -3,6 +3,7 @@ using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Systems;
 
@@ -12,6 +13,8 @@ namespace Engine.Scene.Systems;
 /// </summary>
 public class ModelRenderingSystem : ISystem
 {
+    private static readonly ILogger Logger = Log.ForContext<ModelRenderingSystem>();
+    
     private readonly IGraphics3D _graphics3D;
     private Camera? _activeCamera;
     private Matrix4x4 _cameraTransform;
@@ -49,7 +52,7 @@ public class ModelRenderingSystem : ISystem
     /// </summary>
     public void OnInit()
     {
-        // No initialization needed for now
+        Logger.Debug("ModelRenderingSystem initialized with priority {Priority}", Priority);
     }
 
     /// <summary>

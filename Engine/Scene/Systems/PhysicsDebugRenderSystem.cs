@@ -3,6 +3,7 @@ using Box2D.NetStandard.Dynamics.Bodies;
 using ECS;
 using Engine.Renderer;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Systems;
 
@@ -12,6 +13,8 @@ namespace Engine.Scene.Systems;
 /// </summary>
 public class PhysicsDebugRenderSystem : ISystem
 {
+    private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
+    
     private readonly IGraphics2D _renderer;
     private readonly bool _isEnabled;
 
@@ -37,7 +40,7 @@ public class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     public void OnInit()
     {
-        // No initialization required
+        Logger.Debug("PhysicsDebugRenderSystem initialized with priority {Priority}", Priority);
     }
 
     /// <summary>
@@ -50,7 +53,27 @@ public class PhysicsDebugRenderSystem : ISystem
         if (!_isEnabled)
             return;
 
-        DrawPhysicsDebug();
+        // Find the primary camera for rendering
+        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+
+        foreach (var entity in cameraGroup)
+        {
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+            if (cameraComponent.Primary)
+            {
+                var transformComponent = entity.GetComponent<TransformComponent>();
+                var cameraTransform = transformComponent.GetTransform();
+
+                // Begin rendering with the camera's view and projection
+                _renderer.BeginScene(cameraComponent.Camera, cameraTransform);
+
+                DrawPhysicsDebug();
+
+                // End the rendering batch
+                _renderer.EndScene();
+                break;
+            }
+        }
     }
 
     /// <summary>
@@ -78,26 +101,44 @@ public class PhysicsDebugRenderSystem : ISystem
             if (rigidBodyComponent.RuntimeBody == null)
                 continue;
 
-            // Get position from Box2D body
-            var bodyPosition = rigidBodyComponent.RuntimeBody.GetPosition();
+            // Get pose from Box2D body
+            var body = rigidBodyComponent.RuntimeBody;
+            var bodyPosition = body.GetPosition();
+            var angle = body.GetAngle();
 
-            
+
             // Draw BoxCollider2D if it exists
             if (entity.TryGetComponent<BoxCollider2DComponent>(out var boxCollider))
             {
                 var transform = entity.GetComponent<TransformComponent>();
                 var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
 
-                var position = new Vector3(bodyPosition.X, bodyPosition.Y, 0.0f);
-
-                // Box2D uses half-extents, so multiply by 2 for full size
+                // Full size (Box2D uses half-extents)
                 var size = new Vector2(
                     boxCollider.Size.X * 2.0f * transform.Scale.X,
                     boxCollider.Size.Y * 2.0f * transform.Scale.Y
                 );
 
-                // Use existing Renderer2D.DrawRect for wireframe rendering
-                _renderer.DrawRect(position, size, color, entity.Id);
+                // Apply collider offset in body space, then rotate into world
+                var offset = new Vector2(
+                    boxCollider.Offset.X * transform.Scale.X,
+                    boxCollider.Offset.Y * transform.Scale.Y
+                );
+                var cos = MathF.Cos(angle);
+                var sin = MathF.Sin(angle);
+                var rotatedOffset = new Vector2(
+                    offset.X * cos - offset.Y * sin,
+                    offset.X * sin + offset.Y * cos
+                );
+                var worldPos = new Vector3(bodyPosition.X + rotatedOffset.X,
+                    bodyPosition.Y + rotatedOffset.Y, 0.0f);
+
+                // Build TRS (match engine’s order)
+                var trs = Matrix4x4.CreateTranslation(worldPos)
+                          * Matrix4x4.CreateRotationZ(angle)
+                          * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+
+                _renderer.DrawRect(trs, color, entity.Id);
             }
         }
     }
@@ -114,11 +155,11 @@ public class PhysicsDebugRenderSystem : ISystem
 
         return body.Type() switch
         {
-            BodyType.Static => new Vector4(0.5f, 0.9f, 0.5f, 1.0f),      // Green
-            BodyType.Kinematic => new Vector4(0.5f, 0.5f, 0.9f, 1.0f),   // Blue
+            BodyType.Static => new Vector4(0.5f, 0.9f, 0.5f, 1.0f), // Green
+            BodyType.Kinematic => new Vector4(0.5f, 0.5f, 0.9f, 1.0f), // Blue
             _ => body.IsAwake()
-                ? new Vector4(0.9f, 0.7f, 0.7f, 1.0f)                    // Pink (active dynamic)
-                : new Vector4(0.6f, 0.6f, 0.6f, 1.0f)                    // Gray (sleeping dynamic)
+                ? new Vector4(0.9f, 0.7f, 0.7f, 1.0f) // Pink (active dynamic)
+                : new Vector4(0.6f, 0.6f, 0.6f, 1.0f) // Gray (sleeping dynamic)
         };
     }
 }

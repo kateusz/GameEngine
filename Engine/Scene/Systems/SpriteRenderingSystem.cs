@@ -3,6 +3,7 @@ using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Systems;
 
@@ -12,6 +13,8 @@ namespace Engine.Scene.Systems;
 /// </summary>
 public class SpriteRenderingSystem : ISystem
 {
+    private static readonly ILogger Logger = Log.ForContext<SpriteRenderingSystem>();
+    
     private readonly IGraphics2D _renderer;
 
     /// <summary>
@@ -33,7 +36,7 @@ public class SpriteRenderingSystem : ISystem
     /// </summary>
     public void OnInit()
     {
-        // No initialization required
+        Logger.Debug("SpriteRenderingSystem initialized with priority {Priority}", Priority);
     }
 
     /// <summary>

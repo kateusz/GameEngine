@@ -6,9 +6,9 @@ using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scene.Systems;
-using Engine.Scripting;
 using Serilog;
 
 namespace Engine.Scene;
@@ -27,16 +27,7 @@ public class Scene
     private readonly ModelRenderingSystem _modelRenderingSystem;
     private readonly bool _showPhysicsDebug = true;
     private readonly PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
-
-    // Fixed timestep accumulator for deterministic physics
-    private float _physicsAccumulator = 0f;
-
-    /// <summary>
-    /// Maximum physics steps per frame to prevent spiral of death.
-    /// At 60Hz physics with 16ms frames, this allows catching up from frame spikes up to ~83ms.
-    /// Beyond this threshold, the accumulator is clamped to prevent unbounded physics execution.
-    /// </summary>
-    private const int MaxPhysicsStepsPerFrame = 5;
+    private PhysicsSimulationSystem? _physicsSimulationSystem;
 
 
     public Scene(string path)
@@ -46,15 +37,32 @@ public class Scene
 
         // Initialize ECS systems
         _systemManager = new SystemManager();
-        
+
+        // Register script system (Priority: 150)
+        _systemManager.RegisterSystem(new ScriptUpdateSystem());
+
+        // Register 2D sprite rendering system (Priority: 200)
+        _systemManager.RegisterSystem(new SpriteRenderingSystem(Graphics2D.Instance));
+
+        // Register 2D subtexture rendering system (Priority: 205)
+        _systemManager.RegisterSystem(new SubTextureRenderingSystem(Graphics2D.Instance));
+
+        // Register 3D model rendering system (Priority: 210)
         _modelRenderingSystem = new ModelRenderingSystem(Graphics3D.Instance);
         _systemManager.RegisterSystem(_modelRenderingSystem);
-        
+
+        // Register physics debug rendering system (Priority: 500)
         _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
         _systemManager.RegisterSystem(_physicsDebugRenderSystem);
-        
-        _systemManager.RegisterSystem(new ScriptUpdateSystem());
-        _systemManager.Initialize();
+
+        _physicsWorld = new World(new Vector2(0, -9.8f));
+
+        _contactListener = new SceneContactListener();
+        _physicsWorld.SetContactListener(_contactListener);
+
+        // Create and register physics simulation system with the physics world
+        _physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
+        _systemManager.RegisterSystem(_physicsSimulationSystem);
     }
 
     public IEnumerable<Entity> Entities => Context.Instance.Entities;
@@ -113,21 +121,8 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-        // Re-initialize systems for runtime
-        if (!_systemManager.IsInitialized)
-        {
-            _systemManager.Initialize();
-        }
-
-        _physicsWorld = new World(new Vector2(0, -9.8f)); // Standardowa grawitacja ziemska
-
-        _contactListener = new SceneContactListener();
-        _physicsWorld.SetContactListener(_contactListener);
-
-        // Reset physics accumulator for clean state
-        _physicsAccumulator = 0f;
+        _systemManager.Initialize();
         
-
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -151,15 +146,15 @@ public class Scene
             {
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var shape = new PolygonShape();
-                
+
                 var actualSizeX = boxCollider.Size.X * transform.Scale.X;
                 var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
                 var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
                 var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
-    
+
                 var center = new Vector2(actualOffsetX, actualOffsetY);
                 shape.SetAsBox(actualSizeX / 2.0f, actualSizeY / 2.0f, center, 0.0f);
-                
+
                 var fixtureDef = new FixtureDef
                 {
                     shape = shape,
@@ -176,13 +171,6 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        // Shutdown ECS systems
-        _systemManager.Shutdown();
-
-        // Early exit if physics world was never initialized
-        if (_physicsWorld == null)
-            return;
-
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
         var errors = new List<Exception>();
@@ -205,7 +193,9 @@ public class Scene
 
         if (errors.Count > 0)
         {
-            Logger.Warning("Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.", errors.Count);
+            Logger.Warning(
+                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
+                errors.Count);
         }
 
         // Properly destroy all physics bodies before clearing references
@@ -219,121 +209,54 @@ public class Scene
                 component.RuntimeBody = null;
             }
         }
-
-        // Clear ContactListener
-        if (_contactListener != null)
-        {
-            _physicsWorld.SetContactListener(null);
-            _contactListener = null;
-        }
-
-        // Destroy physics world
-        _physicsWorld = null;
+        
+        _systemManager.Shutdown();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // TODO: check
-        // Update all systems (including scripts) with variable delta time
-        _systemManager.Update(ts);
-
-        // Fixed timestep physics simulation
-        const int velocityIterations = 6;
-        const int positionIterations = 2;
-        var deltaSeconds = (float)ts.TotalSeconds;
-
-        // Accumulate time
-        _physicsAccumulator += deltaSeconds;
-
-        // Step physics multiple times if needed to catch up
-        int stepCount = 0;
-        while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
-        {
-            _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
-            _physicsAccumulator -= CameraConfig.PhysicsTimestep;
-            stepCount++;
-        }
-
-        // If we hit max steps, clamp accumulator to prevent unbounded growth
-        // while preserving some time debt for the next frame
-        if (_physicsAccumulator >= CameraConfig.PhysicsTimestep)
-        {
-            _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
-        }
-
-        // Retrieve transform from Box2D
-        var view = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
-        {
-            var transform = entity.GetComponent<TransformComponent>();
-            var collision = entity.GetComponent<BoxCollider2DComponent>();
-            var body = component.RuntimeBody;
-
-            if (body != null)
-            {
-                // Only update fixture properties if they have changed
-                if (collision.IsDirty)
-                {
-                    var fixture = body.GetFixtureList();
-                    fixture.Density = collision.Density;
-                    fixture.m_friction = collision.Friction;
-                    fixture.Restitution = collision.Restitution;
-                    collision.ClearDirtyFlag();
-                }
-
-                var position = body.GetPosition();
-                transform.Translation = new Vector3(position.X, position.Y, 0);
-                transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
-            }
-        }
-
-        // Find the main camera
-        Camera? mainCamera = null;
+        // Set camera for 3D rendering system (must be done before SystemManager.Update)
         var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-
-        var cameraTransform = Matrix4x4.Identity;
 
         foreach (var entity in cameraGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
             var cameraComponent = entity.GetComponent<CameraComponent>();
-
             if (cameraComponent.Primary)
             {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
+                var transformComponent = entity.GetComponent<TransformComponent>();
+                var cameraTransform = transformComponent.GetTransform();
+
+                // Set camera for 3D rendering system
+                _modelRenderingSystem.SetCamera(cameraComponent.Camera, cameraTransform);
                 break;
             }
         }
 
-        if (mainCamera != null)
-        {
-            // Set camera for 3D rendering system
-            _modelRenderingSystem.SetCamera(mainCamera, cameraTransform);
-
-            // TODO: check 
-            // Update all systems (including 3D rendering)
-            //_systemManager.Update(ts);
-
-            // Render 2D (existing code)
-            Graphics2D.Instance.BeginScene(mainCamera, cameraTransform);
-
-            var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
-            foreach (var entity in group)
-            {
-                var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
-                var transformComponent = entity.GetComponent<TransformComponent>();
-                Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
-            }
-
-            // Render physics debug visualization using the system
-            _physicsDebugRenderSystem?.OnUpdate(TimeSpan.Zero);
-
-            Graphics2D.Instance.EndScene();
-        }
+        // Update all systems in priority order:
+        // 100: PhysicsSimulationSystem
+        // 150: ScriptUpdateSystem
+        // 200: SpriteRenderingSystem
+        // 205: SubTextureRenderingSystem
+        // 210: ModelRenderingSystem
+        // 500: PhysicsDebugRenderSystem
+        _systemManager.Update(ts);
     }
 
 
+    /// <summary>
+    /// Updates the scene in editor mode (without running physics or scripts).
+    /// </summary>
+    /// <remarks>
+    /// NOTE: Editor mode uses manual rendering instead of the ECS systems because:
+    /// 1. Editor uses OrthographicCamera while scene systems use SceneCamera (incompatible types)
+    /// 2. Editor mode is fundamentally different (no physics, no scripts, just visualization)
+    /// 3. Editor camera is managed by the viewport, not by scene entities
+    ///
+    /// If in the future we want to unify this, we would need to:
+    /// - Make rendering systems accept both camera types, OR
+    /// - Convert OrthographicCamera to SceneCamera (with potential performance cost), OR
+    /// - Refactor the editor to use scene-based cameras
+    /// </remarks>
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
         //TODO: temp disable 3D
@@ -359,15 +282,30 @@ public class Scene
         Renderer3D.Instance.EndScene();
         */
 
-        // Then render 2D objects using the orthographic camera directly
+        // Render 2D sprites using the editor viewport camera
         Graphics2D.Instance.BeginScene(camera);
 
+        // Sprites
         var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
             Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+        }
+
+        // Subtextures (mirror runtime system)
+        var subtextureGroup =
+            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+        foreach (var entity in subtextureGroup)
+        {
+            var st = entity.GetComponent<SubTextureRendererComponent>();
+            if (st.Texture is null) continue;
+            var subTex = SubTexture2D.CreateFromCoords(st.Texture, st.Coords, new Vector2(16, 16), new Vector2(1, 1));
+            var (texture, texCoords) = subTex;
+            var trs = entity.GetComponent<TransformComponent>().GetTransform()
+                      * Matrix4x4.CreateScale(16, 16, 1);
+            Graphics2D.Instance.DrawQuad(trs, texture, texCoords, entityId: entity.Id);
         }
 
         Graphics2D.Instance.EndScene();
@@ -444,5 +382,4 @@ public class Scene
 
         return newEntity;
     }
-
 }
