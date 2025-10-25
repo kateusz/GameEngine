@@ -6,7 +6,11 @@ using Engine.Scene.Components;
 
 namespace Engine.Scene;
 
-// TODO: this must be removed from the engine and implemented in the user project
+/// <summary>
+/// Deprecated: Move camera control into your project scripts.
+/// Will be removed from Engine in a future release.
+/// </summary>
+[Obsolete("Move CameraController to your project scripts; this engine type will be removed.")]
 public class CameraController : ScriptableEntity
 {
     private const float CameraSpeed = CameraConfig.DefaultTranslationSpeed;

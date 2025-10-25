@@ -6,9 +6,9 @@ using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scene.Systems;
-using Engine.Scripting;
 using Serilog;
 
 namespace Engine.Scene;
@@ -54,7 +54,7 @@ public class Scene
         // Register physics debug rendering system (Priority: 500)
         _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
         _systemManager.RegisterSystem(_physicsDebugRenderSystem);
-        
+
         _physicsWorld = new World(new Vector2(0, -9.8f));
 
         _contactListener = new SceneContactListener();
@@ -123,7 +123,6 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -147,15 +146,15 @@ public class Scene
             {
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var shape = new PolygonShape();
-                
+
                 var actualSizeX = boxCollider.Size.X * transform.Scale.X;
                 var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
                 var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
                 var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
-    
+
                 var center = new Vector2(actualOffsetX, actualOffsetY);
                 shape.SetAsBox(actualSizeX / 2.0f, actualSizeY / 2.0f, center, 0.0f);
-                
+
                 var fixtureDef = new FixtureDef
                 {
                     shape = shape,
@@ -204,7 +203,9 @@ public class Scene
 
         if (errors.Count > 0)
         {
-            Logger.Warning("Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.", errors.Count);
+            Logger.Warning(
+                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
+                errors.Count);
         }
 
         // Properly destroy all physics bodies before clearing references
@@ -302,12 +303,27 @@ public class Scene
         // Render 2D sprites using the editor viewport camera
         Graphics2D.Instance.BeginScene(camera);
 
+        // Sprites
         var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
             Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+        }
+
+        // Subtextures (mirror runtime system)
+        var subtextureGroup =
+            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+        foreach (var entity in subtextureGroup)
+        {
+            var st = entity.GetComponent<SubTextureRendererComponent>();
+            if (st.Texture is null) continue;
+            var subTex = SubTexture2D.CreateFromCoords(st.Texture, st.Coords, new Vector2(16, 16), new Vector2(1, 1));
+            var (texture, texCoords) = subTex;
+            var trs = entity.GetComponent<TransformComponent>().GetTransform()
+                      * Matrix4x4.CreateScale(16, 16, 1);
+            Graphics2D.Instance.DrawQuad(trs, texture, texCoords, entityId: entity.Id);
         }
 
         Graphics2D.Instance.EndScene();
@@ -384,5 +400,4 @@ public class Scene
 
         return newEntity;
     }
-
 }
