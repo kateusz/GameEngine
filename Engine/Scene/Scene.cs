@@ -28,6 +28,7 @@ public class Scene
     private readonly ModelRenderingSystem _modelRenderingSystem;
 
     private readonly bool _showPhysicsDebug = true;
+    private PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
@@ -121,6 +122,10 @@ public class Scene
 
         // Reset physics accumulator for clean state
         _physicsAccumulator = 0f;
+
+        // Initialize physics debug rendering system
+        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
+        _physicsDebugRenderSystem.OnInit();
 
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
@@ -318,64 +323,13 @@ public class Scene
                 Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
             }
 
-            if (_showPhysicsDebug)
-            {
-                // todo: decorator
-                DrawPhysicsDebugSimple();
-            }
-            
+            // Render physics debug visualization using the system
+            _physicsDebugRenderSystem?.OnUpdate(TimeSpan.Zero);
+
             Graphics2D.Instance.EndScene();
         }
     }
 
-    private void DrawPhysicsDebugSimple()
-    {
-        var rigidBodyView = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, rigidBodyComponent) in rigidBodyView)
-        {
-            if (rigidBodyComponent.RuntimeBody == null) 
-                continue;
-            
-            // Pobierz pozycję z Box2D body
-            var bodyPosition = rigidBodyComponent.RuntimeBody.GetPosition();
-
-            // Rysuj BoxCollider2D jeśli istnieje
-            if (entity.HasComponent<BoxCollider2DComponent>())
-            {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-                var transform = entity.GetComponent<TransformComponent>();
-                var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
-
-                var position = new Vector3(bodyPosition.X, bodyPosition.Y, 0.0f);
-                
-                // Box2D używa half-extents
-                var size = new Vector2(
-                    boxCollider.Size.X * 2.0f * transform.Scale.X,
-                    boxCollider.Size.Y * 2.0f * transform.Scale.Y
-                );
-
-                // Używa Twojego istniejącego Renderer2D.DrawRect
-                Graphics2D.Instance.DrawRect(position, size, color, entity.Id);
-            }
-        }
-    }
-
-    private static Vector4 GetBodyDebugColor(Body body)
-    {
-        if (!body.IsEnabled())
-            return new Vector4(0.5f, 0.5f, 0.3f, 1.0f); // Nieaktywne
-
-        return body.Type() switch
-        {
-            BodyType.Static => new Vector4(0.5f, 0.9f, 0.5f, 1.0f) // Zielone
-            ,
-            BodyType.Kinematic => new Vector4(0.5f, 0.5f, 0.9f, 1.0f) // Niebieskie
-            ,
-            _ => body.IsAwake()
-                ? new Vector4(0.9f, 0.7f, 0.7f, 1.0f) // Różowe (aktywne)
-                : new Vector4(0.6f, 0.6f, 0.6f, 1.0f)
-        };
-    }
 
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
