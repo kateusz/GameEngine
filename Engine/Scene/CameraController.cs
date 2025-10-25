@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Renderer.Cameras;
@@ -5,6 +6,7 @@ using Engine.Scene.Components;
 
 namespace Engine.Scene;
 
+// TODO: this must be removed from the engine and implemented in the user project
 public class CameraController : ScriptableEntity
 {
     private const float CameraSpeed = CameraConfig.DefaultTranslationSpeed;

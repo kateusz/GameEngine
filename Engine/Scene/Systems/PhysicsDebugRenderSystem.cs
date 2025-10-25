@@ -50,7 +50,27 @@ public class PhysicsDebugRenderSystem : ISystem
         if (!_isEnabled)
             return;
 
-        DrawPhysicsDebug();
+        // Find the primary camera for rendering
+        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+
+        foreach (var entity in cameraGroup)
+        {
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+            if (cameraComponent.Primary)
+            {
+                var transformComponent = entity.GetComponent<TransformComponent>();
+                var cameraTransform = transformComponent.GetTransform();
+
+                // Begin rendering with the camera's view and projection
+                _renderer.BeginScene(cameraComponent.Camera, cameraTransform);
+
+                DrawPhysicsDebug();
+
+                // End the rendering batch
+                _renderer.EndScene();
+                break;
+            }
+        }
     }
 
     /// <summary>
