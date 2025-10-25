@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using CSharpFunctionalExtensions;
 using Engine.Core.Input;
 using Engine.Events;
@@ -13,7 +14,7 @@ using ZLinq;
 
 namespace Engine.Scripting;
 
-public class ScriptEngine
+public class ScriptEngine : IDisposable
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
 
@@ -24,6 +25,7 @@ public class ScriptEngine
     private readonly Dictionary<string, string> _scriptSources = new();
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
+    private AssemblyLoadContext? _scriptLoadContext;
 
     // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
@@ -513,25 +515,42 @@ public class ScriptEngine
                 return (false, errors);
             }
 
-            // Load assembly with debug symbols
+            // Load assembly with debug symbols using collectible AssemblyLoadContext
             assemblyStream.Seek(0, SeekOrigin.Begin);
-            byte[] assemblyBytes = assemblyStream.ToArray();
-            
+
             byte[]? symbolBytes = null;
             if (symbolsStream != null)
             {
                 symbolsStream.Seek(0, SeekOrigin.Begin);
                 symbolBytes = symbolsStream.ToArray();
-                
+
                 // Store debug symbols for later use
                 _debugSymbols["DynamicScripts"] = symbolBytes;
             }
-            
-            // Load assembly with debug information
-            _dynamicAssembly = symbolBytes != null 
-                ? Assembly.Load(assemblyBytes, symbolBytes)
-                : Assembly.Load(assemblyBytes);
-                    
+
+            // Unload previous assembly context to allow GC to collect old assembly
+            if (_scriptLoadContext != null)
+            {
+                Logger.Debug("Unloading previous script assembly context for hot reload");
+                _scriptLoadContext.Unload();
+                _scriptLoadContext = null;
+                _dynamicAssembly = null;
+            }
+
+            // Create new collectible load context for script assembly
+            _scriptLoadContext = new AssemblyLoadContext("Scripts", isCollectible: true);
+
+            // Load assembly with debug information using the collectible context
+            if (symbolsStream != null)
+            {
+                symbolsStream.Seek(0, SeekOrigin.Begin);
+                _dynamicAssembly = _scriptLoadContext.LoadFromStream(assemblyStream, symbolsStream);
+            }
+            else
+            {
+                _dynamicAssembly = _scriptLoadContext.LoadFromStream(assemblyStream);
+            }
+
             // Update script types dictionary - FIXED: Added missing method
             UpdateScriptTypes();
 
@@ -859,17 +878,17 @@ public class ScriptEngine
                      {
                          Console.WriteLine("{{scriptName}} created!");
                      }
-                 
+
                      public override void OnUpdate(TimeSpan ts)
                      {
                          // Your update logic here
                      }
-                 
+
                      public override void OnDestroy()
                      {
                          Console.WriteLine("{{scriptName}} destroyed!");
                      }
-                     
+
                      public override void OnKeyPressed(KeyCodes key)
                      {
                          if (key == KeyCodes.Space)
@@ -879,5 +898,26 @@ public class ScriptEngine
                      }
                  }
                  """;
+    }
+
+    public void Dispose()
+    {
+        // Clear all script type references to allow proper unloading
+        _scriptTypes.Clear();
+        _scriptLastModified.Clear();
+        _scriptSources.Clear();
+        _debugSymbols.Clear();
+
+        // Unload the assembly context to release memory
+        if (_scriptLoadContext != null)
+        {
+            Logger.Information("Disposing ScriptEngine: Unloading script assembly context");
+            _scriptLoadContext.Unload();
+            _scriptLoadContext = null;
+        }
+
+        _dynamicAssembly = null;
+
+        GC.SuppressFinalize(this);
     }
 }
