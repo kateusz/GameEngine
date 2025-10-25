@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Numerics;
 using Box2D.NetStandard.Collision.Shapes;
 using Box2D.NetStandard.Dynamics.Bodies;
@@ -9,7 +8,6 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Engine.Scene.Systems;
-using Engine.Scripting;
 using Serilog;
 
 namespace Engine.Scene;
