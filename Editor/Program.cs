@@ -12,6 +12,7 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Serilog;
 using Editor.Logging;
+using Editor.Popups;
 
 static void ConfigureContainer(Container container)
 {
@@ -34,6 +35,7 @@ static void ConfigureContainer(Container container)
     container.Register<EditorPreferences>(Reuse.Singleton,
         made: Made.Of(() => EditorPreferences.Load())
     );
+    container.Register<EditorSettingsUI>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);

@@ -8,13 +8,11 @@ namespace Editor.Popups;
 public class EditorSettingsUI
 {
     private bool _open;
-
-    private readonly OrthographicCameraController _cameraController;
+    
     private readonly EditorPreferences _editorPreferences;
 
-    public EditorSettingsUI(OrthographicCameraController cameraController, EditorPreferences editorPreferences)
+    public EditorSettingsUI(EditorPreferences editorPreferences)
     {
-        _cameraController = cameraController;
         _editorPreferences = editorPreferences;
     }
 
