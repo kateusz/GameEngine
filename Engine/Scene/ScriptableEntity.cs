@@ -197,7 +197,7 @@ public class ScriptableEntity
     /// Remove a component from the entity.
     /// </summary>
     /// <typeparam name="T">The component type to remove</typeparam>
-    protected void RemoveComponent<T>() where T : Component
+    protected void RemoveComponent<T>() where T : IComponent
     {
         Entity.RemoveComponent<T>();
     }

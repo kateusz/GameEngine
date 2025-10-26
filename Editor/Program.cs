@@ -44,6 +44,7 @@ static void ConfigureContainer(Container container)
     container.Register<ScriptUpdateSystem>(Reuse.Singleton);
     container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
     container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
+    container.Register<AudioSystem>(Reuse.Singleton);
     
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);

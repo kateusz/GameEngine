@@ -40,6 +40,7 @@ public class Program
         container.Register<ScriptUpdateSystem>(Reuse.Singleton);
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
+        container.Register<AudioSystem>(Reuse.Singleton);
 
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);

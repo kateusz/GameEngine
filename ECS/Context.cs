@@ -138,7 +138,7 @@ public class Context
     /// but be aware this will allocate. For best performance, consume results directly via foreach.
     /// Thread-safety: Creates a snapshot of entities to allow safe iteration.
     /// </remarks>
-    public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : Component
+    public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent
     {
         Entity[] snapshot;
         lock (_lock)

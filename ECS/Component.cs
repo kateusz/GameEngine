@@ -8,8 +8,3 @@ public interface IComponent
     /// <returns>A new instance with the same property values.</returns>
     IComponent Clone();
 }
-
-public abstract class Component : IComponent
-{
-    public abstract IComponent Clone();
-}
