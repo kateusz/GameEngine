@@ -139,7 +139,7 @@ public class AudioSystem : ISystem
             }
 
             // Play on awake if requested
-            if (component.PlayOnAwake && component.AudioClip != null)
+            if (component is { PlayOnAwake: true, AudioClip: not null })
             {
                 component.Play();
             }
@@ -161,42 +161,48 @@ public class AudioSystem : ISystem
 
         var al = silkEngine.GetAL();
 
-        // Find active audio listener
+        // Find active audio listener with transform
+        Entity? activeListenerEntity = null;
+        AudioListenerComponent? activeListener = null;
+
         var listenerView = Context.Instance.View<AudioListenerComponent>();
         foreach (var (entity, component) in listenerView)
         {
-            if (!component.IsActive)
-                continue;
-
-            if (!entity.HasComponent<TransformComponent>())
-                continue;
-
-            var transform = entity.GetComponent<TransformComponent>();
-            var pos = transform.Translation;
-
-            // Set listener position
-            al.SetListenerProperty(ListenerVector3.Position, pos.X, pos.Y, pos.Z);
-
-            // Set listener orientation based on transform rotation
-            var transformMatrix = transform.GetTransform();
-            var forward = Vector3.Transform(-Vector3.UnitZ, Quaternion.CreateFromRotationMatrix(transformMatrix));
-            var up = Vector3.Transform(Vector3.UnitY, Quaternion.CreateFromRotationMatrix(transformMatrix));
-
-            unsafe
+            if (component.IsActive && entity.HasComponent<TransformComponent>())
             {
-                var orientation = stackalloc float[6];
-                orientation[0] = forward.X;
-                orientation[1] = forward.Y;
-                orientation[2] = forward.Z;
-                orientation[3] = up.X;
-                orientation[4] = up.Y;
-                orientation[5] = up.Z;
-
-                al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
+                activeListenerEntity = entity;
+                activeListener = component;
+                break;
             }
+        }
 
-            // Only use the first active listener
-            break;
+        // Early exit if no active listener found
+        if (activeListenerEntity == null || activeListener == null)
+            return;
+
+        var transform = activeListenerEntity.GetComponent<TransformComponent>();
+        var pos = transform.Translation;
+
+        // Set listener position
+        al.SetListenerProperty(ListenerVector3.Position, pos.X, pos.Y, pos.Z);
+
+        // Set listener orientation based on transform rotation
+        var transformMatrix = transform.GetTransform();
+        var forward = Vector3.Transform(-Vector3.UnitZ, Quaternion.CreateFromRotationMatrix(transformMatrix));
+        var up = Vector3.Transform(Vector3.UnitY, Quaternion.CreateFromRotationMatrix(transformMatrix));
+
+        // Stack allocation is now outside the loop - only allocated once per method call
+        unsafe
+        {
+            var orientation = stackalloc float[6];
+            orientation[0] = forward.X;
+            orientation[1] = forward.Y;
+            orientation[2] = forward.Z;
+            orientation[3] = up.X;
+            orientation[4] = up.Y;
+            orientation[5] = up.Z;
+
+            al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
         }
     }
 
@@ -268,7 +274,7 @@ public class AudioSystem : ISystem
     /// Gets the OpenAL source ID from a SilkNetAudioSource using reflection.
     /// This is a workaround since the source ID is private.
     /// </summary>
-    private uint GetSourceId(SilkNetAudioSource source)
+    private static uint GetSourceId(SilkNetAudioSource source)
     {
         var field = typeof(SilkNetAudioSource).GetField("_sourceId",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
