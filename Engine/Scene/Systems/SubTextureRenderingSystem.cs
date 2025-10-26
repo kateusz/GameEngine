@@ -14,24 +14,14 @@ namespace Engine.Scene.Systems;
 /// Operates on entities with SubTextureRendererComponent and TransformComponent.
 /// </summary>
 /// <remarks>
-/// NOTE: SubTextureRendererComponent is currently incomplete - it only stores coords and texture,
-/// but not cellSize or spriteSize. This system uses default values:
-/// - cellSize: 16x16 pixels
-/// - spriteSize: 1x1 cells
-///
-/// TODO: Enhance SubTextureRendererComponent to include cellSize and spriteSize properties.
+/// Cell size and sprite size are configured per-entity via SubTextureRendererComponent properties.
+/// This allows for flexible sprite atlas configurations with different cell sizes.
 /// </remarks>
 public class SubTextureRenderingSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
-    
+
     private readonly IGraphics2D _renderer;
-
-    // Default cell size for sprite sheets (in pixels)
-    private readonly Vector2 _defaultCellSize = new(16, 16);
-
-    // Default sprite size (in cells)
-    private readonly Vector2 _defaultSpriteSize = new(1, 1);
 
     /// <summary>
     /// Priority of 205 ensures this system renders after regular sprites (200)
@@ -99,14 +89,12 @@ public class SubTextureRenderingSystem : ISystem
             if (subtextureComponent.Texture == null)
                 continue;
 
-            // Create SubTexture2D from component data using default cell/sprite sizes
-            // TODO: Once SubTextureRendererComponent is enhanced with cellSize/spriteSize,
-            // use those values instead of defaults
+            // Create SubTexture2D from component data using component's cell/sprite sizes
             var subTexture = SubTexture2D.CreateFromCoords(
                 subtextureComponent.Texture,
                 subtextureComponent.Coords,
-                _defaultCellSize,
-                _defaultSpriteSize
+                subtextureComponent.CellSize,
+                subtextureComponent.SpriteSize
             );
 
             // Extract position and rotation from transform component
@@ -114,7 +102,7 @@ public class SubTextureRenderingSystem : ISystem
             var rotation = transformComponent.Rotation.Z; // 2D rotation around Z axis
 
             // Compute size from scale and cell size
-            var size = _defaultCellSize * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
+            var size = subtextureComponent.CellSize * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
 
             // Build transform matrix: Translation * Rotation * Scale
             var transform = Matrix4x4.CreateTranslation(position);

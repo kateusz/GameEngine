@@ -13,10 +13,19 @@ public class SubTextureRendererComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<SubTextureRendererComponent>();
 
+            TextureDropTarget.Draw("Texture", texture => component.Texture = texture);
+
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);
 
-            TextureDropTarget.Draw("Texture", texture => component.Texture = texture);
+            ImGui.Separator();
+            ImGui.Text("Atlas Settings");
+
+            UIPropertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
+                newValue => component.CellSize = (System.Numerics.Vector2)newValue);
+
+            UIPropertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
+                newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
         });
     }
 }
