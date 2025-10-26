@@ -25,7 +25,6 @@ public class Scene
     private int _nextEntityId = 1;
     private readonly SystemManager _systemManager;
     private readonly ModelRenderingSystem _modelRenderingSystem;
-    private readonly bool _showPhysicsDebug = true;
     private readonly PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
     private PhysicsSimulationSystem? _physicsSimulationSystem;
 
@@ -52,7 +51,7 @@ public class Scene
         _systemManager.RegisterSystem(_modelRenderingSystem);
 
         // Register physics debug rendering system (Priority: 500)
-        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance, _showPhysicsDebug);
+        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance);
         _systemManager.RegisterSystem(_physicsDebugRenderSystem);
 
         _physicsWorld = new World(new Vector2(0, -9.8f));

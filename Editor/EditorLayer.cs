@@ -4,6 +4,7 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Logging;
+using Editor.Popups;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -51,12 +52,13 @@ public class EditorLayer : ILayer
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
         _consolePanel = consolePanel;
         _editorPreferences = editorPreferences;
+        _editorSettingsUI = editorSettingsUI;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -87,14 +89,28 @@ public class EditorLayer : ILayer
         _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
-        _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
-        
+
+        // Apply settings from preferences
+        ApplyEditorSettings();
+
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
 
         Logger.Information("✅ Editor initialized successfully!");
         Logger.Information("Console panel is now capturing output.");
+    }
+
+    /// <summary>
+    /// Applies editor settings from preferences to the editor components.
+    /// </summary>
+    private void ApplyEditorSettings()
+    {
+        // Apply debug settings to DebugSettings singleton
+        DebugSettings.Instance.ShowColliderBounds = _editorPreferences.ShowColliderBounds;
+        DebugSettings.Instance.ShowFPS = _editorPreferences.ShowFPS;
+
+        Logger.Debug("Applied editor settings from preferences");
     }
 
     private void EntitySelected(Entity entity)
@@ -137,7 +153,7 @@ public class EditorLayer : ILayer
         Graphics3D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        Graphics2D.Instance.SetClearColor(_editorSettingsUI.Settings.BackgroundColor);
+        Graphics2D.Instance.SetClearColor(_editorSettingsUI.GetBackgroundColor());
         Graphics2D.Instance.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
@@ -383,8 +399,6 @@ public class EditorLayer : ILayer
                 ImGui.EndMenuBar();
             }
 
-            _editorSettingsUI.Render();
-
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
             _contentBrowserPanel.OnImGuiRender();
@@ -462,7 +476,9 @@ public class EditorLayer : ILayer
             _editorToolbar.Render();
             ImGui.End();
         }
-        
+
+        // Render popups outside the dockspace window
+        _editorSettingsUI.Render();
         _projectUI.Render();
     }
 

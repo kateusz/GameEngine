@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Core;
 using ImGuiNET;
 
 namespace Editor.Panels;
@@ -45,6 +46,10 @@ public class PerformanceMonitorUI
 
     public void RenderUI()
     {
+        // Only render FPS counter if the debug flag is enabled
+        if (!DebugSettings.Instance.ShowFPS)
+            return;
+
         ImGui.Separator();
         ImGui.Text("Performance:");
 
