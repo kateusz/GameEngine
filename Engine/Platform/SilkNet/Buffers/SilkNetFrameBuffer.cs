@@ -286,21 +286,27 @@ public class SilkNetFrameBuffer : FrameBuffer
 
         InternalFormat internalFormat = InternalFormat.Rgba8;
         PixelFormat format = PixelFormat.Rgba;
+        PixelType pixelType;
         switch (_colorAttachmentSpecs[attachmentIndex].TextureFormat)
         {
             case FramebufferTextureFormat.RGBA8:
                 internalFormat = InternalFormat.Rgba8;
                 format = PixelFormat.Rgba;
+                pixelType = PixelType.UnsignedByte;
                 break;
             case FramebufferTextureFormat.RED_INTEGER:
                 internalFormat = InternalFormat.R32i;
                 format = PixelFormat.RedInteger;
+                pixelType = PixelType.Int;
                 break;
+            default:
+                throw new NotSupportedException(
+                    $"Unsupported texture format: {_colorAttachmentSpecs[attachmentIndex].TextureFormat}");
         }
-                
+
         // Create our texture and upload the image data.
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, _specification.Width,
-            _specification.Height, 0, format, PixelType.Int, (void*)0);
+            _specification.Height, 0, format, pixelType, (void*)0);
         GLDebug.CheckError(SilkNetContext.GL, $"TexImage2D (color attachment {attachmentIndex})");
         
         SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
