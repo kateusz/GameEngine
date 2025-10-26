@@ -93,6 +93,10 @@ public class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     private void DrawPhysicsDebug()
     {
+        // Only draw collider bounds if the flag is enabled
+        if (!DebugSettings.Instance.ShowColliderBounds)
+            return;
+
         var rigidBodyView = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, rigidBodyComponent) in rigidBodyView)
         {
