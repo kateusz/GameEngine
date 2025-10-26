@@ -4,10 +4,11 @@ namespace ECS;
 /// Manages the lifecycle and execution of systems in the Entity Component System.
 /// Systems are executed in ascending priority order.
 /// </summary>
-public class SystemManager
+public class SystemManager : IDisposable
 {
     private readonly List<ISystem> _systems = new();
     private bool _isInitialized = false;
+    private bool _disposed = false;
 
     /// <summary>
     /// Registers a system with the manager.
@@ -115,4 +116,31 @@ public class SystemManager
     /// Gets whether the SystemManager has been initialized.
     /// </summary>
     public bool IsInitialized => _isInitialized;
+
+    /// <summary>
+    /// Disposes the SystemManager and cleans up per-scene systems.
+    /// Only disposes systems that are per-scene instances (IDisposable), not shared singleton systems.
+    /// </summary>
+    /// <remarks>
+    /// This method only disposes per-scene systems like PhysicsSimulationSystem.
+    /// Singleton systems (SpriteRenderingSystem, ModelRenderingSystem, etc.) are NOT disposed
+    /// as they are shared across multiple scenes and managed by the SceneSystemRegistry.
+    /// </remarks>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        // Only dispose per-scene systems (systems that implement IDisposable)
+        // Singleton systems are shared and should NOT be disposed here
+        foreach (var system in _systems)
+        {
+            if (system is IDisposable disposableSystem)
+            {
+                disposableSystem.Dispose();
+            }
+        }
+
+        _systems.Clear();
+        _disposed = true;
+    }
 }

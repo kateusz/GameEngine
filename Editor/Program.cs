@@ -6,6 +6,7 @@ using Editor.Panels.Elements;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
+using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Silk.NET.Maths;
@@ -15,6 +16,7 @@ using Editor.Logging;
 using Editor.Panels.ComponentEditors;
 using Editor.Popups;
 using Engine.Renderer;
+using Engine.Scene.Systems;
 
 static void ConfigureContainer(Container container)
 {
@@ -32,6 +34,16 @@ static void ConfigureContainer(Container container)
     );
 
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
+    container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+
+    // Register SceneSystemRegistry and systems
+    container.Register<SceneFactory>(Reuse.Singleton);
+    container.Register<SceneSystemRegistry>(Reuse.Singleton);
+    container.Register<SpriteRenderingSystem>(Reuse.Singleton);
+    container.Register<ModelRenderingSystem>(Reuse.Singleton);
+    container.Register<ScriptUpdateSystem>(Reuse.Singleton);
+    container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
+    container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
     
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);

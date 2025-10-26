@@ -17,6 +17,8 @@ namespace Benchmark;
 public class BenchmarkLayer : ILayer
 {
     private readonly IGraphics2D _graphics2D;
+    private readonly SceneSystemRegistry _sceneSystemRegistry;
+    private readonly SceneFactory _sceneFactory;
     
     private readonly List<BenchmarkResult> _results = new();
     private readonly Stopwatch _frameTimer = new();
@@ -52,9 +54,11 @@ public class BenchmarkLayer : ILayer
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
 
-    public BenchmarkLayer(IGraphics2D graphics2D)
+    public BenchmarkLayer(IGraphics2D graphics2D, SceneSystemRegistry sceneSystemRegistry, SceneFactory sceneFactory)
     {
         _graphics2D = graphics2D;
+        _sceneSystemRegistry = sceneSystemRegistry;
+        _sceneFactory = sceneFactory;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -433,7 +437,7 @@ public class BenchmarkLayer : ILayer
 
     private void SetupTestScene(BenchmarkTestType testType)
     {
-        _currentTestScene = new Scene("Benchmark", _graphics2D);
+        _currentTestScene = _sceneFactory.Create("Benchmark");
             
         // Add camera entity
         var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
@@ -576,6 +580,8 @@ public class BenchmarkLayer : ILayer
 
     private void CleanupTestScene()
     {
+        // Dispose scene to cleanup resources (physics, systems, etc.)
+        _currentTestScene?.Dispose();
         _currentTestScene = null;
     }
 

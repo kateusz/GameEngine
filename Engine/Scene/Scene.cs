@@ -13,20 +13,20 @@ using Serilog;
 
 namespace Engine.Scene;
 
-public class Scene
+public class Scene : IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
+    private readonly IGraphics2D _graphics2D;
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
-    private readonly IGraphics2D _graphics2D;
     private readonly World _physicsWorld;
     private int _nextEntityId = 1;
     private readonly SystemManager _systemManager;
-    private readonly ModelRenderingSystem _modelRenderingSystem;
+    private bool _disposed = false;
 
-    public Scene(string path, IGraphics2D graphics2D)
+    public Scene(string path, SceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
     {
         _path = path;
         _graphics2D = graphics2D;
@@ -35,29 +35,17 @@ public class Scene
         // Initialize ECS systems
         _systemManager = new SystemManager();
 
-        // Register script system (Priority: 150)
-        _systemManager.RegisterSystem(new ScriptUpdateSystem());
+        // Populate system manager from registry (singleton systems shared across scenes)
+        systemRegistry.PopulateSystemManager(_systemManager);
 
-        // Register 2D sprite rendering system (Priority: 200)
-        _systemManager.RegisterSystem(new SpriteRenderingSystem(Graphics2D.Instance));
-
-        // Register 2D subtexture rendering system (Priority: 205)
-        _systemManager.RegisterSystem(new SubTextureRenderingSystem(Graphics2D.Instance));
-
-        // Register 3D model rendering system (Priority: 210)
-        _modelRenderingSystem = new ModelRenderingSystem(Graphics3D.Instance);
-        _systemManager.RegisterSystem(_modelRenderingSystem);
-
-        // Register physics debug rendering system (Priority: 500)
-        var physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance);
-        _systemManager.RegisterSystem(physicsDebugRenderSystem);
-
+        // Initialize physics world (per-scene, cannot be shared)
         _physicsWorld = new World(new Vector2(0, -9.8f));
 
         var contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(contactListener);
 
         // Create and register physics simulation system with the physics world
+        // NOTE: This system is per-scene because each scene has its own physics world
         var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
         _systemManager.RegisterSystem(physicsSimulationSystem);
     }
@@ -212,23 +200,6 @@ public class Scene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // Set camera for 3D rendering system (must be done before SystemManager.Update)
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-
-        foreach (var entity in cameraGroup)
-        {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-            if (cameraComponent.Primary)
-            {
-                var transformComponent = entity.GetComponent<TransformComponent>();
-                var cameraTransform = transformComponent.GetTransform();
-
-                // Set camera for 3D rendering system
-                _modelRenderingSystem.SetCamera(cameraComponent.Camera, cameraTransform);
-                break;
-            }
-        }
-
         // Update all systems in priority order:
         // 100: PhysicsSimulationSystem
         // 150: ScriptUpdateSystem
@@ -280,7 +251,7 @@ public class Scene
         */
 
         // Render 2D sprites using the editor viewport camera
-        Graphics2D.Instance.BeginScene(camera);
+        _graphics2D.BeginScene(camera);
 
         // Sprites
         var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
@@ -288,7 +259,7 @@ public class Scene
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
-            Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
         // Subtextures (mirror runtime system)
@@ -302,10 +273,10 @@ public class Scene
             var (texture, texCoords) = subTex;
             var trs = entity.GetComponent<TransformComponent>().GetTransform()
                       * Matrix4x4.CreateScale(16, 16, 1);
-            Graphics2D.Instance.DrawQuad(trs, texture, texCoords, entityId: entity.Id);
+            _graphics2D.DrawQuad(trs, texture, texCoords, entityId: entity.Id);
         }
 
-        Graphics2D.Instance.EndScene();
+        _graphics2D.EndScene();
     }
 
     public void OnViewportResize(uint width, uint height)
@@ -378,5 +349,33 @@ public class Scene
         }
 
         return newEntity;
+    }
+
+    /// <summary>
+    /// Disposes the scene and cleans up all resources.
+    /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
+    /// and clears entity storage to prevent memory leaks.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        Logger.Debug("Disposing scene '{Path}'", _path);
+
+        // Unsubscribe from all entity component events to prevent memory leaks
+        foreach (var entity in Context.Instance.Entities)
+        {
+            entity.OnComponentAdded -= OnComponentAdded;
+        }
+
+        // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
+        // Singleton systems (rendering, scripts) are shared and won't be disposed
+        _systemManager?.Dispose();
+
+        // Clear entity storage
+        Context.Instance.Clear();
+
+        _disposed = true;
+        Logger.Debug("Scene '{Path}' disposed successfully", _path);
     }
 }

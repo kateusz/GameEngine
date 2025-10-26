@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.Managers;
 using Editor.Panels;
-using Editor.Logging;
 using Editor.Popups;
 using Engine.Core;
 using Engine.Core.Input;
@@ -14,7 +13,6 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
-using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
 using Serilog;
@@ -40,6 +38,7 @@ public class EditorLayer : ILayer
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
+    private readonly SceneFactory _sceneFactory;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -52,7 +51,9 @@ public class EditorLayer : ILayer
 
     public EditorLayer(IProjectManager projectManager,
         EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
-        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager, ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI, IGraphics2D graphics2D)
+        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
+        ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -65,6 +66,8 @@ public class EditorLayer : ILayer
         _editorToolbar = editorToolbar;
         _projectUI = projectUI;
         _graphics2D = graphics2D;
+        _rendererStatsPanel = rendererStatsPanel;
+        _sceneFactory = sceneFactory;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -83,8 +86,9 @@ public class EditorLayer : ILayer
             ])
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
-        
-        CurrentScene.Set(new Scene("", _graphics2D));
+
+        var scene = _sceneFactory.Create("");
+        CurrentScene.Set(scene);
         
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
@@ -128,6 +132,10 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+
+        // Dispose current scene to cleanup resources
+        CurrentScene.Instance?.Dispose();
+
         _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
         Log.CloseAndFlush();
