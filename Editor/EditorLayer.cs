@@ -25,41 +25,44 @@ namespace Editor;
 public class EditorLayer : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
-
+    
+    private readonly Vector2[] _viewportBounds = new Vector2[2];
+    private readonly SceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly ContentBrowserPanel _contentBrowserPanel;
+    private readonly PropertiesPanel _propertiesPanel;
+    private readonly ConsolePanel _consolePanel;
+    private readonly ProjectUI _projectUI;
+    private readonly IProjectManager _projectManager;
+    private readonly SceneManager _sceneManager;
+    private readonly EditorPreferences _editorPreferences;
+    private readonly RendererStatsPanel _rendererStatsPanel = new();
+    private readonly EditorToolbar _editorToolbar;
+    private readonly PerformanceMonitorUI _performanceMonitor = new();
+    private readonly EditorSettingsUI _editorSettingsUI;
+    
+    // TODO: check concurrency
+    private readonly HashSet<KeyCodes> _pressedKeys = [];
+    
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
-    private readonly Vector2[] _viewportBounds = new Vector2[2];
-    private SceneHierarchyPanel _sceneHierarchyPanel;
-    private ContentBrowserPanel _contentBrowserPanel;
-    private readonly PropertiesPanel _propertiesPanel;
-    private readonly ConsolePanel _consolePanel;
     private Entity? _hoveredEntity;
-    
-    private ProjectUI _projectUI;
-    private readonly IProjectManager _projectManager;
-    private SceneManager _sceneManager;
-    private readonly EditorPreferences _editorPreferences;
-    
-    private readonly RendererStatsPanel _rendererStatsPanel = new();
-    private EditorToolbar _editorToolbar;
-    private readonly PerformanceMonitorUI _performanceMonitor = new();
-    private readonly EditorSettingsUI _editorSettingsUI;
-    
-    private readonly ISceneSerializer  _sceneSerializer;
-    
-    // TODO: check concurrency
-    private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI, PropertiesPanel propertiesPanel)
+    public EditorLayer(IProjectManager projectManager,
+        EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
+        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager, ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI)
     {
-        _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
         _consolePanel = consolePanel;
         _editorPreferences = editorPreferences;
         _editorSettingsUI = editorSettingsUI;
         _propertiesPanel = propertiesPanel;
+        _sceneHierarchyPanel = sceneHierarchyPanel;
+        _sceneManager = sceneManager;
+        _contentBrowserPanel = contentBrowserPanel;
+        _editorToolbar = editorToolbar;
+        _projectUI = projectUI;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -81,14 +84,11 @@ public class EditorLayer : ILayer
         
         CurrentScene.Set(new Scene(""));
         
-        _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
-
-        _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
-
-        _contentBrowserPanel = new ContentBrowserPanel();
-        _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
-        _editorToolbar = new EditorToolbar(_sceneManager);
+        
+        _contentBrowserPanel.Init();
+        _editorToolbar.Init();
 
         // Apply settings from preferences
         ApplyEditorSettings();

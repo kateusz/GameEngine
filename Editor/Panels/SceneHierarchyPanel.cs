@@ -8,16 +8,18 @@ namespace Editor.Panels;
 
 public class SceneHierarchyPanel
 {
+    private readonly EntityContextMenu _contextMenu;
+    private readonly PrefabDropTarget _prefabDropTarget;
+    
     private Scene _context;
     private Entity? _selectionContext;
-    private readonly EntityContextMenu _contextMenu;
     
     public Action<Entity> EntitySelected;
 
-    public SceneHierarchyPanel(Scene context)
+    public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
     {
-        _context = context;
-        _contextMenu = new EntityContextMenu();
+        _contextMenu = contextMenu;
+        _prefabDropTarget = prefabDropTarget;
     }
 
     public void SetContext(Scene context)
@@ -39,7 +41,7 @@ public class SceneHierarchyPanel
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
             _selectionContext = null;
 
-        EntityContextMenu.Render(_context);
+        _contextMenu.Render(_context);
 
         ImGui.End();
     }
@@ -63,10 +65,9 @@ public class SceneHierarchyPanel
             EntitySelected.Invoke(entity);
             _selectionContext = entity;
         }
-
-        // TODO: finish dependency injection
+        
         // Prefab drag & drop handling
-        //PrefabDropTarget.HandleEntityDrop(entity);
+        _prefabDropTarget.HandleEntityDrop(entity);
 
         // Entity context menu
         bool entityDeleted = false;

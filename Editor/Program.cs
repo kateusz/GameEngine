@@ -39,6 +39,13 @@ static void ConfigureContainer(Container container)
     container.Register<EditorSettingsUI>(Reuse.Singleton);
     container.Register<ComponentEditorRegistry>(Reuse.Singleton);
     container.Register<PropertiesPanel>(Reuse.Singleton);
+    container.Register<SceneHierarchyPanel>(Reuse.Singleton);
+    container.Register<EntityContextMenu>(Reuse.Singleton);
+    container.Register<PrefabDropTarget>(Reuse.Singleton);
+    container.Register<SceneManager>(Reuse.Singleton);
+    container.Register<ContentBrowserPanel>(Reuse.Singleton);
+    container.Register<ProjectUI>(Reuse.Singleton);
+    container.Register<EditorToolbar>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);

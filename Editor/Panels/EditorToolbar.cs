@@ -7,13 +7,17 @@ namespace Editor.Panels;
 
 public class EditorToolbar
 {
-    private readonly Texture2D _iconPlay;
-    private readonly Texture2D _iconStop;
+    private Texture2D _iconPlay;
+    private Texture2D _iconStop;
     private readonly SceneManager _sceneManager;
 
     public EditorToolbar(SceneManager sceneManager)
     {
         _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
+    }
+
+    public void Init()
+    {
         _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
         _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
     }

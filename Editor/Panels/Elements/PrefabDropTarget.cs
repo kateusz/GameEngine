@@ -1,15 +1,23 @@
 using System.Runtime.InteropServices;
 using ECS;
+using Engine.Scene.Serializer;
 using ImGuiNET;
 using Serilog;
 
 namespace Editor.Panels.Elements;
 
-public static class PrefabDropTarget
+public class PrefabDropTarget
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(PrefabDropTarget));
-    
-    public static void HandleEntityDrop(Entity entity)
+
+    private readonly IPrefabSerializer _prefabSerializer;
+
+    public PrefabDropTarget(IPrefabSerializer prefabSerializer)
+    {
+        _prefabSerializer = prefabSerializer;
+    }
+
+    public void HandleEntityDrop(Entity entity)
     {
         if (ImGui.BeginDragDropTarget())
         {
@@ -23,10 +31,8 @@ public static class PrefabDropTarget
                     {
                         try
                         {
-                            string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
-                            
-                            // TODO: finish dependency injection
-                            PrefabSerializer.ApplyPrefabToEntity(entity, fullPath);
+                            var fullPath = Path.Combine(AssetsManager.AssetsPath, path);
+                            _prefabSerializer.ApplyPrefabToEntity(entity, fullPath);
                             Logger.Information("Applied prefab {Path} to entity {EntityName}", path, entity.Name);
                         }
                         catch (Exception ex)
