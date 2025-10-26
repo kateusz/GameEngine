@@ -1,22 +1,21 @@
 using System.Numerics;
-using Editor.UI;
 using Engine.Core;
 using Engine.Renderer.Cameras;
 using ImGuiNET;
 
-namespace Editor.Panels;
+namespace Editor.Popups;
 
 public class EditorSettingsUI
 {
-    private bool _open = false;
+    private bool _open;
 
     private readonly OrthographicCameraController _cameraController;
-    public readonly EditorSettings Settings;
+    private readonly EditorPreferences _editorPreferences;
 
-    public EditorSettingsUI(OrthographicCameraController cameraController, EditorSettings settings)
+    public EditorSettingsUI(OrthographicCameraController cameraController, EditorPreferences editorPreferences)
     {
         _cameraController = cameraController;
-        Settings = settings;
+        _editorPreferences = editorPreferences;
     }
 
     public void Show() => _open = true;
@@ -38,23 +37,11 @@ public class EditorSettingsUI
 
         // --- Background Color ---
         ImGui.Text("Editor Background Color");
-        ImGui.ColorEdit4("Background Color", ref Settings.BackgroundColor);
-
-        ImGui.Separator();
-
-        // --- Camera Settings ---
-        ImGui.Text("Camera Settings");
-
-        var camPos = _cameraController.Camera.Position;
-        if (ImGui.DragFloat3("Camera Position", ref camPos, 0.1f))
+        var backgroundColor = _editorPreferences.BackgroundColor;
+        if (ImGui.ColorEdit4("Background Color", ref backgroundColor))
         {
-            _cameraController.Camera.SetPosition(camPos);
-        }
-
-        var camRot = _cameraController.Camera.Rotation;
-        if (ImGui.DragFloat("Camera Rotation", ref camRot, 1.0f))
-        {
-            _cameraController.Camera.SetRotation(camRot);
+            _editorPreferences.BackgroundColor = backgroundColor;
+            _editorPreferences.Save();
         }
 
         ImGui.Separator();
@@ -62,22 +49,27 @@ public class EditorSettingsUI
         // --- Debug Visualization Settings ---
         ImGui.SeparatorText("Debug Visualization");
 
-        bool showColliders = DebugSettings.Instance.ShowColliderBounds;
+        bool showColliders = _editorPreferences.ShowColliderBounds;
         if (ImGui.Checkbox("Show Collider Bounds", ref showColliders))
+        {
+            _editorPreferences.ShowColliderBounds = showColliders;
             DebugSettings.Instance.ShowColliderBounds = showColliders;
+            _editorPreferences.Save();
+        }
 
-        bool showFps = DebugSettings.Instance.ShowFPS;
+        bool showFps = _editorPreferences.ShowFPS;
         if (ImGui.Checkbox("Show FPS Counter", ref showFps))
+        {
+            _editorPreferences.ShowFPS = showFps;
             DebugSettings.Instance.ShowFPS = showFps;
+            _editorPreferences.Save();
+        }
 
         ImGui.EndPopup();
     }
-}
 
-/// <summary>
-/// Simple class to hold editor-wide settings.
-/// </summary>
-public class EditorSettings
-{
-    public Vector4 BackgroundColor = new Vector4(0.91f, 0.91f, 0.91f, 1.0f); // normalized color
+    /// <summary>
+    /// Gets the current background color from preferences.
+    /// </summary>
+    public Vector4 GetBackgroundColor() => _editorPreferences.BackgroundColor;
 }
