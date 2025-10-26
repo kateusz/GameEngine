@@ -102,7 +102,8 @@ public class SubTextureRenderingSystem : ISystem
             var rotation = transformComponent.Rotation.Z; // 2D rotation around Z axis
 
             // Compute size from scale and cell size
-            var size = subtextureComponent.CellSize * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
+            var basePixels = subtextureComponent.CellSize * subtextureComponent.SpriteSize; // account for multi‑cell sprites
+            var size = basePixels * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
 
             // Build transform matrix: Translation * Rotation * Scale
             var transform = Matrix4x4.CreateTranslation(position);
