@@ -21,7 +21,9 @@ public class ComponentEditorRegistry
             { typeof(ModelRendererComponent), new ModelRendererComponentEditor() },
             { typeof(RigidBody2DComponent), new RigidBody2DComponentEditor() },
             { typeof(BoxCollider2DComponent), new BoxCollider2DComponentEditor() },
-            { typeof(SubTextureRendererComponent), new SubTextureRendererComponentEditor() }
+            { typeof(SubTextureRendererComponent), new SubTextureRendererComponentEditor() },
+            { typeof(AudioSourceComponent), new AudioSourceComponentEditor() },
+            { typeof(AudioListenerComponent), new AudioListenerComponentEditor() }
         };
     }
 
