@@ -23,9 +23,18 @@ public class EditorSettingsUI
 
     public void Render()
     {
-        if (!_open) return;
+        // Open the popup when _open is set to true
+        if (_open)
+            ImGui.OpenPopup("Editor Settings");
 
-        ImGui.Begin("Editor Settings", ref _open, ImGuiWindowFlags.AlwaysAutoResize);
+        // Center the popup on first appearance
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
+            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+
+        // Use BeginPopupModal for proper popup behavior
+        if (!ImGui.BeginPopupModal("Editor Settings", ref _open,
+                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+            return;
 
         // --- Background Color ---
         ImGui.Text("Editor Background Color");
@@ -53,10 +62,6 @@ public class EditorSettingsUI
         // --- Debug Visualization Settings ---
         ImGui.SeparatorText("Debug Visualization");
 
-        bool showPhysics = DebugSettings.Instance.ShowPhysicsDebug;
-        if (ImGui.Checkbox("Show Physics Debug", ref showPhysics))
-            DebugSettings.Instance.ShowPhysicsDebug = showPhysics;
-
         bool showColliders = DebugSettings.Instance.ShowColliderBounds;
         if (ImGui.Checkbox("Show Collider Bounds", ref showColliders))
             DebugSettings.Instance.ShowColliderBounds = showColliders;
@@ -65,7 +70,7 @@ public class EditorSettingsUI
         if (ImGui.Checkbox("Show FPS Counter", ref showFps))
             DebugSettings.Instance.ShowFPS = showFps;
 
-        ImGui.End();
+        ImGui.EndPopup();
     }
 }
 

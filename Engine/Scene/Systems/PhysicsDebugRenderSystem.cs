@@ -48,7 +48,8 @@ public class PhysicsDebugRenderSystem : ISystem
     /// <param name="deltaTime">Time elapsed since last update (unused by this system).</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (!DebugSettings.Instance.ShowPhysicsDebug)
+        // Only draw collider bounds if the flag is enabled
+        if (!DebugSettings.Instance.ShowColliderBounds)
             return;
 
         // Find the primary camera for rendering
@@ -93,10 +94,6 @@ public class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     private void DrawPhysicsDebug()
     {
-        // Only draw collider bounds if the flag is enabled
-        if (!DebugSettings.Instance.ShowColliderBounds)
-            return;
-
         var rigidBodyView = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, rigidBodyComponent) in rigidBodyView)
         {

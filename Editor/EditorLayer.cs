@@ -383,8 +383,6 @@ public class EditorLayer : ILayer
                 ImGui.EndMenuBar();
             }
 
-            _editorSettingsUI.Render();
-
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
             _contentBrowserPanel.OnImGuiRender();
@@ -462,7 +460,9 @@ public class EditorLayer : ILayer
             _editorToolbar.Render();
             ImGui.End();
         }
-        
+
+        // Render popups outside the dockspace window
+        _editorSettingsUI.Render();
         _projectUI.Render();
     }
 

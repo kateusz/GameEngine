@@ -18,12 +18,6 @@ public class DebugSettings
     }
 
     /// <summary>
-    /// Gets or sets whether physics debug rendering is enabled.
-    /// When enabled, displays wireframe overlays for collision shapes.
-    /// </summary>
-    public bool ShowPhysicsDebug { get; set; } = false;
-
-    /// <summary>
     /// Gets or sets whether collider bounds should be visualized.
     /// </summary>
     public bool ShowColliderBounds { get; set; } = false;
