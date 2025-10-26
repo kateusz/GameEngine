@@ -66,7 +66,7 @@ public class ProjectUI
             ImGui.BeginDisabled(!isValid);
             if (ImGui.Button("Create", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
-                if (_projectManager.TryCreateNewProject(_newProjectName.Trim(), out var err))
+                if (_projectManager.TryCreateNewProject(_newProjectName?.Trim() ?? string.Empty, out var err))
                 {
                     _showNewProjectPopup = false;
                     _newProjectName = string.Empty;
@@ -120,7 +120,7 @@ public class ProjectUI
             ImGui.BeginDisabled(!hasInput);
             if (ImGui.Button("Open", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
-                if (_projectManager.TryOpenProject(_openProjectPath.Trim(), out var err))
+                if (_projectManager.TryOpenProject(_openProjectPath?.Trim() ?? string.Empty, out var err))
                 {
                     _showOpenProjectPopup = false;
                     _openProjectPath = string.Empty;

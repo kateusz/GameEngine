@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public class SilkNetVertexBuffer : IVertexBuffer, IDisposable
+public class SilkNetVertexBuffer : IVertexBuffer
 {
     private uint _rendererId;
     private bool _disposed;
@@ -110,9 +110,9 @@ public class SilkNetVertexBuffer : IVertexBuffer, IDisposable
         }
     }
 
-    public void SetData(Span<LineVertex> lineVertices, int dataSize)
+    public void SetData(Span<LineVertex> vertices, int dataSize)
     {
-        if (lineVertices.Length == 0)
+        if (vertices.Length == 0)
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
@@ -120,7 +120,7 @@ public class SilkNetVertexBuffer : IVertexBuffer, IDisposable
         unsafe
         {
             // Use Span<T> for direct memory access without allocations
-            var vertexSpan = MemoryMarshal.Cast<LineVertex, byte>(lineVertices);
+            var vertexSpan = MemoryMarshal.Cast<LineVertex, byte>(vertices);
             fixed (byte* pData = vertexSpan)
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);

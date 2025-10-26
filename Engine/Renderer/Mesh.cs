@@ -37,7 +37,7 @@ public class Mesh
         Vertices = [];
         Indices = [];
         Textures = [];
-        DiffuseTexture = TextureFactory.Create(1, 1); // Default white texture
+        DiffuseTexture = TextureFactory.GetWhiteTexture(); // Shared white texture
     }
 
     public void Initialize()

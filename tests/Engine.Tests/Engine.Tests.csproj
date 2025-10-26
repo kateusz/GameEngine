@@ -18,8 +18,4 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\ECS\ECS.csproj" />
-  </ItemGroup>
-
 </Project>

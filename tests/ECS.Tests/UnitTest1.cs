@@ -56,7 +56,7 @@ public class EntityEqualityTests
         var hashBeforeAdd = entity.GetHashCode();
 
         // Act - Add a component
-        entity.AddComponent(new TestComponent());
+        entity.AddComponent<TestComponent>(new TestComponent());
         var hashAfterAdd = entity.GetHashCode();
 
         // Assert - Hash should remain the same
@@ -267,5 +267,9 @@ public class EntityEqualityTests
     // Test component for validation
     private class TestComponent : IComponent
     {
+        public IComponent Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

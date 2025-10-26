@@ -242,12 +242,12 @@ public class PrefabSerializer : IPrefabSerializer
     {
         if (componentObj[ScriptTypeKey] is null)
         {
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
             return;
         }
 
         var scriptTypeName = componentObj[ScriptTypeKey]!.GetValue<string>();
-        
+
         ScriptableEntity? builtInScript = scriptTypeName switch
         {
             nameof(CameraController) => new CameraController(),
@@ -256,23 +256,23 @@ public class PrefabSerializer : IPrefabSerializer
 
         if (builtInScript != null)
         {
-            entity.AddComponent(new NativeScriptComponent
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
             {
                 ScriptableEntity = builtInScript
             });
         }
         else
         {
-            entity.AddComponent(new NativeScriptComponent());
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
         }
     }
 
-    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : IComponent
+    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component != null)
         {
-            entity.AddComponent(component);
+            entity.AddComponent<T>(component);
         }
     }
 

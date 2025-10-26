@@ -4,6 +4,7 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Logging;
+using Editor.Popups;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -23,7 +24,7 @@ namespace Editor;
 
 public class EditorLayer : ILayer
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<EditorLayer>();
+    private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -39,6 +40,7 @@ public class EditorLayer : ILayer
     private ProjectUI _projectUI;
     private IProjectManager _projectManager;
     private SceneManager _sceneManager;
+    private EditorPreferences _editorPreferences;
     
     private readonly RendererStatsPanel _rendererStatsPanel = new();
     private EditorToolbar _editorToolbar;
@@ -46,15 +48,17 @@ public class EditorLayer : ILayer
     private EditorSettingsUI _editorSettingsUI;
     
     private readonly ISceneSerializer  _sceneSerializer;
-
+    
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, ConsolePanel consolePanel)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
         _consolePanel = consolePanel;
+        _editorPreferences = editorPreferences;
+        _editorSettingsUI = editorSettingsUI;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -74,8 +78,6 @@ public class EditorLayer : ILayer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
         
-        Graphics3D.Instance.Init();
-
         CurrentScene.Set(new Scene(""));
         
         _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
@@ -87,7 +89,9 @@ public class EditorLayer : ILayer
         _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
-        _editorSettingsUI = new EditorSettingsUI(_cameraController, new EditorSettings());
+
+        // Apply settings from preferences
+        ApplyEditorSettings();
 
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
@@ -95,6 +99,18 @@ public class EditorLayer : ILayer
 
         Logger.Information("✅ Editor initialized successfully!");
         Logger.Information("Console panel is now capturing output.");
+    }
+
+    /// <summary>
+    /// Applies editor settings from preferences to the editor components.
+    /// </summary>
+    private void ApplyEditorSettings()
+    {
+        // Apply debug settings to DebugSettings singleton
+        DebugSettings.Instance.ShowColliderBounds = _editorPreferences.ShowColliderBounds;
+        DebugSettings.Instance.ShowFPS = _editorPreferences.ShowFPS;
+
+        Logger.Debug("Applied editor settings from preferences");
     }
 
     private void EntitySelected(Entity entity)
@@ -110,6 +126,7 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+        _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
         Log.CloseAndFlush();
     }
@@ -136,7 +153,7 @@ public class EditorLayer : ILayer
         Graphics3D.Instance.ResetStats();
         _frameBuffer.Bind();
 
-        Graphics2D.Instance.SetClearColor(_editorSettingsUI.Settings.BackgroundColor);
+        Graphics2D.Instance.SetClearColor(_editorSettingsUI.GetBackgroundColor());
         Graphics2D.Instance.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
@@ -224,14 +241,14 @@ public class EditorLayer : ILayer
                      _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
-            case (int)KeyCodes.N:
+            case KeyCodes.N:
             {
                 if (control)
                     _sceneManager.New(_viewportSize);
                 keyPressedEvent.IsHandled = true;
                 break;
             }
-            case (int)KeyCodes.S:
+            case KeyCodes.S:
             {
                 if (control)
                 {
@@ -240,7 +257,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.D:
+            case KeyCodes.D:
             {
                 if (control)
                 {
@@ -249,7 +266,7 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
-            case (int)KeyCodes.F:
+            case KeyCodes.F:
             {
                 if (control)
                 {
@@ -294,6 +311,54 @@ public class EditorLayer : ILayer
                         _projectUI.ShowNewProjectPopup();
                     if (ImGui.MenuItem("Open Project"))
                         _projectUI.ShowOpenProjectPopup();
+
+                    // Add Recent Projects submenu
+                    if (ImGui.BeginMenu("Recent Projects"))
+                    {
+                        var recentProjects = _editorPreferences.GetRecentProjects();
+
+                        if (recentProjects.Count == 0)
+                        {
+                            ImGui.MenuItem("(No recent projects)", false);
+                        }
+                        else
+                        {
+                            foreach (var recent in recentProjects)
+                            {
+                                var displayName = $"{recent.Name}";
+                                if (ImGui.MenuItem(displayName))
+                                {
+                                    if (_projectManager.TryOpenProject(recent.Path, out var error))
+                                    {
+                                        _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                                    }
+                                    else
+                                    {
+                                        Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
+                                    }
+                                }
+
+                                // Show tooltip with full path
+                                if (ImGui.IsItemHovered())
+                                {
+                                    ImGui.BeginTooltip();
+                                    ImGui.Text(recent.Path);
+                                    ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
+                                    ImGui.EndTooltip();
+                                }
+                            }
+
+                            ImGui.Separator();
+                            if (ImGui.MenuItem("Clear Recent Projects"))
+                            {
+                                _editorPreferences.ClearRecentProjects();
+                            }
+                        }
+
+                        ImGui.EndMenu();
+                    }
+
+                    ImGui.Separator();
                     if (ImGui.MenuItem("Exit"))
                         Environment.Exit(0);
                     ImGui.EndMenu();
@@ -333,8 +398,6 @@ public class EditorLayer : ILayer
 
                 ImGui.EndMenuBar();
             }
-
-            _editorSettingsUI.Render();
 
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
@@ -413,7 +476,9 @@ public class EditorLayer : ILayer
             _editorToolbar.Render();
             ImGui.End();
         }
-        
+
+        // Render popups outside the dockspace window
+        _editorSettingsUI.Render();
         _projectUI.Render();
     }
 

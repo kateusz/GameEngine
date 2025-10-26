@@ -15,4 +15,9 @@ public class TagComponent : IComponent
     {
         Tag = tag;
     }
+
+    public IComponent Clone()
+    {
+        return new TagComponent(Tag);
+    }
 }

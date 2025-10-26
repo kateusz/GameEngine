@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Renderer.Cameras;
@@ -5,6 +6,11 @@ using Engine.Scene.Components;
 
 namespace Engine.Scene;
 
+/// <summary>
+/// Deprecated: Move camera control into your project scripts.
+/// Will be removed from Engine in a future release.
+/// </summary>
+[Obsolete("Move CameraController to your project scripts; this engine type will be removed.")]
 public class CameraController : ScriptableEntity
 {
     private const float CameraSpeed = CameraConfig.DefaultTranslationSpeed;
@@ -19,9 +25,9 @@ public class CameraController : ScriptableEntity
         }
     }
 
-    public override void OnKeyPressed(KeyCodes key)
+    public override void OnKeyPressed(KeyCodes keyCode)
     {
-        switch (key)
+        switch (keyCode)
         {
             case KeyCodes.W: _inputDirection += Vector3.UnitY; break;
             case KeyCodes.S: _inputDirection -= Vector3.UnitY; break;
@@ -30,9 +36,9 @@ public class CameraController : ScriptableEntity
         }
     }
 
-    public override void OnKeyReleased(KeyCodes key)
+    public override void OnKeyReleased(KeyCodes keyCode)
     {
-        switch (key)
+        switch (keyCode)
         {
             case KeyCodes.W: _inputDirection -= Vector3.UnitY; break;
             case KeyCodes.S: _inputDirection += Vector3.UnitY; break;
