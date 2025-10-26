@@ -17,7 +17,7 @@ public class Graphics2D : IGraphics2D, IDisposable
 
     public static IGraphics2D Instance => _instance ??= new Graphics2D();
 
-    private IRendererAPI _rendererApi = RendererApiFactory.Create();
+    private readonly IRendererAPI _rendererApi = RendererApiFactory.Create();
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
     private bool _disposed;

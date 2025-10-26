@@ -2,6 +2,7 @@
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
+using Engine.Renderer;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -44,6 +45,7 @@ public class Program
 
         container.Register<ILayer, Sandbox2DLayer>(Reuse.Singleton);
         container.Register<SandboxApplication>( Reuse.Singleton);
+        container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         
         container.ValidateAndThrow();
     }

@@ -45,8 +45,9 @@ public class Sandbox2DLayer : ILayer
         """;
 
 
-    private static readonly Serilog.ILogger Logger = Log.ForContext<Sandbox2DLayer>();
+    private static readonly ILogger Logger = Log.ForContext<Sandbox2DLayer>();
 
+    private readonly IGraphics2D _graphics2D;
     private OrthographicCameraController _orthographicCameraController;
     private Texture2D _spriteSheet;
     private SubTexture2D _textureBarrel;
@@ -54,8 +55,9 @@ public class Sandbox2DLayer : ILayer
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
 
-    public Sandbox2DLayer()
+    public Sandbox2DLayer(IGraphics2D graphics2D)
     {
+        _graphics2D = graphics2D;
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }
 
@@ -84,15 +86,15 @@ public class Sandbox2DLayer : ILayer
     {
         _orthographicCameraController.OnUpdate(timeSpan);
 
-        Graphics2D.Instance.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        Graphics2D.Instance.Clear();
+        _graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        _graphics2D.Clear();
 
-        Graphics2D.Instance.BeginScene(_orthographicCameraController.Camera);
+        _graphics2D.BeginScene(_orthographicCameraController.Camera);
 
-        Graphics2D.Instance.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+        _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
 
-        Graphics2D.Instance.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
-        Graphics2D.Instance.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
+        _graphics2D.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
+        _graphics2D.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
 
         // for (var row = 0; row < _mapHeight; row++)
         // {
@@ -106,7 +108,7 @@ public class Sandbox2DLayer : ILayer
         //     }
         // }
 
-        Graphics2D.Instance.EndScene();
+        _graphics2D.EndScene();
     }
 
     public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);

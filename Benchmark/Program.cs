@@ -1,6 +1,7 @@
 ﻿using DryIoc;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
+using Engine.Renderer;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -29,6 +30,7 @@ public class Program
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);
         container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+        container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         
         container.ValidateAndThrow();
 

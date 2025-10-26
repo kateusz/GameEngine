@@ -11,9 +11,10 @@ namespace Engine.Core;
 
 public abstract class Application : IApplication
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<Application>();
+    private static readonly ILogger Logger = Log.ForContext<Application>();
 
     private readonly IGameWindow _gameWindow;
+    private readonly IGraphics2D _graphics2D;
     private readonly IImGuiLayer? _imGuiLayer;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
@@ -21,9 +22,10 @@ public abstract class Application : IApplication
     private bool _isRunning;
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
-    protected Application(IGameWindow gameWindow, IImGuiLayer? imGuiLayer = null)
+    protected Application(IGameWindow gameWindow, IGraphics2D graphics2D, IImGuiLayer? imGuiLayer = null)
     {
         _gameWindow = gameWindow;
+        _graphics2D = graphics2D;
         _gameWindow.OnWindowEvent += HandleWindowEvent;
         _gameWindow.OnInputEvent += HandleInputEvent;
         _gameWindow.OnClose += HandleGameWindowClose;
@@ -51,7 +53,7 @@ public abstract class Application : IApplication
     private void HandleGameWindowOnLoad(IInputSystem inputSystem)
     {
         // Initialize core graphics and audio subsystems - owned by Application
-        Graphics2D.Instance.Init();
+        _graphics2D.Init();
         Graphics3D.Instance.Init();
         AudioEngine.Instance.Initialize();
 

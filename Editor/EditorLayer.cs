@@ -35,10 +35,11 @@ public class EditorLayer : ILayer
     private readonly IProjectManager _projectManager;
     private readonly SceneManager _sceneManager;
     private readonly EditorPreferences _editorPreferences;
-    private readonly RendererStatsPanel _rendererStatsPanel = new();
+    private readonly RendererStatsPanel _rendererStatsPanel;
     private readonly EditorToolbar _editorToolbar;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private readonly EditorSettingsUI _editorSettingsUI;
+    private readonly IGraphics2D _graphics2D;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -51,7 +52,7 @@ public class EditorLayer : ILayer
 
     public EditorLayer(IProjectManager projectManager,
         EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
-        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager, ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI)
+        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager, ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI, IGraphics2D graphics2D)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -63,6 +64,7 @@ public class EditorLayer : ILayer
         _contentBrowserPanel = contentBrowserPanel;
         _editorToolbar = editorToolbar;
         _projectUI = projectUI;
+        _graphics2D = graphics2D;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -82,7 +84,7 @@ public class EditorLayer : ILayer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
         
-        CurrentScene.Set(new Scene(""));
+        CurrentScene.Set(new Scene("", _graphics2D));
         
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
@@ -149,12 +151,11 @@ public class EditorLayer : ILayer
             CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
-        Graphics2D.Instance.ResetStats();
-        Graphics3D.Instance.ResetStats();
+        _graphics2D.ResetStats();
         _frameBuffer.Bind();
 
-        Graphics2D.Instance.SetClearColor(_editorSettingsUI.GetBackgroundColor());
-        Graphics2D.Instance.Clear();
+        _graphics2D.SetClearColor(_editorSettingsUI.GetBackgroundColor());
+        _graphics2D.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
 

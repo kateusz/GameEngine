@@ -14,6 +14,7 @@ using Serilog;
 using Editor.Logging;
 using Editor.Panels.ComponentEditors;
 using Editor.Popups;
+using Engine.Renderer;
 
 static void ConfigureContainer(Container container)
 {
@@ -30,6 +31,8 @@ static void ConfigureContainer(Container container)
         made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
     );
 
+    container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
+    
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
     container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
@@ -46,6 +49,7 @@ static void ConfigureContainer(Container container)
     container.Register<ContentBrowserPanel>(Reuse.Singleton);
     container.Register<ProjectUI>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
+    container.Register<RendererStatsPanel>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);

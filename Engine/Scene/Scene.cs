@@ -20,18 +20,16 @@ public class Scene
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
-    private World _physicsWorld;
-    private SceneContactListener _contactListener;
+    private readonly IGraphics2D _graphics2D;
+    private readonly World _physicsWorld;
     private int _nextEntityId = 1;
     private readonly SystemManager _systemManager;
     private readonly ModelRenderingSystem _modelRenderingSystem;
-    private readonly PhysicsDebugRenderSystem? _physicsDebugRenderSystem;
-    private PhysicsSimulationSystem? _physicsSimulationSystem;
 
-
-    public Scene(string path)
+    public Scene(string path, IGraphics2D graphics2D)
     {
         _path = path;
+        _graphics2D = graphics2D;
         Context.Instance.Clear();
 
         // Initialize ECS systems
@@ -51,17 +49,17 @@ public class Scene
         _systemManager.RegisterSystem(_modelRenderingSystem);
 
         // Register physics debug rendering system (Priority: 500)
-        _physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance);
-        _systemManager.RegisterSystem(_physicsDebugRenderSystem);
+        var physicsDebugRenderSystem = new PhysicsDebugRenderSystem(Graphics2D.Instance);
+        _systemManager.RegisterSystem(physicsDebugRenderSystem);
 
         _physicsWorld = new World(new Vector2(0, -9.8f));
 
-        _contactListener = new SceneContactListener();
-        _physicsWorld.SetContactListener(_contactListener);
+        var contactListener = new SceneContactListener();
+        _physicsWorld.SetContactListener(contactListener);
 
         // Create and register physics simulation system with the physics world
-        _physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
-        _systemManager.RegisterSystem(_physicsSimulationSystem);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
+        _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 
     public IEnumerable<Entity> Entities => Context.Instance.Entities;

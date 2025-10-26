@@ -5,10 +5,17 @@ namespace Editor.Panels;
 
 public class RendererStatsPanel
 {
+    private readonly IGraphics2D _graphics2D;
+
+    public RendererStatsPanel(IGraphics2D graphics2D)
+    {
+        _graphics2D = graphics2D;
+    }
+
     public void Render()
     {
         // --- Renderer2D Stats ---
-        var stats2D = Graphics2D.Instance.GetStats();
+        var stats2D = _graphics2D.GetStats();
         ImGui.Text("Renderer2D Stats:");
         ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
         ImGui.Text($"Quads: {stats2D.QuadCount}");

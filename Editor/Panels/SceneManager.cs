@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
@@ -16,16 +17,18 @@ public class SceneManager
 
     private readonly SceneHierarchyPanel _sceneHierarchyPanel;
     private readonly ISceneSerializer _sceneSerializer;
+    private readonly IGraphics2D _graphics2D;
 
-    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer)
+    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, IGraphics2D graphics2D)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneSerializer = sceneSerializer;
+        _graphics2D = graphics2D;
     }
 
     public void New(Vector2 viewportSize)
     {
-        CurrentScene.Set(new Scene(""));
+        CurrentScene.Set(new Scene("", _graphics2D));
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         Logger.Information("📄 New scene created");
@@ -37,7 +40,7 @@ public class SceneManager
             Stop();
 
         EditorScenePath = path;
-        CurrentScene.Set(new Scene(path));
+        CurrentScene.Set(new Scene(path, _graphics2D));
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
