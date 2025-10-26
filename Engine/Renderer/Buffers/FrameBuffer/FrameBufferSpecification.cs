@@ -37,8 +37,8 @@ public struct FramebufferTextureSpecification
 
 public class FrameBufferSpecification(uint width, uint height, uint samples = 1, bool swapChainTarget = false)
 {
-    public uint Width { get;  set; } = width;
-    public uint Height { get;  set; } = height;
+    public uint Width { get; internal set; } = width;
+    public uint Height { get; internal set; } = height;
     public uint Samples { get; init; } = samples;
     public bool SwapChainTarget { get; init; } = swapChainTarget;
     public FramebufferAttachmentSpecification AttachmentsSpec { get; set; }
