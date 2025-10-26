@@ -41,6 +41,7 @@ public class SceneSystemRegistry
     /// <remarks>
     /// This method is thread-safe and can be called concurrently for multiple scenes.
     /// All returned systems are singletons that will be shared across scenes.
+    /// Systems are marked as shared to prevent multiple OnShutdown() calls when scenes are disposed.
     /// </remarks>
     public IReadOnlyList<ISystem> PopulateSystemManager(SystemManager systemManager)
     {
@@ -59,8 +60,10 @@ public class SceneSystemRegistry
             {
                 try
                 {
-                    systemManager.RegisterSystem(system);
-                    Logger.Debug("Registered singleton system: {SystemType}", system.GetType().Name);
+                    // Mark as shared to prevent OnShutdown() being called multiple times
+                    // when different scenes are disposed
+                    systemManager.RegisterSystem(system, isShared: true);
+                    Logger.Debug("Registered shared singleton system: {SystemType}", system.GetType().Name);
                 }
                 catch (Exception ex)
                 {
