@@ -181,6 +181,9 @@ public class SceneSerializer : ISceneSerializer
             case nameof(SpriteRendererComponent):
                 DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
+            case nameof(SubTextureRendererComponent):
+                AddComponent<SubTextureRendererComponent>(entity, componentObj);
+                break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
                 break;
@@ -303,6 +306,7 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<TransformComponent>(entity, entityObj, nameof(TransformComponent));
         SerializeComponent<CameraComponent>(entity, entityObj, nameof(CameraComponent));
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
+        SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeNativeScriptComponent(entity, entityObj);
