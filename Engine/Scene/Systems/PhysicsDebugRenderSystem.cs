@@ -1,6 +1,7 @@
 using System.Numerics;
 using Box2D.NetStandard.Dynamics.Bodies;
 using ECS;
+using Engine.Core;
 using Engine.Renderer;
 using Engine.Scene.Components;
 using Serilog;
@@ -14,9 +15,8 @@ namespace Engine.Scene.Systems;
 public class PhysicsDebugRenderSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
-    
+
     private readonly IGraphics2D _renderer;
-    private readonly bool _isEnabled;
 
     /// <summary>
     /// Execution priority for this system.
@@ -28,11 +28,9 @@ public class PhysicsDebugRenderSystem : ISystem
     /// Creates a new PhysicsDebugRenderSystem.
     /// </summary>
     /// <param name="renderer">The 2D renderer interface to use for drawing debug shapes.</param>
-    /// <param name="isEnabled">Whether debug rendering is enabled. If false, OnUpdate does nothing.</param>
-    public PhysicsDebugRenderSystem(IGraphics2D renderer, bool isEnabled = true)
+    public PhysicsDebugRenderSystem(IGraphics2D renderer)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
-        _isEnabled = isEnabled;
     }
 
     /// <summary>
@@ -45,12 +43,12 @@ public class PhysicsDebugRenderSystem : ISystem
 
     /// <summary>
     /// Updates the system, rendering debug visualizations for all physics bodies.
-    /// Only renders if the system is enabled.
+    /// Only renders if debug settings are enabled.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since last update (unused by this system).</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (!_isEnabled)
+        if (!DebugSettings.Instance.ShowPhysicsDebug)
             return;
 
         // Find the primary camera for rendering

@@ -1,4 +1,6 @@
 using System.Numerics;
+using Editor.UI;
+using Engine.Core;
 using Engine.Renderer.Cameras;
 using ImGuiNET;
 
@@ -45,6 +47,23 @@ public class EditorSettingsUI
         {
             _cameraController.Camera.SetRotation(camRot);
         }
+
+        ImGui.Separator();
+
+        // --- Debug Visualization Settings ---
+        ImGui.SeparatorText("Debug Visualization");
+
+        bool showPhysics = DebugSettings.Instance.ShowPhysicsDebug;
+        if (ImGui.Checkbox("Show Physics Debug", ref showPhysics))
+            DebugSettings.Instance.ShowPhysicsDebug = showPhysics;
+
+        bool showColliders = DebugSettings.Instance.ShowColliderBounds;
+        if (ImGui.Checkbox("Show Collider Bounds", ref showColliders))
+            DebugSettings.Instance.ShowColliderBounds = showColliders;
+
+        bool showFps = DebugSettings.Instance.ShowFPS;
+        if (ImGui.Checkbox("Show FPS Counter", ref showFps))
+            DebugSettings.Instance.ShowFPS = showFps;
 
         ImGui.End();
     }
