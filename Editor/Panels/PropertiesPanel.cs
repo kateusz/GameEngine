@@ -10,12 +10,12 @@ public class PropertiesPanel
 {
     private Entity? _selectedEntity;
     private readonly ComponentEditorRegistry _componentEditors;
-    private readonly IPrefabManager? _prefabManager;
+    private readonly IPrefabManager _prefabManager;
 
-    public PropertiesPanel(IPrefabManager? prefabManager = null)
+    public PropertiesPanel(IPrefabManager prefabManager, ComponentEditorRegistry componentEditors)
     {
         _prefabManager = prefabManager;
-        _componentEditors = new ComponentEditorRegistry();
+        _componentEditors = componentEditors;
     }
 
     public void SetSelectedEntity(Entity? entity)
@@ -36,7 +36,7 @@ public class PropertiesPanel
         
         ImGui.End();
         
-        _prefabManager?.RenderPopups();
+        _prefabManager.RenderPopups();
     }
 
     private void DrawEntityProperties()

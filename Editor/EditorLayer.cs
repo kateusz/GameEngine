@@ -33,32 +33,33 @@ public class EditorLayer : ILayer
     private readonly Vector2[] _viewportBounds = new Vector2[2];
     private SceneHierarchyPanel _sceneHierarchyPanel;
     private ContentBrowserPanel _contentBrowserPanel;
-    private PropertiesPanel _propertiesPanel;
-    private ConsolePanel _consolePanel;
+    private readonly PropertiesPanel _propertiesPanel;
+    private readonly ConsolePanel _consolePanel;
     private Entity? _hoveredEntity;
     
     private ProjectUI _projectUI;
-    private IProjectManager _projectManager;
+    private readonly IProjectManager _projectManager;
     private SceneManager _sceneManager;
-    private EditorPreferences _editorPreferences;
+    private readonly EditorPreferences _editorPreferences;
     
     private readonly RendererStatsPanel _rendererStatsPanel = new();
     private EditorToolbar _editorToolbar;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
-    private EditorSettingsUI _editorSettingsUI;
+    private readonly EditorSettingsUI _editorSettingsUI;
     
     private readonly ISceneSerializer  _sceneSerializer;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI)
+    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI, PropertiesPanel propertiesPanel)
     {
         _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
         _consolePanel = consolePanel;
         _editorPreferences = editorPreferences;
         _editorSettingsUI = editorSettingsUI;
+        _propertiesPanel = propertiesPanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -86,7 +87,6 @@ public class EditorLayer : ILayer
         _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
 
         _contentBrowserPanel = new ContentBrowserPanel();
-        _propertiesPanel = new PropertiesPanel();
         _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
         _editorToolbar = new EditorToolbar(_sceneManager);
 
