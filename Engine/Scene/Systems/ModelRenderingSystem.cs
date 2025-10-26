@@ -10,14 +10,13 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// System responsible for rendering 3D models with MeshComponent and ModelRendererComponent.
 /// This system operates on entities that have TransformComponent, MeshComponent, and ModelRendererComponent.
+/// Automatically finds the primary camera in the scene - no manual camera setup required.
 /// </summary>
 public class ModelRenderingSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ModelRenderingSystem>();
-    
+
     private readonly IGraphics3D _graphics3D;
-    private Camera? _activeCamera;
-    private Matrix4x4 _cameraTransform;
 
     /// <summary>
     /// Gets the priority of this system.
@@ -36,18 +35,6 @@ public class ModelRenderingSystem : ISystem
     }
 
     /// <summary>
-    /// Sets the active camera and its transform matrix.
-    /// This must be called before OnUpdate to ensure proper rendering.
-    /// </summary>
-    /// <param name="camera">The camera to use for rendering. Can be null to skip rendering.</param>
-    /// <param name="transform">The camera's transform matrix.</param>
-    public void SetCamera(Camera? camera, Matrix4x4 transform)
-    {
-        _activeCamera = camera;
-        _cameraTransform = transform;
-    }
-
-    /// <summary>
     /// Called once when the system is registered and initialized.
     /// </summary>
     public void OnInit()
@@ -57,15 +44,33 @@ public class ModelRenderingSystem : ISystem
 
     /// <summary>
     /// Called every frame to update and render 3D models.
+    /// Automatically finds the primary camera in the scene.
     /// </summary>
     /// <param name="deltaTime">The time elapsed since the last update.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Skip rendering if no active camera is set
-        if (_activeCamera == null)
+        // Find the primary camera in the scene
+        Camera? mainCamera = null;
+        Matrix4x4 cameraTransform = Matrix4x4.Identity;
+
+        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        foreach (var entity in cameraGroup)
+        {
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+            if (cameraComponent.Primary)
+            {
+                mainCamera = cameraComponent.Camera;
+                var transformComponent = entity.GetComponent<TransformComponent>();
+                cameraTransform = transformComponent.GetTransform();
+                break;
+            }
+        }
+
+        // Skip rendering if no primary camera is found
+        if (mainCamera == null)
             return;
 
-        _graphics3D.BeginScene(_activeCamera, _cameraTransform);
+        _graphics3D.BeginScene(mainCamera, cameraTransform);
 
         // Get all entities with the required components for 3D model rendering
         var group = Context.Instance.GetGroup([

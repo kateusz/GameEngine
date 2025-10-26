@@ -9,9 +9,9 @@ public class ContentBrowserPanel
 {
     private string _assetPath;
     private string _currentDirectory;
-    private readonly Texture2D _directoryIcon;
-    private readonly Texture2D _fileIcon;
-    private readonly Texture2D _prefabIcon;
+    private Texture2D _directoryIcon;
+    private Texture2D _fileIcon;
+    private Texture2D _prefabIcon;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
 
     public ContentBrowserPanel()
@@ -19,7 +19,10 @@ public class ContentBrowserPanel
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
         _currentDirectory = _assetPath;
+    }
 
+    public void Init()
+    {
         _directoryIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/DirectoryIcon.png");
         _fileIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/FileIcon.png");
         _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");

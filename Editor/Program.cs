@@ -6,13 +6,17 @@ using Editor.Panels.Elements;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
+using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Serilog;
 using Editor.Logging;
+using Editor.Panels.ComponentEditors;
 using Editor.Popups;
+using Engine.Renderer;
+using Engine.Scene.Systems;
 
 static void ConfigureContainer(Container container)
 {
@@ -29,6 +33,18 @@ static void ConfigureContainer(Container container)
         made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
     );
 
+    container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
+    container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+
+    // Register SceneSystemRegistry and systems
+    container.Register<SceneFactory>(Reuse.Singleton);
+    container.Register<SceneSystemRegistry>(Reuse.Singleton);
+    container.Register<SpriteRenderingSystem>(Reuse.Singleton);
+    container.Register<ModelRenderingSystem>(Reuse.Singleton);
+    container.Register<ScriptUpdateSystem>(Reuse.Singleton);
+    container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
+    container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
+    
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
     container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
@@ -36,6 +52,16 @@ static void ConfigureContainer(Container container)
         made: Made.Of(() => EditorPreferences.Load())
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
+    container.Register<ComponentEditorRegistry>(Reuse.Singleton);
+    container.Register<PropertiesPanel>(Reuse.Singleton);
+    container.Register<SceneHierarchyPanel>(Reuse.Singleton);
+    container.Register<EntityContextMenu>(Reuse.Singleton);
+    container.Register<PrefabDropTarget>(Reuse.Singleton);
+    container.Register<SceneManager>(Reuse.Singleton);
+    container.Register<ContentBrowserPanel>(Reuse.Singleton);
+    container.Register<ProjectUI>(Reuse.Singleton);
+    container.Register<EditorToolbar>(Reuse.Singleton);
+    container.Register<RendererStatsPanel>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);

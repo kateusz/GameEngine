@@ -10,8 +10,9 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// System responsible for physics simulation using Box2D.
 /// Handles fixed timestep physics stepping and synchronization between physics bodies and transforms.
+/// This is a PER-SCENE system - each scene has its own instance with its own physics world.
 /// </summary>
-public class PhysicsSimulationSystem : ISystem
+public class PhysicsSimulationSystem : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
 
@@ -19,6 +20,7 @@ public class PhysicsSimulationSystem : ISystem
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
+    private bool _disposed = false;
 
     /// <summary>
     /// Maximum physics steps per frame to prevent spiral of death.
@@ -108,10 +110,27 @@ public class PhysicsSimulationSystem : ISystem
 
     /// <summary>
     /// Shuts down the physics system.
-    /// Currently no cleanup needed as World is managed by Scene.
+    /// Called when the system is unregistered or scene is stopped.
     /// </summary>
     public void OnShutdown()
     {
         Logger.Debug("PhysicsSimulationSystem shut down");
+    }
+
+    /// <summary>
+    /// Disposes the physics system and its associated Box2D World.
+    /// Note: Box2D.NetStandard World doesn't implement IDisposable, but we call this
+    /// to maintain consistent disposal patterns. The World will be garbage collected.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        // Box2D.NetStandard World doesn't implement IDisposable
+        // Bodies should already be destroyed by Scene.OnRuntimeStop() before disposal
+        // The World will be garbage collected
+
+        _disposed = true;
+        Logger.Debug("PhysicsSimulationSystem disposed");
     }
 }

@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.Managers;
 using Editor.Panels;
-using Editor.Logging;
 using Editor.Popups;
 using Engine.Core;
 using Engine.Core.Input;
@@ -14,7 +13,6 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
-using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
 using Serilog;
@@ -25,40 +23,51 @@ namespace Editor;
 public class EditorLayer : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
-
+    
+    private readonly Vector2[] _viewportBounds = new Vector2[2];
+    private readonly SceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly ContentBrowserPanel _contentBrowserPanel;
+    private readonly PropertiesPanel _propertiesPanel;
+    private readonly ConsolePanel _consolePanel;
+    private readonly ProjectUI _projectUI;
+    private readonly IProjectManager _projectManager;
+    private readonly SceneManager _sceneManager;
+    private readonly EditorPreferences _editorPreferences;
+    private readonly RendererStatsPanel _rendererStatsPanel;
+    private readonly EditorToolbar _editorToolbar;
+    private readonly PerformanceMonitorUI _performanceMonitor = new();
+    private readonly EditorSettingsUI _editorSettingsUI;
+    private readonly IGraphics2D _graphics2D;
+    private readonly SceneFactory _sceneFactory;
+    
+    // TODO: check concurrency
+    private readonly HashSet<KeyCodes> _pressedKeys = [];
+    
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
-    private readonly Vector2[] _viewportBounds = new Vector2[2];
-    private SceneHierarchyPanel _sceneHierarchyPanel;
-    private ContentBrowserPanel _contentBrowserPanel;
-    private PropertiesPanel _propertiesPanel;
-    private ConsolePanel _consolePanel;
     private Entity? _hoveredEntity;
-    
-    private ProjectUI _projectUI;
-    private IProjectManager _projectManager;
-    private SceneManager _sceneManager;
-    private EditorPreferences _editorPreferences;
-    
-    private readonly RendererStatsPanel _rendererStatsPanel = new();
-    private EditorToolbar _editorToolbar;
-    private readonly PerformanceMonitorUI _performanceMonitor = new();
-    private EditorSettingsUI _editorSettingsUI;
-    
-    private readonly ISceneSerializer  _sceneSerializer;
-    
-    // TODO: check concurrency
-    private readonly HashSet<KeyCodes> _pressedKeys = [];
 
-    public EditorLayer(ISceneSerializer sceneSerializer, IProjectManager projectManager, EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI)
+    public EditorLayer(IProjectManager projectManager,
+        EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
+        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
+        ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
     {
-        _sceneSerializer = sceneSerializer;
         _projectManager = projectManager;
         _consolePanel = consolePanel;
         _editorPreferences = editorPreferences;
         _editorSettingsUI = editorSettingsUI;
+        _propertiesPanel = propertiesPanel;
+        _sceneHierarchyPanel = sceneHierarchyPanel;
+        _sceneManager = sceneManager;
+        _contentBrowserPanel = contentBrowserPanel;
+        _editorToolbar = editorToolbar;
+        _projectUI = projectUI;
+        _graphics2D = graphics2D;
+        _rendererStatsPanel = rendererStatsPanel;
+        _sceneFactory = sceneFactory;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -77,18 +86,15 @@ public class EditorLayer : ILayer
             ])
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
+
+        var scene = _sceneFactory.Create("");
+        CurrentScene.Set(scene);
         
-        CurrentScene.Set(new Scene(""));
-        
-        _sceneHierarchyPanel = new SceneHierarchyPanel(CurrentScene.Instance);
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
-
-        _sceneManager = new SceneManager(_sceneHierarchyPanel, _sceneSerializer);
-
-        _contentBrowserPanel = new ContentBrowserPanel();
-        _propertiesPanel = new PropertiesPanel();
-        _projectUI = new ProjectUI(_projectManager, _contentBrowserPanel);
-        _editorToolbar = new EditorToolbar(_sceneManager);
+        
+        _contentBrowserPanel.Init();
+        _editorToolbar.Init();
 
         // Apply settings from preferences
         ApplyEditorSettings();
@@ -126,6 +132,10 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+
+        // Dispose current scene to cleanup resources
+        CurrentScene.Instance?.Dispose();
+
         _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
         Log.CloseAndFlush();
@@ -149,12 +159,11 @@ public class EditorLayer : ILayer
             CurrentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
-        Graphics2D.Instance.ResetStats();
-        Graphics3D.Instance.ResetStats();
+        _graphics2D.ResetStats();
         _frameBuffer.Bind();
 
-        Graphics2D.Instance.SetClearColor(_editorSettingsUI.GetBackgroundColor());
-        Graphics2D.Instance.Clear();
+        _graphics2D.SetClearColor(_editorSettingsUI.GetBackgroundColor());
+        _graphics2D.Clear();
 
         _frameBuffer.ClearAttachment(1, -1);
 

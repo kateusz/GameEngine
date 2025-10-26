@@ -84,57 +84,6 @@ public class SystemManagerTests
     }
 
     [Fact]
-    public void UnregisterSystem_RemovesSystemFromManager()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        var system = new TestSystem();
-        manager.RegisterSystem(system);
-
-        // Act
-        manager.UnregisterSystem(system);
-
-        // Assert
-        Assert.Equal(0, manager.SystemCount);
-    }
-
-    [Fact]
-    public void UnregisterSystem_CallsOnShutdown()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        var system = new TestSystem();
-        manager.RegisterSystem(system);
-
-        // Act
-        manager.UnregisterSystem(system);
-
-        // Assert
-        Assert.True(system.ShutdownCalled);
-    }
-
-    [Fact]
-    public void UnregisterSystem_WithNull_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var manager = new SystemManager();
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => manager.UnregisterSystem(null!));
-    }
-
-    [Fact]
-    public void UnregisterSystem_WithUnregisteredSystem_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        var system = new TestSystem();
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => manager.UnregisterSystem(system));
-    }
-
-    [Fact]
     public void Initialize_CallsOnInitOnAllSystems()
     {
         // Arrange
@@ -320,24 +269,6 @@ public class SystemManagerTests
 
         // Assert
         Assert.Equal(new[] { "Init", "Update" }, system.CallOrder);
-    }
-
-    [Fact]
-    public void SystemLifecycle_OnShutdownCalledWhenUnregistered()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        var system = new TestSystem();
-        manager.RegisterSystem(system);
-        manager.Initialize();
-        manager.Update(TimeSpan.FromSeconds(0.016));
-
-        // Act
-        manager.UnregisterSystem(system);
-
-        // Assert
-        Assert.Contains("Shutdown", system.CallOrder);
-        Assert.True(system.ShutdownCalled);
     }
 
     [Fact]

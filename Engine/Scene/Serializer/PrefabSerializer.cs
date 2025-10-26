@@ -180,7 +180,8 @@ public class PrefabSerializer : IPrefabSerializer
 
     private void ClearEntityComponents(Entity entity)
     {
-        // Remove all components except transform (entities should always have transform)
+        if (entity.HasComponent<TransformComponent>())
+            entity.RemoveComponent<TransformComponent>();
         if (entity.HasComponent<CameraComponent>())
             entity.RemoveComponent<CameraComponent>();
         if (entity.HasComponent<SpriteRendererComponent>())

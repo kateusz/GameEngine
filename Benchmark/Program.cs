@@ -1,6 +1,9 @@
 ﻿using DryIoc;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
+using Engine.Renderer;
+using Engine.Scene;
+using Engine.Scene.Systems;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -25,7 +28,19 @@ public class Program
         container.Register<IGameWindow>(Reuse.Singleton,
             made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
         );
-        
+
+        container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
+        container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+
+        // Register SceneSystemRegistry and systems
+        container.Register<SceneFactory>(Reuse.Singleton);
+        container.Register<SceneSystemRegistry>(Reuse.Singleton);
+        container.Register<SpriteRenderingSystem>(Reuse.Singleton);
+        container.Register<ModelRenderingSystem>(Reuse.Singleton);
+        container.Register<ScriptUpdateSystem>(Reuse.Singleton);
+        container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
+        container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
+
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);
         container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
