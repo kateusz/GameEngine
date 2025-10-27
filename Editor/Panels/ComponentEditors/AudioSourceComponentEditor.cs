@@ -1,5 +1,6 @@
 using ECS;
 using Editor.Panels.Elements;
+using Engine.Platform.SilkNet.Audio;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -13,18 +14,11 @@ public class AudioSourceComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<AudioSourceComponent>();
 
-            // Audio clip (for now, just display the path or null)
-            ImGui.Text("Audio Clip:");
-            ImGui.SameLine();
-            if (component.AudioClip != null)
+            // Audio clip with drag-and-drop support
+            AudioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>
             {
-                ImGui.TextColored(new System.Numerics.Vector4(0.5f, 1.0f, 0.5f, 1.0f),
-                    System.IO.Path.GetFileName(component.AudioClip.Path));
-            }
-            else
-            {
-                ImGui.TextColored(new System.Numerics.Vector4(1.0f, 0.5f, 0.5f, 1.0f), "None");
-            }
+                component.AudioClip = audioClip;
+            });
 
             // Volume slider
             UIPropertyRenderer.DrawPropertyField("Volume", component.Volume,
@@ -67,17 +61,17 @@ public class AudioSourceComponentEditor : IComponentEditor
 
             if (ImGui.Button("Play"))
             {
-                component.Play();
+                AudioEngine.Instance.PlayOneShot("assets/sounds/click.wav", volume: 0.5f);
             }
             ImGui.SameLine();
             if (ImGui.Button("Pause"))
             {
-                component.Pause();
+                // TBD: Implement pause functionality
             }
             ImGui.SameLine();
             if (ImGui.Button("Stop"))
             {
-                component.Stop();
+                // TBD: Implement stop functionality
             }
 
             // Playing status

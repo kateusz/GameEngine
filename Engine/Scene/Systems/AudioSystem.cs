@@ -70,6 +70,70 @@ public class AudioSystem : ISystem
     }
 
     /// <summary>
+    /// Plays the audio source for the specified entity.
+    /// </summary>
+    /// <param name="entity">Entity with an AudioSourceComponent.</param>
+    public static void Play(Entity entity)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+        {
+            Logger.Warning($"Cannot play audio for entity '{entity.Name}' - no AudioSourceComponent found");
+            return;
+        }
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        if (component.RuntimeAudioSource != null && component.AudioClip != null)
+        {
+            component.RuntimeAudioSource.Play();
+            component.IsPlaying = true;
+        }
+        else if (component.AudioClip == null)
+        {
+            Logger.Warning($"Cannot play audio for entity '{entity.Name}' - no AudioClip assigned");
+        }
+    }
+
+    /// <summary>
+    /// Pauses the audio playback for the specified entity.
+    /// </summary>
+    /// <param name="entity">Entity with an AudioSourceComponent.</param>
+    public static void Pause(Entity entity)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+        {
+            Logger.Warning($"Cannot pause audio for entity '{entity.Name}' - no AudioSourceComponent found");
+            return;
+        }
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        if (component.RuntimeAudioSource != null)
+        {
+            component.RuntimeAudioSource.Pause();
+            component.IsPlaying = false;
+        }
+    }
+
+    /// <summary>
+    /// Stops the audio playback for the specified entity.
+    /// </summary>
+    /// <param name="entity">Entity with an AudioSourceComponent.</param>
+    public static void Stop(Entity entity)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+        {
+            Logger.Warning($"Cannot stop audio for entity '{entity.Name}' - no AudioSourceComponent found");
+            return;
+        }
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        if (component.RuntimeAudioSource != null)
+        {
+            component.RuntimeAudioSource.Stop();
+            component.IsPlaying = false;
+        }
+    }
+
+    /// <summary>
     /// Initializes an audio source for an entity.
     /// Creates the runtime audio source and sets up initial properties.
     /// </summary>
@@ -96,52 +160,21 @@ public class AudioSystem : ISystem
             component.RuntimeAudioSource.Pitch = component.Pitch;
             component.RuntimeAudioSource.Loop = component.Loop;
 
-            // Set 3D spatial properties if supported
-            if (component.Is3D && AudioEngine.Instance is SilkNetAudioEngine silkEngine)
-            {
-                var al = silkEngine.GetAL();
-                var source = component.RuntimeAudioSource as SilkNetAudioSource;
-                if (source != null)
-                {
-                    var sourceId = GetSourceId(source);
-                    if (sourceId != 0)
-                    {
-                        // Enable 3D positioning
-                        al.SetSourceProperty(sourceId, SourceBoolean.SourceRelative, false);
-                        al.SetSourceProperty(sourceId, SourceFloat.ReferenceDistance, component.MinDistance);
-                        al.SetSourceProperty(sourceId, SourceFloat.MaxDistance, component.MaxDistance);
-                        al.SetSourceProperty(sourceId, SourceFloat.RolloffFactor, 1.0f);
+            // Configure spatial mode
+            component.RuntimeAudioSource.SetSpatialMode(component.Is3D, component.MinDistance, component.MaxDistance);
 
-                        // Set initial position from transform
-                        if (entity.HasComponent<TransformComponent>())
-                        {
-                            var transform = entity.GetComponent<TransformComponent>();
-                            var pos = transform.Translation;
-                            al.SetSourceProperty(sourceId, SourceVector3.Position, pos.X, pos.Y, pos.Z);
-                        }
-                    }
-                }
-            }
-            else if (!component.Is3D && AudioEngine.Instance is SilkNetAudioEngine silkEngine2)
+            // Set initial 3D position from transform if applicable
+            if (component.Is3D && entity.HasComponent<TransformComponent>())
             {
-                // Set as 2D audio (relative to listener)
-                var al = silkEngine2.GetAL();
-                var source = component.RuntimeAudioSource as SilkNetAudioSource;
-                if (source != null)
-                {
-                    var sourceId = GetSourceId(source);
-                    if (sourceId != 0)
-                    {
-                        al.SetSourceProperty(sourceId, SourceBoolean.SourceRelative, true);
-                        al.SetSourceProperty(sourceId, SourceVector3.Position, 0.0f, 0.0f, 0.0f);
-                    }
-                }
+                var transform = entity.GetComponent<TransformComponent>();
+                component.RuntimeAudioSource.SetPosition(transform.Translation);
             }
 
             // Play on awake if requested
             if (component is { PlayOnAwake: true, AudioClip: not null })
             {
-                component.Play();
+                component.RuntimeAudioSource.Play();
+                component.IsPlaying = true;
             }
         }
         catch (Exception ex)
@@ -211,11 +244,6 @@ public class AudioSystem : ISystem
     /// </summary>
     private void UpdateAudioSources()
     {
-        if (AudioEngine.Instance is not SilkNetAudioEngine silkEngine)
-            return;
-
-        var al = silkEngine.GetAL();
-
         var view = Context.Instance.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
@@ -243,21 +271,10 @@ public class AudioSystem : ISystem
                 if (component.Is3D && entity.HasComponent<TransformComponent>())
                 {
                     var transform = entity.GetComponent<TransformComponent>();
-                    var pos = transform.Translation;
+                    component.RuntimeAudioSource.SetPosition(transform.Translation);
 
-                    var source = component.RuntimeAudioSource as SilkNetAudioSource;
-                    if (source != null)
-                    {
-                        var sourceId = GetSourceId(source);
-                        if (sourceId != 0)
-                        {
-                            al.SetSourceProperty(sourceId, SourceVector3.Position, pos.X, pos.Y, pos.Z);
-
-                            // Update distance properties if changed
-                            al.SetSourceProperty(sourceId, SourceFloat.ReferenceDistance, component.MinDistance);
-                            al.SetSourceProperty(sourceId, SourceFloat.MaxDistance, component.MaxDistance);
-                        }
-                    }
+                    // Update distance properties if changed
+                    component.RuntimeAudioSource.SetSpatialMode(true, component.MinDistance, component.MaxDistance);
                 }
 
                 // Sync playing state
@@ -268,24 +285,5 @@ public class AudioSystem : ISystem
                 Logger.Error(ex, $"Error updating audio source for entity '{entity.Name}' (ID: {entity.Id})");
             }
         }
-    }
-
-    /// <summary>
-    /// Gets the OpenAL source ID from a SilkNetAudioSource using reflection.
-    /// This is a workaround since the source ID is private.
-    /// </summary>
-    private static uint GetSourceId(SilkNetAudioSource source)
-    {
-        var field = typeof(SilkNetAudioSource).GetField("_sourceId",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        if (field != null)
-        {
-            var value = field.GetValue(source);
-            if (value is uint sourceId)
-            {
-                return sourceId;
-            }
-        }
-        return 0;
     }
 }

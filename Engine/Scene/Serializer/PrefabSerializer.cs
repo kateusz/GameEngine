@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
 using Engine.Core.Input;
+using Engine.Platform.SilkNet.Audio;
 using Engine.Scene.Components;
 using Engine.Scripting;
 
@@ -132,6 +133,8 @@ public class PrefabSerializer : IPrefabSerializer
         SerializeComponent<BoxCollider2DComponent>(entity, componentsArray, nameof(BoxCollider2DComponent));
         SerializeComponent<MeshComponent>(entity, componentsArray, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, componentsArray, nameof(ModelRendererComponent));
+        SerializeComponent<AudioListenerComponent>(entity, componentsArray, nameof(AudioListenerComponent));
+        SerializeAudioSourceComponent(entity, componentsArray);
         SerializeNativeScriptComponent(entity, componentsArray);
     }
 
@@ -146,6 +149,20 @@ public class PrefabSerializer : IPrefabSerializer
         if (element != null)
         {
             element[NameKey] = componentName;
+            componentsArray.Add(element);
+        }
+    }
+
+    private void SerializeAudioSourceComponent(Entity entity, JsonArray componentsArray)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+            return;
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        if (element != null)
+        {
+            element[NameKey] = nameof(AudioSourceComponent);
             componentsArray.Add(element);
         }
     }
@@ -196,6 +213,10 @@ public class PrefabSerializer : IPrefabSerializer
             entity.RemoveComponent<MeshComponent>();
         if (entity.HasComponent<ModelRendererComponent>())
             entity.RemoveComponent<ModelRendererComponent>();
+        if (entity.HasComponent<AudioListenerComponent>())
+            entity.RemoveComponent<AudioListenerComponent>();
+        if (entity.HasComponent<AudioSourceComponent>())
+            entity.RemoveComponent<AudioSourceComponent>();
         if (entity.HasComponent<NativeScriptComponent>())
             entity.RemoveComponent<NativeScriptComponent>();
     }
@@ -233,10 +254,30 @@ public class PrefabSerializer : IPrefabSerializer
             case nameof(ModelRendererComponent):
                 AddComponent<ModelRendererComponent>(entity, componentObj);
                 break;
+            case nameof(AudioListenerComponent):
+                AddComponent<AudioListenerComponent>(entity, componentObj);
+                break;
+            case nameof(AudioSourceComponent):
+                DeserializeAudioSourceComponent(entity, componentObj);
+                break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
         }
+    }
+
+    private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.AudioClip?.Path))
+        {
+            component.AudioClip = AudioEngine.Instance.LoadAudioClip(component.AudioClip.Path);
+        }
+
+        entity.AddComponent<AudioSourceComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)

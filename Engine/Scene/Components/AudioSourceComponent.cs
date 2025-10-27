@@ -85,40 +85,4 @@ public class AudioSourceComponent : IComponent
     {
         return new AudioSourceComponent(AudioClip, Volume, Pitch, Loop, PlayOnAwake, Is3D, MinDistance, MaxDistance);
     }
-
-    /// <summary>
-    /// Plays the audio clip if one is assigned.
-    /// </summary>
-    public void Play()
-    {
-        if (RuntimeAudioSource != null && AudioClip != null)
-        {
-            RuntimeAudioSource.Play();
-            IsPlaying = true;
-        }
-    }
-
-    /// <summary>
-    /// Pauses the audio playback.
-    /// </summary>
-    public void Pause()
-    {
-        if (RuntimeAudioSource != null)
-        {
-            RuntimeAudioSource.Pause();
-            IsPlaying = false;
-        }
-    }
-
-    /// <summary>
-    /// Stops the audio playback.
-    /// </summary>
-    public void Stop()
-    {
-        if (RuntimeAudioSource != null)
-        {
-            RuntimeAudioSource.Stop();
-            IsPlaying = false;
-        }
-    }
 }
