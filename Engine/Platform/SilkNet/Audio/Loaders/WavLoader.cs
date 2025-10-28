@@ -6,7 +6,7 @@ namespace Engine.Platform.SilkNet.Audio.Loaders;
 
 public class WavLoader : IAudioLoader
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<WavLoader>();
+    private static readonly ILogger Logger = Log.ForContext<WavLoader>();
     
     public bool CanLoad(string path)
         {

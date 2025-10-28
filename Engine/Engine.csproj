@@ -42,6 +42,10 @@
         <ProjectReference Include="../ECS/ECS.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Platform\OpenTK\Audio\OpenTKAudioClip.cs" />
+    </ItemGroup>
+
     <!-- No asset directories needed for Engine project -->
 
 </Project>

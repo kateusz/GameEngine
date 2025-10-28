@@ -4,27 +4,27 @@ namespace Engine.Audio;
 
 public static class AudioLoaderRegistry
 {
-    private static readonly List<IAudioLoader> _loaders = new()
-    {
-        new WavLoader(),
-    };
+    private static readonly List<IAudioLoader> Loaders =
+    [
+        new WavLoader()
+    ];
 
     public static void RegisterLoader(IAudioLoader loader)
     {
         if (loader == null)
             throw new ArgumentNullException(nameof(loader));
                 
-        _loaders.Add(loader);
+        Loaders.Add(loader);
     }
 
     public static void UnregisterLoader(IAudioLoader loader)
     {
-        _loaders.Remove(loader);
+        Loaders.Remove(loader);
     }
 
     public static IAudioLoader GetLoader(string path)
     {
-        return _loaders.FirstOrDefault(loader => loader.CanLoad(path));
+        return Loaders.FirstOrDefault(loader => loader.CanLoad(path));
     }
 
     public static bool IsSupported(string path)
