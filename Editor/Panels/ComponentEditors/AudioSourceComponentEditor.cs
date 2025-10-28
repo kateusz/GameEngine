@@ -63,16 +63,6 @@ public class AudioSourceComponentEditor : IComponentEditor
             {
                 AudioEngine.Instance.PlayOneShot("assets/sounds/click.wav", volume: 0.5f);
             }
-            ImGui.SameLine();
-            if (ImGui.Button("Pause"))
-            {
-                // TBD: Implement pause functionality
-            }
-            ImGui.SameLine();
-            if (ImGui.Button("Stop"))
-            {
-                // TBD: Implement stop functionality
-            }
 
             // Playing status
             ImGui.Text($"Status: {(component.IsPlaying ? "Playing" : "Stopped")}");
