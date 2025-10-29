@@ -52,9 +52,9 @@ public class PrefabSerializer : IPrefabSerializer
     {
         var prefabDir = Path.Combine(projectPath, PrefabAssetsDirectory);
         Directory.CreateDirectory(prefabDir);
-        
+
         var prefabPath = Path.Combine(prefabDir, $"{prefabName}.prefab");
-        
+
         var jsonObj = new JsonObject
         {
             [PrefabKey] = prefabName,
@@ -70,7 +70,7 @@ public class PrefabSerializer : IPrefabSerializer
         {
             WriteIndented = true
         });
-        
+
         File.WriteAllText(prefabPath, jsonString);
     }
 
@@ -95,8 +95,8 @@ public class PrefabSerializer : IPrefabSerializer
         var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
         foreach (var componentNode in componentsArray)
         {
-            DeserializeComponent(entity, componentNode ?? 
-                throw new InvalidOperationException("Got null JSON Component"));
+            DeserializeComponent(entity, componentNode ??
+                                         throw new InvalidOperationException("Got null JSON Component"));
         }
     }
 
@@ -117,12 +117,12 @@ public class PrefabSerializer : IPrefabSerializer
                       throw new InvalidOperationException("Invalid prefab JSON");
 
         var entity = Entity.Create(entityId, entityName);
-        
+
         var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
         foreach (var componentNode in componentsArray)
         {
-            DeserializeComponent(entity, componentNode ?? 
-                throw new InvalidOperationException("Got null JSON Component"));
+            DeserializeComponent(entity, componentNode ??
+                                         throw new InvalidOperationException("Got null JSON Component"));
         }
 
         return entity;
@@ -193,6 +193,7 @@ public class PrefabSerializer : IPrefabSerializer
             {
                 fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, DefaultSerializerOptions);
             }
+
             if (fieldsObj.Count > 0)
                 scriptComponentObj["Fields"] = fieldsObj;
         }
@@ -273,14 +274,20 @@ public class PrefabSerializer : IPrefabSerializer
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
     {
-        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        // Extract the AudioClip path separately to avoid interface deserialization issues
+        string? audioClipPath = null;
+        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
+        {
+            audioClipPath = pathValue.GetValue<string>();
+        }
+
+        var component =
+            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component == null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(component.AudioClip?.Path))
-        {
-            component.AudioClip = _audioEngine.LoadAudioClip(component.AudioClip.Path);
-        }
+        if (!string.IsNullOrWhiteSpace(audioClipPath))
+            component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
 
         entity.AddComponent<AudioSourceComponent>(component);
     }
@@ -325,7 +332,7 @@ public class PrefabSerializer : IPrefabSerializer
 
     private JsonArray GetJsonArray(JsonObject jsonObject, string key)
     {
-        return jsonObject[key] as JsonArray ?? 
+        return jsonObject[key] as JsonArray ??
                throw new InvalidOperationException($"Got invalid {key} JSON");
     }
 }

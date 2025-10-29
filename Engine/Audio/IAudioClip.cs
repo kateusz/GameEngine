@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace Engine.Audio;
 
 public interface IAudioClip
@@ -12,8 +10,6 @@ public interface IAudioClip
     void Load();
     void Unload();
     bool IsLoaded { get; }
-        
-    [JsonIgnore]
     byte[] RawData { get; }
     int DataSize { get; }
 }

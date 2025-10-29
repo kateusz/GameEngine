@@ -228,14 +228,19 @@ public class SceneSerializer : ISceneSerializer
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
     {
+        // Extract the AudioClip path separately to avoid interface deserialization issues
+        string? audioClipPath = null;
+        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
+        {
+            audioClipPath = pathValue.GetValue<string>();
+        }
+        
         var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component == null)
             return;
-
-        if (!string.IsNullOrWhiteSpace(component.AudioClip?.Path))
-        {
-            component.AudioClip = _audioEngine.LoadAudioClip(component.AudioClip.Path);
-        }
+        
+        if (!string.IsNullOrWhiteSpace(audioClipPath)) 
+            component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
 
         entity.AddComponent<AudioSourceComponent>(component);
     }

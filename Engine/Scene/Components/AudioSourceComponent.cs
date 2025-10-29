@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
 
@@ -12,7 +13,10 @@ public class AudioSourceComponent : IComponent
     /// <summary>
     /// The audio clip to play.
     /// </summary>
+    [JsonIgnore]
     public IAudioClip? AudioClip { get; set; }
+
+    public string? AudioClipPath => AudioClip?.Path;
 
     /// <summary>
     /// Volume of the audio source (0.0 to 1.0).
@@ -61,6 +65,7 @@ public class AudioSourceComponent : IComponent
     /// Internal reference to the OpenAL audio source.
     /// Managed by the AudioSystem.
     /// </summary>
+    [JsonIgnore]
     internal IAudioSource? RuntimeAudioSource { get; set; }
 
     public AudioSourceComponent()
