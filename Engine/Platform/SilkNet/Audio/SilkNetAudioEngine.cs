@@ -1,18 +1,13 @@
+using System.Numerics;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
-public class AudioEngine
-{
-    private static IAudioEngine? _instance;
-    public static IAudioEngine Instance => _instance ??= new SilkNetAudioEngine();
-}
-
 public unsafe class SilkNetAudioEngine : IAudioEngine
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioEngine>();
+    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioEngine>();
     
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
@@ -109,14 +104,14 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
 
     public IAudioSource CreateAudioSource()
     {
-        var source = new SilkNetAudioSource(_al);
+        var source = new SilkNetAudioSource(_al, UnregisterSource);
         _activeSources.Add(source);
         return source;
     }
 
-    private static IAudioClip CreateAudioClip(string path)
+    private IAudioClip CreateAudioClip(string path)
     {
-        return new SilkNetAudioClip(path);
+        return new SilkNetAudioClip(path, _al);
     }
 
     internal void UnregisterSource(SilkNetAudioSource source)
@@ -167,6 +162,27 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
             dueTime: TimeSpan.FromSeconds(clip.Duration),
             period: Timeout.InfiniteTimeSpan
         );
+    }
+
+    public void SetListenerPosition(Vector3 position)
+    {
+        _al.SetListenerProperty(ListenerVector3.Position, position.X, position.Y, position.Z);
+    }
+
+    public void SetListenerOrientation(Vector3 forward, System.Numerics.Vector3 up)
+    {
+        unsafe
+        {
+            var orientation = stackalloc float[6];
+            orientation[0] = forward.X;
+            orientation[1] = forward.Y;
+            orientation[2] = forward.Z;
+            orientation[3] = up.X;
+            orientation[4] = up.Y;
+            orientation[5] = up.Z;
+
+            _al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
+        }
     }
 
     // Cleanup methods

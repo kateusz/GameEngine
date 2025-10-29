@@ -1,9 +1,9 @@
+using Engine.Audio;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.ImGuiNet;
-using Engine.Platform.SilkNet.Audio;
 using Engine.Renderer;
 using Serilog;
 
@@ -17,17 +17,19 @@ public abstract class Application : IApplication
     private readonly IGraphics2D _graphics2D;
     private readonly IGraphics3D _graphics3D;
     private readonly IImGuiLayer? _imGuiLayer;
+    private readonly IAudioEngine _audioEngine;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
 
     private bool _isRunning;
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
-    protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IImGuiLayer? imGuiLayer = null)
+    protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IAudioEngine audioEngine, IImGuiLayer? imGuiLayer = null)
     {
         _gameWindow = gameWindow ?? throw new ArgumentNullException(nameof(gameWindow));
         _graphics2D = graphics2D ?? throw new ArgumentNullException(nameof(graphics2D));
         _graphics3D = graphics3D;
+        _audioEngine = audioEngine;
 
         _gameWindow.OnWindowEvent += HandleWindowEvent;
         _gameWindow.OnInputEvent += HandleInputEvent;
@@ -58,7 +60,7 @@ public abstract class Application : IApplication
         // Initialize core graphics and audio subsystems - owned by Application
         _graphics2D.Init();
         _graphics3D.Init();
-        AudioEngine.Instance.Initialize();
+        _audioEngine.Initialize();
 
         _inputSystem = inputSystem;
 
@@ -191,5 +193,8 @@ public abstract class Application : IApplication
         }
 
         _layersStack.Clear();
+
+        // Shutdown audio engine
+        _audioEngine.Shutdown();
     }
 }

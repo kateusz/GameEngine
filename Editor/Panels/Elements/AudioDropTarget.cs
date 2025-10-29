@@ -1,7 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Audio;
-using Engine.Platform.SilkNet.Audio;
 using ImGuiNET;
 
 namespace Editor.Panels.Elements;
@@ -10,15 +9,22 @@ namespace Editor.Panels.Elements;
 /// UI element that provides drag-and-drop functionality for audio files.
 /// Allows users to drag audio files (.wav, .ogg) from the content browser onto audio properties.
 /// </summary>
-public static class AudioDropTarget
+public class AudioDropTarget
 {
+    private readonly IAudioEngine _audioEngine;
+
+    public AudioDropTarget(IAudioEngine audioEngine)
+    {
+        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+    }
+
     /// <summary>
     /// Draws a drag-and-drop target button for audio clips.
     /// </summary>
     /// <param name="label">Label to display for the property</param>
     /// <param name="currentClip">Currently assigned audio clip (can be null)</param>
     /// <param name="onAudioChanged">Callback invoked when a new audio clip is dropped</param>
-    public static void Draw(string label, IAudioClip? currentClip, Action<IAudioClip> onAudioChanged)
+    public void Draw(string label, IAudioClip? currentClip, Action<IAudioClip> onAudioChanged)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -52,7 +58,7 @@ public static class AudioDropTarget
                                 try
                                 {
                                     // Load the audio clip using the audio engine
-                                    var audioClip = AudioEngine.Instance.LoadAudioClip(audioPath);
+                                    var audioClip = _audioEngine.LoadAudioClip(audioPath);
                                     onAudioChanged(audioClip);
                                 }
                                 catch (Exception ex)

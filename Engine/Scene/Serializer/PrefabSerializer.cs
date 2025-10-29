@@ -3,10 +3,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
-using Engine.Core.Input;
-using Engine.Platform.SilkNet.Audio;
+using Engine.Audio;
 using Engine.Scene.Components;
-using Engine.Scripting;
 
 namespace Engine.Scene.Serializer;
 
@@ -25,6 +23,8 @@ public class PrefabSerializer : IPrefabSerializer
     private const string ScriptTypeKey = "ScriptType";
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
+    private readonly IAudioEngine _audioEngine;
+
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -36,6 +36,11 @@ public class PrefabSerializer : IPrefabSerializer
             new JsonStringEnumConverter()
         }
     };
+
+    public PrefabSerializer(IAudioEngine audioEngine)
+    {
+        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+    }
 
     /// <summary>
     /// Serialize an entity to a prefab file
@@ -274,7 +279,7 @@ public class PrefabSerializer : IPrefabSerializer
 
         if (!string.IsNullOrWhiteSpace(component.AudioClip?.Path))
         {
-            component.AudioClip = AudioEngine.Instance.LoadAudioClip(component.AudioClip.Path);
+            component.AudioClip = _audioEngine.LoadAudioClip(component.AudioClip.Path);
         }
 
         entity.AddComponent<AudioSourceComponent>(component);

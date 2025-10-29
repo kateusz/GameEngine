@@ -18,26 +18,17 @@ public static class AudioLoaderRegistry
         Loaders.Add(loader);
     }
 
-    public static void UnregisterLoader(IAudioLoader loader)
-    {
-        Loaders.Remove(loader);
-    }
+    public static void UnregisterLoader(IAudioLoader loader) => Loaders.Remove(loader);
 
-    public static IAudioLoader GetLoader(string path)
-    {
-        return Loaders.FirstOrDefault(loader => loader.CanLoad(path));
-    }
+    public static IAudioLoader? GetLoader(string path) => Loaders.FirstOrDefault(loader => loader.CanLoad(path));
 
-    public static bool IsSupported(string path)
-    {
-        return GetLoader(path) != null;
-    }
+    public static bool IsSupported(string path) => GetLoader(path) != null;
 
     public static AudioData LoadAudio(string path)
     {
         var loader = GetLoader(path);
         if (loader == null)
-            throw new NotSupportedException($"Nieobsługiwany format pliku: {path}");
+            throw new NotSupportedException($"Unsupported file format: {path}");
 
         return loader.Load(path);
     }

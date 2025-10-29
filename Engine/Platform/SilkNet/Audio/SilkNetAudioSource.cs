@@ -7,16 +7,18 @@ namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioSource : IAudioSource
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioSource>();
+    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioSource>();
 
     private readonly AL _al;
+    private readonly Action<SilkNetAudioSource> _onDispose;
     private uint _sourceId;
     private IAudioClip _clip;
     private bool _disposed = false;
 
-    public SilkNetAudioSource(AL al)
+    public SilkNetAudioSource(AL al, Action<SilkNetAudioSource> onDispose)
     {
         _al = al;
+        _onDispose = onDispose;
         _sourceId = _al.GenSource();
 
         // Set default properties
@@ -30,15 +32,15 @@ public class SilkNetAudioSource : IAudioSource
         get => _clip;
         set
         {
-            if (_clip != value)
-            {
-                Stop();
-                _clip = value;
+            if (_clip == value) 
+                return;
+            
+            Stop();
+            _clip = value;
 
-                if (_clip is SilkNetAudioClip silkClip && silkClip.IsLoaded)
-                {
-                    _al.SetSourceProperty(_sourceId, SourceInteger.Buffer, (int)silkClip.BufferId);
-                }
+            if (_clip is SilkNetAudioClip { IsLoaded: true } silkClip)
+            {
+                _al.SetSourceProperty(_sourceId, SourceInteger.Buffer, (int)silkClip.BufferId);
             }
         }
     }
@@ -163,11 +165,8 @@ public class SilkNetAudioSource : IAudioSource
                 _sourceId = 0;
             }
 
-            // Unregister from engine
-            if (AudioEngine.Instance is SilkNetAudioEngine silkEngine)
-            {
-                silkEngine.UnregisterSource(this);
-            }
+            // Notify engine that this source is being disposed
+            _onDispose?.Invoke(this);
 
             _disposed = true;
         }

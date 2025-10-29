@@ -1,9 +1,8 @@
 using System.Numerics;
 using ECS;
-using Engine.Platform.SilkNet.Audio;
+using Engine.Audio;
 using Engine.Scene.Components;
 using Serilog;
-using Silk.NET.OpenAL;
 using Context = ECS.Context;
 
 namespace Engine.Scene.Systems;
@@ -15,6 +14,13 @@ namespace Engine.Scene.Systems;
 public class AudioSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
+    
+    private readonly IAudioEngine _audioEngine;
+
+    public AudioSystem(IAudioEngine audioEngine)
+    {
+        _audioEngine = audioEngine;
+    }
 
     /// <summary>
     /// Gets the priority of this system.
@@ -148,7 +154,7 @@ public class AudioSystem : ISystem
         try
         {
             // Create audio source from engine
-            component.RuntimeAudioSource = AudioEngine.Instance.CreateAudioSource();
+            component.RuntimeAudioSource = _audioEngine.CreateAudioSource();
 
             // Set initial properties
             if (component.AudioClip != null)
@@ -189,11 +195,6 @@ public class AudioSystem : ISystem
     /// </summary>
     private void UpdateListener()
     {
-        if (AudioEngine.Instance is not SilkNetAudioEngine silkEngine)
-            return;
-
-        var al = silkEngine.GetAL();
-
         // Find active audio listener with transform
         Entity? activeListenerEntity = null;
         AudioListenerComponent? activeListener = null;
@@ -217,26 +218,14 @@ public class AudioSystem : ISystem
         var pos = transform.Translation;
 
         // Set listener position
-        al.SetListenerProperty(ListenerVector3.Position, pos.X, pos.Y, pos.Z);
+        _audioEngine.SetListenerPosition(pos);
 
         // Set listener orientation based on transform rotation
         var transformMatrix = transform.GetTransform();
         var forward = Vector3.Transform(-Vector3.UnitZ, Quaternion.CreateFromRotationMatrix(transformMatrix));
         var up = Vector3.Transform(Vector3.UnitY, Quaternion.CreateFromRotationMatrix(transformMatrix));
 
-        // Stack allocation is now outside the loop - only allocated once per method call
-        unsafe
-        {
-            var orientation = stackalloc float[6];
-            orientation[0] = forward.X;
-            orientation[1] = forward.Y;
-            orientation[2] = forward.Z;
-            orientation[3] = up.X;
-            orientation[4] = up.Y;
-            orientation[5] = up.Z;
-
-            al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
-        }
+        _audioEngine.SetListenerOrientation(forward, up);
     }
 
     /// <summary>

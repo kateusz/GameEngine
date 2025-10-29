@@ -35,6 +35,7 @@ static void ConfigureContainer(Container container)
 
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
     container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+    container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
 
     // Register SceneSystemRegistry and systems
     container.Register<SceneFactory>(Reuse.Singleton);
@@ -53,6 +54,8 @@ static void ConfigureContainer(Container container)
         made: Made.Of(() => EditorPreferences.Load())
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
+    container.Register<AudioDropTarget>(Reuse.Singleton);
+    container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
     container.Register<ComponentEditorRegistry>(Reuse.Singleton);
     container.Register<PropertiesPanel>(Reuse.Singleton);
     container.Register<SceneHierarchyPanel>(Reuse.Singleton);

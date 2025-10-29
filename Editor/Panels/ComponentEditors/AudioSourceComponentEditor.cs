@@ -1,6 +1,6 @@
 using ECS;
 using Editor.Panels.Elements;
-using Engine.Platform.SilkNet.Audio;
+using Engine.Audio;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -8,6 +8,15 @@ namespace Editor.Panels.ComponentEditors;
 
 public class AudioSourceComponentEditor : IComponentEditor
 {
+    private readonly IAudioEngine _audioEngine;
+    private readonly AudioDropTarget _audioDropTarget;
+
+    public AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarget audioDropTarget)
+    {
+        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+        _audioDropTarget = audioDropTarget ?? throw new ArgumentNullException(nameof(audioDropTarget));
+    }
+
     public void DrawComponent(Entity e)
     {
         ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", e, entity =>
@@ -15,7 +24,7 @@ public class AudioSourceComponentEditor : IComponentEditor
             var component = entity.GetComponent<AudioSourceComponent>();
 
             // Audio clip with drag-and-drop support
-            AudioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>
+            _audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>
             {
                 component.AudioClip = audioClip;
             });
@@ -63,7 +72,7 @@ public class AudioSourceComponentEditor : IComponentEditor
             {
                 var path = entity.GetComponent<AudioSourceComponent>().AudioClip?.Path;
                 if(!string.IsNullOrWhiteSpace(path))
-                    AudioEngine.Instance.PlayOneShot(path, volume: 0.5f);
+                    _audioEngine.PlayOneShot(path, volume: 0.5f);
             }
 
             // Playing status

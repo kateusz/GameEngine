@@ -7,7 +7,8 @@ namespace Engine.Platform.SilkNet.Audio;
 public class SilkNetAudioClip : IAudioClip, IDisposable
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioClip>();
-    
+
+    private readonly AL _al;
     private uint _bufferId;
     private bool _disposed = false;
 
@@ -22,9 +23,10 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
 
     internal uint BufferId => _bufferId;
 
-    public SilkNetAudioClip(string path)
+    public SilkNetAudioClip(string path, AL al)
     {
         Path = path ?? throw new ArgumentNullException(nameof(path));
+        _al = al ?? throw new ArgumentNullException(nameof(al));
         Format = AudioClipFactory.DetectFormat(path);
 
         if (!AudioClipFactory.IsSupportedFormat(path))
@@ -45,8 +47,7 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             LoadAudioFile();
 
             // Create OpenAL buffer
-            var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
-            _bufferId = al.GenBuffer();
+            _bufferId = _al.GenBuffer();
 
             // Determine OpenAL format based on channels and bit depth
             var alFormat = GetOpenALFormat();
@@ -56,7 +57,7 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             {
                 fixed (byte* ptr = RawData)
                 {
-                    al.BufferData(_bufferId, alFormat, ptr, RawData.Length, SampleRate);
+                    _al.BufferData(_bufferId, alFormat, ptr, RawData.Length, SampleRate);
                 }
             }
 
@@ -95,8 +96,7 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             {
                 try
                 {
-                    var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
-                    al.DeleteBuffer(_bufferId);
+                    _al.DeleteBuffer(_bufferId);
                     _bufferId = 0;
                     IsLoaded = false;
                     Logger.Information("Unloaded audio clip: {Path}", Path);
