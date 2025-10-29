@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Engine.Audio;
 
 public interface IAudioClip
@@ -7,12 +9,11 @@ public interface IAudioClip
     int SampleRate { get; }
     int Channels { get; }
     AudioFormat Format { get; }
-        
     void Load();
     void Unload();
     bool IsLoaded { get; }
         
-    // Raw audio data access
+    [JsonIgnore]
     byte[] RawData { get; }
     int DataSize { get; }
 }

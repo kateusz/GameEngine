@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
@@ -6,7 +7,7 @@ namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioClip : IAudioClip, IDisposable
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioClip>();
+    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioClip>();
 
     private readonly AL _al;
     private uint _bufferId;
