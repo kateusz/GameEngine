@@ -10,7 +10,7 @@ public class ComponentEditorRegistry
 {
     private readonly Dictionary<Type, IComponentEditor> _editors;
 
-    public ComponentEditorRegistry()
+    public ComponentEditorRegistry(AudioSourceComponentEditor audioSourceComponentEditor)
     {
         _editors = new Dictionary<Type, IComponentEditor>
         {
@@ -21,7 +21,9 @@ public class ComponentEditorRegistry
             { typeof(ModelRendererComponent), new ModelRendererComponentEditor() },
             { typeof(RigidBody2DComponent), new RigidBody2DComponentEditor() },
             { typeof(BoxCollider2DComponent), new BoxCollider2DComponentEditor() },
-            { typeof(SubTextureRendererComponent), new SubTextureRendererComponentEditor() }
+            { typeof(SubTextureRendererComponent), new SubTextureRendererComponentEditor() },
+            { typeof(AudioSourceComponent), audioSourceComponentEditor },
+            { typeof(AudioListenerComponent), new AudioListenerComponentEditor() }
         };
     }
 

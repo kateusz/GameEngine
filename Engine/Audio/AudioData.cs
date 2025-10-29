@@ -1,12 +1,4 @@
-using Engine.Audio;
-
-namespace Engine.Platform.SilkNet.Audio.Loaders;
-
-public interface IAudioLoader
-{
-    bool CanLoad(string path);
-    AudioData Load(string path);
-}
+namespace Engine.Audio;
 
 public struct AudioData
 {
@@ -25,3 +17,4 @@ public struct AudioData
         Format = format;
     }
 }
+

@@ -4,7 +4,7 @@ using Engine.Renderer.Textures;
 
 namespace Engine.Scene.Components;
 
-public class ModelRendererComponent : Component
+public class ModelRendererComponent : IComponent
 {
     public Vector4 Color { get; set; } = Vector4.One;
     public Texture2D? OverrideTexture { get; set; } = null;
@@ -20,7 +20,7 @@ public class ModelRendererComponent : Component
         Color = color;
     }
 
-    public override IComponent Clone()
+    public IComponent Clone()
     {
         return new ModelRendererComponent
         {

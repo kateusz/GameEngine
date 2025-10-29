@@ -31,6 +31,8 @@ public static class ComponentSelector
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity);
             DrawComponentMenuItem<MeshComponent>("Mesh", entity);
+            DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
+            DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
 
             ImGui.EndPopup();
         }

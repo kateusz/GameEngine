@@ -307,7 +307,7 @@ public static class ScriptComponentUI
         }
     }
 
-    private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : Component
+    private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
     {
         // Similar to your existing DrawComponent method in SceneHierarchyPanel
         var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed

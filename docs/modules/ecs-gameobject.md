@@ -20,16 +20,20 @@ This module handles:
 
 - Entity lifecycle management (creation, destruction, duplication)
 - Component storage and retrieval on entities
-- Entity querying by component composition
+- System registration, initialization, and execution
+- Entity querying by component composition (GetGroup, View<T>)
 - Global entity registry and context management
 - Script behavior attachment and execution
 - Component-based data isolation
+- Priority-based system orchestration
 
 ### Key Concepts
 
 **Entity**: A lightweight container identified by an ID and name. Entities are pure data structures with no inherent behavior - they simply hold components.
 
 **Component**: A data structure implementing the `IComponent` interface. Components represent specific aspects of an entity (position, appearance, physics, etc.) but contain no logic.
+
+**System**: A logic processor implementing the `ISystem` interface that operates on entities with specific component combinations. Systems encapsulate game engine functionality (rendering, physics, audio) and execute in priority-based order each frame.
 
 **Context**: A singleton registry that maintains all active entities and provides query capabilities to find entities by their component composition.
 
@@ -112,6 +116,215 @@ The engine provides two patterns for querying entities:
 **View Query** (`View<T>`): Returns entity-component pairs for a specific component type, providing direct access to both the entity and the component. Use this when you need to process entities with a particular component and access its data.
 
 These queries are performed on-demand by iterating the entity collection, making them flexible but requiring efficient component checking.
+
+### System as Logic Processors
+
+While components store data, systems provide the engine-level logic that processes that data. The `ISystem` interface defines a standardized lifecycle:
+
+- **Priority**: Integer value determining execution order (lower = earlier). Enables precise control over update sequencing.
+- **OnInit()**: Called once when the system is registered and initialized, used for setup and resource allocation.
+- **OnUpdate(TimeSpan deltaTime)**: Called every frame to process entities and update game state based on elapsed time.
+- **OnShutdown()**: Called when the system is being shut down, used for cleanup and resource disposal.
+
+Systems query the Context for entities with specific component combinations, process their data, and update state. For example:
+
+- **PhysicsSimulationSystem**: Queries entities with `RigidBody2DComponent` + `TransformComponent`, steps the Box2D physics world, and synchronizes transforms.
+- **SpriteRenderingSystem**: Queries entities with `TransformComponent` + `SpriteRendererComponent` and submits draw calls to the renderer.
+- **AudioSystem**: Queries entities with `AudioSourceComponent` + `TransformComponent` and updates OpenAL 3D audio positions.
+
+The engine provides built-in systems for core functionality (rendering, physics, audio, scripts), and you can create custom systems by implementing `ISystem`.
+
+### System Manager and Execution
+
+The `SystemManager` orchestrates system registration, initialization, and execution:
+
+- **Registration**: Systems are registered with optional "shared" flag. Shared systems (like rendering) are singleton instances reused across scenes. Per-scene systems (like physics) have scene-local lifetime.
+- **Priority Sorting**: After registration, systems are sorted by priority to establish execution order.
+- **Initialization**: All systems receive `OnInit()` in priority order when the scene starts.
+- **Frame Update**: Every frame, systems receive `OnUpdate(deltaTime)` in priority order.
+- **Shutdown**: Per-scene systems are shut down when the scene stops. Shared systems persist across scene changes.
+
+This design separates concerns: each system handles one logical responsibility (rendering, physics, audio), making the codebase maintainable and extensible.
+
+### System Execution Order
+
+The engine uses priority values to control update order:
+
+| Priority | System | Responsibility |
+|----------|--------|----------------|
+| 100 | PhysicsSimulationSystem | Box2D physics simulation with fixed timestep |
+| 150 | ScriptUpdateSystem | User script `OnUpdate()` execution and hot-reload |
+| 160 | AudioSystem | OpenAL audio playback and 3D spatial positioning |
+| 200 | SpriteRenderingSystem | 2D sprite batch rendering |
+| 205 | SubTextureRenderingSystem | Sprite atlas region rendering |
+| 210 | ModelRenderingSystem | 3D mesh rendering with materials |
+| 500 | PhysicsDebugRenderSystem | Collision shape debug visualization |
+
+**Design Rationale**:
+- **Physics first** (100): Simulates world state before scripts and rendering
+- **Scripts second** (150): Allows game logic to respond to physics results
+- **Audio third** (160): Updates spatial audio after script movement
+- **Rendering last** (200-210): Draws final visual state
+- **Debug overlay** (500): Renders on top of everything
+
+This ordering ensures consistent, predictable behavior: physics affects scripts, scripts affect audio/rendering, but rendering doesn't affect physics.
+
+### Built-in Engine Systems
+
+The engine provides several core systems out of the box:
+
+**PhysicsSimulationSystem** (Per-Scene, Priority: 100)
+- Manages Box2D physics world with fixed timestep (1/60s)
+- Accumulates frame time and steps physics multiple times if needed (up to 5 steps/frame)
+- Prevents "spiral of death" by clamping accumulator
+- Synchronizes Box2D body transforms back to `TransformComponent`
+- Requires: `RigidBody2DComponent`, `BoxCollider2DComponent`, `TransformComponent`
+
+**ScriptUpdateSystem** (Shared, Priority: 150)
+- Delegates to `ScriptEngine.Instance.OnUpdate(deltaTime)`
+- Executes user scripts' `OnUpdate()` methods
+- Handles hot-reload detection and script recompilation
+- Initializes scripts on first frame (sets Entity reference, calls `OnCreate()`)
+
+**AudioSystem** (Shared, Priority: 160)
+- Creates OpenAL audio sources for entities with `AudioSourceComponent`
+- Updates listener position/orientation from entity with `AudioListenerComponent`
+- Synchronizes 3D audio source positions with `TransformComponent`
+- Manages volume, pitch, and spatial audio properties
+- Provides play/pause/stop controls for audio playback
+
+**SpriteRenderingSystem** (Shared, Priority: 200)
+- Finds primary camera (entity with `CameraComponent.Primary = true`)
+- Queries entities with `TransformComponent` + `SpriteRendererComponent`
+- Begins scene rendering, draws each sprite with transform, ends scene (flushes batch)
+- Delegates to `IGraphics2D` interface for rendering abstraction
+
+**SubTextureRenderingSystem** (Shared, Priority: 205)
+- Similar to SpriteRenderingSystem but creates `SubTexture2D` from atlas coordinates
+- Operates on `SubTextureRendererComponent` + `TransformComponent`
+- Enables sprite sheet rendering with flexible cell/size configuration
+
+**ModelRenderingSystem** (Shared, Priority: 210)
+- Finds primary camera for 3D view projection
+- Queries entities with `TransformComponent` + `MeshComponent` + `ModelRendererComponent`
+- Delegates to `IGraphics3D` interface for 3D rendering
+
+**PhysicsDebugRenderSystem** (Shared, Priority: 500)
+- Only active when `DebugSettings.Instance.ShowColliderBounds` is enabled
+- Color-codes collision shapes by body type (Static=Green, Kinematic=Blue, Dynamic=Pink/Gray)
+- Runs last to overlay debug visualization on top of rendered scene
+
+### System Query Patterns
+
+Systems use two primary patterns to query entities from the Context:
+
+**GetGroup Pattern** - Component-based filtering:
+```csharp
+// Returns all entities having all specified component types
+var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+foreach (var entity in cameraGroup)
+{
+    var camera = entity.GetComponent<CameraComponent>();
+    var transform = entity.GetComponent<TransformComponent>();
+    // Process camera with transform data
+}
+```
+
+**View<T> Pattern** - Efficient iterator with value tuples:
+```csharp
+// Returns (Entity, Component) tuples with minimal allocations
+var view = Context.Instance.View<RigidBody2DComponent>();
+foreach (var (entity, rigidBody) in view)
+{
+    var transform = entity.GetComponent<TransformComponent>();
+    // Synchronize physics body position with transform
+}
+```
+
+**Performance Characteristics**:
+- Both patterns: O(n) linear scan of all entities with dictionary lookups
+- GetGroup: Returns list of entities, requires subsequent GetComponent calls
+- View<T>: Returns tuples with component already retrieved, avoiding repeated lookups
+- No query result caching between frames (systems re-query each frame)
+- Creates snapshot under lock for thread safety
+
+**Usage Guidelines**:
+- Use **GetGroup** when you need multiple component types and entity reference
+- Use **View<T>** when you primarily need one component type (more efficient)
+- Avoid querying inside nested loops (cache results at frame start if needed)
+
+### System Lifetime Management
+
+Systems have two lifetime modes controlled during registration:
+
+**Per-Scene Systems** (`isShared: false`):
+- Created for each scene instance
+- `OnInit()` called when scene starts (e.g., play mode begins)
+- `OnUpdate()` called every frame while scene is active
+- `OnShutdown()` called when scene stops (e.g., play mode ends or scene unloads)
+- Example: `PhysicsSimulationSystem` (owns physics world tied to scene)
+
+**Shared Singleton Systems** (`isShared: true`):
+- Created once and reused across multiple scenes
+- `OnInit()` called on first registration
+- `OnUpdate()` called every frame regardless of scene changes
+- `OnShutdown()` called only when application exits (via `ShutdownAll()`)
+- Example: `SpriteRenderingSystem` (stateless renderer used by all scenes)
+
+**Shutdown Behavior**:
+- `SystemManager.Shutdown()`: Shuts down per-scene systems only (preserves shared systems)
+- `SystemManager.ShutdownAll()`: Shuts down all systems including shared (application exit)
+
+This distinction optimizes resource management: rendering systems don't need recreation when switching scenes, but physics worlds must be scene-local.
+
+### Creating Custom Systems
+
+To add custom engine logic, implement the `ISystem` interface:
+
+```csharp
+public class ParticleSystem : ISystem
+{
+    public int Priority => 180; // After scripts, before rendering
+
+    private ParticleEmitter _emitter;
+
+    public void OnInit()
+    {
+        // Initialize particle emitter, allocate buffers
+        _emitter = new ParticleEmitter(maxParticles: 1000);
+    }
+
+    public void OnUpdate(TimeSpan deltaTime)
+    {
+        // Query entities with particle components
+        var view = Context.Instance.View<ParticleEmitterComponent>();
+
+        foreach (var (entity, emitter) in view)
+        {
+            var transform = entity.GetComponent<TransformComponent>();
+
+            // Update particle positions, handle spawning/death
+            _emitter.Update(emitter, transform, deltaTime);
+        }
+    }
+
+    public void OnShutdown()
+    {
+        // Cleanup resources, dispose buffers
+        _emitter?.Dispose();
+    }
+}
+```
+
+**Best Practices**:
+- Choose priority carefully to control execution order relative to other systems
+- Use dependency injection for shared resources (e.g., renderer interface)
+- Query entities once per frame, cache results if processing multiple times
+- Minimize allocations in `OnUpdate()` (hot path called every frame)
+- Use `View<T>` pattern when possible for better performance
+- Dispose resources properly in `OnShutdown()`
+
+Register custom systems via `SceneSystemRegistry` for singleton behavior or directly in scene initialization for per-scene systems.
 
 ## Architecture Flow
 
@@ -352,50 +565,66 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Frame Start] --> B[Script Engine: OnUpdate]
-    B --> C[Check for script file changes]
-    C --> D[Query entities with NativeScriptComponent]
+    A[Frame Start] --> B[SystemManager.Update deltaTime]
+    B --> C[PhysicsSimulationSystem.OnUpdate Priority: 100]
+    C --> D[Accumulate frame time]
+    D --> E[Step Box2D physics world fixed timestep]
+    E --> F[Sync physics body positions to TransformComponent]
 
-    D --> E[For each script entity]
-    E --> F{Script initialized?}
-    F -->|No| G[Set Entity reference]
-    G --> H[Call OnCreate]
-    H --> I[Call OnUpdate]
-    F -->|Yes| I
-    I --> J{More script entities?}
-    J -->|Yes| E
-    J -->|No| K[Physics: Step Simulation]
+    F --> G[ScriptUpdateSystem.OnUpdate Priority: 150]
+    G --> H[Check for script file changes]
+    H --> I[Query entities with NativeScriptComponent]
+    I --> J[For each script entity]
+    J --> K{Script initialized?}
+    K -->|No| L[Set Entity reference + OnCreate]
+    K -->|Yes| M[Call script OnUpdate]
+    L --> M
+    M --> N{More scripts?}
+    N -->|Yes| J
+    N -->|No| O[AudioSystem.OnUpdate Priority: 160]
 
-    K --> L[Physics integrates forces/velocities]
-    L --> M[Sync physics transforms back to entities]
-    M --> N[Query entities with camera components]
-    N --> O[Find primary camera]
+    O --> P[Update listener position/orientation]
+    P --> Q[Sync 3D audio source positions]
+    Q --> R[Update volume, pitch properties]
 
-    O --> P{Camera found?}
-    P -->|Yes| Q[3D Rendering Pass]
-    Q --> R[Query entities with Mesh + ModelRenderer]
-    R --> S[Draw 3D models]
-    S --> T[2D Rendering Pass]
-    T --> U[Query entities with Transform + SpriteRenderer]
-    U --> V[Draw sprites]
-    V --> W[Optional: Physics Debug Drawing]
-    P -->|No| X[Skip rendering]
-    W --> X
-    X --> Y[Frame End]
+    R --> S[SpriteRenderingSystem.OnUpdate Priority: 200]
+    S --> T[Find primary camera]
+    T --> U[Query entities: Transform + SpriteRenderer]
+    U --> V[BeginScene, draw sprites, EndScene]
+
+    V --> W[SubTextureRenderingSystem.OnUpdate Priority: 205]
+    W --> X[Query entities: Transform + SubTextureRenderer]
+    X --> Y[Draw sprite atlas regions]
+
+    Y --> Z[ModelRenderingSystem.OnUpdate Priority: 210]
+    Z --> AA[Query entities: Transform + Mesh + ModelRenderer]
+    AA --> AB[Draw 3D models]
+
+    AB --> AC[PhysicsDebugRenderSystem.OnUpdate Priority: 500]
+    AC --> AD{Debug enabled?}
+    AD -->|Yes| AE[Draw collision shape outlines]
+    AD -->|No| AF[Skip]
+    AE --> AF
+    AF --> AG[Frame End]
 ```
 
-**Update Order**:
+**System Execution Order**:
 
-1. **Script Hot Reload Check**: Script engine detects file changes and recompiles if needed
-2. **Script Updates**: All entity scripts execute their `OnUpdate()` logic
-3. **Physics Simulation**: Box2D steps forward in time (fixed timestep: 1/60s)
-4. **Transform Synchronization**: Physics body positions are copied back to entity transform components
-5. **Camera Selection**: Scene finds the entity with a primary camera component
-6. **3D Rendering**: Models with mesh and renderer components are drawn
-7. **2D Rendering**: Sprites with transform and sprite renderer components are drawn
-8. **Debug Visualization**: Optionally, physics colliders are outlined
+1. **PhysicsSimulationSystem** (Priority 100): Steps Box2D physics simulation with fixed timestep, synchronizes body transforms back to components
+2. **ScriptUpdateSystem** (Priority 150): Checks for script hot-reload, executes all entity scripts' `OnUpdate()` methods
+3. **AudioSystem** (Priority 160): Updates OpenAL listener position and 3D audio source positions from transforms
+4. **SpriteRenderingSystem** (Priority 200): Finds primary camera, queries sprite entities, submits 2D draw calls
+5. **SubTextureRenderingSystem** (Priority 205): Renders sprite atlas regions for entities with subtexture components
+6. **ModelRenderingSystem** (Priority 210): Queries 3D model entities and submits mesh draw calls
+7. **PhysicsDebugRenderSystem** (Priority 500): Optionally renders collision shape debug visualization as overlay
 
-**Important**: Component queries happen every frame - there's no persistent "system" that caches entity lists. This keeps the architecture simple but requires efficient HasComponent checks.
+**Key Design Points**:
+
+- **Priority-Based Execution**: Lower priority values execute first, ensuring physics updates before scripts, scripts before rendering
+- **Per-Frame Queries**: Systems query entities every frame (no persistent cached results) for simplicity and flexibility
+- **Deterministic Order**: System execution order is consistent and predictable, enabling reliable game logic
+- **Separation of Concerns**: Each system handles one logical responsibility (physics, rendering, audio, scripts)
+- **Thread-Safe Queries**: Context.Instance queries create snapshots under lock for safe concurrent access
 
 ### Runtime Stop Phase
 
@@ -628,75 +857,179 @@ For 3D games with complex scenes, the rendering bottleneck typically dominates b
 
 ## Integration with Other Systems
 
-### Scene System
+### Scene System Integration
 
-The Scene owns entity creation and destruction:
+The Scene owns entity lifecycle and system initialization:
 
+**Entity Management**:
 - `Scene.CreateEntity(name)`: Creates entity, registers with Context, returns reference
 - `Scene.DestroyEntity(entity)`: Removes entity from Context
 - `Scene.DuplicateEntity(entity)`: Clones entity with all components
 
-Scene is the factory for entities - direct `new Entity()` is not used. This ensures proper registration and event wiring.
+**System Management**:
+- `Scene` constructor receives `SystemManager` and `SceneSystemRegistry`
+- On runtime start, systems are registered and `SystemManager.Initialize()` is called
+- Each frame, `SystemManager.Update(deltaTime)` is called to execute all systems
+- On runtime stop, `SystemManager.Shutdown()` is called to clean up per-scene systems
 
-### Rendering System
+Scene is the factory for entities and the orchestrator for system execution - direct `new Entity()` is not used. This ensures proper registration, event wiring, and deterministic system ordering.
 
-Renderers query entities with visual components:
+### Rendering Systems Integration
 
-**2D Rendering**:
-- Query: `GetGroup([TransformComponent, SpriteRendererComponent])`
-- Process: For each entity, extract transform matrix and sprite data, submit draw call
+Multiple rendering systems handle different visual aspects:
 
-**3D Rendering**:
-- Query: `GetGroup([TransformComponent, MeshComponent, ModelRendererComponent])`
-- Process: For each entity, extract transform matrix and model data, submit draw call
+**SpriteRenderingSystem** (Priority: 200):
+- Queries: `GetGroup([TransformComponent, SpriteRendererComponent])`
+- Process: Finds primary camera, begins scene, draws sprites in batch, ends scene
+- Shared singleton: Reused across scenes for efficiency
 
-Cameras are also entities - the scene finds the entity with a primary `CameraComponent` to use as the viewpoint.
+**SubTextureRenderingSystem** (Priority: 205):
+- Queries: `GetGroup([TransformComponent, SubTextureRendererComponent])`
+- Process: Creates SubTexture2D from atlas coordinates, draws sprite sheet regions
+- Enables sprite sheet animation and texture atlas optimization
 
-### Physics System
+**ModelRenderingSystem** (Priority: 210):
+- Queries: `GetGroup([TransformComponent, MeshComponent, ModelRendererComponent])`
+- Process: Finds primary camera, submits 3D mesh draw calls with materials
+- Delegates to `IGraphics3D` interface for platform-agnostic rendering
 
-Physics bodies are synchronized with entity components:
+**Camera Selection**:
+- Rendering systems query for entities with `CameraComponent.Primary = true`
+- Camera entity's transform defines view position/rotation
+- If no primary camera found, rendering is skipped (no view matrix available)
 
-**Initialization**: On runtime start, entities with `RigidBody2DComponent` get Box2D bodies created using their transform position/rotation.
+**Design Benefit**: Rendering logic is centralized in systems, not scattered across components. Components are pure data, systems contain rendering logic.
 
-**Simulation**: Every frame, Box2D steps forward, updating body positions based on forces and collisions.
+### Physics System Integration
 
-**Synchronization**: After physics step, body positions are copied back to entity `TransformComponent`.
+**PhysicsSimulationSystem** (Priority: 100) bridges Box2D with ECS:
 
-**User Data**: Physics bodies store a reference to their entity, enabling collision callbacks to identify what hit what.
+**Initialization Phase** (OnInit):
+- Creates Box2D physics world (`b2World`) with gravity
+- Queries entities with `RigidBody2DComponent` + `BoxCollider2DComponent`
+- For each entity, creates Box2D body (`b2Body`) using transform position/rotation
+- Attaches collider shapes with friction, density, restitution properties
+- Stores entity reference in body's user data for collision callbacks
 
-The physics system is tightly coupled to ECS - it requires specific component combinations (`RigidBody2D` + `BoxCollider2D` + `Transform`) to function.
+**Simulation Phase** (OnUpdate):
+- Uses fixed timestep accumulator (1/60s) for deterministic physics
+- Steps Box2D world multiple times if frame time is large (up to 5 steps/frame)
+- Box2D integrates forces, resolves collisions, updates body positions
+- Triggers collision callbacks with entity references from user data
 
-### Editor System
+**Synchronization Phase** (After simulation):
+- Queries entities with `RigidBody2DComponent`
+- Copies Box2D body position/rotation back to `TransformComponent`
+- Ensures visual transform matches physics body state
+
+**Cleanup Phase** (OnShutdown):
+- Disposes Box2D physics world and all bodies
+- Clears runtime body references from components
+- Per-scene lifetime: Each scene has its own isolated physics world
+
+**Component Dependencies**: `RigidBody2DComponent` + `BoxCollider2DComponent` + `TransformComponent` required for physics simulation.
+
+### Audio System Integration
+
+**AudioSystem** (Priority: 160) manages OpenAL 3D audio:
+
+**Initialization Phase** (OnInit):
+- Queries entities with `AudioSourceComponent`
+- Creates OpenAL audio sources with initial properties (volume, pitch, looping)
+- Stores source handles in `AudioSourceComponent.RuntimeAudioSource`
+
+**Update Phase** (OnUpdate):
+- **Listener Update**: Finds entity with `AudioListenerComponent`, syncs OpenAL listener position/orientation from transform
+- **Source Position Update**: Queries entities with `AudioSourceComponent` + `TransformComponent`, updates 3D audio positions
+- **Property Sync**: Updates volume, pitch, and other audio properties from component data
+
+**Audio Control Methods**:
+- `Play(Entity)`: Starts playback for entity's audio source
+- `Pause(Entity)`: Pauses playback
+- `Stop(Entity)`: Stops playback and resets position
+
+**Cleanup Phase** (OnShutdown):
+- Disposes all OpenAL audio sources
+- Clears runtime source references from components
+
+**Design Benefit**: 3D spatial audio automatically follows entity transforms, no manual position updates required in scripts.
+
+### Script System Integration
+
+**ScriptUpdateSystem** (Priority: 150) executes user game logic:
+
+**Initialization Phase** (OnInit):
+- Delegates to `ScriptEngine.Instance` for script compilation
+- Scripts are not yet initialized (deferred until first update)
+
+**Update Phase** (OnUpdate):
+- **Hot Reload Detection**: Checks script file modification times, recompiles if changed
+- **Query Scripts**: Finds entities with `NativeScriptComponent`
+- **Initialize New Scripts**: Sets `Entity` reference on script instance, calls `OnCreate()`
+- **Execute Scripts**: Calls `OnUpdate(deltaTime)` on all scripts in scene
+- **Forward Events**: Input and physics events are forwarded to script callbacks
+
+**Relationship to ECS**:
+- Scripts are behavior layer, components are data layer
+- Scripts read/write component data via `GetComponent<T>()`, `AddComponent<T>()`, etc.
+- Scripts can create/destroy entities and trigger audio/physics operations
+- Script hot-reload preserves entity/component state while replacing script instances
+
+**Design Benefit**: Clear separation between engine systems (rendering, physics) and game logic (scripts). Systems provide infrastructure, scripts provide gameplay.
+
+### Editor System Integration
 
 The editor displays and manipulates entities/components:
 
-**Hierarchy Panel**: Lists all entities in the Context with their names, allows selection and deletion.
+**Hierarchy Panel**:
+- Lists all entities from `Context.Instance.Entities`
+- Allows selection, deletion, and entity creation
+- Shows entity names and IDs for debugging
 
-**Inspector Panel**: Shows all components on the selected entity, provides UI to edit component fields.
+**Inspector Panel**:
+- Displays all components on selected entity
+- Provides UI to edit component fields using reflection
+- Allows adding/removing components dynamically
 
-**Component Adding**: Dropdown to add components to entities by type.
+**Component Adding**:
+- Dropdown populated via reflection to discover all `IComponent` types
+- Click to add component creates instance and calls `Entity.AddComponent()`
 
-**Entity Duplication**: Editor calls `Scene.DuplicateEntity` to clone entities with components.
+**Entity Duplication**:
+- Calls `Scene.DuplicateEntity()` to clone entities with all components
+- Preserves component data, generates new entity ID
 
-The editor uses reflection to discover component types and generate UI automatically - no hardcoded forms for each component type.
+**System Visibility**:
+- Editor does not directly interact with systems (systems are runtime-only)
+- Editor modifies component data, systems process that data during play mode
+- Play/stop buttons trigger `SystemManager.Initialize()` and `Shutdown()`
 
-### Serialization System
+**Design Benefit**: Editor manipulates data (entities/components), systems handle logic. Clear separation enables edit-time preview without running game logic.
+
+### Serialization System Integration
 
 Scene serialization stores entity/component data to JSON:
 
 **Save Flow**:
-1. Iterate all entities in Context
+1. Iterate all entities in `Context.Instance`
 2. For each entity, serialize ID, name, and component list
-3. For each component, serialize type name and data fields
-4. Write JSON to file
+3. For each component, serialize type name and data fields (using reflection)
+4. Write JSON to file with formatting
 
 **Load Flow**:
 1. Parse JSON file
-2. For each entity JSON object, create entity with ID and name
-3. For each component JSON object, instantiate component by type name and deserialize fields
-4. Add component to entity
+2. For each entity JSON object, call `Scene.CreateEntity()` with ID and name
+3. For each component JSON object, instantiate component by type name (reflection)
+4. Deserialize component fields and call `Entity.AddComponent()`
+5. Scene tracks highest entity ID to continue sequential generation
 
-The serialization system is component-type-aware - it knows how to serialize built-in components (Transform, SpriteRenderer, etc.) and can be extended for custom components.
+**System Considerations**:
+- Systems are **not** serialized (they are code, not data)
+- Systems are re-registered on scene load via `SceneSystemRegistry`
+- Runtime system state (physics bodies, audio sources) is reconstructed in `OnInit()`
+- Only component data is persisted, system state is ephemeral
+
+**Design Benefit**: Serialization only handles data (entities/components), systems handle runtime state reconstruction. Clean separation enables save/load without coupling to system implementations.
 
 ## Design Decisions and Tradeoffs
 
@@ -777,22 +1110,154 @@ The serialization system is component-type-aware - it knows how to serialize bui
 
 **Tradeoff**: Consistency with component model over specialized script handling. Makes the architecture more uniform and easier to reason about.
 
+### Why Priority-Based System Execution?
+
+**Pros**:
+- Simple implementation - integer sorting determines order
+- Explicit control - developer specifies exact execution sequence
+- Easy to reason about - clear which systems run before others
+- No hidden dependencies - priority values are visible in code
+- Flexible insertion - new systems can be added at any priority level
+
+**Cons**:
+- Manual management - developer must choose appropriate priorities
+- No automatic dependency resolution - can't express "run after physics"
+- Potential conflicts - two systems with same priority have undefined order
+- No parallelization - systems run sequentially in priority order
+
+**Tradeoff**: Simplicity and explicitness over automatic dependency graphs. For a small number of systems (7-10), manual priority management is straightforward. Larger engines might benefit from dependency-based scheduling.
+
+### Why SystemManager Instead of Scene Handling Directly?
+
+**Pros**:
+- Separation of concerns - Scene handles entities, SystemManager handles systems
+- Testability - Systems can be tested independently with mock SystemManager
+- Reusability - SystemManager pattern can be used in non-scene contexts
+- Lifecycle encapsulation - Init/Update/Shutdown logic centralized
+- Shared system support - Enables singleton systems reused across scenes
+
+**Cons**:
+- Extra indirection - Scene delegates to SystemManager instead of direct calls
+- Additional class - More code to understand and maintain
+- Not truly decoupled - Systems still access Context singleton directly
+
+**Tradeoff**: Clean API and lifecycle management over absolute minimalism. The SystemManager abstraction provides clear responsibilities and extensibility points.
+
+### Why Systems Query Context Directly?
+
+**Pros**:
+- Simple implementation - no dependency injection for Context
+- Consistent access - all systems use same `Context.Instance` pattern
+- Easy to write - no constructor parameters needed for Context
+- No boilerplate - systems don't need to store Context reference
+
+**Cons**:
+- Global state dependency - harder to test in isolation
+- Tight coupling - systems depend on Context implementation
+- No multi-world support - can't have multiple independent entity collections
+- Hidden dependency - Context usage not visible in system constructor
+
+**Tradeoff**: Convenience and simplicity over architectural purity. For a single-scene engine with global entity registry, direct Context access is pragmatic. Larger engines might inject Context to enable multiple worlds.
+
+### Why No Cached Query Results?
+
+**Pros** (of current approach):
+- Simplicity - no cache invalidation logic needed
+- Always up-to-date - queries reflect current entity state
+- No stale data - component additions/removals immediately visible
+- Easy to understand - query returns current snapshot every time
+
+**Cons** (of current approach):
+- Redundant work - same queries repeated every frame
+- O(n) iteration - must check all entities each query
+- No early-out - can't skip iteration if no entities match
+- Allocation overhead - creates new lists on each query
+
+**Tradeoff**: Correctness and simplicity over maximum performance. For typical entity counts (1-10K), query overhead is negligible compared to rendering and physics. If profiling shows query cost is significant, cached queries with invalidation can be added as optimization.
+
+### Why Separate Systems for Rendering (Sprite vs SubTexture vs Model)?
+
+**Pros**:
+- Single responsibility - each system handles one rendering type
+- Easy to extend - add new rendering types without modifying existing systems
+- Independent priorities - can control order of sprite vs model rendering
+- Clear component mapping - one system per renderer component type
+- Simplified logic - no complex if/else branching in single system
+
+**Cons**:
+- Code duplication - similar camera finding and BeginScene/EndScene patterns
+- Multiple systems - more classes to understand and register
+- Repeated queries - each system queries entities independently
+- No render order control - can't interleave sprite and model rendering
+
+**Tradeoff**: Maintainability and extensibility over code consolidation. Separate systems are easier to understand and modify independently. Unified rendering system would be more complex with more responsibilities.
+
+### Why Shared vs Per-Scene System Distinction?
+
+**Pros**:
+- Performance - rendering systems don't reconstruct on scene change
+- Resource efficiency - audio/rendering resources persist across scenes
+- Stateless systems - shared systems are naturally stateless
+- Stateful systems - per-scene systems can own scene-local state (physics world)
+- Flexible lifecycle - different systems have different lifetime needs
+
+**Cons**:
+- Complexity - developers must understand distinction
+- Manual management - must choose shared vs per-scene for each system
+- Potential bugs - marking system as shared when it should be per-scene causes issues
+- Shutdown confusion - two shutdown methods (Shutdown vs ShutdownAll)
+
+**Tradeoff**: Flexibility and performance over uniformity. The distinction enables optimal resource management: stateless systems are shared, stateful systems are per-scene. Alternative would be always per-scene (simpler but less efficient) or always shared (simpler but problematic for stateful systems).
+
 ---
 
 ## Summary
 
 The ECS/GameObject architecture provides a flexible, composition-based system for building game objects:
 
-- **Entities** are lightweight containers with identity
-- **Components** store pure data describing entity aspects
-- **Context** maintains the global entity registry and enables queries
-- **Scripts** add behavior by reading/writing component data
-- **Systems** process entities in bulk by querying for component patterns
+- **Entities** are lightweight containers with identity and component storage
+- **Components** store pure data describing entity aspects (position, appearance, physics properties)
+- **Systems** process entities in bulk by querying for component patterns and executing logic each frame
+- **Context** maintains the global entity registry and enables efficient entity queries
+- **Scripts** add custom game behavior by reading/writing component data through lifecycle callbacks
+- **SystemManager** orchestrates system registration, initialization, and priority-based execution
 
 The architecture prioritizes:
-- **Simplicity**: Easy to understand and extend
-- **Flexibility**: Dynamic entity composition without inheritance
-- **Productivity**: Rapid prototyping with hot-reload scripts
-- **Sufficiency**: Good performance for typical 2D/indie 3D games
+- **Simplicity**: Easy to understand and extend with clear separation of concerns
+- **Flexibility**: Dynamic entity composition without inheritance, extensible system architecture
+- **Productivity**: Rapid prototyping with hot-reload scripts and data-driven components
+- **Maintainability**: Single-responsibility systems, explicit execution order, stateless/stateful lifecycle management
+- **Sufficiency**: Good performance for typical 2D/indie 3D games (1-10K entities)
 
-It's not the most performant ECS implementation (data-oriented archetypes would be faster), but it strikes a practical balance for a learning/prototyping game engine. The codebase is clean, the patterns are clear, and the performance is adequate for the target use cases.
+**Key Design Principles**:
+
+1. **Data-Behavior Separation**: Components hold data, systems hold logic, scripts hold gameplay
+2. **Priority-Based Execution**: Systems run in explicit order (physics → scripts → audio → rendering)
+3. **Lifecycle Management**: Clear Init/Update/Shutdown phases with shared vs per-scene distinction
+4. **Query Patterns**: GetGroup and View<T> provide flexible entity access with O(n) iteration
+5. **Composition Over Inheritance**: Entities gain capabilities by adding components, not subclassing
+
+**Performance Profile**:
+
+- Query performance: O(n) linear scan, ~1ms for 10K entities
+- Component access: O(1) dictionary lookup, ~5-10ns per operation
+- Entity creation/destruction: O(1) with dictionary-based storage
+- System execution: Sequential, single-threaded, priority-ordered
+- Memory layout: Reference-based (not cache-friendly), dictionary overhead per entity
+
+**Use Cases**:
+
+✅ **Ideal For**:
+- 2D games (platformers, top-down, side-scrollers)
+- Small to medium 3D games (indie projects, prototypes)
+- Rapid prototyping and experimentation
+- Educational purposes and learning game engine architecture
+- Projects prioritizing development speed over maximum performance
+
+❌ **Not Ideal For**:
+- MMO-scale games with 100K+ entities
+- Performance-critical simulations requiring data-oriented design
+- Projects needing guaranteed cache-friendly memory layouts
+- Real-time strategy games with massive unit counts
+
+It's not the most performant ECS implementation (data-oriented archetypes with struct-based components would be faster), but it strikes a practical balance for a learning/prototyping game engine. The codebase is clean, the patterns are clear, and the performance is adequate for the target use cases. The systems architecture provides clear extension points for adding new engine features without modifying existing code.

@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
+using Engine.Audio;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scripting;
@@ -25,6 +26,8 @@ public class SceneSerializer : ISceneSerializer
     private const string IdKey = "Id";
     private const string ScriptTypeKey = "ScriptType";
 
+    private readonly IAudioEngine _audioEngine;
+
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -36,6 +39,11 @@ public class SceneSerializer : ISceneSerializer
             new JsonStringEnumConverter()
         }
     };
+
+    public SceneSerializer(IAudioEngine audioEngine)
+    {
+        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+    }
 
     /// <summary>
     /// Serializes a scene to a JSON file at the specified path.
@@ -190,6 +198,12 @@ public class SceneSerializer : ISceneSerializer
             case nameof(BoxCollider2DComponent):
                 AddComponent<BoxCollider2DComponent>(entity, componentObj);
                 break;
+            case nameof(AudioListenerComponent):
+                AddComponent<AudioListenerComponent>(entity, componentObj);
+                break;
+            case nameof(AudioSourceComponent):
+                DeserializeAudioSourceComponent(entity, componentObj);
+                break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
@@ -210,6 +224,35 @@ public class SceneSerializer : ISceneSerializer
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
+    {
+        // Extract the AudioClip path separately to avoid interface deserialization issues
+        string? audioClipPath = null;
+        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
+        {
+            audioClipPath = pathValue.GetValue<string>();
+        }
+
+        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(audioClipPath))
+        {
+            try
+            {
+                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue scene deserialization
+                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
+            }
+        }
+
+        entity.AddComponent<AudioSourceComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -309,9 +352,26 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
+        SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
+        SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 
         jsonEntities.Add(entityObj);
+    }
+
+    private void SerializeAudioSourceComponent(Entity entity, JsonObject entityObj)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+            return;
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        if (element != null)
+        {
+            element[NameKey] = nameof(AudioSourceComponent);
+            var components = GetJsonArray(entityObj, ComponentsKey);
+            components.Add(element);
+        }
     }
 
     private void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)

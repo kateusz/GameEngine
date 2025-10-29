@@ -31,6 +31,7 @@ public class Program
 
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+        container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
 
         // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);
@@ -40,6 +41,7 @@ public class Program
         container.Register<ScriptUpdateSystem>(Reuse.Singleton);
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
+        container.Register<AudioSystem>(Reuse.Singleton);
 
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);

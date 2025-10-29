@@ -5,20 +5,20 @@ namespace ECS.Tests;
 /// </summary>
 public class ContextViewTests : IDisposable
 {
-    private class TestComponentA : Component { public int Value { get; set; }
-        public override IComponent Clone()
+    private class TestComponentA : IComponent { public int Value { get; set; }
+        public IComponent Clone()
         {
             throw new NotImplementedException();
         }
     }
-    private class TestComponentB : Component { public string Data { get; set; } = "";
-        public override IComponent Clone()
+    private class TestComponentB : IComponent { public string Data { get; set; } = "";
+        public IComponent Clone()
         {
             throw new NotImplementedException();
         }
     }
-    private class TestComponentC : Component { public bool Flag { get; set; }
-        public override IComponent Clone()
+    private class TestComponentC : IComponent { public bool Flag { get; set; }
+        public IComponent Clone()
         {
             throw new NotImplementedException();
         }
