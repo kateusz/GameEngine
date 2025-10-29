@@ -8,5 +8,4 @@ public interface IAudioEngine
     IAudioClip LoadAudioClip(string path);
     void UnloadAudioClip(string path);
     void PlayOneShot(string clipPath, float volume = 1.0f);
-    static IAudioEngine Instance { get; }
 }

@@ -561,7 +561,7 @@ These features add polish and advanced capabilities but have lower ROI. Implemen
 **Final Success Definition:**
 - Developer can create, edit, and ship a simple 2D game entirely within editor
 - No manual file editing required
-- Workflow comparable to Unity/Godot for 2D games
+- Workflow comparable to Godot for 2D games
 
 ---
 
@@ -643,7 +643,7 @@ This analysis was validated against:
 1. **Codebase examination**: 200+ files reviewed
 2. **Documentation review**: Module docs and specs analyzed
 3. **Recent commits**: Development patterns and priorities identified
-4. **Industry standards**: Comparison with Unity, Godot, Unreal workflows
+4. **Industry standards**: Comparison with Godot workflows
 5. **Developer workflow simulation**: Step-through of typical game development tasks
 
 ### Assumptions
