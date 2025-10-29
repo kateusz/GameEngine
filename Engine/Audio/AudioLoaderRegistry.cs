@@ -6,7 +6,8 @@ public static class AudioLoaderRegistry
 {
     private static readonly List<IAudioLoader> Loaders =
     [
-        new WavLoader()
+        new WavLoader(),
+        new OggLoader()
     ];
 
     public static void RegisterLoader(IAudioLoader loader)

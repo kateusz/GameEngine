@@ -61,7 +61,9 @@ public class AudioSourceComponentEditor : IComponentEditor
 
             if (ImGui.Button("Play"))
             {
-                AudioEngine.Instance.PlayOneShot("assets/sounds/click.wav", volume: 0.5f);
+                var path = entity.GetComponent<AudioSourceComponent>().AudioClip?.Path;
+                if(!string.IsNullOrWhiteSpace(path))
+                    AudioEngine.Instance.PlayOneShot(path, volume: 0.5f);
             }
 
             // Playing status

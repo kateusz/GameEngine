@@ -52,7 +52,13 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             var alFormat = GetOpenALFormat();
 
             // Upload data to OpenAL buffer
-            al.BufferData(_bufferId, alFormat, RawData, SampleRate);
+            unsafe
+            {
+                fixed (byte* ptr = RawData)
+                {
+                    al.BufferData(_bufferId, alFormat, ptr, RawData.Length, SampleRate);
+                }
+            }
 
             // Calculate duration
             int bytesPerSample = Channels * 2; // Assuming 16-bit
