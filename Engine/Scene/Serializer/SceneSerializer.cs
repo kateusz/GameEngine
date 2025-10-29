@@ -234,13 +234,23 @@ public class SceneSerializer : ISceneSerializer
         {
             audioClipPath = pathValue.GetValue<string>();
         }
-        
+
         var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component == null)
             return;
-        
-        if (!string.IsNullOrWhiteSpace(audioClipPath)) 
-            component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+
+        if (!string.IsNullOrWhiteSpace(audioClipPath))
+        {
+            try
+            {
+                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue scene deserialization
+                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
+            }
+        }
 
         entity.AddComponent<AudioSourceComponent>(component);
     }

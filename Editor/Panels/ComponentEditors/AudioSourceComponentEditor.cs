@@ -70,7 +70,7 @@ public class AudioSourceComponentEditor : IComponentEditor
 
             if (ImGui.Button("Play"))
             {
-                var path = entity.GetComponent<AudioSourceComponent>().AudioClip?.Path;
+                var path = component.AudioClip?.Path;
                 if(!string.IsNullOrWhiteSpace(path))
                     _audioEngine.PlayOneShot(path, volume: 0.5f);
             }

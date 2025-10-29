@@ -31,6 +31,7 @@ public class Program
 
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+        container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
 
         // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);

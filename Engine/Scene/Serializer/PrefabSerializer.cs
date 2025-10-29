@@ -287,7 +287,17 @@ public class PrefabSerializer : IPrefabSerializer
             return;
 
         if (!string.IsNullOrWhiteSpace(audioClipPath))
-            component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+        {
+            try
+            {
+                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue prefab deserialization
+                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for prefab entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
+            }
+        }
 
         entity.AddComponent<AudioSourceComponent>(component);
     }

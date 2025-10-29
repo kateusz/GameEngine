@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Audio;
+using Engine.Math;
 using Engine.Scene.Components;
 using Serilog;
 using Context = ECS.Context;
@@ -221,9 +222,9 @@ public class AudioSystem : ISystem
         _audioEngine.SetListenerPosition(pos);
 
         // Set listener orientation based on transform rotation
-        var transformMatrix = transform.GetTransform();
-        var forward = Vector3.Transform(-Vector3.UnitZ, Quaternion.CreateFromRotationMatrix(transformMatrix));
-        var up = Vector3.Transform(Vector3.UnitY, Quaternion.CreateFromRotationMatrix(transformMatrix));
+        var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
+        var forward = Vector3.Transform(-Vector3.UnitZ, quaternion);
+        var up = Vector3.Transform(Vector3.UnitY, quaternion);
 
         _audioEngine.SetListenerOrientation(forward, up);
     }

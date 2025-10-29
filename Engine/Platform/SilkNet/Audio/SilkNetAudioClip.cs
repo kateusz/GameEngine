@@ -72,6 +72,24 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
         catch (Exception ex)
         {
             Logger.Error(ex, "Error loading audio clip {Path}", Path);
+
+            // Clean up any created buffer on error
+            if (_bufferId != 0)
+            {
+                try
+                {
+                    _al.DeleteBuffer(_bufferId);
+                }
+                catch (Exception deleteEx)
+                {
+                    Logger.Warning(deleteEx, "Failed to delete buffer after load error for {Path}", Path);
+                }
+                finally
+                {
+                    _bufferId = 0;
+                }
+            }
+
             throw;
         }
     }
@@ -93,7 +111,7 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             }
 
             // Unload OpenAL resources (unmanaged resources)
-            if (IsLoaded && _bufferId != 0)
+            if (_bufferId != 0)
             {
                 try
                 {
