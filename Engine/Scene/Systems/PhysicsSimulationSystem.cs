@@ -17,6 +17,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
 
     private readonly World _physicsWorld;
+    private readonly SceneContactListener _contactListener;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
@@ -36,12 +37,14 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     public int Priority => 100;
 
     /// <summary>
-    /// Creates a new PhysicsSimulationSystem with the specified physics world.
+    /// Creates a new PhysicsSimulationSystem with the specified physics world and contact listener.
     /// </summary>
     /// <param name="physicsWorld">The Box2D World instance to simulate.</param>
-    public PhysicsSimulationSystem(World physicsWorld)
+    /// <param name="contactListener">The contact listener for collision events.</param>
+    public PhysicsSimulationSystem(World physicsWorld, SceneContactListener contactListener)
     {
         _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
+        _contactListener = contactListener ?? throw new ArgumentNullException(nameof(contactListener));
     }
 
     /// <summary>
@@ -58,6 +61,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     /// <summary>
     /// Updates the physics simulation using fixed timestep.
     /// Steps the physics world and synchronizes transforms with physics bodies.
+    /// Uses interpolation for smooth rendering at non-60fps frame rates.
     /// </summary>
     /// <param name="deltaTime">Variable frame time since last update.</param>
     public void OnUpdate(TimeSpan deltaTime)
@@ -74,10 +78,17 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
         int stepCount = 0;
         while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
+            // Store previous transforms before stepping for interpolation
+            StorePreviousTransforms();
+            
             _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
             _physicsAccumulator -= CameraConfig.PhysicsTimestep;
             stepCount++;
         }
+
+        // Process collision events after all physics steps complete
+        // This ensures thread safety and enables future parallelization
+        _contactListener.ProcessContactEvents();
 
         // If we hit max steps, clamp accumulator to prevent unbounded growth
         // while preserving some time debt for the next frame
@@ -86,24 +97,93 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
             _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
         }
 
-        // Retrieve transform from Box2D and sync with entities
+        // Calculate interpolation alpha (0-1) based on accumulator remainder
+        float alpha = _physicsAccumulator / CameraConfig.PhysicsTimestep;
+
+        // Update fixture properties (only when dirty) and interpolate transforms
+        UpdateAndInterpolateTransforms(alpha);
+    }
+
+    /// <summary>
+    /// Stores the current physics body positions and angles before stepping.
+    /// This is required for smooth interpolation between physics steps.
+    /// </summary>
+    private void StorePreviousTransforms()
+    {
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
+            var body = component.RuntimeBody;
+            if (body != null)
+            {
+                component.PreviousPosition = body.GetPosition();
+                component.PreviousAngle = body.GetAngle();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates fixture properties (when dirty) and interpolates transforms for smooth rendering.
+    /// Only updates fixture properties when they have been modified (IsDirty flag).
+    /// </summary>
+    /// <param name="alpha">Interpolation factor (0-1) between previous and current physics state.</param>
+    private void UpdateAndInterpolateTransforms(float alpha)
+    {
+        var view = Context.Instance.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            // Validate required components
+            if (!entity.HasComponent<TransformComponent>())
+            {
+                Logger.Warning("Entity {EntityName} (ID: {EntityId}) has RigidBody2D but missing TransformComponent", 
+                    entity.Name, entity.Id);
+                continue;
+            }
+
             var transform = entity.GetComponent<TransformComponent>();
-            var collision = entity.GetComponent<BoxCollider2DComponent>();
             var body = component.RuntimeBody;
 
             if (body != null)
             {
-                var fixture = body.GetFixtureList();
-                fixture.Density = collision.Density;
-                fixture.m_friction = collision.Friction;
-                fixture.Restitution = collision.Restitution;
+                // Only update fixture properties if they've been modified
+                if (entity.HasComponent<BoxCollider2DComponent>())
+                {
+                    var collision = entity.GetComponent<BoxCollider2DComponent>();
+                    
+                    if (collision.IsDirty)
+                    {
+                        var fixture = body.GetFixtureList();
+                        fixture.Density = collision.Density;
+                        fixture.m_friction = collision.Friction;
+                        fixture.Restitution = collision.Restitution;
+                        
+                        // Required after density change to recalculate mass
+                        body.ResetMassData();
+                        
+                        collision.ClearDirtyFlag();
+                    }
+                }
 
-                var position = body.GetPosition();
-                transform.Translation = new Vector3(position.X, position.Y, 0);
-                transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+                // Interpolate position and rotation for smooth rendering
+                var currentPos = body.GetPosition();
+                var previousPos = component.PreviousPosition;
+                
+                // Linear interpolation of position
+                var interpolatedX = previousPos.X + (currentPos.X - previousPos.X) * alpha;
+                var interpolatedY = previousPos.Y + (currentPos.Y - previousPos.Y) * alpha;
+                transform.Translation = new Vector3(interpolatedX, interpolatedY, 0);
+
+                // Angular interpolation (handles wrapping)
+                var currentAngle = body.GetAngle();
+                var previousAngle = component.PreviousAngle;
+                var angleDiff = currentAngle - previousAngle;
+                
+                // Normalize angle difference to [-π, π]
+                while (angleDiff > MathF.PI) angleDiff -= MathF.Tau;
+                while (angleDiff < -MathF.PI) angleDiff += MathF.Tau;
+                
+                var interpolatedAngle = previousAngle + angleDiff * alpha;
+                transform.Rotation = transform.Rotation with { Z = interpolatedAngle };
             }
         }
     }

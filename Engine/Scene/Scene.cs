@@ -44,9 +44,9 @@ public class Scene : IDisposable
         var contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(contactListener);
 
-        // Create and register physics simulation system with the physics world
+        // Create and register physics simulation system with the physics world and contact listener
         // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld, contactListener);
         _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 
