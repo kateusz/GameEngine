@@ -28,7 +28,7 @@ public class ContentBrowserPanel
         _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.Begin("Content Browser");
 
@@ -98,6 +98,11 @@ public class ContentBrowserPanel
             else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase) ||
                      info.Name.EndsWith(".scene", StringComparison.OrdinalIgnoreCase))
             {
+                icon = _fileIcon;
+            }
+            else if (info.Name.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
+            {
+                // TODO: animation icon
                 icon = _fileIcon;
             }
             else

@@ -33,6 +33,7 @@ public static class ComponentSelector
             DrawComponentMenuItem<MeshComponent>("Mesh", entity);
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
+            DrawComponentMenuItem<AnimationComponent>("Animation Component", entity);
 
             ImGui.EndPopup();
         }

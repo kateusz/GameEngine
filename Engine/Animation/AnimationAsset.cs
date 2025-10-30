@@ -33,17 +33,17 @@ public record AnimationAsset : IDisposable
     /// <summary>
     /// Dictionary of animation clips: clip name → clip data.
     /// </summary>
-    public required Dictionary<string, AnimationClip> Clips { get; init; } = new();
+    public required AnimationClip[] Clips { get; init; }
 
     /// <summary>
     /// Check if asset contains a clip with the given name.
     /// </summary>
-    public bool HasClip(string clipName) => Clips.ContainsKey(clipName);
+    public bool HasClip(string clipName) => Clips.Any(x => x.Name == clipName);
 
     /// <summary>
     /// Get clip by name, returns null if not found.
     /// </summary>
-    public AnimationClip? GetClip(string clipName) => Clips.TryGetValue(clipName, out var clip) ? clip : null;
+    public AnimationClip? GetClip(string clipName) => Clips.SingleOrDefault(c => c.Name == clipName);
 
     /// <summary>
     /// Dispose texture resources.

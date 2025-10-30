@@ -31,6 +31,7 @@ public class SceneSerializer : ISceneSerializer
 
     private readonly IAudioEngine _audioEngine;
 
+    // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -39,6 +40,7 @@ public class SceneSerializer : ISceneSerializer
             new Vector2Converter(),
             new Vector3Converter(),
             new Vector4Converter(),
+            new RectangleConverter(),
             new JsonStringEnumConverter()
         }
     };

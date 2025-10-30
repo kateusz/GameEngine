@@ -411,7 +411,7 @@ public class EditorLayer : ILayer
 
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
-            _contentBrowserPanel.OnImGuiRender();
+            _contentBrowserPanel.Draw();
             _consolePanel.OnImGuiRender();
             
             ScriptComponentUI.OnImGuiRender();

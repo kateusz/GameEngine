@@ -19,14 +19,12 @@ public class AnimationSystem : ISystem
     private static readonly ILogger Logger = Log.ForContext<AnimationSystem>();
     
     public int Priority => 198;
-
-    private readonly Context _context;
+    
     private readonly EventBus _eventBus;
     private readonly AnimationAssetManager _animationAssetManager;
 
-    public AnimationSystem(Context context, EventBus eventBus, AnimationAssetManager animationAssetManager)
+    public AnimationSystem(EventBus eventBus, AnimationAssetManager animationAssetManager)
     {
-        _context = context;
         _eventBus = eventBus;
         _animationAssetManager = animationAssetManager;
     }
@@ -36,7 +34,7 @@ public class AnimationSystem : ISystem
         var dt = (float)deltaTime.TotalSeconds;
 
         // Iterate over all entities with AnimationComponent
-        foreach (var (entity, animComponent) in _context.View<AnimationComponent>())
+        foreach (var (entity, animComponent) in Context.Instance.View<AnimationComponent>())
         {
             // Update animation
             UpdateAnimation(entity, animComponent, dt);
@@ -62,16 +60,16 @@ public class AnimationSystem : ISystem
         }
 
         // If no clip specified, use first available clip
-        if (string.IsNullOrEmpty(animComponent.CurrentClipName) && animComponent.Asset.Clips.Count > 0)
+        if (string.IsNullOrEmpty(animComponent.CurrentClipName) && animComponent.Asset.Clips.Length > 0)
         {
-            animComponent.CurrentClipName = animComponent.Asset.Clips.Keys.First();
+            animComponent.CurrentClipName = animComponent.Asset.Clips.First().Name;
         }
 
         // Validate clip exists
         if (!string.IsNullOrEmpty(animComponent.CurrentClipName) && !animComponent.Asset.HasClip(animComponent.CurrentClipName))
         {
             Logger.Warning("Animation clip not found: {CurrentClipName} in asset {AssetPath}", animComponent.CurrentClipName, animComponent.AssetPath);
-            animComponent.CurrentClipName = animComponent.Asset.Clips.Keys.FirstOrDefault() ?? string.Empty;
+            animComponent.CurrentClipName = animComponent.Asset.Clips.FirstOrDefault()?.Name ?? string.Empty;
         }
 
         // Set loop from clip default

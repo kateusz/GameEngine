@@ -1,5 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Engine.Renderer.Textures;
+using Engine.Scene.Serializer;
 using Serilog;
 
 namespace Engine.Animation;
@@ -11,6 +13,20 @@ namespace Engine.Animation;
 public class AnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
+    
+    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
+    {
+        WriteIndented = true,
+        Converters =
+        {
+            new Vector2Converter(),
+            new Vector3Converter(),
+            new Vector4Converter(),
+            new RectangleConverter(),
+            new JsonStringEnumConverter()
+        }
+    };
+    
     private readonly Dictionary<string, CacheEntry> _cache = new();
 
     /// <summary>
@@ -42,11 +58,7 @@ public class AnimationAssetManager
             }
 
             var jsonText = File.ReadAllText(fullPath);
-            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
+            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, DefaultSerializerOptions);
             if (animationAsset == null)
             {
                 Logger.Error("Failed to deserialize animation asset: {Path}", path);
@@ -57,7 +69,7 @@ public class AnimationAssetManager
             var atlasFullPath = ResolveAssetPath(animationAsset.AtlasPath);
             var atlasTexture = TextureFactory.Create(atlasFullPath);
 
-            foreach (var animationClip in animationAsset.Clips.Values)
+            foreach (var animationClip in animationAsset.Clips)
             {
                 foreach (var animationFrame in animationClip.Frames)
                 {
@@ -67,7 +79,7 @@ public class AnimationAssetManager
 
             _cache[path] = new CacheEntry(animationAsset);
 
-            Logger.Information("Animation asset loaded: {Path} ({ClipCount} clips)", path, animationAsset.Clips.Count);
+            Logger.Information("Animation asset loaded: {Path} ({ClipCount} clips)", path, animationAsset.Clips.Length);
             return animationAsset;
         }
         catch (Exception ex)
@@ -165,7 +177,7 @@ public class AnimationAssetManager
             }
 
             // Add metadata overhead (approximate)
-            total += asset.Clips.Sum(c => c.Value.Frames.Length * 256); // ~256 bytes per frame
+            total += asset.Clips.Sum(c => c.Frames.Length * 256); // ~256 bytes per frame
         }
 
         return total;
