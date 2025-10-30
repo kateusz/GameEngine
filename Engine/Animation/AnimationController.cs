@@ -217,10 +217,10 @@ public static class AnimationController
     /// </summary>
     public static string[] GetAvailableClips(Entity entity)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return Array.Empty<string>();
+        if (!entity.HasComponent<AnimationComponent>()) return [];
         
         var anim = entity.GetComponent<AnimationComponent>();
-        return anim.Asset?.Clips.Keys.ToArray() ?? Array.Empty<string>();
+        return anim.Asset?.Clips.Select(c => c.Name)?.ToArray() ?? [];
     }
 
     /// <summary>

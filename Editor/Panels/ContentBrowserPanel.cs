@@ -100,6 +100,11 @@ public class ContentBrowserPanel : IContentBrowserPanel
             {
                 icon = _fileIcon;
             }
+            else if (info.Name.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
+            {
+                // TODO: animation icon
+                icon = _fileIcon;
+            }
             else
             {
                 icon = _fileIcon;

@@ -17,7 +17,7 @@ public record AnimationFrame
     /// Normalized pivot point [0..1] relative to frame rectangle.
     /// Default: [0.5, 0.0] (bottom-center)
     /// </summary>
-    public required  Vector2 Pivot { get; init; }
+    public required Vector2 Pivot { get; init; }
 
     /// <summary>
     /// Flip flags [flipH, flipV] for horizontal and vertical mirroring.
@@ -32,19 +32,19 @@ public record AnimationFrame
     /// <summary>
     /// Per-frame scale multiplier [scaleX, scaleY].
     /// </summary>
-    public required Vector2 Scale { get; init; } = Vector2.One;
+    public Vector2 Scale { get; init; } = Vector2.One;
 
     /// <summary>
     /// List of event names to fire when entering this frame.
     /// </summary>
-    public required string[] Events { get; init; } = [];
+    public string[] Events { get; init; } = [];
 
     /// <summary>
     /// Pre-calculated UV coordinates for this frame (4 vertices).
     /// Calculated during asset load to avoid runtime cost.
     /// Order: [bottom-left, bottom-right, top-right, top-left]
     /// </summary>
-    public required Vector2[] TexCoords { get; init; } = new Vector2[4];
+    public Vector2[] TexCoords { get; init; } = new Vector2[4];
 
     /// <summary>
     /// Calculates UV coordinates from pixel rect and texture size.

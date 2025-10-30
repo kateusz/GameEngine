@@ -409,12 +409,12 @@ public class EditorLayer : ILayer
                 ImGui.EndMenuBar();
             }
 
-            _sceneHierarchyPanel.Draw();
-            _propertiesPanel.Draw();
-            _contentBrowserPanel.Draw();
-            _consolePanel.Draw();
-
-            ScriptComponentUI.Draw();
+            _sceneHierarchyPanel.OnImGuiRender();
+            _propertiesPanel.OnImGuiRender();
+            _contentBrowserPanel.OnImGuiRender();
+            _consolePanel.OnImGuiRender();
+            
+            ScriptComponentUI.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);
