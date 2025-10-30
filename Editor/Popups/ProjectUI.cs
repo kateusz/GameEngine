@@ -2,6 +2,7 @@ using System.Numerics;
 using Editor.Managers;
 using ImGuiNET;
 using Editor.UI;
+using Engine;
 
 namespace Editor.Panels;
 

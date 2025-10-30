@@ -1,0 +1,51 @@
+{
+  "id": "example1",
+  "atlasPath": "textures/spritesheet.png",
+  "cellSize": [64, 64],
+  "clips": {
+    "idle": {
+      "fps": 6.0,
+      "loop": true,
+      "frames": [
+        {
+          "rect": [0, 0, 64, 64],
+          "pivot": [0.5, 0.0],
+          "flip": [false, false]
+        },
+        {
+          "rect": [64, 0, 64, 64],
+          "pivot": [0.5, 0.0],
+          "flip": [false, false]
+        },
+        {
+          "rect": [128, 0, 64, 64],
+          "pivot": [0.5, 0.0]
+        }
+      ]
+    },
+    "run": {
+      "fps": 12.0,
+      "loop": true,
+      "frames": [
+        {
+          "rect": [0, 64, 64, 64],
+          "pivot": [0.5, 0.0],
+          "events": ["step"]
+        },
+        {
+          "rect": [64, 64, 64, 64],
+          "pivot": [0.5, 0.0]
+        },
+        {
+          "rect": [128, 64, 64, 64],
+          "pivot": [0.5, 0.0],
+          "events": ["step"]
+        },
+        {
+          "rect": [192, 64, 64, 64],
+          "pivot": [0.5, 0.0]
+        }
+      ]
+    }
+  }
+}
