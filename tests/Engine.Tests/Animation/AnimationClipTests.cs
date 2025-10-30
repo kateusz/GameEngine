@@ -5,6 +5,8 @@ namespace Engine.Tests.Animation;
 
 /// <summary>
 /// Unit tests for AnimationClip class, focusing on duration calculations and properties.
+/// NOTE: These tests need updating to set Duration and FrameDuration (cached values in new API).
+/// Use helper method or initialize these fields when creating AnimationClip instances.
 /// </summary>
 public class AnimationClipTests
 {
@@ -17,7 +19,9 @@ public class AnimationClipTests
             Name = "walk",
             Fps = 12.0f,
             Loop = false,
-            Frames = new AnimationFrame[6]
+            Frames = new AnimationFrame[6],
+            Duration = 6 / 12.0f,  // Cached value
+            FrameDuration = 1.0f / 12.0f  // Cached value
         };
 
         // Act

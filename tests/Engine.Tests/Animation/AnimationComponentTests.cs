@@ -32,18 +32,19 @@ public class AnimationComponentTests
             new AnimationFrame { Rect = new Rectangle(64, 64, 32, 32), Pivot = new Vector2(0.5f, 0), Scale = Vector2.One, Events = [], TexCoords = new Vector2[4] }
         };
 
-        return new AnimationAsset
+        var asset = new AnimationAsset
         {
             Id = "test_character",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = idleFrames },
-                ["walk"] = new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = walkFrames },
-                ["jump"] = new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = jumpFrames }
-            }
+            Clips = [
+                new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = idleFrames, Duration = idleFrames.Length / 8.0f, FrameDuration = 1.0f / 8.0f },
+                new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = walkFrames, Duration = walkFrames.Length / 12.0f, FrameDuration = 1.0f / 12.0f },
+                new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = jumpFrames, Duration = jumpFrames.Length / 24.0f, FrameDuration = 1.0f / 24.0f }
+            ]
         };
+        asset.InitializeClipLookup();
+        return asset;
     }
 
     [Fact]

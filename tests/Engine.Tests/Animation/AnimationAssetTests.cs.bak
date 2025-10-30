@@ -46,9 +46,16 @@ public class AnimationAssetTests
     public void HasClip_WithNonExistingClip_ReturnsFalse()
     {
         // Arrange
-        var asset = CreateTestAsset("test",
-            new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f }
-        );
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["idle"] = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] }
+            }
+        };
 
         // Act
         var hasRun = asset.HasClip("run");
@@ -61,7 +68,13 @@ public class AnimationAssetTests
     public void HasClip_WithEmptyClips_ReturnsFalse()
     {
         // Arrange
-        var asset = CreateTestAsset("test");
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>()
+        };
 
         // Act
         var hasAny = asset.HasClip("anything");
@@ -74,8 +87,17 @@ public class AnimationAssetTests
     public void GetClip_WithExistingClip_ReturnsClip()
     {
         // Arrange
-        var idleClip = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f };
-        var asset = CreateTestAsset("test", idleClip);
+        var idleClip = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] };
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["idle"] = idleClip
+            }
+        };
 
         // Act
         var result = asset.GetClip("idle");
@@ -90,9 +112,16 @@ public class AnimationAssetTests
     public void GetClip_WithNonExistingClip_ReturnsNull()
     {
         // Arrange
-        var asset = CreateTestAsset("test",
-            new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f }
-        );
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["idle"] = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] }
+            }
+        };
 
         // Act
         var result = asset.GetClip("nonexistent");
@@ -105,7 +134,13 @@ public class AnimationAssetTests
     public void GetClip_WithEmptyClips_ReturnsNull()
     {
         // Arrange
-        var asset = CreateTestAsset("test");
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>()
+        };
 
         // Act
         var result = asset.GetClip("anything");
@@ -118,11 +153,17 @@ public class AnimationAssetTests
     public void AnimationAsset_DefaultProperties_HaveCorrectValues()
     {
         // Arrange & Act
-        var asset = CreateTestAsset("");
+        var asset = new AnimationAsset
+        {
+            Id = "",
+            AtlasPath = "",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>()
+        };
 
         // Assert
         Assert.Equal(string.Empty, asset.Id);
-        Assert.Equal("test.png", asset.AtlasPath);
+        Assert.Equal(string.Empty, asset.AtlasPath);
         Assert.Null(asset.Atlas);
         Assert.Equal(32, asset.CellSize.X);
         Assert.Equal(32, asset.CellSize.Y);
@@ -138,9 +179,8 @@ public class AnimationAssetTests
             Id = "player_animations",
             AtlasPath = "Assets/Characters/player.png",
             CellSize = new Vector2(64, 64),
-            Clips = []
+            Clips = new Dictionary<string, AnimationClip>()
         };
-        asset.InitializeClipLookup();
 
         // Assert
         Assert.Equal("player_animations", asset.Id);
@@ -158,17 +198,17 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = [
-                new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.125f },
-                new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.083f },
-                new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = [], Duration = 0, FrameDuration = 0.042f },
-                new AnimationClip { Name = "attack", Fps = 30.0f, Loop = false, Frames = [], Duration = 0, FrameDuration = 0.033f }
-            ]
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["idle"] = new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = [] },
+                ["walk"] = new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = [] },
+                ["jump"] = new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = [] },
+                ["attack"] = new AnimationClip { Name = "attack", Fps = 30.0f, Loop = false, Frames = [] }
+            }
         };
-        asset.InitializeClipLookup();
 
         // Act & Assert
-        Assert.Equal(4, asset.Clips.Length);
+        Assert.Equal(4, asset.Clips.Count);
         Assert.True(asset.HasClip("idle"));
         Assert.True(asset.HasClip("walk"));
         Assert.True(asset.HasClip("jump"));
@@ -186,30 +226,46 @@ public class AnimationAssetTests
     }
 
     [Fact]
-    public void AnimationAsset_ClipArray_IsImmutable()
+    public void AnimationAsset_ClipDictionary_CanBeModified()
     {
-        // Arrange - Clips array is immutable after initialization
-        var clips = new AnimationClip[]
+        // Arrange
+        var asset = new AnimationAsset
         {
-            new() { Name = "idle", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f },
-            new() { Name = "walk", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f }
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>()
         };
-        var asset = CreateTestAsset("test", clips);
 
-        // Act & Assert - Clips exist
-        Assert.Equal(2, asset.Clips.Length);
+        // Act - Add clips
+        asset.Clips.Add("idle", new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] });
+        asset.Clips.Add("walk", new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [] });
+
+        // Assert - Clips added
+        Assert.Equal(2, asset.Clips.Count);
         Assert.True(asset.HasClip("idle"));
         Assert.True(asset.HasClip("walk"));
-        
-        // Note: Clips array itself cannot be modified (init-only property)
-        // This test verifies the immutable nature of the new API
+
+        // Act - Remove a clip
+        asset.Clips.Remove("idle");
+
+        // Assert - Clip removed
+        Assert.Single(asset.Clips);
+        Assert.False(asset.HasClip("idle"));
+        Assert.True(asset.HasClip("walk"));
     }
 
     [Fact]
     public void Dispose_WithNullAtlas_DoesNotThrow()
     {
         // Arrange
-        var asset = CreateTestAsset("test");
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>()
+        };
 
         // Act & Assert - Should not throw
         asset.Dispose();
@@ -220,7 +276,13 @@ public class AnimationAssetTests
     public void Dispose_SetsAtlasToNull()
     {
         // Arrange
-        var asset = CreateTestAsset("test");
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>()
+        };
         // We can't create a real texture without OpenGL context
 
         // Act
@@ -234,9 +296,16 @@ public class AnimationAssetTests
     public void HasClip_IsCaseSensitive()
     {
         // Arrange
-        var asset = CreateTestAsset("test",
-            new AnimationClip { Name = "Idle", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f }
-        );
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["Idle"] = new AnimationClip { Name = "Idle", Fps = 10.0f, Loop = true, Frames = [] }
+            }
+        };
 
         // Act
         var hasExactCase = asset.HasClip("Idle");
@@ -253,8 +322,17 @@ public class AnimationAssetTests
     public void GetClip_IsCaseSensitive()
     {
         // Arrange
-        var clip = new AnimationClip { Name = "Walk", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f };
-        var asset = CreateTestAsset("test", clip);
+        var clip = new AnimationClip { Name = "Walk", Fps = 10.0f, Loop = true, Frames = [] };
+        var asset = new AnimationAsset
+        {
+            Id = "test",
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["Walk"] = clip
+            }
+        };
 
         // Act
         var exactMatch = asset.GetClip("Walk");
@@ -303,9 +381,7 @@ public class AnimationAssetTests
             Name = "walk",
             Fps = 12.0f,
             Loop = true,
-            Frames = frames,
-            Duration = frames.Length / 12.0f,
-            FrameDuration = 1.0f / 12.0f
+            Frames = frames
         };
 
         var asset = new AnimationAsset
@@ -313,9 +389,11 @@ public class AnimationAssetTests
             Id = "character",
             AtlasPath = "textures/character.png",
             CellSize = new Vector2(32, 32),
-            Clips = [clip]
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                ["walk"] = clip
+            }
         };
-        asset.InitializeClipLookup();
 
         // Act
         var retrievedClip = asset.GetClip("walk");
@@ -339,11 +417,11 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = [
-                new AnimationClip { Name = "", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f }
-            ]
+            Clips = new Dictionary<string, AnimationClip>
+            {
+                [""] = new AnimationClip { Name = "", Fps = 10.0f, Loop = true, Frames = [] }
+            }
         };
-        asset.InitializeClipLookup();
 
         // Act
         var hasEmpty = asset.HasClip("");
