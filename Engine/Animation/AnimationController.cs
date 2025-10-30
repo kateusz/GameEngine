@@ -93,13 +93,27 @@ public static class AnimationController
 
     /// <summary>
     /// Set playback speed multiplier.
+    /// Speed values above 10.0 may cause performance issues.
     /// </summary>
+    /// <param name="entity">Entity with AnimationComponent</param>
+    /// <param name="speed">Speed multiplier (0.0 or higher, recommended max: 10.0)</param>
     public static void SetSpeed(Entity entity, float speed)
     {
         if (!entity.HasComponent<AnimationComponent>()) return;
         
         var anim = entity.GetComponent<AnimationComponent>();
-        anim.PlaybackSpeed = speed < 0.0f ? 0.0f : speed;
+        
+        // Clamp to minimum
+        if (speed < 0.0f) speed = 0.0f;
+        
+        // Warn about very high speeds that may cause performance issues
+        if (speed > 10.0f)
+        {
+            Logger.Warning("Animation speed {Speed} on entity {EntityName} is very high - may cause performance issues",
+                speed, entity.Name);
+        }
+        
+        anim.PlaybackSpeed = speed;
     }
 
     /// <summary>
@@ -175,7 +189,7 @@ public static class AnimationController
     public static float GetNormalizedTime(Entity entity)
     {
         int frameCount = GetFrameCount(entity);
-        if (frameCount == 0) return 0.0f;
+        if (frameCount <= 1) return 0.0f;  // Protect against divide by zero/negative
         
         int currentFrame = GetCurrentFrame(entity);
         return currentFrame / (float)(frameCount - 1);

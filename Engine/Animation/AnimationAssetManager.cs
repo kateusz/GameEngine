@@ -9,6 +9,9 @@ namespace Engine.Animation;
 /// <summary>
 /// Singleton manager for loading, caching, and lifecycle management of animation assets.
 /// Implements reference counting to automatically unload unused assets.
+/// 
+/// THREAD SAFETY: This class is NOT thread-safe. All methods must be called from the main thread only.
+/// For async loading, queue load requests to be executed on the main thread.
 /// </summary>
 public class AnimationAssetManager
 {
@@ -23,6 +26,7 @@ public class AnimationAssetManager
             new Vector3Converter(),
             new Vector4Converter(),
             new RectangleConverter(),
+            new AnimationClipConverter(),
             new JsonStringEnumConverter()
         }
     };
@@ -68,6 +72,7 @@ public class AnimationAssetManager
             // Load texture atlas
             var atlasFullPath = ResolveAssetPath(animationAsset.AtlasPath);
             var atlasTexture = TextureFactory.Create(atlasFullPath);
+            animationAsset.Atlas = atlasTexture;
 
             foreach (var animationClip in animationAsset.Clips)
             {
@@ -76,6 +81,9 @@ public class AnimationAssetManager
                     animationFrame.CalculateUvCoords(atlasTexture.Width, atlasTexture.Height);
                 }
             }
+
+            // Initialize clip lookup dictionary for O(1) access
+            animationAsset.InitializeClipLookup();
 
             _cache[path] = new CacheEntry(animationAsset);
 
@@ -105,9 +113,19 @@ public class AnimationAssetManager
         // If no more references, dispose and remove
         if (entry.ReferenceCount <= 0)
         {
-            entry.Asset.Dispose();
-            _cache.Remove(path);
-            Logger.Information("Animation asset disposed: {Path}", path);
+            try
+            {
+                entry.Asset.Dispose();
+                Logger.Information("Animation asset disposed: {Path}", path);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error disposing animation asset: {Path}", path);
+            }
+            finally
+            {
+                _cache.Remove(path);
+            }
         }
     }
 
@@ -133,8 +151,18 @@ public class AnimationAssetManager
 
         foreach (var path in toRemove)
         {
-            _cache[path].Asset.Dispose();
-            _cache.Remove(path);
+            try
+            {
+                _cache[path].Asset.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error disposing animation asset during cleanup: {Path}", path);
+            }
+            finally
+            {
+                _cache.Remove(path);
+            }
         }
 
         if (toRemove.Count > 0)
@@ -149,7 +177,14 @@ public class AnimationAssetManager
     {
         foreach (var entry in _cache.Values)
         {
-            entry.Asset.Dispose();
+            try
+            {
+                entry.Asset.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error disposing animation asset: {Path}", entry.Asset.Id);
+            }
         }
 
         _cache.Clear();

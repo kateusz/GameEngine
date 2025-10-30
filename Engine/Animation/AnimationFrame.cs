@@ -5,8 +5,14 @@ namespace Engine.Animation;
 /// <summary>
 /// Represents a single frame in an animation clip.
 /// </summary>
-public record AnimationFrame
+public class AnimationFrame
 {
+    /// <summary>
+    /// Threshold value for flip detection.
+    /// Values greater than this are considered "true" for flipping.
+    /// </summary>
+    private const float FlipThreshold = 0.5f;
+
     /// <summary>
     /// Pixel rectangle [x, y, width, height] in texture atlas.
     /// Origin: bottom-left (OpenGL convention).
@@ -21,6 +27,7 @@ public record AnimationFrame
 
     /// <summary>
     /// Flip flags [flipH, flipV] for horizontal and vertical mirroring.
+    /// Values greater than 0.5 are considered true for flipping.
     /// </summary>
     public Vector2? Flip { get; init; }
 
@@ -59,23 +66,33 @@ public record AnimationFrame
         float uvMaxY = (Rect.Y + Rect.Height) / (float)atlasHeight;
 
         // Base UV coordinates (counter-clockwise from bottom-left)
+        // UV layout:
+        //   3---2    (top-left --- top-right)
+        //   |   |
+        //   0---1    (bottom-left --- bottom-right)
         TexCoords[0] = new Vector2(uvMinX, uvMinY);  // Bottom-left
         TexCoords[1] = new Vector2(uvMaxX, uvMinY);  // Bottom-right
         TexCoords[2] = new Vector2(uvMaxX, uvMaxY);  // Top-right
         TexCoords[3] = new Vector2(uvMinX, uvMaxY);  // Top-left
 
-        // Apply flip flags
-        if (Flip?.X > 0.5f) // Horizontal flip
+        // Apply horizontal flip by swapping left-right UV coordinates
+        // Before: BL--BR    After: BR--BL
+        //         |    |           |    |
+        //         TL--TR           TR--TL
+        if (Flip?.X > FlipThreshold)
         {
-            // Swap X coordinates
+            // Swap bottom edge X coordinates
             (TexCoords[0].X, TexCoords[1].X) = (TexCoords[1].X, TexCoords[0].X);
+            // Swap top edge X coordinates
             (TexCoords[2].X, TexCoords[3].X) = (TexCoords[3].X, TexCoords[2].X);
         }
 
-        if (Flip?.Y > 0.5f) // Vertical flip
+        // Apply vertical flip by swapping top-bottom UV coordinates
+        if (Flip?.Y > FlipThreshold)
         {
-            // Swap Y coordinates
+            // Swap left edge Y coordinates
             (TexCoords[0].Y, TexCoords[3].Y) = (TexCoords[3].Y, TexCoords[0].Y);
+            // Swap right edge Y coordinates
             (TexCoords[1].Y, TexCoords[2].Y) = (TexCoords[2].Y, TexCoords[1].Y);
         }
     }

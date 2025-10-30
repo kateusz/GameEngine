@@ -22,6 +22,7 @@ public class AnimationSystem : ISystem
     
     private readonly EventBus _eventBus;
     private readonly AnimationAssetManager _animationAssetManager;
+    private readonly HashSet<Entity> _warnedEntitiesMissingRenderer = new();
 
     public AnimationSystem(EventBus eventBus, AnimationAssetManager animationAssetManager)
     {
@@ -36,6 +37,9 @@ public class AnimationSystem : ISystem
         // Iterate over all entities with AnimationComponent
         foreach (var (entity, animComponent) in Context.Instance.View<AnimationComponent>())
         {
+            // Load asset if needed
+            LoadAssetIfNeeded(animComponent);
+            
             // Update animation
             UpdateAnimation(entity, animComponent, dt);
         }
@@ -119,13 +123,18 @@ public class AnimationSystem : ISystem
         animComponent.FrameTimer += deltaTime * animComponent.PlaybackSpeed;
 
         // Handle frame advancement (may advance multiple frames if very fast playback)
-        while (animComponent.FrameTimer >= frameDuration)
+        // Limit maximum frame advances to prevent excessive loops with high playback speeds
+        const int maxFrameAdvance = 10;
+        int framesAdvanced = 0;
+        
+        while (animComponent.FrameTimer >= frameDuration && framesAdvanced < maxFrameAdvance)
         {
             // Reset timer (keep overflow for precise timing)
             animComponent.FrameTimer -= frameDuration;
 
             // Advance frame
             animComponent.CurrentFrameIndex++;
+            framesAdvanced++;
 
             // Handle end of animation
             if (animComponent.CurrentFrameIndex >= clip.Frames.Length)
@@ -158,6 +167,13 @@ public class AnimationSystem : ISystem
             }
         }
 
+        // Warn if we hit the frame advance limit
+        if (framesAdvanced >= maxFrameAdvance)
+        {
+            Logger.Warning("Animation {ClipName} on entity {EntityName} advanced {Count} frames in one update - consider lower playback speed",
+                clip.Name, entity.Name, framesAdvanced);
+        }
+
         // Update SubTextureRendererComponent with current frame
         UpdateRendererComponent(entity, animComponent, clip);
     }
@@ -165,12 +181,25 @@ public class AnimationSystem : ISystem
     /// <summary>
     /// Update SubTextureRendererComponent with current frame data.
     /// </summary>
-    private static void UpdateRendererComponent(Entity entity, AnimationComponent animComponent, AnimationClip clip)
+    private void UpdateRendererComponent(Entity entity, AnimationComponent animComponent, AnimationClip clip)
     {
         // Check if entity has SubTextureRendererComponent
         if (!entity.HasComponent<SubTextureRendererComponent>())
         {
-            Logger.Warning("Entity {EntityName} has AnimationComponent but no SubTextureRendererComponent", entity.Name);
+            // Only log warning once per entity to avoid spam
+            if (_warnedEntitiesMissingRenderer.Add(entity))
+            {
+                Logger.Warning("Entity {EntityName} has AnimationComponent but no SubTextureRendererComponent", entity.Name);
+            }
+            return;
+        }
+
+        // Validate frame index bounds
+        if (animComponent.CurrentFrameIndex < 0 || animComponent.CurrentFrameIndex >= clip.Frames.Length)
+        {
+            Logger.Error("Invalid frame index {Index} for clip {Clip} (max: {Max}) on entity {EntityName}",
+                animComponent.CurrentFrameIndex, clip.Name, clip.Frames.Length - 1, entity.Name);
+            animComponent.CurrentFrameIndex = 0;
             return;
         }
 

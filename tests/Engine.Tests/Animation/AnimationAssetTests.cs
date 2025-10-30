@@ -8,21 +8,30 @@ namespace Engine.Tests.Animation;
 /// </summary>
 public class AnimationAssetTests
 {
+    /// <summary>
+    /// Helper method to create and initialize an AnimationAsset for testing.
+    /// </summary>
+    private static AnimationAsset CreateTestAsset(string id, params AnimationClip[] clips)
+    {
+        var asset = new AnimationAsset
+        {
+            Id = id,
+            AtlasPath = "test.png",
+            CellSize = new Vector2(32, 32),
+            Clips = clips
+        };
+        asset.InitializeClipLookup();
+        return asset;
+    }
+
     [Fact]
     public void HasClip_WithExistingClip_ReturnsTrue()
     {
         // Arrange
-        var asset = new AnimationAsset
-        {
-            Id = "test",
-            AtlasPath = "test.png",
-            CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] },
-                ["walk"] = new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [] }
-            }
-        };
+        var asset = CreateTestAsset("test",
+            new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f },
+            new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [], Duration = 0, FrameDuration = 0.1f }
+        );
 
         // Act
         var hasIdle = asset.HasClip("idle");
