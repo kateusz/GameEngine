@@ -14,39 +14,32 @@ public class AnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
     
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
-    
     private readonly Dictionary<string, CacheEntry> _cache = new();
+    private readonly object _cacheLock = new();
 
     /// <summary>
     /// Load animation asset from JSON file.
     /// If already cached, increments reference count and returns cached asset.
+    /// Thread-safe implementation.
     /// </summary>
     /// <param name="path">Relative path from Assets/ directory (e.g., "Animations/player.json")</param>
     /// <returns>Loaded animation asset, or null on error</returns>
     public AnimationAsset? LoadAsset(string path)
     {
-        // Check cache first
-        if (_cache.TryGetValue(path, out var entry))
+        // Check cache first (thread-safe)
+        lock (_cacheLock)
         {
-            entry.ReferenceCount++;
-            entry.LastAccessTime = DateTime.Now;
-            Logger.Information("Animation asset cached hit: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
-            return entry.Asset;
+            if (_cache.TryGetValue(path, out var entry))
+            {
+                entry.ReferenceCount++;
+                entry.LastAccessTime = DateTime.Now;
+                Logger.Information("Animation asset cached hit: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
+                return entry.Asset;
+            }
         }
 
-        // Not cached - load from disk
+        // Load from disk (outside lock to avoid blocking I/O)
+        AnimationAsset? animationAsset;
         try
         {
             // Resolve full path
@@ -58,7 +51,7 @@ public class AnimationAssetManager
             }
 
             var jsonText = File.ReadAllText(fullPath);
-            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, DefaultSerializerOptions);
+            animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, SerializationConfig.DefaultOptions);
             if (animationAsset == null)
             {
                 Logger.Error("Failed to deserialize animation asset: {Path}", path);
@@ -76,111 +69,169 @@ public class AnimationAssetManager
                     animationFrame.CalculateUvCoords(atlasTexture.Width, atlasTexture.Height);
                 }
             }
-
-            _cache[path] = new CacheEntry(animationAsset);
-
-            Logger.Information("Animation asset loaded: {Path} ({ClipCount} clips)", path, animationAsset.Clips.Length);
-            return animationAsset;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to load animation asset: {Path}", path);
             return null;
         }
+
+        // Add to cache (thread-safe)
+        lock (_cacheLock)
+        {
+            // Check again in case another thread loaded it
+            if (_cache.TryGetValue(path, out var existingEntry))
+            {
+                // Another thread loaded it, dispose our copy and use theirs
+                animationAsset.Dispose();
+                existingEntry.ReferenceCount++;
+                Logger.Information("Animation asset cached hit (concurrent load): {Path} (RefCount: {RefCount})", 
+                    path, existingEntry.ReferenceCount);
+                return existingEntry.Asset;
+            }
+            
+            _cache[path] = new CacheEntry(animationAsset);
+            Logger.Information("Animation asset loaded: {Path} ({ClipCount} clips)", path, animationAsset.Clips.Length);
+            return animationAsset;
+        }
     }
 
     /// <summary>
     /// Unload animation asset and decrement reference count.
     /// If reference count reaches 0, disposes texture and removes from cache.
+    /// Thread-safe implementation.
     /// </summary>
     /// <param name="path">Asset path</param>
     public void UnloadAsset(string path)
     {
-        if (!_cache.TryGetValue(path, out var entry))
-            return;
-
-        entry.ReferenceCount--;
-        Logger.Information("Animation asset unload: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
-
-        // If no more references, dispose and remove
-        if (entry.ReferenceCount <= 0)
+        lock (_cacheLock)
         {
-            entry.Asset.Dispose();
-            _cache.Remove(path);
-            Logger.Information("Animation asset disposed: {Path}", path);
+            if (!_cache.TryGetValue(path, out var entry))
+                return;
+
+            entry.ReferenceCount--;
+            Logger.Information("Animation asset unload: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
+
+            // If no more references, dispose and remove
+            if (entry.ReferenceCount <= 0)
+            {
+                entry.Asset.Dispose();
+                _cache.Remove(path);
+                Logger.Information("Animation asset disposed: {Path}", path);
+            }
         }
     }
 
     /// <summary>
     /// Check if asset is cached.
+    /// Thread-safe implementation.
     /// </summary>
-    public bool IsCached(string path) => _cache.ContainsKey(path);
+    public bool IsCached(string path)
+    {
+        lock (_cacheLock)
+        {
+            return _cache.ContainsKey(path);
+        }
+    }
 
     /// <summary>
     /// Get reference count for cached asset.
+    /// Thread-safe implementation.
     /// </summary>
-    public int GetReferenceCount(string path) => _cache.TryGetValue(path, out var entry) ? entry.ReferenceCount : 0;
+    public int GetReferenceCount(string path)
+    {
+        lock (_cacheLock)
+        {
+            return _cache.TryGetValue(path, out var entry) ? entry.ReferenceCount : 0;
+        }
+    }
 
     /// <summary>
     /// Remove all assets with reference count = 0.
     /// Call this in editor after scene changes.
+    /// Thread-safe implementation.
     /// </summary>
     public void ClearUnusedAssets()
     {
-        var toRemove = _cache.Where(kvp => kvp.Value.ReferenceCount <= 0)
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        foreach (var path in toRemove)
+        lock (_cacheLock)
         {
-            _cache[path].Asset.Dispose();
-            _cache.Remove(path);
-        }
+            var toRemove = _cache.Where(kvp => kvp.Value.ReferenceCount <= 0)
+                .Select(kvp => kvp.Key)
+                .ToList();
 
-        if (toRemove.Count > 0)
-            Logger.Information("Cleared {Count} unused animation assets", toRemove.Count);
+            foreach (var path in toRemove)
+            {
+                _cache[path].Asset.Dispose();
+                _cache.Remove(path);
+            }
+
+            if (toRemove.Count > 0)
+                Logger.Information("Cleared {Count} unused animation assets", toRemove.Count);
+        }
     }
 
     /// <summary>
     /// Force unload all cached assets.
     /// Call this on scene unload.
+    /// Thread-safe implementation.
     /// </summary>
     public void ClearAllAssets()
     {
-        foreach (var entry in _cache.Values)
+        lock (_cacheLock)
         {
-            entry.Asset.Dispose();
-        }
+            foreach (var entry in _cache.Values)
+            {
+                entry.Asset.Dispose();
+            }
 
-        _cache.Clear();
-        Logger.Information("All animation assets cleared");
+            _cache.Clear();
+            Logger.Information("All animation assets cleared");
+        }
     }
 
     /// <summary>
     /// Get number of cached assets.
+    /// Thread-safe implementation.
     /// </summary>
-    public int GetCachedAssetCount() => _cache.Count;
+    public int GetCachedAssetCount()
+    {
+        lock (_cacheLock)
+        {
+            return _cache.Count;
+        }
+    }
 
     /// <summary>
     /// Get total memory usage (approximate).
+    /// Thread-safe implementation.
     /// </summary>
     public long GetTotalMemoryUsage()
     {
-        long total = 0;
-        foreach (var entry in _cache.Values)
+        lock (_cacheLock)
         {
-            var asset = entry.Asset;
-            if (asset.Atlas != null)
+            long total = 0;
+            foreach (var entry in _cache.Values)
             {
-                // Texture memory: width × height × 4 bytes (RGBA)
-                total += asset.Atlas.Width * asset.Atlas.Height * 4;
+                try
+                {
+                    var asset = entry.Asset;
+                    if (asset?.Atlas != null)
+                    {
+                        // Texture memory: width × height × 4 bytes (RGBA)
+                        total += asset.Atlas.Width * asset.Atlas.Height * 4;
+                    }
+
+                    // Add metadata overhead (approximate)
+                    total += asset.Clips.Sum(c => c.Frames.Length * 256); // ~256 bytes per frame
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning(ex, "Failed to calculate memory for cached asset");
+                }
             }
 
-            // Add metadata overhead (approximate)
-            total += asset.Clips.Sum(c => c.Frames.Length * 256); // ~256 bytes per frame
+            return total;
         }
-
-        return total;
     }
 
     /// <summary>
