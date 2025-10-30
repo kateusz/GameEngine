@@ -18,6 +18,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
 
     private readonly World _physicsWorld;
     private readonly SceneContactListener _contactListener;
+    private readonly ScenePhysicsSettings _settings;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
@@ -37,14 +38,16 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     public int Priority => 100;
 
     /// <summary>
-    /// Creates a new PhysicsSimulationSystem with the specified physics world and contact listener.
+    /// Creates a new PhysicsSimulationSystem with the specified physics world, contact listener, and settings.
     /// </summary>
     /// <param name="physicsWorld">The Box2D World instance to simulate.</param>
     /// <param name="contactListener">The contact listener for collision events.</param>
-    public PhysicsSimulationSystem(World physicsWorld, SceneContactListener contactListener)
+    /// <param name="settings">Physics simulation settings (gravity, iterations, etc.).</param>
+    public PhysicsSimulationSystem(World physicsWorld, SceneContactListener contactListener, ScenePhysicsSettings settings)
     {
         _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
         _contactListener = contactListener ?? throw new ArgumentNullException(nameof(contactListener));
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     }
 
     /// <summary>
@@ -66,10 +69,10 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     /// <param name="deltaTime">Variable frame time since last update.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Fixed timestep physics simulation
-        const int velocityIterations = 6;
-        const int positionIterations = 2;
-        var deltaSeconds = (float)deltaTime.TotalSeconds;
+        // Use configurable solver iterations from settings
+        var velocityIterations = _settings.VelocityIterations;
+        var positionIterations = _settings.PositionIterations;
+        var deltaSeconds = (float)deltaTime.TotalSeconds * _settings.TimeScale;
 
         // Accumulate time
         _physicsAccumulator += deltaSeconds;

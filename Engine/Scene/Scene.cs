@@ -22,14 +22,16 @@ public class Scene : IDisposable
     private uint _viewportWidth;
     private uint _viewportHeight;
     private readonly World _physicsWorld;
+    private readonly ScenePhysicsSettings _physicsSettings;
     private int _nextEntityId = 1;
     private readonly SystemManager _systemManager;
     private bool _disposed = false;
 
-    public Scene(string path, SceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
+    public Scene(string path, SceneSystemRegistry systemRegistry, IGraphics2D graphics2D, ScenePhysicsSettings? physicsSettings = null)
     {
         _path = path;
         _graphics2D = graphics2D;
+        _physicsSettings = physicsSettings ?? new ScenePhysicsSettings();
         Context.Instance.Clear();
 
         // Initialize ECS systems
@@ -38,15 +40,16 @@ public class Scene : IDisposable
         // Populate system manager from registry (singleton systems shared across scenes)
         systemRegistry.PopulateSystemManager(_systemManager);
 
-        // Initialize physics world (per-scene, cannot be shared)
-        _physicsWorld = new World(new Vector2(0, -9.8f));
+        // Initialize physics world with configurable gravity (per-scene, cannot be shared)
+        _physicsWorld = new World(_physicsSettings.Gravity);
+        _physicsWorld.SetAllowSleeping(_physicsSettings.AllowSleeping);
 
         var contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(contactListener);
 
-        // Create and register physics simulation system with the physics world and contact listener
+        // Create and register physics simulation system with the physics world, contact listener, and settings
         // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld, contactListener);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld, contactListener, _physicsSettings);
         _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 
