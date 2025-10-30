@@ -28,18 +28,6 @@ public class PrefabSerializer : IPrefabSerializer
 
     private readonly IAudioEngine _audioEngine;
 
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new JsonStringEnumConverter()
-        }
-    };
-
     public PrefabSerializer(IAudioEngine audioEngine)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
@@ -153,7 +141,7 @@ public class PrefabSerializer : IPrefabSerializer
             return;
 
         var component = entity.GetComponent<T>();
-        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        var element = JsonSerializer.SerializeToNode(component, SerializationConfig.DefaultOptions);
         if (element != null)
         {
             element[NameKey] = componentName;
@@ -167,7 +155,7 @@ public class PrefabSerializer : IPrefabSerializer
             return;
 
         var component = entity.GetComponent<AudioSourceComponent>();
-        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        var element = JsonSerializer.SerializeToNode(component, SerializationConfig.DefaultOptions);
         if (element != null)
         {
             element[NameKey] = nameof(AudioSourceComponent);
@@ -194,7 +182,7 @@ public class PrefabSerializer : IPrefabSerializer
             var fieldsObj = new JsonObject();
             foreach (var (fieldName, fieldType, fieldValue) in component.ScriptableEntity.GetExposedFields())
             {
-                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, DefaultSerializerOptions);
+                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, SerializationConfig.DefaultOptions);
             }
 
             if (fieldsObj.Count > 0)
@@ -285,7 +273,7 @@ public class PrefabSerializer : IPrefabSerializer
         }
 
         var component =
-            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj, SerializationConfig.DefaultOptions);
         if (component == null)
             return;
 
@@ -336,7 +324,7 @@ public class PrefabSerializer : IPrefabSerializer
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
-        var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = JsonSerializer.Deserialize<T>(componentObj, SerializationConfig.DefaultOptions);
         if (component != null)
         {
             entity.AddComponent<T>(component);

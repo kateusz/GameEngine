@@ -31,20 +31,6 @@ public class SceneSerializer : ISceneSerializer
 
     private readonly IAudioEngine _audioEngine;
 
-    // TODO: this is duplicated in AnimationComponentEditor
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
-
     public SceneSerializer(IAudioEngine audioEngine)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
@@ -219,7 +205,7 @@ public class SceneSerializer : ISceneSerializer
 
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
-        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj, SerializationConfig.DefaultOptions);
         if (component == null)
             return;
 
@@ -240,7 +226,7 @@ public class SceneSerializer : ISceneSerializer
             audioClipPath = pathValue.GetValue<string>();
         }
 
-        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj, SerializationConfig.DefaultOptions);
         if (component == null)
             return;
 
@@ -296,7 +282,7 @@ public class SceneSerializer : ISceneSerializer
                             .FirstOrDefault(f => f.Name == fieldName);
                         if (exposed.Name != null)
                         {
-                            var value = fieldValueNode.Deserialize(exposed.Type, DefaultSerializerOptions);
+                            var value = fieldValueNode.Deserialize(exposed.Type, SerializationConfig.DefaultOptions);
                             scriptInstance.SetFieldValue(fieldName, value);
                         }
                     }
@@ -335,7 +321,7 @@ public class SceneSerializer : ISceneSerializer
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
-        var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = JsonSerializer.Deserialize<T>(componentObj, SerializationConfig.DefaultOptions);
         if (component != null)
         {
             entity.AddComponent<T>(component);
@@ -370,7 +356,7 @@ public class SceneSerializer : ISceneSerializer
             return;
 
         var component = entity.GetComponent<AudioSourceComponent>();
-        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        var element = JsonSerializer.SerializeToNode(component, SerializationConfig.DefaultOptions);
         if (element != null)
         {
             element[NameKey] = nameof(AudioSourceComponent);
@@ -400,7 +386,7 @@ public class SceneSerializer : ISceneSerializer
             var fieldsObj = new JsonObject();
             foreach (var (fieldName, fieldType, fieldValue) in component.ScriptableEntity.GetExposedFields())
             {
-                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, DefaultSerializerOptions);
+                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, SerializationConfig.DefaultOptions);
             }
             if (fieldsObj.Count > 0)
                 scriptComponentObj["Fields"] = fieldsObj;
@@ -418,7 +404,7 @@ public class SceneSerializer : ISceneSerializer
             return;
 
         var component = entity.GetComponent<T>();
-        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        var element = JsonSerializer.SerializeToNode(component, SerializationConfig.DefaultOptions);
         if (element != null)
         {
             element[NameKey] = componentName;
