@@ -109,6 +109,14 @@ public class PhysicsDebugRenderSystem : ISystem
             // Draw BoxCollider2D if it exists
             if (entity.TryGetComponent<BoxCollider2DComponent>(out var boxCollider))
             {
+                // Validate TransformComponent exists
+                if (!entity.HasComponent<TransformComponent>())
+                {
+                    Logger.Warning("Entity {EntityName} (ID: {EntityId}) has RigidBody2D but missing TransformComponent", 
+                        entity.Name, entity.Id);
+                    continue;
+                }
+                
                 var transform = entity.GetComponent<TransformComponent>();
                 var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
 
