@@ -19,12 +19,13 @@ public class SceneSystemRegistry : ISceneSystemRegistry
     private readonly SubTextureRenderingSystem _subTextureRenderingSystem;
     private readonly PhysicsDebugRenderSystem _physicsDebugRenderSystem;
     private readonly AudioSystem _audioSystem;
+    private readonly AnimationSystem _animationSystem;
 
     private readonly Lock _lock = new();
     
     public SceneSystemRegistry(SpriteRenderingSystem spriteRenderingSystem, ModelRenderingSystem modelRenderingSystem,
         ScriptUpdateSystem scriptUpdateSystem, SubTextureRenderingSystem subTextureRenderingSystem,
-        PhysicsDebugRenderSystem physicsDebugRenderSystem, AudioSystem audioSystem)
+        PhysicsDebugRenderSystem physicsDebugRenderSystem, AudioSystem audioSystem, AnimationSystem animationSystem)
     {
         _spriteRenderingSystem = spriteRenderingSystem;
         _modelRenderingSystem = modelRenderingSystem;
@@ -32,6 +33,7 @@ public class SceneSystemRegistry : ISceneSystemRegistry
         _subTextureRenderingSystem = subTextureRenderingSystem;
         _physicsDebugRenderSystem = physicsDebugRenderSystem;
         _audioSystem = audioSystem;
+        _animationSystem = animationSystem;
     }
 
     /// <summary>
@@ -56,7 +58,8 @@ public class SceneSystemRegistry : ISceneSystemRegistry
                 _subTextureRenderingSystem,
                 _modelRenderingSystem,
                 _physicsDebugRenderSystem,
-                _audioSystem
+                _audioSystem,
+                _animationSystem
             };
 
             foreach (var system in systems)

@@ -4,6 +4,7 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
+using Engine;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;

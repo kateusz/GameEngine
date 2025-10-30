@@ -3,6 +3,7 @@ using ECS;
 using Engine.Scene.Serializer;
 using ImGuiNET;
 using Editor.UI;
+using Engine;
 using Serilog;
 
 namespace Editor.Panels.Elements;
