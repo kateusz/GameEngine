@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
 using Engine.Scene.Components;
@@ -13,24 +12,18 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-public class PrefabSerializer : IPrefabSerializer
+public class PrefabSerializer : EntitySerializerBase, IPrefabSerializer
 {
-    private static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
+    private new static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
 
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
-    private const string ComponentsKey = "Components";
-    private const string NameKey = "Name";
     private const string IdKey = "Id";
     private const string VersionKey = "Version";
-    private const string ScriptTypeKey = "ScriptType";
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
-    private readonly IAudioEngine _audioEngine;
-
-    public PrefabSerializer(IAudioEngine audioEngine)
+    public PrefabSerializer(IAudioEngine audioEngine) : base(audioEngine)
     {
-        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
     }
 
     /// <summary>
@@ -134,64 +127,6 @@ public class PrefabSerializer : IPrefabSerializer
         SerializeNativeScriptComponent(entity, componentsArray);
     }
 
-    private void SerializeComponent<T>(Entity entity, JsonArray componentsArray, string componentName)
-        where T : IComponent
-    {
-        if (!entity.HasComponent<T>())
-            return;
-
-        var component = entity.GetComponent<T>();
-        var element = JsonSerializer.SerializeToNode(component, SerializationConfig.DefaultOptions);
-        if (element != null)
-        {
-            element[NameKey] = componentName;
-            componentsArray.Add(element);
-        }
-    }
-
-    private void SerializeAudioSourceComponent(Entity entity, JsonArray componentsArray)
-    {
-        if (!entity.HasComponent<AudioSourceComponent>())
-            return;
-
-        var component = entity.GetComponent<AudioSourceComponent>();
-        var element = JsonSerializer.SerializeToNode(component, SerializationConfig.DefaultOptions);
-        if (element != null)
-        {
-            element[NameKey] = nameof(AudioSourceComponent);
-            componentsArray.Add(element);
-        }
-    }
-
-    private void SerializeNativeScriptComponent(Entity entity, JsonArray componentsArray)
-    {
-        if (!entity.HasComponent<NativeScriptComponent>())
-            return;
-
-        var component = entity.GetComponent<NativeScriptComponent>();
-        var scriptComponentObj = new JsonObject
-        {
-            [NameKey] = nameof(NativeScriptComponent)
-        };
-
-        if (component.ScriptableEntity != null)
-        {
-            var scriptTypeName = component.ScriptableEntity.GetType().Name;
-            scriptComponentObj[ScriptTypeKey] = scriptTypeName;
-
-            var fieldsObj = new JsonObject();
-            foreach (var (fieldName, fieldType, fieldValue) in component.ScriptableEntity.GetExposedFields())
-            {
-                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, SerializationConfig.DefaultOptions);
-            }
-
-            if (fieldsObj.Count > 0)
-                scriptComponentObj["Fields"] = fieldsObj;
-        }
-
-        componentsArray.Add(scriptComponentObj);
-    }
-
     private void ClearEntityComponents(Entity entity)
     {
         if (entity.HasComponent<TransformComponent>())
@@ -216,124 +151,5 @@ public class PrefabSerializer : IPrefabSerializer
             entity.RemoveComponent<AudioSourceComponent>();
         if (entity.HasComponent<NativeScriptComponent>())
             entity.RemoveComponent<NativeScriptComponent>();
-    }
-
-    private void DeserializeComponent(Entity entity, JsonNode componentNode)
-    {
-        if (componentNode is not JsonObject componentObj || componentObj[NameKey] is null)
-            throw new InvalidOperationException("Invalid component JSON");
-
-        var componentName = componentObj[NameKey]!.GetValue<string>();
-
-        switch (componentName)
-        {
-            case nameof(TransformComponent):
-                AddComponent<TransformComponent>(entity, componentObj);
-                break;
-            case nameof(CameraComponent):
-                AddComponent<CameraComponent>(entity, componentObj);
-                break;
-            case nameof(SpriteRendererComponent):
-                AddComponent<SpriteRendererComponent>(entity, componentObj);
-                break;
-            case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
-                break;
-            case nameof(RigidBody2DComponent):
-                AddComponent<RigidBody2DComponent>(entity, componentObj);
-                break;
-            case nameof(BoxCollider2DComponent):
-                AddComponent<BoxCollider2DComponent>(entity, componentObj);
-                break;
-            case nameof(MeshComponent):
-                AddComponent<MeshComponent>(entity, componentObj);
-                break;
-            case nameof(ModelRendererComponent):
-                AddComponent<ModelRendererComponent>(entity, componentObj);
-                break;
-            case nameof(AudioListenerComponent):
-                AddComponent<AudioListenerComponent>(entity, componentObj);
-                break;
-            case nameof(AudioSourceComponent):
-                DeserializeAudioSourceComponent(entity, componentObj);
-                break;
-            case nameof(NativeScriptComponent):
-                DeserializeNativeScriptComponent(entity, componentObj);
-                break;
-        }
-    }
-
-    private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
-    {
-        // Extract the AudioClip path separately to avoid interface deserialization issues
-        string? audioClipPath = null;
-        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
-        {
-            audioClipPath = pathValue.GetValue<string>();
-        }
-
-        var component =
-            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj, SerializationConfig.DefaultOptions);
-        if (component == null)
-            return;
-
-        if (!string.IsNullOrWhiteSpace(audioClipPath))
-        {
-            try
-            {
-                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
-            }
-            catch (Exception ex)
-            {
-                // Log error but continue prefab deserialization
-                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for prefab entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
-            }
-        }
-
-        entity.AddComponent<AudioSourceComponent>(component);
-    }
-
-    private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
-    {
-        if (componentObj[ScriptTypeKey] is null)
-        {
-            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
-            return;
-        }
-
-        var scriptTypeName = componentObj[ScriptTypeKey]!.GetValue<string>();
-
-        ScriptableEntity? builtInScript = scriptTypeName switch
-        {
-            nameof(CameraController) => new CameraController(),
-            _ => null
-        };
-
-        if (builtInScript != null)
-        {
-            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
-            {
-                ScriptableEntity = builtInScript
-            });
-        }
-        else
-        {
-            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
-        }
-    }
-
-    private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
-    {
-        var component = JsonSerializer.Deserialize<T>(componentObj, SerializationConfig.DefaultOptions);
-        if (component != null)
-        {
-            entity.AddComponent<T>(component);
-        }
-    }
-
-    private JsonArray GetJsonArray(JsonObject jsonObject, string key)
-    {
-        return jsonObject[key] as JsonArray ??
-               throw new InvalidOperationException($"Got invalid {key} JSON");
     }
 }
