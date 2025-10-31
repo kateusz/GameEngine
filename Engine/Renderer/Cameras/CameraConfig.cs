@@ -31,7 +31,7 @@ public static class CameraConfig
     /// Default zoom level in world units.
     /// Represents the half-height of the orthographic view in world space.
     /// </summary>
-    public const float DefaultZoomLevel = 20.0f;
+    public const float DefaultZoomLevel = 30.0f;
     
     /// <summary>
     /// Zoom sensitivity - how much each scroll wheel tick changes the zoom.
