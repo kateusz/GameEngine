@@ -4,6 +4,7 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
+using Editor.UI;
 using Editor.Windows;
 using Engine;
 using Engine.Core;
@@ -42,6 +43,7 @@ public class EditorLayer : ILayer
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
     private AnimationTimelineWindow _animationTimeline;
+    private readonly ViewportRuler _viewportRuler = new();
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -393,6 +395,14 @@ public class EditorLayer : ILayer
                         _sceneManager.FocusOnSelectedEntity(_cameraController);
                     if (ImGui.MenuItem("Reset Camera"))
                         ResetCamera();
+                    
+                    ImGui.Separator();
+                    
+                    if (ImGui.MenuItem("Show Rulers", null, _viewportRuler.Enabled))
+                        _viewportRuler.Enabled = !_viewportRuler.Enabled;
+                    if (ImGui.MenuItem("Show Stats", null, _rendererStatsPanel.IsVisible))
+                        _rendererStatsPanel.IsVisible = !_rendererStatsPanel.IsVisible;
+                    
                     ImGui.EndMenu();
                 }
 
@@ -424,27 +434,11 @@ public class EditorLayer : ILayer
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);
             
-            ImGui.Begin("Stats");
-
-            var name = "None";
-            if (_hoveredEntity != null)
-            {
-                name = _hoveredEntity.Name;
-            }
-
-            ImGui.Text($"Hovered Entity: {name}");
-            
-            _performanceMonitor.RenderUI();
-            
-            // Camera info
-            ImGui.Text("Camera:");
+            // Render Stats window if visible
+            var hoveredEntityName = _hoveredEntity?.Name ?? "None";
             var camPos = _cameraController.Camera.Position;
-            ImGui.Text($"Position: ({camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2})");
-            ImGui.Text($"Rotation: {_cameraController.Camera.Rotation:F1}°");
-
-            ImGui.Separator();
-            
-            _rendererStatsPanel.Render();
+            var camRotation = _cameraController.Camera.Rotation;
+            _rendererStatsPanel.OnImGuiRender(hoveredEntityName, camPos, camRotation, () => _performanceMonitor.RenderUI());
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
@@ -481,6 +475,13 @@ public class EditorLayer : ILayer
                         ImGui.EndDragDropTarget();
                     }
                 }
+
+                // Render viewport rulers
+                var cameraPos = new Vector2(_cameraController.Camera.Position.X, _cameraController.Camera.Position.Y);
+                var orthoSize = 20;//TODO HARDCODED _cameraController.Camera.OrthographicSize;
+                var aspectRatio = _viewportSize.X / _viewportSize.Y;
+                var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
+                _viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
                 ImGui.End();
             }
