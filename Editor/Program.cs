@@ -15,6 +15,7 @@ using Serilog;
 using Editor.Logging;
 using Editor.Panels.ComponentEditors;
 using Editor.Popups;
+using Editor.Windows;
 using Engine.Animation;
 using Engine.Events;
 using Engine.Renderer;
@@ -73,6 +74,7 @@ static void ConfigureContainer(Container container)
     container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
     container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
     container.Register<AnimationComponentEditor>(Reuse.Singleton);
+    container.Register<AnimationTimelineWindow>(Reuse.Singleton);
     
     container.Register<ComponentEditorRegistry>(Reuse.Singleton);
     container.Register<PropertiesPanel>(Reuse.Singleton);

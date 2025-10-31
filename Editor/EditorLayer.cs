@@ -40,7 +40,8 @@ public class EditorLayer : ILayer
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
-
+    private AnimationTimelineWindow _animationTimeline;
+    
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
@@ -288,7 +289,7 @@ public class EditorLayer : ILayer
         }
     }
 
-    public void Draw()
+    public void OnImGuiRender()
     {
         SubmitUI();
     }
@@ -411,7 +412,7 @@ public class EditorLayer : ILayer
 
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
-            _contentBrowserPanel.OnImGuiRender();
+            _contentBrowserPanel.Draw();
             _consolePanel.OnImGuiRender();
             
             ScriptComponentUI.OnImGuiRender();
