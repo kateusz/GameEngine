@@ -134,7 +134,7 @@ namespace Editor.Windows
         private void DrawPlaybackControls()
         {
             // Play/Pause button
-            if (ImGui.Button(_previewPlaying ? "⏸ Pause" : "▶ Play", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
+            if (ImGui.Button(_previewPlaying ? "|| Pause" : "> Play", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
             {
                 _previewPlaying = !_previewPlaying;
             }
@@ -142,7 +142,7 @@ namespace Editor.Windows
             ImGui.SameLine();
 
             // Stop button
-            if (ImGui.Button("⏹ Stop", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
+            if (ImGui.Button("[] Stop", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
             {
                 _previewPlaying = false;
                 _selectedFrameIndex = 0;
@@ -152,7 +152,7 @@ namespace Editor.Windows
 
             // Loop toggle
             bool loop = _component!.Loop;
-            if (ImGui.Button(loop ? "⟲ Loop: On" : "⟲ Loop: Off", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
+            if (ImGui.Button(loop ? "Loop: On" : "Loop: Off", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
             {
                 _component.Loop = !loop;
             }
@@ -224,7 +224,7 @@ namespace Editor.Windows
                 if (frame.Events.Length > 0)
                 {
                     var eventPos = new Vector2(framePos.X + FrameBoxWidth / 2 - 10, framePos.Y - 25);
-                    drawList.AddText(eventPos, ImGui.GetColorU32(EditorUIConstants.WarningColor), "⚡");
+                    drawList.AddText(eventPos, ImGui.GetColorU32(EditorUIConstants.WarningColor), "[E]");
                 }
 
                 // Clickable area (overlay on top of everything)
