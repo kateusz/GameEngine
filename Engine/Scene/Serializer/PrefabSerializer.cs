@@ -14,11 +14,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class PrefabSerializer : EntitySerializerBase, IPrefabSerializer
 {
-    private new static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
-
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
-    private const string IdKey = "Id";
     private const string VersionKey = "Version";
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
@@ -112,7 +109,7 @@ public class PrefabSerializer : EntitySerializerBase, IPrefabSerializer
         return entity;
     }
 
-    private void SerializeEntityComponents(Entity entity, JsonArray componentsArray)
+    private static void SerializeEntityComponents(Entity entity, JsonArray componentsArray)
     {
         SerializeComponent<TransformComponent>(entity, componentsArray, nameof(TransformComponent));
         SerializeComponent<CameraComponent>(entity, componentsArray, nameof(CameraComponent));
@@ -127,7 +124,7 @@ public class PrefabSerializer : EntitySerializerBase, IPrefabSerializer
         SerializeNativeScriptComponent(entity, componentsArray);
     }
 
-    private void ClearEntityComponents(Entity entity)
+    private static void ClearEntityComponents(Entity entity)
     {
         if (entity.HasComponent<TransformComponent>())
             entity.RemoveComponent<TransformComponent>();

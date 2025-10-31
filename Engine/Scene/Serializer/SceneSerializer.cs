@@ -20,7 +20,6 @@ public class SceneSerializer : EntitySerializerBase, ISceneSerializer
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string DefaultSceneName = "default";
-    private const string AssetsDirectory = "assets/scenes";
     private const string IdKey = "Id";
 
     public SceneSerializer(IAudioEngine audioEngine) : base(audioEngine)
@@ -126,18 +125,6 @@ public class SceneSerializer : EntitySerializerBase, ISceneSerializer
         }
     }
 
-    /// <summary>
-    /// Override to throw InvalidSceneJsonException instead of InvalidOperationException.
-    /// </summary>
-    protected new JsonArray GetJsonArray(JsonNode jsonObject, string key)
-    {
-        if (!jsonObject.AsObject().ContainsKey(key))
-            throw new InvalidSceneJsonException($"Missing required '{key}' key in JSON");
-        
-        return jsonObject[key] as JsonArray ?? 
-               throw new InvalidSceneJsonException($"'{key}' must be a JSON array");
-    }
-
     private Entity DeserializeEntity(JsonObject entityObj)
     {
         var entityId = entityObj[IdKey]?.GetValue<int>() ?? throw new InvalidSceneJsonException("Invalid entity ID");
@@ -161,7 +148,7 @@ public class SceneSerializer : EntitySerializerBase, ISceneSerializer
     /// </summary>
     protected override void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
-        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj, SerializationConfig.DefaultOptions);
+        var component = componentObj.Deserialize<SpriteRendererComponent>(SerializationConfig.DefaultOptions);
         if (component == null)
             return;
 
@@ -173,7 +160,7 @@ public class SceneSerializer : EntitySerializerBase, ISceneSerializer
         entity.AddComponent<SpriteRendererComponent>(component);
     }
 
-    private void SerializeEntity(JsonArray jsonEntities, Entity entity)
+    private static void SerializeEntity(JsonArray jsonEntities, Entity entity)
     {
         var entityObj = new JsonObject
         {

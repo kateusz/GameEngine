@@ -23,17 +23,35 @@ public abstract class EntitySerializerBase
     protected const string FieldsKey = "Fields";
     protected const string AudioClipPathKey = "AudioClipPath";
     
-    protected readonly IAudioEngine _audioEngine;
+    protected readonly IAudioEngine AudioEngine;
+    
+    private readonly Dictionary<string, Action<Entity, JsonObject>> _componentDeserializers;
     
     protected EntitySerializerBase(IAudioEngine audioEngine)
     {
-        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+        AudioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+        
+        // Initialize component deserializers map
+        _componentDeserializers = new Dictionary<string, Action<Entity, JsonObject>>
+        {
+            [nameof(TransformComponent)] = AddComponent<TransformComponent>,
+            [nameof(CameraComponent)] = AddComponent<CameraComponent>,
+            [nameof(SpriteRendererComponent)] = DeserializeSpriteRendererComponent,
+            [nameof(SubTextureRendererComponent)] = AddComponent<SubTextureRendererComponent>,
+            [nameof(RigidBody2DComponent)] = AddComponent<RigidBody2DComponent>,
+            [nameof(BoxCollider2DComponent)] = AddComponent<BoxCollider2DComponent>,
+            [nameof(MeshComponent)] = AddComponent<MeshComponent>,
+            [nameof(ModelRendererComponent)] = AddComponent<ModelRendererComponent>,
+            [nameof(AudioListenerComponent)] = AddComponent<AudioListenerComponent>,
+            [nameof(AudioSourceComponent)] = DeserializeAudioSourceComponent,
+            [nameof(NativeScriptComponent)] = DeserializeNativeScriptComponent
+        };
     }
     
     /// <summary>
     /// Serialize a component to a JSON array.
     /// </summary>
-    protected void SerializeComponent<T>(Entity entity, JsonArray componentsArray, string componentName)
+    protected static void SerializeComponent<T>(Entity entity, JsonArray componentsArray, string componentName)
         where T : IComponent
     {
         if (!entity.HasComponent<T>())
@@ -51,7 +69,7 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Serialize a component to a JSON object.
     /// </summary>
-    protected void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
+    protected static void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
         where T : IComponent
     {
         if (!entity.HasComponent<T>())
@@ -70,7 +88,7 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Serialize AudioSourceComponent with special handling.
     /// </summary>
-    protected void SerializeAudioSourceComponent(Entity entity, JsonArray componentsArray)
+    protected static void SerializeAudioSourceComponent(Entity entity, JsonArray componentsArray)
     {
         if (!entity.HasComponent<AudioSourceComponent>())
             return;
@@ -87,7 +105,7 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Serialize AudioSourceComponent with special handling to JSON object.
     /// </summary>
-    protected void SerializeAudioSourceComponent(Entity entity, JsonObject entityObj)
+    protected static void SerializeAudioSourceComponent(Entity entity, JsonObject entityObj)
     {
         if (!entity.HasComponent<AudioSourceComponent>())
             return;
@@ -105,7 +123,7 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Serialize NativeScriptComponent with field serialization.
     /// </summary>
-    protected void SerializeNativeScriptComponent(Entity entity, JsonArray componentsArray)
+    protected static void SerializeNativeScriptComponent(Entity entity, JsonArray componentsArray)
     {
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
@@ -137,7 +155,7 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Serialize NativeScriptComponent with field serialization to JSON object.
     /// </summary>
-    protected void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)
+    protected static void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)
     {
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
@@ -177,44 +195,13 @@ public abstract class EntitySerializerBase
 
         var componentName = componentObj[NameKey]!.GetValue<string>();
 
-        switch (componentName)
+        if (_componentDeserializers.TryGetValue(componentName, out var deserializer))
         {
-            case nameof(TransformComponent):
-                AddComponent<TransformComponent>(entity, componentObj);
-                break;
-            case nameof(CameraComponent):
-                AddComponent<CameraComponent>(entity, componentObj);
-                break;
-            case nameof(SpriteRendererComponent):
-                DeserializeSpriteRendererComponent(entity, componentObj);
-                break;
-            case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
-                break;
-            case nameof(RigidBody2DComponent):
-                AddComponent<RigidBody2DComponent>(entity, componentObj);
-                break;
-            case nameof(BoxCollider2DComponent):
-                AddComponent<BoxCollider2DComponent>(entity, componentObj);
-                break;
-            case nameof(MeshComponent):
-                AddComponent<MeshComponent>(entity, componentObj);
-                break;
-            case nameof(ModelRendererComponent):
-                AddComponent<ModelRendererComponent>(entity, componentObj);
-                break;
-            case nameof(AudioListenerComponent):
-                AddComponent<AudioListenerComponent>(entity, componentObj);
-                break;
-            case nameof(AudioSourceComponent):
-                DeserializeAudioSourceComponent(entity, componentObj);
-                break;
-            case nameof(NativeScriptComponent):
-                DeserializeNativeScriptComponent(entity, componentObj);
-                break;
-            default:
-                Logger.Warning("Unknown component type: {ComponentName}", componentName);
-                break;
+            deserializer(entity, componentObj);
+        }
+        else
+        {
+            Logger.Warning("Unknown component type: {ComponentName}", componentName);
         }
     }
     
@@ -223,7 +210,7 @@ public abstract class EntitySerializerBase
     /// </summary>
     protected virtual void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
-        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj, SerializationConfig.DefaultOptions);
+        var component = componentObj.Deserialize<SpriteRendererComponent>(SerializationConfig.DefaultOptions);
         if (component == null)
             return;
 
@@ -247,7 +234,7 @@ public abstract class EntitySerializerBase
             audioClipPath = pathValue.GetValue<string>();
         }
 
-        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj, SerializationConfig.DefaultOptions);
+        var component = componentObj.Deserialize<AudioSourceComponent>(SerializationConfig.DefaultOptions);
         if (component == null)
             return;
 
@@ -255,7 +242,7 @@ public abstract class EntitySerializerBase
         {
             try
             {
-                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+                component.AudioClip = AudioEngine.LoadAudioClip(audioClipPath);
             }
             catch (Exception ex)
             {
@@ -295,12 +282,10 @@ public abstract class EntitySerializerBase
             // Deserialize public fields/properties
             if (componentObj[FieldsKey] is JsonObject fieldsObj)
             {
-                foreach (var field in fieldsObj)
+                foreach (var (fieldName, fieldValueNode) in fieldsObj)
                 {
                     try
                     {
-                        var fieldName = field.Key;
-                        var fieldValueNode = field.Value;
                         if (fieldValueNode == null) continue;
                         
                         var exposed = scriptInstance
@@ -320,7 +305,7 @@ public abstract class EntitySerializerBase
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warning(ex, "Failed to deserialize script field '{FieldName}'", field.Key);
+                        Logger.Warning(ex, "Failed to deserialize script field '{FieldName}'", fieldName);
                     }
                 }
             }
@@ -356,9 +341,9 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Add a component to an entity from JSON.
     /// </summary>
-    protected void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
+    protected static void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
-        var component = JsonSerializer.Deserialize<T>(componentObj, SerializationConfig.DefaultOptions);
+        var component = componentObj.Deserialize<T>(SerializationConfig.DefaultOptions);
         if (component != null)
         {
             entity.AddComponent<T>(component);
@@ -368,7 +353,7 @@ public abstract class EntitySerializerBase
     /// <summary>
     /// Get a JSON array from a JSON object.
     /// </summary>
-    protected JsonArray GetJsonArray(JsonNode jsonObject, string key)
+    protected static JsonArray GetJsonArray(JsonNode jsonObject, string key)
     {
         if (!jsonObject.AsObject().ContainsKey(key))
             throw new InvalidOperationException($"Missing required '{key}' key in JSON");
