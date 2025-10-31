@@ -69,6 +69,10 @@ public class AnimationAssetManager
             var atlasFullPath = ResolveAssetPath(animationAsset.AtlasPath);
             var atlasTexture = TextureFactory.Create(atlasFullPath);
 
+            // Assign texture to asset
+            animationAsset.Atlas = atlasTexture;
+
+            // Calculate UV coordinates for all frames
             foreach (var animationClip in animationAsset.Clips)
             {
                 foreach (var animationFrame in animationClip.Frames)

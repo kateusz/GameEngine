@@ -91,22 +91,22 @@ public class Sandbox2DLayer : ILayer
 
         _graphics2D.BeginScene(_orthographicCameraController.Camera);
 
-        _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+        // _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+        //
+        // _graphics2D.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
+        // _graphics2D.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
 
-        _graphics2D.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
-        _graphics2D.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
-
-        // for (var row = 0; row < _mapHeight; row++)
-        // {
-        //     for (var col = 0; col < _mapWidth; col++)
-        //     {
-        //         var subTextureCode = _mapArray[row, col];
-        //         var subTexture = _textureMap[subTextureCode];
-        //         
-        //         // _mapHeight - row because openGl reads from bottom left to top right
-        //         Renderer2D.Instance.DrawQuad(new Vector3(col - _mapWidth / 2.0f, _mapHeight - row / 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, subTexture);
-        //     }
-        // }
+        for (var row = 0; row < _mapHeight; row++)
+        {
+            for (var col = 0; col < _mapWidth; col++)
+            {
+                var subTextureCode = _mapArray[row, col];
+                var subTexture = _textureMap[subTextureCode];
+                
+                // _mapHeight - row because openGl reads from bottom left to top right
+                _graphics2D.DrawQuad(new Vector3(col - _mapWidth / 2.0f, _mapHeight - row / 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, subTexture);
+            }
+        }
 
         _graphics2D.EndScene();
     }

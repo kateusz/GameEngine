@@ -195,7 +195,7 @@ public class SceneSerializer : ISceneSerializer
                 DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
             case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
+                DeserializeSubTextureRendererComponent(entity, componentObj);
                 break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
@@ -208,6 +208,9 @@ public class SceneSerializer : ISceneSerializer
                 break;
             case nameof(AudioSourceComponent):
                 DeserializeAudioSourceComponent(entity, componentObj);
+                break;
+            case nameof(AnimationComponent):
+                AddComponent<AnimationComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
@@ -229,6 +232,21 @@ public class SceneSerializer : ISceneSerializer
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists (same as SpriteRendererComponent)
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SubTextureRendererComponent>(component);
     }
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
@@ -358,6 +376,7 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
+        SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
         SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 

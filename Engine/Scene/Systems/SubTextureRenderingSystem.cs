@@ -90,6 +90,7 @@ public class SubTextureRenderingSystem : ISystem
                 continue;
 
             // Create SubTexture2D from component data using component's cell/sprite sizes
+            // CellSize and SpriteSize are used ONLY for texture coordinate calculation, not world size
             var subTexture = SubTexture2D.CreateFromCoords(
                 subtextureComponent.Texture,
                 subtextureComponent.Coords,
@@ -97,21 +98,9 @@ public class SubTextureRenderingSystem : ISystem
                 subtextureComponent.SpriteSize
             );
 
-            // Extract position and rotation from transform component
-            var position = transformComponent.Translation;
-            var rotation = transformComponent.Rotation.Z; // 2D rotation around Z axis
-
-            // Compute size from scale and cell size
-            var basePixels = subtextureComponent.CellSize * subtextureComponent.SpriteSize; // account for multi‑cell sprites
-            var size = basePixels * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
-
-            // Build transform matrix: Translation * Rotation * Scale
-            var transform = Matrix4x4.CreateTranslation(position);
-            if (System.Math.Abs(rotation) > float.Epsilon)
-            {
-                transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
-            }
-            transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+            // Use the transform component's matrix directly (same as SpriteRenderingSystem)
+            // The transform scale determines the world-space size of the rendered sprite
+            var transform = transformComponent.GetTransform();
 
             // Draw the subtexture quad with entity ID for picking
             _renderer.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, 1.0f, Vector4.One, entity.Id);
