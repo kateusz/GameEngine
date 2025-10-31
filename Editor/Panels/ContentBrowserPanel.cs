@@ -45,7 +45,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
         }
 
         var padding = 16.0f;
-        var thumbnailSize = 64.0f;
+        var thumbnailSize = 36.0f;
         var cellSize = thumbnailSize + padding;
 
         var panelWidth = ImGui.GetContentRegionAvail().X;
