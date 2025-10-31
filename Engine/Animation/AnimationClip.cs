@@ -26,13 +26,14 @@ public record AnimationClip
     public required AnimationFrame[] Frames { get; init; } = [];
 
     /// <summary>
-    /// Calculated clip duration in seconds.
+    /// Cached clip duration in seconds.
     /// Formula: frames.Length / FPS
     /// </summary>
-    public float Duration => Frames.Length / Fps;
+    public float Duration { get; init; }
 
     /// <summary>
-    /// Get frame duration in seconds (time per frame).
+    /// Cached frame duration in seconds (time per frame).
+    /// Formula: 1.0 / FPS
     /// </summary>
-    public float FrameDuration => 1.0f / Fps;
+    public float FrameDuration { get; init; }
 }

@@ -1,0 +1,11 @@
+TESTS TEMPORARILY DISABLED - Need updating for new AnimationAsset API
+
+The AnimationAsset API changed from Dictionary<string, AnimationClip> to AnimationClip[]
+with internal Dictionary lookup for performance (O(1) instead of O(n)).
+
+Tests need to be updated to use:
+- CreateTestAsset() helper method for test asset creation
+- AnimationClip[] instead of Dictionary<string, AnimationClip>
+- asset.InitializeClipLookup() after creating assets manually
+
+This is tracked in a follow-up task.

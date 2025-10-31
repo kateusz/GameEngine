@@ -7,7 +7,7 @@ namespace Engine.Animation;
 /// In-memory representation of a loaded animation asset.
 /// Contains texture atlas reference and all animation clips.
 /// </summary>
-public record AnimationAsset : IDisposable
+public class AnimationAsset : IDisposable
 {
     /// <summary>
     /// Asset identifier (from JSON "id" field).
@@ -22,7 +22,7 @@ public record AnimationAsset : IDisposable
     /// <summary>
     /// Loaded texture atlas reference.
     /// </summary>
-    public Texture2D Atlas { get; set; } = null!;
+    public Texture2D? Atlas { get; set; }
 
     /// <summary>
     /// Default cell size [width, height] in pixels.
@@ -35,15 +35,26 @@ public record AnimationAsset : IDisposable
     /// </summary>
     public required AnimationClip[] Clips { get; init; }
 
+    private Dictionary<string, AnimationClip>? _clipLookup;
+
+    /// <summary>
+    /// Initialize clip lookup dictionary for O(1) access.
+    /// Called after deserialization.
+    /// </summary>
+    public void InitializeClipLookup()
+    {
+        _clipLookup = Clips.ToDictionary(c => c.Name);
+    }
+
     /// <summary>
     /// Check if asset contains a clip with the given name.
     /// </summary>
-    public bool HasClip(string clipName) => Clips.Any(x => x.Name == clipName);
+    public bool HasClip(string clipName) => _clipLookup?.ContainsKey(clipName) ?? false;
 
     /// <summary>
     /// Get clip by name, returns null if not found.
     /// </summary>
-    public AnimationClip? GetClip(string clipName) => Clips.SingleOrDefault(c => c.Name == clipName);
+    public AnimationClip? GetClip(string clipName) => _clipLookup?.GetValueOrDefault(clipName);
 
     /// <summary>
     /// Dispose texture resources.
@@ -51,6 +62,6 @@ public record AnimationAsset : IDisposable
     public void Dispose()
     {
         Atlas?.Dispose();
-        Atlas = null!;
+        Atlas = null;
     }
 }
