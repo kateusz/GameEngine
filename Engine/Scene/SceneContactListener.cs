@@ -8,9 +8,27 @@ using Serilog;
 
 namespace Engine.Scene;
 
+/// <summary>
+/// Represents a physics contact event for deferred processing.
+/// Events are queued during World.Step() and processed afterward to ensure thread safety.
+/// </summary>
+public class PhysicsContactEvent
+{
+    public Entity EntityA { get; init; }
+    public Entity EntityB { get; init; }
+    public bool IsBegin { get; init; }
+    public bool IsTrigger { get; init; }
+}
+
+/// <summary>
+/// Listens for physics contact events from Box2D.
+/// Queues events for deferred processing to maintain thread safety and enable future parallelization.
+/// </summary>
 public class SceneContactListener : ContactListener
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<SceneContactListener>();
+    
+    private readonly Queue<PhysicsContactEvent> _contactQueue = new();
     
     public override void BeginContact(in Contact contact)
     {
@@ -37,20 +55,14 @@ public class SceneContactListener : ContactListener
             // Check if either fixture is a sensor (trigger)
             bool isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
             
-            if (isTrigger)
+            // Queue event for deferred processing (thread-safe approach)
+            _contactQueue.Enqueue(new PhysicsContactEvent
             {
-                Logger.Debug("Trigger began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                // Notify trigger events
-                NotifyEntityTrigger(entityA, entityB, true);
-                NotifyEntityTrigger(entityB, entityA, true);
-            }
-            else
-            {
-                Logger.Debug("Collision began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                // Notify collision events
-                NotifyEntityCollision(entityA, entityB, true);
-                NotifyEntityCollision(entityB, entityA, true);
-            }
+                EntityA = entityA,
+                EntityB = entityB,
+                IsBegin = true,
+                IsTrigger = isTrigger
+            });
         }
         catch (Exception ex)
         {
@@ -75,18 +87,14 @@ public class SceneContactListener : ContactListener
             
             bool isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
             
-            if (isTrigger)
+            // Queue event for deferred processing (thread-safe approach)
+            _contactQueue.Enqueue(new PhysicsContactEvent
             {
-                Logger.Debug("Trigger ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                NotifyEntityTrigger(entityA, entityB, false);
-                NotifyEntityTrigger(entityB, entityA, false);
-            }
-            else
-            {
-                Logger.Debug("Collision ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                NotifyEntityCollision(entityA, entityB, false);
-                NotifyEntityCollision(entityB, entityA, false);
-            }
+                EntityA = entityA,
+                EntityB = entityB,
+                IsBegin = false,
+                IsTrigger = isTrigger
+            });
         }
         catch (Exception ex)
         {
@@ -100,6 +108,46 @@ public class SceneContactListener : ContactListener
 
     public override void PostSolve(in Contact contact, in ContactImpulse impulse)
     {
+    }
+
+    /// <summary>
+    /// Processes all queued contact events.
+    /// Should be called after World.Step() completes to safely notify entities of collisions.
+    /// This approach enables future parallelization of physics simulation.
+    /// </summary>
+    public void ProcessContactEvents()
+    {
+        while (_contactQueue.TryDequeue(out var evt))
+        {
+            if (evt.IsTrigger)
+            {
+                if (evt.IsBegin)
+                {
+                    Logger.Debug("Trigger began between {EntityA} and {EntityB}", evt.EntityA.Name, evt.EntityB.Name);
+                }
+                else
+                {
+                    Logger.Debug("Trigger ended between {EntityA} and {EntityB}", evt.EntityA.Name, evt.EntityB.Name);
+                }
+                
+                NotifyEntityTrigger(evt.EntityA, evt.EntityB, evt.IsBegin);
+                NotifyEntityTrigger(evt.EntityB, evt.EntityA, evt.IsBegin);
+            }
+            else
+            {
+                if (evt.IsBegin)
+                {
+                    Logger.Debug("Collision began between {EntityA} and {EntityB}", evt.EntityA.Name, evt.EntityB.Name);
+                }
+                else
+                {
+                    Logger.Debug("Collision ended between {EntityA} and {EntityB}", evt.EntityA.Name, evt.EntityB.Name);
+                }
+                
+                NotifyEntityCollision(evt.EntityA, evt.EntityB, evt.IsBegin);
+                NotifyEntityCollision(evt.EntityB, evt.EntityA, evt.IsBegin);
+            }
+        }
     }
 
     private void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)

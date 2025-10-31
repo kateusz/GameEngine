@@ -12,6 +12,11 @@ public class BoxCollider2DComponent : IComponent
     public Vector2 Size { get; set; }
     public Vector2 Offset { get; set; }
 
+    /// <summary>
+    /// The density of the collider in kg/m².
+    /// Higher density = heavier object. Typical values: 0.1 to 10.0.
+    /// Default is 1.0 (similar to water).
+    /// </summary>
     public float Density
     {
         get => _density;
@@ -25,6 +30,11 @@ public class BoxCollider2DComponent : IComponent
         }
     }
 
+    /// <summary>
+    /// The friction coefficient (0-1).
+    /// 0 = ice (no friction), 1 = very rough surface.
+    /// Typical values: 0.2-0.8. Default is 0.5.
+    /// </summary>
     public float Friction
     {
         get => _friction;
@@ -38,6 +48,11 @@ public class BoxCollider2DComponent : IComponent
         }
     }
 
+    /// <summary>
+    /// The restitution (bounciness) coefficient (0-1).
+    /// 0 = no bounce (inelastic), 1 = perfect bounce (elastic).
+    /// Typical values: 0.0-0.5. Default is 0.0 (no bounce).
+    /// </summary>
     public float Restitution
     {
         get => _restitution;
@@ -51,7 +66,19 @@ public class BoxCollider2DComponent : IComponent
         }
     }
 
+    /// <summary>
+    /// The restitution threshold velocity in m/s.
+    /// Collisions below this velocity will not bounce regardless of restitution value.
+    /// Prevents jittering at rest. Typical values: 0.5 to 1.0 m/s.
+    /// Default is 0.5 m/s.
+    /// </summary>
     public float RestitutionThreshold { get; set; }
+    /// <summary>
+    /// Whether this collider acts as a trigger (sensor).
+    /// Triggers detect collisions but don't cause physical response.
+    /// Useful for pickups, checkpoint zones, and other non-physical interactions.
+    /// Default is false (normal collision).
+    /// </summary>
     public bool IsTrigger { get; set; }
 
     /// <summary>
