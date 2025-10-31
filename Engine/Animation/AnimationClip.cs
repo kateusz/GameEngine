@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Engine.Animation;
 
 /// <summary>
@@ -29,10 +31,12 @@ public record AnimationClip
     /// Calculated clip duration in seconds.
     /// Formula: frames.Length / FPS
     /// </summary>
+    [JsonIgnore]
     public float Duration => Frames.Length / Fps;
 
     /// <summary>
     /// Get frame duration in seconds (time per frame).
     /// </summary>
+    [JsonIgnore]
     public float FrameDuration => 1.0f / Fps;
 }
