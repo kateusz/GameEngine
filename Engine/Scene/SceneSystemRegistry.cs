@@ -20,12 +20,14 @@ public class SceneSystemRegistry : ISceneSystemRegistry
     private readonly PhysicsDebugRenderSystem _physicsDebugRenderSystem;
     private readonly AudioSystem _audioSystem;
     private readonly AnimationSystem _animationSystem;
+    private readonly TileMapRenderSystem _tileMapRenderSystem;
 
     private readonly Lock _lock = new();
     
     public SceneSystemRegistry(SpriteRenderingSystem spriteRenderingSystem, ModelRenderingSystem modelRenderingSystem,
         ScriptUpdateSystem scriptUpdateSystem, SubTextureRenderingSystem subTextureRenderingSystem,
-        PhysicsDebugRenderSystem physicsDebugRenderSystem, AudioSystem audioSystem, AnimationSystem animationSystem)
+        PhysicsDebugRenderSystem physicsDebugRenderSystem, AudioSystem audioSystem, AnimationSystem animationSystem,
+        TileMapRenderSystem tileMapRenderSystem)
     {
         _spriteRenderingSystem = spriteRenderingSystem;
         _modelRenderingSystem = modelRenderingSystem;
@@ -34,6 +36,7 @@ public class SceneSystemRegistry : ISceneSystemRegistry
         _physicsDebugRenderSystem = physicsDebugRenderSystem;
         _audioSystem = audioSystem;
         _animationSystem = animationSystem;
+        _tileMapRenderSystem = tileMapRenderSystem;
     }
 
     /// <summary>
@@ -53,6 +56,7 @@ public class SceneSystemRegistry : ISceneSystemRegistry
         {
             var systems = new List<ISystem>
             {
+                _tileMapRenderSystem,
                 _scriptUpdateSystem,
                 _spriteRenderingSystem,
                 _subTextureRenderingSystem,

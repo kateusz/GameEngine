@@ -9,20 +9,24 @@ public enum EditorMode
     /// Selection mode - click to select entities
     /// </summary>
     Select,
-    
+
     /// <summary>
     /// Move mode - drag entities to reposition them
     /// </summary>
     Move,
-    
+
     /// <summary>
     /// Scale mode - drag to scale entities
     /// </summary>
     Scale,
-    
+
     /// <summary>
     /// Ruler mode - measure distances between points in the viewport
     /// </summary>
-    Ruler
-}
+    Ruler,
 
+    /// <summary>
+    /// Tilemap mode - paint tiles on a tilemap
+    /// </summary>
+    Tilemap
+}

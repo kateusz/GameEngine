@@ -53,6 +53,7 @@ static void ConfigureContainer(Container container)
     container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
     container.Register<AudioSystem>(Reuse.Singleton);
     container.Register<AnimationSystem>(Reuse.Singleton);
+    container.Register<TileMapRenderSystem>(Reuse.Singleton);
     container.Register<AnimationAssetManager>(Reuse.Singleton);
     
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
@@ -77,6 +78,8 @@ static void ConfigureContainer(Container container)
     container.Register<AnimationComponentEditor>(Reuse.Singleton);
     container.Register<AnimationTimelineWindow>(Reuse.Singleton);
     container.Register<RecentProjectsWindow>(Reuse.Singleton);
+    container.Register<TileMapPanel>(Reuse.Singleton);
+    container.Register<TileMapComponentEditor>(Reuse.Singleton);
     
     container.Register<ComponentEditorRegistry>(Reuse.Singleton);
     container.Register<PropertiesPanel>(Reuse.Singleton);

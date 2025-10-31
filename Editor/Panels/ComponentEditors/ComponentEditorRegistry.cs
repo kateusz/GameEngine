@@ -21,7 +21,8 @@ public class ComponentEditorRegistry : IComponentEditorRegistry
         SubTextureRendererComponentEditor subTextureRendererComponentEditor,
         AudioSourceComponentEditor audioSourceComponentEditor,
         AudioListenerComponentEditor audioListenerComponentEditor,
-        AnimationComponentEditor animationComponentEditor
+        AnimationComponentEditor animationComponentEditor,
+        TileMapComponentEditor tileMapComponentEditor
         )
     {
         _editors = new Dictionary<Type, IComponentEditor>
@@ -36,7 +37,8 @@ public class ComponentEditorRegistry : IComponentEditorRegistry
             { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
             { typeof(AudioSourceComponent), audioSourceComponentEditor },
             { typeof(AudioListenerComponent), audioListenerComponentEditor },
-            { typeof(AnimationComponent), animationComponentEditor }
+            { typeof(AnimationComponent), animationComponentEditor },
+            { typeof(TileMapComponent), tileMapComponentEditor }
         };
     }
 

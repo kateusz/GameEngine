@@ -46,6 +46,7 @@ public class EditorLayer : ILayer
     private readonly AnimationTimelineWindow _animationTimeline;
     private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
+    private readonly TileMapPanel _tileMapPanel;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -67,7 +68,7 @@ public class EditorLayer : ILayer
         PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
         ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory, 
-        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow)
+        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow, TileMapPanel tileMapPanel)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -84,6 +85,7 @@ public class EditorLayer : ILayer
         _sceneFactory = sceneFactory;
         _animationTimeline = animationTimeline;
         _recentProjectsWindow = recentProjectsWindow;
+        _tileMapPanel = tileMapPanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -494,6 +496,7 @@ public class EditorLayer : ILayer
             
             ScriptComponentUI.OnImGuiRender();
             _animationTimeline.OnImGuiRender();
+            _tileMapPanel.OnImGuiRender();
             _recentProjectsWindow.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
@@ -639,6 +642,6 @@ public class EditorLayer : ILayer
         _cameraController.Camera.SetPosition(Vector3.Zero);
         _cameraController.Camera.SetRotation(0.0f);
         // Reset zoom to default
-        _cameraController.SetZoom(Engine.Renderer.Cameras.CameraConfig.DefaultZoomLevel);
+        _cameraController.SetZoom(CameraConfig.DefaultZoomLevel);
     }
 }
