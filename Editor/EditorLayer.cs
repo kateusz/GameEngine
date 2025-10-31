@@ -5,6 +5,7 @@ using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
 using Editor.UI;
+using Editor.Utilities;
 using Editor.Windows;
 using Engine;
 using Engine.Core;
@@ -43,10 +44,12 @@ public class EditorLayer : ILayer
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
     private AnimationTimelineWindow _animationTimeline;
+    private readonly ViewportRuler _viewportRuler = new();
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
-
+    private readonly ObjectManipulator _objectManipulator = new();
+    
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
@@ -256,6 +259,36 @@ public class EditorLayer : ILayer
                      _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
+            // Editor mode shortcuts (Godot-style)
+            case KeyCodes.Q:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Select;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.W:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Move;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.R:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Scale;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            
+            // File operations
             case KeyCodes.N:
             {
                 if (control)
@@ -476,19 +509,48 @@ public class EditorLayer : ILayer
                 }
 
                 // Handle entity selection on mouse click in viewport
-                if (ImGui.IsWindowHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                if (ImGui.IsWindowHovered())
                 {
-                    if (_hoveredEntity != null)
+                    var currentMode = _editorToolbar.CurrentMode;
+                    
+                    // Start dragging
+                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
-                        _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
-                        EntitySelected(_hoveredEntity);
+                        if (_hoveredEntity != null)
+                        {
+                            _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+                            
+                            if (currentMode == EditorMode.Move || currentMode == EditorMode.Scale)
+                            {
+                                // Start manipulation
+                                var mousePos = ImGui.GetMousePos();
+                                _objectManipulator.StartDrag(_hoveredEntity, mousePos, _viewportBounds, _cameraController.Camera);
+                            }
+                            else
+                            {
+                                // Select mode - just focus on entity
+                                EntitySelected(_hoveredEntity);
+                            }
+                        }
+                    }
+                    
+                    // Update dragging
+                    if (_objectManipulator.IsDragging && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                    {
+                        var mousePos = ImGui.GetMousePos();
+                        _objectManipulator.UpdateDrag(currentMode, mousePos, _viewportBounds, _cameraController.Camera);
+                    }
+                    
+                    // End dragging
+                    if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                    {
+                        _objectManipulator.EndDrag();
                     }
                 }
 
                 // Render viewport rulers
                 var cameraPos = new Vector2(_cameraController.Camera.Position.X, _cameraController.Camera.Position.Y);
                 var orthoSize = 20;//TODO HARDCODED _cameraController.Camera.OrthographicSize;
-                var aspectRatio = _viewportSize.X / _viewportSize.Y;
                 var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
                 _viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
