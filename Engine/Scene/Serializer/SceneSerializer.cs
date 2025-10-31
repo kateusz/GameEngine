@@ -41,6 +41,7 @@ public class SceneSerializer : ISceneSerializer
             new Vector3Converter(),
             new Vector4Converter(),
             new RectangleConverter(),
+            new TileMapComponentConverter(),
             new JsonStringEnumConverter()
         }
     };
@@ -212,6 +213,9 @@ public class SceneSerializer : ISceneSerializer
             case nameof(AnimationComponent):
                 AddComponent<AnimationComponent>(entity, componentObj);
                 break;
+            case nameof(TileMapComponent):
+                AddComponent<TileMapComponent>(entity, componentObj);
+                break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
@@ -374,6 +378,7 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
         SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
+        SerializeComponent<TileMapComponent>(entity, entityObj, nameof(TileMapComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
         SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));

@@ -27,6 +27,7 @@ public static class ComponentSelector
 
             DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity);
             DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity);
+            DrawComponentMenuItem<TileMapComponent>("TileMap", entity);
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity);
