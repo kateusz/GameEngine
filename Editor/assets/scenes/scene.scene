@@ -1,0 +1,610 @@
+{
+  "Scene": "default",
+  "Entities": [
+    {
+      "Id": 3,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0.66313285,
+            0.5423596,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Camera": {
+            "Projection": {
+              "IsIdentity": false,
+              "Translation": [
+                -0,
+                -0,
+                0.5
+              ]
+            },
+            "ProjectionType": "Orthographic",
+            "OrthographicSize": 20,
+            "OrthographicNear": -1,
+            "OrthographicFar": 1,
+            "AspectRatio": 1.9136363,
+            "PerspectiveFOV": 0.7853982,
+            "PerspectiveNear": 0.01,
+            "PerspectiveFar": 1000
+          },
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        },
+        {
+          "IsActive": true,
+          "Name": "AudioListenerComponent"
+        },
+        {
+          "Name": "NativeScriptComponent",
+          "ScriptType": "CameraController"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Floor",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -8.4,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            19.3,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.5401278,
+            0.87455195,
+            0.115979984,
+            1
+          ],
+          "Texture": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.5,
+          "Restitution": 0.4,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "IsDirty": true,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 1,
+      "Name": "Ball",
+      "Components": [
+        {
+          "Translation": [
+            -4.5305057,
+            -2.88,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0.00054696226
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.5137255,
+            0.42352942,
+            1,
+            1
+          ],
+          "Texture": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": false,
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.3,
+          "Restitution": 0.7,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "IsDirty": true,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Audio Manager",
+      "Components": [
+        {
+          "AudioClipPath": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/sounds/Example.ogg",
+          "Volume": 1,
+          "Pitch": 1,
+          "Loop": false,
+          "PlayOnAwake": true,
+          "Is3D": false,
+          "MinDistance": 1,
+          "MaxDistance": 100,
+          "IsPlaying": false,
+          "Name": "AudioSourceComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Animation Object",
+      "Components": [
+        {
+          "Translation": [
+            -4,
+            -0.3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            4,
+            3
+          ],
+          "Texture": {
+            "Width": 1280,
+            "Height": 832,
+            "Path": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/textures/spritesheet.png"
+          },
+          "CellSize": [
+            64,
+            64
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "TexCoords": [
+            [
+              0.025,
+              0.0012019231
+            ],
+            [
+              0.075,
+              0.0012019231
+            ],
+            [
+              0.075,
+              0.078125
+            ],
+            [
+              0.025,
+              0.078125
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Asset": {
+            "Id": "example1",
+            "AtlasPath": "textures/spritesheet.png",
+            "Atlas": {
+              "Width": 1280,
+              "Height": 832,
+              "Path": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/textures/spritesheet.png"
+            },
+            "CellSize": [
+              64,
+              64
+            ],
+            "Clips": [
+              {
+                "Name": "Idle",
+                "Fps": 6,
+                "Loop": true,
+                "Frames": [
+                  {
+                    "Rect": [
+                      32,
+                      1,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": [
+                      0,
+                      0
+                    ],
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [],
+                    "TexCoords": [
+                      [
+                        0.025,
+                        0.0012019231
+                      ],
+                      [
+                        0.075,
+                        0.0012019231
+                      ],
+                      [
+                        0.075,
+                        0.078125
+                      ],
+                      [
+                        0.025,
+                        0.078125
+                      ]
+                    ]
+                  },
+                  {
+                    "Rect": [
+                      32,
+                      2,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": [
+                      0,
+                      0
+                    ],
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [],
+                    "TexCoords": [
+                      [
+                        0.025,
+                        0.0024038462
+                      ],
+                      [
+                        0.075,
+                        0.0024038462
+                      ],
+                      [
+                        0.075,
+                        0.07932692
+                      ],
+                      [
+                        0.025,
+                        0.07932692
+                      ]
+                    ]
+                  },
+                  {
+                    "Rect": [
+                      32,
+                      3,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": null,
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [],
+                    "TexCoords": [
+                      [
+                        0.025,
+                        0.0036057692
+                      ],
+                      [
+                        0.075,
+                        0.0036057692
+                      ],
+                      [
+                        0.075,
+                        0.08052885
+                      ],
+                      [
+                        0.025,
+                        0.08052885
+                      ]
+                    ]
+                  }
+                ],
+                "Duration": 0.5,
+                "FrameDuration": 0.16666667
+              },
+              {
+                "Name": "Run",
+                "Fps": 12,
+                "Loop": true,
+                "Frames": [
+                  {
+                    "Rect": [
+                      0,
+                      64,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": null,
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [
+                      "step"
+                    ],
+                    "TexCoords": [
+                      [
+                        0,
+                        0.07692308
+                      ],
+                      [
+                        0.05,
+                        0.07692308
+                      ],
+                      [
+                        0.05,
+                        0.15384616
+                      ],
+                      [
+                        0,
+                        0.15384616
+                      ]
+                    ]
+                  },
+                  {
+                    "Rect": [
+                      64,
+                      64,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": null,
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [],
+                    "TexCoords": [
+                      [
+                        0.05,
+                        0.07692308
+                      ],
+                      [
+                        0.1,
+                        0.07692308
+                      ],
+                      [
+                        0.1,
+                        0.15384616
+                      ],
+                      [
+                        0.05,
+                        0.15384616
+                      ]
+                    ]
+                  },
+                  {
+                    "Rect": [
+                      128,
+                      64,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": null,
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [
+                      "step"
+                    ],
+                    "TexCoords": [
+                      [
+                        0.1,
+                        0.07692308
+                      ],
+                      [
+                        0.15,
+                        0.07692308
+                      ],
+                      [
+                        0.15,
+                        0.15384616
+                      ],
+                      [
+                        0.1,
+                        0.15384616
+                      ]
+                    ]
+                  },
+                  {
+                    "Rect": [
+                      192,
+                      64,
+                      64,
+                      64
+                    ],
+                    "Pivot": [
+                      0.5,
+                      0
+                    ],
+                    "Flip": null,
+                    "Rotation": null,
+                    "Scale": [
+                      1,
+                      1
+                    ],
+                    "Events": [],
+                    "TexCoords": [
+                      [
+                        0.15,
+                        0.07692308
+                      ],
+                      [
+                        0.2,
+                        0.07692308
+                      ],
+                      [
+                        0.2,
+                        0.15384616
+                      ],
+                      [
+                        0.15,
+                        0.15384616
+                      ]
+                    ]
+                  }
+                ],
+                "Duration": 0.33333334,
+                "FrameDuration": 0.083333336
+              }
+            ]
+          },
+          "AssetPath": "animations/example-animations.anim",
+          "CurrentClipName": "Idle",
+          "IsPlaying": true,
+          "Loop": true,
+          "PlaybackSpeed": 1,
+          "ShowDebugInfo": false,
+          "Name": "AnimationComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "SubTexture Example",
+      "Components": [
+        {
+          "Translation": [
+            1.1,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            4,
+            3
+          ],
+          "Texture": {
+            "Width": 1280,
+            "Height": 832,
+            "Path": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/textures/spritesheet.png"
+          },
+          "CellSize": [
+            64,
+            64
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "TexCoords": null,
+          "Name": "SubTextureRendererComponent"
+        }
+      ]
+    }
+  ]
+}

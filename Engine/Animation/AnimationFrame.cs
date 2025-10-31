@@ -49,13 +49,16 @@ public record AnimationFrame
     /// <summary>
     /// Calculates UV coordinates from pixel rect and texture size.
     /// Applies flip flags during calculation.
+    /// NOTE: Rect uses pixel coordinates, not grid coordinates.
     /// </summary>
     public void CalculateUvCoords(int atlasWidth, int atlasHeight)
     {
         // Convert pixel rect to normalized UV coordinates (0..1 range)
+        // Rect.X and Rect.Y are in pixels
         float uvMinX = Rect.X / (float)atlasWidth;
-        float uvMinY = Rect.Y / (float)atlasHeight;
         float uvMaxX = (Rect.X + Rect.Width) / (float)atlasWidth;
+
+        float uvMinY = Rect.Y / (float)atlasHeight;
         float uvMaxY = (Rect.Y + Rect.Height) / (float)atlasHeight;
 
         // Base UV coordinates (counter-clockwise from bottom-left)

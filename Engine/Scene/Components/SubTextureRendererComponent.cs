@@ -21,6 +21,14 @@ public class SubTextureRendererComponent : IComponent
     /// </summary>
     public Vector2 SpriteSize { get; set; } = new(1, 1);
 
+    /// <summary>
+    /// Optional pre-calculated texture coordinates (4 vertices).
+    /// If set, these will be used directly instead of calculating from Coords/CellSize/SpriteSize.
+    /// This is useful for animations with pre-calculated UV coords.
+    /// Order: [bottom-left, bottom-right, top-right, top-left]
+    /// </summary>
+    public Vector2[]? TexCoords { get; set; }
+
     public SubTextureRendererComponent()
     {
         Coords = Vector2.Zero;
@@ -42,7 +50,8 @@ public class SubTextureRendererComponent : IComponent
         return new SubTextureRendererComponent(Coords, Texture)
         {
             CellSize = CellSize,
-            SpriteSize = SpriteSize
+            SpriteSize = SpriteSize,
+            TexCoords = TexCoords != null ? (Vector2[])TexCoords.Clone() : null
         };
     }
 }
