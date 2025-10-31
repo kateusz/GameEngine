@@ -243,7 +243,6 @@ public class AnimationComponentEditor : IComponentEditor
 
         // Rect
         ImGui.Text($"Rect: [{frame.Rect.X}, {frame.Rect.Y}, {frame.Rect.Width}, {frame.Rect.Height}]");
-        ImGui.SameLine(EditorUIConstants.WideColumnWidth);
 
         // Pivot
         ImGui.Text($"Pivot: [{frame.Pivot.X:F2}, {frame.Pivot.Y:F2}]");
