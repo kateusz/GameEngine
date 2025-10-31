@@ -13,6 +13,10 @@ public class SubTextureRendererComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<SubTextureRendererComponent>();
 
+            // Disable all fields if entity has AnimationComponent (AnimationSystem controls these values)
+            var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
+            ImGui.BeginDisabled(hasAnimationComponent);
+
             TextureDropTarget.Draw("Texture", texture => component.Texture = texture);
 
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
@@ -26,6 +30,8 @@ public class SubTextureRendererComponentEditor : IComponentEditor
 
             UIPropertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
                 newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
+
+            ImGui.EndDisabled();
         });
     }
 }

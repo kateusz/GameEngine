@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Animation;
 
@@ -14,6 +15,7 @@ public class AnimationComponent : IComponent
     /// Reference to loaded animation asset.
     /// Managed by AnimationSystem.
     /// </summary>
+    [JsonIgnore]
     public AnimationAsset? Asset { get; set; }
 
     /// <summary>
@@ -47,19 +49,19 @@ public class AnimationComponent : IComponent
     /// <summary>
     /// Current frame index within clip (0-based).
     /// </summary>
-    [NonSerialized]
+    [JsonIgnore]
     public int CurrentFrameIndex = 0;
 
     /// <summary>
     /// Frame timing accumulator (0..frameDuration).
     /// </summary>
-    [NonSerialized]
+    [JsonIgnore]
     public float FrameTimer = 0.0f;
 
     /// <summary>
     /// Previous frame index (for event detection).
     /// </summary>
-    [NonSerialized]
+    [JsonIgnore]
     public int PreviousFrameIndex = -1;
 
     /// <summary>

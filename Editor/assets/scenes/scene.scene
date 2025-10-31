@@ -7,8 +7,8 @@
       "Components": [
         {
           "Translation": [
-            0.66313285,
-            0.5423596,
+            0.7113443,
+            0.5926171,
             0
           ],
           "Rotation": [
@@ -34,7 +34,7 @@
               ]
             },
             "ProjectionType": "Orthographic",
-            "OrthographicSize": 20,
+            "OrthographicSize": 30,
             "OrthographicNear": -1,
             "OrthographicFar": 1,
             "AspectRatio": 1.9136363,
@@ -120,13 +120,13 @@
         {
           "Translation": [
             -4.5305057,
-            -2.88,
+            -3.95,
             0
           ],
           "Rotation": [
             0,
             0,
-            0.00054696226
+            0.0005482546
           ],
           "Scale": [
             1,
@@ -183,7 +183,7 @@
           "Is3D": false,
           "MinDistance": 1,
           "MaxDistance": 100,
-          "IsPlaying": false,
+          "IsPlaying": true,
           "Name": "AudioSourceComponent"
         }
       ]
@@ -212,345 +212,22 @@
         },
         {
           "Coords": [
-            4,
-            3
+            0,
+            0
           ],
-          "Texture": {
-            "Width": 1280,
-            "Height": 832,
-            "Path": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/textures/spritesheet.png"
-          },
+          "Texture": null,
           "CellSize": [
-            64,
-            64
+            16,
+            16
           ],
           "SpriteSize": [
             1,
             1
           ],
-          "TexCoords": [
-            [
-              0.025,
-              0.0012019231
-            ],
-            [
-              0.075,
-              0.0012019231
-            ],
-            [
-              0.075,
-              0.078125
-            ],
-            [
-              0.025,
-              0.078125
-            ]
-          ],
+          "TexCoords": null,
           "Name": "SubTextureRendererComponent"
         },
         {
-          "Asset": {
-            "Id": "example1",
-            "AtlasPath": "textures/spritesheet.png",
-            "Atlas": {
-              "Width": 1280,
-              "Height": 832,
-              "Path": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/textures/spritesheet.png"
-            },
-            "CellSize": [
-              64,
-              64
-            ],
-            "Clips": [
-              {
-                "Name": "Idle",
-                "Fps": 6,
-                "Loop": true,
-                "Frames": [
-                  {
-                    "Rect": [
-                      32,
-                      1,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": [
-                      0,
-                      0
-                    ],
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [],
-                    "TexCoords": [
-                      [
-                        0.025,
-                        0.0012019231
-                      ],
-                      [
-                        0.075,
-                        0.0012019231
-                      ],
-                      [
-                        0.075,
-                        0.078125
-                      ],
-                      [
-                        0.025,
-                        0.078125
-                      ]
-                    ]
-                  },
-                  {
-                    "Rect": [
-                      32,
-                      2,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": [
-                      0,
-                      0
-                    ],
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [],
-                    "TexCoords": [
-                      [
-                        0.025,
-                        0.0024038462
-                      ],
-                      [
-                        0.075,
-                        0.0024038462
-                      ],
-                      [
-                        0.075,
-                        0.07932692
-                      ],
-                      [
-                        0.025,
-                        0.07932692
-                      ]
-                    ]
-                  },
-                  {
-                    "Rect": [
-                      32,
-                      3,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": null,
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [],
-                    "TexCoords": [
-                      [
-                        0.025,
-                        0.0036057692
-                      ],
-                      [
-                        0.075,
-                        0.0036057692
-                      ],
-                      [
-                        0.075,
-                        0.08052885
-                      ],
-                      [
-                        0.025,
-                        0.08052885
-                      ]
-                    ]
-                  }
-                ],
-                "Duration": 0.5,
-                "FrameDuration": 0.16666667
-              },
-              {
-                "Name": "Run",
-                "Fps": 12,
-                "Loop": true,
-                "Frames": [
-                  {
-                    "Rect": [
-                      0,
-                      64,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": null,
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [
-                      "step"
-                    ],
-                    "TexCoords": [
-                      [
-                        0,
-                        0.07692308
-                      ],
-                      [
-                        0.05,
-                        0.07692308
-                      ],
-                      [
-                        0.05,
-                        0.15384616
-                      ],
-                      [
-                        0,
-                        0.15384616
-                      ]
-                    ]
-                  },
-                  {
-                    "Rect": [
-                      64,
-                      64,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": null,
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [],
-                    "TexCoords": [
-                      [
-                        0.05,
-                        0.07692308
-                      ],
-                      [
-                        0.1,
-                        0.07692308
-                      ],
-                      [
-                        0.1,
-                        0.15384616
-                      ],
-                      [
-                        0.05,
-                        0.15384616
-                      ]
-                    ]
-                  },
-                  {
-                    "Rect": [
-                      128,
-                      64,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": null,
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [
-                      "step"
-                    ],
-                    "TexCoords": [
-                      [
-                        0.1,
-                        0.07692308
-                      ],
-                      [
-                        0.15,
-                        0.07692308
-                      ],
-                      [
-                        0.15,
-                        0.15384616
-                      ],
-                      [
-                        0.1,
-                        0.15384616
-                      ]
-                    ]
-                  },
-                  {
-                    "Rect": [
-                      192,
-                      64,
-                      64,
-                      64
-                    ],
-                    "Pivot": [
-                      0.5,
-                      0
-                    ],
-                    "Flip": null,
-                    "Rotation": null,
-                    "Scale": [
-                      1,
-                      1
-                    ],
-                    "Events": [],
-                    "TexCoords": [
-                      [
-                        0.15,
-                        0.07692308
-                      ],
-                      [
-                        0.2,
-                        0.07692308
-                      ],
-                      [
-                        0.2,
-                        0.15384616
-                      ],
-                      [
-                        0.15,
-                        0.15384616
-                      ]
-                    ]
-                  }
-                ],
-                "Duration": 0.33333334,
-                "FrameDuration": 0.083333336
-              }
-            ]
-          },
           "AssetPath": "animations/example-animations.anim",
           "CurrentClipName": "Idle",
           "IsPlaying": true,

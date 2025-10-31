@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Serialization;
 using Engine.Renderer.Textures;
 
 namespace Engine.Animation;
@@ -22,6 +23,7 @@ public record AnimationAsset : IDisposable
     /// <summary>
     /// Loaded texture atlas reference.
     /// </summary>
+    [JsonIgnore]
     public Texture2D Atlas { get; set; } = null!;
 
     /// <summary>
