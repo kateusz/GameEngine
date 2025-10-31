@@ -95,16 +95,21 @@ public class ImGuiLayer : IImGuiLayer
         var style = ImGui.GetStyle();
         if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
-            style.WindowRounding = 6.0f;
-            style.ChildRounding = 6.0f;
-            style.FrameRounding = 6.0f;
-            style.PopupRounding = 6.0f;
-            style.ScrollbarRounding = 12.0f;
-            style.GrabRounding = 6.0f;
-            style.TabRounding = 6.0f;
+            // Modern sharp-edged style - no rounded corners
+            style.WindowRounding = 0.0f;
+            style.ChildRounding = 0.0f;
+            style.FrameRounding = 0.0f;
+            style.PopupRounding = 0.0f;
+            style.ScrollbarRounding = 0.0f;
+            style.GrabRounding = 0.0f;
+            style.TabRounding = 0.0f;
+            
+            // Borders for clean separation
             style.WindowBorderSize = 1.0f;
             style.FrameBorderSize = 1.0f;
             style.PopupBorderSize = 1.0f;
+            
+            // Spacing and padding
             style.IndentSpacing = 18.0f;
             style.WindowPadding = new Vector2(12, 12);
             style.FramePadding = new Vector2(8, 4);

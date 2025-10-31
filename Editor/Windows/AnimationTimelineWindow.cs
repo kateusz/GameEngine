@@ -2,7 +2,6 @@ using System.Numerics;
 using ECS;
 using ImGuiNET;
 using Engine.Scene.Components;
-using Engine.Animation;
 using Editor.UI;
 
 namespace Editor.Windows
@@ -27,12 +26,6 @@ namespace Editor.Windows
         private const float FrameBoxWidth = 60.0f;
         private const float FrameBoxHeight = 60.0f;
         private const float TimelineHeight = 120.0f;
-
-        public bool IsOpen
-        {
-            get => _isOpen;
-            set => _isOpen = value;
-        }
 
         public void SetEntity(Entity entity)
         {
@@ -74,7 +67,7 @@ namespace Editor.Windows
             ImGui.End();
         }
 
-        private void DrawMenuBar()
+        private static void DrawMenuBar()
         {
             if (ImGui.BeginMenuBar())
             {
@@ -151,7 +144,7 @@ namespace Editor.Windows
             ImGui.SameLine();
 
             // Loop toggle
-            bool loop = _component!.Loop;
+            var loop = _component!.Loop;
             if (ImGui.Button(loop ? "Loop: On" : "Loop: Off", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
             {
                 _component.Loop = !loop;
@@ -181,7 +174,7 @@ namespace Editor.Windows
             var atlas = _component!.Asset!.Atlas;
 
             // Draw frame boxes
-            for (int i = 0; i < clip.Frames.Length; i++)
+            for (var i = 0; i < clip.Frames.Length; i++)
             {
                 var framePos = new Vector2(cursorPos.X + i * (FrameBoxWidth + 10), cursorPos.Y + 30);
                 var frameSize = new Vector2(FrameBoxWidth, FrameBoxHeight);
