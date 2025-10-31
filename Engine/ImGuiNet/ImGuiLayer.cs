@@ -86,7 +86,7 @@ public class ImGuiLayer : IImGuiLayer
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.WantSaveIniSettings = true;
 
-        float fontSize = 18.0f;// *2.0f;
+        var fontSize = 15.0f;// 25% smaller than original 18.0f
         io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", fontSize);
         //io.FontDefault = io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", fontSize);
 
@@ -104,18 +104,18 @@ public class ImGuiLayer : IImGuiLayer
             style.GrabRounding = 0.0f;
             style.TabRounding = 0.0f;
             
-            // Borders for clean separation
-            style.WindowBorderSize = 1.0f;
-            style.FrameBorderSize = 1.0f;
-            style.PopupBorderSize = 1.0f;
+            // Borders for clean separation (scaled 25% smaller)
+            style.WindowBorderSize = 0.75f;
+            style.FrameBorderSize = 0.75f;
+            style.PopupBorderSize = 0.75f;
             
-            // Spacing and padding
-            style.IndentSpacing = 18.0f;
-            style.WindowPadding = new Vector2(12, 12);
-            style.FramePadding = new Vector2(8, 4);
-            style.ItemSpacing = new Vector2(8, 6);
-            style.ItemInnerSpacing = new Vector2(6, 4);
-            style.GrabMinSize = 20.0f;
+            // Spacing and padding (all scaled 25% smaller)
+            style.IndentSpacing = 13.5f;        // was 18.0f
+            style.WindowPadding = new Vector2(9, 9);      // was (12, 12)
+            style.FramePadding = new Vector2(6, 3);       // was (8, 4)
+            style.ItemSpacing = new Vector2(6, 4.5f);     // was (8, 6)
+            style.ItemInnerSpacing = new Vector2(4.5f, 3);// was (6, 4)
+            style.GrabMinSize = 15.0f;          // was 20.0f
             style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
         }
 
