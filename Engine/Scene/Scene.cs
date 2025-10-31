@@ -257,13 +257,20 @@ public class Scene : IScene
             Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
         foreach (var entity in subtextureGroup)
         {
-            var st = entity.GetComponent<SubTextureRendererComponent>();
-            if (st.Texture is null) continue;
-            var subTex = SubTexture2D.CreateFromCoords(st.Texture, st.Coords, new Vector2(16, 16), new Vector2(1, 1));
-            var (texture, texCoords) = subTex;
-            var trs = entity.GetComponent<TransformComponent>().GetTransform()
-                      * Matrix4x4.CreateScale(16, 16, 1);
-            _graphics2D.DrawQuad(trs, texture, texCoords, entityId: entity.Id);
+            var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
+            if (subtextureComponent.Texture is null) continue;
+
+            // Create SubTexture2D using component's cell/sprite sizes (same as runtime)
+            var subTexture = SubTexture2D.CreateFromCoords(
+                subtextureComponent.Texture,
+                subtextureComponent.Coords,
+                subtextureComponent.CellSize,
+                subtextureComponent.SpriteSize
+            );
+
+            // Use transform directly without additional scaling (same as runtime)
+            var transform = entity.GetComponent<TransformComponent>().GetTransform();
+            _graphics2D.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, entityId: entity.Id);
         }
 
         _graphics2D.EndScene();

@@ -189,23 +189,11 @@ public class AnimationSystem : ISystem
         // Set texture from asset
         renderer.Texture = asset.Atlas;
 
-        // Calculate grid coordinates from pixel rect
-        // SubTextureRendererComponent uses grid coordinates (cell-based)
-        // We need to convert pixel rect to grid coords
-        var gridX = currentFrame.Rect.X / asset.CellSize.X;
-        var gridY = currentFrame.Rect.Y / asset.CellSize.Y;
-        renderer.Coords = new Vector2(gridX, gridY);
+        // Use pre-calculated texture coordinates from animation frame
+        // These coordinates are calculated during asset load and account for:
+        renderer.TexCoords = currentFrame.TexCoords;
 
-        // Set cell size
-        renderer.CellSize = asset.CellSize;
-
-        // Calculate sprite size in cells
-        var cellsX = currentFrame.Rect.Width / asset.CellSize.X;
-        var cellsY = currentFrame.Rect.Height / asset.CellSize.Y;
-        renderer.SpriteSize = new Vector2(cellsX, cellsY);
-
-        // Note: Per-frame flip, rotation, scale handled in Phase 5
-        // For now, we only update texture coordinates
+        // Note: Per-frame rotation and scale will be handled in a future phase
     }
 
     /// <summary>

@@ -89,21 +89,32 @@ public class SubTextureRenderingSystem : ISystem
             if (subtextureComponent.Texture == null)
                 continue;
 
-            // Create SubTexture2D from component data using component's cell/sprite sizes
-            // CellSize and SpriteSize are used ONLY for texture coordinate calculation, not world size
-            var subTexture = SubTexture2D.CreateFromCoords(
-                subtextureComponent.Texture,
-                subtextureComponent.Coords,
-                subtextureComponent.CellSize,
-                subtextureComponent.SpriteSize
-            );
-
             // Use the transform component's matrix directly (same as SpriteRenderingSystem)
             // The transform scale determines the world-space size of the rendered sprite
             var transform = transformComponent.GetTransform();
 
+            // Use pre-calculated TexCoords if available (e.g., from animation system)
+            // Otherwise calculate from grid coordinates
+            Vector2[] texCoords;
+            if (subtextureComponent.TexCoords != null)
+            {
+                // Direct UV coordinates (used by animation system)
+                texCoords = subtextureComponent.TexCoords;
+            }
+            else
+            {
+                // Calculate from grid coordinates (traditional subtexture rendering)
+                var subTexture = SubTexture2D.CreateFromCoords(
+                    subtextureComponent.Texture,
+                    subtextureComponent.Coords,
+                    subtextureComponent.CellSize,
+                    subtextureComponent.SpriteSize
+                );
+                texCoords = subTexture.TexCoords;
+            }
+
             // Draw the subtexture quad with entity ID for picking
-            _renderer.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, 1.0f, Vector4.One, entity.Id);
+            _renderer.DrawQuad(transform, subtextureComponent.Texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
 
         // End the rendering batch
