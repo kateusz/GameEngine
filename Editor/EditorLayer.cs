@@ -44,6 +44,7 @@ public class EditorLayer : ILayer
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
     private AnimationTimelineWindow _animationTimeline;
+    private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
     
     // TODO: check concurrency
@@ -60,7 +61,8 @@ public class EditorLayer : ILayer
         EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
         PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
         ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory, AnimationTimelineWindow animationTimeline)
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory, 
+        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -76,6 +78,7 @@ public class EditorLayer : ILayer
         _rendererStatsPanel = rendererStatsPanel;
         _sceneFactory = sceneFactory;
         _animationTimeline = animationTimeline;
+        _recentProjectsWindow = recentProjectsWindow;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -359,6 +362,11 @@ public class EditorLayer : ILayer
                         _projectUI.ShowNewProjectPopup();
                     if (ImGui.MenuItem("Open Project"))
                         _projectUI.ShowOpenProjectPopup();
+                    
+                    ImGui.Separator();
+                    
+                    if (ImGui.MenuItem("Show Recent Projects"))
+                        _recentProjectsWindow.Show();
 
                     // Add Recent Projects submenu
                     if (ImGui.BeginMenu("Recent Projects"))
@@ -462,6 +470,7 @@ public class EditorLayer : ILayer
             
             ScriptComponentUI.OnImGuiRender();
             _animationTimeline.OnImGuiRender();
+            _recentProjectsWindow.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);

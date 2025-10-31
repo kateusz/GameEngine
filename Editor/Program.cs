@@ -75,6 +75,7 @@ static void ConfigureContainer(Container container)
     container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
     container.Register<AnimationComponentEditor>(Reuse.Singleton);
     container.Register<AnimationTimelineWindow>(Reuse.Singleton);
+    container.Register<RecentProjectsWindow>(Reuse.Singleton);
     
     container.Register<ComponentEditorRegistry>(Reuse.Singleton);
     container.Register<PropertiesPanel>(Reuse.Singleton);
