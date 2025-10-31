@@ -31,24 +31,24 @@ public class AnimationComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<AnimationComponent>();
 
-            DrawAssetPath(component);
+            DrawAssetPath(entity, component);
             ImGui.Spacing();
 
             if (component.Asset != null)
             {
-                DrawClipSelector(component);
+                DrawClipSelector(entity, component);
                 ImGui.Spacing();
 
-                DrawPlaybackControls(component);
+                DrawPlaybackControls(entity, component);
                 ImGui.Spacing();
 
-                DrawTimeline(component);
+                DrawTimeline(entity, component);
                 ImGui.Spacing();
 
                 DrawFrameInfo(component);
                 ImGui.Spacing();
 
-                DrawClipList(component);
+                DrawClipList(entity, component);
                 ImGui.Spacing();
 
                 DrawActionButtons(component);
@@ -62,18 +62,19 @@ public class AnimationComponentEditor : IComponentEditor
         });
     }
 
-    private void DrawAssetPath(AnimationComponent component)
+    private void DrawAssetPath(Entity entity, AnimationComponent component)
     {
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - EditorUIConstants.StandardButtonWidth -
                                EditorUIConstants.StandardPadding);
 
-        ImGui.Text($"Asset Path: {component.AssetPath}");
+        ImGui.Text($"Asset Path: {component.AssetPath ?? "(none)"}");
 
         UIPropertyRenderer.DrawPropertyRow("Animation", () =>
         {
-            if (ImGui.Button("Animation", new Vector2(-1, 0.0f)))
+            if (ImGui.Button("Browse...", new Vector2(-1, 0.0f)))
             {
-                // Optional: Handle button click logic if needed
+                // TODO: Open file browser dialog (Phase 3 enhancement)
+                Logger.Information("File browser not yet implemented");
             }
 
             if (ImGui.BeginDragDropTarget())
@@ -89,9 +90,22 @@ public class AnimationComponentEditor : IComponentEditor
                         if (!string.IsNullOrWhiteSpace(droppedPath) &&
                             droppedPath.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
                         {
+                            // Unload old asset if exists
+                            if (!string.IsNullOrEmpty(component.AssetPath))
+                            {
+                                _animationAssetManager.UnloadAsset(component.AssetPath);
+                            }
+
+                            // Load new asset
                             var animation = _animationAssetManager.LoadAsset(droppedPath);
                             component.AssetPath = droppedPath;
                             component.Asset = animation;
+
+                            // Auto-play first clip if available
+                            if (animation != null && animation.Clips.Length > 0)
+                            {
+                                AnimationController.Play(entity, animation.Clips[0].Name);
+                            }
                         }
                     }
                 }
@@ -107,7 +121,7 @@ public class AnimationComponentEditor : IComponentEditor
         }
     }
 
-    private void DrawClipSelector(AnimationComponent component)
+    private void DrawClipSelector(Entity entity, AnimationComponent component)
     {
         var asset = component.Asset!;
         var currentClip = asset.GetClip(component.CurrentClipName);
@@ -125,8 +139,7 @@ public class AnimationComponentEditor : IComponentEditor
                 var isSelected = clipName == component.CurrentClipName;
                 if (ImGui.Selectable(clipName, isSelected))
                 {
-                    // TODO: how should it be done?
-                    // component.Play(clipName);
+                    AnimationController.Play(entity, clipName);
                 }
 
                 if (isSelected)
@@ -144,7 +157,7 @@ public class AnimationComponentEditor : IComponentEditor
         }
     }
 
-    private void DrawPlaybackControls(AnimationComponent component)
+    private void DrawPlaybackControls(Entity entity, AnimationComponent component)
     {
         ImGui.Text("Playback:");
         ImGui.SameLine();
@@ -153,11 +166,10 @@ public class AnimationComponentEditor : IComponentEditor
         var isPlaying = component.IsPlaying;
         if (ImGui.Checkbox("Playing", ref isPlaying))
         {
-            // TODO
-            // if (isPlaying)
-            //     component.Resume();
-            // else
-            //     component.Pause();
+            if (isPlaying)
+                AnimationController.Resume(entity);
+            else
+                AnimationController.Pause(entity);
         }
 
         ImGui.SameLine();
@@ -178,12 +190,11 @@ public class AnimationComponentEditor : IComponentEditor
         float speed = component.PlaybackSpeed;
         if (ImGui.SliderFloat("##Speed", ref speed, 0.1f, 3.0f, "%.1fx"))
         {
-            // TODO
-            //component.SetSpeed(speed);
+            AnimationController.SetSpeed(entity, speed);
         }
     }
 
-    private void DrawTimeline(AnimationComponent component)
+    private void DrawTimeline(Entity entity, AnimationComponent component)
     {
         var clip = component.Asset!.GetClip(component.CurrentClipName);
         if (clip == null) return;
@@ -194,11 +205,10 @@ public class AnimationComponentEditor : IComponentEditor
         if (ImGui.Button(component.IsPlaying ? "⏸" : "▶",
                 new Vector2(EditorUIConstants.SmallButtonSize, EditorUIConstants.SmallButtonSize)))
         {
-            // TODO
-            // if (component.IsPlaying)
-            //     component.Pause();
-            // else
-            //     component.Resume();
+            if (component.IsPlaying)
+                AnimationController.Pause(entity);
+            else
+                AnimationController.Resume(entity);
         }
 
         ImGui.SameLine();
@@ -212,8 +222,7 @@ public class AnimationComponentEditor : IComponentEditor
         if (ImGui.SliderInt("##FrameScrubber", ref currentFrame, 0, maxFrame,
                 $"Frame: {currentFrame} / {clip.Frames.Length}"))
         {
-            // TODO
-            //component.SetFrame(currentFrame);
+            AnimationController.SetFrame(entity, currentFrame);
         }
 
         // Time info
@@ -252,7 +261,7 @@ public class AnimationComponentEditor : IComponentEditor
         ImGui.Unindent();
     }
 
-    private void DrawClipList(AnimationComponent component)
+    private void DrawClipList(Entity entity, AnimationComponent component)
     {
         var asset = component.Asset!;
 
@@ -270,13 +279,9 @@ public class AnimationComponentEditor : IComponentEditor
 
             if (ImGui.Button($"Preview##{clipName}", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
             {
-                // TODO
-                // // Play clip once and return to previous
-                // string previousClip = component.CurrentClipName;
-                // component.Play(clipName);
-                // component.Loop = false;
-
-                // TODO: Subscribe to AnimationCompleteEvent to return to previous clip
+                // Play clip once without looping
+                AnimationController.Play(entity, clipName, forceRestart: true);
+                component.Loop = false;
             }
         }
 

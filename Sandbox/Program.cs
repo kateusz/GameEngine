@@ -1,6 +1,8 @@
 ﻿using DryIoc;
+using Engine.Animation;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Events;
 using Engine.ImGuiNet;
 using Engine.Renderer;
 using Engine.Scene;
@@ -45,8 +47,10 @@ public class Program
             made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
         );
 
+        container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+        container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
         
         // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);
@@ -58,6 +62,7 @@ public class Program
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
         container.Register<AnimationSystem>(Reuse.Singleton);
+        container.Register<AnimationAssetManager>(Reuse.Singleton);
 
         container.Register<ILayer, Sandbox2DLayer>(Reuse.Singleton);
         container.Register<SandboxApplication>(Reuse.Singleton);

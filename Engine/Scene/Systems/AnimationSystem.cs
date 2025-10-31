@@ -88,8 +88,16 @@ public class AnimationSystem : ISystem
     /// </summary>
     private void UpdateAnimation(Entity entity, AnimationComponent animComponent, float deltaTime)
     {
-        // Skip if not playing or no asset loaded
-        if (!animComponent.IsPlaying || animComponent.Asset == null)
+        // Lazy-load asset for dynamically added components
+        if (animComponent.Asset == null)
+        {
+            LoadAssetIfNeeded(animComponent);
+            if (animComponent.Asset == null)
+                return; // Asset failed to load
+        }
+
+        // Skip if not playing
+        if (!animComponent.IsPlaying)
             return;
 
         // Get current clip
@@ -230,6 +238,24 @@ public class AnimationSystem : ISystem
     }
 
     // ISystem interface methods
-    public void OnInit() { }
-    public void OnShutdown() { }
+    public void OnInit()
+    {
+        Logger.Debug("AnimationSystem initialized with priority {Priority}", Priority);
+
+        // Initialize animation assets for all existing entities with AnimationComponent
+        var view = Context.Instance.View<AnimationComponent>();
+        var entityCount = 0;
+        foreach (var (_, animComponent) in view)
+        {
+            LoadAssetIfNeeded(animComponent);
+            entityCount++;
+        }
+
+        Logger.Debug("Initialized {Count} animation components", entityCount);
+    }
+
+    public void OnShutdown()
+    {
+        Logger.Debug("Animationsystem shut down");
+    }
 }
