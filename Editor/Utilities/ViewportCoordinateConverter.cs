@@ -11,7 +11,7 @@ public static class ViewportCoordinateConverter
     /// <summary>
     /// Converts screen coordinates (pixels) to world coordinates.
     /// </summary>
-    /// <param name="screenPos">Screen position in pixels</param>
+    /// <param name="screenPos">Screen position in pixels (LOCAL to the viewport: [0..viewportWidth], [0..viewportHeight])</param>
     /// <param name="viewportBounds">Viewport bounds [min, max] in screen space</param>
     /// <param name="camera">Orthographic camera</param>
     /// <returns>World position</returns>
@@ -22,11 +22,15 @@ public static class ViewportCoordinateConverter
         var viewportMax = viewportBounds[1];
         var viewportSize = viewportMax - viewportMin;
         
+        // screenPos is expected to be LOCAL to the viewport (origin at top-left of the viewport image).
         // Convert screen position to normalized viewport coordinates (0-1)
-        var normalizedX = (screenPos.X - viewportMin.X) / viewportSize.X;
-        var normalizedY = (screenPos.Y - viewportMin.Y) / viewportSize.Y;
+        var normalizedX = screenPos.X / viewportSize.X;
+        var normalizedY = screenPos.Y / viewportSize.Y;
         
-        // Flip Y axis (screen space Y is inverted compared to world space)
+        // The framebuffer texture is rendered into the ImGui "Viewport" using inverted UVs
+        // (ImGui.Image(texture, size, new Vector2(0,1), new Vector2(1,0))). To map a mouse position on
+        // the ImGui window to the camera's clip-space correctly we must invert the Y here so the top of
+        // the ImGui region corresponds to the top of the framebuffer.
         normalizedY = 1.0f - normalizedY;
         
         // Convert normalized coordinates to NDC space (-1 to 1)
@@ -57,7 +61,7 @@ public static class ViewportCoordinateConverter
     /// <param name="worldPos">World position</param>
     /// <param name="viewportBounds">Viewport bounds [min, max] in screen space</param>
     /// <param name="camera">Orthographic camera</param>
-    /// <returns>Screen position in pixels</returns>
+    /// <returns>Screen position in pixels (GLOBAL ImGui coordinates)</returns>
     public static Vector2 WorldToScreen(Vector2 worldPos, Vector2[] viewportBounds, OrthographicCamera camera)
     {
         // Create world position as Vector4
@@ -76,10 +80,10 @@ public static class ViewportCoordinateConverter
         var normalizedX = (clipPos.X + 1.0f) * 0.5f;
         var normalizedY = (clipPos.Y + 1.0f) * 0.5f;
         
-        // Flip Y axis
+        // Invert Y to account for ImGui image UV flip so coordinates map to ImGui window space
         normalizedY = 1.0f - normalizedY;
         
-        // Convert to screen coordinates
+        // Convert to screen coordinates (GLOBAL ImGui coords)
         var viewportMin = viewportBounds[0];
         var viewportMax = viewportBounds[1];
         var viewportSize = viewportMax - viewportMin;
@@ -90,4 +94,3 @@ public static class ViewportCoordinateConverter
         return new Vector2(screenX, screenY);
     }
 }
-

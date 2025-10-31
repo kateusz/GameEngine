@@ -15,6 +15,7 @@ using Serilog;
 using Editor.Logging;
 using Editor.Panels.ComponentEditors;
 using Editor.Popups;
+using Editor.UI;
 using Editor.Windows;
 using Engine.Animation;
 using Engine.Events;
@@ -87,6 +88,10 @@ static void ConfigureContainer(Container container)
     container.Register<ProjectUI>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
     container.Register<RendererStatsPanel>(Reuse.Singleton);
+    
+    container.Register<ViewportRuler>(Reuse.Singleton);
+    container.Register<ObjectManipulator>(Reuse.Singleton);
+    container.Register<RulerTool>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);

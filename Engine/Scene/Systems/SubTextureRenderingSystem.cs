@@ -1,6 +1,5 @@
 using System.Numerics;
 using ECS;
-using Engine.Math;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -79,7 +78,8 @@ public class SubTextureRenderingSystem : ISystem
         _renderer.BeginScene(mainCamera, cameraTransform);
 
         // Render all subtextures
-        var subtextureGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+        var subtextureGroup =
+            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
         foreach (var entity in subtextureGroup)
         {
             var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
@@ -112,7 +112,6 @@ public class SubTextureRenderingSystem : ISystem
                 );
                 texCoords = subTexture.TexCoords;
             }
-
             // Draw the subtexture quad with entity ID for picking
             _renderer.DrawQuad(transform, subtextureComponent.Texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
