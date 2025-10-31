@@ -4,6 +4,7 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
+using Editor.Windows;
 using Engine;
 using Engine.Core;
 using Engine.Core.Input;
@@ -40,6 +41,7 @@ public class EditorLayer : ILayer
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
+    private AnimationTimelineWindow _animationTimeline;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -54,7 +56,7 @@ public class EditorLayer : ILayer
         EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
         PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
         ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory, AnimationTimelineWindow animationTimeline)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -69,6 +71,7 @@ public class EditorLayer : ILayer
         _graphics2D = graphics2D;
         _rendererStatsPanel = rendererStatsPanel;
         _sceneFactory = sceneFactory;
+        _animationTimeline = animationTimeline;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -145,6 +148,7 @@ public class EditorLayer : ILayer
     public void OnUpdate(TimeSpan timeSpan)
     {
         _performanceMonitor.Update(timeSpan);
+        _animationTimeline.Update((float)timeSpan.TotalSeconds);
         
         // Resize
         var spec = _frameBuffer.GetSpecification();
@@ -415,6 +419,7 @@ public class EditorLayer : ILayer
             _consolePanel.OnImGuiRender();
             
             ScriptComponentUI.OnImGuiRender();
+            _animationTimeline.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);

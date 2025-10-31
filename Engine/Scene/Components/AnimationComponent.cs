@@ -50,7 +50,7 @@ public class AnimationComponent : IComponent
     /// Current frame index within clip (0-based).
     /// </summary>
     [JsonIgnore]
-    public int CurrentFrameIndex = 0;
+    public int CurrentFrameIndex { get; set; }
 
     /// <summary>
     /// Frame timing accumulator (0..frameDuration).

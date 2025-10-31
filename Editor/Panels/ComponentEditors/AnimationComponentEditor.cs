@@ -6,6 +6,7 @@ using ImGuiNET;
 using Engine.Scene.Components;
 using Engine.Animation;
 using Editor.UI;
+using Editor.Windows;
 using Serilog;
 
 namespace Editor.Panels.ComponentEditors;
@@ -19,10 +20,12 @@ public class AnimationComponentEditor : IComponentEditor
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();
     
     private readonly AnimationAssetManager _animationAssetManager;
+    private readonly AnimationTimelineWindow? _timelineWindow;
 
-    public AnimationComponentEditor(AnimationAssetManager animationAssetManager)
+    public AnimationComponentEditor(AnimationAssetManager animationAssetManager, AnimationTimelineWindow? timelineWindow)
     {
         _animationAssetManager = animationAssetManager;
+        _timelineWindow = timelineWindow;
     }
 
     public void DrawComponent(Entity e)
@@ -51,7 +54,7 @@ public class AnimationComponentEditor : IComponentEditor
                 DrawClipList(entity, component);
                 ImGui.Spacing();
 
-                DrawActionButtons(component);
+                DrawActionButtons(entity, component);
             }
             else
             {
@@ -287,12 +290,14 @@ public class AnimationComponentEditor : IComponentEditor
         ImGui.Unindent();
     }
 
-    private void DrawActionButtons(AnimationComponent component)
+    private void DrawActionButtons(Entity entity, AnimationComponent component)
     {
         if (ImGui.Button("Open Timeline Editor", new Vector2(EditorUIConstants.WideButtonWidth, 0)))
         {
-            // TODO: Open AnimationTimelineWindow (Phase 4)
-            Logger.Information("Timeline editor not yet implemented (Phase 4)");
+            if (_timelineWindow != null)
+            {
+                _timelineWindow.SetEntity(entity);
+            }
         }
 
         ImGui.SameLine();
