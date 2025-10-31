@@ -475,6 +475,16 @@ public class EditorLayer : ILayer
                     }
                 }
 
+                // Handle entity selection on mouse click in viewport
+                if (ImGui.IsWindowHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    if (_hoveredEntity != null)
+                    {
+                        _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+                        EntitySelected(_hoveredEntity);
+                    }
+                }
+
                 // Render viewport rulers
                 var cameraPos = new Vector2(_cameraController.Camera.Position.X, _cameraController.Camera.Position.Y);
                 var orthoSize = 20;//TODO HARDCODED _cameraController.Camera.OrthographicSize;
