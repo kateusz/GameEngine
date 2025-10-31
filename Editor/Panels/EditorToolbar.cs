@@ -92,6 +92,19 @@ public class EditorToolbar
         if (CurrentMode == EditorMode.Scale)
             ImGui.PopStyleColor();
         
+        ImGui.SameLine();
+        
+        if (CurrentMode == EditorMode.Ruler)
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
+        
+        // Use text button for ruler since we don't have an icon yet
+        if (ImGui.Button("📏", new Vector2(25, 19)))
+        {
+            CurrentMode = EditorMode.Ruler;
+        }
+        
+        if (CurrentMode == EditorMode.Ruler)
+            ImGui.PopStyleColor();
 
         // Center: Play/Stop button
         var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;

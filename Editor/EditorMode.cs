@@ -18,6 +18,11 @@ public enum EditorMode
     /// <summary>
     /// Scale mode - drag to scale entities
     /// </summary>
-    Scale
+    Scale,
+    
+    /// <summary>
+    /// Ruler mode - measure distances between points in the viewport
+    /// </summary>
+    Ruler
 }
 

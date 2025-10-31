@@ -43,13 +43,14 @@ public class EditorLayer : ILayer
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
-    private AnimationTimelineWindow _animationTimeline;
+    private readonly AnimationTimelineWindow _animationTimeline;
     private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
     private readonly ObjectManipulator _objectManipulator = new();
+    private readonly RulerTool _rulerTool = new();
     
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -294,6 +295,25 @@ public class EditorLayer : ILayer
                 }
                 break;
             }
+            case KeyCodes.E:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Ruler;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.Escape:
+            {
+                // Clear ruler measurement if in ruler mode
+                if (_editorToolbar.CurrentMode == EditorMode.Ruler)
+                {
+                    _rulerTool.ClearMeasurement();
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
             
             // File operations
             case KeyCodes.N:
@@ -525,47 +545,74 @@ public class EditorLayer : ILayer
                 if (ImGui.IsWindowHovered())
                 {
                     var currentMode = _editorToolbar.CurrentMode;
-                    
-                    // Start dragging
-                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+
+                    // Prepare local mouse coordinates relative to the viewport
+                    var globalMousePos = ImGui.GetMousePos();
+                    var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X,
+                                                   globalMousePos.Y - _viewportBounds[0].Y);
+
+                    // Handle Ruler mode
+                    if (currentMode == EditorMode.Ruler)
                     {
-                        if (_hoveredEntity != null)
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                         {
-                            _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
-                            
-                            if (currentMode == EditorMode.Move || currentMode == EditorMode.Scale)
-                            {
-                                // Start manipulation
-                                var mousePos = ImGui.GetMousePos();
-                                _objectManipulator.StartDrag(_hoveredEntity, mousePos, _viewportBounds, _cameraController.Camera);
-                            }
-                            else
-                            {
-                                // Select mode - just focus on entity
-                                EntitySelected(_hoveredEntity);
-                            }
+                            _rulerTool.StartMeasurement(localMousePos, _viewportBounds, _cameraController.Camera);
+                        }
+
+                        if (_rulerTool.IsMeasuring)
+                        {
+                            _rulerTool.UpdateMeasurement(localMousePos, _viewportBounds, _cameraController.Camera);
+                        }
+
+                        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                        {
+                            _rulerTool.EndMeasurement();
                         }
                     }
-                    
-                    // Update dragging
-                    if (_objectManipulator.IsDragging && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                    else
                     {
-                        var mousePos = ImGui.GetMousePos();
-                        _objectManipulator.UpdateDrag(currentMode, mousePos, _viewportBounds, _cameraController.Camera);
-                    }
-                    
-                    // End dragging
-                    if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
-                    {
-                        _objectManipulator.EndDrag();
+                        // Start dragging
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                        {
+                            if (_hoveredEntity != null)
+                            {
+                                _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+
+                                if (currentMode == EditorMode.Move || currentMode == EditorMode.Scale)
+                                {
+                                    // Start manipulation
+                                    _objectManipulator.StartDrag(_hoveredEntity, localMousePos, _viewportBounds, _cameraController.Camera);
+                                }
+                                else
+                                {
+                                    // Select mode - just focus on entity
+                                    EntitySelected(_hoveredEntity);
+                                }
+                            }
+                        }
+
+                        // Update dragging
+                        if (_objectManipulator.IsDragging && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                        {
+                            _objectManipulator.UpdateDrag(currentMode, localMousePos, _viewportBounds, _cameraController.Camera);
+                        }
+
+                        // End dragging
+                        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                        {
+                            _objectManipulator.EndDrag();
+                        }
                     }
                 }
 
                 // Render viewport rulers
                 var cameraPos = new Vector2(_cameraController.Camera.Position.X, _cameraController.Camera.Position.Y);
-                var orthoSize = 20;//TODO HARDCODED _cameraController.Camera.OrthographicSize;
+                var orthoSize = _cameraController.ZoomLevel;
                 var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
                 _viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+                
+                // Render ruler tool measurements
+                _rulerTool.Render(_viewportBounds, _cameraController.Camera);
 
                 ImGui.End();
             }
@@ -591,5 +638,7 @@ public class EditorLayer : ILayer
     {
         _cameraController.Camera.SetPosition(Vector3.Zero);
         _cameraController.Camera.SetRotation(0.0f);
+        // Reset zoom to default
+        _cameraController.SetZoom(Engine.Renderer.Cameras.CameraConfig.DefaultZoomLevel);
     }
 }
