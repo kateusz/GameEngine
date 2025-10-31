@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Loader;
 using CSharpFunctionalExtensions;
 using Engine.Core.Input;
 using Engine.Events;
@@ -13,7 +14,7 @@ using ZLinq;
 
 namespace Engine.Scripting;
 
-public class ScriptEngine
+public class ScriptEngine : IDisposable
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
 
@@ -24,10 +25,12 @@ public class ScriptEngine
     private readonly Dictionary<string, string> _scriptSources = new();
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
+    private AssemblyLoadContext? _scriptLoadContext;
 
     // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private bool _debugMode = true; // Enable debugging by default in development
+    private byte[]? _lastAssemblyBytes;
 
     private ScriptEngine()
     {
@@ -126,7 +129,7 @@ public class ScriptEngine
         return _scriptTypes.Keys.ToArray();
     }
 
-    public Type GetScriptType(string scriptName)
+    public Type? GetScriptType(string scriptName)
     {
         return _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
     }
@@ -248,13 +251,13 @@ public class ScriptEngine
             if (_debugSymbols.TryGetValue(assemblyName, out var symbols))
             {
                 File.WriteAllBytes($"{outputPath}.pdb", symbols);
-                
+
                 // Also save the assembly for complete debugging setup
-                if (_dynamicAssembly != null && !string.IsNullOrEmpty(_dynamicAssembly.Location))
+                if (_lastAssemblyBytes is { Length: > 0 })
                 {
-                    File.Copy(_dynamicAssembly.Location, $"{outputPath}.dll", true);
+                    File.WriteAllBytes($"{outputPath}.dll", _lastAssemblyBytes);
                 }
-                
+
                 return true;
             }
             return false;
@@ -513,27 +516,74 @@ public class ScriptEngine
                 return (false, errors);
             }
 
-            // Load assembly with debug symbols
+            // Preserve emitted image for external tools
+            var assemblyBytes = assemblyStream.ToArray();
+            _lastAssemblyBytes = assemblyBytes;
+
+            // Load assembly with debug symbols using collectible AssemblyLoadContext
             assemblyStream.Seek(0, SeekOrigin.Begin);
-            byte[] assemblyBytes = assemblyStream.ToArray();
-            
+
             byte[]? symbolBytes = null;
             if (symbolsStream != null)
             {
                 symbolsStream.Seek(0, SeekOrigin.Begin);
                 symbolBytes = symbolsStream.ToArray();
-                
+
                 // Store debug symbols for later use
                 _debugSymbols["DynamicScripts"] = symbolBytes;
             }
-            
-            // Load assembly with debug information
-            _dynamicAssembly = symbolBytes != null 
-                ? Assembly.Load(assemblyBytes, symbolBytes)
-                : Assembly.Load(assemblyBytes);
-                    
+
+            // Pre-unload: capture and detach existing instances, and drop type refs
+            var toRebind = CaptureAndDetachScriptInstances();
+            _scriptTypes.Clear();
+            _dynamicAssembly = null;
+
+            // Unload previous assembly context to allow GC to collect old assembly
+            if (_scriptLoadContext != null)
+            {
+                Logger.Debug("Unloading previous script assembly context for hot reload");
+                var oldCtx = _scriptLoadContext;
+                _scriptLoadContext = null; // drop strong ref
+                oldCtx.Unload();
+
+                if (_debugMode)
+                {
+                    // Encourage timely unload in editor/hot-reload scenarios
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                }
+            }
+
+            // Create new collectible load context for script assembly
+            _scriptLoadContext = new AssemblyLoadContext("Scripts", isCollectible: true);
+            // Resolve shared engine deps from Default ALC to avoid type identity splits
+            _scriptLoadContext.Resolving += static (_, name) =>
+            {
+                foreach (var asm in AssemblyLoadContext.Default.Assemblies)
+                {
+                    if (string.Equals(asm.GetName().Name, name.Name, StringComparison.Ordinal))
+                        return asm;
+                }
+                return null;
+            };
+
+            // Load assembly with debug information using the collectible context
+            if (symbolsStream != null)
+            {
+                symbolsStream.Seek(0, SeekOrigin.Begin);
+                _dynamicAssembly = _scriptLoadContext.LoadFromStream(assemblyStream, symbolsStream);
+            }
+            else
+            {
+                _dynamicAssembly = _scriptLoadContext.LoadFromStream(assemblyStream);
+            }
+
             // Update script types dictionary - FIXED: Added missing method
             UpdateScriptTypes();
+
+            // Rebind previously detached instances against the new assembly
+            RebindScriptInstances(toRebind);
 
             Logger.Information("Successfully compiled {ScriptCount} scripts with debug support: {DebugMode}", _scriptTypes.Count, _debugMode);
             return (true, []);
@@ -608,9 +658,9 @@ public class ScriptEngine
     private void UpdateScriptTypes()
     {
         _scriptTypes.Clear();
-        
+
         if (_dynamicAssembly == null) return;
-        
+
         foreach (var type in _dynamicAssembly.GetTypes())
         {
             if (typeof(ScriptableEntity).IsAssignableFrom(type) && !type.IsAbstract)
@@ -618,6 +668,50 @@ public class ScriptEngine
                 _scriptTypes[type.Name] = type;
                 Logger.Debug("Registered script type: {TypeName}", type.Name);
             }
+        }
+    }
+
+    // Detach old instances to release ALC and capture which scripts to recreate
+    private List<(Scene.Entity Entity, string ScriptName)> CaptureAndDetachScriptInstances()
+    {
+        var results = new List<(Scene.Entity, string)>();
+        if (CurrentScene.Instance == null) return results;
+
+        var scriptEntities = CurrentScene.Instance.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
+
+        foreach (var entity in scriptEntities)
+        {
+            var sc = entity.GetComponent<NativeScriptComponent>();
+            var old = sc.ScriptableEntity;
+            if (old == null) continue;
+
+            var name = old.GetType().Name;
+            results.Add((entity, name));
+
+            try { old.OnDestroy(); }
+            catch (Exception ex) { Logger.Warning(ex, "OnDestroy failed for {EntityName}", entity.Name); }
+
+            sc.ScriptableEntity = null;
+        }
+
+        return results;
+    }
+
+    // Recreate instances using new types; call OnCreate to re-init state
+    private void RebindScriptInstances(IEnumerable<(Scene.Entity Entity, string ScriptName)> plan)
+    {
+        foreach (var (entity, scriptName) in plan)
+        {
+            var res = CreateScriptInstance(scriptName);
+            if (!res.IsSuccess) { Logger.Warning("Rebind failed for {ScriptName}", scriptName); continue; }
+
+            var sc = entity.GetComponent<NativeScriptComponent>();
+            sc.ScriptableEntity = res.Value;
+            sc.ScriptableEntity.Entity = entity;
+            try { sc.ScriptableEntity.OnCreate(); }
+            catch (Exception ex) { Logger.Error(ex, "OnCreate failed during rebind for {EntityName}", entity.Name); }
         }
     }
 
@@ -775,7 +869,7 @@ public class ScriptEngine
         }
     }
     
-    private string FindECSAssembly()
+    private string? FindECSAssembly()
     {
         // Try to find ECS assembly in various locations
         var currentDir = Environment.CurrentDirectory;
@@ -786,7 +880,7 @@ public class ScriptEngine
             Path.Combine(currentDir, "..", "ECS", "bin", "Debug", "net8.0", "ECS.dll"),
             Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ECS.dll")
         };
-        
+
         foreach (var path in possiblePaths)
         {
             if (File.Exists(path))
@@ -795,18 +889,18 @@ public class ScriptEngine
                 return path;
             }
         }
-        
+
         // Try to get it from loaded assemblies
         var ecsAssembly = AppDomain.CurrentDomain.GetAssemblies()
             .AsValueEnumerable()
             .FirstOrDefault(a => a.GetName().Name == "ECS");
-            
+
         if (ecsAssembly != null && !string.IsNullOrEmpty(ecsAssembly.Location))
         {
             Logger.Debug("Found ECS assembly from loaded assemblies: {Location}", ecsAssembly.Location);
             return ecsAssembly.Location;
         }
-        
+
         Logger.Warning("ECS assembly not found in any location");
         return null;
     }
@@ -826,9 +920,14 @@ public class ScriptEngine
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            var scriptType = scriptComponent.ScriptableEntity?.GetType();
+            var old = scriptComponent.ScriptableEntity;
+            var scriptType = old?.GetType();
             if (scriptType != null && _scriptTypes.ContainsKey(scriptType.Name))
             {
+                // Tear down old instance first
+                try { old!.OnDestroy(); } catch (Exception ex) { Logger.Warning(ex, "OnDestroy failed for {EntityName}", entity.Name); }
+                scriptComponent.ScriptableEntity = null;
+
                 // Recreate script instance with updated code
                 var newInstance = CreateScriptInstance(scriptType.Name);
                 if (newInstance.IsSuccess)
@@ -859,17 +958,17 @@ public class ScriptEngine
                      {
                          Console.WriteLine("{{scriptName}} created!");
                      }
-                 
+
                      public override void OnUpdate(TimeSpan ts)
                      {
                          // Your update logic here
                      }
-                 
+
                      public override void OnDestroy()
                      {
                          Console.WriteLine("{{scriptName}} destroyed!");
                      }
-                     
+
                      public override void OnKeyPressed(KeyCodes key)
                      {
                          if (key == KeyCodes.Space)
@@ -879,5 +978,36 @@ public class ScriptEngine
                      }
                  }
                  """;
+    }
+
+    public void Dispose()
+    {
+        // Tear down instances and clear references to allow proper unloading
+        try { var _ = CaptureAndDetachScriptInstances(); } catch { /* best-effort */ }
+        _scriptTypes.Clear();
+        _scriptLastModified.Clear();
+        _scriptSources.Clear();
+        _debugSymbols.Clear();
+
+        // Unload the assembly context to release memory
+        if (_scriptLoadContext != null)
+        {
+            Logger.Information("Disposing ScriptEngine: Unloading script assembly context");
+            var oldCtx = _scriptLoadContext;
+            _scriptLoadContext = null;
+            oldCtx.Unload();
+        }
+
+        _dynamicAssembly = null;
+
+        // Encourage timely unload in editor/dev builds
+        if (_debugMode)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+
+        GC.SuppressFinalize(this);
     }
 }
