@@ -111,7 +111,7 @@ public class ProjectManager : IProjectManager
             SetCurrentProject(full);
 
             Logger.Information("📂 Project opened: {ProjectPath}", full);
-            var projectName = System.IO.Path.GetFileName(full);
+            var projectName = Path.GetFileName(full);
             _editorPreferences.AddRecentProject(full, projectName);
 
             return true;
