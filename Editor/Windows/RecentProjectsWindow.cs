@@ -17,10 +17,13 @@ public class RecentProjectsWindow
     private static readonly ILogger Logger = Log.ForContext<RecentProjectsWindow>();
         
     private bool _isOpen = true;
+    private bool _isLoading;
+    private string _loadingProjectName = string.Empty;
     private readonly EditorPreferences _editorPreferences;
     private readonly IProjectManager _projectManager;
     private readonly ContentBrowserPanel _contentBrowserPanel;
     private string? _projectToRemove;
+    private float _loadingSpinnerRotation;
     
 
     public RecentProjectsWindow(
@@ -52,9 +55,16 @@ public class RecentProjectsWindow
 
         if (ImGui.Begin("Recent Projects", ref _isOpen, windowFlags))
         {
-            DrawRecentProjects();
-            ImGui.Separator();
-            DrawQuickActions();
+            if (_isLoading)
+            {
+                DrawLoadingOverlay();
+            }
+            else
+            {
+                DrawRecentProjects();
+                ImGui.Separator();
+                DrawQuickActions();
+            }
         }
         ImGui.End();
 
@@ -182,16 +192,33 @@ public class RecentProjectsWindow
             return;
         }
 
-        if (_projectManager.TryOpenProject(project.Path, out var error))
+        _isLoading = true;
+        _loadingProjectName = project.Name;
+        _loadingSpinnerRotation = 0.0f;
+
+        // Use Task.Run to prevent blocking UI
+        Task.Run(() =>
         {
-            _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-            _isOpen = false;
-            Logger.Information("Opened project: {Name}", project.Name);
-        }
-        else
-        {
-            Logger.Error("Failed to open project {Path}: {Error}", project.Path, error);
-        }
+            try
+            {
+                if (_projectManager.TryOpenProject(project.Path, out var error))
+                {
+                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                    Logger.Information("Opened project: {Name}", project.Name);
+                    
+                    // Close window on next frame
+                    _isOpen = false;
+                }
+                else
+                {
+                    Logger.Error("Failed to open project {Path}: {Error}", project.Path, error);
+                }
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        });
     }
 
     private void DrawQuickActions()
@@ -221,6 +248,64 @@ public class RecentProjectsWindow
         {
             _isOpen = false;
         }
+    }
+
+    private void DrawLoadingOverlay()
+    {
+        var windowSize = ImGui.GetWindowSize();
+        var windowPos = ImGui.GetWindowPos();
+        
+        // Semi-transparent overlay
+        var drawList = ImGui.GetWindowDrawList();
+        drawList.AddRectFilled(
+            windowPos,
+            new Vector2(windowPos.X + windowSize.X, windowPos.Y + windowSize.Y),
+            ImGui.GetColorU32(new Vector4(0.0f, 0.0f, 0.0f, 0.5f))
+        );
+
+        // Center content
+        var centerX = windowPos.X + windowSize.X * 0.5f;
+        var centerY = windowPos.Y + windowSize.Y * 0.5f;
+
+        // Animated spinner
+        _loadingSpinnerRotation += ImGui.GetIO().DeltaTime * 3.0f; // Rotation speed
+        
+        const float spinnerRadius = 30.0f;
+        const int segments = 12;
+        const float thickness = 4.0f;
+
+        for (int i = 0; i < segments; i++)
+        {
+            var angle = (_loadingSpinnerRotation + (i * MathF.PI * 2.0f / segments)) % (MathF.PI * 2.0f);
+            var alpha = 1.0f - (i / (float)segments);
+            
+            var startAngle = angle;
+            var endAngle = angle + (MathF.PI * 2.0f / segments * 0.8f);
+            
+            drawList.PathArcTo(
+                new Vector2(centerX, centerY),
+                spinnerRadius,
+                startAngle,
+                endAngle,
+                10
+            );
+            
+            drawList.PathStroke(
+                ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, alpha)),
+                0,
+                thickness
+            );
+        }
+
+        // Loading text
+        var loadingText = $"Loading {_loadingProjectName}...";
+        var textSize = ImGui.CalcTextSize(loadingText);
+        
+        drawList.AddText(
+            new Vector2(centerX - textSize.X * 0.5f, centerY + spinnerRadius + 20),
+            ImGui.GetColorU32(new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+            loadingText
+        );
     }
 
     private static string GetTimeAgoString(DateTime timestamp)

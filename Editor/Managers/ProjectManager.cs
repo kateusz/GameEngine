@@ -29,10 +29,7 @@ public class ProjectManager : IProjectManager
     }
 
     public string? CurrentProjectDirectory { get; private set; }
-
-    public string? AssetsDir =>
-        CurrentProjectDirectory is null ? null : Path.Combine(CurrentProjectDirectory, "assets");
-
+    
     public string? ScriptsDir => CurrentProjectDirectory is null
         ? null
         : Path.Combine(CurrentProjectDirectory, "assets", "scripts");
@@ -43,7 +40,9 @@ public class ProjectManager : IProjectManager
 
     public bool IsValidProjectName(string? name)
     {
-        if (string.IsNullOrWhiteSpace(name)) return false;
+        if (string.IsNullOrWhiteSpace(name)) 
+            return false;
+        
         return System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_\- ]+$");
     }
 
