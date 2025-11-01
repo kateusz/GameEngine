@@ -495,8 +495,6 @@ public class EditorLayer : ILayer
             _consolePanel.OnImGuiRender();
             
             ScriptComponentUI.OnImGuiRender();
-            _animationTimeline.OnImGuiRender();
-            _tileMapPanel.OnImGuiRender();
             _recentProjectsWindow.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
@@ -616,9 +614,14 @@ public class EditorLayer : ILayer
                 
                 // Render ruler tool measurements
                 _rulerTool.Render(_viewportBounds, _cameraController.Camera);
-
-                ImGui.End();
             }
+
+            // Render windows that should dock to Viewport
+            var viewportDockId = ImGui.GetWindowDockID();
+            _animationTimeline.OnImGuiRender(viewportDockId);
+            _tileMapPanel.OnImGuiRender(viewportDockId);
+
+            ImGui.End();
 
             ImGui.End();
             ImGui.PopStyleVar();

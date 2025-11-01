@@ -34,6 +34,11 @@ public class AnimationComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<AnimationComponent>();
 
+            if (component.Asset is null)
+            {
+                component.Asset = _animationAssetManager.LoadAsset(component.AssetPath);
+            }
+
             DrawAssetPath(entity, component);
             ImGui.Spacing();
 

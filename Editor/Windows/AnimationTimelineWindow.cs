@@ -13,6 +13,7 @@ namespace Editor.Windows
     public class AnimationTimelineWindow
     {
         private bool _isOpen = false;
+        private bool _hasBeenDockedOnce = false;
         private Entity? _selectedEntity;
         private AnimationComponent? _component;
 
@@ -23,9 +24,9 @@ namespace Editor.Windows
 
         // UI state
         private float _timelineScrollX = 0.0f;
-        private const float FrameBoxWidth = 60.0f;
-        private const float FrameBoxHeight = 60.0f;
-        private const float TimelineHeight = 120.0f;
+        private const float FrameBoxWidth = 120.0f;
+        private const float FrameBoxHeight = 120.0f;
+        private const float TimelineHeight = 150.0f;
 
         public void SetEntity(Entity entity)
         {
@@ -34,23 +35,29 @@ namespace Editor.Windows
             _isOpen = true;
         }
 
-        public void OnImGuiRender()
+        public void OnImGuiRender(uint viewportDockId = 0)
         {
             if (!_isOpen)
                 return;
 
-            ImGui.SetNextWindowSize(new Vector2(900, 600), ImGuiCond.FirstUseEver);
+            var wasOpen = _isOpen;
+
+            // Dock to Viewport on first open
+            if (!_hasBeenDockedOnce && viewportDockId != 0)
+            {
+                ImGui.SetNextWindowDockID(viewportDockId);
+                _hasBeenDockedOnce = true;
+            }
 
             if (ImGui.Begin("Animation Timeline", ref _isOpen, ImGuiWindowFlags.MenuBar))
             {
-                if (_component == null || _component.Asset == null)
+                if (_component?.Asset == null)
                 {
                     ImGui.TextColored(EditorUIConstants.WarningColor, "No animation component selected");
                     ImGui.Text("Select an entity with AnimationComponent to edit animations");
                 }
                 else
                 {
-                    DrawMenuBar();
                     DrawEntityInfo();
                     ImGui.Separator();
                     DrawClipSelector();
@@ -64,25 +71,25 @@ namespace Editor.Windows
                     DrawStatistics();
                 }
             }
+
             ImGui.End();
-        }
 
-        private static void DrawMenuBar()
-        {
-            if (ImGui.BeginMenuBar())
+            // If window was just closed via X button, reset state
+            if (wasOpen && !_isOpen)
             {
-                if (ImGui.BeginMenu("View"))
-                {
-                    ImGui.MenuItem("Show Event Markers", "", true);
-                    ImGui.MenuItem("Show Frame Numbers", "", true);
-                    ImGui.MenuItem("Show Grid", "", true);
-                    ImGui.EndMenu();
-                }
-
-                ImGui.EndMenuBar();
+                ResetState();
             }
         }
 
+        private void ResetState()
+        {
+            _previewPlaying = false;
+            _selectedFrameIndex = 0;
+            _selectedEntity = null;
+            _component = null;
+            _hasBeenDockedOnce = false;
+        }
+        
         private void DrawEntityInfo()
         {
             ImGui.Text($"Entity: {_selectedEntity!.Name}");
@@ -120,14 +127,16 @@ namespace Editor.Windows
             if (currentClip != null)
             {
                 ImGui.SameLine();
-                ImGui.TextDisabled($"({currentClip.Frames.Length} frames, {currentClip.Fps} fps, {currentClip.Duration:F2}s duration)");
+                ImGui.TextDisabled(
+                    $"({currentClip.Frames.Length} frames, {currentClip.Fps} fps, {currentClip.Duration:F2}s duration)");
             }
         }
 
         private void DrawPlaybackControls()
         {
             // Play/Pause button
-            if (ImGui.Button(_previewPlaying ? "|| Pause" : "> Play", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
+            if (ImGui.Button(_previewPlaying ? "|| Pause" : "> Play",
+                    new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
             {
                 _previewPlaying = !_previewPlaying;
             }
@@ -162,7 +171,10 @@ namespace Editor.Windows
         private void DrawTimeline()
         {
             var clip = _component!.Asset!.GetClip(_component.CurrentClipName);
-            if (clip == null) return;
+            if (clip == null)
+            {
+                return;
+            }
 
             ImGui.Text("Timeline:");
 
@@ -186,29 +198,34 @@ namespace Editor.Windows
                     : ImGui.GetColorU32(new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
 
                 drawList.AddRectFilled(framePos, framePos + frameSize, frameColor);
-                drawList.AddRect(framePos, framePos + frameSize, ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f)));
+                drawList.AddRect(framePos, framePos + frameSize,
+                    ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f)));
 
                 // Render frame thumbnail
                 if (atlas != null)
                 {
                     var texturePointer = new IntPtr(atlas.GetRendererId());
-                    var uvMin = frame.TexCoords[0]; // Bottom-left
-                    var uvMax = frame.TexCoords[2]; // Top-right
-                    
+
+                    // Swap Y coordinates to fix upside-down rendering
+                    var uvMin = new Vector2(frame.TexCoords[0].X, frame.TexCoords[2].Y); // Bottom-left X, Top-right Y
+                    var uvMax = new Vector2(frame.TexCoords[2].X, frame.TexCoords[0].Y); // Top-right X, Bottom-left Y
+
                     // Calculate thumbnail size maintaining aspect ratio (with padding for frame number)
-                    
-                    float maxSize = Math.Min(FrameBoxWidth - 4, FrameBoxHeight);
-                    float aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
+
+                    var maxSize = Math.Min(FrameBoxWidth - 4, FrameBoxHeight);
+                    var aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
                     Vector2 thumbnailSize;
-                    
-                    thumbnailSize = aspectRatio > 1.0f ? new Vector2(maxSize, maxSize / aspectRatio) : new Vector2(maxSize * aspectRatio, maxSize);
-                    
+
+                    thumbnailSize = aspectRatio > 1.0f
+                        ? new Vector2(maxSize, maxSize / aspectRatio)
+                        : new Vector2(maxSize * aspectRatio, maxSize);
+
                     // Center the thumbnail in the frame box (below frame number)
                     var thumbnailPos = framePos + new Vector2(
                         (FrameBoxWidth - thumbnailSize.X) / 2,
                         (FrameBoxHeight - thumbnailSize.Y) / 2
                     );
-                    
+
                     ImGui.SetCursorScreenPos(thumbnailPos);
                     ImGui.Image(texturePointer, thumbnailSize, uvMin, uvMax);
                 }
@@ -244,9 +261,9 @@ namespace Editor.Windows
 
             // Playhead indicator
             int currentFrame = _component.CurrentFrameIndex;
-            var playheadPos = new Vector2(cursorPos.X + currentFrame * (FrameBoxWidth + 10) + FrameBoxWidth / 2, cursorPos.Y);
+            var playheadPos = cursorPos with { X = cursorPos.X + currentFrame * (FrameBoxWidth + 10) + FrameBoxWidth / 2 };
             drawList.AddLine(playheadPos, playheadPos + new Vector2(0, TimelineHeight - 20),
-                            ImGui.GetColorU32(EditorUIConstants.ErrorColor), 3.0f);
+                ImGui.GetColorU32(EditorUIConstants.ErrorColor), 3.0f);
             drawList.AddTriangleFilled(
                 playheadPos + new Vector2(-5, -10),
                 playheadPos + new Vector2(5, -10),
@@ -274,17 +291,18 @@ namespace Editor.Windows
             if (atlas != null)
             {
                 var texturePointer = new IntPtr(atlas.GetRendererId());
-                
+
                 // Use the pre-calculated UV coordinates from the frame
                 // TexCoords: [0]=bottom-left, [1]=bottom-right, [2]=top-right, [3]=top-left
-                var uvMin = frame.TexCoords[0]; // Bottom-left
-                var uvMax = frame.TexCoords[2]; // Top-right
-                
+                // Swap Y coordinates to fix upside-down rendering
+                var uvMin = new Vector2(frame.TexCoords[0].X, frame.TexCoords[2].Y); // Bottom-left X, Top-right Y
+                var uvMax = new Vector2(frame.TexCoords[2].X, frame.TexCoords[0].Y); // Top-right X, Bottom-left Y
+
                 // Calculate preview size maintaining aspect ratio
                 const float maxPreviewSize = 128.0f;
                 float aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
                 Vector2 previewSize;
-                
+
                 if (aspectRatio > 1.0f)
                 {
                     // Wider than tall
@@ -295,7 +313,7 @@ namespace Editor.Windows
                     // Taller than wide
                     previewSize = new Vector2(maxPreviewSize * aspectRatio, maxPreviewSize);
                 }
-                
+
                 // Render the frame texture
                 ImGui.Image(texturePointer, previewSize, uvMin, uvMax);
             }
@@ -345,6 +363,7 @@ namespace Editor.Windows
             {
                 memoryUsage += _component.Asset.Atlas.Width * _component.Asset.Atlas.Height * 4;
             }
+
             ImGui.Text($"Memory: {memoryUsage / 1024.0f:F1} KB");
 
             ImGui.Unindent();
