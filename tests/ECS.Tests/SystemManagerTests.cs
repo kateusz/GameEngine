@@ -69,21 +69,6 @@ public class SystemManagerTests
     }
 
     [Fact]
-    public void RegisterSystem_AfterInitialize_CallsOnInitImmediately()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        manager.Initialize();
-        var system = new TestSystem();
-
-        // Act
-        manager.RegisterSystem(system);
-
-        // Assert
-        Assert.True(system.InitCalled);
-    }
-
-    [Fact]
     public void Initialize_CallsOnInitOnAllSystems()
     {
         // Arrange

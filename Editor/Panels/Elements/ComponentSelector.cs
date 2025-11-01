@@ -27,12 +27,14 @@ public static class ComponentSelector
 
             DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity);
             DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity);
+            DrawComponentMenuItem<TileMapComponent>("TileMap", entity);
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity);
             DrawComponentMenuItem<MeshComponent>("Mesh", entity);
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
+            DrawComponentMenuItem<AnimationComponent>("Animation Component", entity);
 
             ImGui.EndPopup();
         }

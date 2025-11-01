@@ -4,6 +4,10 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
+using Editor.UI;
+using Editor.Utilities;
+using Editor.Windows;
+using Engine;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -39,9 +43,15 @@ public class EditorLayer : ILayer
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
+    private readonly AnimationTimelineWindow _animationTimeline;
+    private readonly RecentProjectsWindow _recentProjectsWindow;
+    private readonly ViewportRuler _viewportRuler = new();
+    private readonly TileMapPanel _tileMapPanel;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
+    private readonly ObjectManipulator _objectManipulator = new();
+    private readonly RulerTool _rulerTool = new();
     
     private OrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -53,7 +63,8 @@ public class EditorLayer : ILayer
         EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
         PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
         ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory, 
+        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow, TileMapPanel tileMapPanel)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -68,6 +79,9 @@ public class EditorLayer : ILayer
         _graphics2D = graphics2D;
         _rendererStatsPanel = rendererStatsPanel;
         _sceneFactory = sceneFactory;
+        _animationTimeline = animationTimeline;
+        _recentProjectsWindow = recentProjectsWindow;
+        _tileMapPanel = tileMapPanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -124,8 +138,7 @@ public class EditorLayer : ILayer
         // Center camera on selected entity
         if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
         {
-            var camera = _cameraController.Camera;
-            camera.SetPosition(transformComponent.Translation);
+            _cameraController.SetPosition(transformComponent.Translation);
         }
     }
 
@@ -144,6 +157,7 @@ public class EditorLayer : ILayer
     public void OnUpdate(TimeSpan timeSpan)
     {
         _performanceMonitor.Update(timeSpan);
+        _animationTimeline.Update((float)timeSpan.TotalSeconds);
         
         // Resize
         var spec = _frameBuffer.GetSpecification();
@@ -250,6 +264,55 @@ public class EditorLayer : ILayer
                      _pressedKeys.Contains(KeyCodes.RightShift);
         switch (keyPressedEvent.KeyCode)
         {
+            // Editor mode shortcuts (Godot-style)
+            case KeyCodes.Q:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Select;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.W:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Move;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.R:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Scale;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.E:
+            {
+                if (!control)
+                {
+                    _editorToolbar.CurrentMode = EditorMode.Ruler;
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            case KeyCodes.Escape:
+            {
+                // Clear ruler measurement if in ruler mode
+                if (_editorToolbar.CurrentMode == EditorMode.Ruler)
+                {
+                    _rulerTool.ClearMeasurement();
+                    keyPressedEvent.IsHandled = true;
+                }
+                break;
+            }
+            
+            // File operations
             case KeyCodes.N:
             {
                 if (control)
@@ -320,6 +383,11 @@ public class EditorLayer : ILayer
                         _projectUI.ShowNewProjectPopup();
                     if (ImGui.MenuItem("Open Project"))
                         _projectUI.ShowOpenProjectPopup();
+                    
+                    ImGui.Separator();
+                    
+                    if (ImGui.MenuItem("Show Recent Projects"))
+                        _recentProjectsWindow.Show();
 
                     // Add Recent Projects submenu
                     if (ImGui.BeginMenu("Recent Projects"))
@@ -388,6 +456,14 @@ public class EditorLayer : ILayer
                         _sceneManager.FocusOnSelectedEntity(_cameraController);
                     if (ImGui.MenuItem("Reset Camera"))
                         ResetCamera();
+                    
+                    ImGui.Separator();
+                    
+                    if (ImGui.MenuItem("Show Rulers", null, _viewportRuler.Enabled))
+                        _viewportRuler.Enabled = !_viewportRuler.Enabled;
+                    if (ImGui.MenuItem("Show Stats", null, _rendererStatsPanel.IsVisible))
+                        _rendererStatsPanel.IsVisible = !_rendererStatsPanel.IsVisible;
+                    
                     ImGui.EndMenu();
                 }
 
@@ -410,35 +486,20 @@ public class EditorLayer : ILayer
 
             _sceneHierarchyPanel.OnImGuiRender();
             _propertiesPanel.OnImGuiRender();
-            _contentBrowserPanel.OnImGuiRender();
+            _contentBrowserPanel.Draw();
             _consolePanel.OnImGuiRender();
             
             ScriptComponentUI.OnImGuiRender();
+            _recentProjectsWindow.OnImGuiRender();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);
             
-            ImGui.Begin("Stats");
-
-            var name = "None";
-            if (_hoveredEntity != null)
-            {
-                name = _hoveredEntity.Name;
-            }
-
-            ImGui.Text($"Hovered Entity: {name}");
-            
-            _performanceMonitor.RenderUI();
-            
-            // Camera info
-            ImGui.Text("Camera:");
+            // Render Stats window if visible
+            var hoveredEntityName = _hoveredEntity?.Name ?? "None";
             var camPos = _cameraController.Camera.Position;
-            ImGui.Text($"Position: ({camPos.X:F2}, {camPos.Y:F2}, {camPos.Z:F2})");
-            ImGui.Text($"Rotation: {_cameraController.Camera.Rotation:F1}°");
-
-            ImGui.Separator();
-            
-            _rendererStatsPanel.Render();
+            var camRotation = _cameraController.Camera.Rotation;
+            _rendererStatsPanel.OnImGuiRender(hoveredEntityName, camPos, camRotation, () => _performanceMonitor.RenderUI());
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
@@ -476,8 +537,86 @@ public class EditorLayer : ILayer
                     }
                 }
 
-                ImGui.End();
+                // Handle entity selection on mouse click in viewport
+                if (ImGui.IsWindowHovered())
+                {
+                    var currentMode = _editorToolbar.CurrentMode;
+
+                    // Prepare local mouse coordinates relative to the viewport
+                    var globalMousePos = ImGui.GetMousePos();
+                    var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X,
+                                                   globalMousePos.Y - _viewportBounds[0].Y);
+
+                    // Handle Ruler mode
+                    if (currentMode == EditorMode.Ruler)
+                    {
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                        {
+                            _rulerTool.StartMeasurement(localMousePos, _viewportBounds, _cameraController.Camera);
+                        }
+
+                        if (_rulerTool.IsMeasuring)
+                        {
+                            _rulerTool.UpdateMeasurement(localMousePos, _viewportBounds, _cameraController.Camera);
+                        }
+
+                        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                        {
+                            _rulerTool.EndMeasurement();
+                        }
+                    }
+                    else
+                    {
+                        // Start dragging
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                        {
+                            if (_hoveredEntity != null)
+                            {
+                                _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+
+                                if (currentMode == EditorMode.Move || currentMode == EditorMode.Scale)
+                                {
+                                    // Start manipulation
+                                    _objectManipulator.StartDrag(_hoveredEntity, localMousePos, _viewportBounds, _cameraController.Camera);
+                                }
+                                else
+                                {
+                                    // Select mode - just focus on entity
+                                    EntitySelected(_hoveredEntity);
+                                }
+                            }
+                        }
+
+                        // Update dragging
+                        if (_objectManipulator.IsDragging && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                        {
+                            _objectManipulator.UpdateDrag(currentMode, localMousePos, _viewportBounds, _cameraController.Camera);
+                        }
+
+                        // End dragging
+                        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                        {
+                            _objectManipulator.EndDrag();
+                        }
+                    }
+                }
+
+                // Render viewport rulers
+                var cameraPos = new Vector2(_cameraController.Camera.Position.X, _cameraController.Camera.Position.Y);
+                var orthoSize = _cameraController.ZoomLevel;
+                var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
+                _viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+                
+                // Render ruler tool measurements
+                _rulerTool.Render(_viewportBounds, _cameraController.Camera);
             }
+
+            // Render windows that should dock to Viewport
+            var viewportDockId = ImGui.GetWindowDockID();
+            _animationTimeline.OnImGuiRender(viewportDockId);
+            _tileMapPanel.OnImGuiRender(viewportDockId);
+
+            ImGui.End();
 
             ImGui.End();
             ImGui.PopStyleVar();
@@ -498,7 +637,9 @@ public class EditorLayer : ILayer
 
     private void ResetCamera()
     {
-        _cameraController.Camera.SetPosition(Vector3.Zero);
-        _cameraController.Camera.SetRotation(0.0f);
+        _cameraController.SetPosition(Vector3.Zero);
+        _cameraController.SetRotation(0.0f);
+        // Reset zoom to default
+        _cameraController.SetZoom(CameraConfig.DefaultZoomLevel);
     }
 }

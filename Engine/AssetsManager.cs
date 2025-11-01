@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Engine;
 
 public static class AssetsManager
 {

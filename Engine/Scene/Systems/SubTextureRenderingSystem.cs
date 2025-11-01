@@ -1,6 +1,5 @@
 using System.Numerics;
 using ECS;
-using Engine.Math;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -79,7 +78,8 @@ public class SubTextureRenderingSystem : ISystem
         _renderer.BeginScene(mainCamera, cameraTransform);
 
         // Render all subtextures
-        var subtextureGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+        var subtextureGroup =
+            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
         foreach (var entity in subtextureGroup)
         {
             var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
@@ -89,32 +89,31 @@ public class SubTextureRenderingSystem : ISystem
             if (subtextureComponent.Texture == null)
                 continue;
 
-            // Create SubTexture2D from component data using component's cell/sprite sizes
-            var subTexture = SubTexture2D.CreateFromCoords(
-                subtextureComponent.Texture,
-                subtextureComponent.Coords,
-                subtextureComponent.CellSize,
-                subtextureComponent.SpriteSize
-            );
+            // Use the transform component's matrix directly (same as SpriteRenderingSystem)
+            // The transform scale determines the world-space size of the rendered sprite
+            var transform = transformComponent.GetTransform();
 
-            // Extract position and rotation from transform component
-            var position = transformComponent.Translation;
-            var rotation = transformComponent.Rotation.Z; // 2D rotation around Z axis
-
-            // Compute size from scale and cell size
-            var basePixels = subtextureComponent.CellSize * subtextureComponent.SpriteSize; // account for multi‑cell sprites
-            var size = basePixels * new Vector2(transformComponent.Scale.X, transformComponent.Scale.Y);
-
-            // Build transform matrix: Translation * Rotation * Scale
-            var transform = Matrix4x4.CreateTranslation(position);
-            if (System.Math.Abs(rotation) > float.Epsilon)
+            // Use pre-calculated TexCoords if available (e.g., from animation system)
+            // Otherwise calculate from grid coordinates
+            Vector2[] texCoords;
+            if (subtextureComponent.TexCoords != null)
             {
-                transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
+                // Direct UV coordinates (used by animation system)
+                texCoords = subtextureComponent.TexCoords;
             }
-            transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-
+            else
+            {
+                // Calculate from grid coordinates (traditional subtexture rendering)
+                var subTexture = SubTexture2D.CreateFromCoords(
+                    subtextureComponent.Texture,
+                    subtextureComponent.Coords,
+                    subtextureComponent.CellSize,
+                    subtextureComponent.SpriteSize
+                );
+                texCoords = subTexture.TexCoords;
+            }
             // Draw the subtexture quad with entity ID for picking
-            _renderer.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, 1.0f, Vector4.One, entity.Id);
+            _renderer.DrawQuad(transform, subtextureComponent.Texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
 
         // End the rendering batch

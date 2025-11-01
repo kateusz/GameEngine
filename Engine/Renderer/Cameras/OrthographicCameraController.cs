@@ -10,13 +10,13 @@ namespace Engine.Renderer.Cameras;
 
 public class OrthographicCameraController
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<OrthographicCameraController>();
+    private static readonly ILogger Logger = Log.ForContext<OrthographicCameraController>();
     
     private float _aspectRatio;
     private readonly bool _rotation;
     private Vector3 _cameraPosition = Vector3.Zero;
-    private float _cameraTranslationSpeed = CameraConfig.DefaultTranslationSpeed;
-    private float _cameraRotationSpeed = CameraConfig.DefaultRotationSpeed;
+    private readonly float _cameraTranslationSpeed = CameraConfig.DefaultTranslationSpeed;
+    private readonly float _cameraRotationSpeed = CameraConfig.DefaultRotationSpeed;
     private float _cameraRotation;
     private float _zoomLevel = CameraConfig.DefaultZoomLevel;
     
@@ -41,6 +41,33 @@ public class OrthographicCameraController
     }
 
     public OrthographicCamera Camera { get; }
+
+    public float ZoomLevel => _zoomLevel;
+
+    public void SetZoom(float zoom)
+    {
+        _zoomLevel = zoom;
+        Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
+    }
+
+    /// <summary>
+    /// Sets the camera position and synchronizes the controller's internal position state.
+    /// Use this method when programmatically moving the camera (e.g., focusing on an entity).
+    /// </summary>
+    public void SetPosition(Vector3 position)
+    {
+        _cameraPosition = position;
+        Camera.SetPosition(position);
+    }
+
+    /// <summary>
+    /// Sets the camera rotation and synchronizes the controller's internal rotation state.
+    /// </summary>
+    public void SetRotation(float rotation)
+    {
+        _cameraRotation = rotation;
+        Camera.SetRotation(rotation);
+    }
 
     public void OnUpdate(TimeSpan timeSpan)
     {

@@ -7,6 +7,7 @@ using Engine.Audio;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using Serilog;
 using ZLinq;
 
 namespace Engine.Scene.Serializer;
@@ -17,6 +18,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class SceneSerializer : ISceneSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
+
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string DefaultSceneName = "default";
@@ -28,6 +31,7 @@ public class SceneSerializer : ISceneSerializer
 
     private readonly IAudioEngine _audioEngine;
 
+    // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -36,6 +40,8 @@ public class SceneSerializer : ISceneSerializer
             new Vector2Converter(),
             new Vector3Converter(),
             new Vector4Converter(),
+            new RectangleConverter(),
+            new TileMapComponentConverter(),
             new JsonStringEnumConverter()
         }
     };
@@ -190,7 +196,7 @@ public class SceneSerializer : ISceneSerializer
                 DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
             case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
+                DeserializeSubTextureRendererComponent(entity, componentObj);
                 break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
@@ -203,6 +209,12 @@ public class SceneSerializer : ISceneSerializer
                 break;
             case nameof(AudioSourceComponent):
                 DeserializeAudioSourceComponent(entity, componentObj);
+                break;
+            case nameof(AnimationComponent):
+                AddComponent<AnimationComponent>(entity, componentObj);
+                break;
+            case nameof(TileMapComponent):
+                AddComponent<TileMapComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
@@ -224,6 +236,21 @@ public class SceneSerializer : ISceneSerializer
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists (same as SpriteRendererComponent)
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SubTextureRendererComponent>(component);
     }
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
@@ -351,8 +378,10 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
         SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
+        SerializeComponent<TileMapComponent>(entity, entityObj, nameof(TileMapComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
+        SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
         SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 

@@ -15,6 +15,10 @@ using Serilog;
 using Editor.Logging;
 using Editor.Panels.ComponentEditors;
 using Editor.Popups;
+using Editor.UI;
+using Editor.Windows;
+using Engine.Animation;
+using Engine.Events;
 using Engine.Renderer;
 using Engine.Scene.Systems;
 
@@ -33,6 +37,8 @@ static void ConfigureContainer(Container container)
         made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
     );
 
+    container.Register<EventBus, EventBus>(Reuse.Singleton);
+    
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
     container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
     container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
@@ -46,6 +52,9 @@ static void ConfigureContainer(Container container)
     container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
     container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
     container.Register<AudioSystem>(Reuse.Singleton);
+    container.Register<AnimationSystem>(Reuse.Singleton);
+    container.Register<TileMapRenderSystem>(Reuse.Singleton);
+    container.Register<AnimationAssetManager>(Reuse.Singleton);
     
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
@@ -55,7 +64,23 @@ static void ConfigureContainer(Container container)
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
     container.Register<AudioDropTarget>(Reuse.Singleton);
+    
+    container.Register<TransformComponentEditor>(Reuse.Singleton);
+    container.Register<CameraComponentEditor>(Reuse.Singleton);
+    container.Register<SpriteRendererComponentEditor>(Reuse.Singleton);
+    container.Register<MeshComponentEditor>(Reuse.Singleton);
+    container.Register<ModelRendererComponentEditor>(Reuse.Singleton);
+    container.Register<RigidBody2DComponentEditor>(Reuse.Singleton);
+    container.Register<BoxCollider2DComponentEditor>(Reuse.Singleton);
+    container.Register<SubTextureRendererComponentEditor>(Reuse.Singleton);
     container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
+    container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
+    container.Register<AnimationComponentEditor>(Reuse.Singleton);
+    container.Register<AnimationTimelineWindow>(Reuse.Singleton);
+    container.Register<RecentProjectsWindow>(Reuse.Singleton);
+    container.Register<TileMapPanel>(Reuse.Singleton);
+    container.Register<TileMapComponentEditor>(Reuse.Singleton);
+    
     container.Register<ComponentEditorRegistry>(Reuse.Singleton);
     container.Register<PropertiesPanel>(Reuse.Singleton);
     container.Register<SceneHierarchyPanel>(Reuse.Singleton);
@@ -66,6 +91,10 @@ static void ConfigureContainer(Container container)
     container.Register<ProjectUI>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
     container.Register<RendererStatsPanel>(Reuse.Singleton);
+    
+    container.Register<ViewportRuler>(Reuse.Singleton);
+    container.Register<ObjectManipulator>(Reuse.Singleton);
+    container.Register<RulerTool>(Reuse.Singleton);
     
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);

@@ -203,6 +203,15 @@ public class Entity
     private Scene? _parentScene;
 }
 
+// For reference types prefer records with init-only properties and mark properties as required when appropriate
+public record SpriteRendererComponent
+{
+    public required string TexturePath { get; init; }
+    public Vector4 Color { get; set; }
+}
+
+For value types, use record structs when appropriate
+
 // Use pattern matching
 if (entity.GetComponent<SpriteRendererComponent>() is { } sprite)
 {
@@ -403,6 +412,8 @@ public class MyPanel
 - Easy to adjust styling globally by changing constants
 - Self-documenting code with descriptive constant names
 - Prevents typos and inconsistencies from duplicated literals
+
+Never create singleton-style static classes! Use IoC container for singleton registration.
 
 ---
 

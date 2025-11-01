@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Serializer;
 
@@ -14,6 +15,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class PrefabSerializer : IPrefabSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
+
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
     private const string ComponentsKey = "Components";
@@ -139,6 +142,7 @@ public class PrefabSerializer : IPrefabSerializer
         SerializeComponent<MeshComponent>(entity, componentsArray, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, componentsArray, nameof(ModelRendererComponent));
         SerializeComponent<AudioListenerComponent>(entity, componentsArray, nameof(AudioListenerComponent));
+        SerializeComponent<AnimationComponent>(entity, componentsArray, nameof(AnimationComponent));
         SerializeAudioSourceComponent(entity, componentsArray);
         SerializeNativeScriptComponent(entity, componentsArray);
     }
@@ -243,10 +247,10 @@ public class PrefabSerializer : IPrefabSerializer
                 AddComponent<CameraComponent>(entity, componentObj);
                 break;
             case nameof(SpriteRendererComponent):
-                AddComponent<SpriteRendererComponent>(entity, componentObj);
+                DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
             case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
+                DeserializeSubTextureRendererComponent(entity, componentObj);
                 break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
@@ -329,6 +333,36 @@ public class PrefabSerializer : IPrefabSerializer
         {
             entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
         }
+    }
+
+    private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = Renderer.Textures.TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = Renderer.Textures.TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SubTextureRendererComponent>(component);
     }
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
