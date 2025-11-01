@@ -37,12 +37,12 @@ public class AnimationComponentTests
             Id = "test_character",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = idleFrames },
-                ["walk"] = new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = walkFrames },
-                ["jump"] = new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = jumpFrames }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = idleFrames },
+                new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = walkFrames },
+                new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = jumpFrames }
+            ]
         };
     }
 

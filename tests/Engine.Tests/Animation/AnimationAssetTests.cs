@@ -17,11 +17,11 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] },
-                ["walk"] = new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [] }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] },
+                new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [] }
+            ]
         };
 
         // Act
@@ -42,10 +42,10 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] }
+            ]
         };
 
         // Act
@@ -64,7 +64,7 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = []
         };
 
         // Act
@@ -84,10 +84,7 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = idleClip
-            }
+            Clips = [idleClip]
         };
 
         // Act
@@ -108,10 +105,10 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] }
+            ]
         };
 
         // Act
@@ -130,7 +127,7 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = []
         };
 
         // Act
@@ -149,7 +146,7 @@ public class AnimationAssetTests
             Id = "",
             AtlasPath = "",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = []
         };
 
         // Assert
@@ -170,7 +167,7 @@ public class AnimationAssetTests
             Id = "player_animations",
             AtlasPath = "Assets/Characters/player.png",
             CellSize = new Vector2(64, 64),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = []
         };
 
         // Assert
@@ -189,17 +186,17 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["idle"] = new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = [] },
-                ["walk"] = new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = [] },
-                ["jump"] = new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = [] },
-                ["attack"] = new AnimationClip { Name = "attack", Fps = 30.0f, Loop = false, Frames = [] }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "idle", Fps = 8.0f, Loop = true, Frames = [] },
+                new AnimationClip { Name = "walk", Fps = 12.0f, Loop = true, Frames = [] },
+                new AnimationClip { Name = "jump", Fps = 24.0f, Loop = false, Frames = [] },
+                new AnimationClip { Name = "attack", Fps = 30.0f, Loop = false, Frames = [] }
+            ]
         };
 
         // Act & Assert
-        Assert.Equal(4, asset.Clips.Count);
+        Assert.Equal(4, asset.Clips.Length);
         Assert.True(asset.HasClip("idle"));
         Assert.True(asset.HasClip("walk"));
         Assert.True(asset.HasClip("jump"));
@@ -217,33 +214,30 @@ public class AnimationAssetTests
     }
 
     [Fact]
-    public void AnimationAsset_ClipDictionary_CanBeModified()
+    public void AnimationAsset_ClipArray_IsImmutable()
     {
         // Arrange
+        var clips = new[]
+        {
+            new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] },
+            new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [] }
+        };
+
         var asset = new AnimationAsset
         {
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = clips
         };
 
-        // Act - Add clips
-        asset.Clips.Add("idle", new AnimationClip { Name = "idle", Fps = 10.0f, Loop = true, Frames = [] });
-        asset.Clips.Add("walk", new AnimationClip { Name = "walk", Fps = 10.0f, Loop = true, Frames = [] });
-
-        // Assert - Clips added
-        Assert.Equal(2, asset.Clips.Count);
+        // Assert - Clips are set
+        Assert.Equal(2, asset.Clips.Length);
         Assert.True(asset.HasClip("idle"));
         Assert.True(asset.HasClip("walk"));
 
-        // Act - Remove a clip
-        asset.Clips.Remove("idle");
-
-        // Assert - Clip removed
-        Assert.Single(asset.Clips);
-        Assert.False(asset.HasClip("idle"));
-        Assert.True(asset.HasClip("walk"));
+        // Assert - Array reference is the same
+        Assert.Same(clips, asset.Clips);
     }
 
     [Fact]
@@ -255,7 +249,7 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = []
         };
 
         // Act & Assert - Should not throw
@@ -272,7 +266,7 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>()
+            Clips = []
         };
         // We can't create a real texture without OpenGL context
 
@@ -292,10 +286,10 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["Idle"] = new AnimationClip { Name = "Idle", Fps = 10.0f, Loop = true, Frames = [] }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "Idle", Fps = 10.0f, Loop = true, Frames = [] }
+            ]
         };
 
         // Act
@@ -319,10 +313,7 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["Walk"] = clip
-            }
+            Clips = [clip]
         };
 
         // Act
@@ -380,10 +371,7 @@ public class AnimationAssetTests
             Id = "character",
             AtlasPath = "textures/character.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                ["walk"] = clip
-            }
+            Clips = [clip]
         };
 
         // Act
@@ -408,10 +396,10 @@ public class AnimationAssetTests
             Id = "test",
             AtlasPath = "test.png",
             CellSize = new Vector2(32, 32),
-            Clips = new Dictionary<string, AnimationClip>
-            {
-                [""] = new AnimationClip { Name = "", Fps = 10.0f, Loop = true, Frames = [] }
-            }
+            Clips =
+            [
+                new AnimationClip { Name = "", Fps = 10.0f, Loop = true, Frames = [] }
+            ]
         };
 
         // Act
