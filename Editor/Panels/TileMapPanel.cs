@@ -15,12 +15,13 @@ public class TileMapPanel
     private TileMapTool _currentTool = TileMapTool.Paint;
     private bool _showGrid = true;
     private Vector4 _gridColor = new Vector4(1, 1, 1, 0.3f);
-    
+    private bool _hasBeenDockedOnce = false;
+
     // Painting state
     private bool _isPainting;
     private int _lastPaintX = -1;
     private int _lastPaintY = -1;
-    
+
     // Camera/viewport
     private Vector2 _viewportPos;
     private Vector2 _viewportSize;
@@ -73,7 +74,7 @@ public class TileMapPanel
         Console.WriteLine($"  Tile size: {_tileSet.TileWidth}x{_tileSet.TileHeight}");
     }
 
-    public void OnImGuiRender()
+    public void OnImGuiRender(uint viewportDockId = 0)
     {
         if (!IsOpen) return;
 
@@ -81,6 +82,13 @@ public class TileMapPanel
         {
             IsOpen = false;
             return;
+        }
+
+        // Dock to Viewport on first open
+        if (!_hasBeenDockedOnce && viewportDockId != 0)
+        {
+            ImGui.SetNextWindowDockID(viewportDockId);
+            _hasBeenDockedOnce = true;
         }
 
         bool isOpen = true;
@@ -106,6 +114,7 @@ public class TileMapPanel
         if (!isOpen)
         {
             IsOpen = false;
+            _hasBeenDockedOnce = false; // Reset docking flag when window closes
         }
     }
 
@@ -143,42 +152,209 @@ public class TileMapPanel
         if (_activeTileMap == null) return;
 
         ImGui.Text("Layers:");
-        
-        if (ImGui.BeginChild("LayersList", new Vector2(0, 100), ImGuiChildFlags.Border))
+        ImGui.SameLine();
+        ImGui.TextDisabled("(?)");
+        if (ImGui.IsItemHovered())
         {
-            for (int i = 0; i < _activeTileMap.Layers.Count; i++)
+            ImGui.BeginTooltip();
+            ImGui.Text("Click to select layer for painting");
+            ImGui.Text("Eye icon toggles visibility");
+            ImGui.Text("Use arrows to reorder layers");
+            ImGui.EndTooltip();
+        }
+
+        if (ImGui.BeginChild("LayersList", new Vector2(0, 120), ImGuiChildFlags.Border))
+        {
+            for (int i = _activeTileMap.Layers.Count - 1; i >= 0; i--) // Draw from top to bottom
             {
                 var layer = _activeTileMap.Layers[i];
-                
+
                 ImGui.PushID(i);
-                
+
+                // Visibility toggle (eye icon)
+                bool visible = layer.Visible;
+                if (ImGui.Checkbox(visible ? "👁" : "  ", ref visible))
+                {
+                    layer.Visible = visible;
+                }
+
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text(visible ? "Hide layer" : "Show layer");
+                    ImGui.EndTooltip();
+                }
+
+                ImGui.SameLine();
+
+                // Layer selection
                 bool isSelected = i == _activeTileMap.ActiveLayerIndex;
-                if (ImGui.Selectable($"{layer.Name}##layer{i}", isSelected))
+
+                // Highlight selected layer with background color
+                if (isSelected)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.3f, 0.5f, 0.8f, 0.8f));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0.4f, 0.6f, 0.9f, 0.8f));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0.5f, 0.7f, 1.0f, 0.8f));
+                }
+
+                if (ImGui.Selectable($"{layer.Name} (Z:{layer.ZIndex})##layer{i}", isSelected, ImGuiSelectableFlags.None, new Vector2(0, 20)))
                 {
                     _activeTileMap.ActiveLayerIndex = i;
                 }
 
-                ImGui.SameLine();
-                bool visible = layer.Visible;
-                if (ImGui.Checkbox("##visible", ref visible))
+                if (isSelected)
                 {
-                    layer.Visible = visible;
+                    ImGui.PopStyleColor(3);
                 }
-                
+
+                // Layer reordering buttons
+                ImGui.SameLine();
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() - 60);
+
+                // Move up button
+                if (i < _activeTileMap.Layers.Count - 1)
+                {
+                    if (ImGui.SmallButton("↑"))
+                    {
+                        // Swap with layer above
+                        var temp = _activeTileMap.Layers[i];
+                        _activeTileMap.Layers[i] = _activeTileMap.Layers[i + 1];
+                        _activeTileMap.Layers[i + 1] = temp;
+
+                        // Update Z-indices
+                        _activeTileMap.Layers[i].ZIndex = i;
+                        _activeTileMap.Layers[i + 1].ZIndex = i + 1;
+
+                        // Update active layer index if needed
+                        if (_activeTileMap.ActiveLayerIndex == i)
+                            _activeTileMap.ActiveLayerIndex = i + 1;
+                        else if (_activeTileMap.ActiveLayerIndex == i + 1)
+                            _activeTileMap.ActiveLayerIndex = i;
+                    }
+                }
+                else
+                {
+                    ImGui.Dummy(new Vector2(20, 0));
+                }
+
+                ImGui.SameLine();
+
+                // Move down button
+                if (i > 0)
+                {
+                    if (ImGui.SmallButton("↓"))
+                    {
+                        // Swap with layer below
+                        var temp = _activeTileMap.Layers[i];
+                        _activeTileMap.Layers[i] = _activeTileMap.Layers[i - 1];
+                        _activeTileMap.Layers[i - 1] = temp;
+
+                        // Update Z-indices
+                        _activeTileMap.Layers[i].ZIndex = i;
+                        _activeTileMap.Layers[i - 1].ZIndex = i - 1;
+
+                        // Update active layer index if needed
+                        if (_activeTileMap.ActiveLayerIndex == i)
+                            _activeTileMap.ActiveLayerIndex = i - 1;
+                        else if (_activeTileMap.ActiveLayerIndex == i - 1)
+                            _activeTileMap.ActiveLayerIndex = i;
+                    }
+                }
+                else
+                {
+                    ImGui.Dummy(new Vector2(20, 0));
+                }
+
                 ImGui.PopID();
             }
             ImGui.EndChild();
         }
 
-        if (ImGui.Button("Add Layer"))
+        // Layer controls
+        if (ImGui.Button("➕ Add Layer"))
         {
             _activeTileMap.AddLayer($"Layer {_activeTileMap.Layers.Count}");
         }
         ImGui.SameLine();
-        
-        if (ImGui.Button("Remove Layer") && _activeTileMap.Layers.Count > 1)
+
+        if (_activeTileMap.Layers.Count > 1)
         {
-            _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex);
+            if (ImGui.Button("🗑 Remove Layer"))
+            {
+                _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex);
+            }
+        }
+        else
+        {
+            ImGui.BeginDisabled();
+            ImGui.Button("🗑 Remove Layer");
+            ImGui.EndDisabled();
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text("Cannot remove the last layer");
+                ImGui.EndTooltip();
+            }
+        }
+
+        ImGui.SameLine();
+
+        // Layer rename button
+        if (ImGui.Button("✏ Rename"))
+        {
+            ImGui.OpenPopup("RenameLayerPopup");
+        }
+
+        // Rename popup
+        if (ImGui.BeginPopup("RenameLayerPopup"))
+        {
+            ImGui.Text("Rename Layer:");
+            ImGui.Separator();
+
+            var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
+            var layerName = currentLayer.Name;
+
+            if (ImGui.InputText("##layername", ref layerName, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+            {
+                if (!string.IsNullOrWhiteSpace(layerName))
+                {
+                    currentLayer.Name = layerName;
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("OK"))
+            {
+                if (!string.IsNullOrWhiteSpace(layerName))
+                {
+                    currentLayer.Name = layerName;
+                }
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel"))
+            {
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
+
+        // Show active layer info
+        ImGui.Separator();
+        ImGui.Text($"Active: {_activeTileMap.Layers[_activeTileMap.ActiveLayerIndex].Name}");
+        ImGui.SameLine();
+
+        // Opacity slider for active layer
+        var activeLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
+        float opacity = activeLayer.Opacity;
+        ImGui.SetNextItemWidth(100);
+        if (ImGui.SliderFloat("Opacity", ref opacity, 0.0f, 1.0f, "%.2f"))
+        {
+            activeLayer.Opacity = opacity;
         }
     }
 

@@ -7,8 +7,8 @@
       "Components": [
         {
           "Translation": [
-            0.7113443,
-            0.5926171,
+            0,
+            0,
             0
           ],
           "Rotation": [
@@ -37,7 +37,7 @@
             "OrthographicSize": 30,
             "OrthographicNear": -1,
             "OrthographicFar": 1,
-            "AspectRatio": 1.9136363,
+            "AspectRatio": 1.971897,
             "PerspectiveFOV": 0.7853982,
             "PerspectiveNear": 0.01,
             "PerspectiveFar": 1000
@@ -119,8 +119,8 @@
       "Components": [
         {
           "Translation": [
-            -4.5305057,
-            -3.95,
+            0,
+            0.003693819,
             0
           ],
           "Rotation": [
@@ -190,7 +190,7 @@
     },
     {
       "Id": 5,
-      "Name": "Animation Object",
+      "Name": "Animation",
       "Components": [
         {
           "Translation": [
@@ -228,8 +228,8 @@
           "Name": "SubTextureRendererComponent"
         },
         {
-          "AssetPath": "animations/example-animations.anim",
-          "CurrentClipName": "Idle",
+          "AssetPath": "animations/hero-attack.anim",
+          "CurrentClipName": "Attack",
           "IsPlaying": true,
           "Loop": true,
           "PlaybackSpeed": 1,
@@ -244,7 +244,7 @@
       "Components": [
         {
           "Translation": [
-            1.1,
+            10,
             0,
             0
           ],
@@ -280,6 +280,341 @@
           ],
           "TexCoords": null,
           "Name": "SubTextureRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "TileMap",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Width": 16,
+          "Height": 16,
+          "TileSize": [
+            1,
+            1
+          ],
+          "TileSetPath": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net9.0/pp/assets/textures/spritesheet.png",
+          "TileSetColumns": 20,
+          "TileSetRows": 13,
+          "ActiveLayerIndex": 0,
+          "Layers": [
+            {
+              "Name": "Ground",
+              "Visible": true,
+              "Opacity": 1,
+              "ZIndex": 0,
+              "Tiles": [
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  39,
+                  -1,
+                  66,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  66,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  66,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  66,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  66,
+                  104,
+                  104,
+                  104,
+                  104,
+                  104,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  210,
+                  211,
+                  212,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  250,
+                  251,
+                  252,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ],
+                [
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1,
+                  -1
+                ]
+              ]
+            }
+          ],
+          "Name": "TileMapComponent"
         }
       ]
     }

@@ -22,6 +22,7 @@ public class RecentProjectsWindow
     private readonly EditorPreferences _editorPreferences;
     private readonly IProjectManager _projectManager;
     private readonly ContentBrowserPanel _contentBrowserPanel;
+    private readonly ProjectUI _projectUI;
     private string? _projectToRemove;
     private float _loadingSpinnerRotation;
     
@@ -29,19 +30,23 @@ public class RecentProjectsWindow
     public RecentProjectsWindow(
         EditorPreferences editorPreferences,
         IProjectManager projectManager,
-        ContentBrowserPanel contentBrowserPanel)
+        ContentBrowserPanel contentBrowserPanel,
+        ProjectUI projectUI)
     {
         _editorPreferences = editorPreferences;
         _projectManager = projectManager;
         _contentBrowserPanel = contentBrowserPanel;
+        _projectUI = projectUI;
     }
 
     public void OnImGuiRender()
     {
         if (!_isOpen)
+        {
             return;
+        }
 
-        ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(600, 400), ImGuiCond.FirstUseEver);
             
         // Center window on first appearance
         var viewport = ImGui.GetMainViewport();
@@ -228,23 +233,15 @@ public class RecentProjectsWindow
 
         var buttonWidth = (ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X) * 0.5f;
 
-        if (ImGui.Button("New Project", new Vector2(buttonWidth, 40)))
+        if (ImGui.Button("New Project", new Vector2(buttonWidth, 20)))
         {
+            _projectUI.ShowNewProjectPopup();
             _isOpen = false;
-            // ProjectUI will handle showing the new project popup
         }
 
         ImGui.SameLine();
-
-        if (ImGui.Button("Open Project", new Vector2(buttonWidth, 40)))
-        {
-            _isOpen = false;
-            // ProjectUI will handle showing the open project popup
-        }
-
-        ImGui.Spacing();
-
-        if (ImGui.Button("Continue Without Project", new Vector2(-1, 30)))
+        
+        if (ImGui.Button("Continue Without Project", new Vector2(buttonWidth, 20)))
         {
             _isOpen = false;
         }
@@ -359,6 +356,7 @@ public class RecentProjectsWindow
     /// </summary>
     public void Show()
     {
+        Logger.Debug("RecentProjectsWindow.Show() called, setting _isOpen = true");
         _isOpen = true;
     }
 }
