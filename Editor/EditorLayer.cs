@@ -142,8 +142,7 @@ public class EditorLayer : ILayer
         // Center camera on selected entity
         if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
         {
-            var camera = _cameraController.Camera;
-            camera.SetPosition(transformComponent.Translation);
+            _cameraController.SetPosition(transformComponent.Translation);
         }
     }
 
@@ -642,8 +641,8 @@ public class EditorLayer : ILayer
 
     private void ResetCamera()
     {
-        _cameraController.Camera.SetPosition(Vector3.Zero);
-        _cameraController.Camera.SetRotation(0.0f);
+        _cameraController.SetPosition(Vector3.Zero);
+        _cameraController.SetRotation(0.0f);
         // Reset zoom to default
         _cameraController.SetZoom(CameraConfig.DefaultZoomLevel);
     }

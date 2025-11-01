@@ -11,7 +11,7 @@ public class OrthographicCamera
         Rotation = 0.0f;
         Scale = Vector3.One;
 
-        ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left, right, bottom, top, -1.0f, 1.0f);
+        ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left, right, bottom, top, -100.0f, 100.0f);
         ViewMatrix = Matrix4x4.Identity;
         ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
     }
@@ -43,7 +43,7 @@ public class OrthographicCamera
 
     public void SetProjection(float left, float right, float bottom, float top)
     {
-        ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left, right, bottom, top, -1.0f, 1.0f);
+        ProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left, right, bottom, top, -100.0f, 100.0f);
         ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
     }
 

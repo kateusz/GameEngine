@@ -75,15 +75,15 @@ public static class CameraConfig
     // Orthographic defaults
     /// <summary>
     /// Default near clip plane for orthographic cameras.
-    /// OpenGL standard is -1.0, but may vary by platform.
+    /// Set to -100 to provide adequate depth range for 2D scenes with layering.
     /// </summary>
-    public const float DefaultOrthographicNear = -1.0f;
-    
+    public const float DefaultOrthographicNear = -100.0f;
+
     /// <summary>
     /// Default far clip plane for orthographic cameras.
-    /// OpenGL standard is 1.0, but may vary by platform.
+    /// Set to 100 to provide adequate depth range for 2D scenes with layering.
     /// </summary>
-    public const float DefaultOrthographicFar = 1.0f;
+    public const float DefaultOrthographicFar = 100.0f;
     
     /// <summary>
     /// Default orthographic size (half-height in world units).

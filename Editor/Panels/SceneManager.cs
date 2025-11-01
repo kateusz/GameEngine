@@ -102,7 +102,7 @@ public class SceneManager : ISceneManager
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
         if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
-            cameraController.Camera.SetPosition(transform.Translation);
+            cameraController.SetPosition(transform.Translation);
         }
     }
 }
