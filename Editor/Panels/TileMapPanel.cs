@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Scene.Components;
 using ImGuiNET;
+using Editor.UI;
 
 namespace Editor.Panels;
 
@@ -94,11 +95,19 @@ public class TileMapPanel
         bool isOpen = true;
         if (ImGui.Begin("TileMap Editor", ref isOpen))
         {
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
+
+            ImGui.Spacing();
             DrawToolbar();
+            ImGui.Spacing();
             ImGui.Separator();
-            
+            ImGui.Spacing();
+
             DrawLayerPanel();
+            ImGui.Spacing();
             ImGui.Separator();
+            ImGui.Spacing();
 
             if (ImGui.BeginChild("TileMapContent", new Vector2(0, 0)))
             {
@@ -107,6 +116,8 @@ public class TileMapPanel
                 DrawTileMapCanvas();
                 ImGui.EndChild();
             }
+
+            ImGui.PopStyleVar(2);
         }
         ImGui.End();
 
@@ -163,13 +174,16 @@ public class TileMapPanel
             ImGui.EndTooltip();
         }
 
+        ImGui.Spacing();
         if (ImGui.BeginChild("LayersList", new Vector2(0, 120), ImGuiChildFlags.Border))
         {
+            ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Top padding
             for (int i = _activeTileMap.Layers.Count - 1; i >= 0; i--) // Draw from top to bottom
             {
                 var layer = _activeTileMap.Layers[i];
 
                 ImGui.PushID(i);
+                ImGui.Indent(EditorUIConstants.SmallPadding);
 
                 // Visibility toggle (eye icon)
                 bool visible = layer.Visible;
@@ -266,8 +280,10 @@ public class TileMapPanel
                     ImGui.Dummy(new Vector2(20, 0));
                 }
 
+                ImGui.Unindent(EditorUIConstants.SmallPadding);
                 ImGui.PopID();
             }
+            ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Bottom padding
             ImGui.EndChild();
         }
 
@@ -363,24 +379,33 @@ public class TileMapPanel
         if (_tileSet?.Texture == null)
         {
             ImGui.BeginChild("TileSetPalette", new Vector2(250, 0), ImGuiChildFlags.Border);
+            ImGui.Spacing();
+            ImGui.Indent(EditorUIConstants.LargePadding);
             ImGui.Text("No TileSet loaded");
+            ImGui.Unindent(EditorUIConstants.LargePadding);
             ImGui.EndChild();
             return;
         }
 
         ImGui.BeginChild("TileSetPalette", new Vector2(250, 0), ImGuiChildFlags.Border);
+        ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Top padding
+        ImGui.Indent(EditorUIConstants.SmallPadding);
         ImGui.Text($"TileSet Palette ({_tileSet.Tiles.Count} tiles)");
         ImGui.Text($"{_tileSet.Columns}x{_tileSet.Rows}");
+        ImGui.Unindent(EditorUIConstants.SmallPadding);
+        ImGui.Spacing();
         ImGui.Separator();
+        ImGui.Spacing();
 
         var textureId = (nint)_tileSet.Texture.GetRendererId();
         var tileDisplaySize = new Vector2(32, 32);
         var spacing = 2.0f;
-        
+
         // Calculate how many tiles fit per row in the palette window (with some padding)
-        var availableWidth = ImGui.GetContentRegionAvail().X;
+        var availableWidth = ImGui.GetContentRegionAvail().X - EditorUIConstants.LargePadding * 2;
         int tilesPerRow = Math.Max(1, (int)((availableWidth - 10) / (tileDisplaySize.X + spacing)));
 
+        ImGui.Indent(EditorUIConstants.SmallPadding);
         for (int i = 0; i < _tileSet.Tiles.Count; i++)
         {
             ImGui.PushID(i);
@@ -420,7 +445,9 @@ public class TileMapPanel
 
             ImGui.PopID();
         }
+        ImGui.Unindent(EditorUIConstants.SmallPadding);
 
+        ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Bottom padding
         ImGui.EndChild();
     }
 

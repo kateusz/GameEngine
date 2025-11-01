@@ -51,25 +51,45 @@ namespace Editor.Windows
 
             if (ImGui.Begin("Animation Timeline", ref _isOpen, ImGuiWindowFlags.MenuBar))
             {
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
+
                 if (_component?.Asset == null)
                 {
+                    ImGui.Spacing();
+                    ImGui.Indent(EditorUIConstants.LargePadding);
                     ImGui.TextColored(EditorUIConstants.WarningColor, "No animation component selected");
                     ImGui.Text("Select an entity with AnimationComponent to edit animations");
+                    ImGui.Unindent(EditorUIConstants.LargePadding);
                 }
                 else
                 {
+                    ImGui.Spacing();
                     DrawEntityInfo();
+                    ImGui.Spacing();
                     ImGui.Separator();
+                    ImGui.Spacing();
                     DrawClipSelector();
+                    ImGui.Spacing();
                     ImGui.Separator();
+                    ImGui.Spacing();
                     DrawPlaybackControls();
+                    ImGui.Spacing();
                     ImGui.Separator();
+                    ImGui.Spacing();
                     DrawTimeline();
+                    ImGui.Spacing();
                     ImGui.Separator();
+                    ImGui.Spacing();
                     DrawFrameDetails();
+                    ImGui.Spacing();
                     ImGui.Separator();
+                    ImGui.Spacing();
                     DrawStatistics();
+                    ImGui.Spacing();
                 }
+
+                ImGui.PopStyleVar(2);
             }
 
             ImGui.End();
@@ -177,18 +197,23 @@ namespace Editor.Windows
             }
 
             ImGui.Text("Timeline:");
+            ImGui.Spacing();
 
             // Timeline container with scrolling
-            ImGui.BeginChild("TimelineScroll", new Vector2(0, TimelineHeight));
+            ImGui.BeginChild("TimelineScroll", new Vector2(0, TimelineHeight), ImGuiChildFlags.Border);
+            ImGui.Dummy(new Vector2(0, EditorUIConstants.LargePadding)); // Top padding
 
             var drawList = ImGui.GetWindowDrawList();
             var cursorPos = ImGui.GetCursorScreenPos();
             var atlas = _component!.Asset!.Atlas;
 
+            // Add left padding
+            cursorPos.X += EditorUIConstants.LargePadding;
+
             // Draw frame boxes
             for (var i = 0; i < clip.Frames.Length; i++)
             {
-                var framePos = new Vector2(cursorPos.X + i * (FrameBoxWidth + 10), cursorPos.Y + 30);
+                var framePos = new Vector2(cursorPos.X + i * (FrameBoxWidth + EditorUIConstants.LargePadding * 2), cursorPos.Y + 30);
                 var frameSize = new Vector2(FrameBoxWidth, FrameBoxHeight);
                 var frame = clip.Frames[i];
 
@@ -261,7 +286,7 @@ namespace Editor.Windows
 
             // Playhead indicator
             int currentFrame = _component.CurrentFrameIndex;
-            var playheadPos = cursorPos with { X = cursorPos.X + currentFrame * (FrameBoxWidth + 10) + FrameBoxWidth / 2 };
+            var playheadPos = cursorPos with { X = cursorPos.X + currentFrame * (FrameBoxWidth + EditorUIConstants.LargePadding * 2) + FrameBoxWidth / 2 };
             drawList.AddLine(playheadPos, playheadPos + new Vector2(0, TimelineHeight - 20),
                 ImGui.GetColorU32(EditorUIConstants.ErrorColor), 3.0f);
             drawList.AddTriangleFilled(
@@ -282,11 +307,16 @@ namespace Editor.Windows
             var frame = clip.Frames[_selectedFrameIndex];
 
             ImGui.Text($"Frame Details: Frame {_selectedFrameIndex}");
+            ImGui.Spacing();
+
+            ImGui.BeginChild("FrameDetailsContent", new Vector2(0, 200), ImGuiChildFlags.Border);
+            ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Top padding
 
             ImGui.Columns(2, "FrameDetailsColumns", false);
-            ImGui.SetColumnWidth(0, 150);
+            ImGui.SetColumnWidth(0, 170);
 
             // Left column: Frame preview
+            ImGui.Indent(EditorUIConstants.LargePadding);
             var atlas = _component!.Asset!.Atlas;
             if (atlas != null)
             {
@@ -321,10 +351,12 @@ namespace Editor.Windows
             {
                 ImGui.TextDisabled("[No Atlas]");
             }
+            ImGui.Unindent(EditorUIConstants.LargePadding);
 
             ImGui.NextColumn();
 
             // Right column: Frame metadata
+            ImGui.Indent(EditorUIConstants.LargePadding);
             ImGui.Text($"Rect: [{frame.Rect.X}, {frame.Rect.Y}, {frame.Rect.Width}, {frame.Rect.Height}]");
             ImGui.Text($"Pivot: [{frame.Pivot.X:F2}, {frame.Pivot.Y:F2}]");
 
@@ -340,8 +372,11 @@ namespace Editor.Windows
             {
                 ImGui.TextDisabled("Events: (none)");
             }
+            ImGui.Unindent(EditorUIConstants.LargePadding);
 
             ImGui.Columns(1);
+            ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Bottom padding
+            ImGui.EndChild();
         }
 
         private void DrawStatistics()
@@ -359,7 +394,7 @@ namespace Editor.Windows
 
             // Approximate memory usage
             long memoryUsage = clip.Frames.Length * 256; // ~256 bytes per frame
-            if (_component.Asset.Atlas != null)
+            if (_component.Asset?.Atlas != null)
             {
                 memoryUsage += _component.Asset.Atlas.Width * _component.Asset.Atlas.Height * 4;
             }

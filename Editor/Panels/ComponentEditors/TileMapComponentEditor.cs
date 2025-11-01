@@ -74,7 +74,7 @@ public class TileMapComponentEditor : IComponentEditor
             // Layers info
             ImGui.Separator();
             ImGui.Text($"Layers: {component.Layers.Count}");
-            ImGui.Text($"Active Layer: {component.ActiveLayerIndex}");
+            ImGui.Text($"Active Layer Index: {component.ActiveLayerIndex}");
 
             // Open TileMap Editor button
             ImGui.Separator();
