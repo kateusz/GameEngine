@@ -1,4 +1,5 @@
 using ECS;
+using Engine.Core;
 using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
@@ -17,7 +18,7 @@ public static class ComponentSelector
             DrawComponentMenuItem<CameraComponent>("Camera", entity, () =>
             {
                 var c = new CameraComponent();
-                c.Camera.SetViewportSize(1280, 720);
+                c.Camera.SetViewportSize(DisplayConfig.DefaultWindowWidth, DisplayConfig.DefaultWindowHeight);
                 entity.AddComponent<CameraComponent>(c);
                 entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                 {

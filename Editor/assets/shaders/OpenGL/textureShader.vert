@@ -23,10 +23,10 @@ void main()
     v_TexIndex = a_TexIndex;
     v_TilingFactor = a_TilingFactor;
     v_EntityID = a_EntityID;
-    
+
     // windows version
     //gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
-    
-    // macOS version
+
+    // macOS version - matrix multiplication is reversed on macOS
     gl_Position = vec4(a_Position, 1.0) * u_ViewProjection;
 }

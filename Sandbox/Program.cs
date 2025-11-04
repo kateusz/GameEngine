@@ -34,7 +34,7 @@ public class Program
 
     private static void ConfigureContainer(Container container)
     {
-        var props = new WindowProps("Editor", 1280, 720);
+        var props = new WindowProps("Sandbox", (int)DisplayConfig.DefaultWindowWidth, (int)DisplayConfig.DefaultWindowHeight);
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(props.Width, props.Height);
         options.Title = "Game Window";

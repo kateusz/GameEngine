@@ -8,6 +8,9 @@ public class RectangleConverter : JsonConverter<Rectangle>
 {
     public override Rectangle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Expected start of array for Rectangle deserialization.");
+
         reader.Read();
 
         var x = reader.GetInt32();
@@ -19,6 +22,9 @@ public class RectangleConverter : JsonConverter<Rectangle>
         var height = reader.GetInt32();
         reader.Read();
 
+        if (reader.TokenType != JsonTokenType.EndArray)
+            throw new JsonException("Expected end of array for Rectangle deserialization.");
+
         return new Rectangle(x, y, width, height);
     }
 
@@ -28,12 +34,12 @@ public class RectangleConverter : JsonConverter<Rectangle>
 
         var x = value.X;
         var y = value.Y;
-        var wigdth = value.Width;
+        var width = value.Width;
         var height = value.Height;
 
         writer.WriteNumberValue(x);
         writer.WriteNumberValue(y);
-        writer.WriteNumberValue(wigdth);
+        writer.WriteNumberValue(width);
         writer.WriteNumberValue(height);
         writer.WriteEndArray(); // End array
     }

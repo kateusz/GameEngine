@@ -21,37 +21,37 @@ public static class ViewportCoordinateConverter
         var viewportMin = viewportBounds[0];
         var viewportMax = viewportBounds[1];
         var viewportSize = viewportMax - viewportMin;
-        
+
         // screenPos is expected to be LOCAL to the viewport (origin at top-left of the viewport image).
         // Convert screen position to normalized viewport coordinates (0-1)
         var normalizedX = screenPos.X / viewportSize.X;
         var normalizedY = screenPos.Y / viewportSize.Y;
-        
+
         // The framebuffer texture is rendered into the ImGui "Viewport" using inverted UVs
         // (ImGui.Image(texture, size, new Vector2(0,1), new Vector2(1,0))). To map a mouse position on
         // the ImGui window to the camera's clip-space correctly we must invert the Y here so the top of
         // the ImGui region corresponds to the top of the framebuffer.
         normalizedY = 1.0f - normalizedY;
-        
+
         // Convert normalized coordinates to NDC space (-1 to 1)
         var ndcX = normalizedX * 2.0f - 1.0f;
         var ndcY = normalizedY * 2.0f - 1.0f;
-        
+
         // Create NDC position (z = 0 for 2D)
         var ndcPos = new Vector4(ndcX, ndcY, 0.0f, 1.0f);
-        
+
         // Get inverse view-projection matrix
         Matrix4x4.Invert(camera.ViewProjectionMatrix, out var invViewProj);
-        
+
         // Transform from NDC to world space
         var worldPos4 = Vector4.Transform(ndcPos, invViewProj);
-        
+
         // Perspective divide (not really needed for orthographic, but good practice)
         if (Math.Abs(worldPos4.W) > 0.0001f)
         {
             worldPos4 /= worldPos4.W;
         }
-        
+
         return new Vector2(worldPos4.X, worldPos4.Y);
     }
     

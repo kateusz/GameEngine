@@ -24,7 +24,7 @@ using Engine.Scene.Systems;
 
 static void ConfigureContainer(Container container)
 {
-    var props = new WindowProps("Editor", 1280, 720);
+    var props = new WindowProps("Editor", (int)DisplayConfig.DefaultWindowWidth, (int)DisplayConfig.DefaultWindowHeight);
     var options = WindowOptions.Default;
     options.Size = new Vector2D<int>(props.Width, props.Height);
     options.Title = "Game Window";
@@ -52,9 +52,9 @@ static void ConfigureContainer(Container container)
     container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
     container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
     container.Register<AudioSystem>(Reuse.Singleton);
-    container.Register<AnimationSystem>(Reuse.Singleton);
     container.Register<TileMapRenderSystem>(Reuse.Singleton);
     container.Register<AnimationAssetManager>(Reuse.Singleton);
+    container.Register<AnimationSystem>(Reuse.Singleton);
     
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);

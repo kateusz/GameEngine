@@ -45,7 +45,7 @@ public record AnimationAsset : IDisposable
     /// <summary>
     /// Get clip by name, returns null if not found.
     /// </summary>
-    public AnimationClip? GetClip(string clipName) => Clips.SingleOrDefault(c => c.Name == clipName);
+    public AnimationClip? GetClip(string clipName) => Clips.FirstOrDefault(c => c.Name == clipName);
 
     /// <summary>
     /// Dispose texture resources.

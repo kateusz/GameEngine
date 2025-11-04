@@ -38,5 +38,5 @@ public record AnimationClip
     /// Get frame duration in seconds (time per frame).
     /// </summary>
     [JsonIgnore]
-    public float FrameDuration => 1.0f / Fps;
+    public float FrameDuration => Fps > 0 ? 1.0f / Fps : 0f;
 }

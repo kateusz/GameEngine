@@ -18,11 +18,12 @@ namespace Editor.Panels.ComponentEditors;
 public class AnimationComponentEditor : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();
-    
+
     private readonly AnimationAssetManager _animationAssetManager;
     private readonly AnimationTimelineWindow? _timelineWindow;
 
-    public AnimationComponentEditor(AnimationAssetManager animationAssetManager, AnimationTimelineWindow? timelineWindow)
+    public AnimationComponentEditor(AnimationAssetManager animationAssetManager,
+        AnimationTimelineWindow? timelineWindow)
     {
         _animationAssetManager = animationAssetManager;
         _timelineWindow = timelineWindow;
@@ -65,8 +66,6 @@ public class AnimationComponentEditor : IComponentEditor
             {
                 ImGui.TextColored(EditorUIConstants.WarningColor, "No animation asset loaded");
             }
-
-            ImGui.PopID();
         });
     }
 
@@ -105,7 +104,15 @@ public class AnimationComponentEditor : IComponentEditor
                             }
 
                             // Load new asset
+                            var previousPath = component.AssetPath;
+                            var previousAsset = component.Asset;
                             var animation = _animationAssetManager.LoadAsset(droppedPath);
+
+                            if (previousAsset != null && !string.IsNullOrWhiteSpace(previousPath))
+                            {
+                                _animationAssetManager.UnloadAsset(previousPath);
+                            }
+
                             component.AssetPath = droppedPath;
                             component.Asset = animation;
 

@@ -49,9 +49,10 @@ public class OrthographicCamera
 
     private void RecalculateViewMatrix()
     {
-        var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, 0);
+        // For 2D orthographic camera, the view matrix only includes position and rotation
+        // Scale/zoom is handled by the projection matrix bounds, not the view matrix
+        var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, Position.Z);
         var rotation = Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
-        var scale = Matrix4x4.CreateScale(Scale.X, Scale.Y, Scale.Z);
 
         var transform = Matrix4x4.Identity;
         transform *= position;

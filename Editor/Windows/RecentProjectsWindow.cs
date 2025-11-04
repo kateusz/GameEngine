@@ -4,6 +4,7 @@ using Editor.Managers;
 using Editor.Panels;
 using Editor.UI;
 using Engine;
+using Engine.Core;
 using Serilog;
 
 namespace Editor.Windows;
@@ -46,8 +47,8 @@ public class RecentProjectsWindow
             return;
         }
 
-        ImGui.SetNextWindowSize(new Vector2(600, 400), ImGuiCond.FirstUseEver);
-            
+        ImGui.SetNextWindowSize(new Vector2(DisplayConfig.StandardDialogSize.Width, DisplayConfig.StandardDialogSize.Height), ImGuiCond.FirstUseEver);
+
         // Center window on first appearance
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(

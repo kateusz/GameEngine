@@ -92,10 +92,10 @@ public class EditorLayer : ILayer
     {
         Logger.Debug("EditorLayer OnAttach.");
 
-        // Initialize 2D camera controller with reasonable settings for editor
-        _cameraController = new OrthographicCameraController(1280.0f / 720.0f);
-        
-        var frameBufferSpec = new FrameBufferSpecification(1200, 720)
+        // Initialize 2D camera controller with default aspect ratio for editor
+        _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio);
+
+        var frameBufferSpec = new FrameBufferSpecification(DisplayConfig.DefaultEditorViewportWidth, DisplayConfig.DefaultEditorViewportHeight)
         {
             AttachmentsSpec = new FramebufferAttachmentSpecification([
                 new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8),
@@ -509,22 +509,19 @@ public class EditorLayer : ILayer
 
             ImGui.Begin("Viewport");
             {
-                var viewportMinRegion = ImGui.GetWindowContentRegionMin();
-                var viewportMaxRegion = ImGui.GetWindowContentRegionMax();
-                var viewportOffset = ImGui.GetWindowPos();
-                _viewportBounds[0] = new Vector2(viewportMinRegion.X + viewportOffset.X,
-                    viewportMinRegion.Y + viewportOffset.Y);
-                _viewportBounds[1] = new Vector2(viewportMaxRegion.X + viewportOffset.X,
-                    viewportMaxRegion.Y + viewportOffset.Y);
-
                 _viewportFocused = ImGui.IsWindowFocused();
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
-                _viewportSize = viewportPanelSize;
+
                 var textureId = _frameBuffer.GetColorAttachmentRendererId();
                 var texturePointer = new IntPtr(textureId);
-                ImGui.Image(texturePointer, new Vector2(_viewportSize.X, _viewportSize.Y), new Vector2(0, 1),
+                ImGui.Image(texturePointer, new Vector2(viewportPanelSize.X, viewportPanelSize.Y), new Vector2(0, 1),
                     new Vector2(1, 0));
+
+                // Get the actual screen position and size of the rendered image
+                _viewportBounds[0] = ImGui.GetItemRectMin();
+                _viewportBounds[1] = ImGui.GetItemRectMax();
+                _viewportSize = _viewportBounds[1] - _viewportBounds[0];
 
                 if (ImGui.BeginDragDropTarget())
                 {
