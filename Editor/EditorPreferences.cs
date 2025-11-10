@@ -26,7 +26,7 @@ public class EditorPreferences : IEditorPreferences
     private static readonly ILogger Logger = Log.ForContext<EditorPreferences>();
 
     public int Version { get; set; } = 2;
-    public List<RecentProject> RecentProjects { get; set; } = new();
+    public List<RecentProject> RecentProjects { get; } = [];
     public const int MaxRecentProjects = 10;
 
     // Editor Settings

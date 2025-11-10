@@ -16,7 +16,7 @@ public interface IEditorPreferences : IDisposable
     /// <summary>
     /// Gets or sets the list of recent projects.
     /// </summary>
-    List<RecentProject> RecentProjects { get; set; }
+    List<RecentProject> RecentProjects { get; }
 
     /// <summary>
     /// Gets or sets the editor viewport background color.
