@@ -10,10 +10,10 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 {
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;
-    
-    private Scene _context;
+
+    private IScene? _context;
     private Entity? _selectionContext;
-    
+
     public Action<Entity> EntitySelected;
 
     public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
@@ -22,7 +22,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         _prefabDropTarget = prefabDropTarget;
     }
 
-    public void SetContext(Scene context)
+    public void SetContext(IScene? context)
     {
         _context = context;
         _selectionContext = null;

@@ -199,11 +199,11 @@ public class ConsolePanel : IConsolePanel
 
 internal class ConsoleTextWriter : TextWriter
 {
-    private readonly ConsolePanel _panel;
+    private readonly IConsolePanel _panel;
     private readonly TextWriter _originalOut;
     private readonly StringBuilder _lineBuffer = new();
 
-    public ConsoleTextWriter(ConsolePanel panel)
+    public ConsoleTextWriter(IConsolePanel panel)
     {
         _panel = panel;
         _originalOut = Console.Out;

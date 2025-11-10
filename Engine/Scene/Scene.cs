@@ -23,10 +23,10 @@ public class Scene : IScene
     private uint _viewportHeight;
     private readonly World _physicsWorld;
     private int _nextEntityId = 1;
-    private readonly SystemManager _systemManager;
+    private readonly ISystemManager _systemManager;
     private bool _disposed = false;
 
-    public Scene(string path, SceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
+    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
     {
         _path = path;
         _graphics2D = graphics2D;

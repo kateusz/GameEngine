@@ -11,10 +11,10 @@ namespace Editor.Logging;
 /// </summary>
 public class ConsolePanelSink : ILogEventSink
 {
-    private readonly ConsolePanel _consolePanel;
+    private readonly IConsolePanel _consolePanel;
     private readonly ITextFormatter _formatter;
 
-    public ConsolePanelSink(ConsolePanel consolePanel, string outputTemplate = "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    public ConsolePanelSink(IConsolePanel consolePanel, string outputTemplate = "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
     {
         _consolePanel = consolePanel ?? throw new ArgumentNullException(nameof(consolePanel));
         _formatter = new MessageTemplateTextFormatter(outputTemplate);

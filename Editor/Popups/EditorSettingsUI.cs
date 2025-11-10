@@ -8,10 +8,10 @@ namespace Editor.Popups;
 public class EditorSettingsUI
 {
     private bool _open;
-    
-    private readonly EditorPreferences _editorPreferences;
 
-    public EditorSettingsUI(EditorPreferences editorPreferences)
+    private readonly IEditorPreferences _editorPreferences;
+
+    public EditorSettingsUI(IEditorPreferences editorPreferences)
     {
         _editorPreferences = editorPreferences;
     }

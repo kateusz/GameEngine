@@ -9,10 +9,10 @@ namespace Editor.Panels;
 public class PropertiesPanel : IPropertiesPanel
 {
     private Entity? _selectedEntity;
-    private readonly ComponentEditorRegistry _componentEditors;
+    private readonly IComponentEditorRegistry _componentEditors;
     private readonly IPrefabManager _prefabManager;
 
-    public PropertiesPanel(IPrefabManager prefabManager, ComponentEditorRegistry componentEditors)
+    public PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors)
     {
         _prefabManager = prefabManager;
         _componentEditors = componentEditors;

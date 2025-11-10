@@ -9,9 +9,9 @@ public class EditorToolbar
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
-    private readonly SceneManager _sceneManager;
+    private readonly ISceneManager _sceneManager;
 
-    public EditorToolbar(SceneManager sceneManager)
+    public EditorToolbar(ISceneManager sceneManager)
     {
         _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
     }

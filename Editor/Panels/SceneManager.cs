@@ -14,11 +14,11 @@ public class SceneManager : ISceneManager
     public SceneState SceneState { get; private set; } = SceneState.Edit;
     public string? EditorScenePath { get; private set; }
 
-    private readonly SceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
     private readonly ISceneSerializer _sceneSerializer;
     private readonly SceneFactory _sceneFactory;
 
-    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory)
+    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneSerializer = sceneSerializer;
@@ -97,7 +97,7 @@ public class SceneManager : ISceneManager
         }
     }
 
-    public void FocusOnSelectedEntity(OrthographicCameraController cameraController)
+    public void FocusOnSelectedEntity(IOrthographicCameraController cameraController)
     {
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
         if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))

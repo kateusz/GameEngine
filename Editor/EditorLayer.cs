@@ -25,34 +25,34 @@ public class EditorLayer : ILayer
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
     
     private readonly Vector2[] _viewportBounds = new Vector2[2];
-    private readonly SceneHierarchyPanel _sceneHierarchyPanel;
-    private readonly ContentBrowserPanel _contentBrowserPanel;
-    private readonly PropertiesPanel _propertiesPanel;
-    private readonly ConsolePanel _consolePanel;
+    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly IContentBrowserPanel _contentBrowserPanel;
+    private readonly IPropertiesPanel _propertiesPanel;
+    private readonly IConsolePanel _consolePanel;
     private readonly ProjectUI _projectUI;
     private readonly IProjectManager _projectManager;
-    private readonly SceneManager _sceneManager;
-    private readonly EditorPreferences _editorPreferences;
+    private readonly ISceneManager _sceneManager;
+    private readonly IEditorPreferences _editorPreferences;
     private readonly RendererStatsPanel _rendererStatsPanel;
     private readonly EditorToolbar _editorToolbar;
     private readonly PerformanceMonitorUI _performanceMonitor = new();
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
-    
+
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
-    
-    private OrthographicCameraController _cameraController;
+
+    private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private Entity? _hoveredEntity;
 
     public EditorLayer(IProjectManager projectManager,
-        EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
-        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
-        ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
+        IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
+        IPropertiesPanel propertiesPanel, ISceneHierarchyPanel sceneHierarchyPanel, ISceneManager sceneManager,
+        IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
     {
         _projectManager = projectManager;
