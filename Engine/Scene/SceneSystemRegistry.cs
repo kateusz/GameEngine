@@ -45,7 +45,7 @@ public class SceneSystemRegistry : ISceneSystemRegistry
     /// All returned systems are singletons that will be shared across scenes.
     /// Systems are marked as shared to prevent multiple OnShutdown() calls when scenes are disposed.
     /// </remarks>
-    public IReadOnlyList<ISystem> PopulateSystemManager(SystemManager systemManager)
+    public IReadOnlyList<ISystem> PopulateSystemManager(ISystemManager systemManager)
     {
         lock (_lock)
         {

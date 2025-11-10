@@ -28,14 +28,14 @@ public interface ISystemManager : IDisposable
     void RegisterSystem(ISystem system, bool isShared = false);
 
     /// <summary>
-    /// Initializes all registered systems by calling their OnInit method.
+    /// Initializes all registered systems.
     /// Systems are initialized in priority order.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when Initialize is called more than once.</exception>
     void Initialize();
 
     /// <summary>
-    /// Updates all registered systems by calling their OnUpdate method.
+    /// Updates all registered systems.
     /// Systems are updated in priority order (ascending).
     /// </summary>
     /// <param name="deltaTime">The time elapsed since the last update.</param>
@@ -48,8 +48,7 @@ public interface ISystemManager : IDisposable
     /// Systems are shut down in reverse priority order.
     /// </summary>
     /// <remarks>
-    /// Only per-scene systems are shut down because shared singleton systems are reused across
-    /// multiple scenes. Use ShutdownAll() for global cleanup when the application is closing.
+    /// Use ShutdownAll() for global cleanup when the application is closing.
     /// </remarks>
     void Shutdown();
 

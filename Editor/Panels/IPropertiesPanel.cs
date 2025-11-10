@@ -1,3 +1,5 @@
+using ECS;
+
 namespace Editor.Panels;
 
 /// <summary>
@@ -9,4 +11,6 @@ public interface IPropertiesPanel
     /// Renders the properties panel using ImGui.
     /// </summary>
     void Draw();
+
+    void SetSelectedEntity(Entity? entity);
 }

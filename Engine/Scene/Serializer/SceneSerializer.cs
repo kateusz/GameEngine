@@ -7,6 +7,7 @@ using Engine.Audio;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using Serilog;
 using ZLinq;
 
 namespace Engine.Scene.Serializer;
@@ -17,6 +18,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class SceneSerializer : ISceneSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
+    
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string DefaultSceneName = "default";

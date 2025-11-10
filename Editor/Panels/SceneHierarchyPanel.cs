@@ -14,7 +14,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     private IScene? _context;
     private Entity? _selectionContext;
 
-    public Action<Entity> EntitySelected;
+    public Action<Entity> EntitySelected { get; set; }
 
     public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
     {

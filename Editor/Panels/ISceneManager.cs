@@ -59,5 +59,5 @@ public interface ISceneManager
     /// Moves the editor camera to focus on the currently selected entity.
     /// </summary>
     /// <param name="cameraController">The camera controller to update</param>
-    void FocusOnSelectedEntity(OrthographicCameraController cameraController);
+    void FocusOnSelectedEntity(IOrthographicCameraController cameraController);
 }

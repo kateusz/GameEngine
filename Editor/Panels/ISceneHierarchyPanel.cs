@@ -30,4 +30,6 @@ public interface ISceneHierarchyPanel
     /// </summary>
     /// <param name="entity">Entity to select</param>
     void SetSelectedEntity(Entity? entity);
+    
+    Action<Entity> EntitySelected { get; set; }
 }

@@ -19,5 +19,5 @@ public interface ISceneSystemRegistry
     /// All returned systems are singletons that will be shared across scenes.
     /// Systems are marked as shared to prevent multiple OnShutdown() calls when scenes are disposed.
     /// </remarks>
-    IReadOnlyList<ISystem> PopulateSystemManager(SystemManager systemManager);
+    IReadOnlyList<ISystem> PopulateSystemManager(ISystemManager systemManager);
 }

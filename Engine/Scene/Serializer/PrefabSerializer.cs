@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
 using Engine.Scene.Components;
+using Serilog;
 
 namespace Engine.Scene.Serializer;
 
@@ -14,6 +15,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class PrefabSerializer : IPrefabSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
+    
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
     private const string ComponentsKey = "Components";

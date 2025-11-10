@@ -49,7 +49,7 @@ public interface IEditorPreferences : IDisposable
     void RemoveRecentProject(string path);
 
     /// <summary>
-    /// Gets a thread-safe snapshot of the recent projects list.
+    /// Gets a recent projects list.
     /// </summary>
     /// <returns>A read-only copy of the recent projects list.</returns>
     IReadOnlyList<RecentProject> GetRecentProjects();

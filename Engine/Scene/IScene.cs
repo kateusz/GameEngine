@@ -31,9 +31,6 @@ public interface IScene : IDisposable
     /// Destroys an entity, removing it from the scene.
     /// </summary>
     /// <param name="entity">The entity to destroy</param>
-    /// <remarks>
-    /// Performance: O(1) dictionary lookup + O(n) list removal.
-    /// </remarks>
     void DestroyEntity(Entity entity);
 
     /// <summary>
