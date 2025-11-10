@@ -1,0 +1,621 @@
+using Bogus;
+using ECS;
+using Engine.Renderer;
+using Engine.Renderer.Cameras;
+using Engine.Scene;
+using Engine.Scene.Components;
+using NSubstitute;
+using Shouldly;
+using Xunit;
+
+namespace Engine.Tests;
+
+public class SceneTests : IDisposable
+{
+    private readonly Faker _faker = new();
+    private readonly IGraphics2D _mockGraphics2D;
+    private readonly ISceneSystemRegistry _mockSystemRegistry;
+    private readonly ISystemManager _mockSystemManager;
+
+    public SceneTests()
+    {
+        _mockGraphics2D = Substitute.For<IGraphics2D>();
+        _mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
+        _mockSystemManager = Substitute.For<ISystemManager>();
+
+        // Setup system registry to return our mock system manager behavior
+        _mockSystemRegistry.PopulateSystemManager(Arg.Any<ISystemManager>())
+            .Returns(new List<ISystem>());
+    }
+
+    public void Dispose()
+    {
+        // Clear the singleton context between tests
+        Context.Instance.Clear();
+    }
+
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_ShouldInitializeWithEmptyEntityCollection()
+    {
+        // Act
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Assert
+        scene.Entities.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Constructor_ShouldClearGlobalContext()
+    {
+        // Arrange - Add an entity to the context before creating scene
+        var existingEntity = Entity.Create(1, "existing");
+        Context.Instance.Register(existingEntity);
+        Context.Instance.Entities.ShouldNotBeEmpty();
+
+        // Act
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Assert - Context should be cleared
+        scene.Entities.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Constructor_ShouldPopulateSystemManagerFromRegistry()
+    {
+        // Arrange
+        var mockSystem = Substitute.For<ISystem>();
+        _mockSystemRegistry.PopulateSystemManager(Arg.Any<ISystemManager>())
+            .Returns(new List<ISystem> { mockSystem });
+
+        // Act
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Assert
+        _mockSystemRegistry.Received(1).PopulateSystemManager(Arg.Any<ISystemManager>());
+    }
+
+    #endregion
+
+    #region CreateEntity Tests
+
+    [Fact]
+    public void CreateEntity_ShouldCreateEntityWithGivenName()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entityName = _faker.Random.Word();
+
+        // Act
+        var entity = scene.CreateEntity(entityName);
+
+        // Assert
+        entity.Name.ShouldBe(entityName);
+    }
+
+    [Fact]
+    public void CreateEntity_ShouldAssignPositiveId()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Act
+        var entity = scene.CreateEntity("test");
+
+        // Assert
+        entity.Id.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void CreateEntity_ShouldAssignIncrementingIds()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Act
+        var entity1 = scene.CreateEntity("first");
+        var entity2 = scene.CreateEntity("second");
+        var entity3 = scene.CreateEntity("third");
+
+        // Assert
+        entity2.Id.ShouldBeGreaterThan(entity1.Id);
+        entity3.Id.ShouldBeGreaterThan(entity2.Id);
+    }
+
+    [Fact]
+    public void CreateEntity_ShouldRegisterEntityInContext()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Act
+        var entity = scene.CreateEntity("test");
+
+        // Assert
+        scene.Entities.ShouldContain(entity);
+        Context.Instance.Entities.ShouldContain(entity);
+    }
+
+    [Fact]
+    public void CreateEntity_MultipleTimes_ShouldCreateMultipleEntities()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Act
+        var entities = new List<Entity>();
+        for (int i = 0; i < 10; i++)
+        {
+            entities.Add(scene.CreateEntity($"entity-{i}"));
+        }
+
+        // Assert
+        scene.Entities.Count().ShouldBe(10);
+        entities.Select(e => e.Id).Distinct().Count().ShouldBe(10); // All IDs should be unique
+    }
+
+    #endregion
+
+    #region AddEntity Tests
+
+    [Fact]
+    public void AddEntity_ShouldAddEntityToScene()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entity = Entity.Create(100, "imported");
+
+        // Act
+        scene.AddEntity(entity);
+
+        // Assert
+        scene.Entities.ShouldContain(entity);
+    }
+
+    [Fact]
+    public void AddEntity_WithHigherId_ShouldUpdateNextEntityId()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var highIdEntity = Entity.Create(500, "high-id");
+
+        // Act
+        scene.AddEntity(highIdEntity);
+        var newEntity = scene.CreateEntity("new");
+
+        // Assert
+        newEntity.Id.ShouldBeGreaterThan(500);
+    }
+
+    [Fact]
+    public void AddEntity_WithLowerId_ShouldNotAffectNextEntityId()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        scene.CreateEntity("first"); // Gets ID 1
+        var lowIdEntity = Entity.Create(1, "low-id");
+
+        // Act
+        scene.AddEntity(lowIdEntity);
+        var newEntity = scene.CreateEntity("new");
+
+        // Assert
+        newEntity.Id.ShouldBeGreaterThanOrEqualTo(2);
+    }
+
+    [Fact]
+    public void AddEntity_WithZeroOrNegativeId_ShouldThrowException()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var invalidEntity = Entity.Create(0, "invalid");
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => scene.AddEntity(invalidEntity));
+    }
+
+    [Fact]
+    public void AddEntity_WithNegativeId_ShouldThrowException()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var invalidEntity = Entity.Create(-5, "invalid");
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => scene.AddEntity(invalidEntity));
+    }
+
+    [Fact]
+    public void AddEntity_WithCameraComponent_ShouldConfigureViewport()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        scene.OnViewportResize(800, 600);
+
+        var entity = Entity.Create(100, "camera-entity");
+        var cameraComponent = new CameraComponent();
+        entity.AddComponent(cameraComponent);
+
+        // Act
+        scene.AddEntity(entity);
+
+        // Assert - Camera should have viewport size set
+        cameraComponent.Camera.ViewportWidth.ShouldBe(800);
+        cameraComponent.Camera.ViewportHeight.ShouldBe(600);
+    }
+
+    #endregion
+
+    #region DestroyEntity Tests
+
+    [Fact]
+    public void DestroyEntity_ShouldRemoveEntityFromScene()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entity = scene.CreateEntity("to-destroy");
+
+        // Act
+        scene.DestroyEntity(entity);
+
+        // Assert
+        scene.Entities.ShouldNotContain(entity);
+        Context.Instance.Entities.ShouldNotContain(entity);
+    }
+
+    [Fact]
+    public void DestroyEntity_ShouldRemoveEntityFromContext()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entity = scene.CreateEntity("to-destroy");
+        Context.Instance.Entities.ShouldContain(entity);
+
+        // Act
+        scene.DestroyEntity(entity);
+
+        // Assert
+        Context.Instance.Entities.ShouldNotContain(entity);
+    }
+
+    [Fact]
+    public void DestroyEntity_ShouldAllowCreatingNewEntityWithSameId()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entity = scene.CreateEntity("original");
+        var entityId = entity.Id;
+
+        // Act
+        scene.DestroyEntity(entity);
+        var newEntity = Entity.Create(entityId, "reused-id");
+        scene.AddEntity(newEntity);
+
+        // Assert
+        scene.Entities.ShouldContain(newEntity);
+        scene.Entities.ShouldNotContain(entity);
+    }
+
+    [Fact]
+    public void DestroyEntity_Multiple_ShouldRemoveAllDestroyedEntities()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entities = Enumerable.Range(0, 5)
+            .Select(i => scene.CreateEntity($"entity-{i}"))
+            .ToList();
+
+        // Act - Destroy every other entity
+        scene.DestroyEntity(entities[0]);
+        scene.DestroyEntity(entities[2]);
+        scene.DestroyEntity(entities[4]);
+
+        // Assert
+        scene.Entities.Count().ShouldBe(2);
+        scene.Entities.ShouldContain(entities[1]);
+        scene.Entities.ShouldContain(entities[3]);
+    }
+
+    #endregion
+
+    #region DuplicateEntity Tests
+
+    [Fact]
+    public void DuplicateEntity_ShouldCreateNewEntityWithDifferentId()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var original = scene.CreateEntity("original");
+
+        // Act
+        var duplicate = scene.DuplicateEntity(original);
+
+        // Assert
+        duplicate.Id.ShouldNotBe(original.Id);
+        duplicate.Name.ShouldBe(original.Name);
+    }
+
+    [Fact]
+    public void DuplicateEntity_ShouldCloneAllComponents()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var original = scene.CreateEntity("original");
+        original.AddComponent(new TagComponent { Tag = "test-tag" });
+        original.AddComponent(new TransformComponent(
+            new System.Numerics.Vector3(1, 2, 3),
+            new System.Numerics.Vector3(0.1f, 0.2f, 0.3f),
+            new System.Numerics.Vector3(2, 2, 2)
+        ));
+
+        // Act
+        var duplicate = scene.DuplicateEntity(original);
+
+        // Assert
+        duplicate.HasComponent<TagComponent>().ShouldBeTrue();
+        duplicate.HasComponent<TransformComponent>().ShouldBeTrue();
+
+        var dupTag = duplicate.GetComponent<TagComponent>();
+        var dupTransform = duplicate.GetComponent<TransformComponent>();
+
+        dupTag.Tag.ShouldBe("test-tag");
+        dupTransform.Translation.ShouldBe(new System.Numerics.Vector3(1, 2, 3));
+    }
+
+    [Fact]
+    public void DuplicateEntity_ModifyingDuplicate_ShouldNotAffectOriginal()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var original = scene.CreateEntity("original");
+        var originalTag = new TagComponent { Tag = "original" };
+        original.AddComponent(originalTag);
+
+        // Act
+        var duplicate = scene.DuplicateEntity(original);
+        var duplicateTag = duplicate.GetComponent<TagComponent>();
+        duplicateTag.Tag = "modified";
+
+        // Assert
+        originalTag.Tag.ShouldBe("original");
+        duplicateTag.Tag.ShouldBe("modified");
+    }
+
+    [Fact]
+    public void DuplicateEntity_ShouldRegisterInScene()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var original = scene.CreateEntity("original");
+
+        // Act
+        var duplicate = scene.DuplicateEntity(original);
+
+        // Assert
+        scene.Entities.ShouldContain(duplicate);
+        scene.Entities.Count().ShouldBe(2);
+    }
+
+    #endregion
+
+    #region GetPrimaryCameraEntity Tests
+
+    [Fact]
+    public void GetPrimaryCameraEntity_WhenNoCameraExists_ShouldReturnNull()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        scene.CreateEntity("no-camera");
+
+        // Act
+        var cameraEntity = scene.GetPrimaryCameraEntity();
+
+        // Assert
+        cameraEntity.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetPrimaryCameraEntity_WhenPrimaryCameraExists_ShouldReturnIt()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var cameraEntity = scene.CreateEntity("camera");
+        var cameraComponent = new CameraComponent { Primary = true };
+        cameraEntity.AddComponent(cameraComponent);
+
+        // Act
+        var result = scene.GetPrimaryCameraEntity();
+
+        // Assert
+        result.ShouldBe(cameraEntity);
+    }
+
+    [Fact]
+    public void GetPrimaryCameraEntity_WhenNonPrimaryCameraExists_ShouldReturnNull()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var cameraEntity = scene.CreateEntity("camera");
+        var cameraComponent = new CameraComponent { Primary = false };
+        cameraEntity.AddComponent(cameraComponent);
+
+        // Act
+        var result = scene.GetPrimaryCameraEntity();
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetPrimaryCameraEntity_WhenMultipleCamerasExist_ShouldReturnPrimaryOne()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        var camera1 = scene.CreateEntity("camera1");
+        camera1.AddComponent(new CameraComponent { Primary = false });
+
+        var camera2 = scene.CreateEntity("camera2");
+        camera2.AddComponent(new CameraComponent { Primary = true });
+
+        var camera3 = scene.CreateEntity("camera3");
+        camera3.AddComponent(new CameraComponent { Primary = false });
+
+        // Act
+        var result = scene.GetPrimaryCameraEntity();
+
+        // Assert
+        result.ShouldBe(camera2);
+    }
+
+    #endregion
+
+    #region OnViewportResize Tests
+
+    [Fact]
+    public void OnViewportResize_ShouldUpdateExistingCameraViewports()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var cameraEntity = scene.CreateEntity("camera");
+        var cameraComponent = new CameraComponent();
+        cameraEntity.AddComponent(cameraComponent);
+
+        // Act
+        scene.OnViewportResize(1920, 1080);
+
+        // Assert
+        cameraComponent.Camera.ViewportWidth.ShouldBe(1920);
+        cameraComponent.Camera.ViewportHeight.ShouldBe(1080);
+    }
+
+    [Fact]
+    public void OnViewportResize_ShouldUpdateMultipleCameras()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var camera1 = scene.CreateEntity("camera1");
+        var cameraComp1 = new CameraComponent();
+        camera1.AddComponent(cameraComp1);
+
+        var camera2 = scene.CreateEntity("camera2");
+        var cameraComp2 = new CameraComponent();
+        camera2.AddComponent(cameraComp2);
+
+        // Act
+        scene.OnViewportResize(800, 600);
+
+        // Assert
+        cameraComp1.Camera.ViewportWidth.ShouldBe(800);
+        cameraComp1.Camera.ViewportHeight.ShouldBe(600);
+        cameraComp2.Camera.ViewportWidth.ShouldBe(800);
+        cameraComp2.Camera.ViewportHeight.ShouldBe(600);
+    }
+
+    [Fact]
+    public void OnViewportResize_WhenNoCameras_ShouldNotThrow()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        scene.CreateEntity("no-camera");
+
+        // Act & Assert
+        Should.NotThrow(() => scene.OnViewportResize(1024, 768));
+    }
+
+    #endregion
+
+    #region Entities Property Tests
+
+    [Fact]
+    public void Entities_ShouldReturnAllCreatedEntities()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entity1 = scene.CreateEntity("first");
+        var entity2 = scene.CreateEntity("second");
+        var entity3 = scene.CreateEntity("third");
+
+        // Act
+        var entities = scene.Entities.ToList();
+
+        // Assert
+        entities.Count.ShouldBe(3);
+        entities.ShouldContain(entity1);
+        entities.ShouldContain(entity2);
+        entities.ShouldContain(entity3);
+    }
+
+    [Fact]
+    public void Entities_AfterDestroy_ShouldNotIncludeDestroyedEntity()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+        var entity1 = scene.CreateEntity("first");
+        var entity2 = scene.CreateEntity("second");
+        scene.DestroyEntity(entity1);
+
+        // Act
+        var entities = scene.Entities.ToList();
+
+        // Assert
+        entities.Count.ShouldBe(1);
+        entities.ShouldNotContain(entity1);
+        entities.ShouldContain(entity2);
+    }
+
+    #endregion
+
+    #region Stress Tests
+
+    [Fact]
+    public void Scene_CreateAndDestroyManyEntities_ShouldHandleCorrectly()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Act - Create 1000 entities
+        var entities = new List<Entity>();
+        for (int i = 0; i < 1000; i++)
+        {
+            entities.Add(scene.CreateEntity($"entity-{i}"));
+        }
+
+        // Destroy half of them
+        for (int i = 0; i < 500; i++)
+        {
+            scene.DestroyEntity(entities[i * 2]);
+        }
+
+        // Assert
+        scene.Entities.Count().ShouldBe(500);
+    }
+
+    [Fact]
+    public void Scene_CreateEntitiesWithComponents_ShouldMaintainIntegrity()
+    {
+        // Arrange
+        using var scene = new Scene("test-scene", _mockSystemRegistry, _mockGraphics2D);
+
+        // Act - Create entities with various components
+        var entities = new List<Entity>();
+        for (int i = 0; i < 100; i++)
+        {
+            var entity = scene.CreateEntity($"entity-{i}");
+            entity.AddComponent(new TagComponent { Tag = $"tag-{i}" });
+            entity.AddComponent(new TransformComponent());
+            entities.Add(entity);
+        }
+
+        // Assert
+        scene.Entities.Count().ShouldBe(100);
+        foreach (var entity in entities)
+        {
+            entity.HasComponent<TagComponent>().ShouldBeTrue();
+            entity.HasComponent<TransformComponent>().ShouldBeTrue();
+        }
+    }
+
+    #endregion
+}
