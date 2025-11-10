@@ -20,7 +20,7 @@ public static class ScriptComponentUI
     private static string _newScriptName = string.Empty;
     private static Entity? _selectedEntity = null;
 
-    public static void OnImGuiRender()
+    public static void Draw()
     {
         // Render popup dialogs
         RenderCreateScriptPopup();

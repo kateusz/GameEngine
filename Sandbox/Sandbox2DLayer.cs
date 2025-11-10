@@ -122,7 +122,7 @@ public class Sandbox2DLayer : ILayer
         _orthographicCameraController.OnEvent(@event);
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
     }
 

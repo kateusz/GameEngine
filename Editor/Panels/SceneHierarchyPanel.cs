@@ -28,7 +28,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         _selectionContext = null;
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");

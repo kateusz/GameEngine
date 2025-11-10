@@ -287,7 +287,7 @@ public class EditorLayer : ILayer
         }
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         SubmitUI();
     }
@@ -408,12 +408,12 @@ public class EditorLayer : ILayer
                 ImGui.EndMenuBar();
             }
 
-            _sceneHierarchyPanel.OnImGuiRender();
-            _propertiesPanel.OnImGuiRender();
-            _contentBrowserPanel.OnImGuiRender();
-            _consolePanel.OnImGuiRender();
-            
-            ScriptComponentUI.OnImGuiRender();
+            _sceneHierarchyPanel.Draw();
+            _propertiesPanel.Draw();
+            _contentBrowserPanel.Draw();
+            _consolePanel.Draw();
+
+            ScriptComponentUI.Draw();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);

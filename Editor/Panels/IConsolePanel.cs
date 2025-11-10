@@ -15,7 +15,7 @@ public interface IConsolePanel
     /// <summary>
     /// Renders the console panel using ImGui.
     /// </summary>
-    void OnImGuiRender();
+    void Draw();
 
     /// <summary>
     /// Clears all messages from the console.

@@ -13,7 +13,7 @@ public interface IContentBrowserPanel
     /// <summary>
     /// Renders the content browser panel using ImGui.
     /// </summary>
-    void OnImGuiRender();
+    void Draw();
 
     /// <summary>
     /// Sets the root directory for the content browser.

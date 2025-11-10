@@ -24,7 +24,7 @@ public class PropertiesPanel : IPropertiesPanel
             _selectedEntity = entity;
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Properties");

@@ -107,7 +107,7 @@ public class BenchmarkLayer : ILayer
         RecordFrameTime((float)_frameTimer.Elapsed.TotalMilliseconds);
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         RenderBenchmarkUI();
         RenderResultsWindow();

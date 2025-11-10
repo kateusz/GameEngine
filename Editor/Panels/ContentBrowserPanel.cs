@@ -28,7 +28,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
         _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.Begin("Content Browser");
 

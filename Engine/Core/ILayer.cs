@@ -54,7 +54,7 @@ public interface ILayer
     /// Called during the ImGui rendering phase.
     /// Use this method to render ImGui UI elements.
     /// </summary>
-    void OnImGuiRender();
+    void Draw();
 
     /// <summary>
     /// Handles input events (keyboard, mouse, etc.).

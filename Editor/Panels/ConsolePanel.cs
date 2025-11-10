@@ -52,7 +52,7 @@ public class ConsolePanel : IConsolePanel
         }
     }
 
-    private void Clear()
+    public void Clear()
     {
         lock (_writeSync)
         {
@@ -60,7 +60,7 @@ public class ConsolePanel : IConsolePanel
         }
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.Begin("Console");
 

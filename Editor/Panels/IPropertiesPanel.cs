@@ -8,5 +8,5 @@ public interface IPropertiesPanel
     /// <summary>
     /// Renders the properties panel using ImGui.
     /// </summary>
-    void OnImGuiRender();
+    void Draw();
 }

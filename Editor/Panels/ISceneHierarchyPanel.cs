@@ -11,7 +11,7 @@ public interface ISceneHierarchyPanel
     /// <summary>
     /// Renders the scene hierarchy panel using ImGui.
     /// </summary>
-    void OnImGuiRender();
+    void Draw();
 
     /// <summary>
     /// Sets the scene context for the panel.

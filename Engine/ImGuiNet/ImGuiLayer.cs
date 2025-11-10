@@ -23,7 +23,7 @@ public class ImGuiLayer : IImGuiLayer
     {
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         var viewportFocused = ImGui.IsWindowFocused();
         var viewportHovered = ImGui.IsWindowHovered();
