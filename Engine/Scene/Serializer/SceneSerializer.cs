@@ -45,12 +45,6 @@ public class SceneSerializer : ISceneSerializer
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
     }
 
-    /// <summary>
-    /// Serializes a scene to a JSON file at the specified path.
-    /// </summary>
-    /// <param name="scene">The scene to serialize.</param>
-    /// <param name="path">The file path where the scene will be saved.</param>
-    /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be written due to I/O errors or access restrictions.</exception>
     public void Serialize(IScene scene, string path)
     {
         var jsonObj = new JsonObject
@@ -92,12 +86,6 @@ public class SceneSerializer : ISceneSerializer
         }
     }
 
-    /// <summary>
-    /// Deserializes a scene from a JSON file at the specified path.
-    /// </summary>
-    /// <param name="scene">The scene to populate with deserialized entities.</param>
-    /// <param name="path">The file path from which to load the scene.</param>
-    /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be read, doesn't exist, or contains invalid JSON.</exception>
     public void Deserialize(IScene scene, string path)
     {
         if (!File.Exists(path))

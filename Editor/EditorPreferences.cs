@@ -54,12 +54,6 @@ public class EditorPreferences : IEditorPreferences
     private readonly SemaphoreSlim _saveSemaphore = new(1, 1);
     private CancellationTokenSource? _pendingSaveCts;
 
-    /// <summary>
-    /// Adds a project to the recent projects list, moving it to the front if already present.
-    /// Automatically saves preferences after update.
-    /// </summary>
-    /// <param name="path">Absolute path to the project directory.</param>
-    /// <param name="name">Display name of the project.</param>
     public void AddRecentProject(string path, string name)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -96,11 +90,6 @@ public class EditorPreferences : IEditorPreferences
         Save();
     }
 
-    /// <summary>
-    /// Removes a project from the recent projects list (e.g., if deleted or invalid).
-    /// Automatically saves preferences after update.
-    /// </summary>
-    /// <param name="path">Absolute path to the project directory.</param>
     public void RemoveRecentProject(string path)
     {
         lock (_lock)
@@ -112,10 +101,6 @@ public class EditorPreferences : IEditorPreferences
         Save();
     }
 
-    /// <summary>
-    /// Gets a thread-safe snapshot of the recent projects list.
-    /// </summary>
-    /// <returns>A read-only copy of the recent projects list.</returns>
     public IReadOnlyList<RecentProject> GetRecentProjects()
     {
         lock (_lock)
@@ -124,10 +109,6 @@ public class EditorPreferences : IEditorPreferences
         }
     }
 
-    /// <summary>
-    /// Clears all recent projects from the list.
-    /// Automatically saves preferences after update.
-    /// </summary>
     public void ClearRecentProjects()
     {
         lock (_lock)
@@ -137,10 +118,6 @@ public class EditorPreferences : IEditorPreferences
         Save();
     }
 
-    /// <summary>
-    /// Saves preferences to disk in JSON format asynchronously.
-    /// Debounces rapid save calls to avoid excessive I/O.
-    /// </summary>
     public void Save()
     {
         // Cancel any pending save and schedule a new one

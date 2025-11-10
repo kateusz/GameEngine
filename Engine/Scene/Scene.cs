@@ -85,16 +85,6 @@ public class Scene : IScene
         }
     }
 
-    /// <summary>
-    /// Destroys an entity, removing it from the scene.
-    /// </summary>
-    /// <param name="entity">The entity to destroy.</param>
-    /// <remarks>
-    /// Performance: O(1) dictionary lookup + O(n) list removal.
-    /// This is a significant improvement over the previous O(n) iteration + double allocation approach.
-    /// With 1000 entities, deletion time drops from ~16ms to sub-millisecond.
-    /// No heap allocations beyond the list removal operation.
-    /// </remarks>
     public void DestroyEntity(Entity entity)
     {
         // Unsubscribe from all events before removing to prevent memory leak
