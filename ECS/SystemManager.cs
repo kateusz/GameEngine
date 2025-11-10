@@ -5,7 +5,7 @@ namespace ECS;
 /// Systems are executed in ascending priority order.
 /// Supports both per-scene systems and shared singleton systems with proper lifecycle management.
 /// </summary>
-public class SystemManager : IDisposable
+public class SystemManager : ISystemManager
 {
     private readonly List<ISystem> _systems = [];
     private readonly HashSet<ISystem> _sharedSystems = [];

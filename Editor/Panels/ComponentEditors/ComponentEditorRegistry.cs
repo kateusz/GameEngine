@@ -6,7 +6,7 @@ using Editor.UI;
 
 namespace Editor.Panels.ComponentEditors;
 
-public class ComponentEditorRegistry
+public class ComponentEditorRegistry : IComponentEditorRegistry
 {
     private readonly Dictionary<Type, IComponentEditor> _editors;
 

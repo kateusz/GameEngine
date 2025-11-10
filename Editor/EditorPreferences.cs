@@ -21,7 +21,7 @@ public record RecentProject
 /// Manages editor preferences including recent projects list and editor settings.
 /// Persists data to AppData/GameEngine/editor-preferences.json
 /// </summary>
-public class EditorPreferences : IDisposable
+public class EditorPreferences : IEditorPreferences
 {
     private static readonly ILogger Logger = Log.ForContext<EditorPreferences>();
 

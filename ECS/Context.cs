@@ -4,7 +4,7 @@ namespace ECS;
 /// Manages the global entity registry
 /// Thread-safe for concurrent access.
 /// </summary>
-public class Context
+public class Context : IContext
 {
     private static Context? _instance;
     public static Context Instance => _instance ??= new Context();

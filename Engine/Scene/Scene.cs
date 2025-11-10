@@ -13,7 +13,7 @@ using Serilog;
 
 namespace Engine.Scene;
 
-public class Scene : IDisposable
+public class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 

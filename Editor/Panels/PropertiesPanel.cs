@@ -6,7 +6,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class PropertiesPanel
+public class PropertiesPanel : IPropertiesPanel
 {
     private Entity? _selectedEntity;
     private readonly ComponentEditorRegistry _componentEditors;

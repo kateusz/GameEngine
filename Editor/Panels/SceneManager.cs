@@ -7,7 +7,7 @@ using Serilog;
 
 namespace Editor.Panels;
 
-public class SceneManager
+public class SceneManager : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
     

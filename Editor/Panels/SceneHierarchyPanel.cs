@@ -6,7 +6,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class SceneHierarchyPanel
+public class SceneHierarchyPanel : ISceneHierarchyPanel
 {
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;

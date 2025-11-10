@@ -5,7 +5,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel
+public class ContentBrowserPanel : IContentBrowserPanel
 {
     private string _assetPath;
     private string _currentDirectory;

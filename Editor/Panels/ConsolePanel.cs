@@ -5,7 +5,7 @@ using Editor.UI;
 
 namespace Editor.Panels;
 
-public class ConsolePanel
+public class ConsolePanel : IConsolePanel
 {
     private volatile List<LogMessage> _logMessages = new();
     private readonly Lock _writeSync = new();
