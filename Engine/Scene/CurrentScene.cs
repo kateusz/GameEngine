@@ -6,22 +6,22 @@ namespace Engine.Scene;
 /// </summary>
 public static class CurrentScene
 {
-    private static Scene? _instance;
-    
+    private static IScene? _instance;
+
     /// <summary>
     /// Gets the current scene instance. Returns null if no scene is active.
     /// </summary>
-    public static Scene? Instance => _instance;
-    
+    public static IScene? Instance => _instance;
+
     /// <summary>
     /// Sets the current scene instance. This should be called when a scene is loaded or created.
     /// </summary>
     /// <param name="scene">The scene to set as current</param>
-    public static void Set(Scene scene)
+    public static void Set(IScene scene)
     {
         _instance = scene;
     }
-    
+
     /// <summary>
     /// Clears the current scene instance. This should be called when a scene is unloaded.
     /// </summary>

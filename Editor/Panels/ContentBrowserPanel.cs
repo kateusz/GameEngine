@@ -5,7 +5,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel
+public class ContentBrowserPanel : IContentBrowserPanel
 {
     private string _assetPath;
     private string _currentDirectory;
@@ -28,7 +28,7 @@ public class ContentBrowserPanel
         _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.Begin("Content Browser");
 

@@ -13,7 +13,7 @@ using Serilog;
 
 namespace Engine.Scene;
 
-public class Scene : IDisposable
+public class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
@@ -23,10 +23,10 @@ public class Scene : IDisposable
     private uint _viewportHeight;
     private readonly World _physicsWorld;
     private int _nextEntityId = 1;
-    private readonly SystemManager _systemManager;
+    private readonly ISystemManager _systemManager;
     private bool _disposed = false;
 
-    public Scene(string path, SceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
+    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
     {
         _path = path;
         _graphics2D = graphics2D;
@@ -85,16 +85,6 @@ public class Scene : IDisposable
         }
     }
 
-    /// <summary>
-    /// Destroys an entity, removing it from the scene.
-    /// </summary>
-    /// <param name="entity">The entity to destroy.</param>
-    /// <remarks>
-    /// Performance: O(1) dictionary lookup + O(n) list removal.
-    /// This is a significant improvement over the previous O(n) iteration + double allocation approach.
-    /// With 1000 entities, deletion time drops from ~16ms to sub-millisecond.
-    /// No heap allocations beyond the list removal operation.
-    /// </remarks>
     public void DestroyEntity(Entity entity)
     {
         // Unsubscribe from all events before removing to prevent memory leak

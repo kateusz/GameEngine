@@ -3,7 +3,7 @@ using Serilog;
 
 namespace Editor.Publisher;
 
-public class GamePublisher
+public class GamePublisher : IGamePublisher
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<GamePublisher>();
     

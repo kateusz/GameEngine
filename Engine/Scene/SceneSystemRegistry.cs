@@ -8,7 +8,7 @@ namespace Engine.Scene;
 /// Central registry for scene systems. Provides system configuration that can be reused across multiple scenes.
 /// Uses factory delegates for system creation to support proper dependency injection.
 /// </summary>
-public class SceneSystemRegistry
+public class SceneSystemRegistry : ISceneSystemRegistry
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemRegistry>();
 
@@ -45,7 +45,7 @@ public class SceneSystemRegistry
     /// All returned systems are singletons that will be shared across scenes.
     /// Systems are marked as shared to prevent multiple OnShutdown() calls when scenes are disposed.
     /// </remarks>
-    public IReadOnlyList<ISystem> PopulateSystemManager(SystemManager systemManager)
+    public IReadOnlyList<ISystem> PopulateSystemManager(ISystemManager systemManager)
     {
         lock (_lock)
         {

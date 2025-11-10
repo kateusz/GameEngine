@@ -48,7 +48,7 @@ public class Sandbox2DLayer : ILayer
     private static readonly ILogger Logger = Log.ForContext<Sandbox2DLayer>();
 
     private readonly IGraphics2D _graphics2D;
-    private OrthographicCameraController _orthographicCameraController;
+    private IOrthographicCameraController _orthographicCameraController;
     private Texture2D _spriteSheet;
     private SubTexture2D _textureBarrel;
 
@@ -122,7 +122,7 @@ public class Sandbox2DLayer : ILayer
         _orthographicCameraController.OnEvent(@event);
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
     }
 

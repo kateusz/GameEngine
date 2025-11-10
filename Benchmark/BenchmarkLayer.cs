@@ -17,7 +17,7 @@ namespace Benchmark;
 public class BenchmarkLayer : ILayer
 {
     private readonly IGraphics2D _graphics2D;
-    private readonly SceneSystemRegistry _sceneSystemRegistry;
+    private readonly ISceneSystemRegistry _sceneSystemRegistry;
     private readonly SceneFactory _sceneFactory;
     
     private readonly List<BenchmarkResult> _results = new();
@@ -35,8 +35,8 @@ public class BenchmarkLayer : ILayer
     private long _currentMemoryUsageMB;
         
     // Test scenes
-    private Scene? _currentTestScene;
-    private OrthographicCameraController? _cameraController;
+    private IScene? _currentTestScene;
+    private IOrthographicCameraController? _cameraController;
     private readonly Dictionary<string, Texture2D> _testTextures = new();
         
     // Benchmark configurations - using fields for ImGui compatibility
@@ -54,7 +54,7 @@ public class BenchmarkLayer : ILayer
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = new();
 
-    public BenchmarkLayer(IGraphics2D graphics2D, SceneSystemRegistry sceneSystemRegistry, SceneFactory sceneFactory)
+    public BenchmarkLayer(IGraphics2D graphics2D, ISceneSystemRegistry sceneSystemRegistry, SceneFactory sceneFactory)
     {
         _graphics2D = graphics2D;
         _sceneSystemRegistry = sceneSystemRegistry;
@@ -107,7 +107,7 @@ public class BenchmarkLayer : ILayer
         RecordFrameTime((float)_frameTimer.Elapsed.TotalMilliseconds);
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         RenderBenchmarkUI();
         RenderResultsWindow();

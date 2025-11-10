@@ -5,7 +5,7 @@ using AssimpMesh = Silk.NET.Assimp.Mesh;
 
 namespace Engine.Renderer;
 
-public class Model : IDisposable
+public class Model : IModel
 {
     public Model(string path)
     {

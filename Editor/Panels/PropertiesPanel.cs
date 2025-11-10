@@ -6,13 +6,13 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class PropertiesPanel
+public class PropertiesPanel : IPropertiesPanel
 {
     private Entity? _selectedEntity;
-    private readonly ComponentEditorRegistry _componentEditors;
+    private readonly IComponentEditorRegistry _componentEditors;
     private readonly IPrefabManager _prefabManager;
 
-    public PropertiesPanel(IPrefabManager prefabManager, ComponentEditorRegistry componentEditors)
+    public PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors)
     {
         _prefabManager = prefabManager;
         _componentEditors = componentEditors;
@@ -24,7 +24,7 @@ public class PropertiesPanel
             _selectedEntity = entity;
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Properties");

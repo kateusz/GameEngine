@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Engine.Renderer.Cameras;
 
-public class OrthographicCameraController
+public class OrthographicCameraController : IOrthographicCameraController
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<OrthographicCameraController>();
     

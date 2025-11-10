@@ -146,7 +146,7 @@ public abstract class Application : IApplication
         // ImGui rendering also uses reverse order to maintain consistent layer ordering
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
-            _layersStack[index].OnImGuiRender();
+            _layersStack[index].Draw();
         }
 
         _imGuiLayer?.End();

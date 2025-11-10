@@ -6,8 +6,8 @@ namespace Editor.Managers;
 public class ProjectManager : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
-    
-    private readonly EditorPreferences _editorPreferences;
+
+    private readonly IEditorPreferences _editorPreferences;
 
     private static readonly string[] RequiredDirs =
     [
@@ -22,7 +22,7 @@ public class ProjectManager : IProjectManager
     /// Initializes a new instance of the ProjectManager.
     /// </summary>
     /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
-    public ProjectManager(EditorPreferences editorPreferences)
+    public ProjectManager(IEditorPreferences editorPreferences)
     {
         _editorPreferences = editorPreferences;
     }

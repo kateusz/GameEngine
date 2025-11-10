@@ -6,15 +6,15 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class SceneHierarchyPanel
+public class SceneHierarchyPanel : ISceneHierarchyPanel
 {
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;
-    
-    private Scene _context;
+
+    private IScene? _context;
     private Entity? _selectionContext;
-    
-    public Action<Entity> EntitySelected;
+
+    public Action<Entity> EntitySelected { get; set; }
 
     public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
     {
@@ -22,13 +22,13 @@ public class SceneHierarchyPanel
         _prefabDropTarget = prefabDropTarget;
     }
 
-    public void SetContext(Scene context)
+    public void SetContext(IScene? context)
     {
         _context = context;
         _selectionContext = null;
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");
