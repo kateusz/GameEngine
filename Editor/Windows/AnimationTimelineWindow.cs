@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Editor.Core;
 using ImGuiNET;
 using Engine.Scene.Components;
 using Editor.UI;
@@ -10,9 +11,8 @@ namespace Editor.Windows
     /// Advanced animation timeline editor window.
     /// Provides visual authoring tools for animators with frame-by-frame control.
     /// </summary>
-    public class AnimationTimelineWindow
+    public class AnimationTimelineWindow : IEditorWindow
     {
-        private bool _isOpen = false;
         private bool _hasBeenDockedOnce = false;
         private Entity? _selectedEntity;
         private AnimationComponent? _component;
@@ -28,19 +28,25 @@ namespace Editor.Windows
         private const float FrameBoxHeight = 120.0f;
         private const float TimelineHeight = 150.0f;
 
+        // IEditorWindow implementation
+        public string Id => "AnimationTimeline";
+        public string Title => "Animation Timeline";
+        public bool IsOpen { get; set; }
+
         public void SetEntity(Entity entity)
         {
             _selectedEntity = entity;
             _component = entity.GetComponent<AnimationComponent>();
-            _isOpen = true;
+            IsOpen = true;
+            OnOpen();
         }
 
         public void OnImGuiRender(uint viewportDockId = 0)
         {
-            if (!_isOpen)
+            if (!IsOpen)
                 return;
 
-            var wasOpen = _isOpen;
+            var wasOpen = IsOpen;
 
             // Dock to Viewport on first open
             if (!_hasBeenDockedOnce && viewportDockId != 0)
@@ -49,7 +55,8 @@ namespace Editor.Windows
                 _hasBeenDockedOnce = true;
             }
 
-            if (ImGui.Begin("Animation Timeline", ref _isOpen, ImGuiWindowFlags.MenuBar))
+            var isOpen = IsOpen;
+            if (ImGui.Begin(Title, ref isOpen, ImGuiWindowFlags.MenuBar))
             {
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
@@ -94,11 +101,23 @@ namespace Editor.Windows
 
             ImGui.End();
 
+            IsOpen = isOpen;
+
             // If window was just closed via X button, reset state
-            if (wasOpen && !_isOpen)
+            if (wasOpen && !IsOpen)
             {
-                ResetState();
+                OnClose();
             }
+        }
+
+        public void OnOpen()
+        {
+            // Could start animation preview, etc.
+        }
+
+        public void OnClose()
+        {
+            ResetState();
         }
 
         private void ResetState()
@@ -407,7 +426,7 @@ namespace Editor.Windows
         // Update preview playback (called from editor layer update)
         public void Update(float deltaTime)
         {
-            if (!_isOpen || !_previewPlaying || _component == null)
+            if (!IsOpen || !_previewPlaying || _component == null)
                 return;
 
             var clip = _component.Asset?.GetClip(_component.CurrentClipName);

@@ -1,11 +1,12 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Editor.Core;
 using Engine.Renderer.Textures;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel : IContentBrowserPanel
+public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
 {
     private string _assetPath;
     private string _currentDirectory;
@@ -13,6 +14,11 @@ public class ContentBrowserPanel : IContentBrowserPanel
     private Texture2D _fileIcon;
     private Texture2D _prefabIcon;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
+
+    // IEditorPanel implementation
+    public string Id => "ContentBrowser";
+    public string Title => "Content Browser";
+    public bool IsVisible { get; set; } = true;
 
     public ContentBrowserPanel()
     {
@@ -30,19 +36,27 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     public void Draw()
     {
-        ImGui.Begin("Content Browser");
+        OnImGuiRender();
+    }
 
-        // Display current path at the top
-        ImGui.TextWrapped($"Current Path: {_currentDirectory}");
-        ImGui.Separator();
+    public void OnImGuiRender()
+    {
+        if (!IsVisible) return;
 
-        if (_currentDirectory != _assetPath)
+        var isVisible = IsVisible;
+        if (ImGui.Begin(Title, ref isVisible))
         {
-            if (ImGui.Button("<-"))
+            // Display current path at the top
+            ImGui.TextWrapped($"Current Path: {_currentDirectory}");
+            ImGui.Separator();
+
+            if (_currentDirectory != _assetPath)
             {
-                _currentDirectory = Directory.GetParent(_currentDirectory)!.FullName;
+                if (ImGui.Button("<-"))
+                {
+                    _currentDirectory = Directory.GetParent(_currentDirectory)!.FullName;
+                }
             }
-        }
 
         var padding = 16.0f;
         var thumbnailSize = 36.0f;
@@ -160,8 +174,11 @@ public class ContentBrowserPanel : IContentBrowserPanel
             ImGui.PopID();
         }
 
-        ImGui.Columns(1);
+            ImGui.Columns(1);
+        }
         ImGui.End();
+
+        IsVisible = isVisible;
     }
 
     public void SetRootDirectory(string rootDir)

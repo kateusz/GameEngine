@@ -1,37 +1,46 @@
 using System.Numerics;
+using Editor.Core;
 using Engine.Core;
 using Engine.Renderer.Cameras;
 using ImGuiNET;
 
 namespace Editor.Popups;
 
-public class EditorSettingsUI
+public class EditorSettingsUI : IEditorPopup
 {
-    private bool _open;
-
     private readonly IEditorPreferences _editorPreferences;
+
+    // IEditorPopup implementation
+    public string Id => "EditorSettings";
+    public bool IsOpen { get; private set; }
 
     public EditorSettingsUI(IEditorPreferences editorPreferences)
     {
         _editorPreferences = editorPreferences;
     }
 
-    public void Show() => _open = true;
-
-    public void Render()
+    public void Show()
     {
-        // Open the popup when _open is set to true
-        if (_open)
-            ImGui.OpenPopup("Editor Settings");
+        IsOpen = true;
+    }
+
+    public void OnImGuiRender()
+    {
+        // Open the popup when IsOpen is set to true
+        if (IsOpen)
+            ImGui.OpenPopup(Id);
 
         // Center the popup on first appearance
         ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
             ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
 
         // Use BeginPopupModal for proper popup behavior
-        if (!ImGui.BeginPopupModal("Editor Settings", ref _open,
+        var isOpen = IsOpen;
+        if (!ImGui.BeginPopupModal("Editor Settings", ref isOpen,
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
             return;
+
+        IsOpen = isOpen;
 
         // --- Background Color ---
         ImGui.Text("Editor Background Color");
@@ -64,6 +73,16 @@ public class EditorSettingsUI
         }
 
         ImGui.EndPopup();
+    }
+
+    public void OnClose()
+    {
+        // Nothing to clean up
+    }
+
+    public void Render()
+    {
+        OnImGuiRender();
     }
 
     /// <summary>

@@ -1,26 +1,27 @@
 ﻿using DryIoc;
 using Editor;
+using Editor.Core;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Panels.Elements;
-using Engine.Core;
-using Engine.Core.Window;
-using Engine.ImGuiNet;
-using Engine.Scene;
-using Engine.Scene.Serializer;
-using Engine.Scripting;
-using Silk.NET.Maths;
-using Silk.NET.Windowing;
-using Serilog;
-using Editor.Logging;
-using Editor.Panels.ComponentEditors;
 using Editor.Popups;
 using Editor.UI;
 using Editor.Windows;
 using Engine.Animation;
+using Engine.Core;
+using Engine.Core.Window;
 using Engine.Events;
+using Engine.ImGuiNet;
 using Engine.Renderer;
+using Engine.Scene;
+using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
+using Engine.Scripting;
+using Serilog;
+using Editor.Logging;
+using Editor.Panels.ComponentEditors;
+using Silk.NET.Maths;
+using Silk.NET.Windowing;
 
 static void ConfigureContainer(Container container)
 {
@@ -57,7 +58,11 @@ static void ConfigureContainer(Container container)
     
     container.Register<AnimationAssetManager>(Reuse.Singleton);
     container.Register<AnimationSystem>(Reuse.Singleton);
-    
+
+    // Register new UI management system
+    container.Register<EditorUIManager>(Reuse.Singleton);
+    container.Register<EditorEventBus>(Reuse.Singleton);
+
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
     container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
@@ -66,6 +71,10 @@ static void ConfigureContainer(Container container)
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
     container.Register<AudioDropTarget>(Reuse.Singleton);
+
+    // Register new popups
+    container.Register<NewProjectPopup>(Reuse.Singleton);
+    container.Register<OpenProjectPopup>(Reuse.Singleton);
     
     container.Register<TransformComponentEditor>(Reuse.Singleton);
     container.Register<CameraComponentEditor>(Reuse.Singleton);

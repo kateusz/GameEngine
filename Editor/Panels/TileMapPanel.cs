@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Core;
 using Engine.Scene.Components;
 using ImGuiNET;
 using Editor.UI;
@@ -8,7 +9,7 @@ namespace Editor.Panels;
 /// <summary>
 /// TileMap editor panel with Godot-like functionality
 /// </summary>
-public class TileMapPanel
+public class TileMapPanel : IEditorWindow
 {
     private TileMapComponent? _activeTileMap;
     private TileSet? _tileSet;
@@ -29,6 +30,9 @@ public class TileMapPanel
     private float _zoom = 1.0f;
     private Vector2 _panOffset = Vector2.Zero;
 
+    // IEditorWindow implementation
+    public string Id => "TileMapEditor";
+    public string Title => "TileMap Editor";
     public bool IsOpen { get; set; }
 
     public void SetTileMap(TileMapComponent? tileMap)
@@ -38,7 +42,8 @@ public class TileMapPanel
         {
             LoadTileSet(tileMap.TileSetPath, tileMap.TileSetColumns, tileMap.TileSetRows);
         }
-        IsOpen = true; // Automatically open when a tilemap is set
+        IsOpen = true;
+        OnOpen();
     }
 
     private void LoadTileSet(string path, int columns, int rows)
@@ -92,8 +97,8 @@ public class TileMapPanel
             _hasBeenDockedOnce = true;
         }
 
-        bool isOpen = true;
-        if (ImGui.Begin("TileMap Editor", ref isOpen))
+        var isOpen = IsOpen;
+        if (ImGui.Begin(Title, ref isOpen))
         {
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
@@ -122,11 +127,21 @@ public class TileMapPanel
         ImGui.End();
 
         // Update IsOpen state based on window close button
-        if (!isOpen)
+        IsOpen = isOpen;
+        if (!IsOpen)
         {
-            IsOpen = false;
-            _hasBeenDockedOnce = false; // Reset docking flag when window closes
+            OnClose();
         }
+    }
+
+    public void OnOpen()
+    {
+        // Reset state when opening
+    }
+
+    public void OnClose()
+    {
+        _hasBeenDockedOnce = false; // Reset docking flag when window closes
     }
 
     private void DrawToolbar()

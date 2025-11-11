@@ -1,7 +1,9 @@
 using System.Numerics;
 using ImGuiNET;
+using Editor.Core;
 using Editor.Managers;
 using Editor.Panels;
+using Editor.Popups;
 using Editor.UI;
 using Engine;
 using Engine.Core;
@@ -13,11 +15,9 @@ namespace Editor.Windows;
 /// Startup window displaying recent projects with quick access options.
 /// Shown automatically on editor launch for streamlined workflow.
 /// </summary>
-public class RecentProjectsWindow
+public class RecentProjectsWindow : IEditorWindow
 {
     private static readonly ILogger Logger = Log.ForContext<RecentProjectsWindow>();
-        
-    private bool _isOpen = true;
     private bool _isLoading;
     private string _loadingProjectName = string.Empty;
     private readonly IEditorPreferences _editorPreferences;
@@ -26,7 +26,11 @@ public class RecentProjectsWindow
     private readonly ProjectUI _projectUI;
     private string? _projectToRemove;
     private float _loadingSpinnerRotation;
-    
+
+    // IEditorWindow implementation
+    public string Id => "RecentProjects";
+    public string Title => "Recent Projects";
+    public bool IsOpen { get; set; } = true;
 
     public RecentProjectsWindow(
         IEditorPreferences editorPreferences,
@@ -42,7 +46,12 @@ public class RecentProjectsWindow
 
     public void Draw()
     {
-        if (!_isOpen)
+        OnImGuiRender();
+    }
+
+    public void OnImGuiRender(uint viewportDockId = 0)
+    {
+        if (!IsOpen)
         {
             return;
         }
@@ -59,7 +68,8 @@ public class RecentProjectsWindow
 
         var windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking;
 
-        if (ImGui.Begin("Recent Projects", ref _isOpen, windowFlags))
+        var isOpen = IsOpen;
+        if (ImGui.Begin(Title, ref isOpen, windowFlags))
         {
             if (_isLoading)
             {
@@ -74,12 +84,24 @@ public class RecentProjectsWindow
         }
         ImGui.End();
 
+        IsOpen = isOpen;
+
         // Handle deferred project removal (can't remove during iteration)
         if (_projectToRemove != null)
         {
             _editorPreferences.RemoveRecentProject(_projectToRemove);
             _projectToRemove = null;
         }
+    }
+
+    public void OnOpen()
+    {
+        Logger.Debug("RecentProjectsWindow opened");
+    }
+
+    public void OnClose()
+    {
+        Logger.Debug("RecentProjectsWindow closed");
     }
 
     private void DrawRecentProjects()
@@ -211,9 +233,9 @@ public class RecentProjectsWindow
                 {
                     _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                     Logger.Information("Opened project: {Name}", project.Name);
-                    
+
                     // Close window on next frame
-                    _isOpen = false;
+                    IsOpen = false;
                 }
                 else
                 {
@@ -237,14 +259,14 @@ public class RecentProjectsWindow
         if (ImGui.Button("New Project", new Vector2(buttonWidth, 20)))
         {
             _projectUI.ShowNewProjectPopup();
-            _isOpen = false;
+            IsOpen = false;
         }
 
         ImGui.SameLine();
-        
+
         if (ImGui.Button("Continue Without Project", new Vector2(buttonWidth, 20)))
         {
-            _isOpen = false;
+            IsOpen = false;
         }
     }
 
@@ -357,7 +379,8 @@ public class RecentProjectsWindow
     /// </summary>
     public void Show()
     {
-        Logger.Debug("RecentProjectsWindow.Show() called, setting _isOpen = true");
-        _isOpen = true;
+        Logger.Debug("RecentProjectsWindow.Show() called");
+        IsOpen = true;
+        OnOpen();
     }
 }

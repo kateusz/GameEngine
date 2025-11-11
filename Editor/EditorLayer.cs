@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
+using Editor.Core;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
@@ -27,12 +28,10 @@ namespace Editor;
 public class EditorLayer : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
-    
+
     private readonly Vector2[] _viewportBounds = new Vector2[2];
-    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
-    private readonly IContentBrowserPanel _contentBrowserPanel;
-    private readonly IPropertiesPanel _propertiesPanel;
-    private readonly IConsolePanel _consolePanel;
+    private readonly EditorUIManager _uiManager;
+    private readonly EditorEventBus _eventBus;
     private readonly ProjectUI _projectUI;
     private readonly IProjectManager _projectManager;
     private readonly ISceneManager _sceneManager;
@@ -44,9 +43,8 @@ public class EditorLayer : ILayer
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
     private readonly AnimationTimelineWindow _animationTimeline;
-    private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
-    private readonly TileMapPanel _tileMapPanel;
+    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
     
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -59,30 +57,59 @@ public class EditorLayer : ILayer
     private bool _viewportFocused;
     private Entity? _hoveredEntity;
 
-    public EditorLayer(IProjectManager projectManager,
-        IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
-        IPropertiesPanel propertiesPanel, ISceneHierarchyPanel sceneHierarchyPanel, ISceneManager sceneManager,
-        IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
-        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
-        TileMapPanel tileMapPanel)
+    public EditorLayer(
+        EditorUIManager uiManager,
+        EditorEventBus eventBus,
+        IProjectManager projectManager,
+        IEditorPreferences editorPreferences,
+        ISceneManager sceneManager,
+        IGraphics2D graphics2D,
+        SceneFactory sceneFactory,
+        EditorToolbar editorToolbar,
+        RendererStatsPanel rendererStatsPanel,
+        EditorSettingsUI editorSettingsUI,
+        AnimationTimelineWindow animationTimeline,
+        ProjectUI projectUI,
+        ISceneHierarchyPanel sceneHierarchyPanel,
+        IPropertiesPanel propertiesPanel,
+        IConsolePanel consolePanel,
+        IContentBrowserPanel contentBrowserPanel,
+        RecentProjectsWindow recentProjectsWindow,
+        TileMapPanel tileMapPanel,
+        NewProjectPopup newProjectPopup,
+        OpenProjectPopup openProjectPopup)
     {
+        _uiManager = uiManager;
+        _eventBus = eventBus;
         _projectManager = projectManager;
-        _consolePanel = consolePanel;
         _editorPreferences = editorPreferences;
-        _editorSettingsUI = editorSettingsUI;
-        _propertiesPanel = propertiesPanel;
-        _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneManager = sceneManager;
-        _contentBrowserPanel = contentBrowserPanel;
-        _editorToolbar = editorToolbar;
-        _projectUI = projectUI;
         _graphics2D = graphics2D;
-        _rendererStatsPanel = rendererStatsPanel;
         _sceneFactory = sceneFactory;
+        _editorToolbar = editorToolbar;
+        _rendererStatsPanel = rendererStatsPanel;
+        _editorSettingsUI = editorSettingsUI;
         _animationTimeline = animationTimeline;
-        _recentProjectsWindow = recentProjectsWindow;
-        _tileMapPanel = tileMapPanel;
+        _projectUI = projectUI;
+        _sceneHierarchyPanel = sceneHierarchyPanel;
+
+        // Register panels
+        _uiManager.RegisterPanel(sceneHierarchyPanel);
+        _uiManager.RegisterPanel(propertiesPanel);
+        _uiManager.RegisterPanel(consolePanel);
+        _uiManager.RegisterPanel(contentBrowserPanel);
+
+        // Register windows
+        _uiManager.RegisterWindow(animationTimeline);
+        _uiManager.RegisterWindow(recentProjectsWindow);
+        _uiManager.RegisterWindow(tileMapPanel);
+
+        // Register popups
+        _uiManager.RegisterPopup(newProjectPopup);
+        _uiManager.RegisterPopup(openProjectPopup);
+        _uiManager.RegisterPopup(editorSettingsUI);
+
+        Logger.Information("EditorLayer initialized with new UI management system");
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -151,7 +178,11 @@ public class EditorLayer : ILayer
         CurrentScene.Instance?.Dispose();
 
         _frameBuffer?.Dispose();
-        _consolePanel?.Dispose();
+
+        // Dispose console panel
+        var consolePanel = _uiManager.GetPanel<IConsolePanel>();
+        consolePanel?.Dispose();
+
         Log.CloseAndFlush();
     }
 
@@ -386,9 +417,9 @@ public class EditorLayer : ILayer
                         _projectUI.ShowOpenProjectPopup();
                     
                     ImGui.Separator();
-                    
+
                     if (ImGui.MenuItem("Show Recent Projects"))
-                        _recentProjectsWindow.Show();
+                        _uiManager.ShowWindow<RecentProjectsWindow>();
 
                     // Add Recent Projects submenu
                     if (ImGui.BeginMenu("Recent Projects"))
@@ -408,7 +439,8 @@ public class EditorLayer : ILayer
                                 {
                                     if (_projectManager.TryOpenProject(recent.Path, out var error))
                                     {
-                                        _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                                        var contentBrowser = _uiManager.GetPanel<IContentBrowserPanel>();
+                                        contentBrowser?.SetRootDirectory(AssetsManager.AssetsPath);
                                     }
                                     else
                                     {
@@ -457,14 +489,19 @@ public class EditorLayer : ILayer
                         _sceneManager.FocusOnSelectedEntity(_cameraController);
                     if (ImGui.MenuItem("Reset Camera"))
                         ResetCamera();
-                    
+
                     ImGui.Separator();
-                    
+
                     if (ImGui.MenuItem("Show Rulers", null, _viewportRuler.Enabled))
                         _viewportRuler.Enabled = !_viewportRuler.Enabled;
                     if (ImGui.MenuItem("Show Stats", null, _rendererStatsPanel.IsVisible))
                         _rendererStatsPanel.IsVisible = !_rendererStatsPanel.IsVisible;
-                    
+
+                    ImGui.Separator();
+
+                    // Render automatic panel/window visibility menu
+                    _uiManager.RenderViewMenu("Panels && Windows");
+
                     ImGui.EndMenu();
                 }
 
@@ -485,18 +522,12 @@ public class EditorLayer : ILayer
                 ImGui.EndMenuBar();
             }
 
-            _sceneHierarchyPanel.Draw();
-            _propertiesPanel.Draw();
-            _contentBrowserPanel.Draw();
-            _consolePanel.Draw();
-            
+            // Render all registered panels using UI manager
+            _uiManager.RenderAllPanels();
+
             ScriptComponentUI.Draw();
-            _recentProjectsWindow.Draw();
-            
-            var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-            _propertiesPanel.SetSelectedEntity(selectedEntity);
-            
-            // Render Stats window if visible
+
+            // Render Stats window if visible (not yet migrated)
             var hoveredEntityName = _hoveredEntity?.Name ?? "None";
             var camPos = _cameraController.Camera.Position;
             var camRotation = _cameraController.Camera.Rotation;
@@ -609,10 +640,9 @@ public class EditorLayer : ILayer
                 _rulerTool.Render(_viewportBounds, _cameraController.Camera);
             }
 
-            // Render windows that should dock to Viewport
+            // Render all registered windows using UI manager (with viewport docking support)
             var viewportDockId = ImGui.GetWindowDockID();
-            _animationTimeline.OnImGuiRender(viewportDockId);
-            _tileMapPanel.OnImGuiRender(viewportDockId);
+            _uiManager.RenderAllWindows(viewportDockId);
 
             ImGui.End();
 
@@ -623,8 +653,10 @@ public class EditorLayer : ILayer
             ImGui.End();
         }
 
-        // Render popups outside the dockspace window
-        _editorSettingsUI.Render();
+        // Render all registered popups using UI manager
+        _uiManager.RenderAllPopups();
+
+        // Keep legacy ProjectUI for backward compatibility
         _projectUI.Render();
     }
 

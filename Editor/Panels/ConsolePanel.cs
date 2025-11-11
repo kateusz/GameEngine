@@ -1,11 +1,12 @@
 using System.Numerics;
 using System.Text;
 using ImGuiNET;
+using Editor.Core;
 using Editor.UI;
 
 namespace Editor.Panels;
 
-public class ConsolePanel : IConsolePanel
+public class ConsolePanel : IConsolePanel, IEditorPanel
 {
     private volatile List<LogMessage> _logMessages = new();
     private readonly Lock _writeSync = new();
@@ -19,6 +20,11 @@ public class ConsolePanel : IConsolePanel
     private bool _showWarnings = true;
     private bool _showErrors = true;
     private const int MaxMessages = 1000;
+
+    // IEditorPanel implementation
+    public string Id => "Console";
+    public string Title => "Console";
+    public bool IsVisible { get; set; } = true;
 
     public ConsolePanel()
     {
@@ -62,13 +68,23 @@ public class ConsolePanel : IConsolePanel
 
     public void Draw()
     {
-        ImGui.Begin("Console");
+        OnImGuiRender();
+    }
 
-        RenderToolbar();
-        ImGui.Separator();
-        RenderLogDisplay();
+    public void OnImGuiRender()
+    {
+        if (!IsVisible) return;
 
+        var isVisible = IsVisible;
+        if (ImGui.Begin(Title, ref isVisible))
+        {
+            RenderToolbar();
+            ImGui.Separator();
+            RenderLogDisplay();
+        }
         ImGui.End();
+
+        IsVisible = isVisible;
     }
 
     private void RenderToolbar()

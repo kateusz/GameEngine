@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Editor.Core;
 using Editor.Panels.Elements;
 using Editor.UI;
 using Engine.Scene;
@@ -7,10 +8,11 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class SceneHierarchyPanel : ISceneHierarchyPanel
+public class SceneHierarchyPanel : ISceneHierarchyPanel, IEditorPanel
 {
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;
+    private readonly EditorEventBus _eventBus;
 
     private IScene _context;
     private Entity? _selectionContext;
@@ -20,12 +22,19 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     private readonly List<Entity> _filteredEntities = [];
     private bool _isFilterActive;
 
+    // IEditorPanel implementation
+    public string Id => "SceneHierarchy";
+    public string Title => "Scene Hierarchy";
+    public bool IsVisible { get; set; } = true;
+
+    // Legacy callback support (for compatibility)
     public Action<Entity> EntitySelected { get; set; }
 
-    public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
+    public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget, EditorEventBus eventBus)
     {
         _contextMenu = contextMenu;
         _prefabDropTarget = prefabDropTarget;
+        _eventBus = eventBus;
     }
 
     public void SetContext(IScene? context)
@@ -36,22 +45,36 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 
     public void Draw()
     {
+        OnImGuiRender();
+    }
+
+    public void OnImGuiRender()
+    {
+        if (!IsVisible) return;
+
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
-        ImGui.Begin("Scene Hierarchy");
 
-        RenderSearchInput();
+        var isVisible = IsVisible;
+        if (ImGui.Begin(Title, ref isVisible))
+        {
+            RenderSearchInput();
 
-        if (_isFilterActive)
-            RenderFilterStatus();
+            if (_isFilterActive)
+                RenderFilterStatus();
 
-        RenderEntityHierarchy();
+            RenderEntityHierarchy();
 
-        if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
-            _selectionContext = null;
+            if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
+            {
+                _selectionContext = null;
+                _eventBus.Publish(new EntityDeselectedEvent());
+            }
 
-        _contextMenu.Render(_context);
-
+            _contextMenu.Render(_context);
+        }
         ImGui.End();
+
+        IsVisible = isVisible;
     }
 
     public void SetSelectedEntity(Entity entity) => _selectionContext = entity;
@@ -67,8 +90,13 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 
         if (ImGui.IsItemClicked())
         {
-            EntitySelected.Invoke(entity);
             _selectionContext = entity;
+
+            // Publish event for event-driven communication
+            _eventBus.Publish(new EntitySelectedEvent(entity));
+
+            // Legacy callback support (for compatibility during migration)
+            EntitySelected?.Invoke(entity);
         }
 
         // Prefab drag & drop handling
