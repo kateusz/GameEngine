@@ -78,7 +78,7 @@ public class NewProjectPopup : IEditorPopup
                     _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
 
                     // Publish event
-                    _eventBus.Publish(new ProjectCreatedEvent(_projectManager.CurrentProjectPath ?? string.Empty, _projectName));
+                    _eventBus.Publish(new ProjectCreatedEvent(AssetsManager.AssetsPath, _projectName));
 
                     OnClose();
                 }

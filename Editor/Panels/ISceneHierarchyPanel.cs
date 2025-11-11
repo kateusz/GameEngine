@@ -1,4 +1,5 @@
 using ECS;
+using Editor.Core;
 using Engine.Scene;
 
 namespace Editor.Panels;
@@ -6,7 +7,7 @@ namespace Editor.Panels;
 /// <summary>
 /// Interface for the scene hierarchy panel that displays the entity tree.
 /// </summary>
-public interface ISceneHierarchyPanel
+public interface ISceneHierarchyPanel : IEditorPanel
 {
     /// <summary>
     /// Renders the scene hierarchy panel using ImGui.

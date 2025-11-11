@@ -1,9 +1,11 @@
+using Editor.Core;
+
 namespace Editor.Panels;
 
 /// <summary>
 /// Interface for the console panel that displays log messages.
 /// </summary>
-public interface IConsolePanel : IDisposable
+public interface IConsolePanel : IEditorPanel, IDisposable
 {
     /// <summary>
     /// Adds a message to the console log.

@@ -1,9 +1,11 @@
+using Editor.Core;
+
 namespace Editor.Panels;
 
 /// <summary>
 /// Interface for the content browser panel that displays project assets.
 /// </summary>
-public interface IContentBrowserPanel
+public interface IContentBrowserPanel : IEditorPanel
 {
     /// <summary>
     /// Initializes the content browser panel and loads icons.

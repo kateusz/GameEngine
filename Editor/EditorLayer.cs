@@ -134,8 +134,9 @@ public class EditorLayer : ILayer
         
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
-        
-        _contentBrowserPanel.Init();
+
+        var contentBrowser = _uiManager.GetPanel<IContentBrowserPanel>();
+        contentBrowser?.Init();
         _editorToolbar.Init();
 
         // Apply settings from preferences
