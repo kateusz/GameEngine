@@ -2,8 +2,8 @@ namespace Engine.Renderer.Textures;
 
 public abstract class Texture : IDisposable
 {
-    public int Width { get; set; }
-    public int Height { get; set; }
+    public virtual int Width { get; set; }
+    public virtual int Height { get; set; }
 
     public string? Path { get; set; }
 

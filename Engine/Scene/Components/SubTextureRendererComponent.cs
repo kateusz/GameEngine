@@ -13,13 +13,13 @@ public class SubTextureRendererComponent : IComponent
     /// Size of each cell in the sprite atlas (in pixels).
     /// Default is 16x16 pixels.
     /// </summary>
-    public Vector2 CellSize { get; set; } = new(16, 16);
+    public Vector2 CellSize { get; set; }
 
     /// <summary>
     /// Size of the sprite in cells (for multi-cell sprites).
     /// Default is 1x1 cells.
     /// </summary>
-    public Vector2 SpriteSize { get; set; } = new(1, 1);
+    public Vector2 SpriteSize { get; set; }
 
     public SubTextureRendererComponent()
     {

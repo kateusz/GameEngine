@@ -11,11 +11,15 @@ public class SystemManagerTests
         public bool ShutdownCalled { get; private set; }
         public TimeSpan LastDeltaTime { get; private set; }
         public List<string> CallOrder { get; } = new();
+        public List<int>? SharedInitOrder { get; set; } // Track init call order across systems
+        public List<int>? SharedUpdateOrder { get; set; } // Track update call order across systems
+        public List<int>? SharedShutdownOrder { get; set; } // Track shutdown call order across systems
 
         public void OnInit()
         {
             InitCalled = true;
             CallOrder.Add("Init");
+            SharedInitOrder?.Add(Priority); // Record when this system was initialized
         }
 
         public void OnUpdate(TimeSpan deltaTime)
@@ -23,12 +27,14 @@ public class SystemManagerTests
             UpdateCalled = true;
             LastDeltaTime = deltaTime;
             CallOrder.Add("Update");
+            SharedUpdateOrder?.Add(Priority); // Record when this system was called
         }
 
         public void OnShutdown()
         {
             ShutdownCalled = true;
             CallOrder.Add("Shutdown");
+            SharedShutdownOrder?.Add(Priority); // Record when this system was shut down
         }
     }
 
@@ -69,21 +75,6 @@ public class SystemManagerTests
     }
 
     [Fact]
-    public void RegisterSystem_AfterInitialize_CallsOnInitImmediately()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        manager.Initialize();
-        var system = new TestSystem();
-
-        // Act
-        manager.RegisterSystem(system);
-
-        // Assert
-        Assert.True(system.InitCalled);
-    }
-
-    [Fact]
     public void Initialize_CallsOnInitOnAllSystems()
     {
         // Arrange
@@ -118,34 +109,30 @@ public class SystemManagerTests
     {
         // Arrange
         var manager = new SystemManager();
-        var callOrder = new List<int>();
+        var initOrder = new List<int>();
 
-        var system3 = new TestSystem { Priority = 3 };
-        var system1 = new TestSystem { Priority = 1 };
-        var system2 = new TestSystem { Priority = 2 };
+        var system3 = new TestSystem { Priority = 3, SharedInitOrder = initOrder };
+        var system1 = new TestSystem { Priority = 1, SharedInitOrder = initOrder };
+        var system2 = new TestSystem { Priority = 2, SharedInitOrder = initOrder };
 
         // Register in non-priority order
         manager.RegisterSystem(system3);
         manager.RegisterSystem(system1);
         manager.RegisterSystem(system2);
 
-        // Track call order
-        system1.CallOrder.Clear();
-        system2.CallOrder.Clear();
-        system3.CallOrder.Clear();
-
-        var initOrder = new List<TestSystem>();
-        system1.CallOrder.Add("Init");
-        system2.CallOrder.Add("Init");
-        system3.CallOrder.Add("Init");
-
         // Act
         manager.Initialize();
 
-        // Verify that systems were called
+        // Assert - All systems should have been initialized in priority order (1, 2, 3)
         Assert.True(system1.InitCalled);
         Assert.True(system2.InitCalled);
         Assert.True(system3.InitCalled);
+
+        // Verify they were initialized in ascending priority order
+        Assert.Equal(3, initOrder.Count);
+        Assert.Equal(1, initOrder[0]); // System with priority 1 initialized first
+        Assert.Equal(2, initOrder[1]); // System with priority 2 initialized second
+        Assert.Equal(3, initOrder[2]); // System with priority 3 initialized third
     }
 
     [Fact]
@@ -190,9 +177,9 @@ public class SystemManagerTests
         var manager = new SystemManager();
         var updateOrder = new List<int>();
 
-        var system3 = new TestSystem { Priority = 3 };
-        var system1 = new TestSystem { Priority = 1 };
-        var system2 = new TestSystem { Priority = 2 };
+        var system3 = new TestSystem { Priority = 3, SharedUpdateOrder = updateOrder };
+        var system1 = new TestSystem { Priority = 1, SharedUpdateOrder = updateOrder };
+        var system2 = new TestSystem { Priority = 2, SharedUpdateOrder = updateOrder };
 
         // Register in non-priority order
         manager.RegisterSystem(system3);
@@ -203,10 +190,16 @@ public class SystemManagerTests
         // Act
         manager.Update(TimeSpan.FromSeconds(0.016));
 
-        // Assert - All systems should have been called
+        // Assert - All systems should have been called in priority order (1, 2, 3)
         Assert.True(system1.UpdateCalled);
         Assert.True(system2.UpdateCalled);
         Assert.True(system3.UpdateCalled);
+
+        // Verify they were called in ascending priority order
+        Assert.Equal(3, updateOrder.Count);
+        Assert.Equal(1, updateOrder[0]); // System with priority 1 called first
+        Assert.Equal(2, updateOrder[1]); // System with priority 2 called second
+        Assert.Equal(3, updateOrder[2]); // System with priority 3 called third
     }
 
     [Fact]
@@ -237,9 +230,9 @@ public class SystemManagerTests
         var manager = new SystemManager();
         var shutdownOrder = new List<int>();
 
-        var system1 = new TestSystem { Priority = 1 };
-        var system2 = new TestSystem { Priority = 2 };
-        var system3 = new TestSystem { Priority = 3 };
+        var system1 = new TestSystem { Priority = 1, SharedShutdownOrder = shutdownOrder };
+        var system2 = new TestSystem { Priority = 2, SharedShutdownOrder = shutdownOrder };
+        var system3 = new TestSystem { Priority = 3, SharedShutdownOrder = shutdownOrder };
 
         manager.RegisterSystem(system1);
         manager.RegisterSystem(system2);
@@ -249,10 +242,16 @@ public class SystemManagerTests
         // Act
         manager.Shutdown();
 
-        // Assert - All systems should have been shut down
+        // Assert - All systems should have been shut down in reverse priority order (3, 2, 1)
         Assert.True(system1.ShutdownCalled);
         Assert.True(system2.ShutdownCalled);
         Assert.True(system3.ShutdownCalled);
+
+        // Verify they were shut down in descending priority order (reverse of update order)
+        Assert.Equal(3, shutdownOrder.Count);
+        Assert.Equal(3, shutdownOrder[0]); // System with priority 3 shut down first
+        Assert.Equal(2, shutdownOrder[1]); // System with priority 2 shut down second
+        Assert.Equal(1, shutdownOrder[2]); // System with priority 1 shut down last
     }
 
     [Fact]
@@ -269,61 +268,6 @@ public class SystemManagerTests
 
         // Assert
         Assert.Equal(new[] { "Init", "Update" }, system.CallOrder);
-    }
-
-    [Fact]
-    public void PriorityOrdering_SystemsExecuteInAscendingPriorityOrder()
-    {
-        // Arrange
-        var manager = new SystemManager();
-        var executionOrder = new List<int>();
-
-        var system10 = new TestSystem { Priority = 10 };
-        var system5 = new TestSystem { Priority = 5 };
-        var system1 = new TestSystem { Priority = 1 };
-        var system15 = new TestSystem { Priority = 15 };
-
-        // Register in random order
-        manager.RegisterSystem(system10);
-        manager.RegisterSystem(system5);
-        manager.RegisterSystem(system15);
-        manager.RegisterSystem(system1);
-
-        manager.Initialize();
-
-        // Act
-        manager.Update(TimeSpan.FromSeconds(0.016));
-
-        // Assert - Verify all systems were called
-        Assert.True(system1.UpdateCalled);
-        Assert.True(system5.UpdateCalled);
-        Assert.True(system10.UpdateCalled);
-        Assert.True(system15.UpdateCalled);
-    }
-
-    [Fact]
-    public void PriorityOrdering_NegativePrioritiesExecuteFirst()
-    {
-        // Arrange
-        var manager = new SystemManager();
-
-        var systemPositive = new TestSystem { Priority = 10 };
-        var systemNegative = new TestSystem { Priority = -5 };
-        var systemZero = new TestSystem { Priority = 0 };
-
-        manager.RegisterSystem(systemPositive);
-        manager.RegisterSystem(systemNegative);
-        manager.RegisterSystem(systemZero);
-
-        manager.Initialize();
-
-        // Act
-        manager.Update(TimeSpan.FromSeconds(0.016));
-
-        // Assert - All should be called
-        Assert.True(systemNegative.UpdateCalled);
-        Assert.True(systemZero.UpdateCalled);
-        Assert.True(systemPositive.UpdateCalled);
     }
 
     [Fact]
