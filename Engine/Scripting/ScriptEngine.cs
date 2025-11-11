@@ -400,7 +400,7 @@ public class ScriptEngine : IScriptEngine
                         text: existingContent,
                         options: CSharpParseOptions.Default,
                         path: existingPath,
-                        encoding: System.Text.Encoding.UTF8); // FIXED: Add encoding
+                        encoding: System.Text.Encoding.UTF8);
                         
                     syntaxTrees.Add(existingTree);
                 }

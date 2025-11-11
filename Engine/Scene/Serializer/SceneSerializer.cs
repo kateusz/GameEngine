@@ -31,6 +31,7 @@ public class SceneSerializer : ISceneSerializer
 
     private readonly IAudioEngine _audioEngine;
 
+    // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -39,6 +40,8 @@ public class SceneSerializer : ISceneSerializer
             new Vector2Converter(),
             new Vector3Converter(),
             new Vector4Converter(),
+            new RectangleConverter(),
+            new TileMapComponentConverter(),
             new JsonStringEnumConverter()
         }
     };
@@ -48,6 +51,12 @@ public class SceneSerializer : ISceneSerializer
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
     }
 
+    /// <summary>
+    /// Serializes a scene to a JSON file at the specified path.
+    /// </summary>
+    /// <param name="scene">The scene to serialize.</param>
+    /// <param name="path">The file path where the scene will be saved.</param>
+    /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be written due to I/O errors or access restrictions.</exception>
     public void Serialize(IScene scene, string path)
     {
         var jsonObj = new JsonObject
@@ -89,6 +98,12 @@ public class SceneSerializer : ISceneSerializer
         }
     }
 
+    /// <summary>
+    /// Deserializes a scene from a JSON file at the specified path.
+    /// </summary>
+    /// <param name="scene">The scene to populate with deserialized entities.</param>
+    /// <param name="path">The file path from which to load the scene.</param>
+    /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be read, doesn't exist, or contains invalid JSON.</exception>
     public void Deserialize(IScene scene, string path)
     {
         if (!File.Exists(path))
@@ -181,7 +196,7 @@ public class SceneSerializer : ISceneSerializer
                 DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
             case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
+                DeserializeSubTextureRendererComponent(entity, componentObj);
                 break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
@@ -194,6 +209,12 @@ public class SceneSerializer : ISceneSerializer
                 break;
             case nameof(AudioSourceComponent):
                 DeserializeAudioSourceComponent(entity, componentObj);
+                break;
+            case nameof(AnimationComponent):
+                AddComponent<AnimationComponent>(entity, componentObj);
+                break;
+            case nameof(TileMapComponent):
+                AddComponent<TileMapComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
@@ -215,6 +236,21 @@ public class SceneSerializer : ISceneSerializer
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists (same as SpriteRendererComponent)
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SubTextureRendererComponent>(component);
     }
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
@@ -342,8 +378,10 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
         SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
+        SerializeComponent<TileMapComponent>(entity, entityObj, nameof(TileMapComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
+        SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
         SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 

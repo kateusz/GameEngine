@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Renderer;
 using ImGuiNET;
 
@@ -7,6 +8,8 @@ public class RendererStatsPanel
 {
     private readonly IGraphics2D _graphics2D;
     private readonly IGraphics3D _graphics3D;
+    
+    public bool IsVisible { get; set; }
 
     public RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
     {
@@ -14,9 +17,26 @@ public class RendererStatsPanel
         _graphics3D = graphics3D;
     }
 
-    // TODO: refactor it
-    public void Render()
+    public void Draw(string hoveredEntityName, Vector3 cameraPosition, float cameraRotation, Action? renderPerformanceMonitor)
     {
+        if (!IsVisible)
+            return;
+
+        var isVisible = IsVisible;
+        ImGui.Begin("Stats", ref isVisible);
+        IsVisible = isVisible;
+        
+        ImGui.Text($"Hovered Entity: {hoveredEntityName}");
+        
+        renderPerformanceMonitor?.Invoke();
+        
+        // Camera info
+        ImGui.Text("Camera:");
+        ImGui.Text($"Position: ({cameraPosition.X:F2}, {cameraPosition.Y:F2}, {cameraPosition.Z:F2})");
+        ImGui.Text($"Rotation: {cameraRotation:F1}°");
+
+        ImGui.Separator();
+        
         // --- Renderer2D Stats ---
         var stats2D = _graphics2D.GetStats();
         ImGui.Text("Renderer2D Stats:");

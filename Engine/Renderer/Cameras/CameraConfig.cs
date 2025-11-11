@@ -31,7 +31,7 @@ public static class CameraConfig
     /// Default zoom level in world units.
     /// Represents the half-height of the orthographic view in world space.
     /// </summary>
-    public const float DefaultZoomLevel = 20.0f;
+    public const float DefaultZoomLevel = 30.0f;
     
     /// <summary>
     /// Zoom sensitivity - how much each scroll wheel tick changes the zoom.
@@ -75,15 +75,15 @@ public static class CameraConfig
     // Orthographic defaults
     /// <summary>
     /// Default near clip plane for orthographic cameras.
-    /// OpenGL standard is -1.0, but may vary by platform.
+    /// Set to -100 to provide adequate depth range for 2D scenes with layering.
     /// </summary>
-    public const float DefaultOrthographicNear = -1.0f;
-    
+    public const float DefaultOrthographicNear = -100.0f;
+
     /// <summary>
     /// Default far clip plane for orthographic cameras.
-    /// OpenGL standard is 1.0, but may vary by platform.
+    /// Set to 100 to provide adequate depth range for 2D scenes with layering.
     /// </summary>
-    public const float DefaultOrthographicFar = 1.0f;
+    public const float DefaultOrthographicFar = 100.0f;
     
     /// <summary>
     /// Default orthographic size (half-height in world units).

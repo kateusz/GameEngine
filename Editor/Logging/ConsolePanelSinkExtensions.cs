@@ -18,7 +18,7 @@ public static class ConsolePanelSinkExtensions
     /// <returns>Configuration object allowing method chaining.</returns>
     public static LoggerConfiguration ConsolePanel(
         this LoggerSinkConfiguration sinkConfiguration,
-        ConsolePanel consolePanel,
+        IConsolePanel consolePanel,
         string outputTemplate = "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
     {
         if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));

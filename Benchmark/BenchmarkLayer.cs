@@ -63,7 +63,7 @@ public class BenchmarkLayer : ILayer
 
     public void OnAttach(IInputSystem inputSystem)
     {
-        _cameraController = new OrthographicCameraController(1280.0f / 720.0f, true);
+        _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio, true);
         LoadTestAssets();
 
         // Initialize process monitoring
@@ -181,7 +181,7 @@ public class BenchmarkLayer : ILayer
 
     private void RenderResultsWindow()
     {
-        ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(DisplayConfig.StandardDialogSize.Width, 500), ImGuiCond.FirstUseEver);
         ImGui.Begin("Benchmark Results");
 
         if (_results.Count > 0)
