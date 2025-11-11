@@ -8,6 +8,11 @@ namespace Editor.Panels.Elements;
 
 public static class ModelTextureDropTarget
 {
+    /// <summary>
+    /// Renders a button that accepts texture file drops from the content browser.
+    /// </summary>
+    /// <param name="label">Label for the button</param>
+    /// <param name="onTextureChanged">Callback invoked when a texture is dropped</param>
     public static void Draw(string label, Action<Texture2D> onTextureChanged)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>

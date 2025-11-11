@@ -175,8 +175,8 @@ public static class AnimationController
     public static float GetNormalizedTime(Entity entity)
     {
         int frameCount = GetFrameCount(entity);
-        if (frameCount == 0) return 0.0f;
-        
+        if (frameCount <= 1) return 0.0f;
+
         int currentFrame = GetCurrentFrame(entity);
         return currentFrame / (float)(frameCount - 1);
     }

@@ -177,7 +177,7 @@ public class BossStateController : ScriptableEntity
 
 ## Event Flow Diagram
 
-```
+```text
 ┌─────────────────┐
 │ AnimationSystem │ (Priority: 198)
 └────────┬────────┘

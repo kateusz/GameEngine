@@ -25,14 +25,14 @@ public record AnimationClip
     /// <summary>
     /// Array of frame definitions.
     /// </summary>
-    public required AnimationFrame[] Frames { get; init; } = [];
+    public required AnimationFrame[] Frames { get; init; }
 
     /// <summary>
     /// Calculated clip duration in seconds.
     /// Formula: frames.Length / FPS
     /// </summary>
     [JsonIgnore]
-    public float Duration => Frames.Length / Fps;
+    public float Duration => Fps > 0 ? Frames.Length / Fps : 0f;
 
     /// <summary>
     /// Get frame duration in seconds (time per frame).

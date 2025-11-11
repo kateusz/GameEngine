@@ -68,14 +68,14 @@ public record AnimationFrame
         TexCoords[3] = new Vector2(uvMinX, uvMaxY);  // Top-left
 
         // Apply flip flags
-        if (Flip?.X > 0.5f) // Horizontal flip
+        if (Flip?.X != 0.0f) // Horizontal flip
         {
             // Swap X coordinates
             (TexCoords[0].X, TexCoords[1].X) = (TexCoords[1].X, TexCoords[0].X);
             (TexCoords[2].X, TexCoords[3].X) = (TexCoords[3].X, TexCoords[2].X);
         }
 
-        if (Flip?.Y > 0.5f) // Vertical flip
+        if (Flip?.Y != 0.0f) // Vertical flip
         {
             // Swap Y coordinates
             (TexCoords[0].Y, TexCoords[3].Y) = (TexCoords[3].Y, TexCoords[0].Y);
