@@ -4,6 +4,7 @@ using ECS;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
+using Editor.Systems;
 using Editor.UI;
 using Editor.Utilities;
 using Editor.Windows;
@@ -47,17 +48,19 @@ public class EditorLayer : ILayer
     private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
     private readonly TileMapPanel _tileMapPanel;
-    
+
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
     private readonly ObjectManipulator _objectManipulator = new();
     private readonly RulerTool _rulerTool = new();
-    
+
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private Entity? _hoveredEntity;
+    private ISystemManager _editorSystems;
+    private EditorCameraSystem _editorCameraSystem;
 
     public EditorLayer(IProjectManager projectManager,
         IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
@@ -104,10 +107,10 @@ public class EditorLayer : ILayer
 
         var scene = _sceneFactory.Create("");
         CurrentScene.Set(scene);
-        
+
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
-        
+
         _contentBrowserPanel.Init();
         _editorToolbar.Init();
 
@@ -117,6 +120,12 @@ public class EditorLayer : ILayer
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
+
+        // Initialize editor systems
+        _editorSystems = new SystemManager();
+        _editorCameraSystem = new EditorCameraSystem(_cameraController);
+        _editorSystems.RegisterSystem(_editorCameraSystem);
+        _editorSystems.Initialize();
 
         Logger.Information("✅ Editor initialized successfully!");
         Logger.Information("Console panel is now capturing output.");
@@ -146,6 +155,10 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+
+        // Shutdown editor systems
+        _editorSystems?.ShutdownAll();
+        _editorSystems?.Dispose();
 
         // Dispose current scene to cleanup resources
         CurrentScene.Instance?.Dispose();
@@ -186,10 +199,12 @@ public class EditorLayer : ILayer
         {
             case SceneState.Edit:
             {
-                // Update camera controller when viewport is focused
-                if (_viewportFocused)
-                    _cameraController.OnUpdate(timeSpan);
-                
+                // Update viewport focus state for the camera system
+                _editorCameraSystem.SetViewportFocused(_viewportFocused);
+
+                // Update editor systems (camera controller, etc.)
+                _editorSystems.Update(timeSpan);
+
                 // Use 2D camera for editor scene rendering
                 CurrentScene.Instance.OnUpdateEditor(timeSpan, _cameraController.Camera);
                 break;
