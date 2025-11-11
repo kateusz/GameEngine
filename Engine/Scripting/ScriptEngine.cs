@@ -29,6 +29,9 @@ public class ScriptEngine : IScriptEngine
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private bool _debugMode = true; // Enable debugging by default in development
 
+    // Runtime mode flag - when true, disables hot reload and expects pre-compiled assemblies
+    private bool _isRuntimeMode = false;
+
     private ScriptEngine()
     {
         // Default to current directory, but allow override
@@ -45,8 +48,11 @@ public class ScriptEngine : IScriptEngine
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Check for script changes
-        CheckForScriptChanges();
+        // Check for script changes only in editor mode (not in runtime mode)
+        if (!_isRuntimeMode)
+        {
+            CheckForScriptChanges();
+        }
 
         // Update all script components
         if (CurrentScene.Instance == null) return;
@@ -880,4 +886,70 @@ public class ScriptEngine : IScriptEngine
                  }
                  """;
     }
+
+    /// <summary>
+    /// Loads a pre-compiled script assembly from a DLL file.
+    /// This is used in runtime/published builds where scripts are pre-compiled.
+    /// </summary>
+    /// <param name="assemblyPath">Path to the pre-compiled GameScripts.dll</param>
+    /// <returns>True if successfully loaded, false otherwise</returns>
+    public bool LoadPrecompiledAssembly(string assemblyPath)
+    {
+        try
+        {
+            Logger.Information("Loading pre-compiled script assembly from: {AssemblyPath}", assemblyPath);
+
+            if (!File.Exists(assemblyPath))
+            {
+                Logger.Error("Pre-compiled assembly not found at: {AssemblyPath}", assemblyPath);
+                return false;
+            }
+
+            // Enable runtime mode to disable hot reload
+            _isRuntimeMode = true;
+
+            // Load the assembly
+            _dynamicAssembly = Assembly.LoadFrom(assemblyPath);
+            Logger.Information("Successfully loaded assembly: {AssemblyName}", _dynamicAssembly.FullName);
+
+            // Check if there's a PDB file for debugging
+            var pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
+            if (File.Exists(pdbPath))
+            {
+                Logger.Information("Debug symbols found at: {PdbPath}", pdbPath);
+                _debugSymbols["PrecompiledScripts"] = File.ReadAllBytes(pdbPath);
+            }
+
+            // Update script types from the loaded assembly
+            UpdateScriptTypes();
+
+            Logger.Information("Loaded {ScriptCount} script types from pre-compiled assembly", _scriptTypes.Count);
+
+            if (_scriptTypes.Count == 0)
+            {
+                Logger.Warning("No script types found in assembly. Make sure scripts inherit from ScriptableEntity.");
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to load pre-compiled script assembly");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Sets runtime mode, which disables hot reload and file watching.
+    /// </summary>
+    public void SetRuntimeMode(bool isRuntimeMode)
+    {
+        _isRuntimeMode = isRuntimeMode;
+        Logger.Information("Runtime mode: {IsRuntimeMode}", isRuntimeMode);
+    }
+
+    /// <summary>
+    /// Gets whether the script engine is in runtime mode (pre-compiled scripts, no hot reload).
+    /// </summary>
+    public bool IsRuntimeMode => _isRuntimeMode;
 }

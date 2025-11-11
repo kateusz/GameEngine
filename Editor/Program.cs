@@ -66,7 +66,9 @@ static void ConfigureContainer(Container container)
     container.Register<ProjectUI>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
     container.Register<RendererStatsPanel>(Reuse.Singleton);
-    
+    container.Register<Editor.Publisher.GamePublisher>(Reuse.Singleton);
+    container.Register<BuildSettingsPanel>(Reuse.Singleton);
+
     // Generic service resolver function
     container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);
     

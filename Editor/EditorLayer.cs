@@ -39,6 +39,7 @@ public class EditorLayer : ILayer
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
+    private readonly BuildSettingsPanel _buildSettingsPanel;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -53,7 +54,8 @@ public class EditorLayer : ILayer
         IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
         IPropertiesPanel propertiesPanel, ISceneHierarchyPanel sceneHierarchyPanel, ISceneManager sceneManager,
         IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
+        BuildSettingsPanel buildSettingsPanel)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -68,6 +70,7 @@ public class EditorLayer : ILayer
         _graphics2D = graphics2D;
         _rendererStatsPanel = rendererStatsPanel;
         _sceneFactory = sceneFactory;
+        _buildSettingsPanel = buildSettingsPanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -489,11 +492,12 @@ public class EditorLayer : ILayer
         // Render popups outside the dockspace window
         _editorSettingsUI.Render();
         _projectUI.Render();
+        _buildSettingsPanel.OnImGuiRender();
     }
 
     private void BuildAndPublish()
     {
-        throw new NotImplementedException();
+        _buildSettingsPanel.Show();
     }
 
     private void ResetCamera()
