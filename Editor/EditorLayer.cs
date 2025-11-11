@@ -636,16 +636,19 @@ public class EditorLayer : ILayer
                 var orthoSize = _cameraController.ZoomLevel;
                 var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
                 _viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-                
+
                 // Render ruler tool measurements
                 _rulerTool.Render(_viewportBounds, _cameraController.Camera);
             }
 
-            // Render all registered windows using UI manager (with viewport docking support)
+            // Get viewport dock ID before ending the window
             var viewportDockId = ImGui.GetWindowDockID();
-            _uiManager.RenderAllWindows(viewportDockId);
 
-            ImGui.End();
+            ImGui.End(); // End Viewport window
+
+            // Render all registered windows using UI manager (with viewport docking support)
+            // This must be called AFTER ending the Viewport window so windows can dock properly
+            _uiManager.RenderAllWindows(viewportDockId);
 
             ImGui.End();
             ImGui.PopStyleVar();
