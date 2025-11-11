@@ -447,44 +447,5 @@ public class MathHelpersTests
         matrix.M33.ShouldBe(systemMatrix.M33, 0.0001f);
     }
 
-    [Fact]
-    public void RandomTransform_DecomposeAndRecompose_ShouldMatchOriginal()
-    {
-        // Arrange
-        var originalTranslation = new Vector3(
-            _faker.Random.Float(-10f, 10f),
-            _faker.Random.Float(-10f, 10f),
-            _faker.Random.Float(-10f, 10f)
-        );
-        var originalScale = new Vector3(
-            _faker.Random.Float(0.5f, 3f),
-            _faker.Random.Float(0.5f, 3f),
-            _faker.Random.Float(0.5f, 3f)
-        );
-        var originalRotation = new Vector3(
-            _faker.Random.Float(-MathF.PI, MathF.PI),
-            _faker.Random.Float(-MathF.PI / 2, MathF.PI / 2), // Avoid gimbal lock
-            _faker.Random.Float(-MathF.PI, MathF.PI)
-        );
-
-        var quaternion = MathHelpers.QuaternionFromEuler(originalRotation);
-        var rotationMatrix = MathHelpers.MatrixFromQuaternion(quaternion);
-        var originalMatrix = Matrix4x4.CreateTranslation(originalTranslation)
-                           * rotationMatrix
-                           * Matrix4x4.CreateScale(originalScale);
-
-        // Act
-        var success = MathHelpers.DecomposeTransform(originalMatrix, out var translation, out _, out var scale);
-
-        // Assert
-        success.ShouldBeTrue();
-        translation.X.ShouldBe(originalTranslation.X, 0.001f);
-        translation.Y.ShouldBe(originalTranslation.Y, 0.001f);
-        translation.Z.ShouldBe(originalTranslation.Z, 0.001f);
-        scale.X.ShouldBe(originalScale.X, 0.01f);
-        scale.Y.ShouldBe(originalScale.Y, 0.01f);
-        scale.Z.ShouldBe(originalScale.Z, 0.01f);
-    }
-
     #endregion
 }

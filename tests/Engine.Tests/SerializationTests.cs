@@ -519,11 +519,12 @@ public class SerializationTests
 
         // Act
         var json = JsonSerializer.Serialize(original, _options);
-        var deserialized = JsonSerializer.Deserialize<dynamic>(json);
+        var deserialized = JsonSerializer.Deserialize<JsonElement>(json);
 
         // Assert - Should produce valid JSON
         json.ShouldNotBeNullOrEmpty();
-        deserialized.ShouldNotBeNull();
+        deserialized.ValueKind.ShouldNotBe(JsonValueKind.Null);
+        deserialized.ValueKind.ShouldNotBe(JsonValueKind.Undefined);
     }
 
     #endregion
