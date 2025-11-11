@@ -53,6 +53,7 @@ public class OrthographicCamera
         // Scale/zoom is handled by the projection matrix bounds, not the view matrix
         var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, Position.Z);
         var rotation = Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
+        var scale = Matrix4x4.CreateScale(Scale);
 
         var transform = Matrix4x4.Identity;
         transform *= position;
