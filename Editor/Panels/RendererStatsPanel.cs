@@ -17,7 +17,7 @@ public class RendererStatsPanel
         _graphics3D = graphics3D;
     }
 
-    public void OnImGuiRender(string hoveredEntityName, Vector3 cameraPosition, float cameraRotation, Action? renderPerformanceMonitor)
+    public void Draw(string hoveredEntityName, Vector3 cameraPosition, float cameraRotation, Action? renderPerformanceMonitor)
     {
         if (!IsVisible)
             return;

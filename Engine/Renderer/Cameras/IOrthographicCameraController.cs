@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Events;
 
 namespace Engine.Renderer.Cameras;
@@ -25,15 +26,18 @@ public interface IOrthographicCameraController
     /// <param name="event">Event to process</param>
     void OnEvent(Event @event);
 
-    /// <summary>
-    /// Sets the camera movement speed multiplier.
-    /// </summary>
-    /// <param name="multiplier">Speed multiplier value</param>
-    void SetSpeedMultiplier(float multiplier);
+    float ZoomLevel { get; }
+
+    void SetZoom(float zoom);
 
     /// <summary>
-    /// Gets the current camera movement speed multiplier.
+    /// Sets the camera position and synchronizes the controller's internal position state.
+    /// Use this method when programmatically moving the camera (e.g., focusing on an entity).
     /// </summary>
-    /// <returns>Speed multiplier value</returns>
-    float GetSpeedMultiplier();
+    void SetPosition(Vector3 position);
+
+    /// <summary>
+    /// Sets the camera rotation and synchronizes the controller's internal rotation state.
+    /// </summary>
+    void SetRotation(float rotation);
 }

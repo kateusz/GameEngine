@@ -12,10 +12,9 @@ public class EditorToolbar
     private Texture2D _iconSelect;
     private Texture2D _iconMove;
     private Texture2D _iconScale;
-    private readonly SceneManager _sceneManager;
+    private readonly ISceneManager _sceneManager;
     
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
-    private readonly ISceneManager _sceneManager;
 
     public EditorToolbar(ISceneManager sceneManager)
     {

@@ -56,20 +56,13 @@ public class OrthographicCameraController : IOrthographicCameraController
         _zoomLevel = zoom;
         Camera.SetProjection(-_aspectRatio * _zoomLevel, _aspectRatio * _zoomLevel, -_zoomLevel, _zoomLevel);
     }
-
-    /// <summary>
-    /// Sets the camera position and synchronizes the controller's internal position state.
-    /// Use this method when programmatically moving the camera (e.g., focusing on an entity).
-    /// </summary>
+    
     public void SetPosition(Vector3 position)
     {
         _cameraPosition = position;
         Camera.SetPosition(position);
     }
 
-    /// <summary>
-    /// Sets the camera rotation and synchronizes the controller's internal rotation state.
-    /// </summary>
     public void SetRotation(float rotation)
     {
         _cameraRotation = rotation;

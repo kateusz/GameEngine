@@ -1,17 +1,18 @@
 using System.Numerics;
 using ECS;
 using Editor.Panels.Elements;
+using Editor.UI;
 using Engine.Scene;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class SceneHierarchyPanel
+public class SceneHierarchyPanel : ISceneHierarchyPanel
 {
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;
 
-    private Scene _context;
+    private IScene _context;
     private Entity? _selectionContext;
 
     // Search/Filter state
@@ -19,7 +20,7 @@ public class SceneHierarchyPanel
     private readonly List<Entity> _filteredEntities = [];
     private bool _isFilterActive;
 
-    public Action<Entity> EntitySelected;
+    public Action<Entity> EntitySelected { get; set; }
 
     public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
     {

@@ -63,12 +63,9 @@ public class EditorLayer : ILayer
         IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
         IPropertiesPanel propertiesPanel, ISceneHierarchyPanel sceneHierarchyPanel, ISceneManager sceneManager,
         IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory)
-        EditorPreferences editorPreferences, ConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
-        PropertiesPanel propertiesPanel, SceneHierarchyPanel sceneHierarchyPanel, SceneManager sceneManager,
-        ContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
-        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory, 
-        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow, TileMapPanel tileMapPanel)
+        IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
+        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
+        TileMapPanel tileMapPanel)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -354,7 +351,7 @@ public class EditorLayer : ILayer
         }
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         SubmitUI();
     }
@@ -488,13 +485,13 @@ public class EditorLayer : ILayer
                 ImGui.EndMenuBar();
             }
 
-            _sceneHierarchyPanel.OnImGuiRender();
-            _propertiesPanel.OnImGuiRender();
+            _sceneHierarchyPanel.Draw();
+            _propertiesPanel.Draw();
             _contentBrowserPanel.Draw();
-            _consolePanel.OnImGuiRender();
+            _consolePanel.Draw();
             
-            ScriptComponentUI.OnImGuiRender();
-            _recentProjectsWindow.OnImGuiRender();
+            ScriptComponentUI.Draw();
+            _recentProjectsWindow.Draw();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);
@@ -503,7 +500,7 @@ public class EditorLayer : ILayer
             var hoveredEntityName = _hoveredEntity?.Name ?? "None";
             var camPos = _cameraController.Camera.Position;
             var camRotation = _cameraController.Camera.Rotation;
-            _rendererStatsPanel.OnImGuiRender(hoveredEntityName, camPos, camRotation, () => _performanceMonitor.RenderUI());
+            _rendererStatsPanel.Draw(hoveredEntityName, camPos, camRotation, () => _performanceMonitor.RenderUI());
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 

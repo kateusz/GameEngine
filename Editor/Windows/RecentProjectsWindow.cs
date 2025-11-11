@@ -20,18 +20,18 @@ public class RecentProjectsWindow
     private bool _isOpen = true;
     private bool _isLoading;
     private string _loadingProjectName = string.Empty;
-    private readonly EditorPreferences _editorPreferences;
+    private readonly IEditorPreferences _editorPreferences;
     private readonly IProjectManager _projectManager;
-    private readonly ContentBrowserPanel _contentBrowserPanel;
+    private readonly IContentBrowserPanel _contentBrowserPanel;
     private readonly ProjectUI _projectUI;
     private string? _projectToRemove;
     private float _loadingSpinnerRotation;
     
 
     public RecentProjectsWindow(
-        EditorPreferences editorPreferences,
+        IEditorPreferences editorPreferences,
         IProjectManager projectManager,
-        ContentBrowserPanel contentBrowserPanel,
+        IContentBrowserPanel contentBrowserPanel,
         ProjectUI projectUI)
     {
         _editorPreferences = editorPreferences;
@@ -40,7 +40,7 @@ public class RecentProjectsWindow
         _projectUI = projectUI;
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         if (!_isOpen)
         {

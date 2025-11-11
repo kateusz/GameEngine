@@ -45,7 +45,8 @@ static void ConfigureContainer(Container container)
 
     // Register SceneSystemRegistry and systems
     container.Register<SceneFactory>(Reuse.Singleton);
-    container.Register<SceneSystemRegistry>(Reuse.Singleton);
+    container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
+    
     container.Register<SpriteRenderingSystem>(Reuse.Singleton);
     container.Register<ModelRenderingSystem>(Reuse.Singleton);
     container.Register<ScriptUpdateSystem>(Reuse.Singleton);
@@ -53,13 +54,14 @@ static void ConfigureContainer(Container container)
     container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
     container.Register<AudioSystem>(Reuse.Singleton);
     container.Register<TileMapRenderSystem>(Reuse.Singleton);
+    
     container.Register<AnimationAssetManager>(Reuse.Singleton);
     container.Register<AnimationSystem>(Reuse.Singleton);
     
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
     container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
-    container.Register<EditorPreferences>(Reuse.Singleton,
+    container.Register<IEditorPreferences, EditorPreferences>(Reuse.Singleton,
         made: Made.Of(() => EditorPreferences.Load())
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
@@ -81,13 +83,13 @@ static void ConfigureContainer(Container container)
     container.Register<TileMapPanel>(Reuse.Singleton);
     container.Register<TileMapComponentEditor>(Reuse.Singleton);
     
-    container.Register<ComponentEditorRegistry>(Reuse.Singleton);
-    container.Register<PropertiesPanel>(Reuse.Singleton);
-    container.Register<SceneHierarchyPanel>(Reuse.Singleton);
+    container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
+    container.Register<IPropertiesPanel, PropertiesPanel>(Reuse.Singleton);
+    container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
     container.Register<EntityContextMenu>(Reuse.Singleton);
     container.Register<PrefabDropTarget>(Reuse.Singleton);
-    container.Register<SceneManager>(Reuse.Singleton);
-    container.Register<ContentBrowserPanel>(Reuse.Singleton);
+    container.Register<ISceneManager, SceneManager>(Reuse.Singleton);
+    container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
     container.Register<ProjectUI>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
     container.Register<RendererStatsPanel>(Reuse.Singleton);
@@ -105,7 +107,7 @@ static void ConfigureContainer(Container container)
     container.Register<Editor.Editor>(Reuse.Singleton);
 
     // Register ConsolePanel as singleton so it can be resolved early for logging
-    container.Register<ConsolePanel>(Reuse.Singleton);
+    container.Register<IConsolePanel, ConsolePanel>(Reuse.Singleton);
 
     container.ValidateAndThrow();
 }
@@ -114,7 +116,7 @@ var container = new Container();
 ConfigureContainer(container);
 
 // Create ConsolePanel early so we can configure logging with it
-var consolePanel = container.Resolve<ConsolePanel>();
+var consolePanel = container.Resolve<IConsolePanel>();
 
 // Configure Serilog with all sinks in one place
 Log.Logger = new LoggerConfiguration()
