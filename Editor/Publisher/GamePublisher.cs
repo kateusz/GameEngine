@@ -60,6 +60,9 @@ public class GamePublisher : IGamePublisher
             {
                 report.Success = false;
                 report.Errors.AddRange(validationErrors);
+                report.BuildDuration = stopwatch.Elapsed;
+                report.BuildLog = _buildLog.ToString();
+                OnBuildComplete?.Invoke(report);
                 return report;
             }
 
@@ -77,6 +80,9 @@ public class GamePublisher : IGamePublisher
                 {
                     report.Success = false;
                     report.Errors.AddRange(errors);
+                    report.BuildDuration = stopwatch.Elapsed;
+                    report.BuildLog = _buildLog.ToString();
+                    OnBuildComplete?.Invoke(report);
                     return report;
                 }
                 report.CompiledScripts = true;
@@ -94,6 +100,9 @@ public class GamePublisher : IGamePublisher
             {
                 report.Success = false;
                 report.Errors.AddRange(buildErrors);
+                report.BuildDuration = stopwatch.Elapsed;
+                report.BuildLog = _buildLog.ToString();
+                OnBuildComplete?.Invoke(report);
                 return report;
             }
             report.Files.Add($"{settings.GameName}{settings.GetExecutableExtension()} ({GetFileSize(exePath)} KB)");
@@ -125,6 +134,8 @@ public class GamePublisher : IGamePublisher
             report.Success = false;
             report.Errors.Add($"Build exception: {ex.Message}");
             report.BuildDuration = stopwatch.Elapsed;
+            report.BuildLog = _buildLog.ToString();
+            OnBuildComplete?.Invoke(report);
             return report;
         }
     }

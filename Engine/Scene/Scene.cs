@@ -323,14 +323,22 @@ public class Scene : IScene
         foreach (var component in entity.GetAllComponents())
         {
             var clonedComponent = component.Clone();
-
-            // Use reflection to call AddComponent with the correct type
             var componentType = component.GetType();
-            var addComponentMethod = typeof(Entity).GetMethod(nameof(Entity.AddComponent), new[] { componentType });
+
+            // Get the generic AddComponent<T>(T component) method
+            var addComponentMethod = typeof(Entity)
+                .GetMethods()
+                .FirstOrDefault(m =>
+                    m.Name == nameof(Entity.AddComponent) &&
+                    m.IsGenericMethod &&
+                    m.GetParameters().Length == 1 &&
+                    m.GetParameters()[0].ParameterType.IsGenericParameter);
 
             if (addComponentMethod != null)
             {
-                addComponentMethod.Invoke(newEntity, new[] { clonedComponent });
+                // Make the generic method concrete with the component type
+                var genericMethod = addComponentMethod.MakeGenericMethod(componentType);
+                genericMethod.Invoke(newEntity, new[] { clonedComponent });
             }
             else
             {

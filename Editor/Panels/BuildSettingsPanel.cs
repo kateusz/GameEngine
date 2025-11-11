@@ -22,6 +22,7 @@ public class BuildSettingsPanel
     private bool _isBuilding = false;
     private string _buildStatus = "";
     private List<string> _buildProgressLog = new();
+    private readonly object _buildProgressLogLock = new();
     private BuildReport? _lastBuildReport;
     private bool _showBuildReport = false;
 
@@ -187,14 +188,22 @@ public class BuildSettingsPanel
         ImGui.Text("Script Settings");
         ImGui.Indent();
 
-        ImGui.Checkbox("Pre-compile Scripts", ref _settings.PrecompileScripts);
+        bool precompileScripts = _settings.PrecompileScripts;
+        if (ImGui.Checkbox("Pre-compile Scripts", ref precompileScripts))
+        {
+            _settings.PrecompileScripts = precompileScripts;
+        }
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip("Compile scripts to GameScripts.dll at build time\nRecommended for distribution");
         }
 
         ImGui.BeginDisabled(!_settings.PrecompileScripts);
-        ImGui.Checkbox("Include Roslyn (Enable Modding)", ref _settings.IncludeRoslyn);
+        bool includeRoslyn = _settings.IncludeRoslyn;
+        if (ImGui.Checkbox("Include Roslyn (Enable Modding)", ref includeRoslyn))
+        {
+            _settings.IncludeRoslyn = includeRoslyn;
+        }
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip("Include script compiler in build for runtime modding\nIncreases build size by ~20MB");
@@ -233,8 +242,17 @@ public class BuildSettingsPanel
             _settings.WindowHeight = Math.Max(480, height);
         }
 
-        ImGui.Checkbox("Fullscreen", ref _settings.Fullscreen);
-        ImGui.Checkbox("VSync", ref _settings.VSync);
+        bool fullscreen = _settings.Fullscreen;
+        if (ImGui.Checkbox("Fullscreen", ref fullscreen))
+        {
+            _settings.Fullscreen = fullscreen;
+        }
+
+        bool vsync = _settings.VSync;
+        if (ImGui.Checkbox("VSync", ref vsync))
+        {
+            _settings.VSync = vsync;
+        }
 
         ImGui.Unindent();
     }
@@ -297,17 +315,20 @@ public class BuildSettingsPanel
         ImGui.TextColored(EditorUIConstants.InfoColor, _buildStatus);
 
         // Show progress log
-        if (_buildProgressLog.Count > 0)
+        lock (_buildProgressLogLock)
         {
-            ImGui.BeginChild("BuildLog", new Vector2(0, 150), true);
-            foreach (var line in _buildProgressLog)
+            if (_buildProgressLog.Count > 0)
             {
-                ImGui.TextWrapped(line);
+                ImGui.BeginChild("BuildLog", new Vector2(0, 150), ImGuiChildFlags.Border);
+                foreach (var line in _buildProgressLog)
+                {
+                    ImGui.TextWrapped(line);
+                }
+                // Auto-scroll to bottom
+                if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
+                    ImGui.SetScrollHereY(1.0f);
+                ImGui.EndChild();
             }
-            // Auto-scroll to bottom
-            if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
-                ImGui.SetScrollHereY(1.0f);
-            ImGui.EndChild();
         }
 
         ImGui.Unindent();
@@ -359,7 +380,7 @@ public class BuildSettingsPanel
             {
                 ImGui.Separator();
                 ImGui.TextColored(EditorUIConstants.ErrorColor, $"Errors ({report.Errors.Count}):");
-                ImGui.BeginChild("ErrorList", new Vector2(0, 150), true);
+                ImGui.BeginChild("ErrorList", new Vector2(0, 150), ImGuiChildFlags.Border);
                 foreach (var error in report.Errors)
                 {
                     ImGui.TextWrapped(error);
@@ -421,7 +442,11 @@ public class BuildSettingsPanel
     {
         _isBuilding = true;
         _buildStatus = "Starting build...";
-        _buildProgressLog.Clear();
+
+        lock (_buildProgressLogLock)
+        {
+            _buildProgressLog.Clear();
+        }
 
         Task.Run(async () =>
         {
@@ -442,7 +467,12 @@ public class BuildSettingsPanel
     private void OnBuildProgress(string message)
     {
         _buildStatus = message;
-        _buildProgressLog.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+
+        lock (_buildProgressLogLock)
+        {
+            _buildProgressLog.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+        }
+
         Logger.Information("Build: {Message}", message);
     }
 

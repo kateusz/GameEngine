@@ -24,7 +24,7 @@ public class RuntimeLayer : ILayer
     private readonly ISceneSerializer _sceneSerializer;
     private readonly RuntimeConfig _config;
     private readonly SceneFactory _sceneFactory;
-    private Scene? _activeScene;
+    private IScene? _activeScene;
     private bool _isInitialized = false;
 
     public RuntimeLayer(
@@ -113,18 +113,15 @@ public class RuntimeLayer : ILayer
 
         try
         {
-            var sceneJson = File.ReadAllText(fullPath);
-            _activeScene = _sceneSerializer.Deserialize(sceneJson, _sceneFactory);
+            // Create a new scene
+            _activeScene = _sceneFactory.Create(fullPath);
 
-            if (_activeScene != null)
-            {
-                CurrentScene.Instance = _activeScene;
-                Logger.Information("Scene loaded successfully: {SceneName}", _activeScene.Name);
-            }
-            else
-            {
-                throw new InvalidOperationException("Failed to deserialize scene");
-            }
+            // Deserialize the scene data into it
+            _sceneSerializer.Deserialize(_activeScene, fullPath);
+
+            // Set it as the current scene
+            CurrentScene.Set(_activeScene);
+            Logger.Information("Scene loaded successfully from: {ScenePath}", fullPath);
         }
         catch (Exception ex)
         {
@@ -176,7 +173,7 @@ public class RuntimeLayer : ILayer
     {
         Logger.Information("RuntimeLayer detaching...");
         _activeScene = null;
-        CurrentScene.Instance = null;
+        CurrentScene.Clear();
     }
 
     public void OnUpdate(TimeSpan deltaTime)
