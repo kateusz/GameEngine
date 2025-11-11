@@ -26,6 +26,9 @@ public class Scene : IScene
     private readonly ISystemManager _systemManager;
     private bool _disposed = false;
 
+    // Cache for tileset textures in editor mode (to avoid loading from disk every frame)
+    private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
+
     public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
     {
         _path = path;
@@ -273,7 +276,7 @@ public class Scene : IScene
             _graphics2D.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, entityId: entity.Id);
         }
 
-        // TileMaps (mirror runtime system)
+        // TileMaps (mirror runtime system with caching)
         var tilemapGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(TileMapComponent)]);
         foreach (var entity in tilemapGroup)
         {
@@ -284,19 +287,10 @@ public class Scene : IScene
             if (string.IsNullOrEmpty(tileMapComponent.TileSetPath))
                 continue;
 
-            // Load tileset texture
-            Texture2D? tilesetTexture = null;
-            if (File.Exists(tileMapComponent.TileSetPath))
-            {
-                tilesetTexture = TextureFactory.Create(tileMapComponent.TileSetPath);
-            }
-
-            if (tilesetTexture == null)
+            // Get or load cached tileset
+            var tileSet = GetOrLoadEditorTileSet(tileMapComponent);
+            if (tileSet?.Texture == null)
                 continue;
-
-            // Calculate tile dimensions
-            var tileWidth = tilesetTexture.Width / tileMapComponent.TileSetColumns;
-            var tileHeight = tilesetTexture.Height / tileMapComponent.TileSetRows;
 
             // Render layers in Z-index order
             var sortedLayers = tileMapComponent.Layers.OrderBy(l => l.ZIndex).ToList();
@@ -314,23 +308,10 @@ public class Scene : IScene
                         if (tileId < 0)
                             continue; // Empty tile
 
-                        // Calculate tile position in tileset
-                        var tileRow = tileId / tileMapComponent.TileSetColumns;
-                        var tileCol = tileId % tileMapComponent.TileSetColumns;
-
-                        // Calculate UV coordinates
-                        var minU = (tileCol * tileWidth) / (float)tilesetTexture.Width;
-                        var minV = (tileRow * tileHeight) / (float)tilesetTexture.Height;
-                        var maxU = ((tileCol + 1) * tileWidth) / (float)tilesetTexture.Width;
-                        var maxV = ((tileRow + 1) * tileHeight) / (float)tilesetTexture.Height;
-
-                        var texCoords = new[]
-                        {
-                            new Vector2(minU, minV),
-                            new Vector2(maxU, minV),
-                            new Vector2(maxU, maxV),
-                            new Vector2(minU, maxV)
-                        };
+                        // Get pre-computed subtexture from cache
+                        var subTexture = tileSet.GetTileSubTexture(tileId);
+                        if (subTexture == null)
+                            continue;
 
                         // Calculate tile position in world space
                         var tilePos = new Vector3(
@@ -348,8 +329,8 @@ public class Scene : IScene
 
                         _graphics2D.DrawQuad(
                             tileTransform,
-                            tilesetTexture,
-                            texCoords,
+                            subTexture.Texture,
+                            subTexture.TexCoords,
                             1.0f,
                             tintColor,
                             entity.Id
@@ -443,6 +424,44 @@ public class Scene : IScene
     }
 
     /// <summary>
+    /// Gets or loads a tileset from the editor cache. This prevents loading textures from disk every frame.
+    /// </summary>
+    private TileSet? GetOrLoadEditorTileSet(TileMapComponent tileMapComponent)
+    {
+        // Check cache first
+        if (_editorTileSetCache.TryGetValue(tileMapComponent.TileSetPath, out var cachedTileSet))
+        {
+            return cachedTileSet;
+        }
+
+        // Not in cache, load it
+        var tileSet = new TileSet
+        {
+            TexturePath = tileMapComponent.TileSetPath,
+            Columns = tileMapComponent.TileSetColumns,
+            Rows = tileMapComponent.TileSetRows
+        };
+
+        tileSet.LoadTexture();
+
+        if (tileSet.Texture != null)
+        {
+            // Calculate tile dimensions from texture size
+            tileSet.TileWidth = tileSet.Texture.Width / tileMapComponent.TileSetColumns;
+            tileSet.TileHeight = tileSet.Texture.Height / tileMapComponent.TileSetRows;
+
+            // Generate all tile subtextures
+            tileSet.GenerateTiles();
+
+            // Cache for future frames
+            _editorTileSetCache[tileMapComponent.TileSetPath] = tileSet;
+            return tileSet;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Disposes the scene and cleans up all resources.
     /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
     /// and clears entity storage to prevent memory leaks.
@@ -462,6 +481,9 @@ public class Scene : IScene
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
         // Singleton systems (rendering, scripts) are shared and won't be disposed
         _systemManager?.Dispose();
+
+        // Clear tileset cache to prevent memory leaks
+        _editorTileSetCache.Clear();
 
         // Clear entity storage
         Context.Instance.Clear();
