@@ -70,7 +70,7 @@ public class Graphics2D : IGraphics2D
 
         if (OSInfo.IsWindows)
         {
-            viewProj =  transformInverted * camera.Projection;
+            viewProj = transformInverted * camera.Projection;
         }
         else if (OSInfo.IsMacOS)
         {
@@ -79,11 +79,9 @@ public class Graphics2D : IGraphics2D
         else
             throw new InvalidOperationException("Unsupported OS version!");
 
-        //_data.CameraBuffer.ViewProjection = camera.Projection * transformInverted;
-        //_data.CameraUniformBuffer.SetData(_data.CameraBuffer, CameraData.GetSize());
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
-        
+
         _data.LineShader.Bind();
         _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
 

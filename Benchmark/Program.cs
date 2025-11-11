@@ -1,4 +1,5 @@
 ﻿using DryIoc;
+using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
 using Engine.Renderer;
@@ -13,7 +14,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var props = new WindowProps("Benchmark Engine", 1280, 720);
+        var props = new WindowProps("Benchmark Engine", (int)DisplayConfig.DefaultWindowWidth, (int)DisplayConfig.DefaultWindowHeight);
 
         var container = new Container();
 
@@ -42,6 +43,7 @@ public class Program
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
+        container.Register<AnimationSystem>(Reuse.Singleton);
 
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);

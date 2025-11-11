@@ -77,6 +77,7 @@ public class SpriteRenderingSystem : ISystem
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
+
             _renderer.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 

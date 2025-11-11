@@ -17,6 +17,6 @@ void main()
     // windows version
     //gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
 
-    // macOS version
+    // macOS version - matrix multiplication is reversed on macOS
     gl_Position = vec4(a_Position, 1.0) * u_ViewProjection;
 }
