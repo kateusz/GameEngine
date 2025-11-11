@@ -32,7 +32,7 @@ public record AnimationClip
     /// Formula: frames.Length / FPS
     /// </summary>
     [JsonIgnore]
-    public float Duration => Frames.Length / Fps;
+    public float Duration => Fps > 0 ? Frames.Length / Fps : 0f;
 
     /// <summary>
     /// Get frame duration in seconds (time per frame).

@@ -61,8 +61,8 @@ public class Program
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
-        container.Register<AnimationSystem>(Reuse.Singleton);
         container.Register<AnimationAssetManager>(Reuse.Singleton);
+        container.Register<AnimationSystem>(Reuse.Singleton);
 
         container.Register<ILayer, Sandbox2DLayer>(Reuse.Singleton);
         container.Register<SandboxApplication>(Reuse.Singleton);

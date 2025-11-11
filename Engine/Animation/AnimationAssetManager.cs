@@ -41,7 +41,7 @@ public class AnimationAssetManager
         if (_cache.TryGetValue(path, out var entry))
         {
             entry.ReferenceCount++;
-            entry.LastAccessTime = DateTime.Now;
+            entry.LastAccessTime = DateTime.UtcNow;
             Logger.Information("Animation asset cached hit: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
             return entry.Asset;
         }
