@@ -98,6 +98,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
         {
@@ -106,6 +107,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             fixed (byte* pData = vertexSpan)
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
+                GLDebug.CheckError(SilkNetContext.GL, "BufferSubData(QuadVertex)");
             }
         }
     }
@@ -116,6 +118,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
         {
@@ -124,6 +127,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             fixed (byte* pData = vertexSpan)
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
+                GLDebug.CheckError(SilkNetContext.GL, "BufferSubData(LineVertex)");
             }
         }
     }
@@ -135,6 +139,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
         {
@@ -145,6 +150,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
             {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)byteSpan.Length, pData,
                     BufferUsageARB.StaticDraw);
+                GLDebug.CheckError(SilkNetContext.GL, "BufferData(MeshVertex)");
             }
         }
     }
@@ -152,10 +158,12 @@ public class SilkNetVertexBuffer : IVertexBuffer
     public void Bind()
     {
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
     }
 
     public void Unbind()
     {
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, 0);
+        GLDebug.CheckError(SilkNetContext.GL, "UnbindBuffer(ArrayBuffer)");
     }
 }

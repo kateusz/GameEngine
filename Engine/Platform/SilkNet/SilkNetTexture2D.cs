@@ -53,9 +53,12 @@ public class SilkNetTexture2D : Texture2D
     public static Texture2D Create(string path)
     {
         var handle = SilkNetContext.GL.GenTexture();
-        
+        GLDebug.CheckError(SilkNetContext.GL, "GenTexture");
+
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        GLDebug.CheckError(SilkNetContext.GL, "ActiveTexture(Texture0)");
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
+        GLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
 
         // Flip texture vertically to match OpenGL's coordinate system (bottom-left origin)
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
@@ -80,22 +83,27 @@ public class SilkNetTexture2D : Texture2D
                     // Create our texture and upload the image data.
                     SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)width,
                         (uint)height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+                    GLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
                 }
 
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.Linear);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                     (int)TextureMagFilter.Nearest);
+                GLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
 
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
                     (int)TextureWrapMode.Repeat);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
                     (int)TextureWrapMode.Repeat);
+                GLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
 
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
+                GLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
 
                 SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+                GLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
             }
         }
 
@@ -110,12 +118,15 @@ public class SilkNetTexture2D : Texture2D
     public override void Bind(int slot = 0)
     {
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
+        GLDebug.CheckError(SilkNetContext.GL, $"ActiveTexture({slot})");
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindTexture");
     }
 
     public override void Unbind()
     {
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
+        GLDebug.CheckError(SilkNetContext.GL, "UnbindTexture");
     }
 
     public override void SetData(uint data, int size)

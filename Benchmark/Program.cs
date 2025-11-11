@@ -64,9 +64,23 @@ public class Program
             app.PushLayer(layer);
             app.Run();
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Console.WriteLine($"Błąd aplikacji: {e.Message}");
+            Console.Error.WriteLine($"Fatal application error: {ex.GetType().Name}");
+            Console.Error.WriteLine($"Message: {ex.Message}");
+            Console.Error.WriteLine($"Stack trace:\n{ex.StackTrace}");
+
+            // Log inner exceptions if present
+            var innerEx = ex.InnerException;
+            while (innerEx != null)
+            {
+                Console.Error.WriteLine($"\nInner Exception: {innerEx.GetType().Name}");
+                Console.Error.WriteLine($"Message: {innerEx.Message}");
+                Console.Error.WriteLine($"Stack trace:\n{innerEx.StackTrace}");
+                innerEx = innerEx.InnerException;
+            }
+
+            Environment.Exit(1);
         }
     }
 }
