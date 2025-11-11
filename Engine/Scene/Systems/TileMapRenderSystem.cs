@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Renderer;
+using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 using Serilog;
 
@@ -36,6 +37,31 @@ public class TileMapRenderSystem : ISystem
 
     public void OnUpdate(TimeSpan deltaTime)
     {
+        // Find the primary camera
+        Camera? mainCamera = null;
+        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraTransform = Matrix4x4.Identity;
+
+        foreach (var entity in cameraGroup)
+        {
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+
+            if (cameraComponent.Primary)
+            {
+                mainCamera = cameraComponent.Camera;
+                cameraTransform = transformComponent.GetTransform();
+                break;
+            }
+        }
+
+        // Only render if we have a camera
+        if (mainCamera == null)
+            return;
+
+        // Begin rendering with the camera's view and projection
+        _graphics2D.BeginScene(mainCamera, cameraTransform);
+
         var entities = Context.Instance.GetGroup([typeof(TileMapComponent), typeof(TransformComponent)]);
 
         foreach (var entity in entities)
@@ -59,6 +85,9 @@ public class TileMapRenderSystem : ISystem
 
             RenderTileMap(tileMap, tileSet, transform, entity.Id);
         }
+
+        // End the rendering batch
+        _graphics2D.EndScene();
     }
 
     private TileSet? GetOrLoadTileSet(TileMapComponent tileMap)
