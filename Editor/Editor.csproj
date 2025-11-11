@@ -19,23 +19,8 @@
 
         <!-- Kopiuj rekurencyjnie wszystko z assets i Resources -->
         <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
-        <None Include="bin\Debug\net9.0\pp\assets\animations\example-animations.anim">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Include="bin\Debug\net9.0\pp\assets\animations\hero-attack.anim">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Include="bin\Debug\net9.0\pp\assets\textures\spritesheet.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
         <None Include="Resources/**/*.*" CopyToOutputDirectory="PreserveNewest" />
         <None Include="libs/**/*.*" CopyToOutputDirectory="PreserveNewest" />
-        <None Update="assets\textures\spritesheet.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="assets\animations\hero-attack.anim">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>

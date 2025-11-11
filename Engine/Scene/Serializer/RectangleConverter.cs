@@ -31,16 +31,10 @@ public class RectangleConverter : JsonConverter<Rectangle>
     public override void Write(Utf8JsonWriter writer, Rectangle value, JsonSerializerOptions options)
     {
         writer.WriteStartArray();
-
-        var x = value.X;
-        var y = value.Y;
-        var width = value.Width;
-        var height = value.Height;
-
-        writer.WriteNumberValue(x);
-        writer.WriteNumberValue(y);
-        writer.WriteNumberValue(width);
-        writer.WriteNumberValue(height);
+        writer.WriteNumberValue(value.X);
+        writer.WriteNumberValue(value.Y);
+        writer.WriteNumberValue(value.Width);
+        writer.WriteNumberValue(value.Height);
         writer.WriteEndArray(); // End array
     }
 }
