@@ -4,7 +4,7 @@ using Engine.Renderer.Models;
 
 namespace Engine.Scene.Components;
 
-public class MeshComponent : Component
+public class MeshComponent : IComponent
 {
     public Mesh Mesh { get; set; }
     
@@ -21,7 +21,7 @@ public class MeshComponent : Component
 
     public void SetMesh(Mesh mesh) => Mesh = mesh;
 
-    public override IComponent Clone()
+    public IComponent Clone()
     {
         // Share the same Mesh reference (meshes are typically immutable resources)
         return new MeshComponent(Mesh);

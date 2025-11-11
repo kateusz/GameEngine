@@ -11,7 +11,7 @@ public enum RigidBodyType
     Kinematic
 }
 
-public class RigidBody2DComponent : Component
+public class RigidBody2DComponent : IComponent
 {
     public RigidBodyType BodyType { get; set; }
     public bool FixedRotation { get; set; }
@@ -19,7 +19,7 @@ public class RigidBody2DComponent : Component
     [JsonIgnore]
     public Body RuntimeBody { get; set; }
 
-    public override IComponent Clone()
+    public IComponent Clone()
     {
         // Do not clone RuntimeBody as it's managed by the physics system
         return new RigidBody2DComponent

@@ -2,13 +2,14 @@ using System.Numerics;
 using Editor.Managers;
 using ImGuiNET;
 using Editor.UI;
+using Engine;
 
 namespace Editor.Panels;
 
 public class ProjectUI
 {
     private readonly IProjectManager _projectManager;
-    private readonly ContentBrowserPanel _contentBrowserPanel;
+    private readonly IContentBrowserPanel _contentBrowserPanel;
 
     private bool _showNewProjectPopup;
     private bool _showOpenProjectPopup;
@@ -18,7 +19,7 @@ public class ProjectUI
     private string _openProjectPath = string.Empty;
     private string _openProjectError = string.Empty;
 
-    public ProjectUI(IProjectManager projectManager, ContentBrowserPanel contentBrowserPanel)
+    public ProjectUI(IProjectManager projectManager, IContentBrowserPanel contentBrowserPanel)
     {
         _projectManager = projectManager;
         _contentBrowserPanel = contentBrowserPanel;

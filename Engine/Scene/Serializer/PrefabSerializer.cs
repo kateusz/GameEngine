@@ -3,9 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
-using Engine.Core.Input;
+using Engine.Audio;
 using Engine.Scene.Components;
-using Engine.Scripting;
+using Serilog;
 
 namespace Engine.Scene.Serializer;
 
@@ -15,6 +15,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class PrefabSerializer : IPrefabSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
+    
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
     private const string ComponentsKey = "Components";
@@ -23,6 +25,8 @@ public class PrefabSerializer : IPrefabSerializer
     private const string VersionKey = "Version";
     private const string ScriptTypeKey = "ScriptType";
     private const string PrefabAssetsDirectory = "assets/prefabs";
+
+    private readonly IAudioEngine _audioEngine;
 
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
@@ -36,6 +40,11 @@ public class PrefabSerializer : IPrefabSerializer
         }
     };
 
+    public PrefabSerializer(IAudioEngine audioEngine)
+    {
+        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+    }
+
     /// <summary>
     /// Serialize an entity to a prefab file
     /// </summary>
@@ -46,9 +55,9 @@ public class PrefabSerializer : IPrefabSerializer
     {
         var prefabDir = Path.Combine(projectPath, PrefabAssetsDirectory);
         Directory.CreateDirectory(prefabDir);
-        
+
         var prefabPath = Path.Combine(prefabDir, $"{prefabName}.prefab");
-        
+
         var jsonObj = new JsonObject
         {
             [PrefabKey] = prefabName,
@@ -64,7 +73,7 @@ public class PrefabSerializer : IPrefabSerializer
         {
             WriteIndented = true
         });
-        
+
         File.WriteAllText(prefabPath, jsonString);
     }
 
@@ -89,8 +98,8 @@ public class PrefabSerializer : IPrefabSerializer
         var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
         foreach (var componentNode in componentsArray)
         {
-            DeserializeComponent(entity, componentNode ?? 
-                throw new InvalidOperationException("Got null JSON Component"));
+            DeserializeComponent(entity, componentNode ??
+                                         throw new InvalidOperationException("Got null JSON Component"));
         }
     }
 
@@ -111,12 +120,12 @@ public class PrefabSerializer : IPrefabSerializer
                       throw new InvalidOperationException("Invalid prefab JSON");
 
         var entity = Entity.Create(entityId, entityName);
-        
+
         var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
         foreach (var componentNode in componentsArray)
         {
-            DeserializeComponent(entity, componentNode ?? 
-                throw new InvalidOperationException("Got null JSON Component"));
+            DeserializeComponent(entity, componentNode ??
+                                         throw new InvalidOperationException("Got null JSON Component"));
         }
 
         return entity;
@@ -132,6 +141,9 @@ public class PrefabSerializer : IPrefabSerializer
         SerializeComponent<BoxCollider2DComponent>(entity, componentsArray, nameof(BoxCollider2DComponent));
         SerializeComponent<MeshComponent>(entity, componentsArray, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, componentsArray, nameof(ModelRendererComponent));
+        SerializeComponent<AudioListenerComponent>(entity, componentsArray, nameof(AudioListenerComponent));
+        SerializeComponent<AnimationComponent>(entity, componentsArray, nameof(AnimationComponent));
+        SerializeAudioSourceComponent(entity, componentsArray);
         SerializeNativeScriptComponent(entity, componentsArray);
     }
 
@@ -146,6 +158,20 @@ public class PrefabSerializer : IPrefabSerializer
         if (element != null)
         {
             element[NameKey] = componentName;
+            componentsArray.Add(element);
+        }
+    }
+
+    private void SerializeAudioSourceComponent(Entity entity, JsonArray componentsArray)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+            return;
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        if (element != null)
+        {
+            element[NameKey] = nameof(AudioSourceComponent);
             componentsArray.Add(element);
         }
     }
@@ -171,6 +197,7 @@ public class PrefabSerializer : IPrefabSerializer
             {
                 fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, DefaultSerializerOptions);
             }
+
             if (fieldsObj.Count > 0)
                 scriptComponentObj["Fields"] = fieldsObj;
         }
@@ -180,7 +207,8 @@ public class PrefabSerializer : IPrefabSerializer
 
     private void ClearEntityComponents(Entity entity)
     {
-        // Remove all components except transform (entities should always have transform)
+        if (entity.HasComponent<TransformComponent>())
+            entity.RemoveComponent<TransformComponent>();
         if (entity.HasComponent<CameraComponent>())
             entity.RemoveComponent<CameraComponent>();
         if (entity.HasComponent<SpriteRendererComponent>())
@@ -195,6 +223,10 @@ public class PrefabSerializer : IPrefabSerializer
             entity.RemoveComponent<MeshComponent>();
         if (entity.HasComponent<ModelRendererComponent>())
             entity.RemoveComponent<ModelRendererComponent>();
+        if (entity.HasComponent<AudioListenerComponent>())
+            entity.RemoveComponent<AudioListenerComponent>();
+        if (entity.HasComponent<AudioSourceComponent>())
+            entity.RemoveComponent<AudioSourceComponent>();
         if (entity.HasComponent<NativeScriptComponent>())
             entity.RemoveComponent<NativeScriptComponent>();
     }
@@ -215,10 +247,10 @@ public class PrefabSerializer : IPrefabSerializer
                 AddComponent<CameraComponent>(entity, componentObj);
                 break;
             case nameof(SpriteRendererComponent):
-                AddComponent<SpriteRendererComponent>(entity, componentObj);
+                DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
             case nameof(SubTextureRendererComponent):
-                AddComponent<SubTextureRendererComponent>(entity, componentObj);
+                DeserializeSubTextureRendererComponent(entity, componentObj);
                 break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
@@ -232,10 +264,46 @@ public class PrefabSerializer : IPrefabSerializer
             case nameof(ModelRendererComponent):
                 AddComponent<ModelRendererComponent>(entity, componentObj);
                 break;
+            case nameof(AudioListenerComponent):
+                AddComponent<AudioListenerComponent>(entity, componentObj);
+                break;
+            case nameof(AudioSourceComponent):
+                DeserializeAudioSourceComponent(entity, componentObj);
+                break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
         }
+    }
+
+    private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
+    {
+        // Extract the AudioClip path separately to avoid interface deserialization issues
+        string? audioClipPath = null;
+        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
+        {
+            audioClipPath = pathValue.GetValue<string>();
+        }
+
+        var component =
+            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(audioClipPath))
+        {
+            try
+            {
+                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue prefab deserialization
+                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for prefab entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
+            }
+        }
+
+        entity.AddComponent<AudioSourceComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -267,6 +335,36 @@ public class PrefabSerializer : IPrefabSerializer
         }
     }
 
+    private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = Renderer.Textures.TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = Renderer.Textures.TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SubTextureRendererComponent>(component);
+    }
+
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
@@ -278,7 +376,7 @@ public class PrefabSerializer : IPrefabSerializer
 
     private JsonArray GetJsonArray(JsonObject jsonObject, string key)
     {
-        return jsonObject[key] as JsonArray ?? 
+        return jsonObject[key] as JsonArray ??
                throw new InvalidOperationException($"Got invalid {key} JSON");
     }
 }

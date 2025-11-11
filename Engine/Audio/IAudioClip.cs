@@ -7,12 +7,9 @@ public interface IAudioClip
     int SampleRate { get; }
     int Channels { get; }
     AudioFormat Format { get; }
-        
     void Load();
     void Unload();
     bool IsLoaded { get; }
-        
-    // Raw audio data access
     byte[] RawData { get; }
     int DataSize { get; }
 }

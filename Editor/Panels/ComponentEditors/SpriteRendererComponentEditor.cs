@@ -1,7 +1,6 @@
 using ECS;
 using Editor.Panels.Elements;
 using Engine.Scene.Components;
-using ImGuiNET;
 
 namespace Editor.Panels.ComponentEditors;
 

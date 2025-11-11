@@ -5,13 +5,13 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel
+public class ContentBrowserPanel : IContentBrowserPanel
 {
     private string _assetPath;
     private string _currentDirectory;
-    private readonly Texture2D _directoryIcon;
-    private readonly Texture2D _fileIcon;
-    private readonly Texture2D _prefabIcon;
+    private Texture2D _directoryIcon;
+    private Texture2D _fileIcon;
+    private Texture2D _prefabIcon;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
 
     public ContentBrowserPanel()
@@ -19,13 +19,16 @@ public class ContentBrowserPanel
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
         _currentDirectory = _assetPath;
+    }
 
+    public void Init()
+    {
         _directoryIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/DirectoryIcon.png");
         _fileIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/FileIcon.png");
         _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.Begin("Content Browser");
 
@@ -42,7 +45,7 @@ public class ContentBrowserPanel
         }
 
         var padding = 16.0f;
-        var thumbnailSize = 64.0f;
+        var thumbnailSize = 36.0f;
         var cellSize = thumbnailSize + padding;
 
         var panelWidth = ImGui.GetContentRegionAvail().X;
@@ -95,6 +98,11 @@ public class ContentBrowserPanel
             else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase) ||
                      info.Name.EndsWith(".scene", StringComparison.OrdinalIgnoreCase))
             {
+                icon = _fileIcon;
+            }
+            else if (info.Name.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
+            {
+                // TODO: animation icon
                 icon = _fileIcon;
             }
             else

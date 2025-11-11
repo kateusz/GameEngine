@@ -2,11 +2,11 @@ using ECS;
 
 namespace Engine.Scene.Components;
 
-public class NativeScriptComponent : Component
+public class NativeScriptComponent : IComponent
 {
     public ScriptableEntity? ScriptableEntity { get; set; }
 
-    public override IComponent Clone()
+    public IComponent Clone()
     {
         // Do not clone ScriptableEntity as it's runtime state
         // The script will be instantiated at runtime

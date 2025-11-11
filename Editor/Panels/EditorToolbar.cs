@@ -7,15 +7,27 @@ namespace Editor.Panels;
 
 public class EditorToolbar
 {
-    private readonly Texture2D _iconPlay;
-    private readonly Texture2D _iconStop;
-    private readonly SceneManager _sceneManager;
+    private Texture2D _iconPlay;
+    private Texture2D _iconStop;
+    private Texture2D _iconSelect;
+    private Texture2D _iconMove;
+    private Texture2D _iconScale;
+    private readonly ISceneManager _sceneManager;
+    
+    public EditorMode CurrentMode { get; set; } = EditorMode.Select;
 
-    public EditorToolbar(SceneManager sceneManager)
+    public EditorToolbar(ISceneManager sceneManager)
     {
         _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
+    }
+
+    public void Init()
+    {
         _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
         _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
+        _iconSelect = TextureFactory.Create("Resources/Icons/select.png");
+        _iconMove = TextureFactory.Create("Resources/Icons/move.png");
+        _iconScale = TextureFactory.Create("Resources/Icons/scale.png");
     }
 
     public void Render()
@@ -35,11 +47,71 @@ public class EditorToolbar
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         var size = ImGui.GetWindowHeight() - 4.0f;
+        
+        // Left side: Mode selection buttons
+        ImGui.SetCursorPosX(10.0f);
+        
+        if (CurrentMode == EditorMode.Select)
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
+
+        if (ImGui.ImageButton("select", (IntPtr)_iconSelect.GetRendererId(), new Vector2(15, 15), new Vector2(0, 0),
+                new Vector2(1, 1), new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f) ))
+        {
+            CurrentMode = EditorMode.Select;
+        }
+        
+        if (CurrentMode == EditorMode.Select)
+            ImGui.PopStyleColor();
+        
+        ImGui.SameLine();
+        
+        if (CurrentMode == EditorMode.Move)
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
+        
+        if (ImGui.ImageButton("move", (IntPtr)_iconMove.GetRendererId(), new Vector2(15, 15), new Vector2(0, 0),
+                new Vector2(1, 1), new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f) ))
+        {
+            CurrentMode = EditorMode.Move;
+        }
+        
+        if (CurrentMode == EditorMode.Move)
+            ImGui.PopStyleColor();
+        
+        ImGui.SameLine();
+        
+        if (CurrentMode == EditorMode.Scale)
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
+        
+        if (ImGui.ImageButton("scale", (IntPtr)_iconScale.GetRendererId(), new Vector2(15, 15), new Vector2(0, 0),
+                new Vector2(1, 1), new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f) ))
+        {
+            CurrentMode = EditorMode.Scale;
+        }
+        
+        if (CurrentMode == EditorMode.Scale)
+            ImGui.PopStyleColor();
+        
+        ImGui.SameLine();
+        
+        if (CurrentMode == EditorMode.Ruler)
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
+        
+        // Use text button for ruler since we don't have an icon yet
+        if (ImGui.Button("📏", new Vector2(25, 19)))
+        {
+            CurrentMode = EditorMode.Ruler;
+        }
+        
+        if (CurrentMode == EditorMode.Ruler)
+            ImGui.PopStyleColor();
+
+        // Center: Play/Stop button
         var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
+        ImGui.SetCursorPosY(2.0f);
 
-        if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(size, size), new Vector2(0, 0),
+        if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(20, 20), new Vector2(0, 0),
                 new Vector2(1, 1)))
         {
             switch (_sceneManager.SceneState)

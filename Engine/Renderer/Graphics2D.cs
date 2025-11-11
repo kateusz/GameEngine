@@ -11,13 +11,9 @@ using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
 namespace Engine.Renderer;
 
-public class Graphics2D : IGraphics2D, IDisposable
+public class Graphics2D : IGraphics2D
 {
-    private static IGraphics2D? _instance;
-
-    public static IGraphics2D Instance => _instance ??= new Graphics2D();
-
-    private IRendererAPI _rendererApi = RendererApiFactory.Create();
+    private readonly IRendererAPI _rendererApi = RendererApiFactory.Create();
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
     private bool _disposed;
@@ -74,7 +70,7 @@ public class Graphics2D : IGraphics2D, IDisposable
 
         if (OSInfo.IsWindows)
         {
-            viewProj =  transformInverted * camera.Projection;
+            viewProj = transformInverted * camera.Projection;
         }
         else if (OSInfo.IsMacOS)
         {
@@ -83,11 +79,9 @@ public class Graphics2D : IGraphics2D, IDisposable
         else
             throw new InvalidOperationException("Unsupported OS version!");
 
-        //_data.CameraBuffer.ViewProjection = camera.Projection * transformInverted;
-        //_data.CameraUniformBuffer.SetData(_data.CameraBuffer, CameraData.GetSize());
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
-        
+
         _data.LineShader.Bind();
         _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
 

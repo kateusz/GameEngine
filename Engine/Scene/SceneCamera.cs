@@ -15,13 +15,13 @@ public enum ProjectionType
 
 public class SceneCamera : Camera
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneCamera>();
+    private static readonly ILogger Logger = Log.ForContext<SceneCamera>();
 
     private bool _projectionDirty = true;
     private float _aspectRatio;
-    private Vector3 _cameraPosition = new(0.0f, 0.0f, CameraConfig.DefaultCameraZPosition);
-    private Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
-    private Vector3 _cameraUp = Vector3.UnitY;
+    private readonly Vector3 _cameraPosition = new(0.0f, 0.0f, CameraConfig.DefaultCameraZPosition);
+    private readonly Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
+    private readonly Vector3 _cameraUp = Vector3.UnitY;
 
     private ProjectionType _projectionType = ProjectionType.Orthographic;
     private float _orthographicSize;

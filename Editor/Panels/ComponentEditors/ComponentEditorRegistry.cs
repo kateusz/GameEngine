@@ -6,22 +6,39 @@ using Editor.UI;
 
 namespace Editor.Panels.ComponentEditors;
 
-public class ComponentEditorRegistry
+public class ComponentEditorRegistry : IComponentEditorRegistry
 {
     private readonly Dictionary<Type, IComponentEditor> _editors;
 
-    public ComponentEditorRegistry()
+    public ComponentEditorRegistry(
+        TransformComponentEditor transformComponentEditor,
+        CameraComponentEditor cameraComponentEditor,
+        SpriteRendererComponentEditor spriteRendererComponentEditor,
+        MeshComponentEditor meshComponentEditor,
+        ModelRendererComponentEditor modelRendererComponentEditor,
+        RigidBody2DComponentEditor rigidBody2DComponentEditor,
+        BoxCollider2DComponentEditor boxCollider2DComponentEditor,
+        SubTextureRendererComponentEditor subTextureRendererComponentEditor,
+        AudioSourceComponentEditor audioSourceComponentEditor,
+        AudioListenerComponentEditor audioListenerComponentEditor,
+        AnimationComponentEditor animationComponentEditor,
+        TileMapComponentEditor tileMapComponentEditor
+        )
     {
         _editors = new Dictionary<Type, IComponentEditor>
         {
-            { typeof(TransformComponent), new TransformComponentEditor() },
-            { typeof(CameraComponent), new CameraComponentEditor() },
-            { typeof(SpriteRendererComponent), new SpriteRendererComponentEditor() },
-            { typeof(MeshComponent), new MeshComponentEditor() },
-            { typeof(ModelRendererComponent), new ModelRendererComponentEditor() },
-            { typeof(RigidBody2DComponent), new RigidBody2DComponentEditor() },
-            { typeof(BoxCollider2DComponent), new BoxCollider2DComponentEditor() },
-            { typeof(SubTextureRendererComponent), new SubTextureRendererComponentEditor() }
+            { typeof(TransformComponent), transformComponentEditor },
+            { typeof(CameraComponent), cameraComponentEditor},
+            { typeof(SpriteRendererComponent), spriteRendererComponentEditor },
+            { typeof(MeshComponent), meshComponentEditor },
+            { typeof(ModelRendererComponent), modelRendererComponentEditor },
+            { typeof(RigidBody2DComponent), rigidBody2DComponentEditor },
+            { typeof(BoxCollider2DComponent), boxCollider2DComponentEditor },
+            { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
+            { typeof(AudioSourceComponent), audioSourceComponentEditor },
+            { typeof(AudioListenerComponent), audioListenerComponentEditor },
+            { typeof(AnimationComponent), animationComponentEditor },
+            { typeof(TileMapComponent), tileMapComponentEditor }
         };
     }
 

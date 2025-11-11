@@ -5,7 +5,7 @@ using Editor.UI;
 
 namespace Editor.Panels;
 
-public class ConsolePanel
+public class ConsolePanel : IConsolePanel
 {
     private volatile List<LogMessage> _logMessages = new();
     private readonly Lock _writeSync = new();
@@ -52,7 +52,7 @@ public class ConsolePanel
         }
     }
 
-    private void Clear()
+    public void Clear()
     {
         lock (_writeSync)
         {
@@ -60,7 +60,7 @@ public class ConsolePanel
         }
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
         ImGui.Begin("Console");
 
@@ -199,11 +199,11 @@ public class ConsolePanel
 
 internal class ConsoleTextWriter : TextWriter
 {
-    private readonly ConsolePanel _panel;
+    private readonly IConsolePanel _panel;
     private readonly TextWriter _originalOut;
     private readonly StringBuilder _lineBuffer = new();
 
-    public ConsoleTextWriter(ConsolePanel panel)
+    public ConsoleTextWriter(IConsolePanel panel)
     {
         _panel = panel;
         _originalOut = Console.Out;

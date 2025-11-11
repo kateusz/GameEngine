@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
@@ -6,16 +7,18 @@ namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioSource : IAudioSource
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioSource>();
-    
+    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioSource>();
+
     private readonly AL _al;
+    private readonly Action<SilkNetAudioSource> _onDispose;
     private uint _sourceId;
     private IAudioClip _clip;
     private bool _disposed = false;
 
-    public SilkNetAudioSource(AL al)
+    public SilkNetAudioSource(AL al, Action<SilkNetAudioSource> onDispose)
     {
         _al = al;
+        _onDispose = onDispose;
         _sourceId = _al.GenSource();
 
         // Set default properties
@@ -29,15 +32,15 @@ public class SilkNetAudioSource : IAudioSource
         get => _clip;
         set
         {
-            if (_clip != value)
-            {
-                Stop();
-                _clip = value;
+            if (_clip == value) 
+                return;
+            
+            Stop();
+            _clip = value;
 
-                if (_clip is SilkNetAudioClip silkClip && silkClip.IsLoaded)
-                {
-                    _al.SetSourceProperty(_sourceId, SourceInteger.Buffer, (int)silkClip.BufferId);
-                }
+            if (_clip is SilkNetAudioClip { IsLoaded: true } silkClip)
+            {
+                _al.SetSourceProperty(_sourceId, SourceInteger.Buffer, (int)silkClip.BufferId);
             }
         }
     }
@@ -127,6 +130,29 @@ public class SilkNetAudioSource : IAudioSource
         _al.SourceStop(_sourceId);
     }
 
+    public void SetPosition(Vector3 position)
+    {
+        _al.SetSourceProperty(_sourceId, SourceVector3.Position, position.X, position.Y, position.Z);
+    }
+
+    public void SetSpatialMode(bool is3D, float minDistance = 1.0f, float maxDistance = 100.0f)
+    {
+        if (is3D)
+        {
+            // Enable 3D positioning (absolute world space)
+            _al.SetSourceProperty(_sourceId, SourceBoolean.SourceRelative, false);
+            _al.SetSourceProperty(_sourceId, SourceFloat.ReferenceDistance, minDistance);
+            _al.SetSourceProperty(_sourceId, SourceFloat.MaxDistance, maxDistance);
+            _al.SetSourceProperty(_sourceId, SourceFloat.RolloffFactor, 1.0f);
+        }
+        else
+        {
+            // Set as 2D audio (relative to listener)
+            _al.SetSourceProperty(_sourceId, SourceBoolean.SourceRelative, true);
+            _al.SetSourceProperty(_sourceId, SourceVector3.Position, 0.0f, 0.0f, 0.0f);
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)
@@ -139,11 +165,8 @@ public class SilkNetAudioSource : IAudioSource
                 _sourceId = 0;
             }
 
-            // Unregister from engine
-            if (AudioEngine.Instance is SilkNetAudioEngine silkEngine)
-            {
-                silkEngine.UnregisterSource(this);
-            }
+            // Notify engine that this source is being disposed
+            _onDispose?.Invoke(this);
 
             _disposed = true;
         }

@@ -3,9 +3,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
+using Engine.Audio;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scripting;
+using Serilog;
 using ZLinq;
 
 namespace Engine.Scene.Serializer;
@@ -16,6 +18,8 @@ namespace Engine.Scene.Serializer;
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
 public class SceneSerializer : ISceneSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
+    
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string DefaultSceneName = "default";
@@ -25,6 +29,9 @@ public class SceneSerializer : ISceneSerializer
     private const string IdKey = "Id";
     private const string ScriptTypeKey = "ScriptType";
 
+    private readonly IAudioEngine _audioEngine;
+
+    // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -33,9 +40,16 @@ public class SceneSerializer : ISceneSerializer
             new Vector2Converter(),
             new Vector3Converter(),
             new Vector4Converter(),
+            new RectangleConverter(),
+            new TileMapComponentConverter(),
             new JsonStringEnumConverter()
         }
     };
+
+    public SceneSerializer(IAudioEngine audioEngine)
+    {
+        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+    }
 
     /// <summary>
     /// Serializes a scene to a JSON file at the specified path.
@@ -43,7 +57,7 @@ public class SceneSerializer : ISceneSerializer
     /// <param name="scene">The scene to serialize.</param>
     /// <param name="path">The file path where the scene will be saved.</param>
     /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be written due to I/O errors or access restrictions.</exception>
-    public void Serialize(Scene scene, string path)
+    public void Serialize(IScene scene, string path)
     {
         var jsonObj = new JsonObject
         {
@@ -90,7 +104,7 @@ public class SceneSerializer : ISceneSerializer
     /// <param name="scene">The scene to populate with deserialized entities.</param>
     /// <param name="path">The file path from which to load the scene.</param>
     /// <exception cref="InvalidSceneJsonException">Thrown when the file cannot be read, doesn't exist, or contains invalid JSON.</exception>
-    public void Deserialize(Scene scene, string path)
+    public void Deserialize(IScene scene, string path)
     {
         if (!File.Exists(path))
             throw new InvalidSceneJsonException($"Scene file not found: {path}");
@@ -181,11 +195,26 @@ public class SceneSerializer : ISceneSerializer
             case nameof(SpriteRendererComponent):
                 DeserializeSpriteRendererComponent(entity, componentObj);
                 break;
+            case nameof(SubTextureRendererComponent):
+                DeserializeSubTextureRendererComponent(entity, componentObj);
+                break;
             case nameof(RigidBody2DComponent):
                 AddComponent<RigidBody2DComponent>(entity, componentObj);
                 break;
             case nameof(BoxCollider2DComponent):
                 AddComponent<BoxCollider2DComponent>(entity, componentObj);
+                break;
+            case nameof(AudioListenerComponent):
+                AddComponent<AudioListenerComponent>(entity, componentObj);
+                break;
+            case nameof(AudioSourceComponent):
+                DeserializeAudioSourceComponent(entity, componentObj);
+                break;
+            case nameof(AnimationComponent):
+                AddComponent<AnimationComponent>(entity, componentObj);
+                break;
+            case nameof(TileMapComponent):
+                AddComponent<TileMapComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
@@ -207,6 +236,50 @@ public class SceneSerializer : ISceneSerializer
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
+    }
+
+    private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        // Reload texture from disk if path exists (same as SpriteRendererComponent)
+        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        {
+            component.Texture = TextureFactory.Create(component.Texture.Path);
+        }
+
+        entity.AddComponent<SubTextureRendererComponent>(component);
+    }
+
+    private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
+    {
+        // Extract the AudioClip path separately to avoid interface deserialization issues
+        string? audioClipPath = null;
+        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
+        {
+            audioClipPath = pathValue.GetValue<string>();
+        }
+
+        var component = JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(audioClipPath))
+        {
+            try
+            {
+                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue scene deserialization
+                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
+            }
+        }
+
+        entity.AddComponent<AudioSourceComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -303,11 +376,31 @@ public class SceneSerializer : ISceneSerializer
         SerializeComponent<TransformComponent>(entity, entityObj, nameof(TransformComponent));
         SerializeComponent<CameraComponent>(entity, entityObj, nameof(CameraComponent));
         SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
+        SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
+        SerializeComponent<TileMapComponent>(entity, entityObj, nameof(TileMapComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
+        SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
+        SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
+        SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 
         jsonEntities.Add(entityObj);
+    }
+
+    private void SerializeAudioSourceComponent(Entity entity, JsonObject entityObj)
+    {
+        if (!entity.HasComponent<AudioSourceComponent>())
+            return;
+
+        var component = entity.GetComponent<AudioSourceComponent>();
+        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        if (element != null)
+        {
+            element[NameKey] = nameof(AudioSourceComponent);
+            var components = GetJsonArray(entityObj, ComponentsKey);
+            components.Add(element);
+        }
     }
 
     private void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)

@@ -13,7 +13,7 @@ using ZLinq;
 
 namespace Engine.Scripting;
 
-public class ScriptEngine
+public class ScriptEngine : IScriptEngine
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
 
@@ -126,7 +126,7 @@ public class ScriptEngine
         return _scriptTypes.Keys.ToArray();
     }
 
-    public Type GetScriptType(string scriptName)
+    public Type? GetScriptType(string scriptName)
     {
         return _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
     }
@@ -400,7 +400,7 @@ public class ScriptEngine
                         text: existingContent,
                         options: CSharpParseOptions.Default,
                         path: existingPath,
-                        encoding: System.Text.Encoding.UTF8); // FIXED: Add encoding
+                        encoding: System.Text.Encoding.UTF8);
                         
                     syntaxTrees.Add(existingTree);
                 }

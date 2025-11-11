@@ -1,3 +1,4 @@
+using Engine;
 using Engine.Scripting;
 using Serilog;
 
@@ -6,8 +7,8 @@ namespace Editor.Managers;
 public class ProjectManager : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
-    
-    private readonly EditorPreferences _editorPreferences;
+
+    private readonly IEditorPreferences _editorPreferences;
 
     private static readonly string[] RequiredDirs =
     [
@@ -22,16 +23,13 @@ public class ProjectManager : IProjectManager
     /// Initializes a new instance of the ProjectManager.
     /// </summary>
     /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
-    public ProjectManager(EditorPreferences editorPreferences)
+    public ProjectManager(IEditorPreferences editorPreferences)
     {
         _editorPreferences = editorPreferences;
     }
 
     public string? CurrentProjectDirectory { get; private set; }
-
-    public string? AssetsDir =>
-        CurrentProjectDirectory is null ? null : Path.Combine(CurrentProjectDirectory, "assets");
-
+    
     public string? ScriptsDir => CurrentProjectDirectory is null
         ? null
         : Path.Combine(CurrentProjectDirectory, "assets", "scripts");
@@ -42,7 +40,9 @@ public class ProjectManager : IProjectManager
 
     public bool IsValidProjectName(string? name)
     {
-        if (string.IsNullOrWhiteSpace(name)) return false;
+        if (string.IsNullOrWhiteSpace(name)) 
+            return false;
+        
         return System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_\- ]+$");
     }
 
@@ -111,7 +111,7 @@ public class ProjectManager : IProjectManager
             SetCurrentProject(full);
 
             Logger.Information("📂 Project opened: {ProjectPath}", full);
-            var projectName = System.IO.Path.GetFileName(full);
+            var projectName = Path.GetFileName(full);
             _editorPreferences.AddRecentProject(full, projectName);
 
             return true;

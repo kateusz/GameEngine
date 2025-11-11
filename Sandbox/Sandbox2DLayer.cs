@@ -45,17 +45,19 @@ public class Sandbox2DLayer : ILayer
         """;
 
 
-    private static readonly Serilog.ILogger Logger = Log.ForContext<Sandbox2DLayer>();
+    private static readonly ILogger Logger = Log.ForContext<Sandbox2DLayer>();
 
-    private OrthographicCameraController _orthographicCameraController;
+    private readonly IGraphics2D _graphics2D;
+    private IOrthographicCameraController _orthographicCameraController;
     private Texture2D _spriteSheet;
     private SubTexture2D _textureBarrel;
 
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
 
-    public Sandbox2DLayer()
+    public Sandbox2DLayer(IGraphics2D graphics2D)
     {
+        _graphics2D = graphics2D;
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }
 
@@ -84,29 +86,29 @@ public class Sandbox2DLayer : ILayer
     {
         _orthographicCameraController.OnUpdate(timeSpan);
 
-        Graphics2D.Instance.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        Graphics2D.Instance.Clear();
+        _graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        _graphics2D.Clear();
 
-        Graphics2D.Instance.BeginScene(_orthographicCameraController.Camera);
+        _graphics2D.BeginScene(_orthographicCameraController.Camera);
 
-        Graphics2D.Instance.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+        // _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
+        //
+        // _graphics2D.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
+        // _graphics2D.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
 
-        Graphics2D.Instance.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
-        Graphics2D.Instance.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
+        for (var row = 0; row < _mapHeight; row++)
+        {
+            for (var col = 0; col < _mapWidth; col++)
+            {
+                var subTextureCode = _mapArray[row, col];
+                var subTexture = _textureMap[subTextureCode];
+                
+                // _mapHeight - row because openGl reads from bottom left to top right
+                _graphics2D.DrawQuad(new Vector3(col - _mapWidth / 2.0f, _mapHeight - row / 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, subTexture);
+            }
+        }
 
-        // for (var row = 0; row < _mapHeight; row++)
-        // {
-        //     for (var col = 0; col < _mapWidth; col++)
-        //     {
-        //         var subTextureCode = _mapArray[row, col];
-        //         var subTexture = _textureMap[subTextureCode];
-        //         
-        //         // _mapHeight - row because openGl reads from bottom left to top right
-        //         Renderer2D.Instance.DrawQuad(new Vector3(col - _mapWidth / 2.0f, _mapHeight - row / 2.0f, 0.5f), new Vector2(1, 1), rotation: 0, subTexture);
-        //     }
-        // }
-
-        Graphics2D.Instance.EndScene();
+        _graphics2D.EndScene();
     }
 
     public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);
@@ -120,7 +122,7 @@ public class Sandbox2DLayer : ILayer
         _orthographicCameraController.OnEvent(@event);
     }
 
-    public void OnImGuiRender()
+    public void Draw()
     {
     }
 

@@ -6,7 +6,7 @@ namespace Editor.Panels.Elements;
 
 public class EntityContextMenu
 {
-    public static void Render(Scene context)
+    public void Render(IScene context)
     {
         if (ImGui.BeginPopupContextWindow("WindowContextMenu",
                 ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
@@ -25,14 +25,14 @@ public class EntityContextMenu
         }
     }
 
-    private static void CreateEmptyEntity(Scene context)
+    private static void CreateEmptyEntity(IScene context)
     {
         var entity = context.CreateEntity("Empty Entity");
         entity.AddComponent<TransformComponent>();
         entity.AddComponent<IdComponent>();
     }
 
-    private static void Create3DEntity(Scene context)
+    private static void Create3DEntity(IScene context)
     {
         var entity = context.CreateEntity("3D Entity");
         entity.AddComponent<TransformComponent>();

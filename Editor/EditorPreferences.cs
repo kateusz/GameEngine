@@ -1,5 +1,8 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Engine.Scene.Serializer;
 using Serilog;
 
 namespace Editor;
@@ -7,27 +10,36 @@ namespace Editor;
 /// <summary>
 /// Represents a recently opened project with metadata.
 /// </summary>
-public class RecentProject
+public record RecentProject
 {
-    public string Path { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public DateTime LastOpened { get; set; }
+    public required string Path { get; init; }
+    public required string Name { get; init; }
+    public required DateTime LastOpened { get; init; }
 }
 
 /// <summary>
-/// Manages editor preferences including recent projects list.
+/// Manages editor preferences including recent projects list and editor settings.
 /// Persists data to AppData/GameEngine/editor-preferences.json
 /// </summary>
-public class EditorPreferences : IDisposable
+public class EditorPreferences : IEditorPreferences
 {
     private static readonly ILogger Logger = Log.ForContext<EditorPreferences>();
-    
-    public int Version { get; set; } = 1;
-    public List<RecentProject> RecentProjects { get; set; } = new();
+
+    public int Version { get; set; } = 2;
+    public List<RecentProject> RecentProjects { get; } = [];
     public const int MaxRecentProjects = 10;
 
+    // Editor Settings
+    [JsonConverter(typeof(Vector4Converter))]
+    public Vector4 BackgroundColor { get; set; } = new(0.91f, 0.91f, 0.91f, 1.0f);
+
+    // Debug Settings
+    public bool ShowColliderBounds { get; set; }
+    public bool ShowFPS { get; set; } = true;
+    
+
     private static readonly string PreferencesPath =
-        System.IO.Path.Combine(
+        Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "GameEngine",
             "editor-preferences.json"
@@ -38,16 +50,10 @@ public class EditorPreferences : IDisposable
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly SemaphoreSlim _saveSemaphore = new(1, 1);
     private CancellationTokenSource? _pendingSaveCts;
 
-    /// <summary>
-    /// Adds a project to the recent projects list, moving it to the front if already present.
-    /// Automatically saves preferences after update.
-    /// </summary>
-    /// <param name="path">Absolute path to the project directory.</param>
-    /// <param name="name">Display name of the project.</param>
     public void AddRecentProject(string path, string name)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -59,7 +65,7 @@ public class EditorPreferences : IDisposable
         lock (_lock)
         {
             // Normalize path to prevent duplicates
-            path = System.IO.Path.GetFullPath(path);
+            path = Path.GetFullPath(path);
 
             // Remove existing entry if present
             var existing = RecentProjects.FirstOrDefault(p =>
@@ -84,26 +90,17 @@ public class EditorPreferences : IDisposable
         Save();
     }
 
-    /// <summary>
-    /// Removes a project from the recent projects list (e.g., if deleted or invalid).
-    /// Automatically saves preferences after update.
-    /// </summary>
-    /// <param name="path">Absolute path to the project directory.</param>
     public void RemoveRecentProject(string path)
     {
         lock (_lock)
         {
-            path = System.IO.Path.GetFullPath(path);
+            path = Path.GetFullPath(path);
             RecentProjects.RemoveAll(p =>
                 string.Equals(p.Path, path, PathComparison));
         }
         Save();
     }
 
-    /// <summary>
-    /// Gets a thread-safe snapshot of the recent projects list.
-    /// </summary>
-    /// <returns>A read-only copy of the recent projects list.</returns>
     public IReadOnlyList<RecentProject> GetRecentProjects()
     {
         lock (_lock)
@@ -112,10 +109,6 @@ public class EditorPreferences : IDisposable
         }
     }
 
-    /// <summary>
-    /// Clears all recent projects from the list.
-    /// Automatically saves preferences after update.
-    /// </summary>
     public void ClearRecentProjects()
     {
         lock (_lock)
@@ -125,10 +118,6 @@ public class EditorPreferences : IDisposable
         Save();
     }
 
-    /// <summary>
-    /// Saves preferences to disk in JSON format asynchronously.
-    /// Debounces rapid save calls to avoid excessive I/O.
-    /// </summary>
     public void Save()
     {
         // Cancel any pending save and schedule a new one
@@ -152,13 +141,15 @@ public class EditorPreferences : IDisposable
                 string json;
                 lock (_lock)
                 {
-                    json = JsonSerializer.Serialize(this, new JsonSerializerOptions
+                    var options = new JsonSerializerOptions
                     {
-                        WriteIndented = true
-                    });
+                        WriteIndented = true,
+                        Converters = { new Vector4Converter() }
+                    };
+                    json = JsonSerializer.Serialize(this, options);
                 }
 
-                var directory = System.IO.Path.GetDirectoryName(PreferencesPath);
+                var directory = Path.GetDirectoryName(PreferencesPath);
                 if (!Directory.Exists(directory))
                     Directory.CreateDirectory(directory!);
 
@@ -190,7 +181,11 @@ public class EditorPreferences : IDisposable
             if (File.Exists(PreferencesPath))
             {
                 var json = File.ReadAllText(PreferencesPath);
-                var prefs = JsonSerializer.Deserialize<EditorPreferences>(json);
+                var options = new JsonSerializerOptions
+                {
+                    Converters = { new Vector4Converter() }
+                };
+                var prefs = JsonSerializer.Deserialize<EditorPreferences>(json, options);
 
                 if (prefs == null)
                 {
@@ -198,12 +193,14 @@ public class EditorPreferences : IDisposable
                     return new EditorPreferences();
                 }
 
-                // Version migration logic can be added here if needed in the future
-                if (prefs.Version < 1)
+                // Version migration logic
+                if (prefs.Version < 2)
                 {
                     Logger.Information("Migrating preferences from version {Old} to {New}",
-                        prefs.Version, 1);
-                    // Perform migration if needed
+                        prefs.Version, 2);
+                    // Version 1 didn't have editor settings, so we use defaults
+                    // The properties are already initialized with default values
+                    prefs.Version = 2;
                 }
 
                 Logger.Information("Editor preferences loaded from {Path}", PreferencesPath);

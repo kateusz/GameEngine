@@ -24,11 +24,11 @@ public static class AudioUtils
 
     public static bool IsValidVolume(float volume)
     {
-        return volume >= 0.0f && volume <= 1.0f;
+        return volume is >= 0.0f and <= 1.0f;
     }
 
     public static bool IsValidPitch(float pitch)
     {
-        return pitch > 0.0f && pitch <= 4.0f; // Rozumny zakres pitch
+        return pitch is > 0.0f and <= 4.0f;
     }
 }

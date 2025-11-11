@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Numerics;
 using Box2D.NetStandard.Collision.Shapes;
 using Box2D.NetStandard.Dynamics.Bodies;
@@ -7,40 +6,52 @@ using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
-using Engine.Scripting;
+using Engine.Scene.Systems;
 using Serilog;
 
 namespace Engine.Scene;
 
-public class Scene
+public class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
-    
+
+    private readonly IGraphics2D _graphics2D;
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
-    private World _physicsWorld;
-    private SceneContactListener _contactListener;
+    private readonly World _physicsWorld;
     private int _nextEntityId = 1;
+    private readonly ISystemManager _systemManager;
+    private bool _disposed = false;
 
-    private readonly bool _showPhysicsDebug = true;
+    // Cache for tileset textures in editor mode (to avoid loading from disk every frame)
+    // Key format: "path|columns|rows" to handle different grid configurations of the same texture
+    private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
-    // Fixed timestep accumulator for deterministic physics
-    private float _physicsAccumulator = 0f;
-
-    /// <summary>
-    /// Maximum physics steps per frame to prevent spiral of death.
-    /// At 60Hz physics with 16ms frames, this allows catching up from frame spikes up to ~83ms.
-    /// Beyond this threshold, the accumulator is clamped to prevent unbounded physics execution.
-    /// </summary>
-    private const int MaxPhysicsStepsPerFrame = 5;
-
-
-    public Scene(string path)
+    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
     {
         _path = path;
+        _graphics2D = graphics2D;
         Context.Instance.Clear();
+
+        // Initialize ECS systems
+        _systemManager = new SystemManager();
+
+        // Populate system manager from registry (singleton systems shared across scenes)
+        systemRegistry.PopulateSystemManager(_systemManager);
+
+        // Initialize physics world (per-scene, cannot be shared)
+        _physicsWorld = new World(new Vector2(0, -9.8f));
+
+        var contactListener = new SceneContactListener();
+        _physicsWorld.SetContactListener(contactListener);
+
+        // Create and register physics simulation system with the physics world
+        // NOTE: This system is per-scene because each scene has its own physics world
+        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
+        _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 
     public IEnumerable<Entity> Entities => Context.Instance.Entities;
@@ -78,16 +89,6 @@ public class Scene
         }
     }
 
-    /// <summary>
-    /// Destroys an entity, removing it from the scene.
-    /// </summary>
-    /// <param name="entity">The entity to destroy.</param>
-    /// <remarks>
-    /// Performance: O(1) dictionary lookup + O(n) list removal.
-    /// This is a significant improvement over the previous O(n) iteration + double allocation approach.
-    /// With 1000 entities, deletion time drops from ~16ms to sub-millisecond.
-    /// No heap allocations beyond the list removal operation.
-    /// </remarks>
     public void DestroyEntity(Entity entity)
     {
         // Unsubscribe from all events before removing to prevent memory leak
@@ -99,13 +100,7 @@ public class Scene
 
     public void OnRuntimeStart()
     {
-        _physicsWorld = new World(new Vector2(0, -9.8f)); // Standardowa grawitacja ziemska
-
-        _contactListener = new SceneContactListener();
-        _physicsWorld.SetContactListener(_contactListener);
-
-        // Reset physics accumulator for clean state
-        _physicsAccumulator = 0f;
+        _systemManager.Initialize();
 
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
@@ -130,15 +125,15 @@ public class Scene
             {
                 var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
                 var shape = new PolygonShape();
-                
+
                 var actualSizeX = boxCollider.Size.X * transform.Scale.X;
                 var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
                 var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
                 var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
-    
+
                 var center = new Vector2(actualOffsetX, actualOffsetY);
                 shape.SetAsBox(actualSizeX / 2.0f, actualSizeY / 2.0f, center, 0.0f);
-                
+
                 var fixtureDef = new FixtureDef
                 {
                     shape = shape,
@@ -155,10 +150,6 @@ public class Scene
 
     public void OnRuntimeStop()
     {
-        // Early exit if physics world was never initialized
-        if (_physicsWorld == null)
-            return;
-
         // First, mark all script entities as "stopping" to prevent new physics operations
         var scriptEntities = Context.Instance.View<NativeScriptComponent>();
         var errors = new List<Exception>();
@@ -178,10 +169,12 @@ public class Scene
                 }
             }
         }
-      
+
         if (errors.Count > 0)
         {
-            Logger.Warning("Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.", errors.Count);
+            Logger.Warning(
+                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
+                errors.Count);
         }
 
         // Properly destroy all physics bodies before clearing references
@@ -196,166 +189,36 @@ public class Scene
             }
         }
 
-        // Clear ContactListener
-        if (_contactListener != null)
-        {
-            _physicsWorld.SetContactListener(null);
-            _contactListener = null;
-        }
-
-        // Destroy physics world
-        _physicsWorld = null;
+        _systemManager.Shutdown();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // Update scripts with variable delta time for smooth rendering
-        ScriptEngine.Instance.OnUpdate(ts);
-
-        // Fixed timestep physics simulation
-        const int velocityIterations = 6;
-        const int positionIterations = 2;
-        var deltaSeconds = (float)ts.TotalSeconds;
-
-        // Accumulate time
-        _physicsAccumulator += deltaSeconds;
-
-        // Step physics multiple times if needed to catch up
-        int stepCount = 0;
-        while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
-        {
-            _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
-            _physicsAccumulator -= CameraConfig.PhysicsTimestep;
-            stepCount++;
-        }
-
-        // If we hit max steps, clamp accumulator to prevent unbounded growth
-        // while preserving some time debt for the next frame
-        if (_physicsAccumulator >= CameraConfig.PhysicsTimestep)
-        {
-            _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
-        }
-
-        // Retrieve transform from Box2D
-        var view = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
-        {
-            var transform = entity.GetComponent<TransformComponent>();
-            var collision = entity.GetComponent<BoxCollider2DComponent>();
-            var body = component.RuntimeBody;
-
-            if (body != null)
-            {
-                // Only update fixture properties if they have changed
-                if (collision.IsDirty)
-                {
-                    var fixture = body.GetFixtureList();
-                    fixture.Density = collision.Density;
-                    fixture.m_friction = collision.Friction;
-                    fixture.Restitution = collision.Restitution;
-                    collision.ClearDirtyFlag();
-                }
-
-                var position = body.GetPosition();
-                transform.Translation = new Vector3(position.X, position.Y, 0);
-                transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
-            }
-        }
-
-        // Find the main camera
-        Camera? mainCamera = null;
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var entity in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
-
-        if (mainCamera != null)
-        {
-            // Render 3D (new code)
-            Render3D(mainCamera, cameraTransform);
-
-            // Render 2D (existing code)
-            Graphics2D.Instance.BeginScene(mainCamera, cameraTransform);
-
-            var group = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
-            foreach (var entity in group)
-            {
-                var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
-                var transformComponent = entity.GetComponent<TransformComponent>();
-                Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
-            }
-
-            if (_showPhysicsDebug)
-            {
-                // todo: decorator
-                DrawPhysicsDebugSimple();
-            }
-            
-            Graphics2D.Instance.EndScene();
-        }
+        // Update all systems in priority order:
+        // 100: PhysicsSimulationSystem
+        // 150: ScriptUpdateSystem
+        // 200: SpriteRenderingSystem
+        // 205: SubTextureRenderingSystem
+        // 210: ModelRenderingSystem
+        // 500: PhysicsDebugRenderSystem
+        _systemManager.Update(ts);
     }
 
-    private void DrawPhysicsDebugSimple()
-    {
-        var rigidBodyView = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, rigidBodyComponent) in rigidBodyView)
-        {
-            if (rigidBodyComponent.RuntimeBody == null) 
-                continue;
-            
-            // Pobierz pozycję z Box2D body
-            var bodyPosition = rigidBodyComponent.RuntimeBody.GetPosition();
 
-            // Rysuj BoxCollider2D jeśli istnieje
-            if (entity.HasComponent<BoxCollider2DComponent>())
-            {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-                var transform = entity.GetComponent<TransformComponent>();
-                var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
-
-                var position = new Vector3(bodyPosition.X, bodyPosition.Y, 0.0f);
-                
-                // Box2D używa half-extents
-                var size = new Vector2(
-                    boxCollider.Size.X * 2.0f * transform.Scale.X,
-                    boxCollider.Size.Y * 2.0f * transform.Scale.Y
-                );
-
-                // Używa Twojego istniejącego Renderer2D.DrawRect
-                Graphics2D.Instance.DrawRect(position, size, color, entity.Id);
-            }
-        }
-    }
-
-    private static Vector4 GetBodyDebugColor(Body body)
-    {
-        if (!body.IsEnabled())
-            return new Vector4(0.5f, 0.5f, 0.3f, 1.0f); // Nieaktywne
-
-        return body.Type() switch
-        {
-            BodyType.Static => new Vector4(0.5f, 0.9f, 0.5f, 1.0f) // Zielone
-            ,
-            BodyType.Kinematic => new Vector4(0.5f, 0.5f, 0.9f, 1.0f) // Niebieskie
-            ,
-            _ => body.IsAwake()
-                ? new Vector4(0.9f, 0.7f, 0.7f, 1.0f) // Różowe (aktywne)
-                : new Vector4(0.6f, 0.6f, 0.6f, 1.0f)
-        };
-    }
-
+    /// <summary>
+    /// Updates the scene in editor mode (without running physics or scripts).
+    /// </summary>
+    /// <remarks>
+    /// NOTE: Editor mode uses manual rendering instead of the ECS systems because:
+    /// 1. Editor uses OrthographicCamera while scene systems use SceneCamera (incompatible types)
+    /// 2. Editor mode is fundamentally different (no physics, no scripts, just visualization)
+    /// 3. Editor camera is managed by the viewport, not by scene entities
+    ///
+    /// If in the future we want to unify this, we would need to:
+    /// - Make rendering systems accept both camera types, OR
+    /// - Convert OrthographicCamera to SceneCamera (with potential performance cost), OR
+    /// - Refactor the editor to use scene-based cameras
+    /// </remarks>
     public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
     {
         //TODO: temp disable 3D
@@ -381,18 +244,104 @@ public class Scene
         Renderer3D.Instance.EndScene();
         */
 
-        // Then render 2D objects using the orthographic camera directly
-        Graphics2D.Instance.BeginScene(camera);
+        // Render 2D sprites using the editor viewport camera
+        _graphics2D.BeginScene(camera);
 
+        // Sprites
         var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
-            Graphics2D.Instance.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
-        Graphics2D.Instance.EndScene();
+        // Subtextures (mirror runtime system)
+        var subtextureGroup =
+            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+        foreach (var entity in subtextureGroup)
+        {
+            var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
+            if (subtextureComponent.Texture is null) continue;
+
+            // Create SubTexture2D using component's cell/sprite sizes (same as runtime)
+            var subTexture = SubTexture2D.CreateFromCoords(
+                subtextureComponent.Texture,
+                subtextureComponent.Coords,
+                subtextureComponent.CellSize,
+                subtextureComponent.SpriteSize
+            );
+
+            // Use transform directly without additional scaling (same as runtime)
+            var transform = entity.GetComponent<TransformComponent>().GetTransform();
+            _graphics2D.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, entityId: entity.Id);
+        }
+
+        // TileMaps (mirror runtime system with caching)
+        var tilemapGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(TileMapComponent)]);
+        foreach (var entity in tilemapGroup)
+        {
+            var tileMapComponent = entity.GetComponent<TileMapComponent>();
+            var transformComponent = entity.GetComponent<TransformComponent>();
+
+            // Skip if no tileset path
+            if (string.IsNullOrEmpty(tileMapComponent.TileSetPath))
+                continue;
+
+            // Get or load cached tileset
+            var tileSet = GetOrLoadEditorTileSet(tileMapComponent);
+            if (tileSet?.Texture == null)
+                continue;
+
+            // Render layers in Z-index order
+            var sortedLayers = tileMapComponent.Layers.OrderBy(l => l.ZIndex).ToList();
+
+            foreach (var layer in sortedLayers)
+            {
+                if (!layer.Visible)
+                    continue;
+
+                for (var y = 0; y < tileMapComponent.Height; y++)
+                {
+                    for (var x = 0; x < tileMapComponent.Width; x++)
+                    {
+                        var tileId = layer.Tiles[x, y];
+                        if (tileId < 0)
+                            continue; // Empty tile
+
+                        // Get pre-computed subtexture from cache
+                        var subTexture = tileSet.GetTileSubTexture(tileId);
+                        if (subTexture == null)
+                            continue;
+
+                        // Calculate tile position in world space
+                        var tilePos = new Vector3(
+                            transformComponent.Translation.X + x * tileMapComponent.TileSize.X,
+                            transformComponent.Translation.Y + y * tileMapComponent.TileSize.Y,
+                            transformComponent.Translation.Z + layer.ZIndex * 0.01f
+                        );
+
+                        // Create transform for this tile
+                        var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMapComponent.TileSize, 1.0f)) *
+                                            Matrix4x4.CreateRotationZ(transformComponent.Rotation.Z) *
+                                            Matrix4x4.CreateTranslation(tilePos);
+
+                        var tintColor = new Vector4(1, 1, 1, layer.Opacity);
+
+                        _graphics2D.DrawQuad(
+                            tileTransform,
+                            subTexture.Texture,
+                            subTexture.TexCoords,
+                            1.0f,
+                            tintColor,
+                            entity.Id
+                        );
+                    }
+                }
+            }
+        }
+
+        _graphics2D.EndScene();
     }
 
     public void OnViewportResize(uint width, uint height)
@@ -449,43 +398,107 @@ public class Scene
         foreach (var component in entity.GetAllComponents())
         {
             var clonedComponent = component.Clone();
-
-            // Use reflection to call AddComponent with the correct type
             var componentType = component.GetType();
-            var addComponentMethod = typeof(Entity).GetMethod(nameof(Entity.AddComponent), new[] { componentType });
+
+            // Get the generic AddComponent<T>(T component) method
+            var addComponentMethod = typeof(Entity)
+                .GetMethods()
+                .FirstOrDefault(m =>
+                    m.Name == nameof(Entity.AddComponent) &&
+                    m.IsGenericMethod &&
+                    m.GetParameters().Length == 1 &&
+                    m.GetParameters()[0].ParameterType.IsGenericParameter);
 
             if (addComponentMethod != null)
             {
-                addComponentMethod.Invoke(newEntity, new[] { clonedComponent });
+                // Make the generic method concrete with the component type
+                var genericMethod = addComponentMethod.MakeGenericMethod(componentType);
+                genericMethod.Invoke(newEntity, new[] { clonedComponent });
             }
             else
             {
-                Logger.Warning($"Could not find AddComponent method for type {componentType.Name}");
+                Logger.Warning("Could not find AddComponent method for type {ComponentTypeName}", componentType.Name);
             }
         }
 
         return newEntity;
     }
 
-    public void Render3D(Camera camera, Matrix4x4 cameraTransform)
+    /// <summary>
+    /// Gets or loads a tileset from the editor cache. This prevents loading textures from disk every frame.
+    /// </summary>
+    private TileSet? GetOrLoadEditorTileSet(TileMapComponent tileMapComponent)
     {
-        Graphics3D.Instance.BeginScene(camera, cameraTransform);
-
-        // Get entities with MeshComponent and ModelRendererComponent
-        var group = Context.Instance.GetGroup([
-            typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
-        ]);
-
-        foreach (var entity in group)
+        // Generate cache key that includes grid dimensions
+        var cacheKey =
+            $"{tileMapComponent.TileSetPath}|{tileMapComponent.TileSetColumns}|{tileMapComponent.TileSetRows}";
+        
+        // Check cache first
+        if (_editorTileSetCache.TryGetValue(cacheKey, out var cachedTileSet))
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var meshComponent = entity.GetComponent<MeshComponent>();
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
-
-            Graphics3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
-                entity.Id);
+            return cachedTileSet;
         }
 
-        Graphics3D.Instance.EndScene();
+        // Not in cache, load it
+        var tileSet = new TileSet
+        {
+            TexturePath = tileMapComponent.TileSetPath,
+            Columns = tileMapComponent.TileSetColumns,
+            Rows = tileMapComponent.TileSetRows
+        };
+
+        tileSet.LoadTexture();
+
+        if (tileSet.Texture != null)
+        {
+            // Calculate tile dimensions from texture size
+            tileSet.TileWidth = tileSet.Texture.Width / tileMapComponent.TileSetColumns;
+            tileSet.TileHeight = tileSet.Texture.Height / tileMapComponent.TileSetRows;
+
+            // Generate all tile subtextures
+            tileSet.GenerateTiles();
+
+            // Cache for future frames
+            _editorTileSetCache[cacheKey] = tileSet;
+            return tileSet;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Disposes the scene and cleans up all resources.
+    /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
+    /// and clears entity storage to prevent memory leaks.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        Logger.Debug("Disposing scene '{Path}'", _path);
+
+        // Unsubscribe from all entity component events to prevent memory leaks
+        foreach (var entity in Context.Instance.Entities)
+        {
+            entity.OnComponentAdded -= OnComponentAdded;
+        }
+
+        // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
+        // Singleton systems (rendering, scripts) are shared and won't be disposed
+        _systemManager?.Dispose();
+
+        // Clear tileset cache to prevent memory leaks
+        foreach (var tileSet in _editorTileSetCache.Values)
+        {
+            tileSet.Texture?.Dispose();
+        }
+
+        _editorTileSetCache.Clear();
+
+        // Clear entity storage
+        Context.Instance.Clear();
+
+        _disposed = true;
+        Logger.Debug("Scene '{Path}' disposed successfully", _path);
     }
 }

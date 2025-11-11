@@ -7,25 +7,31 @@ using Serilog;
 
 namespace Editor.Panels;
 
-public class SceneManager
+public class SceneManager : ISceneManager
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneManager>();
+    private static readonly ILogger Logger = Log.ForContext<SceneManager>();
     
     public SceneState SceneState { get; private set; } = SceneState.Edit;
     public string? EditorScenePath { get; private set; }
 
-    private readonly SceneHierarchyPanel _sceneHierarchyPanel;
+    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
     private readonly ISceneSerializer _sceneSerializer;
+    private readonly SceneFactory _sceneFactory;
 
-    public SceneManager(SceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer)
+    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneSerializer = sceneSerializer;
+        _sceneFactory = sceneFactory;
     }
 
     public void New(Vector2 viewportSize)
     {
-        CurrentScene.Set(new Scene(""));
+        // Dispose old scene before creating new one
+        CurrentScene.Instance?.Dispose();
+
+        var scene = _sceneFactory.Create("");
+        CurrentScene.Set(scene);
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         Logger.Information("📄 New scene created");
@@ -36,8 +42,14 @@ public class SceneManager
         if (SceneState != SceneState.Edit)
             Stop();
 
+        // Dispose old scene before loading new one
+        CurrentScene.Instance?.Dispose();
+
         EditorScenePath = path;
-        CurrentScene.Set(new Scene(path));
+        
+        var scene = _sceneFactory.Create(path);
+        CurrentScene.Set(scene);
+        
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 
@@ -85,12 +97,12 @@ public class SceneManager
         }
     }
 
-    public void FocusOnSelectedEntity(OrthographicCameraController cameraController)
+    public void FocusOnSelectedEntity(IOrthographicCameraController cameraController)
     {
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
         if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
-            cameraController.Camera.SetPosition(transform.Translation);
+            cameraController.SetPosition(transform.Translation);
         }
     }
 }

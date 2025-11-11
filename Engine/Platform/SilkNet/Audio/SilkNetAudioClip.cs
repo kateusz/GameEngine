@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
@@ -6,8 +7,9 @@ namespace Engine.Platform.SilkNet.Audio;
 
 public class SilkNetAudioClip : IAudioClip, IDisposable
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetAudioClip>();
-    
+    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioClip>();
+
+    private readonly AL _al;
     private uint _bufferId;
     private bool _disposed = false;
 
@@ -22,9 +24,10 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
 
     internal uint BufferId => _bufferId;
 
-    public SilkNetAudioClip(string path)
+    public SilkNetAudioClip(string path, AL al)
     {
         Path = path ?? throw new ArgumentNullException(nameof(path));
+        _al = al ?? throw new ArgumentNullException(nameof(al));
         Format = AudioClipFactory.DetectFormat(path);
 
         if (!AudioClipFactory.IsSupportedFormat(path))
@@ -45,14 +48,19 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             LoadAudioFile();
 
             // Create OpenAL buffer
-            var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
-            _bufferId = al.GenBuffer();
+            _bufferId = _al.GenBuffer();
 
             // Determine OpenAL format based on channels and bit depth
             var alFormat = GetOpenALFormat();
 
             // Upload data to OpenAL buffer
-            al.BufferData(_bufferId, alFormat, RawData, SampleRate);
+            unsafe
+            {
+                fixed (byte* ptr = RawData)
+                {
+                    _al.BufferData(_bufferId, alFormat, ptr, RawData.Length, SampleRate);
+                }
+            }
 
             // Calculate duration
             int bytesPerSample = Channels * 2; // Assuming 16-bit
@@ -64,6 +72,24 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
         catch (Exception ex)
         {
             Logger.Error(ex, "Error loading audio clip {Path}", Path);
+
+            // Clean up any created buffer on error
+            if (_bufferId != 0)
+            {
+                try
+                {
+                    _al.DeleteBuffer(_bufferId);
+                }
+                catch (Exception deleteEx)
+                {
+                    Logger.Warning(deleteEx, "Failed to delete buffer after load error for {Path}", Path);
+                }
+                finally
+                {
+                    _bufferId = 0;
+                }
+            }
+
             throw;
         }
     }
@@ -85,12 +111,11 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             }
 
             // Unload OpenAL resources (unmanaged resources)
-            if (IsLoaded && _bufferId != 0)
+            if (_bufferId != 0)
             {
                 try
                 {
-                    var al = ((SilkNetAudioEngine)AudioEngine.Instance).GetAL();
-                    al.DeleteBuffer(_bufferId);
+                    _al.DeleteBuffer(_bufferId);
                     _bufferId = 0;
                     IsLoaded = false;
                     Logger.Information("Unloaded audio clip: {Path}", Path);

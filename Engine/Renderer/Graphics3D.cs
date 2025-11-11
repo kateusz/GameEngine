@@ -6,18 +6,15 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-public class Graphics3D : IGraphics3D, IDisposable
+public class Graphics3D : IGraphics3D
 {
-    private static IGraphics3D? _instance;
-    public static IGraphics3D Instance => _instance ??= new Graphics3D();
-
-    private IRendererAPI _rendererApi = RendererApiFactory.Create();
+    private readonly IRendererAPI _rendererApi = RendererApiFactory.Create();
     private IShader _phongShader;
-    private Vector3 _lightPosition = new Vector3(0.0f, 3.0f, 3.0f);
-    private Vector3 _lightColor = new Vector3(1.0f, 1.0f, 1.0f);
+    private Vector3 _lightPosition = new(0.0f, 3.0f, 3.0f);
+    private Vector3 _lightColor = new(1.0f, 1.0f, 1.0f);
     private float _shininess = 32.0f;
 
-    private Statistics _stats = new();
+    private readonly Statistics _stats = new();
     private bool _disposed;
 
     public void Init()

@@ -2,12 +2,6 @@ namespace Editor.Managers;
 
 public interface IProjectManager
 {
-    /// <summary>Absolute path to the current project directory or null if none.</summary>
-    string? CurrentProjectDirectory { get; }
-
-    /// <summary>Absolute path to the project's /assets directory (null if no project).</summary>
-    string? AssetsDir { get; }
-
     /// <summary>Absolute path to /assets/scripts (null if no project).</summary>
     string? ScriptsDir { get; }
 
