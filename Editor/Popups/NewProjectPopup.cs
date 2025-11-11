@@ -44,7 +44,7 @@ public class NewProjectPopup : IEditorPopup
             ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
 
         var isOpen = IsOpen;
-        if (ImGui.BeginPopupModal("New Project", ref isOpen,
+        if (ImGui.BeginPopupModal(Id, ref isOpen, // Use Id here, not "New Project"
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
         {
             ImGui.Text("Enter Project Name:");

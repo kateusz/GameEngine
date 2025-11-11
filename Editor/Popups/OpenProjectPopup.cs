@@ -47,7 +47,7 @@ public class OpenProjectPopup : IEditorPopup
             ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
 
         var isOpen = IsOpen;
-        if (ImGui.BeginPopupModal("Open Project", ref isOpen,
+        if (ImGui.BeginPopupModal(Id, ref isOpen, // Use Id here, not "Open Project"
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
         {
             ImGui.Text("Enter Project Path:");

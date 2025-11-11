@@ -36,13 +36,10 @@ public class EditorSettingsUI : IEditorPopup
 
         // Use BeginPopupModal for proper popup behavior
         var isOpen = IsOpen;
-        if (!ImGui.BeginPopupModal("Editor Settings", ref isOpen,
+        if (ImGui.BeginPopupModal(Id, ref isOpen, // Use Id here, not "Editor Settings"
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
-            return;
-
-        IsOpen = isOpen;
-
-        // --- Background Color ---
+        {
+            // --- Background Color ---
         ImGui.Text("Editor Background Color");
         var backgroundColor = _editorPreferences.BackgroundColor;
         if (ImGui.ColorEdit4("Background Color", ref backgroundColor))
@@ -72,7 +69,11 @@ public class EditorSettingsUI : IEditorPopup
             _editorPreferences.Save();
         }
 
-        ImGui.EndPopup();
+            ImGui.EndPopup();
+        }
+
+        // Update state after popup ends (captures X button clicks)
+        IsOpen = isOpen;
     }
 
     public void OnClose()
