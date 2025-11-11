@@ -273,6 +273,92 @@ public class Scene : IScene
             _graphics2D.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, entityId: entity.Id);
         }
 
+        // TileMaps (mirror runtime system)
+        var tilemapGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(TileMapComponent)]);
+        foreach (var entity in tilemapGroup)
+        {
+            var tileMapComponent = entity.GetComponent<TileMapComponent>();
+            var transformComponent = entity.GetComponent<TransformComponent>();
+
+            // Skip if no tileset path
+            if (string.IsNullOrEmpty(tileMapComponent.TileSetPath))
+                continue;
+
+            // Load tileset texture
+            Texture2D? tilesetTexture = null;
+            if (File.Exists(tileMapComponent.TileSetPath))
+            {
+                tilesetTexture = TextureFactory.Create(tileMapComponent.TileSetPath);
+            }
+
+            if (tilesetTexture == null)
+                continue;
+
+            // Calculate tile dimensions
+            var tileWidth = tilesetTexture.Width / tileMapComponent.TileSetColumns;
+            var tileHeight = tilesetTexture.Height / tileMapComponent.TileSetRows;
+
+            // Render layers in Z-index order
+            var sortedLayers = tileMapComponent.Layers.OrderBy(l => l.ZIndex).ToList();
+
+            foreach (var layer in sortedLayers)
+            {
+                if (!layer.Visible)
+                    continue;
+
+                for (var y = 0; y < tileMapComponent.Height; y++)
+                {
+                    for (var x = 0; x < tileMapComponent.Width; x++)
+                    {
+                        var tileId = layer.Tiles[x, y];
+                        if (tileId < 0)
+                            continue; // Empty tile
+
+                        // Calculate tile position in tileset
+                        var tileRow = tileId / tileMapComponent.TileSetColumns;
+                        var tileCol = tileId % tileMapComponent.TileSetColumns;
+
+                        // Calculate UV coordinates
+                        var minU = (tileCol * tileWidth) / (float)tilesetTexture.Width;
+                        var minV = (tileRow * tileHeight) / (float)tilesetTexture.Height;
+                        var maxU = ((tileCol + 1) * tileWidth) / (float)tilesetTexture.Width;
+                        var maxV = ((tileRow + 1) * tileHeight) / (float)tilesetTexture.Height;
+
+                        var texCoords = new[]
+                        {
+                            new Vector2(minU, minV),
+                            new Vector2(maxU, minV),
+                            new Vector2(maxU, maxV),
+                            new Vector2(minU, maxV)
+                        };
+
+                        // Calculate tile position in world space
+                        var tilePos = new Vector3(
+                            transformComponent.Translation.X + x * tileMapComponent.TileSize.X,
+                            transformComponent.Translation.Y + y * tileMapComponent.TileSize.Y,
+                            transformComponent.Translation.Z + layer.ZIndex * 0.01f
+                        );
+
+                        // Create transform for this tile
+                        var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMapComponent.TileSize, 1.0f)) *
+                                          Matrix4x4.CreateRotationZ(transformComponent.Rotation.Z) *
+                                          Matrix4x4.CreateTranslation(tilePos);
+
+                        var tintColor = new Vector4(1, 1, 1, layer.Opacity);
+
+                        _graphics2D.DrawQuad(
+                            tileTransform,
+                            tilesetTexture,
+                            texCoords,
+                            1.0f,
+                            tintColor,
+                            entity.Id
+                        );
+                    }
+                }
+            }
+        }
+
         _graphics2D.EndScene();
     }
 
