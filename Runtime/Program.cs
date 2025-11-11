@@ -4,6 +4,7 @@ using Engine.Core;
 using Engine.Core.Window;
 using Engine.Renderer;
 using Engine.Scene;
+using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -149,13 +150,16 @@ public class Program
 
         // Scene systems
         container.Register<SceneFactory>(Reuse.Singleton);
-        container.Register<SceneSystemRegistry>(Reuse.Singleton);
+        container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
         container.Register<SpriteRenderingSystem>(Reuse.Singleton);
         container.Register<ModelRenderingSystem>(Reuse.Singleton);
         container.Register<ScriptUpdateSystem>(Reuse.Singleton);
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
+
+        // Scene serialization
+        container.Register<ISceneSerializer, Engine.Scene.Serializer.SceneSerializer>(Reuse.Singleton);
 
         // Runtime layer and application
         container.Register<RuntimeLayer>(Reuse.Singleton);
