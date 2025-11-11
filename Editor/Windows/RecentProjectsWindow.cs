@@ -79,7 +79,7 @@ public class RecentProjectsWindow : IEditorWindow
             {
                 DrawRecentProjects();
                 ImGui.Separator();
-                DrawQuickActions();
+                DrawQuickActions(ref isOpen); // Pass by ref so buttons can close the window
             }
         }
         ImGui.End();
@@ -234,8 +234,9 @@ public class RecentProjectsWindow : IEditorWindow
                     _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                     Logger.Information("Opened project: {Name}", project.Name);
 
-                    // Close window on next frame
+                    // Close window on next frame - this is OK since it's async
                     IsOpen = false;
+                    OnClose();
                 }
                 else
                 {
@@ -249,7 +250,7 @@ public class RecentProjectsWindow : IEditorWindow
         });
     }
 
-    private void DrawQuickActions()
+    private void DrawQuickActions(ref bool isOpen)
     {
         ImGui.Text("Quick Actions:");
         ImGui.Spacing();
@@ -259,14 +260,14 @@ public class RecentProjectsWindow : IEditorWindow
         if (ImGui.Button("New Project", new Vector2(buttonWidth, 20)))
         {
             _projectUI.ShowNewProjectPopup();
-            IsOpen = false;
+            isOpen = false; // Use local variable, not property
         }
 
         ImGui.SameLine();
 
         if (ImGui.Button("Continue Without Project", new Vector2(buttonWidth, 20)))
         {
-            IsOpen = false;
+            isOpen = false; // Use local variable, not property
         }
     }
 
