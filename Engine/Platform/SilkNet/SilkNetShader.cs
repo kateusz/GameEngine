@@ -189,17 +189,51 @@ public class SilkNetShader : IShader
         return handle;
     }
 
+    /// <summary>
+    /// Releases all resources used by the shader program.
+    /// </summary>
+    /// <remarks>
+    /// This method should be called when the shader is no longer needed to prevent GPU resource leaks.
+    /// The shader program handle and uniform location cache will be cleaned up.
+    /// Calling this method multiple times is safe due to the disposed flag check.
+    /// </remarks>
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Finalizer to ensure GPU resources are released even if Dispose is not called explicitly.
+    /// </summary>
+    /// <remarks>
+    /// This serves as a safety net for resource cleanup, but explicit Dispose calls are preferred
+    /// as finalizers run on a separate thread and may be delayed by the garbage collector.
+    /// </remarks>
+    ~SilkNetShader()
+    {
+        Dispose(false);
+    }
+
+    /// <summary>
+    /// Releases the unmanaged and optionally the managed resources used by the shader.
+    /// </summary>
+    /// <param name="disposing">
+    /// True to release both managed and unmanaged resources; false to release only unmanaged resources.
+    /// This parameter is false when called from the finalizer.
+    /// </param>
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
             return;
 
+        if (disposing)
+        {
+            // Dispose managed resources
+            _uniformLocations?.Clear();
+        }
+
+        // Free unmanaged resources (GPU resources)
         try
         {
             if (_handle != 0)
