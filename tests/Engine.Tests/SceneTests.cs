@@ -14,13 +14,11 @@ public class SceneTests : IDisposable
     private readonly Faker _faker = new();
     private readonly IGraphics2D _mockGraphics2D;
     private readonly ISceneSystemRegistry _mockSystemRegistry;
-    private readonly ISystemManager _mockSystemManager;
 
     public SceneTests()
     {
         _mockGraphics2D = Substitute.For<IGraphics2D>();
         _mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
-        _mockSystemManager = Substitute.For<ISystemManager>();
 
         // Setup system registry to return our mock system manager behavior
         _mockSystemRegistry.PopulateSystemManager(Arg.Any<ISystemManager>())

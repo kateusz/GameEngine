@@ -7,11 +7,9 @@ using Xunit;
 
 namespace Engine.Tests;
 
-public class RendererUtilsTests
+public class SubTexture2DTests
 {
     private readonly Faker _faker = new();
-
-    #region SubTexture2D Tests
 
     [Fact]
     public void SubTexture2D_Constructor_ShouldSetTexture()
@@ -73,9 +71,9 @@ public class RendererUtilsTests
         mockTexture.Width.Returns(256);
         mockTexture.Height.Returns(256);
 
-        var coords = new Vector2(1, 1);  // Second sprite in grid
+        var coords = new Vector2(1, 1); // Second sprite in grid
         var cellSize = new Vector2(32, 32); // 32x32 sprites
-        var spriteSize = Vector2.One;    // 1x1 sprite
+        var spriteSize = Vector2.One; // 1x1 sprite
 
         // Act
         var subTexture = SubTexture2D.CreateFromCoords(mockTexture, coords, cellSize, spriteSize);
@@ -97,7 +95,7 @@ public class RendererUtilsTests
         mockTexture.Width.Returns(128);
         mockTexture.Height.Returns(128);
 
-        var coords = Vector2.Zero;       // First sprite
+        var coords = Vector2.Zero; // First sprite
         var cellSize = new Vector2(16, 16);
         var spriteSize = Vector2.One;
 
@@ -237,7 +235,7 @@ public class RendererUtilsTests
     {
         // Arrange - Simulating a typical sprite sheet
         var mockTexture = Substitute.For<Texture2D>();
-        mockTexture.Width.Returns(256);  // 8 sprites wide
+        mockTexture.Width.Returns(256); // 8 sprites wide
         mockTexture.Height.Returns(256); // 8 sprites tall
 
         var cellSize = new Vector2(32, 32);
@@ -255,6 +253,4 @@ public class RendererUtilsTests
         subTexture.TexCoords[2].X.ShouldBe(0.5f, 0.0001f);
         subTexture.TexCoords[2].Y.ShouldBe(0.375f, 0.0001f);
     }
-
-    #endregion
 }
