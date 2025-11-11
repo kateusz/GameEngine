@@ -27,6 +27,7 @@ public class Scene : IScene
     private bool _disposed = false;
 
     // Cache for tileset textures in editor mode (to avoid loading from disk every frame)
+    // Key format: "path|columns|rows" to handle different grid configurations of the same texture
     private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
     public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
@@ -100,7 +101,7 @@ public class Scene : IScene
     public void OnRuntimeStart()
     {
         _systemManager.Initialize();
-        
+
         var view = Context.Instance.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
@@ -187,7 +188,7 @@ public class Scene : IScene
                 component.RuntimeBody = null;
             }
         }
-        
+
         _systemManager.Shutdown();
     }
 
@@ -322,8 +323,8 @@ public class Scene : IScene
 
                         // Create transform for this tile
                         var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMapComponent.TileSize, 1.0f)) *
-                                          Matrix4x4.CreateRotationZ(transformComponent.Rotation.Z) *
-                                          Matrix4x4.CreateTranslation(tilePos);
+                                            Matrix4x4.CreateRotationZ(transformComponent.Rotation.Z) *
+                                            Matrix4x4.CreateTranslation(tilePos);
 
                         var tintColor = new Vector4(1, 1, 1, layer.Opacity);
 
@@ -416,7 +417,7 @@ public class Scene : IScene
             }
             else
             {
-                Logger.Warning($"Could not find AddComponent method for type {componentType.Name}");
+                Logger.Warning("Could not find AddComponent method for type {ComponentTypeName}", componentType.Name);
             }
         }
 
@@ -428,8 +429,12 @@ public class Scene : IScene
     /// </summary>
     private TileSet? GetOrLoadEditorTileSet(TileMapComponent tileMapComponent)
     {
+        // Generate cache key that includes grid dimensions
+        var cacheKey =
+            $"{tileMapComponent.TileSetPath}|{tileMapComponent.TileSetColumns}|{tileMapComponent.TileSetRows}";
+        
         // Check cache first
-        if (_editorTileSetCache.TryGetValue(tileMapComponent.TileSetPath, out var cachedTileSet))
+        if (_editorTileSetCache.TryGetValue(cacheKey, out var cachedTileSet))
         {
             return cachedTileSet;
         }
@@ -454,7 +459,7 @@ public class Scene : IScene
             tileSet.GenerateTiles();
 
             // Cache for future frames
-            _editorTileSetCache[tileMapComponent.TileSetPath] = tileSet;
+            _editorTileSetCache[cacheKey] = tileSet;
             return tileSet;
         }
 
@@ -483,6 +488,11 @@ public class Scene : IScene
         _systemManager?.Dispose();
 
         // Clear tileset cache to prevent memory leaks
+        foreach (var tileSet in _editorTileSetCache.Values)
+        {
+            tileSet.Texture?.Dispose();
+        }
+
         _editorTileSetCache.Clear();
 
         // Clear entity storage

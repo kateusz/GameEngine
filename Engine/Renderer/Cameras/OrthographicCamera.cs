@@ -57,7 +57,6 @@ public class OrthographicCamera
         var transform = Matrix4x4.Identity;
         transform *= position;
         transform *= rotation;
-        transform *= scale;
 
         Matrix4x4.Invert(transform, out var result);
         ViewMatrix = result;
