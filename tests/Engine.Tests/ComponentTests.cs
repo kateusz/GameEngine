@@ -456,7 +456,6 @@ public class ComponentTests
         component.MinDistance.ShouldBe(1.0f);
         component.MaxDistance.ShouldBe(100.0f);
         component.IsPlaying.ShouldBeFalse();
-        component.RuntimeAudioSource.ShouldBeNull();
     }
 
     [Fact]

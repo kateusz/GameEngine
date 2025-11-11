@@ -70,8 +70,8 @@ public class RendererUtilsTests
     {
         // Arrange
         var mockTexture = Substitute.For<Texture2D>();
-        mockTexture.Width.Returns(256u);
-        mockTexture.Height.Returns(256u);
+        mockTexture.Width.Returns(256);
+        mockTexture.Height.Returns(256);
 
         var coords = new Vector2(1, 1);  // Second sprite in grid
         var cellSize = new Vector2(32, 32); // 32x32 sprites
@@ -94,8 +94,8 @@ public class RendererUtilsTests
     {
         // Arrange
         var mockTexture = Substitute.For<Texture2D>();
-        mockTexture.Width.Returns(128u);
-        mockTexture.Height.Returns(128u);
+        mockTexture.Width.Returns(128);
+        mockTexture.Height.Returns(128);
 
         var coords = Vector2.Zero;       // First sprite
         var cellSize = new Vector2(16, 16);
@@ -117,8 +117,8 @@ public class RendererUtilsTests
     {
         // Arrange
         var mockTexture = Substitute.For<Texture2D>();
-        mockTexture.Width.Returns(256u);
-        mockTexture.Height.Returns(256u);
+        mockTexture.Width.Returns(256);
+        mockTexture.Height.Returns(256);
 
         var coords = new Vector2(0, 0);
         var cellSize = new Vector2(32, 32);
@@ -138,8 +138,8 @@ public class RendererUtilsTests
     {
         // Arrange
         var mockTexture = Substitute.For<Texture2D>();
-        mockTexture.Width.Returns(512u);
-        mockTexture.Height.Returns(256u);
+        mockTexture.Width.Returns(512);
+        mockTexture.Height.Returns(256);
 
         var coords = new Vector2(2, 1);
         var cellSize = new Vector2(64, 64);
@@ -237,8 +237,8 @@ public class RendererUtilsTests
     {
         // Arrange - Simulating a typical sprite sheet
         var mockTexture = Substitute.For<Texture2D>();
-        mockTexture.Width.Returns(256u);  // 8 sprites wide
-        mockTexture.Height.Returns(256u); // 8 sprites tall
+        mockTexture.Width.Returns(256);  // 8 sprites wide
+        mockTexture.Height.Returns(256); // 8 sprites tall
 
         var cellSize = new Vector2(32, 32);
         var spriteSize = Vector2.One;

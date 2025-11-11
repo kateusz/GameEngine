@@ -15,7 +15,7 @@ public enum ProjectionType
 
 public class SceneCamera : Camera
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneCamera>();
+    private static readonly ILogger Logger = Log.ForContext<SceneCamera>();
 
     private bool _projectionDirty = true;
     private float _aspectRatio;

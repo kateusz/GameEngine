@@ -463,7 +463,7 @@ public class CameraTests
         var camera = new SceneCamera();
         camera.SetOrthographic(10f, -1f, 1f);
         camera.SetViewportSize(800, 600);
-        camera.Projection; // Force initial calculation
+        _ = camera.Projection; // Force initial calculation
 
         // Act - Make multiple changes but don't access Projection
         camera.OrthographicSize = 20f;
