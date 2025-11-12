@@ -13,17 +13,25 @@ public class ShortcutManager
 
     private readonly List<KeyboardShortcut> _shortcuts = new();
     private readonly Dictionary<string, List<KeyboardShortcut>> _categorizedShortcuts = new();
+    private readonly IReadOnlyList<KeyboardShortcut> _shortcutsReadOnly;
+    private readonly IReadOnlyDictionary<string, List<KeyboardShortcut>> _categorizedShortcutsReadOnly;
+
+    public ShortcutManager()
+    {
+        _shortcutsReadOnly = _shortcuts.AsReadOnly();
+        _categorizedShortcutsReadOnly = _categorizedShortcuts.AsReadOnly();
+    }
 
     /// <summary>
     /// Gets all registered shortcuts.
     /// </summary>
-    public IReadOnlyList<KeyboardShortcut> Shortcuts => _shortcuts.AsReadOnly();
+    public IReadOnlyList<KeyboardShortcut> Shortcuts => _shortcutsReadOnly;
 
     /// <summary>
     /// Gets shortcuts grouped by category.
     /// </summary>
     public IReadOnlyDictionary<string, List<KeyboardShortcut>> CategorizedShortcuts =>
-        _categorizedShortcuts.AsReadOnly();
+        _categorizedShortcutsReadOnly;
 
     /// <summary>
     /// Registers a new keyboard shortcut.
@@ -153,7 +161,7 @@ public class ShortcutManager
     public List<KeyboardShortcut> GetShortcutsByCategory(string category)
     {
         return _categorizedShortcuts.TryGetValue(category, out var shortcuts)
-            ? shortcuts
+            ? shortcuts.ToList()
             : new List<KeyboardShortcut>();
     }
 

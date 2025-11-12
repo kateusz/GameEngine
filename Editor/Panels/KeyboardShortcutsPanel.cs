@@ -63,15 +63,15 @@ public class KeyboardShortcutsPanel
 
         ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
 
-        if (ImGui.Begin("Keyboard Shortcuts", ref _isVisible, ImGuiWindowFlags.None))
+        var windowActive = ImGui.Begin("Keyboard Shortcuts", ref _isVisible, ImGuiWindowFlags.None);
+        if (windowActive)
         {
             DrawHeader();
             ImGui.Separator();
 
             DrawShortcutsTable();
-
-            ImGui.End();
         }
+        ImGui.End();
     }
 
     private void DrawHeader()
@@ -109,7 +109,8 @@ public class KeyboardShortcutsPanel
             return;
         }
 
-        if (ImGui.BeginChild("ShortcutsScrollRegion", new Vector2(0, 0), ImGuiChildFlags.None, ImGuiWindowFlags.None))
+        var childActive = ImGui.BeginChild("ShortcutsScrollRegion", new Vector2(0, 0), ImGuiChildFlags.None, ImGuiWindowFlags.None);
+        if (childActive)
         {
             foreach (var category in categories)
             {
@@ -135,9 +136,8 @@ public class KeyboardShortcutsPanel
                     ImGui.Spacing();
                 }
             }
-
-            ImGui.EndChild();
         }
+        ImGui.EndChild();
     }
 
     private void DrawCategoryShortcuts(List<KeyboardShortcut> shortcuts)
