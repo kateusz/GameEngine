@@ -196,5 +196,8 @@ public abstract class Application : IApplication
 
         // Shutdown audio engine
         _audioEngine.Shutdown();
+
+        // Clear mesh factory cache and dispose all loaded models
+        Engine.Renderer.Models.MeshFactory.Clear();
     }
 }
