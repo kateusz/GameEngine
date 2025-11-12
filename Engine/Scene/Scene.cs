@@ -150,35 +150,9 @@ public class Scene : IScene
 
     public void OnRuntimeStop()
     {
-        // First, mark all script entities as "stopping" to prevent new physics operations
-        var scriptEntities = Context.Instance.View<NativeScriptComponent>();
-        var errors = new List<Exception>();
-
-        foreach (var (entity, component) in scriptEntities)
-        {
-            if (component.ScriptableEntity != null)
-            {
-                try
-                {
-                    component.ScriptableEntity.OnDestroy();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, $"Error in script OnDestroy for entity '{entity.Name}' (ID: {entity.Id})");
-                    errors.Add(ex);
-                }
-            }
-        }
-
-        if (errors.Count > 0)
-        {
-            Logger.Warning(
-                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
-                errors.Count);
-        }
-
-        // Physics body cleanup is now handled by PhysicsSimulationSystem.OnShutdown()
-        // This maintains proper separation of concerns and centralizes physics lifecycle management
+        // Script lifecycle (OnDestroy) is now handled by ScriptUpdateSystem.OnShutdown()
+        // Physics body cleanup is handled by PhysicsSimulationSystem.OnShutdown()
+        // This maintains proper separation of concerns and centralizes lifecycle management in systems
         _systemManager.Shutdown();
     }
 
