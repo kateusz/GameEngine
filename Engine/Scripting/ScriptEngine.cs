@@ -58,7 +58,7 @@ public class ScriptEngine : IScriptEngine
         var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
-        
+
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -87,6 +87,42 @@ public class ScriptEngine : IScriptEngine
             {
                 Logger.Error(ex, "Error updating script on entity {EntityName}", entity.Name);
             }
+        }
+    }
+
+    public void OnRuntimeStop()
+    {
+        // Handle OnDestroy lifecycle for all script entities
+        if (CurrentScene.Instance == null) return;
+
+        var scriptEntities = CurrentScene.Instance.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
+
+        var errors = new List<Exception>();
+
+        foreach (var entity in scriptEntities)
+        {
+            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent.ScriptableEntity != null)
+            {
+                try
+                {
+                    scriptComponent.ScriptableEntity.OnDestroy();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Error in script OnDestroy for entity '{entity.Name}' (ID: {entity.Id})");
+                    errors.Add(ex);
+                }
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            Logger.Warning(
+                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
+                errors.Count);
         }
     }
 

@@ -1,6 +1,6 @@
 namespace Engine.Renderer.Buffers;
 
-public interface IVertexBuffer : IBindable
+public interface IVertexBuffer : IBindable, IDisposable
 {
     public void SetLayout(BufferLayout layout);
     public BufferLayout? Layout { get; }

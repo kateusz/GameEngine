@@ -55,9 +55,15 @@ public class ScriptUpdateSystem : ISystem
 
     /// <summary>
     /// Called when the system is being shut down.
+    /// Delegates to ScriptEngine to handle OnDestroy lifecycle for all scripts.
     /// </summary>
     public void OnShutdown()
     {
-        Logger.Debug("ScriptUpdateSystem shutdown");
+        Logger.Debug("ScriptUpdateSystem shutdown - calling OnRuntimeStop for all scripts");
+
+        // Delegate to ScriptEngine which handles:
+        // - Script destruction (OnDestroy)
+        // - Error handling and logging
+        ScriptEngine.Instance.OnRuntimeStop();
     }
 }
