@@ -13,25 +13,18 @@ public class ShortcutManager
 
     private readonly List<KeyboardShortcut> _shortcuts = new();
     private readonly Dictionary<string, List<KeyboardShortcut>> _categorizedShortcuts = new();
-    private readonly IReadOnlyList<KeyboardShortcut> _shortcutsReadOnly;
     private readonly IReadOnlyDictionary<string, List<KeyboardShortcut>> _categorizedShortcutsReadOnly;
 
     public ShortcutManager()
     {
-        _shortcutsReadOnly = _shortcuts.AsReadOnly();
+        Shortcuts = _shortcuts.AsReadOnly();
         _categorizedShortcutsReadOnly = _categorizedShortcuts.AsReadOnly();
     }
 
     /// <summary>
     /// Gets all registered shortcuts.
     /// </summary>
-    public IReadOnlyList<KeyboardShortcut> Shortcuts => _shortcutsReadOnly;
-
-    /// <summary>
-    /// Gets shortcuts grouped by category.
-    /// </summary>
-    public IReadOnlyDictionary<string, List<KeyboardShortcut>> CategorizedShortcuts =>
-        _categorizedShortcutsReadOnly;
+    public IReadOnlyList<KeyboardShortcut> Shortcuts { get; }
 
     /// <summary>
     /// Registers a new keyboard shortcut.
@@ -73,44 +66,6 @@ public class ShortcutManager
     }
 
     /// <summary>
-    /// Registers multiple shortcuts at once.
-    /// </summary>
-    public void RegisterShortcuts(IEnumerable<KeyboardShortcut> shortcuts, bool allowDuplicates = false)
-    {
-        foreach (var shortcut in shortcuts)
-        {
-            RegisterShortcut(shortcut, allowDuplicates);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters a shortcut.
-    /// </summary>
-    public bool UnregisterShortcut(KeyboardShortcut shortcut)
-    {
-        var removed = _shortcuts.Remove(shortcut);
-        if (removed && _categorizedShortcuts.TryGetValue(shortcut.Category, out var categoryList))
-        {
-            categoryList.Remove(shortcut);
-            if (categoryList.Count == 0)
-            {
-                _categorizedShortcuts.Remove(shortcut.Category);
-            }
-        }
-        return removed;
-    }
-
-    /// <summary>
-    /// Clears all registered shortcuts.
-    /// </summary>
-    public void Clear()
-    {
-        _shortcuts.Clear();
-        _categorizedShortcuts.Clear();
-        Logger.Debug("Cleared all shortcuts");
-    }
-
-    /// <summary>
     /// Processes a key press event and executes matching shortcuts.
     /// </summary>
     /// <param name="key">The pressed key.</param>
@@ -143,16 +98,6 @@ public class ShortcutManager
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Finds all shortcuts that conflict with the given key combination.
-    /// </summary>
-    public List<KeyboardShortcut> FindConflicts(KeyCodes key, KeyModifiers modifiers)
-    {
-        return _shortcuts
-            .Where(s => s.Key == key && s.Modifiers == modifiers)
-            .ToList();
     }
 
     /// <summary>

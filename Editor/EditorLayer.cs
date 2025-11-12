@@ -163,22 +163,22 @@ public class EditorLayer : ILayer
     {
         // Editor mode shortcuts (Godot-style)
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.Q, KeyModifiers.None,
+            KeyCodes.Q, KeyModifiers.ShiftOnly,
             () => _editorToolbar.CurrentMode = EditorMode.Select,
             "Select tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.W, KeyModifiers.None,
+            KeyCodes.W, KeyModifiers.ShiftOnly,
             () => _editorToolbar.CurrentMode = EditorMode.Move,
             "Move tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.R, KeyModifiers.None,
+            KeyCodes.R, KeyModifiers.ShiftOnly,
             () => _editorToolbar.CurrentMode = EditorMode.Scale,
             "Scale tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.E, KeyModifiers.None,
+            KeyCodes.E, KeyModifiers.ShiftOnly,
             () => _editorToolbar.CurrentMode = EditorMode.Ruler,
             "Ruler tool", "Tools"));
 
