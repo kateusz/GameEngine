@@ -5,6 +5,8 @@ namespace ECS.Tests;
 /// </summary>
 public class ContextViewTests : IDisposable
 {
+    private readonly IContext _context;
+
     private class TestComponentA : IComponent { public int Value { get; set; }
         public IComponent Clone()
         {
@@ -26,22 +28,22 @@ public class ContextViewTests : IDisposable
 
     public ContextViewTests()
     {
-        // Clear entities before each test
-        Context.Instance.Clear();
+        // Create a new context for each test
+        _context = new Context();
     }
 
     public void Dispose()
     {
         // Clean up after each test
-        Context.Instance.Clear();
+        _context.Clear();
     }
 
     [Fact]
     public void View_WithNoEntities_ReturnsEmptyResult()
     {
         // Act
-        var view = Context.Instance.View<TestComponentA>();
-        
+        var view = _context.View<TestComponentA>();
+
         // Assert
         Assert.Empty(view);
     }
@@ -54,11 +56,11 @@ public class ContextViewTests : IDisposable
         var entity2 = Entity.Create(2, "Entity2");
         entity1.AddComponent<TestComponentB>();
         entity2.AddComponent<TestComponentC>();
-        Context.Instance.Register(entity1);
-        Context.Instance.Register(entity2);
+        _context.Register(entity1);
+        _context.Register(entity2);
         
         // Act
-        var view = Context.Instance.View<TestComponentA>();
+        var view = _context.View<TestComponentA>();
         
         // Assert
         Assert.Empty(view);
@@ -80,12 +82,12 @@ public class ContextViewTests : IDisposable
         
         entity3.AddComponent<TestComponentB>(); // Different component
         
-        Context.Instance.Register(entity1);
-        Context.Instance.Register(entity2);
-        Context.Instance.Register(entity3);
+        _context.Register(entity1);
+        _context.Register(entity2);
+        _context.Register(entity3);
         
         // Act
-        var view = Context.Instance.View<TestComponentA>();
+        var view = _context.View<TestComponentA>();
         var results = view.ToList();
         
         // Assert
@@ -114,10 +116,10 @@ public class ContextViewTests : IDisposable
         var componentB = entity.AddComponent<TestComponentB>();
         componentB.Data = "test";
         
-        Context.Instance.Register(entity);
+        _context.Register(entity);
         
         // Act - Query for ComponentA
-        var viewA = Context.Instance.View<TestComponentA>();
+        var viewA = _context.View<TestComponentA>();
         var resultsA = viewA.ToList();
         
         // Assert - Should get ComponentA
@@ -126,7 +128,7 @@ public class ContextViewTests : IDisposable
         Assert.Equal(42, resultsA[0].Component.Value);
         
         // Act - Query for ComponentB
-        var viewB = Context.Instance.View<TestComponentB>();
+        var viewB = _context.View<TestComponentB>();
         var resultsB = viewB.ToList();
         
         // Assert - Should get ComponentB
@@ -142,10 +144,10 @@ public class ContextViewTests : IDisposable
         var entity = Entity.Create(1, "Entity");
         var component = entity.AddComponent<TestComponentA>();
         component.Value = 100;
-        Context.Instance.Register(entity);
+        _context.Register(entity);
         
         // Act
-        var view = Context.Instance.View<TestComponentA>();
+        var view = _context.View<TestComponentA>();
         var result = view.First();
         
         // Modify through view result
@@ -163,11 +165,11 @@ public class ContextViewTests : IDisposable
         var entity2 = Entity.Create(2, "Entity2");
         entity1.AddComponent<TestComponentA>();
         entity2.AddComponent<TestComponentA>();
-        Context.Instance.Register(entity1);
-        Context.Instance.Register(entity2);
+        _context.Register(entity1);
+        _context.Register(entity2);
         
         // Act
-        var view = Context.Instance.View<TestComponentA>();
+        var view = _context.View<TestComponentA>();
         var firstPass = view.ToList();
         var secondPass = view.ToList();
         
@@ -189,11 +191,11 @@ public class ContextViewTests : IDisposable
             var entity = Entity.Create(i, $"Entity{i}");
             var component = entity.AddComponent<TestComponentA>();
             component.Value = i;
-            Context.Instance.Register(entity);
+            _context.Register(entity);
         }
         
         // Act
-        var view = Context.Instance.View<TestComponentA>();
+        var view = _context.View<TestComponentA>();
         var results = view.ToList();
         
         // Assert
@@ -214,10 +216,10 @@ public class ContextViewTests : IDisposable
         var entity = Entity.Create(1, "Entity");
         var component = entity.AddComponent<TestComponentA>();
         component.Value = 42;
-        Context.Instance.Register(entity);
+        _context.Register(entity);
         
         // Act & Assert - Should be able to use deconstruction
-        var view = Context.Instance.View<TestComponentA>();
+        var view = _context.View<TestComponentA>();
         foreach (var (e, c) in view)
         {
             Assert.Equal(entity.Id, e.Id);
@@ -231,12 +233,12 @@ public class ContextViewTests : IDisposable
         // Arrange
         var entity = Entity.Create(1, "Entity");
         entity.AddComponent<TestComponentA>();
-        Context.Instance.Register(entity);
+        _context.Register(entity);
         
         // Act - Call View multiple times
-        var view1 = Context.Instance.View<TestComponentA>();
-        var view2 = Context.Instance.View<TestComponentA>();
-        var view3 = Context.Instance.View<TestComponentA>();
+        var view1 = _context.View<TestComponentA>();
+        var view2 = _context.View<TestComponentA>();
+        var view3 = _context.View<TestComponentA>();
         
         var results1 = view1.ToList();
         var results2 = view2.ToList();

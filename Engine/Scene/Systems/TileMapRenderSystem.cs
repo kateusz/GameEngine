@@ -15,14 +15,16 @@ public class TileMapRenderSystem : ISystem
     private static readonly ILogger Logger = Log.ForContext<TileMapRenderSystem>();
 
     private readonly IGraphics2D _graphics2D;
+    private readonly IContext _context;
     private readonly Dictionary<string, TileSet> _loadedTileSets = new();
     private readonly HashSet<int> _loggedEntities = new();
 
     public int Priority => 190; // Render before sprites
 
-    public TileMapRenderSystem(IGraphics2D graphics2D)
+    public TileMapRenderSystem(IGraphics2D graphics2D, IContext context)
     {
         _graphics2D = graphics2D;
+        _context = context;
     }
 
     public void OnInit()
@@ -39,7 +41,7 @@ public class TileMapRenderSystem : ISystem
     {
         // Find the primary camera
         Camera? mainCamera = null;
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         var cameraTransform = Matrix4x4.Identity;
 
         foreach (var entity in cameraGroup)
@@ -62,7 +64,7 @@ public class TileMapRenderSystem : ISystem
         // Begin rendering with the camera's view and projection
         _graphics2D.BeginScene(mainCamera, cameraTransform);
 
-        var entities = Context.Instance.GetGroup([typeof(TileMapComponent), typeof(TransformComponent)]);
+        var entities = _context.GetGroup([typeof(TileMapComponent), typeof(TransformComponent)]);
 
         foreach (var entity in entities)
         {

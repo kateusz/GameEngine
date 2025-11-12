@@ -17,6 +17,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
 
     private readonly World _physicsWorld;
+    private readonly IContext _context;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator = 0f;
@@ -39,9 +40,11 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     /// Creates a new PhysicsSimulationSystem with the specified physics world.
     /// </summary>
     /// <param name="physicsWorld">The Box2D World instance to simulate.</param>
-    public PhysicsSimulationSystem(World physicsWorld)
+    /// <param name="context">The ECS context for querying entities.</param>
+    public PhysicsSimulationSystem(World physicsWorld, IContext context)
     {
         _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
+        _context = context;
     }
 
     /// <summary>
@@ -87,7 +90,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
         }
 
         // Retrieve transform from Box2D and sync with entities
-        var view = Context.Instance.View<RigidBody2DComponent>();
+        var view = _context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();

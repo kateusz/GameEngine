@@ -4,7 +4,6 @@ using Engine.Audio;
 using Engine.Math;
 using Engine.Scene.Components;
 using Serilog;
-using Context = ECS.Context;
 
 namespace Engine.Scene.Systems;
 
@@ -15,12 +14,14 @@ namespace Engine.Scene.Systems;
 public class AudioSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
-    
-    private readonly IAudioEngine _audioEngine;
 
-    public AudioSystem(IAudioEngine audioEngine)
+    private readonly IAudioEngine _audioEngine;
+    private readonly IContext _context;
+
+    public AudioSystem(IAudioEngine audioEngine, IContext context)
     {
         _audioEngine = audioEngine;
+        _context = context;
     }
 
     /// <summary>
@@ -38,7 +39,7 @@ public class AudioSystem : ISystem
         Logger.Debug("AudioSystem initialized with priority {Priority}", Priority);
 
         // Create audio sources for all entities that have AudioSourceComponent
-        var view = Context.Instance.View<AudioSourceComponent>();
+        var view = _context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
             InitializeAudioSource(entity, component);
@@ -63,7 +64,7 @@ public class AudioSystem : ISystem
     public void OnShutdown()
     {
         // Clean up all audio sources
-        var view = Context.Instance.View<AudioSourceComponent>();
+        var view = _context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.RuntimeAudioSource != null)
@@ -200,7 +201,7 @@ public class AudioSystem : ISystem
         Entity? activeListenerEntity = null;
         AudioListenerComponent? activeListener = null;
 
-        var listenerView = Context.Instance.View<AudioListenerComponent>();
+        var listenerView = _context.View<AudioListenerComponent>();
         foreach (var (entity, component) in listenerView)
         {
             if (component.IsActive && entity.HasComponent<TransformComponent>())
@@ -234,7 +235,7 @@ public class AudioSystem : ISystem
     /// </summary>
     private void UpdateAudioSources()
     {
-        var view = Context.Instance.View<AudioSourceComponent>();
+        var view = _context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
             // Initialize audio source if not already done (for newly added components)

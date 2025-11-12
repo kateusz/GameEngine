@@ -12,6 +12,13 @@ namespace Engine.Scripting;
 public interface IScriptEngine
 {
     /// <summary>
+    /// Sets the current scene for script execution.
+    /// Required for dependency injection pattern - scripts need access to the active scene.
+    /// </summary>
+    /// <param name="scene">The active scene, or null to clear</param>
+    void SetCurrentScene(IScene? scene);
+
+    /// <summary>
     /// Sets the directory where script files (.cs) are located and triggers recompilation.
     /// </summary>
     /// <param name="scriptsDirectory">Path to the scripts directory</param>

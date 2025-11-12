@@ -11,23 +11,30 @@ using Editor.UI;
 
 namespace Editor.Panels;
 
-public static class ScriptComponentUI
+public class ScriptComponentUI
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentUI));
 
-    private static bool _showCreateScriptPopup;
-    private static bool _showScriptSelectorPopup;
-    private static string _newScriptName = string.Empty;
-    private static Entity _selectedEntity;
+    private readonly IScriptEngine _scriptEngine;
 
-    public static void Draw()
+    private bool _showCreateScriptPopup;
+    private bool _showScriptSelectorPopup;
+    private string _newScriptName = string.Empty;
+    private Entity _selectedEntity;
+
+    public ScriptComponentUI(IScriptEngine scriptEngine)
+    {
+        _scriptEngine = scriptEngine;
+    }
+
+    public void Draw()
     {
         // Render popup dialogs
         RenderCreateScriptPopup();
         RenderScriptSelectorPopup();
     }
 
-    public static void DrawScriptComponent(Entity entity)
+    public void DrawScriptComponent(Entity entity)
     {
         _selectedEntity = entity;
 
@@ -43,7 +50,7 @@ public static class ScriptComponentUI
         });
     }
 
-    private static void DrawAttachedScript(Entity entity, NativeScriptComponent component)
+    private void DrawAttachedScript(Entity entity, NativeScriptComponent component)
     {
         var script = component.ScriptableEntity!;
         var scriptType = script.GetType();
@@ -52,7 +59,7 @@ public static class ScriptComponentUI
         DrawScriptFields(script);
     }
 
-    private static void DrawScriptHeader(Entity entity, Type scriptType)
+    private void DrawScriptHeader(Entity entity, Type scriptType)
     {
         ImGui.TextColored(EditorUIConstants.WarningColor, $"Script: {scriptType.Name}");
 
@@ -61,14 +68,14 @@ public static class ScriptComponentUI
             if (ImGui.MenuItem("Remove"))
             {
                 entity.RemoveComponent<NativeScriptComponent>();
-                ScriptEngine.Instance.ForceRecompile();
+                _scriptEngine.ForceRecompile();
             }
 
             ImGui.EndPopup();
         }
     }
 
-    private static void DrawScriptFields(ScriptableEntity script)
+    private void DrawScriptFields(ScriptableEntity script)
     {
         var fields = script.GetExposedFields().ToList();
 
@@ -84,7 +91,7 @@ public static class ScriptComponentUI
         }
     }
 
-    private static void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
+    private void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
     {
         UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
         {
@@ -97,7 +104,7 @@ public static class ScriptComponentUI
         });
     }
 
-    private static bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
+    private bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
     {
         newValue = value;
 
@@ -110,12 +117,12 @@ public static class ScriptComponentUI
         return false;
     }
 
-    private static void DrawNoScriptMessage()
+    private void DrawNoScriptMessage()
     {
         ImGui.TextColored(EditorUIConstants.ErrorColor, "No script instance attached!");
     }
 
-    private static void DrawScriptActions()
+    private void DrawScriptActions()
     {
         if (ImGui.Button("Add Existing Script", new Vector2(EditorUIConstants.WideButtonWidth, EditorUIConstants.StandardButtonHeight)))
         {
@@ -130,7 +137,7 @@ public static class ScriptComponentUI
         }
     }
 
-    private static void RenderCreateScriptPopup()
+    private void RenderCreateScriptPopup()
     {
         if (_showCreateScriptPopup)
         {
@@ -164,10 +171,10 @@ public static class ScriptComponentUI
             if (ImGui.Button("Create", new Vector2(EditorUIConstants.StandardButtonWidth, EditorUIConstants.StandardButtonHeight)))
             {
                 _showCreateScriptPopup = false;
-                
+
                 try
                 {
-                    var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(_newScriptName);
+                    var scriptInstanceResult = _scriptEngine.CreateScriptInstance(_newScriptName);
                     if (scriptInstanceResult.IsSuccess)
                     {
                         var scriptInstance = scriptInstanceResult.Value;
@@ -204,7 +211,7 @@ public static class ScriptComponentUI
         }
     }
 
-    private static void RenderScriptSelectorPopup()
+    private void RenderScriptSelectorPopup()
     {
         if (_showScriptSelectorPopup)
         {
@@ -219,7 +226,7 @@ public static class ScriptComponentUI
         {
             ImGui.Text("Select a script to attach:");
 
-            var availableScripts = ScriptEngine.Instance.GetAvailableScriptNames();
+            var availableScripts = _scriptEngine.GetAvailableScriptNames();
 
             if (availableScripts.Length == 0)
             {
@@ -246,7 +253,7 @@ public static class ScriptComponentUI
                         {
                             try
                             {
-                                var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(scriptName);
+                                var scriptInstanceResult = _scriptEngine.CreateScriptInstance(scriptName);
                                 if (scriptInstanceResult.IsSuccess)
                                 {
                                     var scriptInstance = scriptInstanceResult.Value;
@@ -281,7 +288,7 @@ public static class ScriptComponentUI
                     {
                         if (ImGui.MenuItem("Delete"))
                         {
-                            if (ScriptEngine.Instance.DeleteScript(scriptName))
+                            if (_scriptEngine.DeleteScript(scriptName))
                             {
                                 Logger.Information("Deleted script {ScriptName}", scriptName);
                             }
@@ -307,7 +314,7 @@ public static class ScriptComponentUI
         }
     }
 
-    private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
+    private void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
     {
         // Similar to your existing DrawComponent method in SceneHierarchyPanel
         var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed

@@ -14,8 +14,9 @@ namespace Engine.Scene.Systems;
 public class SpriteRenderingSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SpriteRenderingSystem>();
-    
+
     private readonly IGraphics2D _renderer;
+    private readonly IContext _context;
 
     /// <summary>
     /// Priority of 200 ensures this system renders after scripts (priority 150).
@@ -26,9 +27,11 @@ public class SpriteRenderingSystem : ISystem
     /// Creates a new SpriteRenderingSystem.
     /// </summary>
     /// <param name="renderer">The 2D renderer interface to use for drawing sprites.</param>
-    public SpriteRenderingSystem(IGraphics2D renderer)
+    /// <param name="context">The ECS context for querying entities.</param>
+    public SpriteRenderingSystem(IGraphics2D renderer, IContext context)
     {
         _renderer = renderer;
+        _context = context;
     }
 
     /// <summary>
@@ -48,7 +51,7 @@ public class SpriteRenderingSystem : ISystem
     {
         // Find the primary camera
         Camera? mainCamera = null;
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         var cameraTransform = Matrix4x4.Identity;
 
         foreach (var entity in cameraGroup)
@@ -72,7 +75,7 @@ public class SpriteRenderingSystem : ISystem
         _renderer.BeginScene(mainCamera, cameraTransform);
 
         // Render all sprites
-        var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+        var spriteGroup = _context.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();

@@ -1,14 +1,12 @@
 namespace ECS;
 
 /// <summary>
-/// Manages the global entity registry
+/// Manages the entity registry for a scene.
 /// Thread-safe for concurrent access.
+/// Refactored to support dependency injection - no longer a singleton.
 /// </summary>
 public class Context : IContext
 {
-    private static Context? _instance;
-    public static Context Instance => _instance ??= new Context();
-
     // Dual storage for optimal performance:
     // - Dictionary enables O(1) entity lookup and removal by ID
     // - List enables efficient iteration without boxing overhead
@@ -28,7 +26,7 @@ public class Context : IContext
         }
     }
 
-    private Context()
+    public Context()
     {
     }
 

@@ -17,6 +17,7 @@ public class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
+    private readonly IContext _context;
     private readonly IGraphics2D _graphics2D;
     private readonly string _path;
     private uint _viewportWidth;
@@ -30,11 +31,12 @@ public class Scene : IScene
     // Key format: "path|columns|rows" to handle different grid configurations of the same texture
     private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
-    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D)
+    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context)
     {
         _path = path;
         _graphics2D = graphics2D;
-        Context.Instance.Clear();
+        _context = context;
+        _context.Clear();
 
         // Initialize ECS systems
         _systemManager = new SystemManager();
@@ -50,17 +52,17 @@ public class Scene : IScene
 
         // Create and register physics simulation system with the physics world
         // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld, _context);
         _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 
-    public IEnumerable<Entity> Entities => Context.Instance.Entities;
+    public IEnumerable<Entity> Entities => _context.Entities;
 
     public Entity CreateEntity(string name)
     {
         var entity = Entity.Create(_nextEntityId++, name);
         entity.OnComponentAdded += OnComponentAdded;
-        Context.Instance.Register(entity);
+        _context.Register(entity);
 
         return entity;
     }
@@ -77,7 +79,7 @@ public class Scene : IScene
         // Subscribe to component events to maintain consistency with CreateEntity
         entity.OnComponentAdded += OnComponentAdded;
 
-        Context.Instance.Register(entity);
+        _context.Register(entity);
     }
 
     private void OnComponentAdded(IComponent component)
@@ -95,14 +97,14 @@ public class Scene : IScene
         entity.OnComponentAdded -= OnComponentAdded;
 
         // O(1) removal via dictionary lookup
-        Context.Instance.Remove(entity.Id);
+        _context.Remove(entity.Id);
     }
 
     public void OnRuntimeStart()
     {
         _systemManager.Initialize();
 
-        var view = Context.Instance.View<RigidBody2DComponent>();
+        var view = _context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
@@ -150,9 +152,6 @@ public class Scene : IScene
 
     public void OnRuntimeStop()
     {
-        // Script lifecycle (OnDestroy) is now handled by ScriptUpdateSystem.OnShutdown()
-        // Physics body cleanup is handled by PhysicsSimulationSystem.OnShutdown()
-        // This maintains proper separation of concerns and centralizes lifecycle management in systems
         _systemManager.Shutdown();
     }
 
@@ -192,7 +191,7 @@ public class Scene : IScene
 
         Renderer3D.Instance.BeginScene(baseCamera, cameraTransform);
 
-        var modelGroup = Context.Instance.GetGroup([
+        var modelGroup = _context.GetGroup([
             typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
         ]);
         foreach (var entity in modelGroup)
@@ -212,7 +211,7 @@ public class Scene : IScene
         _graphics2D.BeginScene(camera);
 
         // Sprites
-        var spriteGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+        var spriteGroup = _context.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
@@ -222,7 +221,7 @@ public class Scene : IScene
 
         // Subtextures (mirror runtime system)
         var subtextureGroup =
-            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+            _context.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
         foreach (var entity in subtextureGroup)
         {
             var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
@@ -242,7 +241,7 @@ public class Scene : IScene
         }
 
         // TileMaps (mirror runtime system with caching)
-        var tilemapGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(TileMapComponent)]);
+        var tilemapGroup = _context.GetGroup([typeof(TransformComponent), typeof(TileMapComponent)]);
         foreach (var entity in tilemapGroup)
         {
             var tileMapComponent = entity.GetComponent<TileMapComponent>();
@@ -313,7 +312,7 @@ public class Scene : IScene
         _viewportWidth = width;
         _viewportHeight = height;
 
-        var group = Context.Instance.GetGroup([typeof(CameraComponent)]);
+        var group = _context.GetGroup([typeof(CameraComponent)]);
         foreach (var entity in group)
         {
             var cameraComponent = entity.GetComponent<CameraComponent>();
@@ -326,7 +325,7 @@ public class Scene : IScene
 
     public Entity? GetPrimaryCameraEntity()
     {
-        var view = Context.Instance.View<CameraComponent>();
+        var view = _context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.Primary)
@@ -442,7 +441,7 @@ public class Scene : IScene
         Logger.Debug("Disposing scene '{Path}'", _path);
 
         // Unsubscribe from all entity component events to prevent memory leaks
-        foreach (var entity in Context.Instance.Entities)
+        foreach (var entity in _context.Entities)
         {
             entity.OnComponentAdded -= OnComponentAdded;
         }
@@ -460,7 +459,7 @@ public class Scene : IScene
         _editorTileSetCache.Clear();
 
         // Clear entity storage
-        Context.Instance.Clear();
+        _context.Clear();
 
         _disposed = true;
         Logger.Debug("Scene '{Path}' disposed successfully", _path);
