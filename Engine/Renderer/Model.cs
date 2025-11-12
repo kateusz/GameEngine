@@ -18,6 +18,7 @@ public class Model : IModel
     private List<Texture2D> _texturesLoaded = new();
     public string Directory { get; protected set; } = string.Empty;
     public List<Mesh> Meshes { get; protected set; } = new();
+    private bool _disposed = false;
         
     private unsafe void LoadModel(string path)
     {
@@ -184,14 +185,43 @@ public class Model : IModel
         return indices.ToArray();
     }
 
-    public void Dispose()
+    protected virtual void Dispose(bool disposing)
     {
-        foreach (var mesh in Meshes)
+        if (_disposed) return;
+
+        if (disposing)
         {
-            // todo:
-            //mesh.Dispose();
+            // Dispose managed resources
+
+            // Dispose all meshes
+            foreach (var mesh in Meshes)
+            {
+                mesh?.Dispose();
+            }
+            Meshes.Clear();
+
+            // Dispose all loaded textures
+            foreach (var texture in _texturesLoaded)
+            {
+                texture?.Dispose();
+            }
+            _texturesLoaded.Clear();
         }
 
-        _texturesLoaded = null;
+        // No unmanaged resources to clean up directly
+        // (Assimp handles are managed by Silk.NET)
+
+        _disposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~Model()
+    {
+        Dispose(disposing: false);
     }
 }

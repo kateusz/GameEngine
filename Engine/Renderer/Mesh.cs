@@ -6,7 +6,7 @@ using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
 
-public class Mesh
+public class Mesh : IDisposable
 {
     public record struct Vertex(Vector3 Position, Vector3 Normal, Vector2 TexCoord, int EntityId = -1)
     {
@@ -23,6 +23,7 @@ public class Mesh
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
     private bool _initialized = false;
+    private bool _disposed = false;
     
     public IVertexArray GetVertexArray()
     {
@@ -92,4 +93,36 @@ public class Mesh
     }
 
     public int GetIndexCount() => Indices.Count;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (disposing)
+        {
+            // Dispose managed resources (OpenGL objects)
+            _vertexArray?.Dispose();
+            _vertexBuffer?.Dispose();
+            _indexBuffer?.Dispose();
+
+            // Note: Textures are owned by Model and should be disposed there
+            // DiffuseTexture is often a shared white texture, so we don't dispose it
+        }
+
+        // No unmanaged resources to clean up directly in this class
+        // (OpenGL handles are managed through the wrapper objects above)
+
+        _disposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    ~Mesh()
+    {
+        Dispose(disposing: false);
+    }
 }
