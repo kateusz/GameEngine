@@ -13,7 +13,7 @@ public class EditorCameraSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<EditorCameraSystem>();
 
-    private IOrthographicCameraController _cameraController;
+    private readonly IOrthographicCameraController _cameraController;
     private bool _isViewportFocused;
 
     /// <summary>
@@ -39,6 +39,7 @@ public class EditorCameraSystem : ISystem
     {
         _cameraController = cameraController ?? throw new ArgumentNullException(nameof(cameraController));
         Logger.Debug("Camera controller updated");
+        _cameraController = cameraController;
     }
 
     /// <summary>
