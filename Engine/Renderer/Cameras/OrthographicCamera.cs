@@ -3,7 +3,11 @@ using Engine.Math;
 
 namespace Engine.Renderer.Cameras;
 
-public class OrthographicCamera
+/// <summary>
+/// Orthographic camera implementation for 2D rendering.
+/// Provides position, rotation, and scale controls with combined view-projection matrix.
+/// </summary>
+public class OrthographicCamera : Camera
 {
     public OrthographicCamera(float left, float right, float bottom, float top)
     {
@@ -22,6 +26,16 @@ public class OrthographicCamera
     public Vector3 Position { get; private set; }
     public float Rotation { get; private set; }
     public Vector3 Scale { get; private set; }
+
+    /// <summary>
+    /// Gets the projection matrix for this camera.
+    /// </summary>
+    public override Matrix4x4 GetProjectionMatrix() => ProjectionMatrix;
+
+    /// <summary>
+    /// Gets the view matrix for this camera.
+    /// </summary>
+    public override Matrix4x4 GetViewMatrix() => ViewMatrix;
 
     public void SetPosition(Vector3 position)
     {

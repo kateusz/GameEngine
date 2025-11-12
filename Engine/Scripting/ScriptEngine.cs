@@ -15,7 +15,7 @@ namespace Engine.Scripting;
 
 public class ScriptEngine : IScriptEngine
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
+    private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();

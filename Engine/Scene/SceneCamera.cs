@@ -19,9 +19,6 @@ public class SceneCamera : Camera
 
     private bool _projectionDirty = true;
     private float _aspectRatio;
-    private readonly Vector3 _cameraPosition = new(0.0f, 0.0f, CameraConfig.DefaultCameraZPosition);
-    private readonly Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
-    private readonly Vector3 _cameraUp = Vector3.UnitY;
 
     private ProjectionType _projectionType = ProjectionType.Orthographic;
     private float _orthographicSize;
@@ -31,11 +28,13 @@ public class SceneCamera : Camera
     private float _perspectiveNear = CameraConfig.DefaultPerspectiveNear;
     private float _perspectiveFar = CameraConfig.DefaultPerspectiveFar;
 
+    private Matrix4x4 _projection = Matrix4x4.Identity;
+
     /// <summary>
     /// Gets the projection matrix, lazily recalculating it only when needed.
     /// The matrix is recalculated only when camera properties change and this property is accessed.
     /// </summary>
-    public override Matrix4x4 Projection
+    public Matrix4x4 Projection
     {
         get
         {
@@ -44,10 +43,22 @@ public class SceneCamera : Camera
                 RecalculateProjection();
                 _projectionDirty = false;
             }
-            return base.Projection;
+            return _projection;
         }
-        protected set => base.Projection = value;
+        protected set => _projection = value;
     }
+
+    /// <summary>
+    /// Gets the projection matrix for this camera.
+    /// </summary>
+    public override Matrix4x4 GetProjectionMatrix() => Projection;
+
+    /// <summary>
+    /// Gets the view matrix for this camera.
+    /// SceneCamera returns Identity because the view transform is handled
+    /// by the camera entity's TransformComponent in the rendering system.
+    /// </summary>
+    public override Matrix4x4 GetViewMatrix() => Matrix4x4.Identity;
 
     /// <summary>
     /// Gets or sets the projection type (Perspective or Orthographic).
@@ -185,7 +196,7 @@ public class SceneCamera : Camera
         }
     }
 
-    public SceneCamera() : base(Matrix4x4.Identity)
+    public SceneCamera()
     {
         if (OSInfo.IsWindows)
         {
@@ -258,8 +269,8 @@ public class SceneCamera : Camera
     {
         if (_projectionType == ProjectionType.Perspective)
         {
-            var view = Matrix4x4.CreateLookAt(_cameraPosition, _cameraPosition + _cameraFront, _cameraUp);
-            base.Projection = view * Matrix4x4.CreatePerspectiveFieldOfView(_perspectiveFOV, _aspectRatio, _perspectiveNear, _perspectiveFar);
+            // Only store the projection matrix; view transform is handled by camera entity's TransformComponent
+            _projection = Matrix4x4.CreatePerspectiveFieldOfView(_perspectiveFOV, _aspectRatio, _perspectiveNear, _perspectiveFar);
         }
         else
         {
@@ -268,7 +279,7 @@ public class SceneCamera : Camera
             var orthoBottom = -_orthographicSize;
             var orthoTop = _orthographicSize;
 
-            base.Projection = Matrix4x4.CreateOrthographicOffCenter(orthoLeft, orthoRight, orthoBottom, orthoTop,
+            _projection = Matrix4x4.CreateOrthographicOffCenter(orthoLeft, orthoRight, orthoBottom, orthoTop,
                 _orthographicNear, _orthographicFar);
         }
     }

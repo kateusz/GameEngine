@@ -64,6 +64,6 @@ public class ScriptUpdateSystem : ISystem
         // Delegate to ScriptEngine which handles:
         // - Script destruction (OnDestroy)
         // - Error handling and logging
-        ScriptEngine.Instance.OnRuntimeStop();
+        _scriptEngine.OnRuntimeStop();
     }
 }

@@ -31,6 +31,8 @@ public interface IScriptEngine
     /// <param name="deltaTime">Time elapsed since last update</param>
     void OnUpdate(TimeSpan deltaTime);
 
+    void OnRuntimeStop();
+
     /// <summary>
     /// Forwards events to all script components for processing.
     /// </summary>
