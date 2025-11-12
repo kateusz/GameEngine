@@ -1,10 +1,12 @@
 using Engine.Renderer.Buffers;
+using Serilog;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetIndexBuffer : IIndexBuffer
 {
+    private static readonly ILogger Logger = Log.ForContext<SilkNetIndexBuffer>();
     private uint _rendererId;
     private bool _disposed;
 
@@ -35,12 +37,14 @@ public class SilkNetIndexBuffer : IIndexBuffer
 
     public void Bind()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, _rendererId);
         GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ElementArrayBuffer)");
     }
 
     public void Unbind()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, 0);
         GLDebug.CheckError(SilkNetContext.GL, "UnbindBuffer(ElementArrayBuffer)");
     }
@@ -67,7 +71,7 @@ public class SilkNetIndexBuffer : IIndexBuffer
         catch (Exception e)
         {
             // Finalizers and Dispose must not throw exceptions
-            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL index buffer {_rendererId}: {e.Message}");
+            Logger.Error(e, "Failed to delete OpenGL index buffer {RendererId}", _rendererId);
         }
 
         _disposed = true;

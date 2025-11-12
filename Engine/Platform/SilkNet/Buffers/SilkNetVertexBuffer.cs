@@ -1,5 +1,6 @@
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Serilog;
 using Silk.NET.OpenGL;
 using System.Runtime.InteropServices;
 
@@ -7,6 +8,7 @@ namespace Engine.Platform.SilkNet.Buffers;
 
 public class SilkNetVertexBuffer : IVertexBuffer
 {
+    private static readonly ILogger Logger = Log.ForContext<SilkNetVertexBuffer>();
     private uint _rendererId;
     private bool _disposed;
 
@@ -79,7 +81,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
         {
             // Finalizers and Dispose must not throw exceptions
             // Log the error but suppress it to prevent application crashes
-            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex buffer {_rendererId}: {e.Message}");
+            Logger.Error(e, "Failed to delete OpenGL vertex buffer {RendererId}", _rendererId);
         }
 
         _disposed = true;
@@ -87,6 +89,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public void SetLayout(BufferLayout layout)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         Layout = layout;
     }
 
@@ -94,6 +97,8 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public void SetData(Span<QuadVertex> vertices, int dataSize)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (vertices.Length == 0)
             return;
 
@@ -114,6 +119,8 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public void SetData(Span<LineVertex> vertices, int dataSize)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (vertices.Length == 0)
             return;
 
@@ -135,6 +142,8 @@ public class SilkNetVertexBuffer : IVertexBuffer
     // In SilkNetVertexBuffer.cs, modify SetMeshData to handle large data in chunks
     public void SetMeshData(List<Mesh.Vertex> vertices, int dataSize)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (vertices.Count == 0)
             return;
 
@@ -157,12 +166,14 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public void Bind()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
         GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
     }
 
     public void Unbind()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, 0);
         GLDebug.CheckError(SilkNetContext.GL, "UnbindBuffer(ArrayBuffer)");
     }
