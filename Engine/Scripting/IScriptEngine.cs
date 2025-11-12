@@ -25,6 +25,12 @@ public interface IScriptEngine
     void OnUpdate(TimeSpan deltaTime);
 
     /// <summary>
+    /// Called when runtime is stopping to execute OnDestroy lifecycle hook for all scripts.
+    /// Centralizes script cleanup logic and error handling.
+    /// </summary>
+    void OnRuntimeStop();
+
+    /// <summary>
     /// Forwards events to all script components for processing.
     /// </summary>
     /// <param name="event">Event to process (keyboard, mouse, etc.)</param>
