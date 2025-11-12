@@ -177,18 +177,8 @@ public class Scene : IScene
                 errors.Count);
         }
 
-        // Properly destroy all physics bodies before clearing references
-        var view = Context.Instance.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
-        {
-            if (component.RuntimeBody != null)
-            {
-                component.RuntimeBody.SetUserData(null);
-                _physicsWorld.DestroyBody(component.RuntimeBody);
-                component.RuntimeBody = null;
-            }
-        }
-
+        // Physics body cleanup is now handled by PhysicsSimulationSystem.OnShutdown()
+        // This maintains proper separation of concerns and centralizes physics lifecycle management
         _systemManager.Shutdown();
     }
 
