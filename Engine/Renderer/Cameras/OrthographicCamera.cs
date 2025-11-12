@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Math;
+using Serilog;
 
 namespace Engine.Renderer.Cameras;
 
@@ -9,6 +10,8 @@ namespace Engine.Renderer.Cameras;
 /// </summary>
 public class OrthographicCamera : Camera
 {
+    private static readonly ILogger Logger = Log.ForContext<OrthographicCamera>();
+
     public OrthographicCamera(float left, float right, float bottom, float top)
     {
         Position = Vector3.Zero;
@@ -64,17 +67,24 @@ public class OrthographicCamera : Camera
     private void RecalculateViewMatrix()
     {
         // Build the transform matrix from position, rotation, and scale
-        var scaleMatrix = Matrix4x4.CreateScale(Scale);
-        var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, Position.Z);
-        var rotation = Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
+        // Directly compose transforms without redundant identity matrix multiplication
+        var transform = Matrix4x4.CreateScale(Scale) *
+                        Matrix4x4.CreateTranslation(Position.X, Position.Y, Position.Z) *
+                        Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
 
-        var transform = Matrix4x4.Identity;
-        transform *= scaleMatrix;
-        transform *= position;
-        transform *= rotation;
+        // Invert the transform to get the view matrix
+        if (!Matrix4x4.Invert(transform, out var result))
+        {
+            Logger.Error("Failed to invert camera transform matrix. Using identity matrix as fallback. " +
+                         "Position: {Position}, Rotation: {Rotation}, Scale: {Scale}",
+                         Position, Rotation, Scale);
+            ViewMatrix = Matrix4x4.Identity;
+        }
+        else
+        {
+            ViewMatrix = result;
+        }
 
-        Matrix4x4.Invert(transform, out var result);
-        ViewMatrix = result;
         ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
     }
 }
