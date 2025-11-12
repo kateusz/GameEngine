@@ -1,7 +1,4 @@
 using System.Numerics;
-using Box2D.NetStandard.Collision.Shapes;
-using Box2D.NetStandard.Dynamics.Bodies;
-using Box2D.NetStandard.Dynamics.Fixtures;
 using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using Engine.Renderer;
@@ -49,6 +46,11 @@ public class Scene : IScene
 
         var contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(contactListener);
+
+        // Create and register physics initialization system with the physics world
+        // NOTE: This system is per-scene because each scene has its own physics world
+        var physicsInitializationSystem = new PhysicsInitializationSystem(_physicsWorld, _context);
+        _systemManager.RegisterSystem(physicsInitializationSystem);
 
         // Create and register physics simulation system with the physics world
         // NOTE: This system is per-scene because each scene has its own physics world
@@ -102,52 +104,8 @@ public class Scene : IScene
 
     public void OnRuntimeStart()
     {
+        // Initialize all systems (including PhysicsInitializationSystem which creates physics bodies)
         _systemManager.Initialize();
-
-        var view = _context.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
-        {
-            var transform = entity.GetComponent<TransformComponent>();
-            var bodyDef = new BodyDef
-            {
-                position = new Vector2(transform.Translation.X, transform.Translation.Y),
-                angle = transform.Rotation.Z,
-                type = RigidBody2DTypeToBox2DBody(component.BodyType),
-                bullet = component.BodyType == RigidBodyType.Dynamic ? true : false
-            };
-
-            var body = _physicsWorld.CreateBody(bodyDef);
-            body.SetFixedRotation(component.FixedRotation);
-
-            body.SetUserData(entity);
-
-            component.RuntimeBody = body;
-
-            if (entity.HasComponent<BoxCollider2DComponent>())
-            {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-                var shape = new PolygonShape();
-
-                var actualSizeX = boxCollider.Size.X * transform.Scale.X;
-                var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
-                var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
-                var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
-
-                var center = new Vector2(actualOffsetX, actualOffsetY);
-                shape.SetAsBox(actualSizeX / 2.0f, actualSizeY / 2.0f, center, 0.0f);
-
-                var fixtureDef = new FixtureDef
-                {
-                    shape = shape,
-                    density = boxCollider.Density,
-                    friction = boxCollider.Friction,
-                    restitution = boxCollider.Restitution,
-                    isSensor = boxCollider.IsTrigger
-                };
-
-                body.CreateFixture(fixtureDef);
-            }
-        }
     }
 
     public void OnRuntimeStop()
@@ -330,16 +288,6 @@ public class Scene : IScene
         return null;
     }
 
-    private BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
-    {
-        return componentBodyType switch
-        {
-            RigidBodyType.Static => BodyType.Static,
-            RigidBodyType.Dynamic => BodyType.Dynamic,
-            RigidBodyType.Kinematic => BodyType.Kinematic,
-            _ => throw new ArgumentOutOfRangeException(nameof(componentBodyType), componentBodyType, null)
-        };
-    }
 
     /// <summary>
     /// Duplicates an entity by cloning all of its components.
