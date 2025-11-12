@@ -17,23 +17,27 @@ public class ScriptEngine : IScriptEngine
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
 
-    public static ScriptEngine Instance { get; } = new();
-
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
+    private IScene? _currentScene;
 
     // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private bool _debugMode = true; // Enable debugging by default in development
 
-    private ScriptEngine()
+    public ScriptEngine()
     {
         // Default to current directory, but allow override
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
+    }
+
+    public void SetCurrentScene(IScene? scene)
+    {
+        _currentScene = scene;
     }
 
     public void SetScriptsDirectory(string scriptsDirectory)
@@ -49,9 +53,9 @@ public class ScriptEngine : IScriptEngine
         CheckForScriptChanges();
 
         // Update all script components
-        if (CurrentScene.Instance == null) return;
+        if (_currentScene == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities
+        var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         
@@ -88,9 +92,9 @@ public class ScriptEngine : IScriptEngine
 
     public void ProcessEvent(Event @event)
     {
-        if (CurrentScene.Instance == null) return;
+        if (_currentScene == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities
+        var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
@@ -818,9 +822,9 @@ public class ScriptEngine : IScriptEngine
         CompileAllScripts();
         
         // Notify all script components to reload
-        if (CurrentScene.Instance == null) return;
+        if (_currentScene == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities
+        var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)

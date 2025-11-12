@@ -12,6 +12,7 @@ namespace Engine.Scene.Systems;
 public class ScriptUpdateSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptUpdateSystem>();
+    private readonly IScriptEngine _scriptEngine;
 
     /// <summary>
     /// Gets the priority of this system.
@@ -19,6 +20,15 @@ public class ScriptUpdateSystem : ISystem
     /// and before rendering (typically 200). Execution order: scripts → physics → rendering.
     /// </summary>
     public int Priority => 150;
+
+    /// <summary>
+    /// Creates a new ScriptUpdateSystem.
+    /// </summary>
+    /// <param name="scriptEngine">The script engine for executing scripts.</param>
+    public ScriptUpdateSystem(IScriptEngine scriptEngine)
+    {
+        _scriptEngine = scriptEngine;
+    }
 
     /// <summary>
     /// Called once when the system is initialized.
@@ -40,7 +50,7 @@ public class ScriptUpdateSystem : ISystem
         // - Script initialization (OnCreate)
         // - Script updates (OnUpdate)
         // - Error handling and logging
-        ScriptEngine.Instance.OnUpdate(deltaTime);
+        _scriptEngine.OnUpdate(deltaTime);
     }
 
     /// <summary>

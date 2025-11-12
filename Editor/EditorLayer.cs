@@ -48,6 +48,7 @@ public class EditorLayer : ILayer
     private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
     private readonly TileMapPanel _tileMapPanel;
+    private readonly IScriptEngine _scriptEngine;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -68,7 +69,7 @@ public class EditorLayer : ILayer
         IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
-        TileMapPanel tileMapPanel)
+        TileMapPanel tileMapPanel, IScriptEngine scriptEngine)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -86,6 +87,7 @@ public class EditorLayer : ILayer
         _animationTimeline = animationTimeline;
         _recentProjectsWindow = recentProjectsWindow;
         _tileMapPanel = tileMapPanel;
+        _scriptEngine = scriptEngine;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -119,7 +121,7 @@ public class EditorLayer : ILayer
 
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-        ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
+        _scriptEngine.SetScriptsDirectory(scriptsDir);
 
         // Initialize editor systems
         _editorSystems = new SystemManager();
@@ -267,7 +269,7 @@ public class EditorLayer : ILayer
         }
         else
         {
-            ScriptEngine.Instance.ProcessEvent(windowEvent);
+            _scriptEngine.ProcessEvent(windowEvent);
         }
     }
 

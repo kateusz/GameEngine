@@ -9,6 +9,7 @@ namespace Editor.Panels.ComponentEditors;
 public class ComponentEditorRegistry : IComponentEditorRegistry
 {
     private readonly Dictionary<Type, IComponentEditor> _editors;
+    private readonly ScriptComponentUI _scriptComponentUI;
 
     public ComponentEditorRegistry(
         TransformComponentEditor transformComponentEditor,
@@ -22,7 +23,8 @@ public class ComponentEditorRegistry : IComponentEditorRegistry
         AudioSourceComponentEditor audioSourceComponentEditor,
         AudioListenerComponentEditor audioListenerComponentEditor,
         AnimationComponentEditor animationComponentEditor,
-        TileMapComponentEditor tileMapComponentEditor
+        TileMapComponentEditor tileMapComponentEditor,
+        ScriptComponentUI scriptComponentUI
         )
     {
         _editors = new Dictionary<Type, IComponentEditor>
@@ -40,6 +42,7 @@ public class ComponentEditorRegistry : IComponentEditorRegistry
             { typeof(AnimationComponent), animationComponentEditor },
             { typeof(TileMapComponent), tileMapComponentEditor }
         };
+        _scriptComponentUI = scriptComponentUI;
     }
 
     public void DrawAllComponents(Entity entity)
@@ -50,7 +53,7 @@ public class ComponentEditorRegistry : IComponentEditorRegistry
         }
 
         // Special handling for script components
-        ScriptComponentUI.DrawScriptComponent(entity);
+        _scriptComponentUI.DrawScriptComponent(entity);
     }
 
     public static void DrawComponent<T>(string name, Entity entity, Action<Entity> uiFunction) where T : IComponent

@@ -9,6 +9,7 @@ public class ProjectManager : IProjectManager
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
 
     private readonly IEditorPreferences _editorPreferences;
+    private readonly IScriptEngine _scriptEngine;
 
     private static readonly string[] RequiredDirs =
     [
@@ -23,9 +24,11 @@ public class ProjectManager : IProjectManager
     /// Initializes a new instance of the ProjectManager.
     /// </summary>
     /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
-    public ProjectManager(IEditorPreferences editorPreferences)
+    /// <param name="scriptEngine">Script engine for managing script directories.</param>
+    public ProjectManager(IEditorPreferences editorPreferences, IScriptEngine scriptEngine)
     {
         _editorPreferences = editorPreferences;
+        _scriptEngine = scriptEngine;
     }
 
     public string? CurrentProjectDirectory { get; private set; }
@@ -137,6 +140,6 @@ public class ProjectManager : IProjectManager
 
         // Point the scripting engine to /assets/scripts if that exists
         var scriptsDir = Path.Combine(projectDir, "assets", "scripts");
-        ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
+        _scriptEngine.SetScriptsDirectory(scriptsDir);
     }
 }

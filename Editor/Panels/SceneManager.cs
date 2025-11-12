@@ -3,6 +3,7 @@ using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Panels;
@@ -10,19 +11,21 @@ namespace Editor.Panels;
 public class SceneManager : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
-    
+
     public SceneState SceneState { get; private set; } = SceneState.Edit;
     public string? EditorScenePath { get; private set; }
 
     private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
     private readonly ISceneSerializer _sceneSerializer;
     private readonly SceneFactory _sceneFactory;
+    private readonly IScriptEngine _scriptEngine;
 
-    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory)
+    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory, IScriptEngine scriptEngine)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneSerializer = sceneSerializer;
         _sceneFactory = sceneFactory;
+        _scriptEngine = scriptEngine;
     }
 
     public void New(Vector2 viewportSize)
@@ -32,6 +35,10 @@ public class SceneManager : ISceneManager
 
         var scene = _sceneFactory.Create("");
         CurrentScene.Set(scene);
+
+        // Update script engine with the new scene
+        _scriptEngine.SetCurrentScene(scene);
+
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
         Logger.Information("📄 New scene created");
@@ -46,10 +53,13 @@ public class SceneManager : ISceneManager
         CurrentScene.Instance?.Dispose();
 
         EditorScenePath = path;
-        
+
         var scene = _sceneFactory.Create(path);
         CurrentScene.Set(scene);
-        
+
+        // Update script engine with the new scene
+        _scriptEngine.SetCurrentScene(scene);
+
         //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
 

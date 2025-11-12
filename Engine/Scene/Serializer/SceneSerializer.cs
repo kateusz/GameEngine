@@ -30,6 +30,7 @@ public class SceneSerializer : ISceneSerializer
     private const string ScriptTypeKey = "ScriptType";
 
     private readonly IAudioEngine _audioEngine;
+    private readonly IScriptEngine _scriptEngine;
 
     // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
@@ -46,9 +47,10 @@ public class SceneSerializer : ISceneSerializer
         }
     };
 
-    public SceneSerializer(IAudioEngine audioEngine)
+    public SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+        _scriptEngine = scriptEngine ?? throw new ArgumentNullException(nameof(scriptEngine));
     }
 
     /// <summary>
@@ -299,7 +301,7 @@ public class SceneSerializer : ISceneSerializer
         }
 
         // First try to create script instance using ScriptEngine (for dynamic scripts)
-        var scriptInstanceResult = ScriptEngine.Instance.CreateScriptInstance(scriptTypeName);
+        var scriptInstanceResult = _scriptEngine.CreateScriptInstance(scriptTypeName);
         if (scriptInstanceResult.IsSuccess)
         {
             var scriptInstance = scriptInstanceResult.Value;
