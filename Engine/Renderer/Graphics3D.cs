@@ -146,7 +146,7 @@ public class Graphics3D : IGraphics3D
         if (disposing)
         {
             // Dispose managed resources
-            (_phongShader as IDisposable)?.Dispose();
+            _phongShader?.Dispose();
         }
 
         _disposed = true;
