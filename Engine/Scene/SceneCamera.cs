@@ -19,9 +19,6 @@ public class SceneCamera : Camera
 
     private bool _projectionDirty = true;
     private float _aspectRatio;
-    private readonly Vector3 _cameraPosition = new(0.0f, 0.0f, CameraConfig.DefaultCameraZPosition);
-    private readonly Vector3 _cameraFront = new(0.0f, 0.0f, -1.0f);
-    private readonly Vector3 _cameraUp = Vector3.UnitY;
 
     private ProjectionType _projectionType = ProjectionType.Orthographic;
     private float _orthographicSize;
@@ -272,8 +269,8 @@ public class SceneCamera : Camera
     {
         if (_projectionType == ProjectionType.Perspective)
         {
-            var view = Matrix4x4.CreateLookAt(_cameraPosition, _cameraPosition + _cameraFront, _cameraUp);
-            _projection = view * Matrix4x4.CreatePerspectiveFieldOfView(_perspectiveFOV, _aspectRatio, _perspectiveNear, _perspectiveFar);
+            // Only store the projection matrix; view transform is handled by camera entity's TransformComponent
+            _projection = Matrix4x4.CreatePerspectiveFieldOfView(_perspectiveFOV, _aspectRatio, _perspectiveNear, _perspectiveFar);
         }
         else
         {
