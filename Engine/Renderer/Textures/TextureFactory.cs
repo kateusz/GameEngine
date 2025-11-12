@@ -10,7 +10,7 @@ public static class TextureFactory
 {
     private static Texture2D? _whiteTexture;
     private static readonly object _whiteLock = new();
-    private static readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new();
+    private static readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object _cacheLock = new();
 
     /// <summary>
@@ -56,10 +56,13 @@ public static class TextureFactory
     /// </remarks>
     public static Texture2D Create(string path)
     {
+        // Normalize the path to ensure cache consistency across different path representations
+        string normalizedPath = Path.GetFullPath(path);
+
         lock (_cacheLock)
         {
             // Check cache first
-            if (_textureCache.TryGetValue(path, out var weakRef))
+            if (_textureCache.TryGetValue(normalizedPath, out var weakRef))
             {
                 if (weakRef.TryGetTarget(out var cachedTexture))
                 {
@@ -68,19 +71,19 @@ public static class TextureFactory
                 else
                 {
                     // Weak reference died, remove from cache
-                    _textureCache.Remove(path);
+                    _textureCache.Remove(normalizedPath);
                 }
             }
 
-            // Create new texture
+            // Create new texture (use original path for loading)
             var texture = RendererApiType.Type switch
             {
                 ApiType.SilkNet => SilkNetTexture2D.Create(path),
                 _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
             };
 
-            // Add to cache with weak reference
-            _textureCache[path] = new WeakReference<Texture2D>(texture);
+            // Add to cache with weak reference using normalized path
+            _textureCache[normalizedPath] = new WeakReference<Texture2D>(texture);
             return texture;
         }
     }
