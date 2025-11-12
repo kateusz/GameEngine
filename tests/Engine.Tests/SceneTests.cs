@@ -455,6 +455,159 @@ public class SceneTests : IDisposable
 
     #endregion
 
+    #region GetPrimaryCameraData Tests
+
+    [Fact]
+    public void GetPrimaryCameraData_WhenNoCameraExists_ShouldReturnNullAndIdentity()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+
+        // Act
+        var (camera, transform) = scene.GetPrimaryCameraData();
+
+        // Assert
+        camera.ShouldBeNull();
+        transform.ShouldBe(System.Numerics.Matrix4x4.Identity);
+    }
+
+    [Fact]
+    public void GetPrimaryCameraData_WhenPrimaryCameraExists_ShouldReturnCameraAndTransform()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+        var cameraEntity = scene.CreateEntity("camera");
+        cameraEntity.AddComponent(new TransformComponent
+        {
+            Translation = new System.Numerics.Vector3(1, 2, 3),
+            Rotation = System.Numerics.Vector3.Zero,
+            Scale = System.Numerics.Vector3.One
+        });
+        cameraEntity.AddComponent(new CameraComponent { Primary = true });
+
+        // Act
+        var (camera, transform) = scene.GetPrimaryCameraData();
+
+        // Assert
+        camera.ShouldNotBeNull();
+        transform.ShouldNotBe(System.Numerics.Matrix4x4.Identity);
+    }
+
+    [Fact]
+    public void GetPrimaryCameraData_CalledMultipleTimes_ShouldUseCacheAfterFirstCall()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+        var cameraEntity = scene.CreateEntity("camera");
+        cameraEntity.AddComponent(new TransformComponent());
+        cameraEntity.AddComponent(new CameraComponent { Primary = true });
+
+        // Act - Call multiple times
+        var result1 = scene.GetPrimaryCameraData();
+        var result2 = scene.GetPrimaryCameraData();
+        var result3 = scene.GetPrimaryCameraData();
+
+        // Assert - Results should be consistent (cached)
+        result1.camera.ShouldBe(result2.camera);
+        result2.camera.ShouldBe(result3.camera);
+        result1.camera.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void GetPrimaryCameraData_AfterCameraAdded_ShouldInvalidateCache()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+
+        // Act - Get camera data when none exists
+        var (camera1, _) = scene.GetPrimaryCameraData();
+
+        // Add a camera
+        var cameraEntity = scene.CreateEntity("camera");
+        cameraEntity.AddComponent(new TransformComponent());
+        cameraEntity.AddComponent(new CameraComponent { Primary = true });
+
+        // Get camera data again
+        var (camera2, _) = scene.GetPrimaryCameraData();
+
+        // Assert
+        camera1.ShouldBeNull();
+        camera2.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void GetPrimaryCameraData_AfterCameraRemoved_ShouldInvalidateCache()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+        var cameraEntity = scene.CreateEntity("camera");
+        cameraEntity.AddComponent(new TransformComponent());
+        var cameraComponent = cameraEntity.AddComponent(new CameraComponent { Primary = true });
+
+        // Get camera data (should cache it)
+        var (camera1, _) = scene.GetPrimaryCameraData();
+
+        // Act - Remove camera component
+        cameraEntity.RemoveComponent<CameraComponent>();
+
+        // Get camera data again (should invalidate cache)
+        var (camera2, _) = scene.GetPrimaryCameraData();
+
+        // Assert
+        camera1.ShouldNotBeNull();
+        camera2.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetPrimaryCameraData_AfterCameraEntityDestroyed_ShouldInvalidateCache()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+        var cameraEntity = scene.CreateEntity("camera");
+        cameraEntity.AddComponent(new TransformComponent());
+        cameraEntity.AddComponent(new CameraComponent { Primary = true });
+
+        // Get camera data (should cache it)
+        var (camera1, _) = scene.GetPrimaryCameraData();
+
+        // Act - Destroy camera entity
+        scene.DestroyEntity(cameraEntity);
+
+        // Get camera data again (should invalidate cache)
+        var (camera2, _) = scene.GetPrimaryCameraData();
+
+        // Assert
+        camera1.ShouldNotBeNull();
+        camera2.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetPrimaryCameraData_WithMultipleCameras_ShouldReturnFirstPrimary()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+
+        var camera1 = scene.CreateEntity("camera1");
+        camera1.AddComponent(new TransformComponent());
+        camera1.AddComponent(new CameraComponent { Primary = false });
+
+        var camera2 = scene.CreateEntity("camera2");
+        camera2.AddComponent(new TransformComponent());
+        var primaryComponent = camera2.AddComponent(new CameraComponent { Primary = true });
+
+        var camera3 = scene.CreateEntity("camera3");
+        camera3.AddComponent(new TransformComponent());
+        camera3.AddComponent(new CameraComponent { Primary = true }); // Second primary
+
+        // Act
+        var (camera, _) = scene.GetPrimaryCameraData();
+
+        // Assert - Should return the first primary camera found
+        camera.ShouldBe(primaryComponent.Camera);
+    }
+
+    #endregion
+
     #region OnViewportResize Tests
     [Fact]
     public void OnViewportResize_WhenNoCameras_ShouldNotThrow()

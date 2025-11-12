@@ -19,6 +19,12 @@ public class SpriteRenderingSystem : ISystem
     private readonly IContext _context;
 
     /// <summary>
+    /// The current scene this system is rendering for. Set by the Scene when it registers systems.
+    /// Used to access the cached primary camera data.
+    /// </summary>
+    public IScene? Scene { get; set; }
+
+    /// <summary>
     /// Priority of 200 ensures this system renders after scripts (priority 150).
     /// </summary>
     public int Priority => 200;
@@ -44,28 +50,13 @@ public class SpriteRenderingSystem : ISystem
 
     /// <summary>
     /// Updates and renders all sprites in the scene.
-    /// Finds the primary camera and renders all entities with sprite components.
+    /// Uses the cached primary camera from the scene for O(1) access.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since last frame.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Find the primary camera
-        Camera? mainCamera = null;
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var entity in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
+        // Get primary camera data from scene cache (O(1) operation)
+        var (mainCamera, cameraTransform) = Scene?.GetPrimaryCameraData() ?? (null, Matrix4x4.Identity);
 
         // Only render if we have a camera
         if (mainCamera == null)

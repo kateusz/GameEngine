@@ -31,6 +31,12 @@ public class Scene : IScene
     // Key format: "path|columns|rows" to handle different grid configurations of the same texture
     private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
+    // Primary camera cache - O(1) access with automatic invalidation
+    private Entity? _primaryCameraEntity;
+    private CameraComponent? _primaryCameraComponent;
+    private TransformComponent? _primaryCameraTransform;
+    private bool _primaryCameraDirty = true;
+
     public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context)
     {
         _path = path;
@@ -42,7 +48,20 @@ public class Scene : IScene
         _systemManager = new SystemManager();
 
         // Populate system manager from registry (singleton systems shared across scenes)
-        systemRegistry.PopulateSystemManager(_systemManager);
+        var registeredSystems = systemRegistry.PopulateSystemManager(_systemManager);
+
+        // Set Scene reference on rendering systems to enable O(1) camera cache access
+        foreach (var system in registeredSystems)
+        {
+            if (system is SpriteRenderingSystem spriteSystem)
+                spriteSystem.Scene = this;
+            else if (system is SubTextureRenderingSystem subTextureSystem)
+                subTextureSystem.Scene = this;
+            else if (system is ModelRenderingSystem modelSystem)
+                modelSystem.Scene = this;
+            else if (system is TileMapRenderSystem tileMapSystem)
+                tileMapSystem.Scene = this;
+        }
 
         // Initialize physics world (per-scene, cannot be shared)
         _physicsWorld = new World(new Vector2(0, -9.8f));
@@ -62,6 +81,7 @@ public class Scene : IScene
     {
         var entity = Entity.Create(_nextEntityId++, name);
         entity.OnComponentAdded += OnComponentAdded;
+        entity.OnComponentRemoved += OnComponentRemoved;
         _context.Register(entity);
 
         return entity;
@@ -78,6 +98,7 @@ public class Scene : IScene
 
         // Subscribe to component events to maintain consistency with CreateEntity
         entity.OnComponentAdded += OnComponentAdded;
+        entity.OnComponentRemoved += OnComponentRemoved;
 
         _context.Register(entity);
     }
@@ -86,15 +107,34 @@ public class Scene : IScene
     {
         if (component is CameraComponent cameraComponent)
         {
+            // Invalidate primary camera cache when any camera is added
+            _primaryCameraDirty = true;
+
             if (_viewportWidth > 0 && _viewportHeight > 0)
                 cameraComponent.Camera.SetViewportSize(_viewportWidth, _viewportHeight);
         }
     }
 
+    private void OnComponentRemoved(IComponent component)
+    {
+        if (component is CameraComponent)
+        {
+            // Invalidate primary camera cache when any camera is removed
+            _primaryCameraDirty = true;
+        }
+    }
+
     public void DestroyEntity(Entity entity)
     {
+        // Invalidate primary camera cache if destroying the camera entity
+        if (entity == _primaryCameraEntity)
+        {
+            _primaryCameraDirty = true;
+        }
+
         // Unsubscribe from all events before removing to prevent memory leak
         entity.OnComponentAdded -= OnComponentAdded;
+        entity.OnComponentRemoved -= OnComponentRemoved;
 
         // O(1) removal via dictionary lookup
         _context.Remove(entity.Id);
@@ -320,14 +360,59 @@ public class Scene : IScene
 
     public Entity? GetPrimaryCameraEntity()
     {
+        if (_primaryCameraDirty)
+        {
+            RefreshPrimaryCamera();
+            _primaryCameraDirty = false;
+        }
+        return _primaryCameraEntity;
+    }
+
+    public (Camera? camera, Matrix4x4 transform) GetPrimaryCameraData()
+    {
+        if (_primaryCameraDirty)
+        {
+            RefreshPrimaryCamera();
+            _primaryCameraDirty = false;
+        }
+
+        if (_primaryCameraEntity == null || _primaryCameraComponent == null)
+        {
+            return (null, Matrix4x4.Identity);
+        }
+
+        // Recompute transform matrix (cheap operation, typically just multiplying cached matrices)
+        var transform = _primaryCameraTransform?.GetTransform() ?? Matrix4x4.Identity;
+        return (_primaryCameraComponent.Camera, transform);
+    }
+
+    private void RefreshPrimaryCamera()
+    {
+        // Clear cache
+        _primaryCameraEntity = null;
+        _primaryCameraComponent = null;
+        _primaryCameraTransform = null;
+
+        // Find the first primary camera (O(n) but only on cache miss)
         var view = _context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.Primary)
-                return entity;
+            {
+                _primaryCameraEntity = entity;
+                _primaryCameraComponent = component;
+                _primaryCameraTransform = entity.GetComponent<TransformComponent>();
+
+                Logger.Debug("Primary camera cache refreshed: Entity {EntityId} ('{EntityName}')",
+                    entity.Id, entity.Name);
+                break;
+            }
         }
 
-        return null;
+        if (_primaryCameraEntity == null)
+        {
+            Logger.Debug("No primary camera found in scene");
+        }
     }
 
     private BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
@@ -439,6 +524,7 @@ public class Scene : IScene
         foreach (var entity in _context.Entities)
         {
             entity.OnComponentAdded -= OnComponentAdded;
+            entity.OnComponentRemoved -= OnComponentRemoved;
         }
 
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)

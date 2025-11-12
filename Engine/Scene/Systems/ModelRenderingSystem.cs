@@ -20,6 +20,12 @@ public class ModelRenderingSystem : ISystem
     private readonly IContext _context;
 
     /// <summary>
+    /// The current scene this system is rendering for. Set by the Scene when it registers systems.
+    /// Used to access the cached primary camera data.
+    /// </summary>
+    public IScene? Scene { get; set; }
+
+    /// <summary>
     /// Gets the priority of this system.
     /// Priority 210 ensures 3D models render after 2D sprites (which typically use priority 200).
     /// </summary>
@@ -47,27 +53,13 @@ public class ModelRenderingSystem : ISystem
 
     /// <summary>
     /// Called every frame to update and render 3D models.
-    /// Automatically finds the primary camera in the scene.
+    /// Uses the cached primary camera from the scene for O(1) access.
     /// </summary>
     /// <param name="deltaTime">The time elapsed since the last update.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Find the primary camera in the scene
-        Camera? mainCamera = null;
-        Matrix4x4 cameraTransform = Matrix4x4.Identity;
-
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        foreach (var entity in cameraGroup)
-        {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                var transformComponent = entity.GetComponent<TransformComponent>();
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
+        // Get primary camera data from scene cache (O(1) operation)
+        var (mainCamera, cameraTransform) = Scene?.GetPrimaryCameraData() ?? (null, Matrix4x4.Identity);
 
         // Skip rendering if no primary camera is found
         if (mainCamera == null)
