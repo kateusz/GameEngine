@@ -32,5 +32,6 @@ public class Renderer2DData
 
     public readonly Texture2D[] TextureSlots = new Texture2D[MaxTextureSlots];
     public int TextureSlotIndex { get; internal set; }
+    public readonly Dictionary<uint, int> TextureSlotCache = new();
     public Statistics Stats { get; internal set; }
 }
