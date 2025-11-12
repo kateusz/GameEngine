@@ -50,7 +50,13 @@ public class SilkNetFrameBuffer : FrameBuffer
 
             if (_colorAttachments != null && _colorAttachments.Length > 0)
             {
-                SilkNetContext.GL.DeleteTextures(_colorAttachments);
+                foreach (var attachment in _colorAttachments)
+                {
+                    if (attachment != 0)
+                    {
+                        SilkNetContext.GL.DeleteTexture(attachment);
+                    }
+                }
                 Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
             }
 
@@ -189,7 +195,13 @@ public class SilkNetFrameBuffer : FrameBuffer
 
         if (_colorAttachments != null && _colorAttachments.Length > 0)
         {
-            SilkNetContext.GL.DeleteTextures(_colorAttachments);
+            foreach (var attachment in _colorAttachments)
+            {
+                if (attachment != 0)
+                {
+                    SilkNetContext.GL.DeleteTexture(attachment);
+                }
+            }
             GLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (color attachments)");
         }
 
