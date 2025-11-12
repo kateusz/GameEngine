@@ -9,9 +9,9 @@ public class ContentBrowserPanel : IContentBrowserPanel
 {
     private string _assetPath;
     private string _currentDirectory;
-    private Texture2D _directoryIcon;
-    private Texture2D _fileIcon;
-    private Texture2D _prefabIcon;
+    private Texture2D _directoryIcon = null!;
+    private Texture2D _fileIcon = null!;
+    private Texture2D _prefabIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
 
     public ContentBrowserPanel()

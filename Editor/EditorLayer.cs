@@ -253,11 +253,11 @@ public class EditorLayer : ILayer
         switch (windowEvent)
         {
             case KeyPressedEvent kpe:
-                _pressedKeys.Add((KeyCodes)kpe.KeyCode);
+                _pressedKeys.Add(kpe.KeyCode);
                 OnKeyPressed(kpe);
                 break;
             case KeyReleasedEvent kre:
-                _pressedKeys.Remove((KeyCodes)kre.KeyCode);
+                _pressedKeys.Remove(kre.KeyCode);
                 break;
         }
         

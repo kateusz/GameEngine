@@ -29,7 +29,7 @@ public interface ISceneHierarchyPanel
     /// Sets the currently selected entity.
     /// </summary>
     /// <param name="entity">Entity to select</param>
-    void SetSelectedEntity(Entity? entity);
+    void SetSelectedEntity(Entity entity);
     
     Action<Entity> EntitySelected { get; set; }
 }

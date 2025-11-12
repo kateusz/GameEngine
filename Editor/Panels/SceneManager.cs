@@ -90,7 +90,7 @@ public class SceneManager : ISceneManager
             return;
 
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-        if (selectedEntity is not null)
+        if (selectedEntity is not null && CurrentScene.Instance != null)
         {
             CurrentScene.Instance.DuplicateEntity(selectedEntity);
             Logger.Information("📋 Entity duplicated: {EntityName}", selectedEntity.Name);

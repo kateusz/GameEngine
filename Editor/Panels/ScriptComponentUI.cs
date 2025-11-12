@@ -13,12 +13,12 @@ namespace Editor.Panels;
 
 public static class ScriptComponentUI
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext(typeof(ScriptComponentUI));
+    private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentUI));
 
-    private static bool _showCreateScriptPopup = false;
-    private static bool _showScriptSelectorPopup = false;
+    private static bool _showCreateScriptPopup;
+    private static bool _showScriptSelectorPopup;
     private static string _newScriptName = string.Empty;
-    private static Entity? _selectedEntity = null;
+    private static Entity _selectedEntity;
 
     public static void Draw()
     {
@@ -45,7 +45,7 @@ public static class ScriptComponentUI
 
     private static void DrawAttachedScript(Entity entity, NativeScriptComponent component)
     {
-        var script = component.ScriptableEntity;
+        var script = component.ScriptableEntity!;
         var scriptType = script.GetType();
 
         DrawScriptHeader(entity, scriptType);
@@ -353,19 +353,19 @@ public static class ScriptComponentUI
             var open = ImGui.TreeNodeEx($"Add{name}Placeholder", placeholderFlags, $"Add {name}");
             ImGui.PopStyleVar();
 
-            if (open)
+            if (!open) 
+                return;
+            
+            // Add NativeScriptComponent button
+            if (ImGui.Button($"Add {name} Component", new Vector2(ImGui.GetContentRegionAvail().X, 0)))
             {
-                // Add NativeScriptComponent button
-                if (ImGui.Button($"Add {name} Component", new Vector2(ImGui.GetContentRegionAvail().X, 0)))
-                {
-                    entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
+                entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
 
-                    // After adding, call UI function with newly created component
-                    uiFunction(entity.GetComponent<T>());
-                }
-
-                ImGui.TreePop();
+                // After adding, call UI function with newly created component
+                uiFunction(entity.GetComponent<T>());
             }
+
+            ImGui.TreePop();
         }
     }
 }
