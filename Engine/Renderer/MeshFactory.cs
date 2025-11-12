@@ -7,6 +7,7 @@ public static class MeshFactory
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext(typeof(MeshFactory));
     private static readonly Dictionary<string, Mesh> _loadedMeshes = new();
+    private static readonly Dictionary<string, Model> _loadedModels = new();
     
     // In MeshFactory.cs
     public static Mesh Create(string objFilePath)
@@ -16,19 +17,21 @@ public static class MeshFactory
         {
             return existingMesh;
         }
-    
-        // Load the mesh
+
+        // Load the model and keep it alive to prevent disposal of shared textures
         var model = new Model(objFilePath);
         var mesh = model.Meshes.First();
-    
+
         // Log information about mesh size
         if (mesh.Vertices.Count > 50000 || mesh.Indices.Count > 100000)
         {
             Logger.Warning("Large mesh loaded from {ObjFilePath}: {VertexCount} vertices, {IndexCount} indices",
                 objFilePath, mesh.Vertices.Count, mesh.Indices.Count);
         }
-    
+
+        // Cache both the mesh and the model to prevent resource disposal
         _loadedMeshes[objFilePath] = mesh;
+        _loadedModels[objFilePath] = model;
         return mesh;
     }
     
@@ -96,5 +99,23 @@ public static class MeshFactory
 
         mesh.Initialize();
         return mesh;
+    }
+
+    /// <summary>
+    /// Clears all cached meshes and disposes loaded models to free GPU resources.
+    /// Should be called when shutting down or when clearing the asset cache.
+    /// </summary>
+    public static void Clear()
+    {
+        // Dispose all loaded models (which will dispose their meshes and textures)
+        foreach (var model in _loadedModels.Values)
+        {
+            model?.Dispose();
+        }
+
+        _loadedModels.Clear();
+        _loadedMeshes.Clear();
+
+        Logger.Information("MeshFactory cache cleared and resources disposed");
     }
 }

@@ -195,22 +195,19 @@ public class Graphics2D : IGraphics2D
         var textureIndex = 0.0f;
         if (texture is not null)
         {
-            for (var i = 1; i < _data.TextureSlotIndex; i++)
+            // Use O(1) dictionary lookup instead of O(n) linear search
+            if (_data.TextureSlotCache.TryGetValue(texture.GetRendererId(), out var cachedIndex))
             {
-                if (ReferenceEquals(_data.TextureSlots[i], texture))
-                {
-                    textureIndex = i;
-                    break;
-                }
+                textureIndex = cachedIndex;
             }
-
-            if (System.Math.Abs(textureIndex) < float.Epsilon)
+            else
             {
                 if (_data.TextureSlotIndex >= Renderer2DData.MaxTextureSlots)
                     NextBatch();
 
                 textureIndex = _data.TextureSlotIndex;
                 _data.TextureSlots[_data.TextureSlotIndex] = texture;
+                _data.TextureSlotCache[texture.GetRendererId()] = _data.TextureSlotIndex;
                 _data.TextureSlotIndex++;
             }
         }
@@ -309,6 +306,7 @@ public class Graphics2D : IGraphics2D
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
         _data.TextureSlotIndex = 1;
+        _data.TextureSlotCache.Clear();
 
         Array.Clear(_data.LineVertexBufferBase, 0, _data.LineVertexBufferBase.Length);
         _data.LineVertexCount = 0;
