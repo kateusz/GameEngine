@@ -27,7 +27,7 @@ public class Mesh
     public IVertexArray GetVertexArray()
     {
         if (!_initialized)
-            Initialize();
+            throw new InvalidOperationException($"Mesh '{Name}' not initialized. Call Initialize() before accessing vertex array.");
         return _vertexArray;
     }
 
@@ -42,7 +42,8 @@ public class Mesh
 
     public void Initialize()
     {
-        if (_initialized) return;
+        if (_initialized)
+            throw new InvalidOperationException($"Mesh '{Name}' already initialized. Initialize() should only be called once.");
         
         // Create vertex array
         _vertexArray = VertexArrayFactory.Create();
@@ -80,8 +81,8 @@ public class Mesh
     public void Bind()
     {
         if (!_initialized)
-            Initialize();
-            
+            throw new InvalidOperationException($"Mesh '{Name}' not initialized. Call Initialize() before binding.");
+
         _vertexArray.Bind();
         DiffuseTexture.Bind();
     }
