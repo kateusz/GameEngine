@@ -114,10 +114,30 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
     /// <summary>
     /// Shuts down the physics system.
     /// Called when the system is unregistered or scene is stopped.
+    /// Properly destroys all Box2D bodies and clears component references.
     /// </summary>
     public void OnShutdown()
     {
-        Logger.Debug("PhysicsSimulationSystem shut down");
+        Logger.Debug("PhysicsSimulationSystem shutting down - cleaning up physics bodies");
+
+        // Properly destroy all physics bodies before clearing references
+        var view = Context.Instance.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            if (component.RuntimeBody != null)
+            {
+                // Clear user data to prevent dangling references
+                component.RuntimeBody.SetUserData(null);
+
+                // Destroy the Box2D body
+                _physicsWorld.DestroyBody(component.RuntimeBody);
+
+                // Clear component reference to prevent double-cleanup
+                component.RuntimeBody = null;
+            }
+        }
+
+        Logger.Debug("PhysicsSimulationSystem shut down - all physics bodies destroyed");
     }
 
     /// <summary>
@@ -130,7 +150,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
         if (_disposed) return;
 
         // Box2D.NetStandard World doesn't implement IDisposable
-        // Bodies should already be destroyed by Scene.OnRuntimeStop() before disposal
+        // Bodies should already be destroyed by OnShutdown() before disposal
         // The World will be garbage collected
 
         _disposed = true;
