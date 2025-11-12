@@ -17,6 +17,7 @@ public class PhysicsDebugRenderSystem : ISystem
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
 
     private readonly IGraphics2D _renderer;
+    private readonly IContext _context;
 
     /// <summary>
     /// Execution priority for this system.
@@ -28,9 +29,11 @@ public class PhysicsDebugRenderSystem : ISystem
     /// Creates a new PhysicsDebugRenderSystem.
     /// </summary>
     /// <param name="renderer">The 2D renderer interface to use for drawing debug shapes.</param>
-    public PhysicsDebugRenderSystem(IGraphics2D renderer)
+    /// <param name="context">The ECS context for querying entities.</param>
+    public PhysicsDebugRenderSystem(IGraphics2D renderer, IContext context)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+        _context = context;
     }
 
     /// <summary>
@@ -53,7 +56,7 @@ public class PhysicsDebugRenderSystem : ISystem
             return;
 
         // Find the primary camera for rendering
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
 
         foreach (var entity in cameraGroup)
         {
@@ -94,7 +97,7 @@ public class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     private void DrawPhysicsDebug()
     {
-        var rigidBodyView = Context.Instance.View<RigidBody2DComponent>();
+        var rigidBodyView = _context.View<RigidBody2DComponent>();
         foreach (var (entity, rigidBodyComponent) in rigidBodyView)
         {
             if (rigidBodyComponent.RuntimeBody == null)

@@ -17,16 +17,18 @@ namespace Engine.Scene.Systems;
 public class AnimationSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationSystem>();
-    
+
     public int Priority => 198;
-    
+
     private readonly EventBus _eventBus;
     private readonly AnimationAssetManager _animationAssetManager;
+    private readonly IContext _context;
 
-    public AnimationSystem(EventBus eventBus, AnimationAssetManager animationAssetManager)
+    public AnimationSystem(EventBus eventBus, AnimationAssetManager animationAssetManager, IContext context)
     {
         _eventBus = eventBus;
         _animationAssetManager = animationAssetManager;
+        _context = context;
     }
 
     public void OnUpdate(TimeSpan deltaTime)
@@ -34,7 +36,7 @@ public class AnimationSystem : ISystem
         var dt = (float)deltaTime.TotalSeconds;
 
         // Iterate over all entities with AnimationComponent
-        foreach (var (entity, animComponent) in Context.Instance.View<AnimationComponent>())
+        foreach (var (entity, animComponent) in _context.View<AnimationComponent>())
         {
             // Update animation
             UpdateAnimation(entity, animComponent, dt);
@@ -231,7 +233,7 @@ public class AnimationSystem : ISystem
         Logger.Debug("AnimationSystem initialized with priority {Priority}", Priority);
 
         // Initialize animation assets for all existing entities with AnimationComponent
-        var view = Context.Instance.View<AnimationComponent>();
+        var view = _context.View<AnimationComponent>();
         var entityCount = 0;
         foreach (var (_, animComponent) in view)
         {

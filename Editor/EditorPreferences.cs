@@ -24,9 +24,7 @@ public record RecentProject
 public class EditorPreferences : IEditorPreferences
 {
     private static readonly ILogger Logger = Log.ForContext<EditorPreferences>();
-
-    public int Version { get; set; } = 2;
-    public List<RecentProject> RecentProjects { get; } = [];
+    public List<RecentProject> RecentProjects { get; init; } = [];
     public const int MaxRecentProjects = 10;
 
     // Editor Settings
@@ -191,16 +189,6 @@ public class EditorPreferences : IEditorPreferences
                 {
                     Logger.Warning("Failed to deserialize preferences, using defaults");
                     return new EditorPreferences();
-                }
-
-                // Version migration logic
-                if (prefs.Version < 2)
-                {
-                    Logger.Information("Migrating preferences from version {Old} to {New}",
-                        prefs.Version, 2);
-                    // Version 1 didn't have editor settings, so we use defaults
-                    // The properties are already initialized with default values
-                    prefs.Version = 2;
                 }
 
                 Logger.Information("Editor preferences loaded from {Path}", PreferencesPath);

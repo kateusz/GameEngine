@@ -21,6 +21,7 @@ public class SubTextureRenderingSystem : ISystem
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
 
     private readonly IGraphics2D _renderer;
+    private readonly IContext _context;
 
     /// <summary>
     /// Priority of 205 ensures this system renders after regular sprites (200)
@@ -32,9 +33,11 @@ public class SubTextureRenderingSystem : ISystem
     /// Creates a new SubTextureRenderingSystem.
     /// </summary>
     /// <param name="renderer">The 2D renderer interface to use for drawing subtextures.</param>
-    public SubTextureRenderingSystem(IGraphics2D renderer)
+    /// <param name="context">The ECS context for querying entities.</param>
+    public SubTextureRenderingSystem(IGraphics2D renderer, IContext context)
     {
         _renderer = renderer;
+        _context = context;
     }
 
     /// <summary>
@@ -54,7 +57,7 @@ public class SubTextureRenderingSystem : ISystem
     {
         // Find the primary camera
         Camera? mainCamera = null;
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         var cameraTransform = Matrix4x4.Identity;
 
         foreach (var entity in cameraGroup)
@@ -79,7 +82,7 @@ public class SubTextureRenderingSystem : ISystem
 
         // Render all subtextures
         var subtextureGroup =
-            Context.Instance.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+            _context.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
         foreach (var entity in subtextureGroup)
         {
             var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();

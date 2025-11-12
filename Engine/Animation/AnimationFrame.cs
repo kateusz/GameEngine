@@ -9,7 +9,7 @@ public record AnimationFrame
 {
     /// <summary>
     /// Pixel rectangle [x, y, width, height] in texture atlas.
-    /// Origin: bottom-left (OpenGL convention).
+    /// Origin: top-left (standard image file convention).
     /// </summary>
     public required Rectangle Rect { get; init; }
 
@@ -67,15 +67,15 @@ public record AnimationFrame
         TexCoords[2] = new Vector2(uvMaxX, uvMaxY);  // Top-right
         TexCoords[3] = new Vector2(uvMinX, uvMaxY);  // Top-left
 
-        // Apply flip flags
-        if (Flip?.X != 0.0f) // Horizontal flip
+        // Apply flip flags (check for both non-null AND non-zero)
+        if (Flip is { X: not 0.0f }) // Horizontal flip
         {
             // Swap X coordinates
             (TexCoords[0].X, TexCoords[1].X) = (TexCoords[1].X, TexCoords[0].X);
             (TexCoords[2].X, TexCoords[3].X) = (TexCoords[3].X, TexCoords[2].X);
         }
 
-        if (Flip?.Y != 0.0f) // Vertical flip
+        if (Flip is { Y: not 0.0f }) // Vertical flip
         {
             // Swap Y coordinates
             (TexCoords[0].Y, TexCoords[3].Y) = (TexCoords[3].Y, TexCoords[0].Y);

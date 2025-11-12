@@ -17,23 +17,27 @@ public class ScriptEngine : IScriptEngine
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<ScriptEngine>();
 
-    public static ScriptEngine Instance { get; } = new();
-
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
+    private IScene? _currentScene;
 
     // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private bool _debugMode = true; // Enable debugging by default in development
 
-    private ScriptEngine()
+    public ScriptEngine()
     {
         // Default to current directory, but allow override
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
+    }
+
+    public void SetCurrentScene(IScene? scene)
+    {
+        _currentScene = scene;
     }
 
     public void SetScriptsDirectory(string scriptsDirectory)
@@ -49,12 +53,12 @@ public class ScriptEngine : IScriptEngine
         CheckForScriptChanges();
 
         // Update all script components
-        if (CurrentScene.Instance == null) return;
+        if (_currentScene == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities
+        var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
-        
+
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
@@ -86,11 +90,47 @@ public class ScriptEngine : IScriptEngine
         }
     }
 
-    public void ProcessEvent(Event @event)
+    public void OnRuntimeStop()
     {
+        // Handle OnDestroy lifecycle for all script entities
         if (CurrentScene.Instance == null) return;
 
         var scriptEntities = CurrentScene.Instance.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
+
+        var errors = new List<Exception>();
+
+        foreach (var entity in scriptEntities)
+        {
+            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent.ScriptableEntity != null)
+            {
+                try
+                {
+                    scriptComponent.ScriptableEntity.OnDestroy();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $"Error in script OnDestroy for entity '{entity.Name}' (ID: {entity.Id})");
+                    errors.Add(ex);
+                }
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            Logger.Warning(
+                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
+                errors.Count);
+        }
+    }
+
+    public void ProcessEvent(Event @event)
+    {
+        if (_currentScene == null) return;
+
+        var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
@@ -818,9 +858,9 @@ public class ScriptEngine : IScriptEngine
         CompileAllScripts();
         
         // Notify all script components to reload
-        if (CurrentScene.Instance == null) return;
+        if (_currentScene == null) return;
 
-        var scriptEntities = CurrentScene.Instance.Entities
+        var scriptEntities = _currentScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)

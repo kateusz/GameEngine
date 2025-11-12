@@ -51,6 +51,8 @@ public class EditorLayer : ILayer
     private readonly TileMapPanel _tileMapPanel;
     private readonly ShortcutManager _shortcutManager;
     private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
+    private readonly IScriptEngine _scriptEngine;
+    private readonly ScriptComponentUI _scriptComponentUI;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -71,7 +73,8 @@ public class EditorLayer : ILayer
         IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
-        TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel)
+        TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
+        IScriptEngine scriptEngine)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -91,6 +94,8 @@ public class EditorLayer : ILayer
         _tileMapPanel = tileMapPanel;
         _shortcutManager = shortcutManager;
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
+        _scriptEngine = scriptEngine;
+        _scriptComponentUI = new ScriptComponentUI(scriptEngine);
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -124,7 +129,7 @@ public class EditorLayer : ILayer
 
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = _projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-        ScriptEngine.Instance.SetScriptsDirectory(scriptsDir);
+        _scriptEngine.SetScriptsDirectory(scriptsDir);
 
         // Initialize editor systems
         _editorSystems = new SystemManager();
@@ -330,7 +335,7 @@ public class EditorLayer : ILayer
         }
         else
         {
-            ScriptEngine.Instance.ProcessEvent(windowEvent);
+            _scriptEngine.ProcessEvent(windowEvent);
         }
     }
 
@@ -505,8 +510,8 @@ public class EditorLayer : ILayer
             _propertiesPanel.Draw();
             _contentBrowserPanel.Draw();
             _consolePanel.Draw();
-            
-            ScriptComponentUI.Draw();
+
+            _scriptComponentUI.Draw();
             _recentProjectsWindow.Draw();
             _keyboardShortcutsPanel.Draw();
 

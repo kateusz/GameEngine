@@ -17,6 +17,7 @@ public class ModelRenderingSystem : ISystem
     private static readonly ILogger Logger = Log.ForContext<ModelRenderingSystem>();
 
     private readonly IGraphics3D _graphics3D;
+    private readonly IContext _context;
 
     /// <summary>
     /// Gets the priority of this system.
@@ -28,10 +29,12 @@ public class ModelRenderingSystem : ISystem
     /// Initializes a new instance of the ModelRenderingSystem.
     /// </summary>
     /// <param name="graphics3D">The 3D graphics renderer to use for drawing models.</param>
+    /// <param name="context">The ECS context for querying entities.</param>
     /// <exception cref="ArgumentNullException">Thrown when graphics3D is null.</exception>
-    public ModelRenderingSystem(IGraphics3D graphics3D)
+    public ModelRenderingSystem(IGraphics3D graphics3D, IContext context)
     {
         _graphics3D = graphics3D ?? throw new ArgumentNullException(nameof(graphics3D));
+        _context = context;
     }
 
     /// <summary>
@@ -53,7 +56,7 @@ public class ModelRenderingSystem : ISystem
         Camera? mainCamera = null;
         Matrix4x4 cameraTransform = Matrix4x4.Identity;
 
-        var cameraGroup = Context.Instance.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         foreach (var entity in cameraGroup)
         {
             var cameraComponent = entity.GetComponent<CameraComponent>();
@@ -73,7 +76,7 @@ public class ModelRenderingSystem : ISystem
         _graphics3D.BeginScene(mainCamera, cameraTransform);
 
         // Get all entities with the required components for 3D model rendering
-        var group = Context.Instance.GetGroup([
+        var group = _context.GetGroup([
             typeof(TransformComponent),
             typeof(MeshComponent),
             typeof(ModelRendererComponent)
