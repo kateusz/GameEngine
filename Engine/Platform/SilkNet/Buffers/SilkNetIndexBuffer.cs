@@ -14,12 +14,14 @@ public class SilkNetIndexBuffer : IIndexBuffer
 
         _rendererId = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ElementArrayBuffer)");
 
         unsafe
         {
             fixed (uint* buf = indices)
             {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)count * sizeof(uint), buf, BufferUsageARB.StaticDraw);
+                GLDebug.CheckError(SilkNetContext.GL, "BufferData(IndexBuffer)");
             }
         }
     }
@@ -34,12 +36,13 @@ public class SilkNetIndexBuffer : IIndexBuffer
     public void Bind()
     {
         SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, _rendererId);
- 
+        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ElementArrayBuffer)");
     }
 
     public void Unbind()
     {
         SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, 0);
+        GLDebug.CheckError(SilkNetContext.GL, "UnbindBuffer(ElementArrayBuffer)");
     }
 
     public void Dispose()

@@ -13,6 +13,7 @@ public class SilkNetVertexArray : IVertexArray
     public SilkNetVertexArray()
     {
         _vertexArrayObject = SilkNetContext.GL.GenVertexArray();
+        GLDebug.CheckError(SilkNetContext.GL, "GenVertexArray");
         VertexBuffers = new List<IVertexBuffer>();
     }
 
@@ -23,11 +24,13 @@ public class SilkNetVertexArray : IVertexArray
     public void Bind()
     {
         SilkNetContext.GL.BindVertexArray(_vertexArrayObject);
+        GLDebug.CheckError(SilkNetContext.GL, "BindVertexArray");
     }
 
     public void Unbind()
     {
         SilkNetContext.GL.BindVertexArray(0);
+        GLDebug.CheckError(SilkNetContext.GL, "UnbindVertexArray");
     }
 
     public void AddVertexBuffer(IVertexBuffer vertexBuffer)
@@ -57,12 +60,14 @@ public class SilkNetVertexArray : IVertexArray
                     case ShaderDataType.Float4:
                     {
                         SilkNetContext.GL.EnableVertexAttribArray((uint)index);
+                        GLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
                         SilkNetContext.GL.VertexAttribPointer((uint)index,
                             element.GetComponentCount(),
                             ShaderDataTypeToOpenGLBaseType(element.Type),
                             element.Normalized,
                             (uint)layout.Stride,
-                            (void*)element.Offset); // what about element.Offset + sizeof(float) * count * i)???
+                            (void*)element.Offset);
+                        GLDebug.CheckError(SilkNetContext.GL, $"VertexAttribPointer({index})");
                     }
                         break;
                     case ShaderDataType.Int:
@@ -72,11 +77,13 @@ public class SilkNetVertexArray : IVertexArray
                     case ShaderDataType.Bool:
                     {
                         SilkNetContext.GL.EnableVertexAttribArray((uint)index);
+                        GLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
                         SilkNetContext.GL.VertexAttribIPointer((uint)index,
                             element.GetComponentCount(),
                             ShaderDataTypeToOpenGLBaseType(element.Type),
                             (uint)layout.Stride,
                             (void*)element.Offset);
+                        GLDebug.CheckError(SilkNetContext.GL, $"VertexAttribIPointer({index})");
                     }
                         break;
                     default:

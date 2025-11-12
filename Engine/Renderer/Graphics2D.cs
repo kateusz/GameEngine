@@ -31,19 +31,26 @@ public class Graphics2D : IGraphics2D
 
     public void Init()
     {
-        _data = new Renderer2DData
+        try
         {
-            QuadVertexArray = VertexArrayFactory.Create(),
-            //CameraUniformBuffer = UniformBufferFactory.Create((uint)CameraData.GetSize(), 0),
-            Stats = new Statistics(),
-            //CameraBuffer = new CameraData(),
-            LineVertexArray = VertexArrayFactory.Create()
-        };
+            _data = new Renderer2DData
+            {
+                QuadVertexArray = VertexArrayFactory.Create(),
+                //CameraUniformBuffer = UniformBufferFactory.Create((uint)CameraData.GetSize(), 0),
+                Stats = new Statistics(),
+                //CameraBuffer = new CameraData(),
+                LineVertexArray = VertexArrayFactory.Create()
+            };
 
-        InitBuffers();
-        InitWhiteTexture();
-        InitShaders();
-        InitQuadVertexPositions();
+            InitBuffers();
+            InitWhiteTexture();
+            InitShaders();
+            InitQuadVertexPositions();
+        }
+        catch (Exception ex)
+        {
+            throw new Exceptions.RendererInitializationException("Failed to initialize Graphics2D renderer", ex);
+        }
     }
 
     public void Shutdown()
@@ -163,6 +170,18 @@ public class Graphics2D : IGraphics2D
     /// </exception>
     public void DrawQuad(Matrix4x4 transform, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null, int entityId = -1)
     {
+        #if DEBUG
+        // Validate inputs in debug builds
+        if (_data.QuadVertexArray == null)
+            throw new InvalidOperationException("Graphics2D not initialized. Call Init() first.");
+
+        if (textureCoords == null || textureCoords.Length != 4)
+            throw new ArgumentException("textureCoords must contain exactly 4 elements", nameof(textureCoords));
+
+        if (float.IsNaN(transform.M11) || float.IsInfinity(transform.M11))
+            throw new ArgumentException("Transform contains invalid values (NaN or Infinity)", nameof(transform));
+        #endif
+
         tintColor ??= Vector4.One;
 
         if (_data.QuadIndexBufferCount >= Renderer2DData.MaxIndices)

@@ -17,11 +17,15 @@ public class SilkNetShader : IShader
 
         //Create the shader program.
         _handle = SilkNetContext.GL.CreateProgram();
+        GLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
 
         //Attach the individual shaders.
         SilkNetContext.GL.AttachShader(_handle, vertex);
+        GLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
         SilkNetContext.GL.AttachShader(_handle, fragment);
+        GLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
         SilkNetContext.GL.LinkProgram(_handle);
+        GLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
 
         //Check for linking errors.
         SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
@@ -34,7 +38,9 @@ public class SilkNetShader : IShader
         //SilkNetContext.GL.DetachShader(_handle, vertexShader);
         //SilkNetContext.GL.DetachShader(_handle, fragmentShader);
         SilkNetContext.GL.DeleteShader(vertex);
+        GLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
         SilkNetContext.GL.DeleteShader(fragment);
+        GLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
 
         _uniformLocations = new Dictionary<string, int>();
 
@@ -51,11 +57,13 @@ public class SilkNetShader : IShader
     public void Bind()
     {
         SilkNetContext.GL.UseProgram(_handle);
+        GLDebug.CheckError(SilkNetContext.GL, "UseProgram");
     }
 
     public void Unbind()
     {
         SilkNetContext.GL.UseProgram(0);
+        GLDebug.CheckError(SilkNetContext.GL, "UseProgram(0)");
     }
 
     // The shader sources provided with this project use hardcoded layout(location)-s. If you want to do it dynamically,
@@ -178,8 +186,11 @@ public class SilkNetShader : IShader
         //5) Check for errors.
         string src = File.ReadAllText(path);
         uint handle = SilkNetContext.GL.CreateShader(type);
+        GLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");
         SilkNetContext.GL.ShaderSource(handle, src);
+        GLDebug.CheckError(SilkNetContext.GL, "ShaderSource");
         SilkNetContext.GL.CompileShader(handle);
+        GLDebug.CheckError(SilkNetContext.GL, "CompileShader");
         string infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
         {
