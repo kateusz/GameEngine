@@ -17,6 +17,7 @@ using Editor.Panels.ComponentEditors;
 using Editor.Popups;
 using Editor.UI;
 using Editor.Windows;
+using Editor.Input;
 using Engine.Animation;
 using Engine.Events;
 using Engine.Renderer;
@@ -57,7 +58,9 @@ static void ConfigureContainer(Container container)
     
     container.Register<AnimationAssetManager>(Reuse.Singleton);
     container.Register<AnimationSystem>(Reuse.Singleton);
-    
+
+    container.Register<ShortcutManager>(Reuse.Singleton);
+
     container.Register<ILayer, EditorLayer>(Reuse.Singleton);
     container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
     container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
@@ -93,6 +96,7 @@ static void ConfigureContainer(Container container)
     container.Register<ProjectUI>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
     container.Register<RendererStatsPanel>(Reuse.Singleton);
+    container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
     
     container.Register<ViewportRuler>(Reuse.Singleton);
     container.Register<ObjectManipulator>(Reuse.Singleton);

@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
+using Editor.Input;
 using Editor.Managers;
 using Editor.Panels;
 using Editor.Popups;
@@ -48,6 +49,8 @@ public class EditorLayer : ILayer
     private readonly RecentProjectsWindow _recentProjectsWindow;
     private readonly ViewportRuler _viewportRuler = new();
     private readonly TileMapPanel _tileMapPanel;
+    private readonly ShortcutManager _shortcutManager;
+    private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -68,7 +71,7 @@ public class EditorLayer : ILayer
         IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, ProjectUI projectUI,
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
-        TileMapPanel tileMapPanel)
+        TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -86,6 +89,8 @@ public class EditorLayer : ILayer
         _animationTimeline = animationTimeline;
         _recentProjectsWindow = recentProjectsWindow;
         _tileMapPanel = tileMapPanel;
+        _shortcutManager = shortcutManager;
+        _keyboardShortcutsPanel = keyboardShortcutsPanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -127,6 +132,9 @@ public class EditorLayer : ILayer
         _editorSystems.RegisterSystem(_editorCameraSystem);
         _editorSystems.Initialize();
 
+        // Register keyboard shortcuts
+        RegisterShortcuts();
+
         Logger.Information("✅ Editor initialized successfully!");
         Logger.Information("Console panel is now capturing output.");
     }
@@ -141,6 +149,61 @@ public class EditorLayer : ILayer
         DebugSettings.Instance.ShowFPS = _editorPreferences.ShowFPS;
 
         Logger.Debug("Applied editor settings from preferences");
+    }
+
+    /// <summary>
+    /// Registers all keyboard shortcuts for the editor.
+    /// </summary>
+    private void RegisterShortcuts()
+    {
+        // Editor mode shortcuts (Godot-style)
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.Q, KeyModifiers.None,
+            () => _editorToolbar.CurrentMode = EditorMode.Select,
+            "Select tool", "Tools"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.W, KeyModifiers.None,
+            () => _editorToolbar.CurrentMode = EditorMode.Move,
+            "Move tool", "Tools"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.R, KeyModifiers.None,
+            () => _editorToolbar.CurrentMode = EditorMode.Scale,
+            "Scale tool", "Tools"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.E, KeyModifiers.None,
+            () => _editorToolbar.CurrentMode = EditorMode.Ruler,
+            "Ruler tool", "Tools"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.Escape, KeyModifiers.None,
+            () => { if (_editorToolbar.CurrentMode == EditorMode.Ruler) _rulerTool.ClearMeasurement(); },
+            "Clear ruler measurement", "Tools"));
+
+        // File operations
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.N, KeyModifiers.CtrlOnly,
+            () => _sceneManager.New(_viewportSize),
+            "New scene", "File"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.S, KeyModifiers.CtrlOnly,
+            () => _sceneManager.Save(_projectManager.ScenesDir),
+            "Save scene", "File"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.D, KeyModifiers.CtrlOnly,
+            () => _sceneManager.DuplicateEntity(),
+            "Duplicate entity", "Edit"));
+
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.F, KeyModifiers.CtrlOnly,
+            () => _sceneManager.FocusOnSelectedEntity(_cameraController),
+            "Focus on selected entity", "View"));
+
+        Logger.Debug("Registered {Count} keyboard shortcuts", _shortcutManager.Shortcuts.Count);
     }
 
     private void EntitySelected(Entity entity)
@@ -273,99 +336,27 @@ public class EditorLayer : ILayer
 
     private void OnKeyPressed(KeyPressedEvent keyPressedEvent)
     {
-        // Shortcuts
-        if (!keyPressedEvent.IsRepeat)
+        // Shortcuts - ignore key repeats
+        if (keyPressedEvent.IsRepeat)
             return;
 
         var control = _pressedKeys.Contains(KeyCodes.LeftControl) ||
                        _pressedKeys.Contains(KeyCodes.RightControl);
         var shift = _pressedKeys.Contains(KeyCodes.LeftShift) ||
                      _pressedKeys.Contains(KeyCodes.RightShift);
-        switch (keyPressedEvent.KeyCode)
+        var alt = _pressedKeys.Contains(KeyCodes.LeftAlt) ||
+                   _pressedKeys.Contains(KeyCodes.RightAlt);
+
+        // Delegate to shortcut manager
+        var handled = _shortcutManager.HandleKeyPress(
+            keyPressedEvent.KeyCode,
+            control,
+            shift,
+            alt);
+
+        if (handled)
         {
-            // Editor mode shortcuts (Godot-style)
-            case KeyCodes.Q:
-            {
-                if (!control)
-                {
-                    _editorToolbar.CurrentMode = EditorMode.Select;
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            case KeyCodes.W:
-            {
-                if (!control)
-                {
-                    _editorToolbar.CurrentMode = EditorMode.Move;
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            case KeyCodes.R:
-            {
-                if (!control)
-                {
-                    _editorToolbar.CurrentMode = EditorMode.Scale;
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            case KeyCodes.E:
-            {
-                if (!control)
-                {
-                    _editorToolbar.CurrentMode = EditorMode.Ruler;
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            case KeyCodes.Escape:
-            {
-                // Clear ruler measurement if in ruler mode
-                if (_editorToolbar.CurrentMode == EditorMode.Ruler)
-                {
-                    _rulerTool.ClearMeasurement();
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            
-            // File operations
-            case KeyCodes.N:
-            {
-                if (control)
-                    _sceneManager.New(_viewportSize);
-                keyPressedEvent.IsHandled = true;
-                break;
-            }
-            case KeyCodes.S:
-            {
-                if (control)
-                {
-                    _sceneManager.Save(_projectManager.ScenesDir);
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            case KeyCodes.D:
-            {
-                if (control)
-                {
-                    _sceneManager.DuplicateEntity();
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
-            case KeyCodes.F:
-            {
-                if (control)
-                {
-                    _sceneManager.FocusOnSelectedEntity(_cameraController);
-                    keyPressedEvent.IsHandled = true;
-                }
-                break;
-            }
+            keyPressedEvent.IsHandled = true;
         }
     }
 
@@ -492,6 +483,13 @@ public class EditorLayer : ILayer
                         _editorSettingsUI.Show();
                     ImGui.EndMenu();
                 }
+
+                if (ImGui.BeginMenu("Help"))
+                {
+                    if (ImGui.MenuItem("Keyboard Shortcuts"))
+                        _keyboardShortcutsPanel.Show();
+                    ImGui.EndMenu();
+                }
                 
                 if (ImGui.BeginMenu("Publish"))
                 {
@@ -510,7 +508,8 @@ public class EditorLayer : ILayer
             
             ScriptComponentUI.Draw();
             _recentProjectsWindow.Draw();
-            
+            _keyboardShortcutsPanel.Draw();
+
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);
             
