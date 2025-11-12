@@ -4,7 +4,7 @@ namespace Engine.Renderer.Shaders;
 
 public static class ShaderFactory
 {
-    private static readonly Dictionary<(string, string), WeakReference<IShader>> _shaderCache = new();
+    private static readonly Dictionary<(string, string, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
     private static readonly object _cacheLock = new();
 
     /// <summary>
@@ -17,11 +17,28 @@ public static class ShaderFactory
     /// <remarks>
     /// This method is thread-safe. Shader compilation is expensive (100ms+), so caching
     /// significantly improves performance when the same shader is requested multiple times.
+    /// The cache automatically invalidates when shader files are modified on disk.
     /// </remarks>
     public static IShader Create(string vertPath, string fragPath)
     {
-        var key = (vertPath, fragPath);
+        // Get file modification times for cache invalidation
+        DateTime vertModTime, fragModTime;
+        try
+        {
+            vertModTime = File.GetLastWriteTimeUtc(vertPath);
+            fragModTime = File.GetLastWriteTimeUtc(fragPath);
+        }
+        catch (Exception)
+        {
+            // If files don't exist or can't be accessed, use DateTime.MinValue
+            // This will force shader creation which will fail appropriately
+            vertModTime = DateTime.MinValue;
+            fragModTime = DateTime.MinValue;
+        }
 
+        var key = (vertPath, fragPath, vertModTime, fragModTime);
+
+        // First check: Look for cached shader
         lock (_cacheLock)
         {
             if (_shaderCache.TryGetValue(key, out var weakRef))
@@ -36,12 +53,25 @@ public static class ShaderFactory
                     _shaderCache.Remove(key);
                 }
             }
+        }
 
-            var shader = RendererApiType.Type switch
+        // Create shader outside of lock to allow concurrent creation of different shaders
+        var shader = RendererApiType.Type switch
+        {
+            ApiType.SilkNet => new SilkNetShader(vertPath, fragPath),
+            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+        };
+
+        // Second check: Store in cache (double-checked locking pattern)
+        lock (_cacheLock)
+        {
+            // Another thread may have created and cached this shader while we were compiling
+            if (_shaderCache.TryGetValue(key, out var weakRef) && weakRef.TryGetTarget(out var cachedShader))
             {
-                ApiType.SilkNet => new SilkNetShader(vertPath, fragPath),
-                _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
-            };
+                // Another thread won the race; dispose our shader and return the cached one
+                shader.Dispose();
+                return cachedShader;
+            }
 
             _shaderCache[key] = new WeakReference<IShader>(shader);
             return shader;
