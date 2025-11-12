@@ -172,17 +172,12 @@ public class Scene : IScene
     /// Updates the scene in editor mode (without running physics or scripts).
     /// </summary>
     /// <remarks>
-    /// NOTE: Editor mode uses manual rendering instead of the ECS systems because:
-    /// 1. Editor uses OrthographicCamera while scene systems use SceneCamera (incompatible types)
-    /// 2. Editor mode is fundamentally different (no physics, no scripts, just visualization)
-    /// 3. Editor camera is managed by the viewport, not by scene entities
-    ///
-    /// If in the future we want to unify this, we would need to:
-    /// - Make rendering systems accept both camera types, OR
-    /// - Convert OrthographicCamera to SceneCamera (with potential performance cost), OR
-    /// - Refactor the editor to use scene-based cameras
+    /// Uses unified Camera interface for rendering in editor mode.
+    /// The editor camera (OrthographicCamera) provides both projection and view matrices
+    /// through the abstract Camera base class, allowing consistent rendering across
+    /// editor and runtime modes.
     /// </remarks>
-    public void OnUpdateEditor(TimeSpan ts, OrthographicCamera camera)
+    public void OnUpdateEditor(TimeSpan ts, Camera camera)
     {
         //TODO: temp disable 3D
         /*

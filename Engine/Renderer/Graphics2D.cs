@@ -59,14 +59,17 @@ public class Graphics2D : IGraphics2D
         Dispose();
     }
     
-    public void BeginScene(OrthographicCamera camera)
+    public void BeginScene(Camera camera)
     {
+        // Calculate view-projection matrix using unified camera interface
+        var viewProj = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
-        
+        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
+
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", camera.ViewProjectionMatrix);
-        
+        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
+
         StartBatch();
     }
 
@@ -77,11 +80,11 @@ public class Graphics2D : IGraphics2D
 
         if (OSInfo.IsWindows)
         {
-            viewProj = transformInverted * camera.Projection;
+            viewProj = transformInverted * camera.GetProjectionMatrix();
         }
         else if (OSInfo.IsMacOS)
         {
-            viewProj = camera.Projection * transformInverted;
+            viewProj = camera.GetProjectionMatrix() * transformInverted;
         }
         else
             throw new InvalidOperationException("Unsupported OS version!");

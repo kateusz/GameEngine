@@ -29,11 +29,11 @@ public class Graphics3D : IGraphics3D
 
         if (OSInfo.IsWindows)
         {
-            viewProj = camera.Projection * transformInverted;
+            viewProj = camera.GetProjectionMatrix() * transformInverted;
         }
         else if (OSInfo.IsMacOS)
         {
-            viewProj = transformInverted * camera.Projection;
+            viewProj = transformInverted * camera.GetProjectionMatrix();
         }
         else
             throw new InvalidOperationException("Unsupported OS version!");
