@@ -13,7 +13,6 @@ public class KeyboardShortcutsPanel
     private readonly ShortcutManager _shortcutManager;
     private bool _isVisible;
     private string _filterText = string.Empty;
-    private readonly char[] _filterBuffer = new char[EditorUIConstants.MaxTextInputLength];
 
     public KeyboardShortcutsPanel(ShortcutManager shortcutManager)
     {
@@ -81,10 +80,7 @@ public class KeyboardShortcutsPanel
 
         // Filter input
         ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
-        if (ImGui.InputText("##Filter", _filterBuffer, EditorUIConstants.MaxTextInputLength))
-        {
-            _filterText = new string(_filterBuffer).TrimEnd('\0');
-        }
+        ImGui.InputText("##Filter", ref _filterText, EditorUIConstants.MaxTextInputLength);
 
         if (ImGui.IsItemHovered())
         {
@@ -94,7 +90,6 @@ public class KeyboardShortcutsPanel
         ImGui.SameLine();
         if (ImGui.Button("Clear Filter", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
         {
-            Array.Clear(_filterBuffer, 0, _filterBuffer.Length);
             _filterText = string.Empty;
         }
     }
