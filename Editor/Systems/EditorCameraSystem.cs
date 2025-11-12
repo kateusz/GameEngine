@@ -1,3 +1,4 @@
+using System;
 using ECS;
 using Engine.Renderer.Cameras;
 using Serilog;
@@ -12,7 +13,7 @@ public class EditorCameraSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<EditorCameraSystem>();
 
-    private readonly IOrthographicCameraController _cameraController;
+    private IOrthographicCameraController _cameraController;
     private bool _isViewportFocused;
 
     /// <summary>
@@ -26,7 +27,18 @@ public class EditorCameraSystem : ISystem
     /// <param name="cameraController">The camera controller to update.</param>
     public EditorCameraSystem(IOrthographicCameraController cameraController)
     {
-        _cameraController = cameraController;
+        _cameraController = cameraController ?? throw new ArgumentNullException(nameof(cameraController));
+    }
+
+    /// <summary>
+    /// Sets the camera controller to update.
+    /// This allows rebinding the controller when the viewport is resized.
+    /// </summary>
+    /// <param name="cameraController">The new camera controller to update.</param>
+    public void SetCameraController(IOrthographicCameraController cameraController)
+    {
+        _cameraController = cameraController ?? throw new ArgumentNullException(nameof(cameraController));
+        Logger.Debug("Camera controller updated");
     }
 
     /// <summary>
@@ -53,7 +65,7 @@ public class EditorCameraSystem : ISystem
     /// <param name="deltaTime">Time elapsed since last frame.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (_isViewportFocused)
+        if (_isViewportFocused && _cameraController != null)
         {
             _cameraController.OnUpdate(deltaTime);
         }
