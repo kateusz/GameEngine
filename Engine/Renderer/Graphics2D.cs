@@ -180,9 +180,6 @@ public class Graphics2D : IGraphics2D
 
         if (float.IsNaN(transform.M11) || float.IsInfinity(transform.M11))
             throw new ArgumentException("Transform contains invalid values (NaN or Infinity)", nameof(transform));
-
-        if (texture != null && texture.IsDisposed)
-            throw new ObjectDisposedException(nameof(texture), "Cannot render with disposed texture");
         #endif
 
         tintColor ??= Vector4.One;

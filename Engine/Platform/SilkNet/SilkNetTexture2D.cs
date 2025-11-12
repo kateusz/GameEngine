@@ -147,9 +147,12 @@ public class SilkNetTexture2D : Texture2D
 
         // todo: texture1?
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        GLDebug.CheckError(SilkNetContext.GL, "ActiveTexture(Texture0) in SetData");
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindTexture in SetData");
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0,
             _dataFormat, PixelType.UnsignedByte, intPtrValue);
+        GLDebug.CheckError(SilkNetContext.GL, "TexImage2D in SetData");
     }
 
     public static Texture2D Create(int width, int height)
@@ -159,18 +162,24 @@ public class SilkNetTexture2D : Texture2D
 
         uint[] textures = new uint[1];
         SilkNetContext.GL.GenTextures(1, textures);
+        GLDebug.CheckError(SilkNetContext.GL, "GenTextures");
         var rendererId = textures[0];
-        
+
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        GLDebug.CheckError(SilkNetContext.GL, "ActiveTexture(Texture0) in Create");
         SilkNetContext.GL.BindTexture(GLEnum.Texture2D, rendererId);
+        GLDebug.CheckError(SilkNetContext.GL, "BindTexture in Create");
 
         SilkNetContext.GL.TexImage2D(GLEnum.Texture2D, 0, internalFormat, (uint)width, (uint)height, 0, dataFormat,
             GLEnum.UnsignedByte, IntPtr.Zero);
+        GLDebug.CheckError(SilkNetContext.GL, "TexImage2D in Create");
 
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.Linear);
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Nearest);
+        GLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters) in Create");
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapS, (int)GLEnum.Repeat);
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapT, (int)GLEnum.Repeat);
+        GLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes) in Create");
 
         return new SilkNetTexture2D(rendererId, width, height, internalFormat, dataFormat);
     }

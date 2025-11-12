@@ -1,3 +1,5 @@
+using System.Runtime.Serialization;
+
 namespace Engine.Renderer.Exceptions;
 
 /// <summary>
@@ -18,6 +20,11 @@ public class RenderingException : Exception
 
     public RenderingException(string message, Exception innerException)
         : base(message, innerException)
+    {
+    }
+
+    protected RenderingException(SerializationInfo info, StreamingContext context)
+        : base(info, context)
     {
     }
 }

@@ -16,11 +16,11 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var container = new Container();
-        ConfigureContainer(container);
-
         try
         {
+            var container = new Container();
+            ConfigureContainer(container);
+
             var app = container.Resolve<SandboxApplication>();
             var sandboxLayer = container.Resolve<ILayer>();
             app.PushLayer(sandboxLayer);
