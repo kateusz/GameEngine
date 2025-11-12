@@ -9,14 +9,9 @@ namespace Editor;
 public interface IEditorPreferences : IDisposable
 {
     /// <summary>
-    /// Gets or sets the version of the preferences format.
-    /// </summary>
-    int Version { get; set; }
-
-    /// <summary>
     /// Gets or sets the list of recent projects.
     /// </summary>
-    List<RecentProject> RecentProjects { get; }
+    List<RecentProject> RecentProjects { get; init; }
 
     /// <summary>
     /// Gets or sets the editor viewport background color.
