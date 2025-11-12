@@ -75,25 +75,20 @@ public class Graphics2D : IGraphics2D
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
-        _ = Matrix4x4.Invert(transform, out var transformInverted);
-        Matrix4x4? viewProj = null;
+        // Compute view matrix by inverting the camera's transform
+        _ = Matrix4x4.Invert(transform, out var viewMatrix);
 
-        if (OSInfo.IsWindows)
-        {
-            viewProj = transformInverted * camera.GetProjectionMatrix();
-        }
-        else if (OSInfo.IsMacOS)
-        {
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
-        }
-        else
-            throw new InvalidOperationException("Unsupported OS version!");
+        // Compute view-projection matrix using the same order as OrthographicCamera
+        // to ensure consistent behavior across all camera types.
+        // Note: Matrices are uploaded with transpose=true in SetMat4 to convert
+        // from .NET's row-major storage to OpenGL's column-major convention.
+        var viewProj = camera.GetProjectionMatrix() * viewMatrix;
 
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
 
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
 
         StartBatch();
     }

@@ -24,22 +24,17 @@ public class Graphics3D : IGraphics3D
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
-        _ = Matrix4x4.Invert(transform, out var transformInverted);
-        Matrix4x4? viewProj = null;
+        // Compute view matrix by inverting the camera's transform
+        _ = Matrix4x4.Invert(transform, out var viewMatrix);
 
-        if (OSInfo.IsWindows)
-        {
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
-        }
-        else if (OSInfo.IsMacOS)
-        {
-            viewProj = transformInverted * camera.GetProjectionMatrix();
-        }
-        else
-            throw new InvalidOperationException("Unsupported OS version!");
-        
+        // Compute view-projection matrix using the same order as OrthographicCamera
+        // to ensure consistent behavior across all camera types.
+        // Note: Matrices are uploaded with transpose=true in SetMat4 to convert
+        // from .NET's row-major storage to OpenGL's column-major convention.
+        var viewProj = camera.GetProjectionMatrix() * viewMatrix;
+
         _phongShader.Bind();
-        _phongShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _phongShader.SetMat4("u_ViewProjection", viewProj);
         _phongShader.SetFloat3("u_LightPosition", _lightPosition);
         _phongShader.SetFloat3("u_LightColor", _lightColor);
         _phongShader.SetFloat3("u_ViewPosition", new Vector3(transform.M41, transform.M42, transform.M43));
