@@ -52,7 +52,7 @@ public class Scene : IScene
 
         // Create and register physics simulation system with the physics world
         // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld, _context);
         _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 

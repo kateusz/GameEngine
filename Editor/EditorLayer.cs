@@ -49,6 +49,7 @@ public class EditorLayer : ILayer
     private readonly ViewportRuler _viewportRuler = new();
     private readonly TileMapPanel _tileMapPanel;
     private readonly IScriptEngine _scriptEngine;
+    private readonly ScriptComponentUI _scriptComponentUI;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -88,6 +89,7 @@ public class EditorLayer : ILayer
         _recentProjectsWindow = recentProjectsWindow;
         _tileMapPanel = tileMapPanel;
         _scriptEngine = scriptEngine;
+        _scriptComponentUI = new ScriptComponentUI(scriptEngine);
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -509,8 +511,8 @@ public class EditorLayer : ILayer
             _propertiesPanel.Draw();
             _contentBrowserPanel.Draw();
             _consolePanel.Draw();
-            
-            ScriptComponentUI.Draw();
+
+            _scriptComponentUI.Draw();
             _recentProjectsWindow.Draw();
             
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
