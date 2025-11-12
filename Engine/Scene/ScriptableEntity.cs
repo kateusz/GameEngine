@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Numerics;
+using System.Reflection;
 using ECS;
 using Engine.Core.Input;
 using Engine.Scene.Components;
@@ -11,6 +13,22 @@ namespace Engine.Scene;
 /// </summary>
 public class ScriptableEntity
 {
+    #region Reflection Cache
+
+    /// <summary>
+    /// Thread-safe cache for reflected field metadata to avoid repeated reflection operations.
+    /// Keyed by script type, stores all public instance fields for that type.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, FieldInfo[]> _fieldCache = new();
+
+    /// <summary>
+    /// Thread-safe cache for reflected property metadata to avoid repeated reflection operations.
+    /// Keyed by script type, stores all public instance properties with getters and setters.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
+
+    #endregion
+
     /// <summary>
     /// The entity this script is attached to
     /// </summary>
@@ -398,61 +416,110 @@ public class ScriptableEntity
 
     /// <summary>
     /// Returns all public fields and properties (with public getter/setter) that are editable in the editor.
+    /// Uses cached reflection metadata to minimize allocations and improve performance during serialization
+    /// and editor updates.
     /// </summary>
+    /// <remarks>
+    /// Performance: Uses static ConcurrentDictionary caches to avoid repeated reflection operations.
+    /// First call for each script type will perform reflection and cache results.
+    /// Subsequent calls retrieve cached metadata with O(1) dictionary lookups.
+    /// Thread-safe: ConcurrentDictionary ensures safe access from multiple threads without explicit locking.
+    /// </remarks>
     public IEnumerable<(string Name, Type Type, object Value)> GetExposedFields()
     {
         var type = GetType();
-        // Public instance fields
-        foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance |
-                                             System.Reflection.BindingFlags.Public))
+
+        // Get cached fields or compute and cache them
+        var fields = _fieldCache.GetOrAdd(type, t =>
+            t.GetFields(BindingFlags.Instance | BindingFlags.Public)
+             .Where(f => IsSupportedType(f.FieldType))
+             .ToArray());
+
+        // Yield field values using cached metadata
+        foreach (var field in fields)
         {
-            if (IsSupportedType(field.FieldType))
-                yield return (field.Name, field.FieldType, field.GetValue(this));
+            yield return (field.Name, field.FieldType, field.GetValue(this));
         }
 
-        // Public instance properties with getter and setter
-        foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Instance |
-                                                System.Reflection.BindingFlags.Public))
+        // Get cached properties or compute and cache them
+        var properties = _propertyCache.GetOrAdd(type, t =>
+            t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+             .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
+             .ToArray());
+
+        // Yield property values using cached metadata
+        foreach (var prop in properties)
         {
-            if (prop.CanRead && prop.CanWrite && IsSupportedType(prop.PropertyType))
-                yield return (prop.Name, prop.PropertyType, prop.GetValue(this));
+            yield return (prop.Name, prop.PropertyType, prop.GetValue(this));
         }
     }
 
     /// <summary>
     /// Gets the value of a public field or property by name.
+    /// Uses cached reflection metadata for improved performance.
     /// </summary>
+    /// <remarks>
+    /// Performance: Searches cached field and property arrays instead of performing reflection on each call.
+    /// </remarks>
     public object GetFieldValue(string name)
     {
         var type = GetType();
-        var field = type.GetField(name,
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-        if (field != null && IsSupportedType(field.FieldType))
+
+        // Search in cached fields
+        var fields = _fieldCache.GetOrAdd(type, t =>
+            t.GetFields(BindingFlags.Instance | BindingFlags.Public)
+             .Where(f => IsSupportedType(f.FieldType))
+             .ToArray());
+
+        var field = Array.Find(fields, f => f.Name == name);
+        if (field != null)
             return field.GetValue(this);
-        var prop = type.GetProperty(name,
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-        if (prop != null && prop.CanRead && IsSupportedType(prop.PropertyType))
+
+        // Search in cached properties
+        var properties = _propertyCache.GetOrAdd(type, t =>
+            t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+             .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
+             .ToArray());
+
+        var prop = Array.Find(properties, p => p.Name == name);
+        if (prop != null && prop.CanRead)
             return prop.GetValue(this);
+
         throw new ArgumentException($"Field or property '{name}' not found or not supported.");
     }
 
     /// <summary>
     /// Sets the value of a public field or property by name.
+    /// Uses cached reflection metadata for improved performance.
     /// </summary>
+    /// <remarks>
+    /// Performance: Searches cached field and property arrays instead of performing reflection on each call.
+    /// </remarks>
     public void SetFieldValue(string name, object value)
     {
         var type = GetType();
-        var field = type.GetField(name,
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-        if (field != null && IsSupportedType(field.FieldType))
+
+        // Search in cached fields
+        var fields = _fieldCache.GetOrAdd(type, t =>
+            t.GetFields(BindingFlags.Instance | BindingFlags.Public)
+             .Where(f => IsSupportedType(f.FieldType))
+             .ToArray());
+
+        var field = Array.Find(fields, f => f.Name == name);
+        if (field != null)
         {
             field.SetValue(this, ConvertToSupportedType(value, field.FieldType));
             return;
         }
 
-        var prop = type.GetProperty(name,
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-        if (prop != null && prop.CanWrite && IsSupportedType(prop.PropertyType))
+        // Search in cached properties
+        var properties = _propertyCache.GetOrAdd(type, t =>
+            t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+             .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
+             .ToArray());
+
+        var prop = Array.Find(properties, p => p.Name == name);
+        if (prop != null && prop.CanWrite)
         {
             prop.SetValue(this, ConvertToSupportedType(value, prop.PropertyType));
             return;
