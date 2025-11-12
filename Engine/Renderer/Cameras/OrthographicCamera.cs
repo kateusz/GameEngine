@@ -51,14 +51,18 @@ public class OrthographicCamera
     {
         // For 2D orthographic camera, the view matrix only includes position and rotation
         // Scale/zoom is handled by the projection matrix bounds, not the view matrix
-        var position = Matrix4x4.CreateTranslation(Position.X, Position.Y, Position.Z);
-        var rotation = Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
+        // Combine transforms directly without intermediate Identity matrix for better performance
+        var transform = Matrix4x4.CreateTranslation(Position.X, Position.Y, Position.Z) *
+                        Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(Rotation));
 
-        var transform = Matrix4x4.Identity;
-        transform *= position;
-        transform *= rotation;
+        if (!Matrix4x4.Invert(transform, out var result))
+        {
+            Console.WriteLine("[OrthographicCamera] Failed to invert transform matrix");
+            ViewMatrix = Matrix4x4.Identity;
+            ViewProjectionMatrix = ProjectionMatrix;
+            return;
+        }
 
-        Matrix4x4.Invert(transform, out var result);
         ViewMatrix = result;
         ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
     }
