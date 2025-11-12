@@ -196,7 +196,7 @@ public class Graphics2D : IGraphics2D
         if (texture is not null)
         {
             // Use O(1) dictionary lookup instead of O(n) linear search
-            if (_data.TextureSlotCache.TryGetValue(texture.RendererId, out var cachedIndex))
+            if (_data.TextureSlotCache.TryGetValue(texture.GetRendererId(), out var cachedIndex))
             {
                 textureIndex = cachedIndex;
             }
@@ -207,7 +207,7 @@ public class Graphics2D : IGraphics2D
 
                 textureIndex = _data.TextureSlotIndex;
                 _data.TextureSlots[_data.TextureSlotIndex] = texture;
-                _data.TextureSlotCache[texture.RendererId] = _data.TextureSlotIndex;
+                _data.TextureSlotCache[texture.GetRendererId()] = _data.TextureSlotIndex;
                 _data.TextureSlotIndex++;
             }
         }
