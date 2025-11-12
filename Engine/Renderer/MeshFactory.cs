@@ -97,6 +97,7 @@ public static class MeshFactory
         // Left face
         mesh.Indices.AddRange([20, 21, 22, 22, 23, 20]);
 
+        mesh.Initialize();
         return mesh;
     }
 
