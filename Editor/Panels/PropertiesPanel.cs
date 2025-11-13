@@ -28,19 +28,16 @@ public class PropertiesPanel : IPropertiesPanel
     {
         ImGui.SetNextWindowSize(new Vector2(280, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Properties");
-        
-        if (_selectedEntity != null)
-        {
-            DrawEntityProperties();
-        }
-        
+        DrawEntityProperties();
         ImGui.End();
-        
+
         _prefabManager.RenderPopups();
     }
 
     private void DrawEntityProperties()
     {
+        if (_selectedEntity is null) return;
+
         // Entity name/tag editing
         EntityNameEditor.Draw(_selectedEntity);
         ImGui.Spacing();
@@ -48,11 +45,11 @@ public class PropertiesPanel : IPropertiesPanel
         // Add component button and popup
         ComponentSelector.Draw(_selectedEntity);
         ImGui.SameLine();
-        
+
         // Save as prefab button
         if (ImGui.Button("Save as Prefab"))
         {
-            _prefabManager?.ShowSavePrefabDialog(_selectedEntity);
+            _prefabManager.ShowSavePrefabDialog(_selectedEntity);
         }
 
         // Render all components

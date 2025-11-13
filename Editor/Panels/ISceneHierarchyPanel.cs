@@ -17,7 +17,7 @@ public interface ISceneHierarchyPanel
     /// Sets the scene context for the panel.
     /// </summary>
     /// <param name="scene">Scene to display</param>
-    void SetContext(IScene? scene);
+    void SetContext(IScene scene);
 
     /// <summary>
     /// Gets the currently selected entity.

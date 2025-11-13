@@ -7,11 +7,11 @@ namespace Editor.Panels;
 
 public class EditorToolbar
 {
-    private Texture2D _iconPlay;
-    private Texture2D _iconStop;
-    private Texture2D _iconSelect;
-    private Texture2D _iconMove;
-    private Texture2D _iconScale;
+    private Texture2D _iconPlay = null!;
+    private Texture2D _iconStop = null!;
+    private Texture2D _iconSelect = null!;
+    private Texture2D _iconMove = null!;
+    private Texture2D _iconScale = null!;
     private readonly ISceneManager _sceneManager;
     
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;

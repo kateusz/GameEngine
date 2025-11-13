@@ -12,7 +12,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;
 
-    private IScene _context;
+    private IScene _context = null!;
     private Entity? _selectionContext;
 
     // Search/Filter state
@@ -20,7 +20,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     private readonly List<Entity> _filteredEntities = [];
     private bool _isFilterActive;
 
-    public Action<Entity> EntitySelected { get; set; }
+    public Action<Entity> EntitySelected { get; set; } = null!;
 
     public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
     {
@@ -28,7 +28,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         _prefabDropTarget = prefabDropTarget;
     }
 
-    public void SetContext(IScene? context)
+    public void SetContext(IScene context)
     {
         _context = context;
         _selectionContext = null;

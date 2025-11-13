@@ -77,7 +77,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
                      info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
             {
                 isImage = true;
-                if (!_imageCache.TryGetValue(entry, out icon))
+                if (!_imageCache.TryGetValue(entry, out icon!))
                 {
                     try
                     {
