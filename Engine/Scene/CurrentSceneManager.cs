@@ -1,23 +1,23 @@
 namespace Engine.Scene;
 
 /// <summary>
-/// Singleton class that provides global access to the current scene.
-/// This allows any script or component to access the active scene.
+/// Manages the current active scene instance.
+/// Registered as a singleton in the IoC container to provide global access.
 /// </summary>
-public static class CurrentScene
+public class CurrentSceneManager : ICurrentScene
 {
-    private static IScene? _instance;
+    private IScene? _instance;
 
     /// <summary>
     /// Gets the current scene instance. Returns null if no scene is active.
     /// </summary>
-    public static IScene? Instance => _instance;
+    public IScene? Instance => _instance;
 
     /// <summary>
     /// Sets the current scene instance. This should be called when a scene is loaded or created.
     /// </summary>
     /// <param name="scene">The scene to set as current</param>
-    public static void Set(IScene scene)
+    public void Set(IScene scene)
     {
         _instance = scene;
     }
@@ -25,8 +25,8 @@ public static class CurrentScene
     /// <summary>
     /// Clears the current scene instance. This should be called when a scene is unloaded.
     /// </summary>
-    public static void Clear()
+    public void Clear()
     {
         _instance = null;
     }
-} 
+}

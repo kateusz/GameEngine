@@ -19,28 +19,30 @@ public class SceneManager : ISceneManager
     private readonly ISceneSerializer _sceneSerializer;
     private readonly SceneFactory _sceneFactory;
     private readonly IScriptEngine _scriptEngine;
+    private readonly ICurrentScene _currentScene;
 
-    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory, IScriptEngine scriptEngine)
+    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory, IScriptEngine scriptEngine, ICurrentScene currentScene)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneSerializer = sceneSerializer;
         _sceneFactory = sceneFactory;
         _scriptEngine = scriptEngine;
+        _currentScene = currentScene;
     }
 
     public void New(Vector2 viewportSize)
     {
         // Dispose old scene before creating new one
-        CurrentScene.Instance?.Dispose();
+        _currentScene.Instance?.Dispose();
 
         var scene = _sceneFactory.Create("");
-        CurrentScene.Set(scene);
+        _currentScene.Set(scene);
 
         // Update script engine with the new scene
         _scriptEngine.SetCurrentScene(scene);
 
-        //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
+        //_currentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(_currentScene.Instance);
         Logger.Information("📄 New scene created");
     }
 
@@ -50,20 +52,20 @@ public class SceneManager : ISceneManager
             Stop();
 
         // Dispose old scene before loading new one
-        CurrentScene.Instance?.Dispose();
+        _currentScene.Instance?.Dispose();
 
         EditorScenePath = path;
 
         var scene = _sceneFactory.Create(path);
-        CurrentScene.Set(scene);
+        _currentScene.Set(scene);
 
         // Update script engine with the new scene
         _scriptEngine.SetCurrentScene(scene);
 
-        //CurrentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
+        //_currentScene.Instance.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
+        _sceneHierarchyPanel.SetContext(_currentScene.Instance);
 
-        _sceneSerializer.Deserialize(CurrentScene.Instance, path);
+        _sceneSerializer.Deserialize(_currentScene.Instance, path);
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
@@ -74,23 +76,23 @@ public class SceneManager : ISceneManager
             Directory.CreateDirectory(sceneDir);
 
         EditorScenePath = Path.Combine(sceneDir, "scene.scene");
-        _sceneSerializer.Serialize(CurrentScene.Instance, EditorScenePath);
+        _sceneSerializer.Serialize(_currentScene.Instance, EditorScenePath);
         Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }
 
     public void Play()
     {
         SceneState = SceneState.Play;
-        CurrentScene.Instance.OnRuntimeStart();
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
+        _currentScene.Instance.OnRuntimeStart();
+        _sceneHierarchyPanel.SetContext(_currentScene.Instance);
         Logger.Information("▶️ Scene play started");
     }
 
     public void Stop()
     {
         SceneState = SceneState.Edit;
-        CurrentScene.Instance.OnRuntimeStop();
-        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
+        _currentScene.Instance.OnRuntimeStop();
+        _sceneHierarchyPanel.SetContext(_currentScene.Instance);
         Logger.Information("⏹️ Scene play stopped");
     }
 
@@ -100,9 +102,9 @@ public class SceneManager : ISceneManager
             return;
 
         var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
-        if (selectedEntity is not null && CurrentScene.Instance != null)
+        if (selectedEntity is not null && _currentScene.Instance != null)
         {
-            CurrentScene.Instance.DuplicateEntity(selectedEntity);
+            _currentScene.Instance.DuplicateEntity(selectedEntity);
             Logger.Information("📋 Entity duplicated: {EntityName}", selectedEntity.Name);
         }
     }
