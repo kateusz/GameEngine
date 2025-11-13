@@ -23,9 +23,11 @@ This document provides comprehensive guidelines for Claude Code agents working w
 - **Rendering**: OpenGL 3.3+ via Silk.NET
 - **UI Framework**: ImGui.NET for editor interface
 - **Physics**: Box2D.NetStandard
-- **Audio**: OpenAL via Silk.NET
+- **Audio**: OpenAL via Silk.NET (with Ogg Vorbis support via NVorbis)
 - **Asset Loading**: StbImageSharp, Silk.NET.Assimp
-- **Logging**: NLog
+- **Logging**: Serilog (multi-sink with async support)
+- **Dependency Injection**: DryIoc IoC container
+- **Utilities**: CSharpFunctionalExtensions, ZLinq
 
 ### Project Goals
 
@@ -45,40 +47,78 @@ This document provides comprehensive guidelines for Claude Code agents working w
 ```
 GameEngine/
 ├── Engine/              # Core engine runtime
-│   ├── Audio/          # OpenAL audio system
+│   ├── Animation/      # 2D sprite animation system with events
+│   ├── Audio/          # OpenAL audio system (Ogg, WAV support)
 │   ├── Core/           # Application framework, layer system
 │   ├── Events/         # Event system (input, window)
 │   ├── ImGuiNet/       # ImGui integration layer
 │   ├── Math/           # Vector, matrix, transforms
-│   ├── Platform/       # Platform-specific abstractions
+│   ├── Platform/       # Platform-specific abstractions (SilkNet)
 │   ├── Renderer/       # OpenGL rendering pipeline
 │   ├── Scene/          # Scene management, serialization
+│   │   ├── Components/ # All ECS component definitions (18 components)
+│   │   ├── Systems/    # ECS system implementations
+│   │   └── Serializer/ # JSON scene/prefab serialization
 │   ├── Scripting/      # Roslyn-based script engine
 │   └── UI/             # UI system integration
 │
-├── ECS/                # Entity Component System implementation
+├── ECS/                # Pure ECS implementation
+│   └── System/         # ISystem interface, SystemManager
 │
 ├── Editor/             # Visual editor application
-│   ├── Managers/       # Editor state management
-│   ├── Panels/         # UI panels (hierarchy, inspector, etc.)
+│   ├── Input/          # Editor input handling
+│   ├── Logging/        # Console panel integration
+│   ├── Managers/       # ProjectManager, SceneManager (DI-based)
+│   ├── Panels/         # UI panels (17 panels total)
 │   ├── Popups/         # Dialogs and modal windows
 │   ├── Publisher/      # Build and publishing tools
+│   ├── Systems/        # EditorCameraSystem
+│   ├── UI/             # EditorUIConstants for styling
+│   ├── Utilities/      # Helper classes
+│   ├── Windows/        # AnimationTimelineWindow, RecentProjectsWindow
 │   └── Resources/      # Editor-specific assets
 │
 ├── Runtime/            # Standalone game runtime
 ├── Sandbox/            # Testing and experimentation
 ├── Benchmark/          # Performance benchmarking tools
+├── tests/              # Unit test projects (ECS.Tests, Engine.Tests)
 ├── games scripts/      # Sample game projects
 └── docs/               # Technical documentation
+    ├── modules/        # 17 module documentation files
+    ├── opengl-rendering/ # OpenGL workflow guides
+    └── specifications/ # Feature specifications and designs
 ```
 
 ### Key Architectural Patterns
 
 #### Entity Component System (ECS)
 - **Entity**: Lightweight container with GUID identifier
-- **Component**: Data-only structs/classes (Transform, Sprite, Mesh, Script, etc.)
-- **System**: Logic processors that operate on entities with specific component combinations
+- **Component**: Data-only structs/classes (18 component types available)
+- **System**: Logic processors implementing `ISystem` interface
+- **SystemManager**: Orchestrates system execution with priority-based ordering
 - **Scene**: Container for entities with hierarchical relationships
+- **SceneSystemRegistry**: Centralized system registration and configuration
+
+**Priority-Based System Execution:**
+Systems execute in priority order (lower numbers = earlier execution):
+- ScriptUpdateSystem (Priority 100)
+- AnimationSystem (Priority 198)
+- TileMapRenderSystem (Priority 200)
+- SpriteRenderingSystem, ModelRenderingSystem, etc.
+
+#### Dependency Injection with DryIoc
+- **All systems, panels, and managers** use constructor injection
+- **No static singletons** - all singletons registered in IoC container
+- Program.cs configures 50+ service registrations
+- Enables testability and clean separation of concerns
+
+#### Factory Pattern
+Extensive use of factories for resource creation:
+- **TextureFactory**: Texture loading with caching
+- **ShaderFactory**: Shader compilation with caching
+- **RendererApiFactory**: Platform-specific renderer creation
+- **SceneFactory**: Scene instantiation with DI
+- **AudioClipFactory**: Audio loading with format detection
 
 #### Layer System
 - Event propagation through ordered layers
@@ -86,10 +126,82 @@ GameEngine/
 - Editor uses ImGuiLayer for UI, ViewportLayer for scene rendering
 
 #### Renderer Architecture
-- **Renderer2D**: Batched quad rendering with texture atlasing
-- **Renderer3D**: Model rendering with material support
-- **RenderCommand**: Abstraction over OpenGL state management
-- **Shader**: Managed GLSL shader compilation and uniforms
+**Interface-Driven Design:**
+- **IGraphics2D** / **Graphics2D**: Batched 2D rendering (10,000 quads per batch)
+- **IGraphics3D** / **Graphics3D**: 3D immediate-mode rendering
+- **IRendererAPI** / **SilkNetRendererApi**: Platform abstraction over OpenGL
+- **RenderingConstants**: Centralized rendering configuration (MaxQuads, MaxTextureSlots, etc.)
+
+**Key Features:**
+- Batched rendering with texture atlasing
+- Shader and texture caching for performance
+- Multi-pass rendering with framebuffers
+- GPU-based entity picking for editor
+- Debug visualization (physics, bounds)
+
+### Major Engine Systems
+
+#### 2D Animation System
+Complete sprite animation system with comprehensive tooling:
+- **AnimationComponent**: Playback control (play, pause, speed, looping)
+- **AnimationAsset**: JSON-based animation definitions with clips and frames
+- **AnimationSystem**: Automatic ECS-based updates (Priority 198)
+- **AnimationController**: Scripting API for runtime control
+- **Frame Events**: Trigger callbacks at specific animation frames
+- **AnimationTimelineWindow**: Visual timeline editor in Editor
+- **Documentation**: Full guides in `docs/modules/animation-event-system.md`
+
+#### TileMap System
+Multi-layer tilemap rendering for 2D level design:
+- **TileMapComponent**: Container for multiple tile layers
+- **TileMapLayer**: Individual layer with tile data
+- **TileSet**: Configuration for tile textures and properties
+- **TileMapRenderSystem**: Automatic batched rendering (Priority 200)
+- **TileMapPanel**: Visual editor with layer management
+- **Serialization**: Custom JSON converters for efficient storage
+- **Documentation**: Quick-start and usage guides in `docs/modules/tilemap-*.md`
+
+#### Audio System
+3D spatial audio with multiple format support:
+- **AudioSourceComponent**: 3D positioned audio emitter
+- **AudioListenerComponent**: Audio receiver (typically on camera)
+- **AudioSystem**: Updates 3D audio positioning each frame
+- **Format Support**: WAV, Ogg Vorbis (via NVorbis)
+- **AudioClipFactory**: Automatic format detection and loading
+
+### Available Components
+
+The engine provides 18 built-in component types:
+
+**Core Components:**
+- **IDComponent**: GUID-based entity identification
+- **TagComponent**: Entity naming and tagging
+- **TransformComponent**: Position, rotation, scale with matrix calculation
+
+**Rendering Components:**
+- **SpriteRendererComponent**: 2D sprite with color tint
+- **SubTextureRendererComponent**: Sprite atlas/texture region rendering
+- **MeshComponent**: 3D mesh data
+- **ModelRendererComponent**: 3D model with material
+- **CameraComponent**: Camera configuration (orthographic/perspective)
+
+**Physics Components (Box2D):**
+- **RigidBody2DComponent**: 2D physics body (dynamic, kinematic, static)
+- **BoxCollider2DComponent**: 2D box collision shape
+
+**Scripting:**
+- **NativeScriptComponent**: Hot-reloadable C# script attachment
+
+**Audio:**
+- **AudioSourceComponent**: 3D audio source
+- **AudioListenerComponent**: Audio receiver
+
+**Advanced Systems:**
+- **AnimationComponent**: 2D sprite animation with events
+- **TileMapComponent**: Multi-layer tilemap
+- **TileMapLayer**: Individual tilemap layer
+- **TileSet**: Tileset configuration
+- **TileComponent**: Individual tile data
 
 ---
 
@@ -141,6 +253,7 @@ This project uses specialized Claude Code agents for different development domai
    - Read relevant module documentation in `docs/modules/`
    - Review existing implementations before proposing changes
    - Check for similar patterns elsewhere in codebase
+   - Note: Recent focus has been on performance optimization and proper resource management
 
 2. **Choose the Right Agent**
    - Engine runtime code → `game-engine-expert`
@@ -149,42 +262,57 @@ This project uses specialized Claude Code agents for different development domai
 
 3. **Maintain Architectural Consistency**
    - Follow existing patterns for similar features
+   - Use dependency injection - never create static singletons
+   - Use factory pattern for resource creation
    - Respect component/system separation in ECS
    - Keep rendering code in Renderer namespace
    - Keep editor-specific code in Editor project
+   - Use constants classes (EditorUIConstants, RenderingConstants) instead of magic numbers
 
-4. **Consider Performance**
+4. **Consider Performance** (High Priority)
    - Minimize allocations in hot paths (OnUpdate, render loops)
+   - Use caching where appropriate (see ShaderFactory, TextureFactory examples)
+   - Prefer static reflection caching over repeated reflection calls
    - Use object pooling for frequently created/destroyed objects
    - Profile before and after significant changes
    - Document performance characteristics in code comments
+   - Implement proper IDisposable patterns for unmanaged resources
 
 5. **Ensure Cross-Platform Compatibility**
    - Test on multiple platforms when possible
-   - Use platform abstractions from `Platform/` namespace
+   - Use platform abstractions from `Platform/SilkNet/` namespace
+   - All OpenGL code must go through IRendererAPI interface
    - Avoid platform-specific file paths or APIs
    - Use `Path.Combine()` for path construction
 
 ### Code Organization Principles
 
 #### Engine Project
+- **Animation**: 2D sprite animation system with frame events and timeline editor
+- **Audio**: Sound loading (Ogg, WAV), playback, 3D spatial positioning
 - **Core**: Application lifecycle, layer management, time stepping
 - **Events**: Event definitions and dispatching
-- **Renderer**: All OpenGL code, shaders, render commands
-- **Scene**: Entity management, scene graphs, serialization
-- **Scripting**: Script compilation, hot reload, debugging
-- **Audio**: Sound loading, playback, 3D positioning
+- **Platform**: SilkNet implementations for all platform-specific code
+- **Renderer**: All OpenGL code via IRendererAPI abstraction
+- **Scene**: Entity management, ECS systems, scene graphs, JSON serialization
+- **Scripting**: Roslyn-based script compilation, hot reload, hybrid debugging
 
 #### Editor Project
-- **Panels**: Reusable ImGui panels (SceneHierarchy, Properties, Console)
-- **Managers**: Singleton managers for editor state (ProjectManager, SceneManager)
+- **Input**: Editor-specific input handling
+- **Logging**: Console panel with Serilog integration
+- **Managers**: DI-registered managers (ProjectManager, SceneManager)
+- **Panels**: 17 ImGui panels (SceneHierarchy, Properties, Console, TileMapPanel, etc.)
 - **Popups**: Modal dialogs and temporary windows
 - **Publisher**: Game building and export functionality
+- **Systems**: Editor-specific ECS systems (EditorCameraSystem)
+- **UI**: EditorUIConstants for consistent styling
+- **Windows**: Specialized windows (AnimationTimelineWindow, RecentProjectsWindow)
 
 #### ECS Project
-- Pure ECS implementation
+- Pure ECS implementation with ISystem interface
+- SystemManager for priority-based execution
 - No engine-specific dependencies
-- Reusable across different projects
+- Fully unit tested
 
 ---
 
@@ -413,7 +541,35 @@ public class MyPanel
 - Self-documenting code with descriptive constant names
 - Prevents typos and inconsistencies from duplicated literals
 
-Never create singleton-style static classes! Use IoC container for singleton registration.
+### Rendering Constants
+
+Similar to EditorUIConstants, the rendering system uses `RenderingConstants` to centralize all rendering-related magic numbers:
+
+```csharp
+using Engine.Renderer;
+
+// Always use RenderingConstants for rendering configuration
+public class MyRenderSystem
+{
+    public void Initialize()
+    {
+        // Use constants instead of magic numbers
+        int maxQuads = RenderingConstants.MaxQuads;          // 10,000
+        int maxTextures = RenderingConstants.MaxTextureSlots; // 16
+        int verticesPerQuad = RenderingConstants.QuadVertexCount; // 4
+        int indicesPerQuad = RenderingConstants.QuadIndexCount;   // 6
+    }
+}
+```
+
+**Available Constants:**
+- **Batch Sizes**: `MaxQuads` (10,000), `QuadVertexCount` (4), `QuadIndexCount` (6)
+- **Textures**: `MaxTextureSlots` (16)
+- **Framebuffers**: `MaxFramebufferSize` (8,192)
+- **Line Rendering**: `MaxLines`, `MaxLineVertices`, `MaxLineIndices`
+
+**Architectural Rule:**
+Never create singleton-style static classes! Use IoC container for singleton registration. The only exceptions are pure constant classes like `EditorUIConstants` and `RenderingConstants`.
 
 ---
 
@@ -422,22 +578,26 @@ Never create singleton-style static classes! Use IoC container for singleton reg
 ### Testing Strategy
 
 1. **Unit Tests**
-   - Test ECS operations (add/remove components, entity lifecycle)
-   - Test math utilities (vector operations, matrix transforms)
-   - Test serialization/deserialization
-   - Located in test projects (to be created)
+   - **ECS.Tests**: Entity, component, and system tests
+   - **Engine.Tests**: 30+ test files covering Animation, Audio, Components, Serialization, etc.
+   - Located in `tests/` directory
+   - Run with `dotnet test`
+   - Tests use xUnit framework
 
 2. **Integration Tests**
-   - Scene loading/saving
-   - Script compilation and hot reload
-   - Asset loading pipeline
-   - Run via Benchmark project
+   - Scene loading/saving with complex hierarchies
+   - Script compilation and hot reload validation
+   - Asset loading pipeline (textures, audio, models)
+   - Animation system with frame events
+   - TileMap serialization and rendering
 
 3. **Performance Benchmarks**
    - Render performance (draw calls, batch efficiency)
    - ECS iteration performance
    - Memory allocation tracking
+   - Physics simulation benchmarks
    - Use Benchmark project with BenchmarkDotNet
+   - Check `docs/specifications/physics-benchmark-design.md`
 
 ### Manual Testing Checklist
 
@@ -515,9 +675,9 @@ Each module doc should include:
 ### Adding a New Component
 
 1. Create component class in `Engine/Scene/Components/`
-2. Add to component registry if needed
-3. Implement serialization support
-4. Add inspector UI in `Editor/Panels/PropertiesPanel.cs`
+2. Implement serialization support (add custom converter if needed)
+3. Create component editor in `Editor/ComponentEditors/`
+4. Register editor in `ComponentEditorRegistry` (via DI in Program.cs)
 5. Update documentation in `docs/modules/ecs-gameobject.md`
 
 Example:
@@ -529,12 +689,18 @@ public class MyComponent
     public bool IsEnabled { get; set; } = true;
 }
 
-// Editor/Panels/PropertiesPanel.cs
-private void DrawMyComponent(MyComponent component)
+// Editor/ComponentEditors/MyComponentEditor.cs
+public class MyComponentEditor : IComponentEditor<MyComponent>
 {
-    ImGui.DragFloat("Value", ref component.Value);
-    ImGui.Checkbox("Enabled", ref component.IsEnabled);
+    public void DrawEditor(MyComponent component)
+    {
+        ImGui.DragFloat("Value", ref component.Value);
+        ImGui.Checkbox("Enabled", ref component.IsEnabled);
+    }
 }
+
+// Program.cs (in ConfigureServices)
+container.Register<IComponentEditor<MyComponent>, MyComponentEditor>(Reuse.Singleton);
 ```
 
 ### Adding a New Renderer Feature
@@ -548,28 +714,55 @@ private void DrawMyComponent(MyComponent component)
 
 ### Creating a New Editor Panel
 
-1. Create panel class in `Editor/Panels/`
-2. Inherit from base panel interface
-3. Implement `OnImGuiRender()` method
-4. Register in `EditorLayer.cs`
-5. Add menu item for showing/hiding panel
-6. Document in `docs/modules/editor.md`
+1. Create panel interface in `Editor/Panels/` (e.g., `IMyNewPanel`)
+2. Create panel implementation class
+3. Use constructor injection for dependencies
+4. Implement `OnImGuiRender()` method using EditorUIConstants
+5. Register in Program.cs IoC container
+6. Inject into EditorLayer via constructor
+7. Add menu item for showing/hiding panel
+8. Document in `docs/modules/editor.md`
 
 Example:
 ```csharp
-public class MyNewPanel
+// IMyNewPanel.cs
+public interface IMyNewPanel
 {
+    void OnImGuiRender();
+}
+
+// MyNewPanel.cs
+public class MyNewPanel : IMyNewPanel
+{
+    private readonly ISceneManager _sceneManager;
     private bool _isOpen = true;
+
+    public MyNewPanel(ISceneManager sceneManager)
+    {
+        _sceneManager = sceneManager;
+    }
 
     public void OnImGuiRender()
     {
         if (!_isOpen) return;
 
         ImGui.Begin("My Panel", ref _isOpen);
-        // Panel content
+
+        // Use EditorUIConstants for consistency
+        if (ImGui.Button("Action", new Vector2(
+            EditorUIConstants.StandardButtonWidth,
+            EditorUIConstants.StandardButtonHeight)))
+        {
+            // Panel logic using injected dependencies
+            var scene = _sceneManager.GetActiveScene();
+        }
+
         ImGui.End();
     }
 }
+
+// Program.cs
+container.Register<IMyNewPanel, MyNewPanel>(Reuse.Singleton);
 ```
 
 ### Extending the Scripting System
@@ -597,7 +790,13 @@ public class MyNewPanel
 - **Project Structure**: `README.md`
 - **Build Configuration**: `GameEngine.sln`, `.csproj` files
 - **OpenGL Workflows**: `docs/opengl-rendering/`
-- **System Documentation**: `docs/modules/`
+- **System Documentation**: `docs/modules/` (17 module docs)
+  - Animation: `animation-event-system.md`, `animation-system-usage-guide.md`
+  - Audio: `audio/quick-start.md`, `audio/README.md`
+  - TileMap: `tilemap-quick-start.md`, `tilemap-usage-guide.md`, `tilemap-tileset-configs.md`
+  - Core Systems: `ecs-gameobject.md`, `rendering-pipeline.md`, `scene-management.md`
+- **Specifications**: `docs/specifications/` (design documents for major features)
+- **Pareto Analysis**: `docs/pareto-analysis-missing-features.md` (known gaps and priorities)
 
 ### Useful Commands
 
@@ -628,15 +827,53 @@ When uncertain about implementation details:
 
 ---
 
+## Recent Improvements & Focus Areas
+
+The project has recently undergone significant architectural improvements and optimizations:
+
+### Performance Optimizations (2024-2025)
+- **Static Reflection Caching**: ScriptableEntity now uses static caching for reflection operations
+- **Shader Caching**: ShaderFactory caches compiled shaders for reuse
+- **Texture Dictionary Cache**: Graphics2D uses O(1) dictionary lookup instead of linear search
+- **Optimized Matrix Calculation**: OrthographicCamera matrix calculation improved
+- **Removed Lazy Initialization**: Mesh class simplified for better performance and safety
+
+### Resource Management
+- **IDisposable Patterns**: Proper disposal implemented throughout (Model, Mesh, buffers)
+- **Resource Cleanup**: Physics body cleanup moved to PhysicsSimulationSystem
+- **Script Lifecycle**: Consolidated into ScriptEngine for better management
+
+### Architectural Refactoring
+- **ECS System Architecture**: Migrated to proper ISystem pattern with priority-based execution
+- **Dependency Injection**: Full DryIoc integration eliminates static singletons
+- **Error Handling**: Unified GL error checking and validation across rendering system
+- **Factory Pattern**: Consistent factory-based resource creation
+
+### New Features
+- **Complete Animation System**: 2D sprite animation with events and timeline editor
+- **TileMap System**: Multi-layer tilemap support with visual editor
+- **Audio Format Support**: Added Ogg Vorbis support via NVorbis
+- **Editor Enhancements**: Shortcuts manager, performance monitor, animation timeline
+
+### Known Gaps (From Pareto Analysis)
+- ImGuizmo transform gizmos have stability issues
+- Build/export system incomplete
+- Undo/redo system missing
+- Prefab system partial implementation
+- Material system not yet implemented
+
+---
+
 ## Contributing Philosophy
 
 ### Core Values
 
-1. **Performance Matters**: This is a game engine - frame time is critical
+1. **Performance Matters**: This is a game engine - frame time is critical (recent focus area)
 2. **Developer Experience**: APIs should be intuitive and well-documented
 3. **Cross-Platform**: Write once, run anywhere
 4. **Maintainability**: Code should be readable and well-structured
 5. **Pragmatism**: Ship working features over perfect abstractions
+6. **Clean Architecture**: Dependency injection and interface-driven design throughout
 
 ### Quality Standards
 
