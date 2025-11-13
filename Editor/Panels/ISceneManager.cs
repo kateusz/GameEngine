@@ -40,14 +40,37 @@ public interface ISceneManager
     void Save(string? scenesDir);
 
     /// <summary>
-    /// Enters play mode, initializing runtime systems and physics.
+    /// Enters play mode or resumes from pause.
+    /// Captures scene snapshot on first play for restoration on stop.
+    /// Initializes runtime systems and physics.
     /// </summary>
     void Play();
 
     /// <summary>
+    /// Pauses the currently playing scene.
+    /// Freezes time (TimeScale = 0), physics, and script updates while continuing rendering.
+    /// Allows inspection of runtime state without modification.
+    /// </summary>
+    void Pause();
+
+    /// <summary>
+    /// Resumes from pause state back to play mode.
+    /// Restores time scale and continues physics and script updates.
+    /// </summary>
+    void Resume();
+
+    /// <summary>
     /// Exits play mode, returning to edit mode and stopping runtime systems.
+    /// Restores the scene to its pre-play state from snapshot.
     /// </summary>
     void Stop();
+
+    /// <summary>
+    /// Restarts the scene from its initial play state.
+    /// Stops runtime, restores from snapshot, and re-enters play mode.
+    /// Useful for testing without returning to edit mode.
+    /// </summary>
+    void Restart();
 
     /// <summary>
     /// Duplicates the currently selected entity in the scene hierarchy.

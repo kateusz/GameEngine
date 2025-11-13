@@ -49,8 +49,11 @@ public class ScriptEngine : IScriptEngine
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Check for script changes
+        // Check for script changes (always run, even when paused)
         CheckForScriptChanges();
+
+        // Skip updates if paused
+        if (_isPaused) return;
 
         // Update all script components
         if (_currentScene == null) return;
@@ -123,6 +126,70 @@ public class ScriptEngine : IScriptEngine
             Logger.Warning(
                 "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
                 errors.Count);
+        }
+    }
+
+    private bool _isPaused = false;
+
+    public void Pause()
+    {
+        if (_isPaused) return;
+
+        _isPaused = true;
+        Logger.Information("Scripts paused");
+
+        // Call OnPause on all active scripts
+        if (_currentScene == null) return;
+
+        var scriptEntities = _currentScene.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
+
+        foreach (var entity in scriptEntities)
+        {
+            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent.ScriptableEntity != null)
+            {
+                try
+                {
+                    scriptComponent.ScriptableEntity.OnPause();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error pausing script on entity {EntityName}", entity.Name);
+                }
+            }
+        }
+    }
+
+    public void Resume()
+    {
+        if (!_isPaused) return;
+
+        _isPaused = false;
+        Logger.Information("Scripts resumed");
+
+        // Call OnResume on all active scripts
+        if (_currentScene == null) return;
+
+        var scriptEntities = _currentScene.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
+
+        foreach (var entity in scriptEntities)
+        {
+            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
+            if (scriptComponent.ScriptableEntity != null)
+            {
+                try
+                {
+                    scriptComponent.ScriptableEntity.OnResume();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error resuming script on entity {EntityName}", entity.Name);
+                }
+            }
         }
     }
 

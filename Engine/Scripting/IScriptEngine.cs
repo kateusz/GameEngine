@@ -34,6 +34,18 @@ public interface IScriptEngine
     void OnRuntimeStop();
 
     /// <summary>
+    /// Pauses all script execution. Calls OnPause() on all active scripts.
+    /// Scripts will stop receiving OnUpdate() calls until Resume() is called.
+    /// </summary>
+    void Pause();
+
+    /// <summary>
+    /// Resumes all script execution. Calls OnResume() on all active scripts.
+    /// Scripts will resume receiving OnUpdate() calls.
+    /// </summary>
+    void Resume();
+
+    /// <summary>
     /// Forwards events to all script components for processing.
     /// </summary>
     /// <param name="event">Event to process (keyboard, mouse, etc.)</param>

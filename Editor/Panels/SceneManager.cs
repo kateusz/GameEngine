@@ -80,18 +80,102 @@ public class SceneManager : ISceneManager
 
     public void Play()
     {
+        if (SceneState == SceneState.Play) return;
+
+        // If resuming from pause, just change state
+        if (SceneState == SceneState.Paused)
+        {
+            Resume();
+            return;
+        }
+
+        // Capture snapshot before starting runtime
+        CurrentScene.Instance?.CaptureSnapshot(_sceneSerializer);
+
+        // Reset and start time tracking
+        Engine.Core.Time.Reset();
+        Engine.Core.Time.TimeScale = 1.0f;
+
         SceneState = SceneState.Play;
-        CurrentScene.Instance.OnRuntimeStart();
+        CurrentScene.Instance?.OnRuntimeStart();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Logger.Information("▶️ Scene play started");
+
+        Logger.Information("▶️  Scene play started");
+    }
+
+    public void Pause()
+    {
+        if (SceneState != SceneState.Play) return;
+
+        SceneState = SceneState.Paused;
+        Engine.Core.Time.TimeScale = 0.0f; // Freeze time
+
+        // Notify script engine to pause scripts
+        _scriptEngine.Pause();
+
+        Logger.Information("⏸️  Scene paused");
+    }
+
+    public void Resume()
+    {
+        if (SceneState != SceneState.Paused) return;
+
+        SceneState = SceneState.Play;
+        Engine.Core.Time.TimeScale = 1.0f; // Resume time
+
+        // Notify script engine to resume scripts
+        _scriptEngine.Resume();
+
+        Logger.Information("▶️  Scene resumed");
     }
 
     public void Stop()
     {
+        if (SceneState == SceneState.Edit) return;
+
+        // Stop runtime systems
+        CurrentScene.Instance?.OnRuntimeStop();
+
+        // Restore scene to pre-play snapshot
+        CurrentScene.Instance?.RestoreFromSnapshot(_sceneSerializer);
+
+        // Clear snapshot to free memory
+        CurrentScene.Instance?.ClearSnapshot();
+
+        // Reset time
+        Engine.Core.Time.Reset();
+
         SceneState = SceneState.Edit;
-        CurrentScene.Instance.OnRuntimeStop();
         _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
-        Logger.Information("⏹️ Scene play stopped");
+
+        Logger.Information("⏹️  Scene stopped and restored to initial state");
+    }
+
+    public void Restart()
+    {
+        if (SceneState == SceneState.Edit) return;
+
+        Logger.Information("🔄 Restarting scene...");
+
+        // Stop runtime
+        CurrentScene.Instance?.OnRuntimeStop();
+
+        // Restore from snapshot
+        CurrentScene.Instance?.RestoreFromSnapshot(_sceneSerializer);
+
+        // Re-capture snapshot (in case scene was modified)
+        CurrentScene.Instance?.CaptureSnapshot(_sceneSerializer);
+
+        // Reset time
+        Engine.Core.Time.Reset();
+        Engine.Core.Time.TimeScale = 1.0f;
+
+        // Restart runtime
+        SceneState = SceneState.Play;
+        CurrentScene.Instance?.OnRuntimeStart();
+        _sceneHierarchyPanel.SetContext(CurrentScene.Instance);
+
+        Logger.Information("🔄 Scene restarted");
     }
 
     public void DuplicateEntity()

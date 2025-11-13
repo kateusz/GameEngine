@@ -129,19 +129,27 @@ public abstract class Application : IApplication
 
         var elapsed = TimeSpan.FromSeconds(deltaTime);
 
-        _inputSystem?.Update(elapsed);
+        // Update centralized time system
+        Time.Update(elapsed);
+
+        // Input system uses unscaled time (should always be responsive)
+        _inputSystem?.Update(Time.UnscaledDeltaTime);
 
         // LAYER ITERATION POLICY: Updates propagate in REVERSE order (overlays first, game layers last)
         // This ensures UI overlays update before the underlying game logic, allowing UI to:
         // - Capture and handle input before game logic processes it
         // - Update visual state based on the most recent frame
         // - Render on top of game content with correct state
+        //
+        // Pass scaled delta time to layers (respects pause via Time.TimeScale)
+        // When paused, Time.DeltaTime will be zero, effectively freezing gameplay
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
-            _layersStack[index].OnUpdate(elapsed);
+            _layersStack[index].OnUpdate(Time.DeltaTime);
         }
 
-        _imGuiLayer?.Begin(elapsed);
+        // ImGui uses unscaled time (UI should always be responsive even when paused)
+        _imGuiLayer?.Begin(Time.UnscaledDeltaTime);
 
         // ImGui rendering also uses reverse order to maintain consistent layer ordering
         for (var index = _layersStack.Count - 1; index >= 0; index--)

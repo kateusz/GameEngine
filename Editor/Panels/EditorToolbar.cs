@@ -8,12 +8,14 @@ namespace Editor.Panels;
 public class EditorToolbar
 {
     private Texture2D _iconPlay;
+    private Texture2D? _iconPause;
     private Texture2D _iconStop;
+    private Texture2D? _iconRestart;
     private Texture2D _iconSelect;
     private Texture2D _iconMove;
     private Texture2D _iconScale;
     private readonly ISceneManager _sceneManager;
-    
+
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
 
     public EditorToolbar(ISceneManager sceneManager)
@@ -28,6 +30,25 @@ public class EditorToolbar
         _iconSelect = TextureFactory.Create("Resources/Icons/select.png");
         _iconMove = TextureFactory.Create("Resources/Icons/move.png");
         _iconScale = TextureFactory.Create("Resources/Icons/scale.png");
+
+        // Try to load pause and restart icons (optional - will fall back to text buttons if not found)
+        try
+        {
+            _iconPause = TextureFactory.Create("Resources/Icons/PauseButton.png");
+        }
+        catch
+        {
+            _iconPause = null; // Will use text button fallback
+        }
+
+        try
+        {
+            _iconRestart = TextureFactory.Create("Resources/Icons/RestartButton.png");
+        }
+        catch
+        {
+            _iconRestart = null; // Will use text button fallback
+        }
     }
 
     public void Render()
@@ -105,28 +126,109 @@ public class EditorToolbar
         if (CurrentMode == EditorMode.Ruler)
             ImGui.PopStyleColor();
 
-        // Center: Play/Stop button
-        var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;
-
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
-        ImGui.SetCursorPosY(2.0f);
-
-        if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(20, 20), new Vector2(0, 0),
-                new Vector2(1, 1)))
-        {
-            switch (_sceneManager.SceneState)
-            {
-                case SceneState.Edit:
-                    _sceneManager.Play();
-                    break;
-                case SceneState.Play:
-                    _sceneManager.Stop();
-                    break;
-            }
-        }
+        // Center: Play/Pause/Stop/Restart controls
+        RenderPlaybackControls(size);
 
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);
         ImGui.End();
+    }
+
+    /// <summary>
+    /// Renders the playback controls (Play/Pause/Stop/Restart) in the center of the toolbar.
+    /// </summary>
+    private void RenderPlaybackControls(float size)
+    {
+        float centerX = ImGui.GetWindowContentRegionMax().X * 0.5f;
+        float buttonSize = 20.0f;
+        float spacing = 5.0f;
+
+        // Calculate total width based on visible buttons
+        // Edit mode: 1 button (Play)
+        // Play/Paused mode: 3 buttons (Pause/Play, Restart, Stop)
+        int buttonCount = _sceneManager.SceneState == SceneState.Edit ? 1 : 3;
+        float totalWidth = (buttonSize * buttonCount) + (spacing * (buttonCount - 1));
+        float startX = centerX - (totalWidth * 0.5f);
+
+        ImGui.SetCursorPosX(startX);
+        ImGui.SetCursorPosY(2.0f);
+
+        // Play/Pause button (context-sensitive)
+        if (_sceneManager.SceneState == SceneState.Edit)
+        {
+            // Show Play button in Edit mode
+            if (ImGui.ImageButton("play", (IntPtr)_iconPlay.GetRendererId(), new Vector2(buttonSize, buttonSize)))
+            {
+                _sceneManager.Play();
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Play (F5)");
+        }
+        else
+        {
+            // Show Pause or Play button depending on state
+            if (_sceneManager.SceneState == SceneState.Play)
+            {
+                // Playing: show pause button
+                if (_iconPause != null)
+                {
+                    if (ImGui.ImageButton("pause", (IntPtr)_iconPause.GetRendererId(), new Vector2(buttonSize, buttonSize)))
+                    {
+                        _sceneManager.Pause();
+                    }
+                }
+                else
+                {
+                    // Fallback to text button
+                    if (ImGui.Button("⏸", new Vector2(buttonSize, buttonSize)))
+                    {
+                        _sceneManager.Pause();
+                    }
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Pause (Ctrl+P)");
+            }
+            else // Paused
+            {
+                // Paused: show play button to resume
+                if (ImGui.ImageButton("resume", (IntPtr)_iconPlay.GetRendererId(), new Vector2(buttonSize, buttonSize)))
+                {
+                    _sceneManager.Resume();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Resume (Ctrl+P)");
+            }
+
+            // Restart button (only visible when playing or paused)
+            ImGui.SameLine(0, spacing);
+
+            if (_iconRestart != null)
+            {
+                if (ImGui.ImageButton("restart", (IntPtr)_iconRestart.GetRendererId(), new Vector2(buttonSize, buttonSize)))
+                {
+                    _sceneManager.Restart();
+                }
+            }
+            else
+            {
+                // Fallback to text button
+                if (ImGui.Button("🔄", new Vector2(buttonSize, buttonSize)))
+                {
+                    _sceneManager.Restart();
+                }
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Restart (Ctrl+R)");
+
+            // Stop button (only visible when playing or paused)
+            ImGui.SameLine(0, spacing);
+
+            if (ImGui.ImageButton("stop", (IntPtr)_iconStop.GetRendererId(), new Vector2(buttonSize, buttonSize)))
+            {
+                _sceneManager.Stop();
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Stop (Shift+F5)");
+        }
     }
 }

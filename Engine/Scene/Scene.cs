@@ -382,6 +382,86 @@ public class Scene : IScene
         return newEntity;
     }
 
+    #region Scene Snapshot Management
+
+    private string? _runtimeSnapshot = null;
+
+    /// <summary>
+    /// Captures the current scene state as a JSON snapshot for restoration on Stop() or Restart().
+    /// </summary>
+    /// <param name="serializer">The scene serializer to use for snapshot creation</param>
+    /// <remarks>
+    /// Performance: Serialization is performed once when entering play mode.
+    /// Memory: Snapshot size depends on scene complexity, typically 10KB-1MB for most scenes.
+    /// The snapshot is stored as a compact JSON string (no indentation) to minimize memory usage.
+    /// </remarks>
+    public void CaptureSnapshot(ISceneSerializer serializer)
+    {
+        try
+        {
+            _runtimeSnapshot = serializer.SerializeToString(this);
+            Logger.Debug("Scene snapshot captured ({SizeKB:F2} KB)", _runtimeSnapshot.Length / 1024.0);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to capture scene snapshot");
+            _runtimeSnapshot = null;
+        }
+    }
+
+    /// <summary>
+    /// Restores the scene to the previously captured snapshot.
+    /// Clears all current entities and deserializes from the saved JSON state.
+    /// </summary>
+    /// <param name="serializer">The scene serializer to use for snapshot restoration</param>
+    /// <remarks>
+    /// Performance: Restoration involves clearing entities and deserializing JSON.
+    /// Typically completes in 10-50ms for most scenes.
+    /// Physics bodies are not recreated - call OnRuntimeStart() after restoration if needed.
+    /// </remarks>
+    public void RestoreFromSnapshot(ISceneSerializer serializer)
+    {
+        if (string.IsNullOrEmpty(_runtimeSnapshot))
+        {
+            Logger.Warning("No snapshot available to restore from");
+            return;
+        }
+
+        try
+        {
+            // Clear current entities (unsubscribe from events first)
+            foreach (var entity in _context.Entities.ToArray())
+            {
+                entity.OnComponentAdded -= OnComponentAdded;
+                _context.Remove(entity.Id);
+            }
+
+            // Reset entity ID counter for consistent IDs
+            _nextEntityId = 1;
+
+            // Deserialize from snapshot
+            serializer.DeserializeFromString(this, _runtimeSnapshot);
+
+            Logger.Debug("Scene restored from snapshot");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to restore scene from snapshot");
+        }
+    }
+
+    /// <summary>
+    /// Clears the runtime snapshot to free memory.
+    /// Should be called after stopping play mode when the snapshot is no longer needed.
+    /// </summary>
+    public void ClearSnapshot()
+    {
+        _runtimeSnapshot = null;
+        Logger.Debug("Scene snapshot cleared");
+    }
+
+    #endregion
+
     /// <summary>
     /// Gets or loads a tileset from the editor cache. This prevents loading textures from disk every frame.
     /// </summary>

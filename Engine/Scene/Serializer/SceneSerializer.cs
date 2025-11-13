@@ -152,6 +152,72 @@ public class SceneSerializer : ISceneSerializer
         }
     }
 
+    /// <summary>
+    /// Serializes the scene to a JSON string (for in-memory snapshots).
+    /// Used for capturing scene state before entering play mode.
+    /// </summary>
+    /// <param name="scene">The scene to serialize</param>
+    /// <returns>Compact JSON string representation of the scene</returns>
+    public string SerializeToString(IScene scene)
+    {
+        var jsonObj = new JsonObject
+        {
+            [SceneKey] = DefaultSceneName,
+            [EntitiesKey] = new JsonArray()
+        };
+
+        var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
+
+        foreach (var entity in scene.Entities)
+        {
+            SerializeEntity(jsonEntities, entity);
+        }
+
+        // Use compact format for memory efficiency (no indentation)
+        var jsonString = jsonObj.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = false
+        });
+
+        return jsonString;
+    }
+
+    /// <summary>
+    /// Deserializes the scene from a JSON string (for snapshot restoration).
+    /// Used for restoring scene state when stopping or restarting play mode.
+    /// </summary>
+    /// <param name="scene">The scene to populate with deserialized entities</param>
+    /// <param name="json">JSON string containing the serialized scene</param>
+    /// <exception cref="InvalidSceneJsonException">Thrown when the JSON is invalid or malformed</exception>
+    public void DeserializeFromString(IScene scene, string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            throw new InvalidSceneJsonException("Scene snapshot is empty or contains only whitespace");
+
+        JsonNode? parsedNode;
+        try
+        {
+            parsedNode = JsonNode.Parse(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidSceneJsonException($"Invalid JSON format in snapshot: {ex.Message}", ex);
+        }
+
+        var jsonObj = parsedNode?.AsObject() ??
+                      throw new InvalidSceneJsonException("Invalid JSON format - could not parse snapshot as JSON object");
+
+        var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
+
+        foreach (var jsonEntity in jsonEntities)
+        {
+            if (jsonEntity is not JsonObject entityObj) continue;
+
+            var entity = DeserializeEntity(entityObj);
+            scene.AddEntity(entity);
+        }
+    }
+
     private JsonArray GetJsonArray(JsonNode jsonObject, string key)
     {
         if (!jsonObject.AsObject().ContainsKey(key))

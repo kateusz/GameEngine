@@ -74,6 +74,24 @@ public class ScriptableEntity
     {
     }
 
+    /// <summary>
+    /// Called when the scene is paused.
+    /// Use this to save state, pause audio, or perform pause-specific logic.
+    /// OnUpdate will not be called while paused.
+    /// </summary>
+    public virtual void OnPause()
+    {
+    }
+
+    /// <summary>
+    /// Called when the scene is resumed from pause.
+    /// Use this to restore state, resume audio, or perform resume-specific logic.
+    /// OnUpdate will resume being called after this.
+    /// </summary>
+    public virtual void OnResume()
+    {
+    }
+
     #endregion
 
     #region Input Event Methods
