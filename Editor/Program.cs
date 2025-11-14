@@ -41,7 +41,6 @@ static void ConfigureContainer(Container container)
     container.Register<EventBus, EventBus>(Reuse.Singleton);
     container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
     container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
-    container.Register<ICurrentScene, CurrentSceneManager>(Reuse.Singleton);
 
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
     container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);

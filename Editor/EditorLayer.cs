@@ -53,7 +53,6 @@ public class EditorLayer : ILayer
     private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
     private readonly IScriptEngine _scriptEngine;
     private readonly ScriptComponentUI _scriptComponentUI;
-    private readonly ICurrentScene _currentScene;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -75,7 +74,7 @@ public class EditorLayer : ILayer
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
-        IScriptEngine scriptEngine, ICurrentScene currentScene)
+        IScriptEngine scriptEngine)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -96,7 +95,6 @@ public class EditorLayer : ILayer
         _shortcutManager = shortcutManager;
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
-        _currentScene = currentScene;
         _scriptComponentUI = new ScriptComponentUI(scriptEngine);
     }
 
@@ -117,10 +115,9 @@ public class EditorLayer : ILayer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
-        var scene = _sceneFactory.Create("");
-        _currentScene.Set(scene);
+        _sceneManager.New(_viewportSize);
 
-        _sceneHierarchyPanel.SetContext(_currentScene.Instance);
+        _sceneHierarchyPanel.SetContext(_sceneManager.CurrentScene);
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
 
         _contentBrowserPanel.Init();
@@ -231,7 +228,7 @@ public class EditorLayer : ILayer
         _editorSystems?.Dispose();
 
         // Dispose current scene to cleanup resources
-        _currentScene.Instance?.Dispose();
+        _sceneManager.CurrentScene?.Dispose();
 
         _frameBuffer?.Dispose();
         _consolePanel?.Dispose();
@@ -257,7 +254,7 @@ public class EditorLayer : ILayer
             // Update the camera system with the new controller instance
             _editorCameraSystem.SetCameraController(_cameraController);
 
-            _currentScene.Instance.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            _sceneManager.CurrentScene.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
         }
         
         _graphics2D.ResetStats();
@@ -279,12 +276,12 @@ public class EditorLayer : ILayer
                 _editorSystems.Update(timeSpan);
 
                 // Use 2D camera for editor scene rendering
-                _currentScene.Instance.OnUpdateEditor(timeSpan, _cameraController.Camera);
+                _sceneManager.CurrentScene.OnUpdateEditor(timeSpan, _cameraController.Camera);
                 break;
             }
             case SceneState.Play:
             {
-                _currentScene.Instance.OnUpdateRuntime(timeSpan);
+                _sceneManager.CurrentScene.OnUpdateRuntime(timeSpan);
                 break;
             }
         }
@@ -302,7 +299,7 @@ public class EditorLayer : ILayer
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
         {
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
-            var entity = _currentScene.Instance.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
+            var entity = _sceneManager.CurrentScene.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
             _hoveredEntity = entity;
         }
 
