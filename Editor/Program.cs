@@ -40,9 +40,6 @@ static void ConfigureContainer(Container container)
 
     container.Register<EventBus, EventBus>(Reuse.Singleton);
 
-    // Register ECS Context (replacing singleton pattern)
-    container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
-
     // Register ScriptEngine (replacing singleton pattern)
     container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
 

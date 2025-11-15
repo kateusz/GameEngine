@@ -31,12 +31,20 @@ public class Scene : IScene
     // Key format: "path|columns|rows" to handle different grid configurations of the same texture
     private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
+    /// <summary>
+    /// Creates a new Scene instance with dedicated entity management.
+    /// Each scene maintains its own isolated Context instance passed via dependency injection.
+    /// </summary>
+    /// <param name="path">Path to the scene file</param>
+    /// <param name="systemRegistry">Registry of shared systems available to the scene</param>
+    /// <param name="graphics2D">Graphics interface for 2D rendering</param>
+    /// <param name="context">Dedicated Context instance for this scene's entity management</param>
     public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context)
     {
         _path = path;
         _graphics2D = graphics2D;
         _context = context;
-        _context.Clear();
+        // Note: Context is already empty when created by SceneFactory, no need to clear
 
         // Initialize ECS systems
         _systemManager = new SystemManager();
