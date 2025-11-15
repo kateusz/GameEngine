@@ -53,6 +53,7 @@ public class EditorLayer : ILayer
     private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
     private readonly IScriptEngine _scriptEngine;
     private readonly ScriptComponentUI _scriptComponentUI;
+    private readonly TimeControlPanel _timeControlPanel;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -74,7 +75,7 @@ public class EditorLayer : ILayer
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
-        IScriptEngine scriptEngine)
+        IScriptEngine scriptEngine, TimeControlPanel timeControlPanel)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -96,6 +97,7 @@ public class EditorLayer : ILayer
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
         _scriptComponentUI = new ScriptComponentUI(scriptEngine);
+        _timeControlPanel = timeControlPanel;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -478,7 +480,9 @@ public class EditorLayer : ILayer
                         _viewportRuler.Enabled = !_viewportRuler.Enabled;
                     if (ImGui.MenuItem("Show Stats", null, _rendererStatsPanel.IsVisible))
                         _rendererStatsPanel.IsVisible = !_rendererStatsPanel.IsVisible;
-                    
+                    if (ImGui.MenuItem("Show Time Control", null, _timeControlPanel.IsVisible))
+                        _timeControlPanel.IsVisible = !_timeControlPanel.IsVisible;
+
                     ImGui.EndMenu();
                 }
 
@@ -514,6 +518,7 @@ public class EditorLayer : ILayer
             _scriptComponentUI.Draw();
             _recentProjectsWindow.Draw();
             _keyboardShortcutsPanel.Draw();
+            _timeControlPanel.Draw();
 
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
             _propertiesPanel.SetSelectedEntity(selectedEntity);

@@ -101,6 +101,7 @@ static void ConfigureContainer(Container container)
     container.Register<RendererStatsPanel>(Reuse.Singleton);
     container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
     container.Register<ScriptComponentUI>(Reuse.Singleton);
+    container.Register<TimeControlPanel>(Reuse.Singleton);
     
     container.Register<ViewportRuler>(Reuse.Singleton);
     container.Register<ObjectManipulator>(Reuse.Singleton);
@@ -113,6 +114,8 @@ static void ConfigureContainer(Container container)
     container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
     container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
     container.Register<Editor.Editor>(Reuse.Singleton);
+    container.Register<IApplication>(Reuse.Singleton,
+        made: Made.Of(() => Arg.Of<Editor.Editor>()));
 
     // Register ConsolePanel as singleton so it can be resolved early for logging
     container.Register<IConsolePanel, ConsolePanel>(Reuse.Singleton);

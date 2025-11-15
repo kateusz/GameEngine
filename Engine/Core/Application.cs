@@ -23,6 +23,21 @@ public abstract class Application : IApplication
 
     private bool _isRunning;
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
+    private const double FixedFrameStep = 1.0 / 60.0; // 60 FPS for frame stepping
+
+    /// <summary>
+    /// Gets or sets the time scale for game simulation. Default is 1.0 (normal speed).
+    /// Values between 0.0 and 1.0 create slow motion, values above 1.0 create fast forward.
+    /// This only affects game logic time, not UI or editor rendering.
+    /// </summary>
+    public float TimeScale { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Gets or sets whether the game simulation is paused.
+    /// When paused, game logic receives zero delta time, but UI and editor remain responsive.
+    /// Use StepSingleFrame() to advance by one frame while paused.
+    /// </summary>
+    public bool IsPaused { get; set; } = false;
 
     protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IAudioEngine audioEngine, IImGuiLayer? imGuiLayer = null)
     {
@@ -127,7 +142,11 @@ public abstract class Application : IApplication
                 platformDeltaTime * 1000, MaxDeltaTime * 1000);
         }
 
-        var elapsed = TimeSpan.FromSeconds(deltaTime);
+        // Apply time control transformations
+        // When paused, game logic receives zero delta time but UI remains responsive
+        var scaledDeltaTime = IsPaused ? 0.0 : deltaTime * TimeScale;
+
+        var elapsed = TimeSpan.FromSeconds(scaledDeltaTime);
 
         _inputSystem?.Update(elapsed);
 
@@ -150,6 +169,30 @@ public abstract class Application : IApplication
         }
 
         _imGuiLayer?.End();
+    }
+
+    /// <summary>
+    /// Steps the simulation forward by a single frame (1/60th of a second) when paused.
+    /// This is useful for frame-by-frame debugging of game logic, physics, and animations.
+    /// Has no effect when the game is not paused.
+    /// </summary>
+    public void StepSingleFrame()
+    {
+        if (!IsPaused)
+            return;
+
+        // Temporarily unpause, update with fixed timestep, then re-pause
+        var elapsed = TimeSpan.FromSeconds(FixedFrameStep * TimeScale);
+
+        _inputSystem?.Update(elapsed);
+
+        // Update all layers with the fixed timestep
+        for (var index = _layersStack.Count - 1; index >= 0; index--)
+        {
+            _layersStack[index].OnUpdate(elapsed);
+        }
+
+        Logger.Debug("Stepped single frame: {Ms:F2}ms", FixedFrameStep * 1000);
     }
 
     private void HandleWindowEvent(WindowEvent @event)
