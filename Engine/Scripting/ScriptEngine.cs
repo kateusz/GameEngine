@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using Serilog;
 using ZLinq;
-using Editor.Panels;
 
 namespace Engine.Scripting;
 
@@ -21,27 +20,21 @@ public class ScriptEngine : IScriptEngine
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
-    private readonly ISceneManager? _sceneManager;
+    private readonly ISceneContext _sceneContext;
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
-    private IScene? _currentSceneInstance;
 
     // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private bool _debugMode = true; // Enable debugging by default in development
 
-    public ScriptEngine(ISceneManager? sceneManager = null)
+    public ScriptEngine(ISceneContext sceneContext)
     {
-        _sceneManager = sceneManager;
+        _sceneContext = sceneContext;
 
         // Default to current directory, but allow override
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
-    }
-
-    public void SetCurrentScene(IScene? scene)
-    {
-        _currentSceneInstance = scene;
     }
 
     public void SetScriptsDirectory(string scriptsDirectory)
@@ -57,9 +50,9 @@ public class ScriptEngine : IScriptEngine
         CheckForScriptChanges();
 
         // Update all script components
-        if (_currentSceneInstance == null) return;
+        if (_sceneContext.ActiveScene == null) return;
 
-        var scriptEntities = _currentSceneInstance.Entities
+        var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
 
@@ -72,7 +65,7 @@ public class ScriptEngine : IScriptEngine
             if (scriptComponent.ScriptableEntity.Entity == null)
             {
                 scriptComponent.ScriptableEntity.Entity = entity;
-                scriptComponent.ScriptableEntity.SceneManager = _sceneManager;
+                scriptComponent.ScriptableEntity.SceneContext = _sceneContext;
                 try
                 {
                     scriptComponent.ScriptableEntity.OnCreate();
@@ -98,9 +91,9 @@ public class ScriptEngine : IScriptEngine
     public void OnRuntimeStop()
     {
         // Handle OnDestroy lifecycle for all script entities
-        if (_sceneManager?.CurrentScene == null) return;
+        if (_sceneContext.ActiveScene == null) return;
 
-        var scriptEntities = _sceneManager.CurrentScene.Entities
+        var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
 
@@ -133,9 +126,9 @@ public class ScriptEngine : IScriptEngine
 
     public void ProcessEvent(Event @event)
     {
-        if (_currentSceneInstance == null) return;
+        if (_sceneContext.ActiveScene == null) return;
 
-        var scriptEntities = _currentSceneInstance.Entities
+        var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
@@ -863,9 +856,9 @@ public class ScriptEngine : IScriptEngine
         CompileAllScripts();
 
         // Notify all script components to reload
-        if (_currentSceneInstance == null) return;
+        if (_sceneContext.ActiveScene == null) return;
 
-        var scriptEntities = _currentSceneInstance.Entities
+        var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
         foreach (var entity in scriptEntities)
@@ -880,7 +873,7 @@ public class ScriptEngine : IScriptEngine
                 {
                     scriptComponent.ScriptableEntity = newInstance.Value;
                     scriptComponent.ScriptableEntity.Entity = entity;
-                    scriptComponent.ScriptableEntity.SceneManager = _sceneManager;
+                    scriptComponent.ScriptableEntity.SceneContext = _sceneContext;
                     scriptComponent.ScriptableEntity.OnCreate();
                 }
             }

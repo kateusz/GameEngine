@@ -8,7 +8,7 @@ using Serilog;
 
 namespace Editor.Panels;
 
-public class SceneManager : ISceneManager
+public class SceneManager : ISceneManager, IEditorSceneManager, ISceneContext
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
 
@@ -16,12 +16,17 @@ public class SceneManager : ISceneManager
     public string? EditorScenePath { get; private set; }
     public IScene? CurrentScene { get; private set; }
 
-    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
+    // ISceneContext implementation
+    public IScene? ActiveScene => CurrentScene;
+    public SceneState State => SceneState;
+    public event Action<IScene?, IScene?>? SceneChanged;
+
+    private readonly Lazy<ISceneHierarchyPanel> _sceneHierarchyPanel;
     private readonly ISceneSerializer _sceneSerializer;
     private readonly SceneFactory _sceneFactory;
     private readonly IScriptEngine _scriptEngine;
 
-    public SceneManager(ISceneHierarchyPanel sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory, IScriptEngine scriptEngine)
+    public SceneManager(Lazy<ISceneHierarchyPanel> sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory, IScriptEngine scriptEngine)
     {
         _sceneHierarchyPanel = sceneHierarchyPanel;
         _sceneSerializer = sceneSerializer;
@@ -31,16 +36,16 @@ public class SceneManager : ISceneManager
 
     public void New(Vector2 viewportSize)
     {
+        var oldScene = CurrentScene;
+
         // Dispose old scene before creating new one
         CurrentScene?.Dispose();
 
         CurrentScene = _sceneFactory.Create("");
 
-        // Update script engine with the new scene
-        _scriptEngine.SetCurrentScene(CurrentScene);
-
         //CurrentScene.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene);
+        // SceneHierarchyPanel subscribes to SceneChanged event, so no need to call SetContext directly
+        SceneChanged?.Invoke(oldScene, CurrentScene);
         Logger.Information("📄 New scene created");
     }
 
@@ -49,6 +54,8 @@ public class SceneManager : ISceneManager
         if (SceneState != SceneState.Edit)
             Stop();
 
+        var oldScene = CurrentScene;
+
         // Dispose old scene before loading new one
         CurrentScene?.Dispose();
 
@@ -56,13 +63,11 @@ public class SceneManager : ISceneManager
 
         CurrentScene = _sceneFactory.Create(path);
 
-        // Update script engine with the new scene
-        _scriptEngine.SetCurrentScene(CurrentScene);
-
         //CurrentScene.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
-        _sceneHierarchyPanel.SetContext(CurrentScene);
-
         _sceneSerializer.Deserialize(CurrentScene, path);
+
+        // SceneHierarchyPanel subscribes to SceneChanged event, so no need to call SetContext directly
+        SceneChanged?.Invoke(oldScene, CurrentScene);
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
@@ -81,7 +86,7 @@ public class SceneManager : ISceneManager
     {
         SceneState = SceneState.Play;
         CurrentScene.OnRuntimeStart();
-        _sceneHierarchyPanel.SetContext(CurrentScene);
+        // SceneHierarchyPanel subscribes to SceneChanged event for UI updates
         Logger.Information("▶️ Scene play started");
     }
 
@@ -89,7 +94,7 @@ public class SceneManager : ISceneManager
     {
         SceneState = SceneState.Edit;
         CurrentScene.OnRuntimeStop();
-        _sceneHierarchyPanel.SetContext(CurrentScene);
+        // SceneHierarchyPanel subscribes to SceneChanged event for UI updates
         Logger.Information("⏹️ Scene play stopped");
     }
 
@@ -100,7 +105,7 @@ public class SceneManager : ISceneManager
 
         CurrentScene.OnRuntimeStop();
         CurrentScene.OnRuntimeStart();
-        _sceneHierarchyPanel.SetContext(CurrentScene);
+        // SceneHierarchyPanel subscribes to SceneChanged event for UI updates
         Logger.Information("🔄 Scene restarted");
     }
 
@@ -109,7 +114,7 @@ public class SceneManager : ISceneManager
         if (SceneState != SceneState.Edit)
             return;
 
-        var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
+        var selectedEntity = _sceneHierarchyPanel.Value.GetSelectedEntity();
         if (selectedEntity is not null && CurrentScene != null)
         {
             CurrentScene.DuplicateEntity(selectedEntity);
@@ -119,7 +124,7 @@ public class SceneManager : ISceneManager
 
     public void FocusOnSelectedEntity(IOrthographicCameraController cameraController)
     {
-        var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
+        var selectedEntity = _sceneHierarchyPanel.Value.GetSelectedEntity();
         if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
             cameraController.SetPosition(transform.Translation);

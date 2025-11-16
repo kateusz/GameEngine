@@ -8,16 +8,10 @@ namespace Engine.Scripting;
 /// <summary>
 /// Interface for the script engine responsible for compiling, managing, and executing C# scripts at runtime.
 /// Provides script compilation, hot-reloading, and lifecycle management for scriptable entities.
+/// Uses ISceneContext for scene access (injected via constructor).
 /// </summary>
 public interface IScriptEngine
 {
-    /// <summary>
-    /// Sets the current scene for script execution.
-    /// Required for dependency injection pattern - scripts need access to the active scene.
-    /// </summary>
-    /// <param name="scene">The active scene, or null to clear</param>
-    void SetCurrentScene(IScene? scene);
-
     /// <summary>
     /// Sets the directory where script files (.cs) are located and triggers recompilation.
     /// </summary>

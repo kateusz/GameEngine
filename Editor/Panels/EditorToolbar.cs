@@ -12,13 +12,15 @@ public class EditorToolbar
     private Texture2D _iconSelect = null!;
     private Texture2D _iconMove = null!;
     private Texture2D _iconScale = null!;
-    private readonly ISceneManager _sceneManager;
-    
+    private readonly ISceneContext _sceneContext;
+    private readonly IEditorSceneManager _editorSceneManager;
+
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
 
-    public EditorToolbar(ISceneManager sceneManager)
+    public EditorToolbar(ISceneContext sceneContext, IEditorSceneManager editorSceneManager)
     {
-        _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
+        _sceneContext = sceneContext ?? throw new ArgumentNullException(nameof(sceneContext));
+        _editorSceneManager = editorSceneManager ?? throw new ArgumentNullException(nameof(editorSceneManager));
     }
 
     public void Init()
@@ -105,23 +107,22 @@ public class EditorToolbar
         if (CurrentMode == EditorMode.Ruler)
             ImGui.PopStyleColor();
 
-        // Center: Play/Stop and Restart buttons
-        var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;
+        // Center: Play/Stop button
+        var icon = _sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
-        // Adjust position to account for both buttons
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - 30.0f);
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
         ImGui.SetCursorPosY(2.0f);
 
         if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(20, 20), new Vector2(0, 0),
                 new Vector2(1, 1)))
         {
-            switch (_sceneManager.SceneState)
+            switch (_sceneContext.State)
             {
                 case SceneState.Edit:
-                    _sceneManager.Play();
+                    _editorSceneManager.Play();
                     break;
                 case SceneState.Play:
-                    _sceneManager.Stop();
+                    _editorSceneManager.Stop();
                     break;
             }
         }
@@ -129,7 +130,7 @@ public class EditorToolbar
         // Restart button (only enabled when in Play mode)
         ImGui.SameLine();
 
-        bool isPlaying = _sceneManager.SceneState == SceneState.Play;
+        bool isPlaying = _sceneContext.State == SceneState.Play;
         if (!isPlaying)
         {
             ImGui.BeginDisabled();
@@ -137,7 +138,7 @@ public class EditorToolbar
 
         if (ImGui.Button("🔄", new Vector2(25, 24)))
         {
-            _sceneManager.Restart();
+            _editorSceneManager.Restart();
         }
 
         if (!isPlaying)
