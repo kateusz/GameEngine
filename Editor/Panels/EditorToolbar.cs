@@ -105,10 +105,11 @@ public class EditorToolbar
         if (CurrentMode == EditorMode.Ruler)
             ImGui.PopStyleColor();
 
-        // Center: Play/Stop button
+        // Center: Play/Stop and Restart buttons
         var icon = _sceneManager.SceneState == SceneState.Edit ? _iconPlay : _iconStop;
 
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
+        // Adjust position to account for both buttons
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - 30.0f);
         ImGui.SetCursorPosY(2.0f);
 
         if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(20, 20), new Vector2(0, 0),
@@ -123,6 +124,25 @@ public class EditorToolbar
                     _sceneManager.Stop();
                     break;
             }
+        }
+
+        // Restart button (only enabled when in Play mode)
+        ImGui.SameLine();
+
+        bool isPlaying = _sceneManager.SceneState == SceneState.Play;
+        if (!isPlaying)
+        {
+            ImGui.BeginDisabled();
+        }
+
+        if (ImGui.Button("🔄", new Vector2(25, 24)))
+        {
+            _sceneManager.Restart();
+        }
+
+        if (!isPlaying)
+        {
+            ImGui.EndDisabled();
         }
 
         ImGui.PopStyleVar(2);

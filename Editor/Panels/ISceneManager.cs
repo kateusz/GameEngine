@@ -55,6 +55,12 @@ public interface ISceneManager
     void Stop();
 
     /// <summary>
+    /// Restarts the scene by stopping and immediately starting play mode again.
+    /// Only works when already in play mode.
+    /// </summary>
+    void Restart();
+
+    /// <summary>
     /// Duplicates the currently selected entity in the scene hierarchy.
     /// Only works in edit mode.
     /// </summary>

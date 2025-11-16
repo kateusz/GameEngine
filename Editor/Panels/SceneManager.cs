@@ -93,6 +93,17 @@ public class SceneManager : ISceneManager
         Logger.Information("⏹️ Scene play stopped");
     }
 
+    public void Restart()
+    {
+        if (SceneState != SceneState.Play)
+            return;
+
+        CurrentScene.OnRuntimeStop();
+        CurrentScene.OnRuntimeStart();
+        _sceneHierarchyPanel.SetContext(CurrentScene);
+        Logger.Information("🔄 Scene restarted");
+    }
+
     public void DuplicateEntity()
     {
         if (SceneState != SceneState.Edit)
