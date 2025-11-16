@@ -27,6 +27,10 @@ public class SceneManager : ISceneManager
         _sceneSerializer = sceneSerializer;
         _sceneFactory = sceneFactory;
         _scriptEngine = scriptEngine;
+
+        // Inject this SceneManager into ScriptEngine to break circular dependency
+        // ScriptEngine is created with null, then we set it here after construction
+        _scriptEngine.SetSceneManager(this);
     }
 
     public void New(Vector2 viewportSize)

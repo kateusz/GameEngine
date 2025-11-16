@@ -40,7 +40,11 @@ static void ConfigureContainer(Container container)
 
     container.Register<EventBus, EventBus>(Reuse.Singleton);
     container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
-    container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
+
+    // Register ScriptEngine without auto-resolving ISceneManager to avoid circular dependency
+    // SceneManager -> IScriptEngine -> ISceneManager (circular!)
+    container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton,
+        made: Made.Of(() => new ScriptEngine(null)));
 
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
     container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);

@@ -12,6 +12,13 @@ namespace Engine.Scripting;
 public interface IScriptEngine
 {
     /// <summary>
+    /// Sets the scene manager for script execution.
+    /// Required for dependency injection pattern - breaks circular dependency between ScriptEngine and SceneManager.
+    /// </summary>
+    /// <param name="sceneManager">The scene manager instance, or null to clear</param>
+    void SetSceneManager(object? sceneManager);
+
+    /// <summary>
     /// Sets the current scene for script execution.
     /// Required for dependency injection pattern - scripts need access to the active scene.
     /// </summary>

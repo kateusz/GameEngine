@@ -39,6 +39,11 @@ public class ScriptEngine : IScriptEngine
         Directory.CreateDirectory(_scriptsDirectory);
     }
 
+    public void SetSceneManager(object? sceneManager)
+    {
+        _sceneManager = sceneManager as ISceneManager;
+    }
+
     public void SetCurrentScene(IScene? scene)
     {
         _currentSceneInstance = scene;
