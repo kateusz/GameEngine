@@ -34,6 +34,11 @@ public class ScriptableEntity
     /// </summary>
     public Entity Entity { get; set; }
 
+    /// <summary>
+    /// The scene manager for accessing the active scene
+    /// </summary>
+    internal object? SceneManager { get; set; }
+
     #region Lifecycle Methods
 
     /// <summary>
@@ -231,7 +236,8 @@ public class ScriptableEntity
     /// <returns>The entity if found, null otherwise</returns>
     protected Entity? FindEntity(string name)
     {
-        var currentScene = CurrentScene.Instance;
+        // Use dynamic to avoid circular dependency between Engine and Editor projects
+        var currentScene = (SceneManager as dynamic)?.CurrentScene as IScene;
         if (currentScene == null) return null;
 
         foreach (var entity in currentScene.Entities)
@@ -250,7 +256,8 @@ public class ScriptableEntity
     /// <returns>The newly created entity</returns>
     protected Entity CreateEntity(string name)
     {
-        return CurrentScene.Instance?.CreateEntity(name);
+        var currentScene = (SceneManager as dynamic)?.CurrentScene as IScene;
+        return currentScene?.CreateEntity(name);
     }
 
     /// <summary>
@@ -259,7 +266,8 @@ public class ScriptableEntity
     /// <param name="entity">The entity to destroy</param>
     protected void DestroyEntity(Entity entity)
     {
-        CurrentScene.Instance?.DestroyEntity(entity);
+        var currentScene = (SceneManager as dynamic)?.CurrentScene as IScene;
+        currentScene?.DestroyEntity(entity);
     }
 
     #endregion

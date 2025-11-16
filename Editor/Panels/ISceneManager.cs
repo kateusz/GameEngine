@@ -21,6 +21,11 @@ public interface ISceneManager
     string? EditorScenePath { get; }
 
     /// <summary>
+    /// Gets the currently active scene instance.
+    /// </summary>
+    IScene? CurrentScene { get; }
+
+    /// <summary>
     /// Creates a new empty scene.
     /// </summary>
     /// <param name="viewportSize">The size of the viewport for camera setup</param>
