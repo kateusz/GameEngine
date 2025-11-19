@@ -94,15 +94,9 @@ static void ConfigureContainer(Container container)
     container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
     container.Register<EntityContextMenu>(Reuse.Singleton);
     container.Register<PrefabDropTarget>(Reuse.Singleton);
-
-    // Scene management - SceneManager implements all three interfaces
-    // First register the concrete type as singleton
-    container.Register<SceneManager>(Reuse.Singleton);
-
-    // Then delegate all interfaces to resolve the same singleton instance
-    container.RegisterDelegate<ISceneManager>(r => r.Resolve<SceneManager>(), Reuse.Singleton);
-    container.RegisterDelegate<ISceneContext>(r => r.Resolve<SceneManager>(), Reuse.Singleton);
-    container.RegisterDelegate<IEditorSceneManager>(r => r.Resolve<SceneManager>(), Reuse.Singleton);
+    
+    container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
+    container.RegisterMany<SceneManager>(Reuse.Singleton);
 
     container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
     container.Register<ProjectUI>(Reuse.Singleton);
@@ -151,15 +145,15 @@ Log.Information("Program has started.");
 
 #if DEBUG
 // Enable script debugging in debug builds
-var scriptEngine = container.Resolve<IScriptEngine>();
-scriptEngine.EnableHybridDebugging(true);
-
-// Optional: Save debug symbols to disk for external debuggers
-var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
-Directory.CreateDirectory(symbolsPath);
-scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts"));
-
-scriptEngine.PrintDebugInfo();
+// var scriptEngine = container.Resolve<IScriptEngine>();
+// scriptEngine.EnableHybridDebugging(true);
+//
+// // Optional: Save debug symbols to disk for external debuggers
+// var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
+// Directory.CreateDirectory(symbolsPath);
+// scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts"));
+//
+// scriptEngine.PrintDebugInfo();
 #endif
 
 var editor = container.Resolve<Editor.Editor>();

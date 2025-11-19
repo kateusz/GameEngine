@@ -1,73 +1,45 @@
-using System.Numerics;
-using Engine.Renderer.Cameras;
+using ECS;
 using Engine.Scene;
-using Engine.Scene.Components;
 using Engine.Scene.Serializer;
-using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Panels;
 
-public class SceneManager : ISceneManager, IEditorSceneManager, ISceneContext
+public class SceneManager : ISceneManager, IEditorSceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
 
-    public SceneState SceneState { get; private set; } = SceneState.Edit;
     public string? EditorScenePath { get; private set; }
-    public IScene? CurrentScene { get; private set; }
 
-    // ISceneContext implementation
-    public IScene? ActiveScene => CurrentScene;
-    public SceneState State => SceneState;
-    public event Action<IScene?, IScene?>? SceneChanged;
-
-    private readonly Lazy<ISceneHierarchyPanel> _sceneHierarchyPanel;
+    private readonly ISceneContext _sceneContext;
     private readonly ISceneSerializer _sceneSerializer;
     private readonly SceneFactory _sceneFactory;
-    private readonly IScriptEngine _scriptEngine;
 
-    public SceneManager(Lazy<ISceneHierarchyPanel> sceneHierarchyPanel, ISceneSerializer sceneSerializer, SceneFactory sceneFactory, IScriptEngine scriptEngine)
+    public SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSerializer, SceneFactory sceneFactory)
     {
-        _sceneHierarchyPanel = sceneHierarchyPanel;
+        _sceneContext = sceneContext;
         _sceneSerializer = sceneSerializer;
         _sceneFactory = sceneFactory;
-        _scriptEngine = scriptEngine;
     }
 
-    public void New(Vector2 viewportSize)
+    public void New()
     {
-        var oldScene = CurrentScene;
+        _sceneContext.ActiveScene?.Dispose();
 
-        // Dispose old scene before creating new one
-        CurrentScene?.Dispose();
-
-        CurrentScene = _sceneFactory.Create("");
-
-        //CurrentScene.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
-        // SceneHierarchyPanel subscribes to SceneChanged event, so no need to call SetContext directly
-        SceneChanged?.Invoke(oldScene, CurrentScene);
+        _sceneContext.SetScene(_sceneFactory.Create(""));
         Logger.Information("📄 New scene created");
     }
 
-    public void Open(Vector2 viewportSize, string path)
+    public void Open(string path)
     {
-        if (SceneState != SceneState.Edit)
+        if (_sceneContext.State != SceneState.Edit)
             Stop();
 
-        var oldScene = CurrentScene;
-
-        // Dispose old scene before loading new one
-        CurrentScene?.Dispose();
+        _sceneContext.ActiveScene.Dispose();
 
         EditorScenePath = path;
-
-        CurrentScene = _sceneFactory.Create(path);
-
-        //CurrentScene.OnViewportResize((uint)viewportSize.X, (uint)viewportSize.Y);
-        _sceneSerializer.Deserialize(CurrentScene, path);
-
-        // SceneHierarchyPanel subscribes to SceneChanged event, so no need to call SetContext directly
-        SceneChanged?.Invoke(oldScene, CurrentScene);
+        _sceneContext.SetScene(_sceneFactory.Create(path));
+        _sceneSerializer.Deserialize(_sceneContext.ActiveScene!, path);
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
@@ -78,56 +50,37 @@ public class SceneManager : ISceneManager, IEditorSceneManager, ISceneContext
             Directory.CreateDirectory(sceneDir);
 
         EditorScenePath = Path.Combine(sceneDir, "scene.scene");
-        _sceneSerializer.Serialize(CurrentScene, EditorScenePath);
+        _sceneSerializer.Serialize(_sceneContext.ActiveScene, EditorScenePath);
         Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }
 
     public void Play()
     {
-        SceneState = SceneState.Play;
-        CurrentScene.OnRuntimeStart();
-        // SceneHierarchyPanel subscribes to SceneChanged event for UI updates
+        _sceneContext.SetState(SceneState.Play);
+        _sceneContext.ActiveScene.OnRuntimeStart();
         Logger.Information("▶️ Scene play started");
     }
 
     public void Stop()
     {
-        SceneState = SceneState.Edit;
-        CurrentScene.OnRuntimeStop();
-        // SceneHierarchyPanel subscribes to SceneChanged event for UI updates
+        _sceneContext.SetState(SceneState.Edit);
+        _sceneContext.ActiveScene.OnRuntimeStop();
         Logger.Information("⏹️ Scene play stopped");
     }
 
     public void Restart()
     {
-        if (SceneState != SceneState.Play)
-            return;
-
-        CurrentScene.OnRuntimeStop();
-        CurrentScene.OnRuntimeStart();
-        // SceneHierarchyPanel subscribes to SceneChanged event for UI updates
+        Open(EditorScenePath!);
+        //_sceneContext.ActiveScene.OnRuntimeStart();
         Logger.Information("🔄 Scene restarted");
     }
 
-    public void DuplicateEntity()
+    public void DuplicateEntity(Entity entity)
     {
-        if (SceneState != SceneState.Edit)
+        if (_sceneContext.State != SceneState.Edit)
             return;
 
-        var selectedEntity = _sceneHierarchyPanel.Value.GetSelectedEntity();
-        if (selectedEntity is not null && CurrentScene != null)
-        {
-            CurrentScene.DuplicateEntity(selectedEntity);
-            Logger.Information("📋 Entity duplicated: {EntityName}", selectedEntity.Name);
-        }
-    }
-
-    public void FocusOnSelectedEntity(IOrthographicCameraController cameraController)
-    {
-        var selectedEntity = _sceneHierarchyPanel.Value.GetSelectedEntity();
-        if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
-        {
-            cameraController.SetPosition(transform.Translation);
-        }
+        _sceneContext.ActiveScene?.DuplicateEntity(entity);
+        Logger.Information("📋 Entity duplicated: {EntityName}", entity.Name);
     }
 }

@@ -68,6 +68,7 @@ public class EditorLayer : ILayer
     private Entity? _hoveredEntity;
     private ISystemManager _editorSystems;
     private EditorCameraSystem _editorCameraSystem;
+    private Entity _selectedEntity;
 
     public EditorLayer(IProjectManager projectManager,
         IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
@@ -101,6 +102,11 @@ public class EditorLayer : ILayer
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
         _scriptComponentUI = new ScriptComponentUI(scriptEngine);
+        
+        _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
+        _editorToolbar.OnPlayScene += () => _sceneManager.Play();
+        _editorToolbar.OnStopScene += () => _sceneManager.Stop();
+        _editorToolbar.OnRestartScene += () => _sceneManager.Restart();
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -120,7 +126,7 @@ public class EditorLayer : ILayer
         };
         _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
 
-        _sceneManager.New(_viewportSize);
+        _sceneManager.New();
 
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
 
@@ -193,7 +199,7 @@ public class EditorLayer : ILayer
         // File operations
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.N, KeyModifiers.CtrlOnly,
-            () => _sceneManager.New(_viewportSize),
+            () => _sceneManager.New(),
             "New scene", "File"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
@@ -203,19 +209,15 @@ public class EditorLayer : ILayer
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.D, KeyModifiers.CtrlOnly,
-            () => _sceneManager.DuplicateEntity(),
+            () => _sceneManager.DuplicateEntity(_selectedEntity),
             "Duplicate entity", "Edit"));
-
-        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.F, KeyModifiers.CtrlOnly,
-            () => _sceneManager.FocusOnSelectedEntity(_cameraController),
-            "Focus on selected entity", "View"));
 
         Logger.Debug("Registered {Count} keyboard shortcuts", _shortcutManager.Shortcuts.Count);
     }
 
     private void EntitySelected(Entity entity)
     {
+        _selectedEntity = entity;
         // Center camera on selected entity
         if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
         {
@@ -462,7 +464,7 @@ public class EditorLayer : ILayer
                 if (ImGui.BeginMenu("Scene..."))
                 {
                     if (ImGui.MenuItem("New", "Ctrl+N"))
-                        _sceneManager.New(_viewportSize);
+                        _sceneManager.New();
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
                         _sceneManager.Save(_projectManager.ScenesDir);
                     ImGui.EndMenu();
@@ -470,8 +472,6 @@ public class EditorLayer : ILayer
 
                 if (ImGui.BeginMenu("View"))
                 {
-                    if (ImGui.MenuItem("Focus on Selected", "Ctrl+F"))
-                        _sceneManager.FocusOnSelectedEntity(_cameraController);
                     if (ImGui.MenuItem("Reset Camera"))
                         ResetCamera();
                     
@@ -554,7 +554,7 @@ public class EditorLayer : ILayer
                         {
                             var path = Marshal.PtrToStringUni(payload.Data);
                             if (path is not null)
-                                _sceneManager.Open(_viewportSize, Path.Combine(AssetsManager.AssetsPath, path));
+                                _sceneManager.Open(Path.Combine(AssetsManager.AssetsPath, path));
                         }
                         ImGui.EndDragDropTarget();
                     }
