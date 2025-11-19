@@ -1,4 +1,5 @@
 using System.Numerics;
+using ECS;
 using Engine.Renderer.Cameras;
 
 namespace Editor.Panels;
@@ -12,15 +13,13 @@ public interface ISceneManager
     /// <summary>
     /// Creates a new empty scene.
     /// </summary>
-    /// <param name="viewportSize">The size of the viewport for camera setup</param>
-    void New(Vector2 viewportSize);
+    void New();
 
     /// <summary>
     /// Opens an existing scene from the specified path.
     /// </summary>
-    /// <param name="viewportSize">The size of the viewport for camera setup</param>
     /// <param name="path">Path to the scene file</param>
-    void Open(Vector2 viewportSize, string path);
+    void Open(string path);
 
     /// <summary>
     /// Saves the current scene to disk.
@@ -48,11 +47,5 @@ public interface ISceneManager
     /// Duplicates the currently selected entity in the scene hierarchy.
     /// Only works in edit mode.
     /// </summary>
-    void DuplicateEntity();
-
-    /// <summary>
-    /// Moves the editor camera to focus on the currently selected entity.
-    /// </summary>
-    /// <param name="cameraController">The camera controller to update</param>
-    void FocusOnSelectedEntity(IOrthographicCameraController cameraController);
+    void DuplicateEntity(Entity entity);
 }

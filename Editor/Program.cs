@@ -94,14 +94,9 @@ static void ConfigureContainer(Container container)
     container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
     container.Register<EntityContextMenu>(Reuse.Singleton);
     container.Register<PrefabDropTarget>(Reuse.Singleton);
-
-    // Scene context - provides read-only access to active scene
+    
     container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
-
-    // Scene management - depends on SceneContext
-    container.Register<SceneManager>(Reuse.Singleton);
-    container.Register<ISceneManager, SceneManager>(Reuse.Singleton);
-    container.Register<IEditorSceneManager, SceneManager>(Reuse.Singleton);
+    container.RegisterMany<SceneManager>(Reuse.Singleton);
 
     container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
     container.Register<ProjectUI>(Reuse.Singleton);

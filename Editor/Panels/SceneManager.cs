@@ -1,5 +1,4 @@
-using System.Numerics;
-using Engine.Renderer.Cameras;
+using ECS;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Serilog;
@@ -23,7 +22,7 @@ public class SceneManager : ISceneManager, IEditorSceneManager
         _sceneFactory = sceneFactory;
     }
 
-    public void New(Vector2 viewportSize)
+    public void New()
     {
         _sceneContext.ActiveScene?.Dispose();
 
@@ -31,12 +30,12 @@ public class SceneManager : ISceneManager, IEditorSceneManager
         Logger.Information("📄 New scene created");
     }
 
-    public void Open(Vector2 viewportSize, string path)
+    public void Open(string path)
     {
         if (_sceneContext.State != SceneState.Edit)
             Stop();
-        
-        _sceneContext.ActiveScene?.Dispose();
+
+        _sceneContext.ActiveScene.Dispose();
 
         EditorScenePath = path;
         _sceneContext.SetScene(_sceneFactory.Create(path));
@@ -71,33 +70,17 @@ public class SceneManager : ISceneManager, IEditorSceneManager
 
     public void Restart()
     {
-        if (_sceneContext.State != SceneState.Play)
-            return;
-
-        _sceneContext.ActiveScene.OnRuntimeStop();
-        _sceneContext.ActiveScene.OnRuntimeStart();
+        Open(EditorScenePath!);
+        //_sceneContext.ActiveScene.OnRuntimeStart();
         Logger.Information("🔄 Scene restarted");
     }
 
-    public void DuplicateEntity()
+    public void DuplicateEntity(Entity entity)
     {
         if (_sceneContext.State != SceneState.Edit)
             return;
 
-        // var selectedEntity = _sceneHierarchyPanel.Value.GetSelectedEntity();
-        // if (selectedEntity is not null && CurrentScene != null)
-        // {
-        //     CurrentScene.DuplicateEntity(selectedEntity);
-        //     Logger.Information("📋 Entity duplicated: {EntityName}", selectedEntity.Name);
-        // }
-    }
-
-    public void FocusOnSelectedEntity(IOrthographicCameraController cameraController)
-    {
-        // var selectedEntity = _sceneHierarchyPanel.Value.GetSelectedEntity();
-        // if (selectedEntity != null && selectedEntity.TryGetComponent<TransformComponent>(out var transform))
-        // {
-        //     cameraController.SetPosition(transform.Translation);
-        // }
+        _sceneContext.ActiveScene?.DuplicateEntity(entity);
+        Logger.Information("📋 Entity duplicated: {EntityName}", entity.Name);
     }
 }

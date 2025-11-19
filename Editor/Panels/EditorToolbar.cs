@@ -22,6 +22,7 @@ public class EditorToolbar
 
     public event Action OnPlayScene;
     public event Action OnStopScene;
+    public event Action OnRestartScene;
 
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
     
@@ -127,25 +128,13 @@ public class EditorToolbar
                     break;
             }
         }
-
-        // Restart button (only enabled when in Play mode)
+        
         ImGui.SameLine();
-
-        // bool isPlaying = _sceneContext.State == SceneState.Play;
-        // if (!isPlaying)
-        // {
-        //     ImGui.BeginDisabled();
-        // }
-        //
-        // if (ImGui.Button("🔄", new Vector2(25, 24)))
-        // {
-        //     _editorSceneManager.Restart();
-        // }
-        //
-        // if (!isPlaying)
-        // {
-        //     ImGui.EndDisabled();
-        // }
+        
+        if (ImGui.Button("🔄", new Vector2(25, 24)))
+        {
+            OnRestartScene();
+        }
 
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);
