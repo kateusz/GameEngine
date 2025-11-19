@@ -11,9 +11,8 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 {
     private readonly EntityContextMenu _contextMenu;
     private readonly PrefabDropTarget _prefabDropTarget;
-    private readonly ISceneContext _sceneContext;
 
-    private IScene _context = null!;
+    private IScene _scene;
     private Entity? _selectionContext;
 
     // Search/Filter state
@@ -23,31 +22,15 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 
     public Action<Entity> EntitySelected { get; set; } = null!;
 
-    public SceneHierarchyPanel(ISceneContext sceneContext, EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
+    public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
     {
-        _sceneContext = sceneContext;
         _contextMenu = contextMenu;
         _prefabDropTarget = prefabDropTarget;
-
-        // Subscribe to scene changes
-        _sceneContext.SceneChanged += OnSceneChanged;
-
-        // Initialize with current scene if available
-        if (_sceneContext.ActiveScene != null)
-        {
-            _context = _sceneContext.ActiveScene;
-        }
     }
-
-    private void OnSceneChanged(IScene? oldScene, IScene? newScene)
+    
+    public void SetScene(IScene scene)
     {
-        _context = newScene;
-        _selectionContext = null;
-    }
-
-    public void SetContext(IScene context)
-    {
-        _context = context;
+        _scene = scene;
         _selectionContext = null;
     }
 
@@ -66,7 +49,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
             _selectionContext = null;
 
-        _contextMenu.Render(_context);
+        _contextMenu.Render(_scene);
 
         ImGui.End();
     }
@@ -107,7 +90,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 
         if (entityDeleted)
         {
-            _context.DestroyEntity(entity);
+            _scene.DestroyEntity(entity);
             if (Equals(_selectionContext, entity))
                 _selectionContext = null;
         }
@@ -146,7 +129,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     private void RenderFilterStatus()
     {
         var matchCount = CountDirectMatches();
-        var totalCount = _context.Entities.Count();
+        var totalCount = _scene.Entities.Count();
 
         var statusText = $"🔍 Filtering: {matchCount} of {totalCount} entities";
 
@@ -174,7 +157,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         }
         else
         {
-            foreach (var entity in _context.Entities)
+            foreach (var entity in _scene?.Entities ?? [])
             {
                 DrawEntityNode(entity);
             }
@@ -213,7 +196,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 
         var normalizedQuery = query.Trim().ToLowerInvariant();
 
-        foreach (var entity in _context.Entities)
+        foreach (var entity in _scene.Entities)
         {
             if (MatchesFilter(entity, normalizedQuery))
             {

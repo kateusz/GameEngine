@@ -101,6 +101,10 @@ public class EditorLayer : ILayer
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
         _scriptComponentUI = new ScriptComponentUI(scriptEngine);
+        
+        _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
+        _editorToolbar.OnPlayScene += () => _sceneManager.Play();
+        _editorToolbar.OnStopScene += () => _sceneManager.Stop();
     }
 
     public void OnAttach(IInputSystem inputSystem)

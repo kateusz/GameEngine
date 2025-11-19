@@ -1,6 +1,5 @@
 using System.Numerics;
 using Engine.Renderer.Cameras;
-using Engine.Scene;
 
 namespace Editor.Panels;
 
@@ -10,21 +9,6 @@ namespace Editor.Panels;
 /// </summary>
 public interface ISceneManager
 {
-    /// <summary>
-    /// Gets the current scene state (Edit or Play).
-    /// </summary>
-    SceneState SceneState { get; }
-
-    /// <summary>
-    /// Gets the file path of the currently loaded editor scene.
-    /// </summary>
-    string? EditorScenePath { get; }
-
-    /// <summary>
-    /// Gets the currently active scene instance.
-    /// </summary>
-    IScene? CurrentScene { get; }
-
     /// <summary>
     /// Creates a new empty scene.
     /// </summary>
