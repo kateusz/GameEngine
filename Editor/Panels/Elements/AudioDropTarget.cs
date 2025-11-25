@@ -13,10 +13,12 @@ namespace Editor.Panels.Elements;
 public class AudioDropTarget
 {
     private readonly IAudioEngine _audioEngine;
+    private readonly IAssetsManager _assetsManager;
 
-    public AudioDropTarget(IAudioEngine audioEngine)
+    public AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsManager)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+        _assetsManager = assetsManager ?? throw new ArgumentNullException(nameof(assetsManager));
     }
 
     /// <summary>
@@ -51,7 +53,7 @@ public class AudioDropTarget
                         var path = Marshal.PtrToStringUni(payload.Data);
                         if (path is not null)
                         {
-                            string audioPath = Path.Combine(AssetsManager.AssetsPath, path);
+                            string audioPath = Path.Combine(_assetsManager.AssetsPath, path);
 
                             // Validate that the file exists and is a supported audio format
                             if (File.Exists(audioPath) && AudioClipFactory.IsSupportedFormat(audioPath))

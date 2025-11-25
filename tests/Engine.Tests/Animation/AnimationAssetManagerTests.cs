@@ -9,11 +9,19 @@ namespace Engine.Tests.Animation;
 /// </summary>
 public class AnimationAssetManagerTests
 {
+    private class MockAssetsManager : IAssetsManager
+    {
+        public string AssetsPath => Path.Combine(Environment.CurrentDirectory, "assets");
+        public void SetAssetsPath(string path) { }
+    }
+
+    private static AnimationAssetManager CreateManager() => new(new MockAssetsManager());
+
     [Fact]
     public void IsCached_WithNonLoadedAsset_ReturnsFalse()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act
@@ -27,7 +35,7 @@ public class AnimationAssetManagerTests
     public void GetReferenceCount_WithNonLoadedAsset_ReturnsZero()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act
@@ -41,7 +49,7 @@ public class AnimationAssetManagerTests
     public void GetCachedAssetCount_WithNoAssets_ReturnsZero()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act
@@ -55,7 +63,7 @@ public class AnimationAssetManagerTests
     public void GetTotalMemoryUsage_WithNoAssets_ReturnsZero()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act
@@ -69,7 +77,7 @@ public class AnimationAssetManagerTests
     public void ClearAllAssets_RemovesAllCachedAssets()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
 
         // Act
         manager.ClearAllAssets();
@@ -83,7 +91,7 @@ public class AnimationAssetManagerTests
     public void UnloadAsset_WithNonExistentAsset_DoesNotThrow()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act & Assert - Should not throw
@@ -94,7 +102,7 @@ public class AnimationAssetManagerTests
     public void ClearUnusedAssets_WithNoAssets_DoesNotThrow()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act & Assert - Should not throw
@@ -108,11 +116,19 @@ public class AnimationAssetManagerTests
 /// </summary>
 public class AnimationAssetManagerStateTests
 {
+    private class MockAssetsManager : IAssetsManager
+    {
+        public string AssetsPath => Path.Combine(Environment.CurrentDirectory, "assets");
+        public void SetAssetsPath(string path) { }
+    }
+
+    private static AnimationAssetManager CreateManager() => new(new MockAssetsManager());
+
     [Fact]
     public void Manager_StartsWithEmptyCache()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Assert
@@ -125,7 +141,7 @@ public class AnimationAssetManagerStateTests
     public void ClearAllAssets_IsIdempotent()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
 
         // Act
         manager.ClearAllAssets();
@@ -140,7 +156,7 @@ public class AnimationAssetManagerStateTests
     public void UnloadAsset_OnNonExistentAsset_IsIdempotent()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act
@@ -156,7 +172,7 @@ public class AnimationAssetManagerStateTests
     public void ClearUnusedAssets_WithNoAssets_IsIdempotent()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act
@@ -171,7 +187,7 @@ public class AnimationAssetManagerStateTests
     public void GetTotalMemoryUsage_WithEmptyCache_ReturnsZero()
     {
         // Arrange
-        var manager = new AnimationAssetManager();
+        var manager = CreateManager();
         manager.ClearAllAssets();
 
         // Act

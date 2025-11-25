@@ -24,20 +24,23 @@ public class RecentProjectsWindow
     private readonly IProjectManager _projectManager;
     private readonly IContentBrowserPanel _contentBrowserPanel;
     private readonly ProjectUI _projectUI;
+    private readonly IAssetsManager _assetsManager;
     private string? _projectToRemove;
     private float _loadingSpinnerRotation;
-    
+
 
     public RecentProjectsWindow(
         IEditorPreferences editorPreferences,
         IProjectManager projectManager,
         IContentBrowserPanel contentBrowserPanel,
-        ProjectUI projectUI)
+        ProjectUI projectUI,
+        IAssetsManager assetsManager)
     {
         _editorPreferences = editorPreferences;
         _projectManager = projectManager;
         _contentBrowserPanel = contentBrowserPanel;
         _projectUI = projectUI;
+        _assetsManager = assetsManager;
     }
 
     public void Draw()
@@ -209,7 +212,7 @@ public class RecentProjectsWindow
             {
                 if (_projectManager.TryOpenProject(project.Path, out var error))
                 {
-                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                    _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
                     Logger.Information("Opened project: {Name}", project.Name);
                     
                     // Close window on next frame

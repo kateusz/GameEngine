@@ -13,7 +13,7 @@ namespace Engine.Renderer;
 
 public class Graphics2D : IGraphics2D
 {
-    private readonly IRendererAPI _rendererApi = RendererApiFactory.Create();
+    private readonly IRendererAPI _rendererApi;
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
     private bool _disposed;
@@ -27,6 +27,11 @@ public class Graphics2D : IGraphics2D
             new Vector2(1.0f, 1.0f),
             new Vector2(0.0f, 1.0f)
         ];
+    }
+
+    public Graphics2D(IRendererAPI rendererApi)
+    {
+        _rendererApi = rendererApi ?? throw new ArgumentNullException(nameof(rendererApi));
     }
 
     public void Init()

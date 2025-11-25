@@ -9,10 +9,12 @@ namespace Editor.Panels.ComponentEditors;
 public class TileMapComponentEditor : IComponentEditor
 {
     private readonly TileMapPanel _tileMapPanel;
+    private readonly IAssetsManager _assetsManager;
 
-    public TileMapComponentEditor(TileMapPanel tileMapPanel)
+    public TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager)
     {
         _tileMapPanel = tileMapPanel;
+        _assetsManager = assetsManager;
     }
 
     public void DrawComponent(Entity entity)
@@ -50,7 +52,7 @@ public class TileMapComponentEditor : IComponentEditor
             if (ImGui.InputText("TileSet Path", ref tileSetPath, 512))
             {
                 // TODO
-                component.TileSetPath = AssetsManager.AssetsPath + "//textures//spritesheet." + tileSetPath;
+                component.TileSetPath = _assetsManager.AssetsPath + "//textures//spritesheet." + tileSetPath;
             }
 
             if (ImGui.Button("Browse..."))

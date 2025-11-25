@@ -7,7 +7,6 @@ using Editor.Panels;
 using Editor.Popups;
 using Editor.Systems;
 using Editor.UI;
-using Editor.Utilities;
 using Editor.Windows;
 using Engine;
 using Engine.Core;
@@ -43,7 +42,7 @@ public class EditorLayer : ILayer
     private readonly IEditorPreferences _editorPreferences;
     private readonly RendererStatsPanel _rendererStatsPanel;
     private readonly EditorToolbar _editorToolbar;
-    private readonly PerformanceMonitorUI _performanceMonitor = new();
+    private readonly PerformanceMonitorUI _performanceMonitor;
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
     private readonly SceneFactory _sceneFactory;
@@ -55,6 +54,8 @@ public class EditorLayer : ILayer
     private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
     private readonly IScriptEngine _scriptEngine;
     private readonly ScriptComponentUI _scriptComponentUI;
+    private readonly DebugSettings _debugSettings;
+    private readonly IAssetsManager _assetsManager;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -78,7 +79,8 @@ public class EditorLayer : ILayer
         IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel, SceneFactory sceneFactory,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
-        IScriptEngine scriptEngine)
+        IScriptEngine scriptEngine, DebugSettings debugSettings, PerformanceMonitorUI performanceMonitor,
+        IAssetsManager assetsManager)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -102,6 +104,9 @@ public class EditorLayer : ILayer
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
         _scriptComponentUI = new ScriptComponentUI(scriptEngine);
+        _debugSettings = debugSettings;
+        _performanceMonitor = performanceMonitor;
+        _assetsManager = assetsManager;
         
         _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
         _editorToolbar.OnPlayScene += () => _sceneManager.Play();
@@ -158,9 +163,9 @@ public class EditorLayer : ILayer
     /// </summary>
     private void ApplyEditorSettings()
     {
-        // Apply debug settings to DebugSettings singleton
-        DebugSettings.Instance.ShowColliderBounds = _editorPreferences.ShowColliderBounds;
-        DebugSettings.Instance.ShowFPS = _editorPreferences.ShowFPS;
+        // Apply debug settings
+        _debugSettings.ShowColliderBounds = _editorPreferences.ShowColliderBounds;
+        _debugSettings.ShowFPS = _editorPreferences.ShowFPS;
 
         Logger.Debug("Applied editor settings from preferences");
     }
@@ -427,7 +432,7 @@ public class EditorLayer : ILayer
                                 {
                                     if (_projectManager.TryOpenProject(recent.Path, out var error))
                                     {
-                                        _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                                        _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
                                     }
                                     else
                                     {
@@ -554,7 +559,7 @@ public class EditorLayer : ILayer
                         {
                             var path = Marshal.PtrToStringUni(payload.Data);
                             if (path is not null)
-                                _sceneManager.Open(Path.Combine(AssetsManager.AssetsPath, path));
+                                _sceneManager.Open(Path.Combine(_assetsManager.AssetsPath, path));
                         }
                         ImGui.EndDragDropTarget();
                     }

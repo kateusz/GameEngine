@@ -42,6 +42,15 @@ static void ConfigureContainer(Container container)
     container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
     container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
 
+    // Core engine services
+    container.Register<DebugSettings>(Reuse.Singleton);
+    container.Register<Engine.IAssetsManager, Engine.AssetsManager>(Reuse.Singleton);
+
+    // Renderer API (factory-created singleton)
+    container.Register<IRendererAPI>(Reuse.Singleton,
+        made: Made.Of(() => Engine.Renderer.RendererApiFactory.Create())
+    );
+
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
     container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
     container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
@@ -72,6 +81,7 @@ static void ConfigureContainer(Container container)
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
     container.Register<AudioDropTarget>(Reuse.Singleton);
+    container.Register<PerformanceMonitorUI>(Reuse.Singleton);
     
     container.Register<TransformComponentEditor>(Reuse.Singleton);
     container.Register<CameraComponentEditor>(Reuse.Singleton);
@@ -145,15 +155,15 @@ Log.Information("Program has started.");
 
 #if DEBUG
 // Enable script debugging in debug builds
-// var scriptEngine = container.Resolve<IScriptEngine>();
-// scriptEngine.EnableHybridDebugging(true);
-//
-// // Optional: Save debug symbols to disk for external debuggers
-// var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
-// Directory.CreateDirectory(symbolsPath);
-// scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts"));
-//
-// scriptEngine.PrintDebugInfo();
+var scriptEngine = container.Resolve<IScriptEngine>();
+scriptEngine.EnableHybridDebugging(true);
+
+// Optional: Save debug symbols to disk for external debuggers
+var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
+Directory.CreateDirectory(symbolsPath);
+scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts"));
+
+scriptEngine.PrintDebugInfo();
 #endif
 
 var editor = container.Resolve<Editor.Editor>();

@@ -12,10 +12,12 @@ public class PrefabDropTarget
     private static readonly ILogger Logger = Log.ForContext(typeof(PrefabDropTarget));
 
     private readonly IPrefabSerializer _prefabSerializer;
+    private readonly IAssetsManager _assetsManager;
 
-    public PrefabDropTarget(IPrefabSerializer prefabSerializer)
+    public PrefabDropTarget(IPrefabSerializer prefabSerializer, IAssetsManager assetsManager)
     {
         _prefabSerializer = prefabSerializer;
+        _assetsManager = assetsManager;
     }
 
     public void HandleEntityDrop(Entity entity)
@@ -32,7 +34,7 @@ public class PrefabDropTarget
                     {
                         try
                         {
-                            var fullPath = Path.Combine(AssetsManager.AssetsPath, path);
+                            var fullPath = Path.Combine(_assetsManager.AssetsPath, path);
                             _prefabSerializer.ApplyPrefabToEntity(entity, fullPath);
                             Logger.Information("Applied prefab {Path} to entity {EntityName}", path, entity.Name);
                         }

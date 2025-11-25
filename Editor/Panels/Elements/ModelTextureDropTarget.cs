@@ -13,7 +13,8 @@ public static class ModelTextureDropTarget
     /// </summary>
     /// <param name="label">Label for the button</param>
     /// <param name="onTextureChanged">Callback invoked when a texture is dropped</param>
-    public static void Draw(string label, Action<Texture2D> onTextureChanged)
+    /// <param name="assetsManager">Assets manager for resolving asset paths</param>
+    public static void Draw(string label, Action<Texture2D> onTextureChanged, IAssetsManager assetsManager)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -32,7 +33,7 @@ public static class ModelTextureDropTarget
                         var path = Marshal.PtrToStringUni(payload.Data);
                         if (path is not null)
                         {
-                            string texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                            string texturePath = Path.Combine(assetsManager.AssetsPath, path);
                             if (File.Exists(texturePath) &&
                                 (texturePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
                                  texturePath.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)))

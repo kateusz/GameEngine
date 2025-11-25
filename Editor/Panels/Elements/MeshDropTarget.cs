@@ -8,7 +8,7 @@ namespace Editor.Panels.Elements;
 
 public static class MeshDropTarget
 {
-    public static void Draw(MeshComponent meshComponent)
+    public static void Draw(MeshComponent meshComponent, IAssetsManager assetsManager)
     {
         if (ImGui.BeginDragDropTarget())
         {
@@ -20,7 +20,7 @@ public static class MeshDropTarget
                     var path = Marshal.PtrToStringUni(payload.Data);
                     if (path is not null && path.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
                     {
-                        string fullPath = Path.Combine(AssetsManager.AssetsPath, path);
+                        string fullPath = Path.Combine(assetsManager.AssetsPath, path);
                         var mesh = MeshFactory.Create(fullPath);
                         mesh.Initialize();
                         meshComponent.SetMesh(mesh);

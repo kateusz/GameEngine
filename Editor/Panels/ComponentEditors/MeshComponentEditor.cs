@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Editor.Panels.Elements;
+using Engine;
 using Engine.Renderer.Models;
 using Engine.Scene.Components;
 using ImGuiNET;
@@ -10,6 +11,13 @@ namespace Editor.Panels.ComponentEditors;
 
 public class MeshComponentEditor : IComponentEditor
 {
+    private readonly IAssetsManager _assetsManager;
+
+    public MeshComponentEditor(IAssetsManager assetsManager)
+    {
+        _assetsManager = assetsManager;
+    }
+
     public void DrawComponent(Entity e)
     {
         ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", e, entity =>
@@ -31,7 +39,7 @@ public class MeshComponentEditor : IComponentEditor
             ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
             ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
 
-            MeshDropTarget.Draw(meshComponent);
+            MeshDropTarget.Draw(meshComponent, _assetsManager);
         });
     }
 }

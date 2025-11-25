@@ -10,10 +10,12 @@ public class EditorSettingsUI
     private bool _open;
 
     private readonly IEditorPreferences _editorPreferences;
+    private readonly DebugSettings _debugSettings;
 
-    public EditorSettingsUI(IEditorPreferences editorPreferences)
+    public EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings)
     {
         _editorPreferences = editorPreferences;
+        _debugSettings = debugSettings;
     }
 
     public void Show() => _open = true;
@@ -51,7 +53,7 @@ public class EditorSettingsUI
         if (ImGui.Checkbox("Show Collider Bounds", ref showColliders))
         {
             _editorPreferences.ShowColliderBounds = showColliders;
-            DebugSettings.Instance.ShowColliderBounds = showColliders;
+            _debugSettings.ShowColliderBounds = showColliders;
             _editorPreferences.Save();
         }
 
@@ -59,7 +61,7 @@ public class EditorSettingsUI
         if (ImGui.Checkbox("Show FPS Counter", ref showFps))
         {
             _editorPreferences.ShowFPS = showFps;
-            DebugSettings.Instance.ShowFPS = showFps;
+            _debugSettings.ShowFPS = showFps;
             _editorPreferences.Save();
         }
 

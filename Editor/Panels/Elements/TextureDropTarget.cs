@@ -8,7 +8,7 @@ namespace Editor.Panels.Elements;
 
 public static class TextureDropTarget
 {
-    public static void Draw(string label, Action<Texture2D> onTextureChanged)
+    public static void Draw(string label, Action<Texture2D> onTextureChanged, IAssetsManager assetsManager)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -27,7 +27,7 @@ public static class TextureDropTarget
                         var path = Marshal.PtrToStringUni(payload.Data);
                         if (path is not null)
                         {
-                            var texturePath = Path.Combine(AssetsManager.AssetsPath, path);
+                            var texturePath = Path.Combine(assetsManager.AssetsPath, path);
                             if (File.Exists(texturePath) &&
                                 (texturePath.EndsWith(".png") || texturePath.EndsWith(".jpg")))
                             {

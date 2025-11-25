@@ -1,5 +1,6 @@
 using ECS;
 using Editor.Panels.Elements;
+using Engine;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -7,6 +8,13 @@ namespace Editor.Panels.ComponentEditors;
 
 public class ModelRendererComponentEditor : IComponentEditor
 {
+    private readonly IAssetsManager _assetsManager;
+
+    public ModelRendererComponentEditor(IAssetsManager assetsManager)
+    {
+        _assetsManager = assetsManager;
+    }
+
     public void DrawComponent(Entity e)
     {
         ComponentEditorRegistry.DrawComponent<ModelRendererComponent>("Model Renderer", e, entity =>
@@ -17,7 +25,7 @@ public class ModelRendererComponentEditor : IComponentEditor
                 newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);
 
             // Use specialized texture drop target for override texture
-            ModelTextureDropTarget.Draw("Texture", texture => modelRendererComponent.OverrideTexture = texture);
+            ModelTextureDropTarget.Draw("Texture", texture => modelRendererComponent.OverrideTexture = texture, _assetsManager);
 
             // Shadow options
             UIPropertyRenderer.DrawPropertyField("Cast Shadows", modelRendererComponent.CastShadows,
