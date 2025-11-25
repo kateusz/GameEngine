@@ -18,6 +18,7 @@ public class PhysicsDebugRenderSystem : ISystem
 
     private readonly IGraphics2D _renderer;
     private readonly IContext _context;
+    private readonly DebugSettings _debugSettings;
 
     /// <summary>
     /// Execution priority for this system.
@@ -30,10 +31,12 @@ public class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     /// <param name="renderer">The 2D renderer interface to use for drawing debug shapes.</param>
     /// <param name="context">The ECS context for querying entities.</param>
-    public PhysicsDebugRenderSystem(IGraphics2D renderer, IContext context)
+    /// <param name="debugSettings">The debug settings for controlling visualization.</param>
+    public PhysicsDebugRenderSystem(IGraphics2D renderer, IContext context, DebugSettings debugSettings)
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _context = context;
+        _debugSettings = debugSettings ?? throw new ArgumentNullException(nameof(debugSettings));
     }
 
     /// <summary>
@@ -52,7 +55,7 @@ public class PhysicsDebugRenderSystem : ISystem
     public void OnUpdate(TimeSpan deltaTime)
     {
         // Only draw collider bounds if the flag is enabled
-        if (!DebugSettings.Instance.ShowColliderBounds)
+        if (!_debugSettings.ShowColliderBounds)
             return;
 
         // Find the primary camera for rendering

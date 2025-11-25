@@ -10,6 +10,7 @@ public class ProjectUI
 {
     private readonly IProjectManager _projectManager;
     private readonly IContentBrowserPanel _contentBrowserPanel;
+    private readonly IAssetsManager _assetsManager;
 
     private bool _showNewProjectPopup;
     private bool _showOpenProjectPopup;
@@ -19,10 +20,11 @@ public class ProjectUI
     private string _openProjectPath = string.Empty;
     private string _openProjectError = string.Empty;
 
-    public ProjectUI(IProjectManager projectManager, IContentBrowserPanel contentBrowserPanel)
+    public ProjectUI(IProjectManager projectManager, IContentBrowserPanel contentBrowserPanel, IAssetsManager assetsManager)
     {
         _projectManager = projectManager;
         _contentBrowserPanel = contentBrowserPanel;
+        _assetsManager = assetsManager;
     }
 
     public void ShowNewProjectPopup() => _showNewProjectPopup = true;
@@ -73,7 +75,7 @@ public class ProjectUI
                     _newProjectName = string.Empty;
                     _newProjectError = string.Empty;
 
-                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                    _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
                 }
                 else
                 {
@@ -127,7 +129,7 @@ public class ProjectUI
                     _openProjectPath = string.Empty;
                     _openProjectError = string.Empty;
 
-                    _contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                    _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
                 }
                 else
                 {

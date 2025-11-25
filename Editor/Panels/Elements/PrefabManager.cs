@@ -11,17 +11,19 @@ namespace Editor.Panels.Elements;
 public class PrefabManager : IPrefabManager
 {
     private static readonly Serilog.ILogger Logger = Log.ForContext<PrefabManager>();
-    
+
     private readonly IPrefabSerializer _serializer;
-    
+    private readonly IAssetsManager _assetsManager;
+
     private bool _showSavePrefabPopup = false;
     private string _prefabName = "";
     private string _prefabSaveError = "";
     private Entity _entityToSave;
 
-    public PrefabManager(IPrefabSerializer serializer)
+    public PrefabManager(IPrefabSerializer serializer, IAssetsManager assetsManager)
     {
         _serializer = serializer;
+        _assetsManager = assetsManager;
     }
 
     public void ShowSavePrefabDialog(Entity entity)
@@ -100,7 +102,7 @@ public class PrefabManager : IPrefabManager
 
     private string GetCurrentProjectPath()
     {
-        var assetsPath = AssetsManager.AssetsPath;
+        var assetsPath = _assetsManager.AssetsPath;
         return Path.GetDirectoryName(assetsPath) ?? Environment.CurrentDirectory;
     }
 }

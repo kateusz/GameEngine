@@ -13,7 +13,7 @@ namespace Engine.Animation;
 public class AnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
-    
+
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         WriteIndented = true,
@@ -26,8 +26,14 @@ public class AnimationAssetManager
             new JsonStringEnumConverter()
         }
     };
-    
+
     private readonly Dictionary<string, CacheEntry> _cache = new();
+    private readonly IAssetsManager _assetsManager;
+
+    public AnimationAssetManager(IAssetsManager assetsManager)
+    {
+        _assetsManager = assetsManager;
+    }
 
     /// <summary>
     /// Load animation asset from JSON file.
@@ -190,5 +196,5 @@ public class AnimationAssetManager
     /// <summary>
     /// Resolve asset path relative to Assets/ directory.
     /// </summary>
-    private static string ResolveAssetPath(string relativePath) => Path.Combine(AssetsManager.AssetsPath, relativePath);
+    private string ResolveAssetPath(string relativePath) => Path.Combine(_assetsManager.AssetsPath, relativePath);
 }

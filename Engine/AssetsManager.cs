@@ -1,12 +1,14 @@
 namespace Engine;
 
-public static class AssetsManager
+public interface IAssetsManager
 {
-    private static string _assetsPath = Path.Combine(Environment.CurrentDirectory, "assets");
-    public static string AssetsPath => _assetsPath;
+    string AssetsPath { get; }
+    void SetAssetsPath(string path);
+}
 
-    public static void SetAssetsPath(string path)
-    {
-        _assetsPath = path;
-    }
+public class AssetsManager : IAssetsManager
+{
+    public string AssetsPath { get; private set; } = Path.Combine(Environment.CurrentDirectory, "assets");
+    
+    public void SetAssetsPath(string path) => AssetsPath = path;
 }

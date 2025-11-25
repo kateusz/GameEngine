@@ -9,12 +9,14 @@ public class PerformanceMonitorUI
     private readonly Queue<float> _frameTimes = new();
     private float _fpsUpdateTimer = 0.0f;
     private float _currentFps = 0.0f;
+    private readonly DebugSettings _debugSettings;
 
     public int MaxFrameSamples { get; }
     public float FpsUpdateInterval { get; }
 
-    public PerformanceMonitorUI(int maxFrameSamples = 60, float fpsUpdateInterval = 0.1f)
+    public PerformanceMonitorUI(DebugSettings debugSettings, int maxFrameSamples = 60, float fpsUpdateInterval = 0.1f)
     {
+        _debugSettings = debugSettings;
         MaxFrameSamples = maxFrameSamples;
         FpsUpdateInterval = fpsUpdateInterval;
     }
@@ -47,7 +49,7 @@ public class PerformanceMonitorUI
     public void RenderUI()
     {
         // Only render FPS counter if the debug flag is enabled
-        if (!DebugSettings.Instance.ShowFPS)
+        if (!_debugSettings.ShowFPS)
             return;
 
         ImGui.Separator();

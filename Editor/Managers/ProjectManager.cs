@@ -10,6 +10,7 @@ public class ProjectManager : IProjectManager
 
     private readonly IEditorPreferences _editorPreferences;
     private readonly IScriptEngine _scriptEngine;
+    private readonly IAssetsManager _assetsManager;
 
     private static readonly string[] RequiredDirs =
     [
@@ -25,10 +26,12 @@ public class ProjectManager : IProjectManager
     /// </summary>
     /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
     /// <param name="scriptEngine">Script engine for managing script directories.</param>
-    public ProjectManager(IEditorPreferences editorPreferences, IScriptEngine scriptEngine)
+    /// <param name="assetsManager">Assets manager for managing asset paths.</param>
+    public ProjectManager(IEditorPreferences editorPreferences, IScriptEngine scriptEngine, IAssetsManager assetsManager)
     {
         _editorPreferences = editorPreferences;
         _scriptEngine = scriptEngine;
+        _assetsManager = assetsManager;
     }
 
     public string? CurrentProjectDirectory { get; private set; }
@@ -136,7 +139,7 @@ public class ProjectManager : IProjectManager
             ? Path.Combine(projectDir, "assets")
             : projectDir;
 
-        AssetsManager.SetAssetsPath(assetsDir);
+        _assetsManager.SetAssetsPath(assetsDir);
 
         // Point the scripting engine to /assets/scripts if that exists
         var scriptsDir = Path.Combine(projectDir, "assets", "scripts");
