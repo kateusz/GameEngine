@@ -41,14 +41,12 @@ static void ConfigureContainer(Container container)
     container.Register<EventBus, EventBus>(Reuse.Singleton);
     container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
     container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
-
-    // Core engine services
+    
     container.Register<DebugSettings>(Reuse.Singleton);
     container.Register<Engine.IAssetsManager, Engine.AssetsManager>(Reuse.Singleton);
-
-    // Renderer API (factory-created singleton)
+    
     container.Register<IRendererAPI>(Reuse.Singleton,
-        made: Made.Of(() => Engine.Renderer.RendererApiFactory.Create())
+        made: Made.Of(() => RendererApiFactory.Create())
     );
 
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
