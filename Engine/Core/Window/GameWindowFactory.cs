@@ -1,4 +1,3 @@
-using Engine.Core.Input;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Silk.NET.Windowing;

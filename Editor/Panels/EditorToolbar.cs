@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using ImGuiNET;
@@ -55,86 +56,70 @@ public class EditorToolbar
         
         // Left side: Mode selection buttons
         ImGui.SetCursorPosX(10.0f);
-        
-        if (CurrentMode == EditorMode.Select)
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
 
-        if (ImGui.ImageButton("select", (IntPtr)_iconSelect.GetRendererId(), new Vector2(15, 15), new Vector2(0, 0),
-                new Vector2(1, 1), new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f) ))
+        if (ButtonDrawer.DrawIconButton("select", _iconSelect.GetRendererId(), new Vector2(15, 15),
+                isSelected: CurrentMode == EditorMode.Select,
+                onClick: () => CurrentMode = EditorMode.Select,
+                tooltip: "Select Mode"))
         {
-            CurrentMode = EditorMode.Select;
+            // Mode already set in onClick
         }
-        
-        if (CurrentMode == EditorMode.Select)
-            ImGui.PopStyleColor();
-        
+
         ImGui.SameLine();
-        
-        if (CurrentMode == EditorMode.Move)
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
-        
-        if (ImGui.ImageButton("move", (IntPtr)_iconMove.GetRendererId(), new Vector2(15, 15), new Vector2(0, 0),
-                new Vector2(1, 1), new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f) ))
+
+        if (ButtonDrawer.DrawIconButton("move", _iconMove.GetRendererId(), new Vector2(15, 15),
+                isSelected: CurrentMode == EditorMode.Move,
+                onClick: () => CurrentMode = EditorMode.Move,
+                tooltip: "Move Mode"))
         {
-            CurrentMode = EditorMode.Move;
+            // Mode already set in onClick
         }
-        
-        if (CurrentMode == EditorMode.Move)
-            ImGui.PopStyleColor();
-        
+
         ImGui.SameLine();
-        
-        if (CurrentMode == EditorMode.Scale)
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
-        
-        if (ImGui.ImageButton("scale", (IntPtr)_iconScale.GetRendererId(), new Vector2(15, 15), new Vector2(0, 0),
-                new Vector2(1, 1), new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f) ))
+
+        if (ButtonDrawer.DrawIconButton("scale", _iconScale.GetRendererId(), new Vector2(15, 15),
+                isSelected: CurrentMode == EditorMode.Scale,
+                onClick: () => CurrentMode = EditorMode.Scale,
+                tooltip: "Scale Mode"))
         {
-            CurrentMode = EditorMode.Scale;
+            // Mode already set in onClick
         }
-        
-        if (CurrentMode == EditorMode.Scale)
-            ImGui.PopStyleColor();
-        
+
         ImGui.SameLine();
-        
-        if (CurrentMode == EditorMode.Ruler)
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
-        
-        // Use text button for ruler since we don't have an icon yet
-        if (ImGui.Button("📏", new Vector2(25, 19)))
+
+        // Use toggle button for ruler since we don't have an icon yet
+        bool isRulerMode = CurrentMode == EditorMode.Ruler;
+        if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: 25, height: 19))
         {
             CurrentMode = EditorMode.Ruler;
         }
-        
-        if (CurrentMode == EditorMode.Ruler)
-            ImGui.PopStyleColor();
         
         var icon = _sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
         ImGui.SetCursorPosY(2.0f);
 
-        if (ImGui.ImageButton("playstop", (IntPtr)icon.GetRendererId(), new Vector2(20, 20), new Vector2(0, 0),
-                new Vector2(1, 1)))
+        if (ButtonDrawer.DrawTransparentIconButton("playstop", icon.GetRendererId(), new Vector2(20, 20),
+                onClick: () =>
+                {
+                    switch (_sceneContext.State)
+                    {
+                        case SceneState.Edit:
+                            OnPlayScene();
+                            break;
+                        case SceneState.Play:
+                            OnStopScene();
+                            break;
+                    }
+                },
+                tooltip: _sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene"))
         {
-            switch (_sceneContext.State)
-            {
-                case SceneState.Edit:
-                    OnPlayScene();
-                    break;
-                case SceneState.Play:
-                    OnStopScene();
-                    break;
-            }
+            // Action handled in onClick
         }
-        
+
         ImGui.SameLine();
-        
-        if (ImGui.Button("🔄", new Vector2(25, 24)))
-        {
-            OnRestartScene();
-        }
+
+        ButtonDrawer.DrawSmallButton("🔄", onClick: OnRestartScene, tooltip: "Restart Scene");
 
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);

@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Animation;
+using Engine.Animation.Events;
 
 namespace Engine.Tests.Animation;
 

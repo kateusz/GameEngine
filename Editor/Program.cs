@@ -1,8 +1,11 @@
 ﻿using DryIoc;
 using Editor;
-using Editor.Managers;
+using Editor.ComponentEditors;
+using Editor.ComponentEditors.Core;
+using Editor.Features.Project;
+using Editor.Features.Scene;
+using Editor.Features.Settings;
 using Editor.Panels;
-using Editor.Panels.Elements;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
@@ -13,11 +16,10 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Serilog;
 using Editor.Logging;
-using Editor.Panels.ComponentEditors;
-using Editor.Popups;
-using Editor.UI;
-using Editor.Windows;
 using Editor.Input;
+using Editor.UI.Elements;
+using Editor.Utilities;
+using Editor.Windows;
 using Engine.Animation;
 using Engine.Events;
 using Engine.Renderer;
@@ -79,7 +81,7 @@ static void ConfigureContainer(Container container)
     );
     container.Register<EditorSettingsUI>(Reuse.Singleton);
     container.Register<AudioDropTarget>(Reuse.Singleton);
-    container.Register<PerformanceMonitorUI>(Reuse.Singleton);
+    container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
     
     container.Register<TransformComponentEditor>(Reuse.Singleton);
     container.Register<CameraComponentEditor>(Reuse.Singleton);
@@ -107,11 +109,12 @@ static void ConfigureContainer(Container container)
     container.RegisterMany<SceneManager>(Reuse.Singleton);
 
     container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
-    container.Register<ProjectUI>(Reuse.Singleton);
+    container.Register<NewProjectPopup>(Reuse.Singleton);
+    container.Register<SceneSettingsPopup>(Reuse.Singleton);
     container.Register<EditorToolbar>(Reuse.Singleton);
     container.Register<RendererStatsPanel>(Reuse.Singleton);
     container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
-    container.Register<ScriptComponentUI>(Reuse.Singleton);
+    container.Register<ScriptComponentEditor>(Reuse.Singleton);
     
     container.Register<ViewportRuler>(Reuse.Singleton);
     container.Register<ObjectManipulator>(Reuse.Singleton);

@@ -27,6 +27,10 @@
         <PackageReference Include="DryIoc" Version="5.4.3" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Managers\" />
+    </ItemGroup>
+
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/fonts;$(OutputPath)assets/fonts/opensans;$(OutputPath)assets/game;$(OutputPath)assets/game/textures;$(OutputPath)assets/objModels;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures;$(OutputPath)assets/textures/skybox;$(OutputPath)Resources;$(OutputPath)libs" />
     </Target>

@@ -1,7 +1,8 @@
 using System.Numerics;
+using Editor.UI.Constants;
+using Editor.UI.Drawers;
 using Engine.Scene.Components;
 using ImGuiNET;
-using Editor.UI;
 
 namespace Editor.Panels;
 
@@ -28,6 +29,10 @@ public class TileMapPanel
     private Vector2 _viewportSize;
     private float _zoom = 1.0f;
     private Vector2 _panOffset = Vector2.Zero;
+
+    // Layer rename modal state
+    private bool _showRenameLayerModal;
+    private string _renameLayerInput = string.Empty;
 
     public bool IsOpen { get; set; }
 
@@ -134,20 +139,12 @@ public class TileMapPanel
         ImGui.Text("Tools:");
         ImGui.SameLine();
 
-        if (ImGui.Button("Paint"))
-            _currentTool = TileMapTool.Paint;
-        ImGui.SameLine();
-
-        if (ImGui.Button("Erase"))
-            _currentTool = TileMapTool.Erase;
-        ImGui.SameLine();
-
-        if (ImGui.Button("Fill"))
-            _currentTool = TileMapTool.Fill;
-        ImGui.SameLine();
-
-        if (ImGui.Button("Select"))
-            _currentTool = TileMapTool.Select;
+        ButtonDrawer.DrawToolbarButtonGroup(
+            ("Paint", () => _currentTool = TileMapTool.Paint),
+            ("Erase", () => _currentTool = TileMapTool.Erase),
+            ("Fill", () => _currentTool = TileMapTool.Fill),
+            ("Select", () => _currentTool = TileMapTool.Select)
+        );
 
         ImGui.SameLine();
         ImGui.Dummy(new Vector2(20, 0));
@@ -288,76 +285,49 @@ public class TileMapPanel
         }
 
         // Layer controls
-        if (ImGui.Button("➕ Add Layer"))
+        ButtonDrawer.DrawButton("➕ Add Layer", () =>
         {
             _activeTileMap.AddLayer($"Layer {_activeTileMap.Layers.Count}");
-        }
+        });
+
         ImGui.SameLine();
 
-        if (_activeTileMap.Layers.Count > 1)
+        bool canRemoveLayer = _activeTileMap.Layers.Count > 1;
+        ButtonDrawer.DrawButton("🗑 Remove Layer",
+            () => _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex),
+            disabled: !canRemoveLayer);
+
+        if (!canRemoveLayer)
         {
-            if (ImGui.Button("🗑 Remove Layer"))
-            {
-                _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex);
-            }
-        }
-        else
-        {
-            ImGui.BeginDisabled();
-            ImGui.Button("🗑 Remove Layer");
-            ImGui.EndDisabled();
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("Cannot remove the last layer");
-                ImGui.EndTooltip();
-            }
+            LayoutDrawer.DrawTooltip("Cannot remove the last layer");
         }
 
         ImGui.SameLine();
 
         // Layer rename button
-        if (ImGui.Button("✏ Rename"))
+        ButtonDrawer.DrawButton("✏ Rename", () =>
         {
-            ImGui.OpenPopup("RenameLayerPopup");
-        }
+            _renameLayerInput = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex].Name;
+            _showRenameLayerModal = true;
+        });
 
-        // Rename popup
-        if (ImGui.BeginPopup("RenameLayerPopup"))
-        {
-            ImGui.Text("Rename Layer:");
-            ImGui.Separator();
-
-            var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
-            var layerName = currentLayer.Name;
-
-            if (ImGui.InputText("##layername", ref layerName, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+        // Rename modal
+        var isValidName = !string.IsNullOrWhiteSpace(_renameLayerInput);
+        ModalDrawer.RenderInputModal(
+            title: "Rename Layer",
+            showModal: ref _showRenameLayerModal,
+            promptText: "Enter new layer name:",
+            inputValue: ref _renameLayerInput,
+            maxLength: 64,
+            validationMessage: !isValidName ? "Layer name cannot be empty." : null,
+            errorMessage: null,
+            isValid: isValidName,
+            onOk: () =>
             {
-                if (!string.IsNullOrWhiteSpace(layerName))
-                {
-                    currentLayer.Name = layerName;
-                    ImGui.CloseCurrentPopup();
-                }
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button("OK"))
-            {
-                if (!string.IsNullOrWhiteSpace(layerName))
-                {
-                    currentLayer.Name = layerName;
-                }
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel"))
-            {
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.EndPopup();
-        }
+                var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
+                currentLayer.Name = _renameLayerInput;
+            },
+            onCancel: () => { });
 
         // Show active layer info
         ImGui.Separator();

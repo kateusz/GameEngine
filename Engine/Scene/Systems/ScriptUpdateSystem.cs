@@ -1,5 +1,4 @@
 using ECS;
-using Engine.Scene.Components;
 using Engine.Scripting;
 using Serilog;
 

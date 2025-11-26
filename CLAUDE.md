@@ -66,17 +66,26 @@ GameEngine/
 │   └── System/         # ISystem interface, SystemManager
 │
 ├── Editor/             # Visual editor application
-│   ├── Input/          # Editor input handling
-│   ├── Logging/        # Console panel integration
-│   ├── Managers/       # ProjectManager, SceneManager (DI-based)
-│   ├── Panels/         # UI panels (17 panels total)
-│   ├── Popups/         # Dialogs and modal windows
-│   ├── Publisher/      # Build and publishing tools
-│   ├── Systems/        # EditorCameraSystem
-│   ├── UI/             # EditorUIConstants for styling
-│   ├── Utilities/      # Helper classes
-│   ├── Windows/        # AnimationTimelineWindow, RecentProjectsWindow
-│   └── Resources/      # Editor-specific assets
+│   ├── ComponentEditors/  # Component property editors
+│   │   └── Core/       # Component editor infrastructure (registry, interfaces)
+│   ├── Features/       # Feature-based organization
+│   │   ├── Project/    # Project management (creation, loading, recent projects)
+│   │   ├── Scene/      # Scene management (hierarchy, context, settings)
+│   │   └── Settings/   # Editor preferences and settings UI
+│   ├── Input/          # Keyboard shortcuts and input handling
+│   ├── Logging/        # Console panel integration with Serilog
+│   ├── Managers/       # Legacy managers (being phased into Features)
+│   ├── Panels/         # Core UI panels (Console, Properties, ContentBrowser, etc.)
+│   ├── Publisher/      # Game build and publishing tools
+│   ├── Systems/        # Editor-specific ECS systems (EditorCameraSystem)
+│   ├── UI/             # Reusable UI components and styling
+│   │   ├── Constants/  # EditorUIConstants for consistent styling
+│   │   ├── Drawers/    # Reusable UI drawing utilities (buttons, modals, tables)
+│   │   ├── Elements/   # Complex UI elements (drag-drop, selectors, menus)
+│   │   └── FieldEditors/ # Generic field editors for primitive types
+│   ├── Utilities/      # Helper classes (rulers, manipulators, converters)
+│   ├── Windows/        # Specialized windows (AnimationTimeline)
+│   └── Resources/      # Editor-specific assets (icons, fonts)
 │
 ├── Runtime/            # Standalone game runtime
 ├── Sandbox/            # Testing and experimentation
@@ -247,6 +256,30 @@ This project uses specialized Claude Code agents for different development domai
 
 ## Development Guidelines
 
+### Editor Organization: Features vs. Panels
+
+The Editor uses a hybrid organization pattern:
+
+**Use `Features/{FeatureName}/` when:**
+- Implementing a cohesive feature with multiple related components
+- The feature has its own manager, panel(s), popups, and settings
+- Examples: Project management (creation, loading, recent projects), Scene management (hierarchy, context), Settings
+
+**Use `Panels/` when:**
+- Creating standalone utility panels without complex feature context
+- The panel is relatively self-contained
+- Examples: Console, RendererStats, PerformanceMonitor, ContentBrowser
+
+**Use `ComponentEditors/` when:**
+- Creating property editors for ECS components
+- The editor will be registered in ComponentEditorRegistry
+- All individual component editors (Transform, Sprite, Camera, etc.)
+
+**Use `UI/` when:**
+- Creating reusable UI utilities (Drawers)
+- Creating reusable UI components (Elements)
+- Creating generic field editors (FieldEditors)
+
 ### When Making Changes
 
 1. **Understand Context First**
@@ -298,15 +331,36 @@ This project uses specialized Claude Code agents for different development domai
 - **Scripting**: Roslyn-based script compilation, hot reload, hybrid debugging
 
 #### Editor Project
-- **Input**: Editor-specific input handling
-- **Logging**: Console panel with Serilog integration
-- **Managers**: DI-registered managers (ProjectManager, SceneManager)
-- **Panels**: 17 ImGui panels (SceneHierarchy, Properties, Console, TileMapPanel, etc.)
-- **Popups**: Modal dialogs and temporary windows
-- **Publisher**: Game building and export functionality
+The Editor follows a feature-based organization pattern combined with traditional layering:
+
+**Feature-Based Organization** (`Features/`):
+- **Project**: Project creation, loading, management, and recent projects window
+- **Scene**: Scene hierarchy panel, scene manager, scene context, and scene settings
+- **Settings**: Editor preferences and settings UI
+
+**Component System** (`ComponentEditors/`):
+- Individual component editors (Transform, Sprite, Camera, Animation, etc.)
+- **Core**: Component editor infrastructure (IComponentEditor, ComponentEditorRegistry)
+- Registered via DI for extensibility
+
+**UI Infrastructure** (`UI/`):
+- **Constants**: EditorUIConstants for consistent styling across all panels
+- **Drawers**: Reusable drawing utilities (ButtonDrawer, ModalDrawer, TableDrawer, TreeDrawer)
+- **Elements**: Complex UI components (drag-drop targets, component selector, entity context menu)
+- **FieldEditors**: Generic field editors for primitive types (int, float, Vector2, etc.)
+
+**Core Panels** (`Panels/`):
+- Console, Properties, ContentBrowser, TileMapPanel, VectorPanel
+- PerformanceMonitor, RendererStats, EditorToolbar
+- Each panel implements interface-based design for testability
+
+**Specialized Systems**:
+- **Input**: Keyboard shortcuts manager and shortcut panel
+- **Logging**: Console panel sink for Serilog integration
+- **Publisher**: Game build and export functionality
 - **Systems**: Editor-specific ECS systems (EditorCameraSystem)
-- **UI**: EditorUIConstants for consistent styling
-- **Windows**: Specialized windows (AnimationTimelineWindow, RecentProjectsWindow)
+- **Utilities**: Helper classes (ObjectManipulator, RulerTool, ViewportRuler)
+- **Windows**: Specialized windows (AnimationTimelineWindow)
 
 #### ECS Project
 - Pure ECS implementation with ISystem interface
@@ -571,6 +625,135 @@ public class MyRenderSystem
 **Architectural Rule:**
 Never create singleton-style static classes! Use IoC container for singleton registration. The only exceptions are pure constant classes like `EditorUIConstants` and `RenderingConstants`.
 
+### Editor UI Infrastructure
+
+The Editor provides a comprehensive UI infrastructure to promote code reuse and consistency across all panels:
+
+#### UI Drawers (`Editor/UI/Drawers/`)
+Reusable drawing utilities that encapsulate common ImGui patterns. These are static utility classes for drawing UI elements:
+
+- **ButtonDrawer**: Consistent button rendering with types (Primary, Secondary, Danger, Success)
+- **ModalDrawer**: Modal dialog/popup rendering with backdrop and centering
+- **TableDrawer**: Table rendering with headers and row formatting
+- **TreeDrawer**: Tree node rendering for hierarchical data
+- **TextDrawer**: Text rendering with color coding based on MessageType
+- **LayoutDrawer**: Layout utilities for spacing, separators, and alignment
+- **DragDropDrawer**: Drag-and-drop visualization and handling
+
+```csharp
+// Example: Using ButtonDrawer for consistent styling
+if (ButtonDrawer.DrawButton("Save", ButtonDrawer.ButtonType.Primary))
+{
+    SaveProject();
+}
+
+// Example: Using ModalDrawer for confirmation dialogs
+private readonly ModalDrawer _modal = new();
+private bool _showDeleteConfirm;
+
+_modal.Draw("Delete Confirmation", ref _showDeleteConfirm, () =>
+{
+    TextDrawer.DrawText("Are you sure you want to delete this?", MessageType.Warning);
+
+    if (ButtonDrawer.DrawButton("Delete", ButtonDrawer.ButtonType.Danger))
+    {
+        DeleteItem();
+        _showDeleteConfirm = false;
+    }
+});
+
+// Example: Using TableDrawer for data display
+TableDrawer.BeginTable("MyTable", new[] { "Name", "Type", "Value" });
+foreach (var item in items)
+{
+    TableDrawer.DrawRow(item.Name, item.Type, item.Value.ToString());
+}
+TableDrawer.EndTable();
+```
+
+#### UI Elements (`Editor/UI/Elements/`)
+Complex, reusable UI components with internal state and logic:
+
+- **ComponentSelector**: Popup for selecting and adding components to entities
+- **EntityContextMenu**: Right-click context menu for entity operations
+- **Drag-Drop Targets**: Specialized drop targets for textures, meshes, audio, models, prefabs
+- **PrefabManager**: Prefab creation and instantiation UI
+- **UIPropertyRenderer**: Generic property rendering for reflection-based editors
+
+```csharp
+// Example: Using ComponentSelector
+private readonly ComponentSelector _componentSelector = new();
+
+if (ImGui.Button("Add Component"))
+{
+    _componentSelector.Show(selectedEntity);
+}
+
+_componentSelector.Draw(); // Call each frame
+
+// Example: Using drag-drop targets
+TextureDropTarget.Draw("Texture", currentTexturePath, (newTexturePath) =>
+{
+    spriteRenderer.TexturePath = newTexturePath;
+});
+
+AudioDropTarget.Draw("Audio Clip", currentAudioPath, (newAudioPath) =>
+{
+    audioSource.AudioClipPath = newAudioPath;
+});
+```
+
+#### Field Editors (`Editor/UI/FieldEditors/`)
+Generic field editors for primitive types registered in FieldEditorRegistry:
+
+- **BoolFieldEditor**: Checkbox for boolean values
+- **IntFieldEditor**: Integer input with drag support
+- **FloatFieldEditor**: Float input with drag support
+- **DoubleFieldEditor**: Double precision input
+- **StringFieldEditor**: Text input for strings
+- **Vector2FieldEditor**: 2D vector input with X/Y labels
+- **Vector3FieldEditor**: 3D vector input with X/Y/Z labels
+- **Vector4FieldEditor**: 4D vector input with X/Y/Z/W labels
+
+```csharp
+// Field editors are registered in DI and used automatically by reflection-based editors
+// In Program.cs:
+container.Register<IFieldEditor<int>, IntFieldEditor>(Reuse.Singleton);
+container.Register<IFieldEditor<float>, FloatFieldEditor>(Reuse.Singleton);
+container.Register<IFieldEditor<Vector3>, Vector3FieldEditor>(Reuse.Singleton);
+// ... etc
+
+// Usage in component editors:
+public class MyComponentEditor : IComponentEditor<MyComponent>
+{
+    private readonly IFieldEditor<float> _floatEditor;
+    private readonly IFieldEditor<Vector3> _vectorEditor;
+
+    public MyComponentEditor(
+        IFieldEditor<float> floatEditor,
+        IFieldEditor<Vector3> vectorEditor)
+    {
+        _floatEditor = floatEditor;
+        _vectorEditor = vectorEditor;
+    }
+
+    public void DrawEditor(MyComponent component)
+    {
+        _floatEditor.DrawField("Speed", ref component.Speed);
+        _vectorEditor.DrawField("Position", ref component.Position);
+    }
+}
+```
+
+#### Best Practices for Editor UI
+
+1. **Always use Drawers for common patterns** - Don't reimplement buttons, modals, or tables
+2. **Leverage Elements for complex interactions** - Use ComponentSelector, drag-drop targets, etc.
+3. **Follow EditorUIConstants** - Never hardcode sizes, colors, or spacing
+4. **Dependency Inject Field Editors** - Use FieldEditorRegistry for type-safe field editing
+5. **Keep panels focused** - Delegate complex UI logic to Elements or Drawers
+6. **Maintain consistency** - If you need a new pattern, create a Drawer instead of duplicating code
+
 ---
 
 ## Testing & Quality Assurance
@@ -703,6 +886,73 @@ public class MyComponentEditor : IComponentEditor<MyComponent>
 container.Register<IComponentEditor<MyComponent>, MyComponentEditor>(Reuse.Singleton);
 ```
 
+### Creating a Component Editor
+
+Component editors are located in `Editor/ComponentEditors/` and use the UI infrastructure for consistency:
+
+1. Create editor class implementing `IComponentEditor<TComponent>`
+2. Inject required field editors via constructor
+3. Use field editors for primitive types (int, float, Vector3, etc.)
+4. Use UI Elements for complex interactions (drag-drop targets)
+5. Use EditorUIConstants for spacing and layout
+6. Register in Program.cs DI container
+
+Example:
+```csharp
+// Editor/ComponentEditors/MyComponentEditor.cs
+using Editor.UI.FieldEditors;
+using Editor.UI.Elements;
+using Editor.UI.Constants;
+
+public class MyComponentEditor : IComponentEditor<MyComponent>
+{
+    private readonly IFieldEditor<float> _floatEditor;
+    private readonly IFieldEditor<Vector3> _vectorEditor;
+
+    public MyComponentEditor(
+        IFieldEditor<float> floatEditor,
+        IFieldEditor<Vector3> vectorEditor)
+    {
+        _floatEditor = floatEditor;
+        _vectorEditor = vectorEditor;
+    }
+
+    public void DrawEditor(MyComponent component)
+    {
+        // Use field editors for primitive types
+        _floatEditor.DrawField("Speed", ref component.Speed);
+        _vectorEditor.DrawField("Offset", ref component.Offset);
+
+        // Use drag-drop targets for asset references
+        TextureDropTarget.Draw("Icon", component.IconPath, (newPath) =>
+        {
+            component.IconPath = newPath;
+        });
+
+        // Manual ImGui for custom UI, with EditorUIConstants
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if (ImGui.TreeNode("Advanced Settings"))
+        {
+            ImGui.Checkbox("Enabled", ref component.IsEnabled);
+            ImGui.TreePop();
+        }
+    }
+}
+
+// Program.cs (in ConfigureServices)
+container.Register<IComponentEditor<MyComponent>, MyComponentEditor>(Reuse.Singleton);
+```
+
+**Best Practices:**
+- Always inject field editors rather than creating them inline
+- Use drag-drop targets for all asset references (textures, audio, meshes)
+- Follow EditorUIConstants for spacing and layout consistency
+- Keep editor logic simple - complex operations should be in systems or managers
+- Test editor with sample component data to ensure proper behavior
+
 ### Adding a New Renderer Feature
 
 1. Implement rendering logic in `Engine/Renderer/`
@@ -714,10 +964,19 @@ container.Register<IComponentEditor<MyComponent>, MyComponentEditor>(Reuse.Singl
 
 ### Creating a New Editor Panel
 
-1. Create panel interface in `Editor/Panels/` (e.g., `IMyNewPanel`)
+**Determine Panel Location:**
+- Feature-specific panels → `Editor/Features/{FeatureName}/`
+- Core UI panels → `Editor/Panels/`
+- Specialized windows → `Editor/Windows/`
+
+**Implementation Steps:**
+1. Create panel interface (e.g., `IMyNewPanel`)
 2. Create panel implementation class
 3. Use constructor injection for dependencies
-4. Implement `OnImGuiRender()` method using EditorUIConstants
+4. Implement `OnImGuiRender()` method using:
+   - **EditorUIConstants** for styling consistency
+   - **UI Drawers** for common patterns (buttons, modals, tables)
+   - **UI Elements** for complex interactions (drag-drop, selectors)
 5. Register in Program.cs IoC container
 6. Inject into EditorLayer via constructor
 7. Add menu item for showing/hiding panel
@@ -725,44 +984,69 @@ container.Register<IComponentEditor<MyComponent>, MyComponentEditor>(Reuse.Singl
 
 Example:
 ```csharp
-// IMyNewPanel.cs
-public interface IMyNewPanel
+// Features/MyFeature/IMyFeaturePanel.cs (or Panels/IMyNewPanel.cs)
+public interface IMyFeaturePanel
 {
     void OnImGuiRender();
 }
 
-// MyNewPanel.cs
-public class MyNewPanel : IMyNewPanel
+// Features/MyFeature/MyFeaturePanel.cs
+public class MyFeaturePanel : IMyFeaturePanel
 {
     private readonly ISceneManager _sceneManager;
+    private readonly ModalDrawer _modalDrawer;
     private bool _isOpen = true;
+    private bool _showConfirmDialog;
 
-    public MyNewPanel(ISceneManager sceneManager)
+    public MyFeaturePanel(ISceneManager sceneManager)
     {
         _sceneManager = sceneManager;
+        _modalDrawer = new ModalDrawer();
     }
 
     public void OnImGuiRender()
     {
         if (!_isOpen) return;
 
-        ImGui.Begin("My Panel", ref _isOpen);
+        ImGui.Begin("My Feature Panel", ref _isOpen);
 
-        // Use EditorUIConstants for consistency
-        if (ImGui.Button("Action", new Vector2(
-            EditorUIConstants.StandardButtonWidth,
-            EditorUIConstants.StandardButtonHeight)))
+        // Use ButtonDrawer for consistent button styling
+        if (ButtonDrawer.DrawButton("Primary Action", ButtonDrawer.ButtonType.Primary))
         {
-            // Panel logic using injected dependencies
-            var scene = _sceneManager.GetActiveScene();
+            _showConfirmDialog = true;
         }
 
+        // Use ModalDrawer for confirmation dialogs
+        _modalDrawer.Draw("Confirm Action", ref _showConfirmDialog, () =>
+        {
+            TextDrawer.DrawText("Are you sure?", MessageType.Warning);
+
+            if (ButtonDrawer.DrawButton("Confirm", ButtonDrawer.ButtonType.Danger))
+            {
+                PerformAction();
+                _showConfirmDialog = false;
+            }
+
+            ImGui.SameLine();
+
+            if (ButtonDrawer.DrawButton("Cancel", ButtonDrawer.ButtonType.Secondary))
+            {
+                _showConfirmDialog = false;
+            }
+        });
+
         ImGui.End();
+    }
+
+    private void PerformAction()
+    {
+        var scene = _sceneManager.GetActiveScene();
+        // Panel logic using injected dependencies
     }
 }
 
 // Program.cs
-container.Register<IMyNewPanel, MyNewPanel>(Reuse.Singleton);
+container.Register<IMyFeaturePanel, MyFeaturePanel>(Reuse.Singleton);
 ```
 
 ### Extending the Scripting System
@@ -848,6 +1132,11 @@ The project has recently undergone significant architectural improvements and op
 - **Dependency Injection**: Full DryIoc integration eliminates static singletons
 - **Error Handling**: Unified GL error checking and validation across rendering system
 - **Factory Pattern**: Consistent factory-based resource creation
+- **Editor UI Refactoring**: Feature-based organization with reusable UI infrastructure
+  - ComponentEditors moved to top-level directory with Core infrastructure
+  - Features directory for cohesive feature modules (Project, Scene, Settings)
+  - UI directory with Drawers, Elements, and FieldEditors for code reuse
+  - Consistent styling with EditorUIConstants throughout all panels
 
 ### New Features
 - **Complete Animation System**: 2D sprite animation with events and timeline editor

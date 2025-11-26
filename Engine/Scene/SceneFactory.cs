@@ -16,8 +16,5 @@ public class SceneFactory
         _context = context;
     }
 
-    public IScene Create(string path)
-    {
-        return new Scene(path, _sceneSystemRegistry, _graphics2D, _context);
-    }
+    public IScene Create(string path) => new Scene(path, _sceneSystemRegistry, _graphics2D, _context);
 }

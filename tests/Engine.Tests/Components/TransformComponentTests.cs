@@ -2,9 +2,8 @@ using System.Numerics;
 using Bogus;
 using Engine.Scene.Components;
 using Shouldly;
-using Xunit;
 
-namespace Engine.Tests;
+namespace Engine.Tests.Components;
 
 public class TransformComponentTests
 {

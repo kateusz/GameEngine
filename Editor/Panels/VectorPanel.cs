@@ -1,6 +1,6 @@
 using System.Numerics;
 using ImGuiNET;
-using Editor.UI;
+using Editor.UI.Constants;
 
 namespace Editor.Panels;
 
@@ -29,12 +29,14 @@ public static class VectorPanel
 
     private static void DrawAxisControl(string axisLabel, ref float value, float resetValue, Vector4 color, float inputWidth, bool drag = true)
     {
-        // Button colors
+        // Use colored button for axis reset buttons
         ImGui.PushStyleColor(ImGuiCol.Button, color);
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, color * new Vector4(1.1f, 1.1f, 1.1f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, color);
+
         if (ImGui.Button(axisLabel, new Vector2(EditorUIConstants.SmallButtonSize, ImGui.GetFrameHeight())))
             value = resetValue;
+
         ImGui.PopStyleColor(3);
 
         ImGui.SameLine();

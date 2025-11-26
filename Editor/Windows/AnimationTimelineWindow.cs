@@ -1,8 +1,9 @@
 using System.Numerics;
 using ECS;
-using ImGuiNET;
+using Editor.UI.Constants;
+using Editor.UI.Drawers;
 using Engine.Scene.Components;
-using Editor.UI;
+using ImGuiNET;
 
 namespace Editor.Windows;
 
@@ -57,7 +58,7 @@ public class AnimationTimelineWindow
             {
                 ImGui.Spacing();
                 ImGui.Indent(EditorUIConstants.LargePadding);
-                ImGui.TextColored(EditorUIConstants.WarningColor, "No animation component selected");
+                TextDrawer.DrawWarningText("No animation component selected");
                 ImGui.Text("Select an entity with AnimationComponent to edit animations");
                 ImGui.Unindent(EditorUIConstants.LargePadding);
             }
@@ -154,28 +155,24 @@ public class AnimationTimelineWindow
     private void DrawPlaybackControls()
     {
         // Play/Pause button
-        if (ImGui.Button(_previewPlaying ? "|| Pause" : "> Play",
-                new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
-        {
-            _previewPlaying = !_previewPlaying;
-        }
+        ButtonDrawer.DrawToggleButton("|| Pause", "> Play", ref _previewPlaying);
 
         ImGui.SameLine();
 
         // Stop button
-        if (ImGui.Button("[] Stop", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
+        ButtonDrawer.DrawModalButton("[] Stop", onClick: () =>
         {
             _previewPlaying = false;
             _selectedFrameIndex = 0;
-        }
+        });
 
         ImGui.SameLine();
 
         // Loop toggle
         var loop = _component!.Loop;
-        if (ImGui.Button(loop ? "Loop: On" : "Loop: Off", new Vector2(EditorUIConstants.StandardButtonWidth, 0)))
+        if (ButtonDrawer.DrawToggleButton("Loop: On", "Loop: Off", ref loop))
         {
-            _component.Loop = !loop;
+            _component.Loop = loop;
         }
 
         ImGui.SameLine();

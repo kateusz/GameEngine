@@ -1,7 +1,7 @@
-using System.Numerics;
 using System.Text;
 using ImGuiNET;
-using Editor.UI;
+using Editor.UI.Constants;
+using Editor.UI.Drawers;
 
 namespace Editor.Panels;
 
@@ -74,36 +74,25 @@ public class ConsolePanel : IConsolePanel
     private void RenderToolbar()
     {
         // Clear button
-        if (ImGui.Button("Clear"))
-        {
-            Clear();
-        }
-
+        ButtonDrawer.DrawButton("Clear", Clear);
         ImGui.SameLine();
-        
+
         // Auto-scroll checkbox
         ImGui.Checkbox("Auto-scroll", ref _autoScroll);
 
         // Filter controls
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
-        ImGui.InputText("Filter", ref _filterText, EditorUIConstants.MaxTextInputLength);
+        LayoutDrawer.DrawFilterInput("Filter", ref _filterText);
 
         // Log level filters
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
-        ImGui.Checkbox("Info", ref _showInfo);
-        ImGui.PopStyleColor();
+        LayoutDrawer.DrawColoredCheckbox("Info", ref _showInfo, EditorUIConstants.InfoColor);
 
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.WarningColor);
-        ImGui.Checkbox("Warnings", ref _showWarnings);
-        ImGui.PopStyleColor();
+        LayoutDrawer.DrawColoredCheckbox("Warnings", ref _showWarnings, EditorUIConstants.WarningColor);
 
         ImGui.SameLine();
-        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
-        ImGui.Checkbox("Errors", ref _showErrors);
-        ImGui.PopStyleColor();
+        LayoutDrawer.DrawColoredCheckbox("Errors", ref _showErrors, EditorUIConstants.ErrorColor);
     }
 
     private void RenderLogDisplay()
@@ -154,25 +143,24 @@ public class ConsolePanel : IConsolePanel
 
     private void RenderLogMessage(LogMessage message)
     {
-        Vector4 color = message.Level switch
+        // Use semantic helper methods for appropriate message types
+        switch (message.Level)
         {
-            LogLevel.Warning => new Vector4(1.0f, 1.0f, 0.0f, 1.0f),
-            LogLevel.Error => new Vector4(1.0f, 0.3f, 0.3f, 1.0f),
-            _ => new Vector4(0.9f, 0.9f, 0.9f, 1.0f)
-        };
-
-        ImGui.PushStyleColor(ImGuiCol.Text, color);
-
-        var displayText = message.Text;
-        ImGui.TextUnformatted(displayText);
-        ImGui.PopStyleColor();
-
-        if (ImGui.BeginPopupContextItem($"MessageContext_{message.GetHashCode()}"))
-        {
-            if (ImGui.MenuItem("Copy"))
-                ImGui.SetClipboardText(displayText);
-            ImGui.EndPopup();
+            case LogLevel.Error:
+                TextDrawer.DrawErrorText(message.Text);
+                break;
+            case LogLevel.Warning:
+                TextDrawer.DrawWarningText(message.Text);
+                break;
+            default:
+                TextDrawer.DrawInfoText(message.Text);
+                break;
         }
+
+        LayoutDrawer.DrawContextMenu(
+            $"MessageContext_{message.GetHashCode()}",
+            ("Copy", () => ImGui.SetClipboardText(message.Text))
+        );
     }
 
     public void Dispose()

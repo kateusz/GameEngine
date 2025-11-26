@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;

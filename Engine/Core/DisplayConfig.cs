@@ -40,7 +40,7 @@ public static class DisplayConfig
 
     // UI window sizes
     /// <summary>
-    /// Standard size for modal dialog windows.
+    /// Standard size for modal popup windows.
     /// </summary>
-    public static readonly (float Width, float Height) StandardDialogSize = (600, 400);
+    public static readonly (float Width, float Height) StandardPopupSize = (600, 400);
 }

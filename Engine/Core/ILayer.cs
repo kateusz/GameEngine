@@ -1,5 +1,4 @@
 using Engine.Core.Input;
-using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 
