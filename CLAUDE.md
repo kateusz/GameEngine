@@ -988,14 +988,12 @@ public interface IMyFeaturePanel
 public class MyFeaturePanel : IMyFeaturePanel
 {
     private readonly ISceneManager _sceneManager;
-    private readonly ModalDrawer _modalDrawer;
     private bool _isOpen = true;
     private bool _showConfirmDialog;
 
     public MyFeaturePanel(ISceneManager sceneManager)
     {
         _sceneManager = sceneManager;
-        _modalDrawer = new ModalDrawer();
     }
 
     public void OnImGuiRender()
@@ -1011,23 +1009,11 @@ public class MyFeaturePanel : IMyFeaturePanel
         }
 
         // Use ModalDrawer for confirmation dialogs
-        _modalDrawer.Draw("Confirm Action", ref _showConfirmDialog, () =>
-        {
-            TextDrawer.DrawText("Are you sure?", MessageType.Warning);
-
-            if (ButtonDrawer.DrawButton("Confirm", ButtonDrawer.ButtonType.Danger))
-            {
-                PerformAction();
-                _showConfirmDialog = false;
-            }
-
-            ImGui.SameLine();
-
-            if (ButtonDrawer.DrawButton("Cancel", ButtonDrawer.ButtonType.Secondary))
-            {
-                _showConfirmDialog = false;
-            }
-        });
+        ModalDrawer.RenderConfirmationModal(
+            title: "Confirm Action",
+            showModal: ref _showConfirmDialog,
+            message: "Are you sure?",
+            onOk: () => PerformAction());
 
         ImGui.End();
     }
