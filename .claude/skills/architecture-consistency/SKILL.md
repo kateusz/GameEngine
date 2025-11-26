@@ -509,7 +509,7 @@ public class EditorLayer : Layer
 **Priority**: [High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Component defined outside Components/ folder
 **Location**: Engine/Animation/SpriteAnimatorComponent.cs
 **Pattern Violation**: Component organization - all components must live in Engine/Scene/Components/

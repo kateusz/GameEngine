@@ -376,7 +376,7 @@ emitter.EndColor = new Vector4(0.5f, 0, 0, 0);   // Fade to transparent red
 ```
 
 **System**: `ParticleSystem` (Priority: 150)
-```
+```text
 
 ## Checklist for Component Creation
 

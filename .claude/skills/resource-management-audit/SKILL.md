@@ -487,7 +487,7 @@ public void Dispose()
 **Priority**: [Critical/High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Mesh resources not disposed when entity is destroyed
 **Location**: Engine/Scene/Entity.cs:89
 **Resource Type**: OpenGL VBO, EBO, VAO

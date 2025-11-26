@@ -543,7 +543,7 @@ if (json1 != json2)
 **Priority**: [Critical/High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Runtime physics body being serialized
 **Location**: Engine/Scene/Components/RigidBody2DComponent.cs:15
 **Problem**: RuntimeBody property not marked [JsonIgnore], causing serialization errors

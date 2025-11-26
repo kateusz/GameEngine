@@ -169,7 +169,7 @@ Provide findings as:
 **Priority**: [Critical/High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Expensive per-pixel normalization in fragment shader
 **Impact**: ~0.5ms/frame at 1080p (30% of fragment shader cost)
 **Location**: Engine/Renderer/Shaders/Sprite.frag:12

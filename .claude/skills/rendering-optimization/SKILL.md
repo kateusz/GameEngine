@@ -423,7 +423,7 @@ public class StatsPanel
 **Priority**: [Critical/High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Excessive draw calls due to per-sprite texture switching
 **Impact**: 500 draw calls/frame (target: <10), frame time 25ms (target: 16.67ms)
 **Location**: Engine/Scene/Systems/SpriteRenderingSystem.cs:45

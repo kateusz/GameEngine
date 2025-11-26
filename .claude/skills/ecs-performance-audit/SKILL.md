@@ -75,7 +75,7 @@ Provide findings in this structure:
 **Priority**: [Critical/High/Medium/Low based on frame time impact]
 
 ### Example Output
-```
+```text
 **Issue**: LINQ materialization in OnUpdate() loop
 **Impact**: ~5,000 allocations per frame (60fps = 300k/sec), causing GC pressure
 **Location**: Engine/Scene/Systems/RenderingSystem.cs:156

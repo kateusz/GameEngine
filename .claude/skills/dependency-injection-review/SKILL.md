@@ -507,7 +507,7 @@ public class MyPanelTests
 **Priority**: [Critical/High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Static singleton pattern detected
 **Location**: Editor/Managers/AssetManager.cs:15
 **Problem**: Class uses static Instance property instead of DI

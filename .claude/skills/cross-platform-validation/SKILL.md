@@ -417,7 +417,7 @@ string shaderPath = "Assets/Shaders/sprite.vert"; // Forward slash works everywh
 **Priority**: [Critical/High/Medium/Low]
 
 ### Example Output
-```
+```text
 **Issue**: Hardcoded Windows path separators
 **Location**: Editor/Managers/ProjectManager.cs:45
 **Platform Impact**: Breaks on macOS and Linux
