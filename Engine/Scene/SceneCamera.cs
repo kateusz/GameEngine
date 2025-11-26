@@ -1,4 +1,3 @@
-using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Math;
 using Engine.Platform;

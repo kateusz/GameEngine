@@ -172,7 +172,7 @@ public abstract class Application : IApplication
         // LAYER ITERATION POLICY: Input events propagate in REVERSE order (overlays first, game layers last)
         // This ensures UI overlays receive input events before game logic:
         // - UI buttons and controls can consume clicks before game logic processes them
-        // - Menus and dialogs can block input from reaching the game when active
+        // - Menus and popups can block input from reaching the game when active
         // - Consistent with window event and update iteration order
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
@@ -198,6 +198,6 @@ public abstract class Application : IApplication
         _audioEngine.Shutdown();
 
         // Clear mesh factory cache and dispose all loaded models
-        Engine.Renderer.Models.MeshFactory.Clear();
+        MeshFactory.Clear();
     }
 }

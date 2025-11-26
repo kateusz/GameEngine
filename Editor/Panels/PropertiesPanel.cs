@@ -1,7 +1,9 @@
 using System.Numerics;
 using ECS;
-using Editor.Panels.ComponentEditors;
-using Editor.Panels.Elements;
+using Editor.ComponentEditors;
+using Editor.ComponentEditors.Core;
+using Editor.UI.Drawers;
+using Editor.UI.Elements;
 using ImGuiNET;
 
 namespace Editor.Panels;
@@ -47,10 +49,8 @@ public class PropertiesPanel : IPropertiesPanel
         ImGui.SameLine();
 
         // Save as prefab button
-        if (ImGui.Button("Save as Prefab"))
-        {
-            _prefabManager.ShowSavePrefabDialog(_selectedEntity);
-        }
+        ButtonDrawer.DrawButton("Save as Prefab",
+            () => _prefabManager.ShowSavePrefabPopup(_selectedEntity));
 
         // Render all components
         _componentEditors.DrawAllComponents(_selectedEntity);

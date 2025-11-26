@@ -181,7 +181,7 @@ public class BenchmarkLayer : ILayer
 
     private void RenderResultsWindow()
     {
-        ImGui.SetNextWindowSize(new Vector2(DisplayConfig.StandardDialogSize.Width, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(DisplayConfig.StandardPopupSize.Width, 500), ImGuiCond.FirstUseEver);
         ImGui.Begin("Benchmark Results");
 
         if (_results.Count > 0)

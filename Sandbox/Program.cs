@@ -3,7 +3,6 @@ using Engine.Animation;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.Events;
-using Engine.ImGuiNet;
 using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Systems;

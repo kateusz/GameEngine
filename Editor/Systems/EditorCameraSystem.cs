@@ -1,4 +1,3 @@
-using System;
 using ECS;
 using Engine.Renderer.Cameras;
 using Serilog;

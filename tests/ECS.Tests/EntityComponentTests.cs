@@ -155,7 +155,7 @@ public class EntityComponentTests
         // Arrange
         var entity = Entity.Create(1, "TestEntity");
         IComponent? addedComponent = null;
-        entity.OnComponentAdded += (component) => addedComponent = component;
+        entity.OnComponentAdded += component => addedComponent = component;
 
         // Act
         var component = entity.AddComponent<TestComponent>();
@@ -171,7 +171,7 @@ public class EntityComponentTests
         // Arrange
         var entity = Entity.Create(1, "TestEntity");
         IComponent? addedComponent = null;
-        entity.OnComponentAdded += (component) => addedComponent = component;
+        entity.OnComponentAdded += component => addedComponent = component;
         var component = new TestComponent();
 
         // Act

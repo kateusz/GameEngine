@@ -1,6 +1,6 @@
-using System.Numerics;
 using ECS;
 using Engine.Animation;
+using Engine.Animation.Events;
 using Engine.Events;
 using Engine.Scene.Components;
 using Serilog;

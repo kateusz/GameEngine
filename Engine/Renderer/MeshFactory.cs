@@ -1,7 +1,7 @@
 using System.Numerics;
 using Serilog;
 
-namespace Engine.Renderer.Models;
+namespace Engine.Renderer;
 
 public static class MeshFactory
 {

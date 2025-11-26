@@ -3,7 +3,6 @@ using System.Text.Json;
 using Bogus;
 using Engine.Scene.Serializer;
 using Shouldly;
-using Xunit;
 
 namespace Engine.Tests;
 

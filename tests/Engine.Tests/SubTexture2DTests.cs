@@ -3,7 +3,6 @@ using Bogus;
 using Engine.Renderer.Textures;
 using NSubstitute;
 using Shouldly;
-using Xunit;
 
 namespace Engine.Tests;
 

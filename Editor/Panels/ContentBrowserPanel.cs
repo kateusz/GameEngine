@@ -1,5 +1,5 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
+using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
 using ImGuiNET;
 
@@ -38,10 +38,10 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
         if (_currentDirectory != _assetPath)
         {
-            if (ImGui.Button("<-"))
+            ButtonDrawer.DrawCompactButton("<-", () =>
             {
                 _currentDirectory = Directory.GetParent(_currentDirectory)!.FullName;
-            }
+            });
         }
 
         var padding = 16.0f;
@@ -111,42 +111,39 @@ public class ContentBrowserPanel : IContentBrowserPanel
             }
 
             var pointer = new IntPtr(icon.GetRendererId());
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
-            ImGui.ImageButton("", pointer, new Vector2(thumbnailSize, thumbnailSize),
-                new Vector2(0, 1), new Vector2(1, 0));
 
-            if (ImGui.BeginDragDropSource())
-            {
-                IntPtr itemPathPtr = Marshal.StringToHGlobalUni(relativePath);
-                var itemPathSize = (relativePath.Length + 1) * sizeof(char);
-                ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPathPtr, (uint)itemPathSize);
+            // Draw transparent icon button
+            ButtonDrawer.DrawTransparentIconButton(
+                filenameString,
+                icon.GetRendererId(),
+                new Vector2(thumbnailSize, thumbnailSize));
 
-                // Show preview of what we're dragging
-                ImGui.Text($"Dragging: {filenameString}");
-                if (isImage)
+            // Setup drag and drop source
+            DragDropDrawer.CreateDragDropSource(
+                "CONTENT_BROWSER_ITEM",
+                relativePath,
+                () =>
                 {
-                    ImGui.Text("Type: Texture");
-                    // Show small icon
-                    ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
-                }
-                else if (isPrefab)
-                {
-                    ImGui.Text("Type: Prefab");
-                    ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
-                }
-                else if (isDirectory)
-                {
-                    ImGui.Text("Type: Directory");
-                }
-                else
-                {
-                    ImGui.Text($"Type: {Path.GetExtension(filenameString)}");
-                }
-
-                ImGui.EndDragDropSource();
-            }
-
-            ImGui.PopStyleColor();
+                    ImGui.Text($"Dragging: {filenameString}");
+                    if (isImage)
+                    {
+                        TextDrawer.DrawInfoText("Type: Texture");
+                        ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
+                    }
+                    else if (isPrefab)
+                    {
+                        TextDrawer.DrawInfoText("Type: Prefab");
+                        ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
+                    }
+                    else if (isDirectory)
+                    {
+                        TextDrawer.DrawInfoText("Type: Directory");
+                    }
+                    else
+                    {
+                        TextDrawer.DrawInfoText($"Type: {Path.GetExtension(filenameString)}");
+                    }
+                });
 
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) &&
                 !File.Exists(info.FullName))

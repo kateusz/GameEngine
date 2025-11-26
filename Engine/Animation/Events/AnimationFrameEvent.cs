@@ -1,6 +1,6 @@
 using ECS;
 
-namespace Engine.Animation;
+namespace Engine.Animation.Events;
 
 /// <summary>
 /// Event dispatched when animation enters a new frame that has events defined.

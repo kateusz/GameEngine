@@ -1,6 +1,6 @@
 using ECS;
 
-namespace Engine.Animation;
+namespace Engine.Animation.Events;
 
 /// <summary>
 /// Base interface for animation events.

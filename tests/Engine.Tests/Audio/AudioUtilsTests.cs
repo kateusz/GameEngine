@@ -1,9 +1,8 @@
 using Bogus;
 using Engine.Audio;
 using Shouldly;
-using Xunit;
 
-namespace Engine.Tests;
+namespace Engine.Tests.Audio;
 
 public class AudioUtilsTests
 {

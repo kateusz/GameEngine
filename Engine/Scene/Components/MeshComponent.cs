@@ -1,6 +1,5 @@
 using ECS;
 using Engine.Renderer;
-using Engine.Renderer.Models;
 
 namespace Engine.Scene.Components;
 
