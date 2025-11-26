@@ -209,7 +209,7 @@ public static class ButtonDrawer
 
         var clicked = ImGui.ImageButton(id, (IntPtr)textureId, size,
             new Vector2(0, 0), new Vector2(1, 1),
-            new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f));
+            new Vector4(0, 0, 0, 0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
         if (isSelected)
             ImGui.PopStyleColor();
@@ -246,7 +246,7 @@ public static class ButtonDrawer
 
         var clicked = ImGui.ImageButton(id, (IntPtr)textureId, size,
             new Vector2(0, 0), new Vector2(1, 1),
-            new Vector4(0, 0, 0, 0), new Vector4(255.0f, 255.0f, 255.0f, 255.0f));
+            new Vector4(0, 0, 0, 0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
         ImGui.PopStyleColor(3);
 

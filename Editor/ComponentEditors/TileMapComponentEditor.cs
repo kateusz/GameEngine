@@ -54,7 +54,7 @@ public class TileMapComponentEditor : IComponentEditor
             if (ImGui.InputText("TileSet Path", ref tileSetPath, 512))
             {
                 // TODO
-                component.TileSetPath = _assetsManager.AssetsPath + "//textures//spritesheet." + tileSetPath;
+                component.TileSetPath = Path.Combine(_assetsManager.AssetsPath, "textures", $"spritesheet.{tileSetPath}");
             }
 
             ButtonDrawer.DrawButton("Browse...", () =>

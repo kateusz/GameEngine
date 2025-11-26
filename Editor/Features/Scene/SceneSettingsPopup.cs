@@ -59,13 +59,8 @@ public class SceneSettingsPopup
                     // Create new scene
                     _sceneManager.New();
 
-                    // If a valid name was provided and we have a scenes directory, save the scene
-                    if (!string.IsNullOrWhiteSpace(_newSceneName) && _projectManager.ScenesDir != null)
-                    {
-                        var scenePath = Path.Combine(_projectManager.ScenesDir, $"{_newSceneName.Trim()}.scene");
-                        // Note: This will be saved when the user explicitly saves
-                        // For now, just create the empty scene
-                    }
+                    // TODO: Set scene path when saving is implemented
+                    // Scene will be saved when the user explicitly saves
 
                     _newSceneName = string.Empty;
                     _newSceneError = string.Empty;

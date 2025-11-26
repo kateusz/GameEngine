@@ -297,9 +297,10 @@ public class TileMapPanel
             () => _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex),
             disabled: !canRemoveLayer);
 
-        if (!canRemoveLayer)
+        // Tooltip on disabled items requires special handling
+        if (!canRemoveLayer && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
-            LayoutDrawer.DrawTooltip("Cannot remove the last layer");
+            ImGui.SetTooltip("Cannot remove the last layer");
         }
 
         ImGui.SameLine();
@@ -324,6 +325,10 @@ public class TileMapPanel
             isValid: isValidName,
             onOk: () =>
             {
+                if (_activeTileMap == null || _activeTileMap.Layers == null ||
+                    _activeTileMap.ActiveLayerIndex >= _activeTileMap.Layers.Count)
+                    return;
+
                 var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
                 currentLayer.Name = _renameLayerInput;
             },

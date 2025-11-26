@@ -6,9 +6,9 @@ public class DoubleFieldEditor : IFieldEditor
 {
     public bool Draw(string label, object value, out object newValue)
     {
-        var v = (float)(double)value;
-        var changed = ImGui.DragFloat(label, ref v);
-        newValue = (double)v;
+        var v = (double)value;
+        var changed = ImGui.InputDouble(label, ref v);
+        newValue = v;
         return changed;
     }
 }

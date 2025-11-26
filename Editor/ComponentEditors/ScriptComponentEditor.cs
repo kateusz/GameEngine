@@ -156,6 +156,12 @@ public class ScriptComponentEditor
             isValid: isValidName,
             onOk: () =>
             {
+                if (_selectedEntity == null)
+                {
+                    Logger.Warning("No entity selected for script attachment");
+                    return;
+                }
+
                 try
                 {
                     var scriptInstanceResult = _scriptEngine.CreateScriptInstance(_newScriptName);

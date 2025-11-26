@@ -103,31 +103,42 @@ public static class ModalDrawer
             // Handle Enter key for OK action
             var shouldExecuteOk = enterPressed && isValid;
             var shouldClose = false;
+            var actionExecuted = false;
 
             ButtonDrawer.DrawModalButtonPair(
                 okLabel: okLabel,
                 cancelLabel: cancelLabel,
                 onOk: () =>
                 {
-                    shouldClose = true;
-                    onOk();
+                    if (!actionExecuted)
+                    {
+                        shouldClose = true;
+                        actionExecuted = true;
+                        onOk();
+                    }
                 },
                 onCancel: () =>
                 {
-                    shouldClose = true;
-                    onCancel();
+                    if (!actionExecuted)
+                    {
+                        shouldClose = true;
+                        actionExecuted = true;
+                        onCancel();
+                    }
                 },
                 okDisabled: !isValid);
 
-            if (shouldExecuteOk)
+            if (shouldExecuteOk && !actionExecuted)
             {
                 shouldClose = true;
+                actionExecuted = true;
                 onOk();
             }
 
-            if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+            if (ImGui.IsKeyPressed(ImGuiKey.Escape) && !actionExecuted)
             {
                 shouldClose = true;
+                actionExecuted = true;
                 onCancel();
             }
 
@@ -250,7 +261,6 @@ public static class ModalDrawer
                 case MessageType.Success:
                     DrawSuccessMessage(message);
                     break;
-                case MessageType.Info:
                 default:
                     ImGui.TextWrapped(message);
                     break;

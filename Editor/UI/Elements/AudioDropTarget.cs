@@ -1,6 +1,7 @@
 using Editor.UI.Drawers;
 using Engine;
 using Engine.Audio;
+using Serilog;
 
 namespace Editor.UI.Elements;
 
@@ -58,7 +59,7 @@ public class AudioDropTarget
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Failed to load audio clip: {ex.Message}");
+                        Log.Error(ex, "Failed to load audio clip from {Path}", audioPath);
                     }
                 });
         });

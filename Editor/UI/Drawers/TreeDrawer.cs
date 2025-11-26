@@ -26,7 +26,7 @@ public static class TreeDrawer
         if (isSelected)
             nodeFlags |= ImGuiTreeNodeFlags.Selected;
 
-        var opened = ImGui.TreeNodeEx(label, nodeFlags, label);
+        var opened = ImGui.TreeNodeEx(label, nodeFlags);
 
         if (ImGui.IsItemClicked())
         {

@@ -236,6 +236,7 @@ public static class TableDrawer
         {
             SetupColumns(columns);
 
+            var index = 0;
             foreach (var item in itemList)
             {
                 ImGui.TableNextRow();
@@ -254,10 +255,11 @@ public static class TableDrawer
                 for (var i = 0; i < columns.Length; i++)
                 {
                     ImGui.TableSetColumnIndex(i);
-                    columns[i].CellRenderer?.Invoke(itemList.IndexOf(item));
+                    columns[i].CellRenderer?.Invoke(index);
                 }
 
                 renderRow(item);
+                index++;
             }
 
             ImGui.EndTable();

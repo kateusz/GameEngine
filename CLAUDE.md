@@ -648,19 +648,13 @@ if (ButtonDrawer.DrawButton("Save", ButtonDrawer.ButtonType.Primary))
 }
 
 // Example: Using ModalDrawer for confirmation dialogs
-private readonly ModalDrawer _modal = new();
 private bool _showDeleteConfirm;
 
-_modal.Draw("Delete Confirmation", ref _showDeleteConfirm, () =>
-{
-    TextDrawer.DrawText("Are you sure you want to delete this?", MessageType.Warning);
-
-    if (ButtonDrawer.DrawButton("Delete", ButtonDrawer.ButtonType.Danger))
-    {
-        DeleteItem();
-        _showDeleteConfirm = false;
-    }
-});
+ModalDrawer.RenderConfirmationModal(
+    title: "Delete Confirmation",
+    showModal: ref _showDeleteConfirm,
+    message: "Are you sure you want to delete this?",
+    onOk: () => DeleteItem());
 
 // Example: Using TableDrawer for data display
 TableDrawer.BeginTable("MyTable", new[] { "Name", "Type", "Value" });

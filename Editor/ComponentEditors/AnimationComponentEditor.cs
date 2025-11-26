@@ -90,21 +90,14 @@ public class AnimationComponentEditor : IComponentEditor
                        DragDropDrawer.HasValidExtension(path, ".anim"),
                 droppedPath =>
                 {
-                    // Unload old asset if exists
-                    if (!string.IsNullOrEmpty(component.AssetPath))
+                    // Unload previous asset if exists
+                    if (component.Asset != null && !string.IsNullOrWhiteSpace(component.AssetPath))
                     {
                         _animationAssetManager.UnloadAsset(component.AssetPath);
                     }
 
                     // Load new asset
-                    var previousPath = component.AssetPath;
-                    var previousAsset = component.Asset;
                     var animation = _animationAssetManager.LoadAsset(droppedPath);
-
-                    if (previousAsset != null && !string.IsNullOrWhiteSpace(previousPath))
-                    {
-                        _animationAssetManager.UnloadAsset(previousPath);
-                    }
 
                     component.AssetPath = droppedPath;
                     component.Asset = animation;

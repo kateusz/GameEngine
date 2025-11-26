@@ -82,7 +82,7 @@ public class NewProjectPopup
             showModal: ref _showOpenProjectPopup,
             promptText: "Enter Project Path:",
             inputValue: ref _openProjectPath,
-            maxLength: EditorUIConstants.MaxNameLength,
+            maxLength: EditorUIConstants.MaxPathLength,
             validationMessage: null,
             errorMessage: _openProjectError,
             isValid: hasInput,

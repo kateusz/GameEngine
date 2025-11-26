@@ -81,7 +81,7 @@ public class EditorLayer : ILayer
         SceneSettingsPopup sceneSettingsPopup, IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel,
         AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
-        IScriptEngine scriptEngine, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
+        IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ObjectManipulator objectManipulator, RulerTool rulerTool,
         ViewportRuler viewportRuler)
     {
@@ -105,7 +105,7 @@ public class EditorLayer : ILayer
         _shortcutManager = shortcutManager;
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
-        _scriptComponentEditor = new ScriptComponentEditor(scriptEngine);
+        _scriptComponentEditor = scriptComponentEditor;
         _debugSettings = debugSettings;
         _performanceMonitor = performanceMonitor;
         _assetsManager = assetsManager;
