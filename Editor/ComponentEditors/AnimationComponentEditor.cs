@@ -1,3 +1,4 @@
+using System.Linq;
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Constants;
@@ -122,28 +123,9 @@ public class AnimationComponentEditor : IComponentEditor
         var asset = component.Asset!;
         var currentClip = asset.GetClip(component.CurrentClipName);
 
-        ImGui.Text("Current Clip:");
-        ImGui.SameLine();
-
-        // Clip dropdown
-        ImGui.SetNextItemWidth(EditorUIConstants.WideColumnWidth);
-        if (ImGui.BeginCombo("##ClipSelector", component.CurrentClipName))
-        {
-            foreach (var clip in asset.Clips)
-            {
-                var clipName = clip.Name;
-                var isSelected = clipName == component.CurrentClipName;
-                if (ImGui.Selectable(clipName, isSelected))
-                {
-                    AnimationController.Play(entity, clipName);
-                }
-
-                if (isSelected)
-                    ImGui.SetItemDefaultFocus();
-            }
-
-            ImGui.EndCombo();
-        }
+        var clipNames = asset.Clips.Select(c => c.Name).ToArray();
+        LayoutDrawer.DrawComboBox("Current Clip", component.CurrentClipName, clipNames,
+            selectedClip => AnimationController.Play(entity, selectedClip));
 
         // Clip info
         if (currentClip != null)

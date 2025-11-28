@@ -1,8 +1,8 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene.Components;
-using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
@@ -16,26 +16,18 @@ public class RigidBody2DComponentEditor : IComponentEditor
         ComponentEditorRegistry.DrawComponent<RigidBody2DComponent>("Rigidbody 2D", e, entity =>
         {
             var component = entity.GetComponent<RigidBody2DComponent>();
-            
-            var currentBodyTypeString = component.BodyType.ToString();
-            UIPropertyRenderer.DrawPropertyRow("Body Type", () =>
-            {
-                if (ImGui.BeginCombo("##BodyType", currentBodyTypeString))
-                {
-                    for (var i = 0; i < BodyTypeStrings.Length; i++)
-                    {
-                        var isSelected = currentBodyTypeString == BodyTypeStrings[i];
-                        if (ImGui.Selectable(BodyTypeStrings[i], isSelected))
-                        {
-                            component.BodyType = (RigidBodyType)i;
-                        }
 
-                        if (isSelected)
-                            ImGui.SetItemDefaultFocus();
-                    }
-                    ImGui.EndCombo();
-                }
-            });
+            LayoutDrawer.DrawComboBox("Body Type", component.BodyType.ToString(), BodyTypeStrings,
+                selectedType =>
+                {
+                    component.BodyType = selectedType switch
+                    {
+                        nameof(RigidBodyType.Static) => RigidBodyType.Static,
+                        nameof(RigidBodyType.Dynamic) => RigidBodyType.Dynamic,
+                        nameof(RigidBodyType.Kinematic) => RigidBodyType.Kinematic,
+                        _ => component.BodyType
+                    };
+                });
 
             UIPropertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
                 newValue => component.FixedRotation = (bool)newValue);
