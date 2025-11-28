@@ -1,15 +1,17 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Math;
 using Engine.Scene;
 using Engine.Scene.Components;
-using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
 public class CameraComponentEditor : IComponentEditor
 {
+    private static readonly string[] ProjectionTypeStrings = { "Perspective", "Orthographic" };
+
     public void DrawComponent(Entity e)
     {
         ComponentEditorRegistry.DrawComponent<CameraComponent>("Camera", e, entity =>
@@ -20,26 +22,17 @@ public class CameraComponentEditor : IComponentEditor
             UIPropertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,
                 newValue => cameraComponent.Primary = (bool)newValue);
 
-            string[] projectionTypeStrings = { "Perspective", "Orthographic" };
-            var currentProjectionType = camera.ProjectionType;
-            string currentProjectionTypeString = projectionTypeStrings[(int)currentProjectionType];
-            
-            UIPropertyRenderer.DrawPropertyRow("Projection", () =>
-            {
-                if (ImGui.BeginCombo("##Projection", currentProjectionTypeString))
+            LayoutDrawer.DrawComboBox("Projection", ProjectionTypeStrings[(int)camera.ProjectionType],
+                ProjectionTypeStrings,
+                selectedType =>
                 {
-                    for (int i = 0; i < projectionTypeStrings.Length; i++)
+                    camera.ProjectionType = selectedType switch
                     {
-                        bool isSelected = currentProjectionTypeString == projectionTypeStrings[i];
-                        if (ImGui.Selectable(projectionTypeStrings[i], isSelected))
-                        {
-                            camera.ProjectionType = (ProjectionType)i;
-                        }
-                        if (isSelected) ImGui.SetItemDefaultFocus();
-                    }
-                    ImGui.EndCombo();
-                }
-            });
+                        "Perspective" => ProjectionType.Perspective,
+                        "Orthographic" => ProjectionType.Orthographic,
+                        _ => camera.ProjectionType
+                    };
+                });
 
             if (camera.ProjectionType == ProjectionType.Perspective)
             {

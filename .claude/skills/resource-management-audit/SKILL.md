@@ -6,36 +6,94 @@ description: Audit resource management including IDisposable pattern implementat
 # Resource Management Audit
 
 ## Overview
-This skill audits resource management patterns to ensure proper cleanup of unmanaged resources (OpenGL objects, file handles, native memory), correct IDisposable implementation, and prevention of memory leaks.
+
+This skill audits resource management to ensure proper cleanup of OpenGL resources, correct IDisposable implementation, and prevention of memory leaks. Focus on engine-specific concerns like OpenGL context safety, factory ownership patterns, and GPU resource tracking.
 
 ## When to Use
+
 Invoke this skill when:
 - Investigating memory leaks or growing memory usage
 - GPU resources (textures, buffers) are not being cleaned up
-- Adding new resource types (textures, shaders, meshes)
+- Adding new resource types (textures, shaders, meshes, framebuffers)
 - Refactoring resource lifetime management
 - Application crashes on shutdown (disposal issues)
 - Out-of-memory errors or GPU resource exhaustion
-- Questions about proper disposal patterns
+- Reviewing code for proper disposal patterns
 
-## Resource Types in Engine
+## Critical Engine-Specific Rules
 
-### OpenGL Resources (GPU)
-1. **Textures**: `glGenTextures`, `glDeleteTextures`
-2. **Buffers**: `glGenBuffers`, `glDeleteBuffers` (VBO, EBO, UBO)
-3. **Vertex Arrays**: `glGenVertexArrays`, `glDeleteVertexArrays` (VAO)
-4. **Framebuffers**: `glGenFramebuffers`, `glDeleteFramebuffers`
-5. **Shaders**: `glCreateShader`, `glDeleteShader`
-6. **Programs**: `glCreateProgram`, `glDeleteProgram`
+### 1. Never Call OpenGL in Finalizers
 
-### Managed Resources (CPU)
-1. **File Handles**: `FileStream`, `StreamReader`
-2. **Audio Buffers**: OpenAL buffers and sources
-3. **Native Memory**: Pinned arrays, unmanaged allocations
+**Why**: OpenGL context is NOT available on finalizer thread. Calling GL functions in finalizers causes crashes.
 
-## Proper IDisposable Pattern
+```csharp
+// ✅ CORRECT - Log warning instead
+~Texture()
+{
+    if (_rendererID != 0)
+    {
+        Logger.Error($"Texture {_path} not disposed! GPU leak.");
+        // Do NOT call GL.DeleteTexture here!
+    }
+}
 
-### Basic Pattern (No Derived Classes)
+public void Dispose()
+{
+    if (_rendererID != 0)
+    {
+        GL.DeleteTexture(_rendererID);  // Safe - correct thread
+        _rendererID = 0;
+    }
+    GC.SuppressFinalize(this);  // Prevent finalizer
+}
+```
+
+### 2. Factory-Managed Resources
+
+**Rule**: Factory owns cached resources. Consumers get references but don't dispose them.
+
+```csharp
+// TextureFactory owns and disposes cached textures
+var texture = _textureFactory.Load("sprite.png");
+
+// ❌ WRONG - Don't dispose factory-managed resources
+texture.Dispose();  // Other users still need this!
+
+// ✅ CORRECT - Factory disposes on shutdown
+// Just use the texture, factory handles lifetime
+```
+
+**Check ownership documentation** in resource classes (see XML comments).
+
+### 3. Shared vs. Owned Resources
+
+**Owned**: Component creates resource exclusively for itself → Component disposes it
+**Shared**: Resource comes from factory/cache → Factory disposes it
+
+```csharp
+public class MeshRenderer : IDisposable
+{
+    private Mesh _mesh;         // Shared (factory-managed)
+    private uint _instanceVBO;  // Owned (created by this component)
+
+    public void Dispose()
+    {
+        // Don't dispose _mesh (shared)
+
+        // DO dispose _instanceVBO (owned)
+        if (_instanceVBO != 0)
+        {
+            GL.DeleteBuffer(_instanceVBO);
+            _instanceVBO = 0;
+        }
+    }
+}
+```
+
+### 4. Disposal Guards
+
+Always implement these safeguards:
+
 ```csharp
 public class Texture : IDisposable
 {
@@ -44,479 +102,124 @@ public class Texture : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        if (_disposed)          // 1. Guard double-disposal
             return;
 
-        if (_rendererID != 0)
+        if (_rendererID != 0)   // 2. Check resource exists
         {
             GL.DeleteTexture(_rendererID);
-            _rendererID = 0;
+            _rendererID = 0;    // 3. Reset to prevent re-delete
         }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);  // 4. Skip finalizer
     }
 }
 ```
 
-### Full Pattern (Supports Derivation)
-```csharp
-public class Mesh : IDisposable
-{
-    private uint _vao, _vbo, _ebo;
-    private bool _disposed = false;
+## Audit Checklist
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-            return;
+When reviewing resource-owning classes, verify:
 
-        if (disposing)
-        {
-            // Dispose managed resources here
-            // (none in this case)
-        }
-
-        // Dispose unmanaged resources (OpenGL objects)
-        if (_vao != 0)
-        {
-            GL.DeleteVertexArray(_vao);
-            _vao = 0;
-        }
-
-        if (_vbo != 0)
-        {
-            GL.DeleteBuffer(_vbo);
-            _vbo = 0;
-        }
-
-        if (_ebo != 0)
-        {
-            GL.DeleteBuffer(_ebo);
-            _ebo = 0;
-        }
-
-        _disposed = true;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    ~Mesh()
-    {
-        // WARNING: Finalizers should NOT call OpenGL!
-        // OpenGL context may not be available on finalizer thread
-        // Log warning instead
-        if (!_disposed && _vao != 0)
-        {
-            Logger.Warning("Mesh was not properly disposed!");
-        }
-    }
-}
-```
-
-## Common Disposal Anti-Patterns
-
-### 1. Missing Disposal
-```csharp
-// ❌ WRONG - Texture never disposed
-public void LoadTexture(string path)
-{
-    var texture = new Texture(path);
-    // texture goes out of scope without being disposed
-    // GPU memory leak!
-}
-
-// ✅ CORRECT - Use using statement
-public Texture LoadTexture(string path)
-{
-    // Caller is responsible for disposal
-    return new Texture(path);
-}
-
-// Or cache in factory with disposal
-public class TextureFactory : IDisposable
-{
-    private Dictionary<string, Texture> _cache = new();
-
-    public Texture Load(string path)
-    {
-        if (_cache.TryGetValue(path, out var texture))
-            return texture;
-
-        texture = new Texture(path);
-        _cache[path] = texture;
-        return texture;
-    }
-
-    public void Dispose()
-    {
-        foreach (var texture in _cache.Values)
-        {
-            texture.Dispose();
-        }
-        _cache.Clear();
-    }
-}
-```
-
-### 2. Double Disposal
-```csharp
-// ❌ WRONG - Can crash if disposed twice
-public void Dispose()
-{
-    GL.DeleteTexture(_rendererID); // Crashes if called twice!
-}
-
-// ✅ CORRECT - Guard against double disposal
-public void Dispose()
-{
-    if (_disposed)
-        return;
-
-    if (_rendererID != 0)
-    {
-        GL.DeleteTexture(_rendererID);
-        _rendererID = 0; // Reset to prevent double-delete
-    }
-
-    _disposed = true;
-}
-```
-
-### 3. Disposing Shared Resources
-```csharp
-// ❌ WRONG - Multiple objects share same GPU buffer
-public class ModelInstance : IDisposable
-{
-    private Mesh _sharedMesh; // Shared!
-
-    public void Dispose()
-    {
-        _sharedMesh.Dispose(); // WRONG - other instances still using it!
-    }
-}
-
-// ✅ CORRECT - Don't dispose shared resources
-public class ModelInstance : IDisposable
-{
-    private Mesh _sharedMesh; // Reference, not owned
-
-    public void Dispose()
-    {
-        // Don't dispose _sharedMesh - it's managed by factory/pool
-        // Only dispose resources THIS instance owns
-    }
-}
-```
-
-### 4. OpenGL Calls in Finalizers
-```csharp
-// ❌ WRONG - OpenGL not safe in finalizer
-public class Texture : IDisposable
-{
-    ~Texture()
-    {
-        GL.DeleteTexture(_rendererID); // CRASH! No GL context on finalizer thread
-    }
-}
-
-// ✅ CORRECT - Log warning instead
-public class Texture : IDisposable
-{
-    ~Texture()
-    {
-        if (_rendererID != 0)
-        {
-            Logger.Error($"Texture {_path} was not properly disposed!");
-            // Don't call GL functions!
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_rendererID != 0)
-        {
-            GL.DeleteTexture(_rendererID);
-            _rendererID = 0;
-        }
-        GC.SuppressFinalize(this); // Prevent finalizer from running
-    }
-}
-```
-
-## Resource Ownership Patterns
-
-### Factory-Owned Resources
-```csharp
-public interface ITextureFactory : IDisposable
-{
-    Texture LoadTexture(string path);
-}
-
-public class TextureFactory : ITextureFactory
-{
-    private readonly Dictionary<string, Texture> _cache = new();
-
-    public Texture LoadTexture(string path)
-    {
-        // Factory owns the texture lifetime
-        if (_cache.TryGetValue(path, out var texture))
-            return texture;
-
-        texture = new Texture(path);
-        _cache[path] = texture;
-        return texture;
-    }
-
-    public void Dispose()
-    {
-        // Factory disposes all owned resources
-        foreach (var texture in _cache.Values)
-        {
-            texture.Dispose();
-        }
-        _cache.Clear();
-    }
-}
-
-// Usage - DO NOT dispose textures from factory
-public class Renderer
-{
-    private readonly ITextureFactory _textureFactory;
-
-    public void Render()
-    {
-        var texture = _textureFactory.LoadTexture("sprite.png");
-        // DON'T call texture.Dispose() - factory owns it!
-    }
-}
-```
-
-### Caller-Owned Resources
-```csharp
-public class TextureLoader
-{
-    public static Texture Load(string path)
-    {
-        // Caller owns the texture
-        return new Texture(path);
-    }
-}
-
-// Usage - MUST dispose
-public void UseTexture()
-{
-    using var texture = TextureLoader.Load("sprite.png");
-    // texture automatically disposed at end of scope
-}
-
-// Or manual disposal
-public class MyClass : IDisposable
-{
-    private Texture? _texture;
-
-    public void LoadTexture(string path)
-    {
-        _texture = TextureLoader.Load(path);
-    }
-
-    public void Dispose()
-    {
-        _texture?.Dispose();
-    }
-}
-```
-
-## Scene Resource Management
-
-### Entity Disposal
-```csharp
-// Entities contain components with resources
-public class Entity
-{
-    public void Destroy()
-    {
-        // Dispose component resources
-        if (HasComponent<MeshComponent>())
-        {
-            var mesh = GetComponent<MeshComponent>().Mesh;
-            mesh?.Dispose();
-        }
-
-        // Remove from scene
-        _scene.RemoveEntity(this);
-    }
-}
-```
-
-### Scene Disposal
-```csharp
-public class Scene : IDisposable
-{
-    private List<Entity> _entities = new();
-
-    public void Dispose()
-    {
-        // Dispose all entity resources
-        foreach (var entity in _entities)
-        {
-            entity.Destroy();
-        }
-        _entities.Clear();
-    }
-}
-```
-
-## Physics Resource Management
-
-### Box2D Bodies
-```csharp
-// From PhysicsSimulationSystem - correct pattern
-public class PhysicsSimulationSystem
-{
-    public void OnDetach(Scene scene)
-    {
-        // Clean up all physics bodies when scene unloads
-        foreach (var entity in scene.Entities)
-        {
-            if (entity.HasComponent<RigidBody2DComponent>())
-            {
-                var rb = entity.GetComponent<RigidBody2DComponent>();
-                if (rb.RuntimeBody != null)
-                {
-                    _world.DestroyBody(rb.RuntimeBody);
-                    rb.RuntimeBody = null;
-                }
-            }
-        }
-    }
-}
-```
-
-## Audio Resource Management
-
-### OpenAL Resources
-```csharp
-public class AudioSource : IDisposable
-{
-    private uint _source;
-    private uint _buffer;
-
-    public void Dispose()
-    {
-        if (_source != 0)
-        {
-            AL.DeleteSource(_source);
-            _source = 0;
-        }
-
-        if (_buffer != 0)
-        {
-            AL.DeleteBuffer(_buffer);
-            _buffer = 0;
-        }
-    }
-}
-```
-
-## Memory Leak Detection
-
-### Tools
-1. **dotMemory**: .NET memory profiler
-2. **PerfView**: Memory allocation tracking
-3. **Visual Studio Diagnostic Tools**: Memory usage graph
-4. **RenderDoc**: GPU resource tracking
-
-### Debug Helpers
-```csharp
-public class ResourceTracker
-{
-    private static int _textureCount = 0;
-    private static int _bufferCount = 0;
-
-    public static void TextureCreated() => Interlocked.Increment(ref _textureCount);
-    public static void TextureDestroyed() => Interlocked.Decrement(ref _textureCount);
-
-    public static void LogStats()
-    {
-        Logger.Info($"Active Textures: {_textureCount}");
-        Logger.Info($"Active Buffers: {_bufferCount}");
-    }
-}
-
-// In Texture constructor
-public Texture()
-{
-    #if DEBUG
-    ResourceTracker.TextureCreated();
-    #endif
-}
-
-// In Dispose
-public void Dispose()
-{
-    #if DEBUG
-    ResourceTracker.TextureDestroyed();
-    #endif
-}
-```
-
-## Checklist for Resource Types
-
+### IDisposable Implementation
 - [ ] Implements `IDisposable`
-- [ ] Has `_disposed` guard for double-disposal
+- [ ] Has `_disposed` flag to guard double-disposal
 - [ ] Resets resource IDs to 0 after deletion
-- [ ] Calls `GC.SuppressFinalize(this)` in Dispose
-- [ ] Finalizer logs warning (doesn't call OpenGL)
-- [ ] Documented who owns the resource (factory, caller, scene)
-- [ ] Tested disposal in isolation
-- [ ] Tested disposal in scene cleanup
-- [ ] Verified no GPU memory leaks (RenderDoc)
+- [ ] Calls `GC.SuppressFinalize(this)` in Dispose()
+- [ ] Finalizer logs warning (never calls OpenGL)
+
+### Ownership Clarity
+- [ ] Documented who owns the resource (XML comments)
+- [ ] Shared resources NOT disposed by consumers
+- [ ] Factory/pool manages disposal of cached resources
+- [ ] Clear distinction between owned vs. referenced resources
+
+### Resource Creation Sites
+- [ ] Every `new Texture()` has clear disposal path
+- [ ] Every `GL.GenBuffer()` has matching `GL.DeleteBuffer()`
+- [ ] Resources created in loops are disposed or cached
+- [ ] Exception handling doesn't skip disposal (use `using` or try-finally)
+
+### Testing
+- [ ] Unit tests verify cleanup after load/unload cycles
+- [ ] ResourceTracker shows stable counters (no growth)
+- [ ] Shutdown check confirms zero leaks
+- [ ] Manual testing with RenderDoc (GPU resources)
+
+## Common Anti-Patterns
+
+See `references/anti-patterns.cs` for detailed examples. Quick reference:
+
+1. **Missing Disposal**: Resource created but never disposed → Add disposal path
+2. **Double Disposal**: No `_disposed` guard → Crashes on second Dispose()
+3. **Disposing Shared Resources**: Multiple owners unclear → Document ownership
+4. **OpenGL in Finalizers**: Crashes due to missing context → Log warning instead
+5. **Forgetting GC.SuppressFinalize**: Unnecessary finalizer runs → Always call it
+6. **Wrong Disposal Order**: FBO before attachments → Delete in reverse order of creation
+7. **Null Checks Missing**: `_mesh.Dispose()` crashes if null → Use `_mesh?.Dispose()`
+8. **No Disposal Path**: Resources in loops → Cache or use `using` statement
+
+## Disposal Patterns Reference
+
+Standard IDisposable patterns with engine-specific notes: `references/disposal-patterns.cs`
+
+**Pattern Selection**:
+- **Basic Pattern**: Sealed classes, OpenGL-only resources
+- **Full Pattern**: Inheritable classes, mixed managed/unmanaged resources
+- **Factory Pattern**: Cached/shared resources with centralized lifetime management
 
 ## Output Format
 
-**Issue**: [Resource management problem]
-**Location**: [File path and line number]
-**Resource Type**: [OpenGL buffer, texture, shader, etc.]
-**Problem**: [Specific issue - leak, double disposal, missing cleanup]
-**Recommendation**: [Fix with code example]
-**Priority**: [Critical/High/Medium/Low]
+When reporting audit findings:
 
-### Example Output
 ```text
-**Issue**: Mesh resources not disposed when entity is destroyed
+**Issue**: [Resource management problem]
+**Location**: [File:line]
+**Resource Type**: [OpenGL buffer/texture/shader/etc.]
+**Problem**: [Specific issue - leak, double disposal, missing cleanup]
+**Recommendation**:
+[Code example showing fix]
+**Priority**: [Critical/High/Medium/Low]
+```
+
+**Example**:
+```text
+**Issue**: Mesh resources not disposed when entity destroyed
 **Location**: Engine/Scene/Entity.cs:89
 **Resource Type**: OpenGL VBO, EBO, VAO
-**Problem**: Entity.Destroy() doesn't dispose MeshComponent.Mesh, causing GPU memory leak
+**Problem**: Entity.Destroy() doesn't dispose MeshComponent.Mesh,
+causing GPU memory leak (20MB per load/unload cycle)
 **Recommendation**:
 public void Destroy()
 {
-    // Dispose mesh resources
     if (HasComponent<MeshComponent>())
     {
         var meshComp = GetComponent<MeshComponent>();
-        meshComp.Mesh?.Dispose();
+        // Only dispose if component owns the mesh (not factory-managed)
+        if (meshComp.OwnsMesh)
+        {
+            meshComp.Mesh?.Dispose();
+        }
         meshComp.Mesh = null;
     }
-
-    // Remove from scene
     _scene.RemoveEntity(this);
 }
-
 **Priority**: High (GPU memory leak)
 ```
 
-## Reference Documentation
-- **CLAUDE.md**: Performance and resource management guidelines
-- **Disposal Patterns**: Review existing IDisposable implementations in Engine/Renderer/
-- **Factory Pattern**: TextureFactory, ShaderFactory, AudioClipFactory
+## Key Files Reference
 
-## Integration with Agents
-This skill works with the **game-engine-expert** agent for low-level resource management and OpenGL cleanup patterns.
+- **`references/disposal-patterns.cs`**: Standard IDisposable patterns (basic, full, factory)
+- **`references/anti-patterns.cs`**: 8 common mistakes with ❌/✅ examples
+- **`references/investigation-workflow.md`**: Step-by-step leak hunting process
 
-## Tool Restrictions
-None - this skill may read code, analyze resource usage, and suggest cleanup patterns.
+## Summary
+
+**Core Principles**:
+1. Never call OpenGL in finalizers (no GL context available)
+2. Document ownership explicitly (owned vs. shared resources)
+3. Factory-managed resources: factory disposes, consumers reference
+4. Always guard double-disposal with `_disposed` flag
+5. Always call `GC.SuppressFinalize(this)` in Dispose()
+6. Use ResourceTracker for leak detection in DEBUG builds
+7. Test cleanup with load/unload cycles and shutdown checks

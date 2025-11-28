@@ -1,6 +1,6 @@
 ---
 name: editor-panel-creation
-description: Guide creation of new ImGui editor panels following dependency injection patterns, EditorUIConstants usage, panel interface design, and integration with EditorLayer. Use when adding new editor tools, asset browsers, debugging panels, or workflow windows to the game engine editor.
+description: Step-by-step workflow for creating new editor panels including interface design, DI registration, EditorLayer integration, and menu bar setup. Focuses on panel architecture and lifecycle, not UI component APIs. For UI component documentation (Drawers, Elements, FieldEditors), use editor-ui-infrastructure skill instead.
 ---
 
 # Editor Panel Creation
@@ -8,16 +8,31 @@ description: Guide creation of new ImGui editor panels following dependency inje
 ## Overview
 This skill provides comprehensive guidance for creating new ImGui-based editor panels, ensuring consistency with the engine's dependency injection architecture, UI styling standards, and editor integration patterns.
 
+**CRITICAL REQUIREMENT**: All editor panels **MUST** use the UI infrastructure (Drawers, Elements, FieldEditors) instead of manual ImGui code. This ensures consistency, maintainability, and productivity across the entire editor.
+
+## UI Infrastructure Reference
+
+The editor provides comprehensive UI infrastructure:
+- **UI Drawers**: ButtonDrawer, ModalDrawer, TableDrawer, TreeDrawer, TextDrawer, LayoutDrawer, DragDropDrawer
+- **UI Elements**: TextureDropTarget, AudioDropTarget, ComponentSelector, EntityContextMenu, PrefabManager
+- **Field Editors**: IFieldEditor (non-generic, primarily for script inspector - rarely used in panels)
+- **Constants**: EditorUIConstants for all sizing, spacing, and colors
+
 ## When to Use
 Invoke this skill when:
 - Adding a new editor panel or tool window
 - Creating asset browsers or managers
 - Building debugging or profiling panels
 - Implementing workflow tools for artists/designers
-- Questions about editor architecture and patterns
+- Questions about editor panel architecture and lifecycle
 - Integrating panels with the editor layer system
+- Questions about DI registration and menu integration
+
+**For UI component questions** (which Drawer to use, how to use FieldEditors, etc.), invoke **`editor-ui-infrastructure`** instead.
 
 ## Panel Creation Workflow
+
+Follow these 6 steps to create a new panel. Use the [Testing Checklist](#testing-checklist) to verify completeness.
 
 ### Step 1: Define Panel Interface
 **Location**: `Editor/Panels/`
@@ -54,8 +69,13 @@ public interface IMyNewPanel
 **Location**: `Editor/Panels/`
 
 **Guidelines**:
+- **MUST use UI Drawers** (ButtonDrawer, ModalDrawer, etc.) instead of manual ImGui code
+- **MUST use UI Elements** (TextureDropTarget, ComponentSelector, etc.) for complex interactions
+- **MUST inject Field Editors** (IFieldEditor for script values) for property editing when needed
+  - Note: IFieldEditor is non-generic and reflection-based, primarily for script inspector
+  - For component editors, see `editor-component-editors` skill
 - Use constructor injection for ALL dependencies
-- Use `EditorUIConstants` for sizing, spacing, colors
+- Use `EditorUIConstants` for sizing, spacing, colors (Drawers handle this automatically)
 - Maintain panel state in private fields
 - Implement proper disposal if managing resources
 - Follow ImGui immediate-mode UI patterns
@@ -65,6 +85,9 @@ public interface IMyNewPanel
 namespace Editor.Panels;
 
 using Editor.UI;
+using Editor.UI.Drawers;
+using Editor.UI.Elements;
+using Editor.UI.FieldEditors;
 using ImGuiNET;
 using Editor.Managers;
 
@@ -79,17 +102,13 @@ public class MyNewPanel : IMyNewPanel
 
     // Panel state
     private bool _isOpen = true;
+    private bool _showConfirmModal = false;
     private string _filterText = string.Empty;
     private int _selectedIndex = -1;
 
     // Input buffers (use EditorUIConstants for sizes)
     private readonly byte[] _nameBuffer = new byte[EditorUIConstants.MaxNameLength];
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MyNewPanel"/> class.
-    /// </summary>
-    /// <param name="sceneManager">Scene manager service.</param>
-    /// <param name="projectManager">Project manager service.</param>
     public MyNewPanel(
         ISceneManager sceneManager,
         IProjectManager projectManager)
@@ -111,68 +130,56 @@ public class MyNewPanel : IMyNewPanel
         if (!_isOpen)
             return;
 
-        // Use EditorUIConstants for window flags if needed
         ImGuiWindowFlags flags = ImGuiWindowFlags.None;
 
         if (ImGui.Begin("My Panel", ref _isOpen, flags))
         {
             DrawToolbar();
-            ImGui.Separator();
+            LayoutDrawer.DrawSeparator();
             DrawContent();
         }
         ImGui.End();
+
+        // Render modals (must be outside Begin/End)
+        ModalDrawer.RenderConfirmationModal(
+            title: "Confirm Action",
+            showModal: ref _showConfirmModal,
+            message: "Are you sure?",
+            onOk: () => PerformAction());
     }
 
     private void DrawToolbar()
     {
-        // Filter input
-        ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
-        if (ImGui.InputText("##Filter", _nameBuffer, (uint)_nameBuffer.Length))
+        // Use ButtonDrawer for styled buttons
+        if (ButtonDrawer.DrawButton("Save", ButtonDrawer.ButtonType.Primary))
         {
-            _filterText = System.Text.Encoding.UTF8.GetString(_nameBuffer).TrimEnd('\0');
+            SaveData();
         }
 
         ImGui.SameLine();
 
-        // Action buttons
-        if (ImGui.Button("Action", new Vector2(
-            EditorUIConstants.StandardButtonWidth,
-            EditorUIConstants.StandardButtonHeight)))
+        if (ButtonDrawer.DrawButton("Clear", ButtonDrawer.ButtonType.Secondary))
         {
-            PerformAction();
+            _showConfirmModal = true;
         }
     }
 
     private void DrawContent()
     {
-        // Use injected services
-        var scene = _sceneManager.GetActiveScene();
-        if (scene == null)
-        {
-            ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.WarningColor);
-            ImGui.Text("No active scene");
-            ImGui.PopStyleColor();
-            return;
-        }
+        // Use LayoutDrawer for spacing
+        LayoutDrawer.DrawSpacing(EditorUIConstants.StandardPadding);
 
-        // Panel content here
-        ImGui.Text($"Scene: {scene.Name}");
+        // Panel-specific content here
+    }
 
-        // Example: List with EditorUIConstants
-        if (ImGui.BeginListBox("##Items", new Vector2(
-            -1,
-            EditorUIConstants.MaxVisibleListItems * ImGui.GetTextLineHeightWithSpacing())))
-        {
-            // List items here
-            ImGui.EndListBox();
-        }
+    private void SaveData()
+    {
+        // Implementation
     }
 
     private void PerformAction()
     {
-        // Use injected dependencies for actions
-        var scene = _sceneManager.GetActiveScene();
-        // ... action logic
+        // Implementation
     }
 }
 ```
@@ -267,69 +274,72 @@ private void HandleShortcuts()
 }
 ```
 
-### Step 6: Use EditorUIConstants Throughout
+### Step 6: Use UI Infrastructure (MANDATORY)
 
-**All panels MUST use EditorUIConstants** - never hardcode UI values!
+**CRITICAL: All panels MUST use the UI infrastructure** - never write manual ImGui code for patterns covered by Drawers, Elements, or FieldEditors!
 
-**Common Usage Patterns**:
+#### Quick Reference
+
+**For complete API documentation**, invoke the **`editor-ui-infrastructure`** skill.
+
+**Common UI Components:**
+
+1. **Buttons** - Use `ButtonDrawer.DrawButton()` with button types (Primary, Secondary, Danger, Success)
+2. **Modals** - Use `ModalDrawer.RenderConfirmationModal()` for all confirmation dialogs
+3. **Tables** - Use `TableDrawer.BeginTable()` / `TableDrawer.DrawRow()` / `TableDrawer.EndTable()`
+4. **Spacing** - Use `LayoutDrawer.DrawSpacing()` / `LayoutDrawer.DrawSeparator()`
+5. **Asset References** - Use `TextureDropTarget.Draw()`, `AudioDropTarget.Draw()`, etc.
+6. **Property Editing** - Use ImGui widgets directly (ImGui.DragFloat, ImGui.InputText, etc.) or create custom UI patterns
+
+**Example: Minimal Panel with UI Infrastructure**
 
 ```csharp
-using Editor.UI;
+using Editor.UI.Drawers;
+using Editor.UI.Elements;
 
-// Button sizes
-ImGui.Button("Save", new Vector2(
-    EditorUIConstants.StandardButtonWidth,
-    EditorUIConstants.StandardButtonHeight));
+public class MyPanel : IMyPanel
+{
+    private bool _showConfirmModal;
+    private float _speed = 1.0f;
+    private string _iconPath = "";
 
-ImGui.Button("Wide Action", new Vector2(
-    EditorUIConstants.WideButtonWidth,
-    EditorUIConstants.StandardButtonHeight));
+    public void OnImGuiRender()
+    {
+        if (!_isOpen) return;
 
-// Property layout (2-column with 33% label, 67% input)
-float labelWidth = ImGui.GetContentRegionAvail().X * EditorUIConstants.PropertyLabelRatio;
+        if (ImGui.Begin("My Panel", ref _isOpen))
+        {
+            // Use ButtonDrawer for styled buttons
+            if (ButtonDrawer.DrawButton("Save", ButtonDrawer.ButtonType.Primary))
+            {
+                Save();
+            }
 
-ImGui.Text("Property Name");
-ImGui.SameLine(labelWidth);
-ImGui.SetNextItemWidth(-1); // Fill remaining space
-ImGui.DragFloat("##Value", ref value);
+            LayoutDrawer.DrawSeparator();
 
-// Spacing and padding
-ImGui.Dummy(new Vector2(0, EditorUIConstants.StandardPadding));
-ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,
-    new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
+            // Use ImGui for properties
+            ImGui.DragFloat("Speed", ref _speed, 0.1f);
 
-// Colors (consistent across editor)
-ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
-ImGui.Text("Error message");
-ImGui.PopStyleColor();
+            // Use drag-drop targets for assets
+            TextureDropTarget.Draw("Icon", _iconPath, (newPath) => _iconPath = newPath);
+        }
+        ImGui.End();
 
-ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.WarningColor);
-ImGui.Text("Warning message");
-ImGui.PopStyleColor();
-
-// Axis colors for vector editors
-ImGui.PushStyleColor(ImGuiCol.Button, EditorUIConstants.AxisXColor); // Red for X
-ImGui.PushStyleColor(ImGuiCol.Button, EditorUIConstants.AxisYColor); // Green for Y
-ImGui.PushStyleColor(ImGuiCol.Button, EditorUIConstants.AxisZColor); // Blue for Z
-
-// Input buffer sizes
-byte[] nameBuffer = new byte[EditorUIConstants.MaxNameLength];
-byte[] pathBuffer = new byte[EditorUIConstants.MaxPathLength];
-byte[] textBuffer = new byte[EditorUIConstants.MaxTextInputLength];
-
-// List boxes
-ImGui.BeginListBox("##List", new Vector2(
-    EditorUIConstants.SelectorListBoxWidth,
-    EditorUIConstants.MaxVisibleListItems * ImGui.GetTextLineHeightWithSpacing()));
-
-// Filter input width
-ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
-ImGui.InputText("##Filter", buffer, bufferSize);
-
-// Column widths
-ImGui.SetColumnWidth(0, EditorUIConstants.DefaultColumnWidth);
-ImGui.SetColumnWidth(1, EditorUIConstants.WideColumnWidth);
+        // Modals outside Begin/End
+        ModalDrawer.RenderConfirmationModal(
+            title: "Confirm",
+            showModal: ref _showConfirmModal,
+            message: "Are you sure?",
+            onOk: () => PerformAction());
+    }
+}
 ```
+
+**Key Rules:**
+- ❌ Never use `ImGui.Button()` - use `ButtonDrawer.DrawButton()`
+- ❌ Never use `ImGui.BeginPopupModal()` - use `ModalDrawer.RenderConfirmationModal()`
+- ✅ Use `ImGui.DragFloat()`, `ImGui.InputText()`, etc. for property editing (IFieldEditor is for script inspector only)
+- ❌ Never manually implement drag-drop - use `TextureDropTarget.Draw()`, etc.
 
 ## Advanced Panel Patterns
 
@@ -394,70 +404,38 @@ private void DrawItem(string itemName)
 ```
 
 ### Panel with Modal Dialog
+**ALWAYS use ModalDrawer instead of manual ImGui popups.**
+
 ```csharp
+using Editor.UI.Drawers;
+
 private bool _showDeleteConfirmation = false;
 
 private void DrawContent()
 {
-    if (ImGui.Button("Delete"))
+    // Trigger modal with styled button
+    if (ButtonDrawer.DrawButton("Delete", ButtonDrawer.ButtonType.Danger))
         _showDeleteConfirmation = true;
 
-    // Modal dialog
-    if (_showDeleteConfirmation)
-    {
-        ImGui.OpenPopup("Delete Confirmation");
-        _showDeleteConfirmation = false;
-    }
-
-    if (ImGui.BeginPopupModal("Delete Confirmation"))
-    {
-        ImGui.Text("Are you sure you want to delete?");
-
-        if (ImGui.Button("Yes", new Vector2(
-            EditorUIConstants.StandardButtonWidth,
-            EditorUIConstants.StandardButtonHeight)))
-        {
-            PerformDelete();
-            ImGui.CloseCurrentPopup();
-        }
-
-        ImGui.SameLine();
-
-        if (ImGui.Button("No", new Vector2(
-            EditorUIConstants.StandardButtonWidth,
-            EditorUIConstants.StandardButtonHeight)))
-        {
-            ImGui.CloseCurrentPopup();
-        }
-
-        ImGui.EndPopup();
-    }
+    // Render modal using ModalDrawer
+    ModalDrawer.RenderConfirmationModal(
+        title: "Delete Confirmation",
+        showModal: ref _showDeleteConfirmation,
+        message: "Are you sure you want to delete?",
+        onOk: () => PerformDelete());
 }
 ```
 
 ## Existing Panels Reference
 
-The editor currently has **17 panels**:
+The editor has 17 panels in `Editor/Panels/` and `Editor/Features/`. Reference these for implementation patterns:
+- **Core**: SceneHierarchyPanel, PropertiesPanel, ViewportPanel, GameViewPanel
+- **Assets**: ContentBrowserPanel, AssetPanel, TileMapPanel
+- **Tools**: ConsolePanel, StatsPanel, AudioPanel, PhysicsPanel
+- **Settings**: ProjectSettingsPanel, BuildSettingsPanel, PreferencesPanel, SceneSettingsPanel
+- **Utilities**: ShortcutsPanel, AboutPanel
 
-1. **SceneHierarchyPanel** - Entity tree view
-2. **PropertiesPanel** - Component inspector
-3. **ConsolePanel** - Logging output
-4. **ContentBrowserPanel** - Asset browser
-5. **ViewportPanel** - Scene rendering viewport
-6. **GameViewPanel** - Game view
-7. **StatsPanel** - Performance statistics
-8. **AssetPanel** - Asset management
-9. **ProjectSettingsPanel** - Project configuration
-10. **BuildSettingsPanel** - Build configuration
-11. **PreferencesPanel** - Editor preferences
-12. **TileMapPanel** - Tilemap editor
-13. **ShortcutsPanel** - Keyboard shortcuts
-14. **AboutPanel** - About dialog
-15. **SceneSettingsPanel** - Scene configuration
-16. **AudioPanel** - Audio system controls
-17. **PhysicsPanel** - Physics debugging
-
-**Reference these panels** for implementation patterns and UI consistency.
+See implementations in `Editor/Panels/` for UI consistency patterns.
 
 ## Dependency Injection Best Practices
 
@@ -512,6 +490,9 @@ container.Register<IMyPanel, MyPanel>(Reuse.Singleton);
 - [ ] Panel interface defined
 - [ ] Panel implementation with constructor injection
 - [ ] All dependencies properly injected (no nulls)
+- [ ] **UI Drawers used instead of manual ImGui code** (ButtonDrawer, ModalDrawer, etc.)
+- [ ] **UI Elements used for complex interactions** (drag-drop targets, component selector)
+- [ ] ImGui widgets used for property editing (IFieldEditor not needed in most panels)
 - [ ] `EditorUIConstants` used throughout (no magic numbers)
 - [ ] Registered in `Program.cs` DI container
 - [ ] Injected into `EditorLayer`
@@ -530,33 +511,17 @@ container.Register<IMyPanel, MyPanel>(Reuse.Singleton);
 - Clear parameter descriptions
 - Usage examples in comments
 
-### Module Documentation
-Update `docs/modules/editor.md`:
-- Add panel to list of editor panels
-- Describe panel purpose and features
-- Include screenshot if visual changes are significant
-- Document keyboard shortcuts
-
-## Reference Documentation
-- **Architecture**: `CLAUDE.md` - Editor architecture and DI patterns
-- **Module Docs**: `docs/modules/editor.md` - Editor panel documentation
-- **UI Constants**: `Editor/UI/EditorUIConstants.cs` - All UI sizing constants
-- **Existing Panels**: `Editor/Panels/` - 17 reference implementations
-- **EditorLayer**: `Editor/EditorLayer.cs` - Panel integration point
-
-## Integration with Agents
-This skill complements the **game-editor-architect** agent. Use this skill for panel structure and workflow, then delegate to game-editor-architect for ImGui-specific UI implementation and styling details.
-
 ## Common Pitfalls to Avoid
 
-1. **Hardcoded UI values** - Always use EditorUIConstants
-2. **Static state** - Use instance fields, inject dependencies
-3. **Missing null checks** - Validate constructor parameters
-4. **Inconsistent styling** - Follow existing panel patterns
-5. **Direct service access** - Use dependency injection
-6. **Forgetting IsOpen check** - Always check before rendering
-7. **ImGui misuse** - Follow Begin/End pairing strictly
-8. **Performance issues** - Avoid heavy computation in OnImGuiRender
-
-## Tool Restrictions
-None - this skill may create files, edit code, and update documentation for complete panel implementation.
+1. **❌ Manual ImGui code instead of Drawers** - ALWAYS use ButtonDrawer, ModalDrawer, TableDrawer, etc.
+2. **❌ Manual drag-drop instead of Elements** - Use TextureDropTarget, AudioDropTarget, etc.
+3. **❌ Confusing IFieldEditor usage** - IFieldEditor is for script inspector only, use ImGui widgets for panel properties
+4. **❌ Hardcoded UI values** - Always use EditorUIConstants
+5. **❌ Static state** - Use instance fields, inject dependencies
+6. **❌ Missing null checks** - Validate constructor parameters
+7. **❌ Inconsistent styling** - Follow existing panel patterns and use UI infrastructure
+8. **❌ Direct service access** - Use dependency injection
+9. **❌ Forgetting IsOpen check** - Always check before rendering
+10. **❌ ImGui misuse** - Follow Begin/End pairing strictly
+11. **❌ Performance issues** - Avoid heavy computation in OnImGuiRender
+12. **❌ Duplicating UI patterns** - Check if a Drawer/Element already exists first

@@ -6,7 +6,7 @@ description: Analyze Entity Component System implementations for performance bot
 # ECS Performance Audit
 
 ## Overview
-This skill performs comprehensive performance analysis of Entity Component System implementations in the C#/.NET 9.0 game engine. It identifies bottlenecks, memory allocation issues, and cache coherency problems that impact frame time.
+This skill performs comprehensive performance analysis of Entity Component System implementations in the C#/.NET 10.0 game engine. It identifies bottlenecks, memory allocation issues, and cache coherency problems that impact frame time.
 
 ## When to Use
 Invoke this skill when encountering:
@@ -23,7 +23,7 @@ Invoke this skill when encountering:
 ### 1. System Iteration Patterns
 - Identify systems iterating without proper component filtering
 - Check for O(n²) algorithms in entity loops
-- Verify LINQ usage doesn't cause unnecessary allocations
+- Verify LINQ usage doesn't cause unnecessary allocations - always prefer zlinq library
 - Look for `GetEntitiesWith<T>()` calls in hot paths
 - Check for unnecessary component lookups (cache component references when possible)
 
@@ -44,14 +44,12 @@ Invoke this skill when encountering:
 - Look for string concatenation in hot paths
 - Identify lambda allocations in frequent operations
 - Recommend object pooling strategies for frequently created objects
-- Suggest `Span<T>` and `stackalloc` where appropriate
+- Suggest `Span<T>` and `stackalloc` and Memory<T> where appropriate
 
 ### 4. Data Locality & Cache Coherency
 - Evaluate component data layout (prefer value types when small)
 - Check for Structure of Arrays vs Array of Structures opportunities
 - Suggest cache-friendly component packing
-- Identify pointer chasing through multiple component accesses
-- Recommend component co-location for frequently accessed pairs
 
 ### 5. Reflection & Dynamic Dispatch
 - Flag reflection usage in hot paths (use static caching like `ScriptableEntity`)
@@ -88,15 +86,3 @@ foreach (var entity in scene.GetEntitiesWith<SpriteRendererComponent>())
 
 **Priority**: High
 ```
-
-## Reference Documentation
-- **Architecture**: `CLAUDE.md` - ECS patterns and performance guidelines
-- **Module Docs**: `docs/modules/ecs-gameobject.md` - Component and system architecture
-- **Benchmarking**: `docs/specifications/physics-benchmark-design.md` - Performance testing approach
-- **Code Standards**: `CLAUDE.md` - C# style and performance optimization patterns
-
-## Integration with Agents
-This skill complements the **game-engine-expert** agent. Use this skill for autonomous analysis, then delegate to game-engine-expert for implementation of recommended optimizations.
-
-## Tool Restrictions
-None - this skill may read code, run benchmarks, and suggest edits as needed for comprehensive analysis.

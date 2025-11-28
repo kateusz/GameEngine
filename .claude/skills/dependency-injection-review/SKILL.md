@@ -1,9 +1,24 @@
 ---
 name: dependency-injection-review
-description: Review code for proper dependency injection patterns using DryIoc container, ensuring no static singletons exist, constructor injection is used correctly, service lifetimes are appropriate, and all dependencies are registered in Program.cs. Use when reviewing new code, refactoring static access, or debugging DI-related issues.
+description: Review code for proper DI patterns using DryIoc. Ensures no static singletons, validates constructor injection and service lifetimes. Use when reviewing code, refactoring static access, or debugging DI issues.
 ---
 
 # Dependency Injection Review
+
+## Table of Contents
+- [Overview](#overview)
+- [When to Use](#when-to-use)
+- [Quick Reference](#quick-reference)
+- [Core Principles](#core-principles)
+- [Review Checklist](#review-checklist)
+  - [1. Constructor Injection Pattern](#1-constructor-injection-pattern)
+  - [2. Service Registration](#2-service-registration)
+  - [3. Interface-Based Design](#3-interface-based-design)
+  - [4. Circular Dependency Detection](#4-circular-dependency-detection)
+  - [5. Null Reference Validation](#5-null-reference-validation)
+- [Registration Patterns](#registration-patterns)
+- [Step-by-Step DI Review Workflow](#step-by-step-di-review-workflow)
+- [Debugging DI Issues](#debugging-di-issues)
 
 ## Overview
 This skill audits code for adherence to the game engine's dependency injection architecture using DryIoc. It ensures all services use constructor injection, identifies static singleton violations, and validates service registration patterns.
@@ -16,8 +31,25 @@ Invoke this skill when:
 - Adding new services to the container
 - Questions about service lifetime and registration
 - Investigating circular dependency issues
-- Validating proper disposal of services
 
+## Quick Reference
+
+## ✅ **Do**
+* Constructor injection
+* Register services in `Program.cs`
+* Use `ArgumentNullException.ThrowIfNull()`
+* Use events for decoupling
+* Interface-based design
+* Use **Singleton** for stateful services
+
+## ❌ **Don’t**
+* Static singletons
+* Manual `new()` for services
+* Null-forgiving operator (`!`) on dependencies
+* Circular dependencies
+* Concrete dependencies everywhere
+* Use **Transient** for managers/factories
+---
 ## Core Principles
 
 ### The Golden Rule
@@ -34,130 +66,161 @@ Everything else uses dependency injection.
 
 ### 1. Constructor Injection Pattern
 
+All dependencies must be injected through the constructor, not through properties or methods.
+
 **✅ CORRECT**:
 ```csharp
-public class MyPanel : IMyPanel
+public class AnimationSystem : ISystem
 {
-    private readonly ISceneManager _sceneManager;
-    private readonly IProjectManager _projectManager;
+    private readonly ITextureFactory _textureFactory;
+    private readonly IResourceManager _resourceManager;
 
-    public MyPanel(
-        ISceneManager sceneManager,
-        IProjectManager projectManager)
+    public AnimationSystem(
+        ITextureFactory textureFactory,
+        IResourceManager resourceManager)
     {
-        _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
-        _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
-    }
+        ArgumentNullException.ThrowIfNull(textureFactory);
+        ArgumentNullException.ThrowIfNull(resourceManager);
 
-    public void DoWork()
-    {
-        var scene = _sceneManager.GetActiveScene();
-        // Use injected dependencies
+        _textureFactory = textureFactory;
+        _resourceManager = resourceManager;
     }
 }
 ```
 
-**❌ WRONG**:
+**❌ FORBIDDEN - Static Singleton**:
 ```csharp
-// Static singleton - FORBIDDEN
-public class MyPanel
+public class AnimationSystem
 {
-    public static MyPanel Instance { get; } = new MyPanel();
+    private static AnimationSystem? _instance;
+    public static AnimationSystem Instance => _instance ??= new AnimationSystem();
 
-    private MyPanel() { }
-
-    public void DoWork()
-    {
-        var scene = SceneManager.Instance.GetActiveScene(); // BAD
-    }
+    private AnimationSystem() { } // Private constructor
 }
 ```
 
-**❌ WRONG**:
+**❌ FORBIDDEN - Property Injection**:
 ```csharp
-// Service locator pattern - FORBIDDEN
-public class MyPanel
+public class AnimationSystem
 {
-    public void DoWork()
+    public ITextureFactory TextureFactory { get; set; } // Don't use property injection!
+
+    public AnimationSystem() { }
+}
+```
+
+**❌ FORBIDDEN - Service Locator Pattern**:
+```csharp
+public class AnimationSystem
+{
+    private readonly ITextureFactory _textureFactory;
+
+    public AnimationSystem()
     {
-        var sceneManager = ServiceLocator.Get<ISceneManager>(); // BAD
-        var scene = sceneManager.GetActiveScene();
+        // Don't resolve from container directly!
+        _textureFactory = ServiceLocator.Resolve<ITextureFactory>();
     }
 }
 ```
 
 ### 2. Service Registration
 
-**Location**: `Editor/Program.cs` or `Engine/Program.cs`
-
-**✅ CORRECT**:
-```csharp
-private static void ConfigureServices(Container container)
-{
-    // Managers (Singleton - one instance per application)
-    container.Register<ISceneManager, SceneManager>(Reuse.Singleton);
-    container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
-
-    // Factories (Singleton - stateless factories can be shared)
-    container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
-    container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
-
-    // Panels (Singleton - one instance per editor session)
-    container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
-    container.Register<IPropertiesPanel, PropertiesPanel>(Reuse.Singleton);
-
-    // Systems (Singleton - registered once per scene)
-    container.Register<AnimationSystem>(Reuse.Singleton);
-    container.Register<PhysicsSimulationSystem>(Reuse.Singleton);
-
-    // Transient services (new instance per request - rare)
-    container.Register<ISceneSerializer, SceneSerializer>(Reuse.Transient);
-}
-```
+**Location**: `Editor/Program.cs` or `Runtime/Program.cs`
 
 **Service Lifetime Guidelines**:
-- **Singleton** (default): Managers, factories, panels, systems, stateful services
-- **Transient**: Services that maintain per-operation state or are lightweight
-- **Scoped**: Not typically used in this engine (no request scope)
+- **Singleton** (default): SceneManager, TextureFactory, ConsolePanel, RenderingSystem, ProjectManager
+- **Transient**: ValidationService, TemporaryOperationContext, per-request processors
+- **Scoped**: Not used in this engine (no HTTP request scope)
+
+**Example: Editor/Program.cs Registration**:
+```csharp
+// Core managers (Singleton)
+container.Register<ISceneManager, SceneManager>(Reuse.Singleton);
+container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
+container.Register<ISelectionManager, SelectionManager>(Reuse.Singleton);
+
+// Factories (Singleton)
+container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
+container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
+
+// Panels (Singleton)
+container.Register<ContentBrowserPanel>(Reuse.Singleton);
+container.Register<ConsolePanel>(Reuse.Singleton);
+container.Register<PropertiesPanel>(Reuse.Singleton);
+
+// Systems (Singleton)
+container.Register<RenderingSystem>(Reuse.Singleton);
+container.Register<AnimationSystem>(Reuse.Singleton);
+
+// Transient services
+container.Register<IValidationService, ValidationService>(Reuse.Transient);
+```
 
 ### 3. Interface-Based Design
 
-**✅ CORRECT**:
+Use interfaces for services that need abstraction, testability, or multiple implementations.
+
+**✅ USE INTERFACES FOR**:
 ```csharp
-// Define interface
+// Managers - multiple implementations or testability
 public interface ISceneManager
 {
-    Scene? GetActiveScene();
-    void SetActiveScene(Scene scene);
+    Scene? ActiveScene { get; }
+    void LoadScene(string path);
 }
 
-// Implement interface
-public class SceneManager : ISceneManager
+public class SceneManager : ISceneManager { }
+
+// Factories - abstraction from creation logic
+public interface ITextureFactory
 {
-    private Scene? _activeScene;
-
-    public Scene? GetActiveScene() => _activeScene;
-
-    public void SetActiveScene(Scene scene)
-    {
-        _activeScene = scene;
-    }
+    Texture2D CreateTexture(string path);
 }
 
-// Register mapping
-container.Register<ISceneManager, SceneManager>(Reuse.Singleton);
+public class TextureFactory : ITextureFactory { }
 
-// Inject interface
-public class MyPanel
+// Cross-cutting concerns - different implementations per platform
+public interface IRendererAPI
 {
-    public MyPanel(ISceneManager sceneManager) { }
+    void DrawIndexed(uint indexCount);
+}
+
+public class OpenGLRendererAPI : IRendererAPI { }
+```
+
+**✅ SKIP INTERFACES FOR**:
+```csharp
+// Editor panels - concrete UI implementations
+public class ConsolePanel
+{
+    public ConsolePanel(ILogger logger) { }
+}
+
+// ECS Systems - concrete game logic
+public class AnimationSystem : ISystem
+{
+    public AnimationSystem(ITextureFactory factory) { }
+}
+
+// Pure data classes - no behavior to abstract
+public class Transform
+{
+    public Vector3 Position { get; set; }
+    public Vector3 Rotation { get; set; }
+}
+
+// Component Editors - concrete UI for specific components
+public class TransformComponentEditor
+{
+    public TransformComponentEditor(IFieldEditor<Vector3> vector3Editor) { }
 }
 ```
 
-**When to skip interfaces**:
-- Concrete classes with no abstraction needs (some systems, POCOs)
-- Internal implementation details not exposed to other modules
-- Pure data classes or components
+**Decision Guide**:
+1. Will this have multiple implementations? → Use interface
+2. Do you need to mock it for testing? → Use interface
+3. Does it cross module boundaries? → Use interface
+4. Is it just UI or concrete game logic? → Skip interface (register concrete class)
 
 ### 4. Circular Dependency Detection
 
@@ -207,38 +270,32 @@ public class ServiceB
 }
 ```
 
-**Option 3: Lazy resolution (last resort)**
+**Option 3: Pass data directly**
 ```csharp
+// Instead of injecting the whole service, pass only the data needed
 public class ServiceA
 {
-    private readonly Lazy<IServiceB> _serviceB;
+    public Data GetData() => _data;
+}
 
-    public ServiceA(Lazy<IServiceB> serviceB)
+public class ServiceB
+{
+    public void ProcessData(Data data) // Method parameter, not constructor
     {
-        _serviceB = serviceB;
-    }
-
-    public void DoWork()
-    {
-        _serviceB.Value.DoSomething();
+        // Process data without depending on ServiceA
     }
 }
 ```
+
+**Decision Tree - Choosing a Solution**:
+1. **Can you extract shared logic?** → Use Option 1 (Extract shared dependency)
+2. **Is this an observer pattern scenario?** → Use Option 2 (Events)
+3. **Does one service only need data, not behavior?** → Use Option 3 (Pass data directly)
+4. **Still circular?** → Rethink your design - you may have incorrect separation of concerns
 
 ### 5. Null Reference Validation
 
 **✅ ALWAYS validate injected dependencies**:
-```csharp
-public MyClass(
-    ISceneManager sceneManager,
-    IProjectManager projectManager)
-{
-    _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
-    _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
-}
-```
-
-**Alternative (C# 11+)**:
 ```csharp
 public MyClass(
     ISceneManager sceneManager,
@@ -249,174 +306,6 @@ public MyClass(
 
     _sceneManager = sceneManager;
     _projectManager = projectManager;
-}
-```
-
-### 6. Disposal and Resource Management
-
-**IDisposable services**:
-```csharp
-public interface ITextureFactory : IDisposable
-{
-    Texture LoadTexture(string path);
-}
-
-public class TextureFactory : ITextureFactory
-{
-    private readonly Dictionary<string, Texture> _cache = new();
-
-    public Texture LoadTexture(string path)
-    {
-        // ... implementation
-    }
-
-    public void Dispose()
-    {
-        foreach (var texture in _cache.Values)
-        {
-            texture.Dispose();
-        }
-        _cache.Clear();
-    }
-}
-
-// Container automatically disposes singletons implementing IDisposable
-```
-
-**Injecting IDisposable**:
-```csharp
-// ✅ CORRECT - Injected disposables managed by container
-public class MyPanel
-{
-    private readonly ITextureFactory _textureFactory;
-
-    public MyPanel(ITextureFactory textureFactory)
-    {
-        _textureFactory = textureFactory;
-    }
-
-    // DO NOT dispose injected dependencies
-    // Container manages their lifetime
-}
-
-// ❌ WRONG - Don't dispose injected dependencies
-public class MyPanel : IDisposable
-{
-    private readonly ITextureFactory _textureFactory;
-
-    public void Dispose()
-    {
-        _textureFactory.Dispose(); // WRONG! Container manages this
-    }
-}
-```
-
-## Common DI Anti-Patterns
-
-### 1. Service Locator
-```csharp
-// ❌ WRONG
-public class MyClass
-{
-    public void DoWork()
-    {
-        var manager = Container.Resolve<ISceneManager>(); // BAD
-    }
-}
-
-// ✅ CORRECT
-public class MyClass
-{
-    private readonly ISceneManager _manager;
-
-    public MyClass(ISceneManager manager)
-    {
-        _manager = manager;
-    }
-
-    public void DoWork()
-    {
-        _manager.DoSomething();
-    }
-}
-```
-
-### 2. Static State
-```csharp
-// ❌ WRONG
-public static class TextureCache
-{
-    private static Dictionary<string, Texture> _cache = new();
-
-    public static Texture Get(string path)
-    {
-        // ... WRONG - use DI factory instead
-    }
-}
-
-// ✅ CORRECT
-public interface ITextureFactory
-{
-    Texture LoadTexture(string path);
-}
-
-public class TextureFactory : ITextureFactory
-{
-    private readonly Dictionary<string, Texture> _cache = new();
-
-    public Texture LoadTexture(string path)
-    {
-        // ... implementation with caching
-    }
-}
-```
-
-### 3. New Keyword for Services
-```csharp
-// ❌ WRONG
-public class MyPanel
-{
-    public void DoWork()
-    {
-        var serializer = new SceneSerializer(); // WRONG
-        serializer.Save(scene);
-    }
-}
-
-// ✅ CORRECT
-public class MyPanel
-{
-    private readonly ISceneSerializer _serializer;
-
-    public MyPanel(ISceneSerializer serializer)
-    {
-        _serializer = serializer;
-    }
-
-    public void DoWork()
-    {
-        _serializer.Save(scene);
-    }
-}
-```
-
-### 4. Property Injection
-```csharp
-// ❌ WRONG - Property injection (avoid in this engine)
-public class MyPanel
-{
-    public ISceneManager SceneManager { get; set; } // BAD
-}
-
-// ✅ CORRECT - Constructor injection
-public class MyPanel
-{
-    private readonly ISceneManager _sceneManager;
-
-    public MyPanel(ISceneManager sceneManager)
-    {
-        _sceneManager = sceneManager;
-    }
 }
 ```
 
@@ -442,108 +331,39 @@ container.Register<ISceneManager, SceneManager>(
     setup: Setup.With(allowDisposableTransient: true));
 ```
 
-### Registering Multiple Implementations
-```csharp
-// Register named implementations
-container.Register<IRenderer, Renderer2D>(Reuse.Singleton, serviceKey: "2D");
-container.Register<IRenderer, Renderer3D>(Reuse.Singleton, serviceKey: "3D");
+## Step-by-Step DI Review Workflow
 
-// Resolve specific implementation
-public MyClass(
-    [Named("2D")] IRenderer renderer2D,
-    [Named("3D")] IRenderer renderer3D)
-{
-}
-```
+When reviewing code for DI compliance, follow this systematic approach:
+
+1. **Scan for static singletons**:
+   ```bash
+   grep -r "static.*Instance" --include="*.cs" Engine/ Editor/ | grep -v "Constants.cs"
+   ```
+
+2. **Check constructor injection**:
+   - Verify all dependencies are in constructor parameters
+   - Ensure no property injection or service locator usage
+   - Confirm `ArgumentNullException.ThrowIfNull()` calls exist
+
+3. **Validate registrations**:
+   - Open `Editor/Program.cs` or `Runtime/Program.cs`
+   - Ensure all injected types are registered
+   - Verify appropriate lifetime (Singleton vs Transient)
+
+4. **Verify service lifetimes**:
+   - Singleton services should NOT depend on Transient services
+   - Check for proper disposal of IDisposable services
+
+5. **Test resolution**:
+   - Build and run the application
+   - Watch for DI-related errors at startup
+   - Circular dependencies will fail immediately
 
 ## Debugging DI Issues
 
-### Common Errors and Solutions
+For detailed troubleshooting steps, common error solutions, and automated validation scripts with expected outputs, see the [Debugging Guide](references/debugging-guide.md).
 
-**Error**: "No service registered for type X"
-- **Solution**: Add registration to `Program.cs` ConfigureServices
-
-**Error**: "Circular dependency detected"
-- **Solution**: Refactor to extract shared dependency or use events
-
-**Error**: "Service is null after construction"
-- **Solution**: Ensure service is registered before dependent services
-
-**Error**: "Multiple constructors found"
-- **Solution**: Use `[DryIoc.Attributes.Constructor]` attribute on preferred constructor
-
-**Error**: "Disposed object accessed"
-- **Solution**: Check service lifetimes - don't inject transient into singleton
-
-## Testing with DI
-
-```csharp
-public class MyPanelTests
-{
-    [Fact]
-    public void TestPanelLogic()
-    {
-        // Arrange - Mock dependencies
-        var mockSceneManager = new Mock<ISceneManager>();
-        mockSceneManager.Setup(m => m.GetActiveScene())
-            .Returns(new Scene("Test"));
-
-        // Act - Inject mocks
-        var panel = new MyPanel(mockSceneManager.Object);
-        panel.DoWork();
-
-        // Assert
-        mockSceneManager.Verify(m => m.GetActiveScene(), Times.Once);
-    }
-}
-```
-
-## Output Format
-
-**Issue**: [DI violation description]
-**Location**: [File path and line number]
-**Problem**: [Specific anti-pattern or violation]
-**Recommendation**: [How to fix with code example]
-**Priority**: [Critical/High/Medium/Low]
-
-### Example Output
-```text
-**Issue**: Static singleton pattern detected
-**Location**: Editor/Managers/AssetManager.cs:15
-**Problem**: Class uses static Instance property instead of DI
-**Recommendation**:
-// Remove static singleton
-public class AssetManager : IAssetManager
-{
-    // Remove: public static AssetManager Instance { get; } = new();
-
-    // Add constructor for DI
-    public AssetManager(IProjectManager projectManager)
-    {
-        // ... initialization
-    }
-}
-
-// Register in Program.cs
-container.Register<IAssetManager, AssetManager>(Reuse.Singleton);
-
-// Inject where needed
-public class MyPanel
-{
-    public MyPanel(IAssetManager assetManager) { }
-}
-
-**Priority**: High
-```
-
-## Reference Documentation
-- **Architecture**: `CLAUDE.md` - Dependency Injection patterns
-- **DryIoc Docs**: DryIoc container documentation
-- **Program.cs**: `Editor/Program.cs` - All service registrations (50+ services)
-- **Existing Services**: Review existing managers, factories, panels for patterns
-
-## Integration with Agents
-This skill works across all agents. Use for architectural compliance review regardless of domain (engine, editor, or game development).
-
-## Tool Restrictions
-None - this skill may read code, analyze architecture, and suggest refactorings.
+**Quick validation commands:**
+- Detect static singletons: `grep -rn "static.*Instance.*=>" --include="*.cs" Engine/ Editor/ | grep -v "Constants.cs"`
+- Find service locator usage: `grep -rn "ServiceLocator\|\.Resolve<" --include="*.cs" Engine/ Editor/`
+- Check property injection: `grep -rn "{ get; set; }.*Factory\|{ get; set; }.*Manager" --include="*.cs" Engine/ Editor/`
