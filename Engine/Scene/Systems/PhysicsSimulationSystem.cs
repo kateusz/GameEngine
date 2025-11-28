@@ -12,7 +12,7 @@ namespace Engine.Scene.Systems;
 /// Handles fixed timestep physics stepping and synchronization between physics bodies and transforms.
 /// This is a PER-SCENE system - each scene has its own instance with its own physics world.
 /// </summary>
-public class PhysicsSimulationSystem : ISystem, IDisposable
+internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
 

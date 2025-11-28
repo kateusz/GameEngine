@@ -4,7 +4,7 @@ namespace Engine.Renderer;
 /// Default implementation of IRendererApiConfig.
 /// Provides configuration for which renderer API to use (SilkNet/OpenGL).
 /// </summary>
-public class RendererApiConfig : IRendererApiConfig
+internal sealed class RendererApiConfig : IRendererApiConfig
 {
     /// <summary>
     /// Gets the renderer API type.

@@ -1,42 +1,6 @@
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
-public class FramebufferAttachmentSpecification
-{
-    public readonly List<FramebufferTextureSpecification> Attachments;
-
-    public FramebufferAttachmentSpecification(List<FramebufferTextureSpecification> attachments)
-    {
-        Attachments = attachments;
-    }
-}
-
-public enum FramebufferTextureFormat
-{
-    None = 0,
-
-    // Color
-    RGBA8,
-    
-    RED_INTEGER,
-
-    // Depth/stencil
-    DEPTH24STENCIL8,
-
-    // Defaults
-    Depth = DEPTH24STENCIL8
-}
-
-public struct FramebufferTextureSpecification
-{
-    public readonly FramebufferTextureFormat TextureFormat = FramebufferTextureFormat.None;
-
-    public FramebufferTextureSpecification(FramebufferTextureFormat textureFormat)
-    {
-        TextureFormat = textureFormat;
-    }
-}
-
-public class FrameBufferSpecification(uint width, uint height, uint samples = 1, bool swapChainTarget = false)
+public sealed class FrameBufferSpecification(uint width, uint height, uint samples = 1, bool swapChainTarget = false)
 {
     public uint Width { get; internal set; } = width;
     public uint Height { get; internal set; } = height;

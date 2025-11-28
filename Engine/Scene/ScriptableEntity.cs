@@ -11,7 +11,7 @@ namespace Engine.Scene;
 /// Base class for all script components in the engine.
 /// Script components provide behavior to entities through inheritance.
 /// </summary>
-public class ScriptableEntity
+public abstract class ScriptableEntity
 {
     #region Reflection Cache
 

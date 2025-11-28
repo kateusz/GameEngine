@@ -2,8 +2,7 @@ using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Textures;
 
-
-public class TextureFactory : ITextureFactory
+internal sealed class TextureFactory : ITextureFactory
 {
     private readonly IRendererApiConfig _apiConfig;
     private Texture2D? _whiteTexture;

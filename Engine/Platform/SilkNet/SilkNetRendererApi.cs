@@ -5,7 +5,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public sealed class SilkNetRendererApi : IRendererAPI
+internal sealed class SilkNetRendererApi : IRendererAPI
 {
     public void SetClearColor(Vector4 color)
     {

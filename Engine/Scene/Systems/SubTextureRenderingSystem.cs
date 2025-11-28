@@ -16,7 +16,7 @@ namespace Engine.Scene.Systems;
 /// Cell size and sprite size are configured per-entity via SubTextureRendererComponent properties.
 /// This allows for flexible sprite atlas configurations with different cell sizes.
 /// </remarks>
-public class SubTextureRenderingSystem : ISystem
+internal sealed class SubTextureRenderingSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
 

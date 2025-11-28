@@ -3,7 +3,7 @@ namespace Engine.Audio.Effects;
 /// <summary>
 /// Interface for audio effects using OpenAL EFX.
 /// </summary>
-public interface IAudioEffect : IDisposable
+internal interface IAudioEffect : IDisposable
 {
     /// <summary>
     /// Gets the OpenAL effect ID.

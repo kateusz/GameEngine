@@ -9,7 +9,7 @@ using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Engine.ImGuiNet;
 
-public class ImGuiLayer : IImGuiLayer
+internal sealed class ImGuiLayer : IImGuiLayer
 {
     private IInputSystem _inputSystem;
     private ImGuiController _controller;

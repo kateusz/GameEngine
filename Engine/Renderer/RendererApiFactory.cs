@@ -2,7 +2,7 @@ using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer;
 
-public class RendererApiFactory : IRendererApiFactory
+internal sealed class RendererApiFactory : IRendererApiFactory
 {
     private readonly IRendererApiConfig _apiConfig;
 

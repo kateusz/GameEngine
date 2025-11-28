@@ -12,7 +12,7 @@ namespace Engine.Scene.Systems;
 /// System responsible for rendering physics debug visualizations.
 /// Draws wireframe overlays for collision shapes to aid in debugging physics behavior.
 /// </summary>
-public class PhysicsDebugRenderSystem : ISystem
+internal sealed class PhysicsDebugRenderSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
 

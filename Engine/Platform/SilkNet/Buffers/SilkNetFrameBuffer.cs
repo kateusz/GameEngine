@@ -4,7 +4,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public sealed class SilkNetFrameBuffer : FrameBuffer
+internal sealed class SilkNetFrameBuffer : FrameBuffer
 {
     private const uint MaxFramebufferSize = 8192;
 

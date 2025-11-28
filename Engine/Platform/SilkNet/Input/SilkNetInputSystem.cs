@@ -5,7 +5,7 @@ using Silk.NET.Input;
 
 namespace Engine.Platform.SilkNet.Input;
 
-public sealed class SilkNetInputSystem : IInputSystem
+internal sealed class SilkNetInputSystem : IInputSystem
 {
     private readonly ConcurrentQueue<InputEvent> _inputQueue = new();
     private volatile bool _disposed;

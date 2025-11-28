@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public sealed class SilkNetVertexBuffer : IVertexBuffer
+internal sealed class SilkNetVertexBuffer : IVertexBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetVertexBuffer>();
     private uint _rendererId;

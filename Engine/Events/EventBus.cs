@@ -8,7 +8,7 @@ namespace Engine.Events;
 /// Allows decoupled communication between systems, scripts, and components.
 /// Thread-safe implementation using concurrent collections.
 /// </summary>
-public class EventBus
+internal sealed class EventBus
 {
     private static readonly ILogger Logger = Log.ForContext<EventBus>();
     

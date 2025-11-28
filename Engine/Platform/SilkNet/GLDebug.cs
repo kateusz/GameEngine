@@ -6,7 +6,7 @@ namespace Engine.Platform.SilkNet;
 /// <summary>
 /// OpenGL debug utility for error checking.
 /// </summary>
-public static class GLDebug
+internal static class GLDebug
 {
     /// <summary>
     /// Checks for OpenGL errors in DEBUG builds only.

@@ -3,7 +3,7 @@ namespace Engine.Core.Window;
 /// <summary>
 /// Factory interface for creating game window instances.
 /// </summary>
-public interface IGameWindowFactory
+internal interface IGameWindowFactory
 {
     /// <summary>
     /// Creates a game window from a window instance.

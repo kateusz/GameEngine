@@ -8,7 +8,7 @@ namespace Engine.Scene.Systems;
 /// System responsible for updating all script components in the scene.
 /// Operates on entities with NativeScriptComponent.
 /// </summary>
-public class ScriptUpdateSystem : ISystem
+internal sealed class ScriptUpdateSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptUpdateSystem>();
     private readonly IScriptEngine _scriptEngine;

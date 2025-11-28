@@ -16,14 +16,13 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-public class SceneSerializer : ISceneSerializer
+internal sealed class SceneSerializer : ISceneSerializer
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
     
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string DefaultSceneName = "default";
-    private const string AssetsDirectory = "assets/scenes";
     private const string ComponentsKey = "Components";
     private const string NameKey = "Name";
     private const string IdKey = "Id";

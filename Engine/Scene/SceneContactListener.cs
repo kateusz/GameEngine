@@ -8,9 +8,9 @@ using Serilog;
 
 namespace Engine.Scene;
 
-public class SceneContactListener : ContactListener
+internal sealed class SceneContactListener : ContactListener
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneContactListener>();
+    private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
     
     public override void BeginContact(in Contact contact)
     {

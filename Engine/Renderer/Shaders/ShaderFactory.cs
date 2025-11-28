@@ -6,7 +6,7 @@ namespace Engine.Renderer.Shaders;
 /// Factory for creating and managing shader resources with automatic caching.
 /// Uses weak references to allow garbage collection when shaders are no longer in use.
 /// </summary>
-public class ShaderFactory : IShaderFactory
+internal sealed class ShaderFactory : IShaderFactory
 {
     private readonly IRendererApiConfig _apiConfig;
     private readonly Dictionary<(string, string, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();

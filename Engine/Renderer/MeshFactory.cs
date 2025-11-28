@@ -9,7 +9,7 @@ namespace Engine.Renderer;
 /// <summary>
 /// Factory for creating and caching mesh resources.
 /// </summary>
-public class MeshFactory : IMeshFactory
+internal sealed class MeshFactory : IMeshFactory
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private readonly ITextureFactory _textureFactory;

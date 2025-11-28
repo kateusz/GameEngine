@@ -5,7 +5,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public sealed class SilkNetVertexArray : IVertexArray
+internal sealed class SilkNetVertexArray : IVertexArray
 {
     private readonly uint _vertexArrayObject;
     private bool _disposed;

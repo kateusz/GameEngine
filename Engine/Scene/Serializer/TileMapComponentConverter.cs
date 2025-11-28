@@ -7,7 +7,7 @@ namespace Engine.Scene.Serializer;
 /// <summary>
 /// Custom JSON converter for TileMapComponent to handle 2D array serialization
 /// </summary>
-public class TileMapComponentConverter : JsonConverter<TileMapComponent>
+internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent>
 {
     public override TileMapComponent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

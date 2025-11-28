@@ -2,7 +2,7 @@ using Engine.Platform.SilkNet.Buffers;
 
 namespace Engine.Renderer.Buffers;
 
-public class VertexBufferFactory : IVertexBufferFactory
+internal sealed class VertexBufferFactory : IVertexBufferFactory
 {
     private readonly IRendererApiConfig _apiConfig;
 

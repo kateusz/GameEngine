@@ -127,17 +127,7 @@ public class EditorLayer : ILayer
 
         // Initialize 2D camera controller with default aspect ratio for editor
         _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio);
-
-        var frameBufferSpec = new FrameBufferSpecification(DisplayConfig.DefaultEditorViewportWidth,
-            DisplayConfig.DefaultEditorViewportHeight)
-        {
-            AttachmentsSpec = new FramebufferAttachmentSpecification([
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8),
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
-                new FramebufferTextureSpecification(FramebufferTextureFormat.Depth),
-            ])
-        };
-        _frameBuffer = _frameBufferFactory.Create(frameBufferSpec);
+        _frameBuffer = _frameBufferFactory.Create();
 
         _sceneManager.New();
 

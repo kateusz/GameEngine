@@ -5,7 +5,7 @@ using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
-public class SilkNetAudioSource : IAudioSource
+internal sealed class SilkNetAudioSource : IAudioSource
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetAudioSource>();
 

@@ -8,7 +8,7 @@ namespace Engine.Platform.SilkNet.Audio.Loaders;
 /// Audio loader for OGG Vorbis format files.
 /// Decodes compressed OGG audio to 16-bit PCM for OpenAL playback.
 /// </summary>
-public class OggLoader : IAudioLoader
+internal sealed class OggLoader : IAudioLoader
 {
     private static readonly ILogger Logger = Log.ForContext<OggLoader>();
 

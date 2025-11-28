@@ -6,7 +6,7 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-public class Graphics3D : IGraphics3D
+internal sealed class Graphics3D : IGraphics3D
 {
     private readonly IRendererAPI _rendererApi;
     private readonly IShaderFactory _shaderFactory;
@@ -144,7 +144,7 @@ public class Graphics3D : IGraphics3D
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;

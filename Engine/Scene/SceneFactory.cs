@@ -4,7 +4,7 @@ using Engine.Renderer.Textures;
 
 namespace Engine.Scene;
 
-public class SceneFactory
+public sealed class SceneFactory
 {
     private readonly ISceneSystemRegistry _sceneSystemRegistry;
     private readonly IGraphics2D _graphics2D;

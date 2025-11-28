@@ -4,7 +4,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public sealed class SilkNetShader : IShader
+internal sealed class SilkNetShader : IShader
 {
     private readonly uint _handle;
     private readonly Dictionary<string, int> _uniformLocations;

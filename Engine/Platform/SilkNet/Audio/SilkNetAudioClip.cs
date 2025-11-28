@@ -4,7 +4,7 @@ using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
-public class SilkNetAudioClip : IAudioClip, IDisposable
+internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetAudioClip>();
 
@@ -99,42 +99,6 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
         Dispose();
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                // Dispose managed state
-                RawData = null;
-            }
-
-            // Unload OpenAL resources (unmanaged resources)
-            if (_bufferId != 0)
-            {
-                try
-                {
-                    _al.DeleteBuffer(_bufferId);
-                    _bufferId = 0;
-                    IsLoaded = false;
-                    Logger.Information("Unloaded audio clip: {Path}", Path);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Error disposing audio clip {Path}", Path);
-                }
-            }
-
-            _disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
     private void LoadAudioFile()
     {
         try
@@ -174,7 +138,39 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
         };
     }
     
-    
+    private void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                RawData = null;
+            }
+            
+            if (_bufferId != 0)
+            {
+                try
+                {
+                    _al.DeleteBuffer(_bufferId);
+                    _bufferId = 0;
+                    IsLoaded = false;
+                    Logger.Information("Unloaded audio clip: {Path}", Path);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Error disposing audio clip {Path}", Path);
+                }
+            }
+
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     ~SilkNetAudioClip()
     {

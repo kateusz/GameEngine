@@ -2,7 +2,7 @@ using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.VertexArray;
 
-public class VertexArrayFactory : IVertexArrayFactory
+internal sealed class VertexArrayFactory : IVertexArrayFactory
 {
     private readonly IRendererApiConfig _apiConfig;
 

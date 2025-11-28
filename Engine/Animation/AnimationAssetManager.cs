@@ -10,7 +10,7 @@ namespace Engine.Animation;
 /// Singleton manager for loading, caching, and lifecycle management of animation assets.
 /// Implements reference counting to automatically unload unused assets.
 /// </summary>
-public class AnimationAssetManager
+internal sealed class AnimationAssetManager : IAnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
 

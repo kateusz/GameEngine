@@ -3,7 +3,7 @@ namespace Engine.Audio.Effects;
 /// <summary>
 /// Types of audio effects available via OpenAL EFX.
 /// </summary>
-public enum EffectType
+internal enum EffectType
 {
     /// <summary>
     /// No effect applied.

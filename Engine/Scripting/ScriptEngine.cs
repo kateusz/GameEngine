@@ -13,7 +13,7 @@ using ZLinq;
 
 namespace Engine.Scripting;
 
-public sealed class ScriptEngine : IScriptEngine
+internal sealed class ScriptEngine : IScriptEngine
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 

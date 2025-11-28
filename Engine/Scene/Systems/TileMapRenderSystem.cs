@@ -11,7 +11,7 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// System responsible for rendering tilemaps
 /// </summary>
-public class TileMapRenderSystem : ISystem
+internal sealed class TileMapRenderSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<TileMapRenderSystem>();
 

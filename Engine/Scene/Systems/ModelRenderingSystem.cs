@@ -12,7 +12,7 @@ namespace Engine.Scene.Systems;
 /// This system operates on entities that have TransformComponent, MeshComponent, and ModelRendererComponent.
 /// Automatically finds the primary camera in the scene - no manual camera setup required.
 /// </summary>
-public class ModelRenderingSystem : ISystem
+internal sealed class ModelRenderingSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ModelRenderingSystem>();
 

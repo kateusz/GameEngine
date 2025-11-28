@@ -11,7 +11,7 @@ namespace Engine.Scene.Systems;
 /// System responsible for managing audio playback and 3D spatial audio.
 /// Handles audio source lifecycle, updates 3D positions, and manages the audio listener.
 /// </summary>
-public class AudioSystem : ISystem
+internal sealed class AudioSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
 

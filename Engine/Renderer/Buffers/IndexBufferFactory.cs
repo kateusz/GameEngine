@@ -2,7 +2,7 @@ using Engine.Platform.SilkNet.Buffers;
 
 namespace Engine.Renderer.Buffers;
 
-public class IndexBufferFactory : IIndexBufferFactory
+internal sealed class IndexBufferFactory : IIndexBufferFactory
 {
     private readonly IRendererApiConfig _apiConfig;
 

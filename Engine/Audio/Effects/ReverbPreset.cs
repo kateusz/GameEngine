@@ -4,7 +4,7 @@ namespace Engine.Audio.Effects;
 /// Preset reverb environments for quick configuration.
 /// These presets provide realistic reverb settings for common environments.
 /// </summary>
-public enum ReverbPreset
+internal enum ReverbPreset
 {
     /// <summary>
     /// Generic reverb - neutral, all-purpose reverb.

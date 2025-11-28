@@ -13,7 +13,7 @@ using TextureWrapMode = Silk.NET.OpenGL.TextureWrapMode;
 
 namespace Engine.Platform.SilkNet;
 
-public sealed class SilkNetTexture2D : Texture2D
+internal sealed class SilkNetTexture2D : Texture2D
 {
     // StbImageSharp flag to flip texture vertically during loading
     // OpenGL expects texture coordinates with origin at bottom-left, but most image formats have origin at top-left

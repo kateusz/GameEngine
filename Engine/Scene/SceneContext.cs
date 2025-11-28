@@ -1,6 +1,4 @@
-using Engine.Scene;
-
-namespace Editor.Features.Scene;
+namespace Engine.Scene;
 
 public class SceneContext : ISceneContext
 {

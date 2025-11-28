@@ -10,7 +10,7 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-public class Graphics2D : IGraphics2D
+internal sealed class Graphics2D : IGraphics2D
 {
     private readonly IRendererAPI _rendererApi;
     private readonly IVertexArrayFactory _vertexArrayFactory;
@@ -515,7 +515,7 @@ public class Graphics2D : IGraphics2D
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;

@@ -4,7 +4,7 @@ using Silk.NET.Windowing;
 
 namespace Engine.Core.Window;
 
-public class GameWindowFactory : IGameWindowFactory
+internal sealed class GameWindowFactory : IGameWindowFactory
 {
     private readonly IRendererApiConfig _apiConfig;
     private readonly IWindow _window;
