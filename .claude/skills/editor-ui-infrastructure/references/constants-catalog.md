@@ -454,12 +454,3 @@ float labelWidth = totalWidth * EditorUIConstants.PropertyLabelRatio;
 // Input buffer
 private readonly byte[] _buffer = new byte[EditorUIConstants.MaxNameLength];
 ```
-
----
-
-## See Also
-
-- [drawers-api.md](drawers-api.md) - Drawers that use these constants
-- [elements-api.md](elements-api.md) - Elements that use these constants
-- [../SKILL.md](../SKILL.md) - Main UI infrastructure guide
-- `Editor/UI/Constants/EditorUIConstants.cs` - Source code

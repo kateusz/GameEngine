@@ -618,11 +618,3 @@ foreach (var asset in _sortedAssets)
 
 TableDrawer.EndTable();
 ```
-
----
-
-## See Also
-
-- [elements-api.md](elements-api.md) - Stateful UI components (drop targets, selectors)
-- [constants-catalog.md](constants-catalog.md) - EditorUIConstants reference
-- [../SKILL.md](../SKILL.md) - Main UI infrastructure guide

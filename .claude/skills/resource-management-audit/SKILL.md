@@ -211,7 +211,6 @@ public void Destroy()
 
 - **`references/disposal-patterns.cs`**: Standard IDisposable patterns (basic, full, factory)
 - **`references/anti-patterns.cs`**: 8 common mistakes with ❌/✅ examples
-- **`references/investigation-workflow.md`**: Step-by-step leak hunting process
 
 ## Summary
 

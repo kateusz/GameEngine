@@ -548,8 +548,6 @@ LayoutDrawer.DrawComboBox("Mode", options[(int)component.Mode], options,
 ### From ModalDrawer
 - `RenderConfirmationModal(string id, ref bool show, string message, Action onConfirm)`
 
-See `editor-ui-infrastructure` skill for complete Drawer/Element documentation.
-
 ---
 
 ## Summary

@@ -611,8 +611,6 @@ if (DragDropDrawer.IsValidFile(path, ".cs", ".txt"))
 DragDropDrawer.ContentBrowserItemPayload  // Value: "CONTENT_BROWSER_ITEM"
 ```
 
-**Note**: For asset-specific drag-drop (textures, audio, meshes), use the specialized drop targets from the `editor-ui-infrastructure` skill instead.
-
 ---
 
 ## EditorUIConstants Reference

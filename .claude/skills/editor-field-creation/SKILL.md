@@ -15,7 +15,7 @@ Field Editors (`IFieldEditor`) provide **runtime polymorphic rendering** for scr
 - Understanding how script properties are rendered in Script Inspector
 - Extending `FieldEditorRegistry` with new type support
 - Working with `UIPropertyRenderer.DrawPropertyField()` infrastructure
-- **NOT for component editors** (use `editor-component-editors` skill instead)
+- **NOT for component editors**
 
 ---
 
@@ -632,9 +632,6 @@ public class TestScript : NativeScript
 | **Registry** | FieldEditorRegistry | N/A (static dispatch) |
 | **Extensibility** | Type → Editor mapping | Add static methods |
 
-### Related Skills
-- **editor-component-editors**: For component property editing (VectorPanel, UIPropertyRenderer usage)
-- **editor-ui-infrastructure**: For Drawers and UI Elements (ButtonDrawer, LayoutDrawer, etc.)
 
 ### Key Files
 - `Editor/UI/FieldEditors/IFieldEditor.cs` - Interface definition

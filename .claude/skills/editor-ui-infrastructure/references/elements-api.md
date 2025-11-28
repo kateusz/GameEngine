@@ -656,11 +656,3 @@ public class EntityActions
     }
 }
 ```
-
----
-
-## See Also
-
-- [drawers-api.md](drawers-api.md) - Static UI utilities (buttons, modals, tables)
-- [constants-catalog.md](constants-catalog.md) - EditorUIConstants reference
-- [../SKILL.md](../SKILL.md) - Main UI infrastructure guide

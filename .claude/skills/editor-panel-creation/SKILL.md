@@ -1,6 +1,6 @@
 ---
 name: editor-panel-creation
-description: Step-by-step workflow for creating new editor panels including interface design, DI registration, EditorLayer integration, and menu bar setup. Focuses on panel architecture and lifecycle, not UI component APIs. For UI component documentation (Drawers, Elements, FieldEditors), use editor-ui-infrastructure skill instead.
+description: Step-by-step workflow for creating new editor panels including interface design, DI registration, EditorLayer integration, and menu bar setup. Focuses on panel architecture and lifecycle, not UI component APIs.
 ---
 
 # Editor Panel Creation
@@ -27,8 +27,6 @@ Invoke this skill when:
 - Questions about editor panel architecture and lifecycle
 - Integrating panels with the editor layer system
 - Questions about DI registration and menu integration
-
-**For UI component questions** (which Drawer to use, how to use FieldEditors, etc.), invoke **`editor-ui-infrastructure`** instead.
 
 ## Panel Creation Workflow
 
@@ -71,9 +69,6 @@ public interface IMyNewPanel
 **Guidelines**:
 - **MUST use UI Drawers** (ButtonDrawer, ModalDrawer, etc.) instead of manual ImGui code
 - **MUST use UI Elements** (TextureDropTarget, ComponentSelector, etc.) for complex interactions
-- **MUST inject Field Editors** (IFieldEditor for script values) for property editing when needed
-  - Note: IFieldEditor is non-generic and reflection-based, primarily for script inspector
-  - For component editors, see `editor-component-editors` skill
 - Use constructor injection for ALL dependencies
 - Use `EditorUIConstants` for sizing, spacing, colors (Drawers handle this automatically)
 - Maintain panel state in private fields
@@ -277,10 +272,6 @@ private void HandleShortcuts()
 ### Step 6: Use UI Infrastructure (MANDATORY)
 
 **CRITICAL: All panels MUST use the UI infrastructure** - never write manual ImGui code for patterns covered by Drawers, Elements, or FieldEditors!
-
-#### Quick Reference
-
-**For complete API documentation**, invoke the **`editor-ui-infrastructure`** skill.
 
 **Common UI Components:**
 

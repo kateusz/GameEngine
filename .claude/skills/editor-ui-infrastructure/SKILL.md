@@ -444,19 +444,6 @@ Detailed API documentation for each infrastructure layer:
 - `Editor/UI/FieldEditors/` - All field editor implementations
 - `Editor/UI/Constants/EditorUIConstants.cs` - Constant definitions
 
-### Related Skills
-
-- `editor-panel-creation` - Creating new editor panels
-- `editor-component-editors` - Creating component editors (IComponentEditor, VectorPanel)
-- `editor-ui-drawers` - Comprehensive Drawers guide (deprecated, use this skill + drawers-api.md)
-- `component-workflow` - End-to-end component creation workflow
-
-### CLAUDE.md Sections
-
-- "Editor UI Constants" (CLAUDE.md lines 546-627)
-- "Editor UI Infrastructure" (CLAUDE.md lines 628-750)
-- "Creating a Component Editor" (CLAUDE.md lines 883-948)
-
 ---
 
 ## Summary
@@ -470,14 +457,3 @@ The Editor UI infrastructure provides four layers:
 
 **Key Principle**: Never reimplement existing patterns. Check Drawers/Elements/FieldEditors first, then write custom ImGui code only if no match exists.
 
-**Benefits**:
-- ✅ Visual consistency across all editor UI
-- ✅ Reduced code duplication (~70% less ImGui boilerplate)
-- ✅ Easier maintenance (change one constant, update all UI)
-- ✅ Better UX through familiar patterns
-
-**Next Steps**:
-- Review [drawers-api.md](references/drawers-api.md) for button/modal/table patterns
-- Review [elements-api.md](references/elements-api.md) for drop target/selector patterns
-- Review [constants-catalog.md](references/constants-catalog.md) for all constant values
-- Use integration checklist when implementing new UI

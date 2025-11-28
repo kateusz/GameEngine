@@ -117,27 +117,6 @@ public class GoodModelInstance : IDisposable
     }
 }
 
-// ✅ CORRECT - Use ownership flag when ambiguous
-public class BetterModelInstance : IDisposable
-{
-    private Mesh _mesh;
-    private bool _ownsMesh; // Clear ownership marker
-
-    public BetterModelInstance(Mesh mesh, bool ownsMesh)
-    {
-        _mesh = mesh;
-        _ownsMesh = ownsMesh;
-    }
-
-    public void Dispose()
-    {
-        if (_ownsMesh)
-        {
-            _mesh?.Dispose();
-        }
-    }
-}
-
 // ============================================================================
 // ANTI-PATTERN 4: OpenGL Calls in Finalizers
 // ============================================================================
@@ -350,19 +329,5 @@ public class GoodRenderer
     public void Dispose()
     {
         _cachedFBO?.Dispose();
-    }
-}
-
-// ✅ CORRECT - Alternative with explicit disposal
-public class AlternativeRenderer
-{
-    public void RenderFrame()
-    {
-        using (var tempFBO = new Framebuffer(1920, 1080))
-        {
-            // Automatically disposed at end of scope
-            tempFBO.Bind();
-            // ... render
-        } // Dispose() called here
     }
 }
