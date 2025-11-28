@@ -49,7 +49,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         get
         {
-            _al.GetSourceProperty(_sourceId, SourceFloat.Gain, out float volume);
+            _al.GetSourceProperty(_sourceId, SourceFloat.Gain, out var volume);
             return volume;
         }
         set => _al.SetSourceProperty(_sourceId, SourceFloat.Gain, System.Math.Max(0.0f, value));
@@ -59,7 +59,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         get
         {
-            _al.GetSourceProperty(_sourceId, SourceFloat.Pitch, out float pitch);
+            _al.GetSourceProperty(_sourceId, SourceFloat.Pitch, out var pitch);
             return pitch;
         }
         set => _al.SetSourceProperty(_sourceId, SourceFloat.Pitch, System.Math.Max(0.1f, value));
@@ -69,7 +69,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         get
         {
-            _al.GetSourceProperty(_sourceId, SourceBoolean.Looping, out bool loop);
+            _al.GetSourceProperty(_sourceId, SourceBoolean.Looping, out var loop);
             return loop;
         }
         set => _al.SetSourceProperty(_sourceId, SourceBoolean.Looping, value);
@@ -79,7 +79,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         get
         {
-            _al.GetSourceProperty(_sourceId, GetSourceInteger.SourceState, out int state);
+            _al.GetSourceProperty(_sourceId, GetSourceInteger.SourceState, out var state);
             return state == (int)SourceState.Playing;
         }
     }
@@ -88,7 +88,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         get
         {
-            _al.GetSourceProperty(_sourceId, GetSourceInteger.SourceState, out int state);
+            _al.GetSourceProperty(_sourceId, GetSourceInteger.SourceState, out var state);
             return state == (int)SourceState.Paused;
         }
     }
@@ -97,7 +97,7 @@ public class SilkNetAudioSource : IAudioSource
     {
         get
         {
-            _al.GetSourceProperty(_sourceId, SourceFloat.SecOffset, out float position);
+            _al.GetSourceProperty(_sourceId, SourceFloat.SecOffset, out var position);
             return position;
         }
         set => _al.SetSourceProperty(_sourceId, SourceFloat.SecOffset, System.Math.Max(0.0f, value));

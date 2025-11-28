@@ -11,9 +11,9 @@ using Silk.NET.Windowing;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetGameWindow : IGameWindow
+public sealed class SilkNetGameWindow : IGameWindow
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SilkNetGameWindow>();
+    private static readonly ILogger Logger = Log.ForContext<SilkNetGameWindow>();
     
     private readonly IWindow _window;
     

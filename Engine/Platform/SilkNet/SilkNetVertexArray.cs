@@ -5,7 +5,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetVertexArray : IVertexArray
+public sealed class SilkNetVertexArray : IVertexArray
 {
     private readonly uint _vertexArrayObject;
     private bool _disposed;
@@ -17,7 +17,7 @@ public class SilkNetVertexArray : IVertexArray
         VertexBuffers = new List<IVertexBuffer>();
     }
 
-    public IList<IVertexBuffer> VertexBuffers { get; private set; }
+    public IList<IVertexBuffer> VertexBuffers { get; }
 
     public IIndexBuffer IndexBuffer { get; private set; }
 
@@ -40,13 +40,11 @@ public class SilkNetVertexArray : IVertexArray
         vertexBuffer.Bind();
 
         if (vertexBuffer.Layout is null)
-        {
             throw new InvalidOperationException("Vertex buffer has no layout!");
-        }
 
         var layout = vertexBuffer.Layout.Value; // Access the struct value
 
-        for (int index = 0; index < layout.Elements.Count; index++)
+        for (var index = 0; index < layout.Elements.Count; index++)
         {
             unsafe
             {
@@ -105,22 +103,21 @@ public class SilkNetVertexArray : IVertexArray
 
     private GLEnum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
     {
-        switch (type)
+        return type switch
         {
-            case ShaderDataType.Float: return GLEnum.Float;
-            case ShaderDataType.Float2: return GLEnum.Float;
-            case ShaderDataType.Float3: return GLEnum.Float;
-            case ShaderDataType.Float4: return GLEnum.Float;
-            case ShaderDataType.Mat3: return GLEnum.Float;
-            case ShaderDataType.Mat4: return GLEnum.Float;
-            case ShaderDataType.Int: return GLEnum.Int;
-            case ShaderDataType.Int2: return GLEnum.Int;
-            case ShaderDataType.Int3: return GLEnum.Int;
-            case ShaderDataType.Int4: return GLEnum.Int;
-            case ShaderDataType.Bool: return GLEnum.Bool;
-        }
-
-        return 0;
+            ShaderDataType.Float => GLEnum.Float,
+            ShaderDataType.Float2 => GLEnum.Float,
+            ShaderDataType.Float3 => GLEnum.Float,
+            ShaderDataType.Float4 => GLEnum.Float,
+            ShaderDataType.Mat3 => GLEnum.Float,
+            ShaderDataType.Mat4 => GLEnum.Float,
+            ShaderDataType.Int => GLEnum.Int,
+            ShaderDataType.Int2 => GLEnum.Int,
+            ShaderDataType.Int3 => GLEnum.Int,
+            ShaderDataType.Int4 => GLEnum.Int,
+            ShaderDataType.Bool => GLEnum.Bool,
+            _ => 0
+        };
     }
 
     public void Dispose()
@@ -129,35 +126,35 @@ public class SilkNetVertexArray : IVertexArray
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;
 
         try
         {
-            if (_vertexArrayObject != 0)
-            {
+            if (_vertexArrayObject != 0) 
                 SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
-            }
 
             if (disposing)
             {
-                // Dispose managed resources (vertex buffers and index buffer)
-                foreach (var vertexBuffer in VertexBuffers)
-                {
+                foreach (var vertexBuffer in VertexBuffers) 
                     vertexBuffer?.Dispose();
-                }
 
                 IndexBuffer?.Dispose();
             }
         }
         catch (Exception e)
         {
-            // Finalizers and Dispose must not throw exceptions
             System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex array {_vertexArrayObject}: {e.Message}");
         }
 
         _disposed = true;
+    }
+    
+    ~SilkNetVertexArray()
+    {
+        if (!_disposed && _vertexArrayObject != 0) 
+            System.Diagnostics.Debug.WriteLine($"GPU LEAK: VertexArray (ID: {_vertexArrayObject}) not disposed!");
     }
 }

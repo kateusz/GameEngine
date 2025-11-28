@@ -31,6 +31,7 @@ public class SceneSerializer : ISceneSerializer
 
     private readonly IAudioEngine _audioEngine;
     private readonly IScriptEngine _scriptEngine;
+    private readonly ITextureFactory _textureFactory;
 
     // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
@@ -47,10 +48,11 @@ public class SceneSerializer : ISceneSerializer
         }
     };
 
-    public SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine)
+    public SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine, ITextureFactory textureFactory)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
         _scriptEngine = scriptEngine ?? throw new ArgumentNullException(nameof(scriptEngine));
+        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
     }
 
     /// <summary>
@@ -234,7 +236,7 @@ public class SceneSerializer : ISceneSerializer
 
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
-            component.Texture = TextureFactory.Create(component.Texture.Path);
+            component.Texture = _textureFactory.Create(component.Texture.Path);
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
@@ -249,7 +251,7 @@ public class SceneSerializer : ISceneSerializer
         // Reload texture from disk if path exists (same as SpriteRendererComponent)
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
-            component.Texture = TextureFactory.Create(component.Texture.Path);
+            component.Texture = _textureFactory.Create(component.Texture.Path);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);

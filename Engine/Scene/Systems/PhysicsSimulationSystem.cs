@@ -74,7 +74,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
         _physicsAccumulator += deltaSeconds;
 
         // Step physics multiple times if needed to catch up
-        int stepCount = 0;
+        var stepCount = 0;
         while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
             _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);

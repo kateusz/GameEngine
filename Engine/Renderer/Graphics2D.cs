@@ -7,13 +7,17 @@ using System.Numerics;
 using Engine.Math;
 using Engine.Platform;
 using Engine.Scene.Components;
-using TextureFactory = Engine.Renderer.Textures.TextureFactory;
 
 namespace Engine.Renderer;
 
 public class Graphics2D : IGraphics2D
 {
     private readonly IRendererAPI _rendererApi;
+    private readonly IVertexArrayFactory _vertexArrayFactory;
+    private readonly IVertexBufferFactory _vertexBufferFactory;
+    private readonly IIndexBufferFactory _indexBufferFactory;
+    private readonly ITextureFactory _textureFactory;
+    private readonly IShaderFactory _shaderFactory;
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
     private bool _disposed;
@@ -29,9 +33,20 @@ public class Graphics2D : IGraphics2D
         ];
     }
 
-    public Graphics2D(IRendererAPI rendererApi)
+    public Graphics2D(
+        IRendererAPI rendererApi,
+        IVertexArrayFactory vertexArrayFactory,
+        IVertexBufferFactory vertexBufferFactory,
+        IIndexBufferFactory indexBufferFactory,
+        ITextureFactory textureFactory,
+        IShaderFactory shaderFactory)
     {
         _rendererApi = rendererApi ?? throw new ArgumentNullException(nameof(rendererApi));
+        _vertexArrayFactory = vertexArrayFactory ?? throw new ArgumentNullException(nameof(vertexArrayFactory));
+        _vertexBufferFactory = vertexBufferFactory ?? throw new ArgumentNullException(nameof(vertexBufferFactory));
+        _indexBufferFactory = indexBufferFactory ?? throw new ArgumentNullException(nameof(indexBufferFactory));
+        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
+        _shaderFactory = shaderFactory ?? throw new ArgumentNullException(nameof(shaderFactory));
     }
 
     public void Init()
@@ -40,11 +55,11 @@ public class Graphics2D : IGraphics2D
         {
             _data = new Renderer2DData
             {
-                QuadVertexArray = VertexArrayFactory.Create(),
+                QuadVertexArray = _vertexArrayFactory.Create(),
                 //CameraUniformBuffer = UniformBufferFactory.Create((uint)CameraData.GetSize(), 0),
                 Stats = new Statistics(),
                 //CameraBuffer = new CameraData(),
-                LineVertexArray = VertexArrayFactory.Create()
+                LineVertexArray = _vertexArrayFactory.Create()
             };
 
             InitBuffers();
@@ -276,10 +291,10 @@ public class Graphics2D : IGraphics2D
     public void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId)
     {
         // Calculate the four corners of the rectangle
-        Vector3 p0 = new Vector3(position.X - size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
-        Vector3 p1 = new Vector3(position.X + size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
-        Vector3 p2 = new Vector3(position.X + size.X * 0.5f, position.Y + size.Y * 0.5f, position.Z);
-        Vector3 p3 = new Vector3(position.X - size.X * 0.5f, position.Y + size.Y * 0.5f, position.Z);
+        var p0 = new Vector3(position.X - size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
+        var p1 = new Vector3(position.X + size.X * 0.5f, position.Y - size.Y * 0.5f, position.Z);
+        var p2 = new Vector3(position.X + size.X * 0.5f, position.Y + size.Y * 0.5f, position.Z);
+        var p3 = new Vector3(position.X - size.X * 0.5f, position.Y + size.Y * 0.5f, position.Z);
 
         // Draw the rectangle's edges
         DrawLine(p0, p1, color, entityId);
@@ -290,7 +305,7 @@ public class Graphics2D : IGraphics2D
     
     public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId)
     {
-        Vector3[] lineVertices = new Vector3[RenderingConstants.QuadVertexCount];
+        var lineVertices = new Vector3[RenderingConstants.QuadVertexCount];
         for (var i = 0; i < RenderingConstants.QuadVertexCount; i++)
         {
             var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
@@ -329,8 +344,8 @@ public class Graphics2D : IGraphics2D
         if (_data.QuadIndexBufferCount > 0)
         {
             // Calculate actual data size (already known from index)
-            int vertexCount = _data.CurrentVertexBufferIndex;
-            int dataSize = vertexCount * QuadVertex.GetSize();
+            var vertexCount = _data.CurrentVertexBufferIndex;
+            var dataSize = vertexCount * QuadVertex.GetSize();
 
             // Make sure we're using the quad shader
             _data.QuadShader.Bind();
@@ -339,7 +354,7 @@ public class Graphics2D : IGraphics2D
             _data.QuadVertexArray.Bind();
 
             // Upload only used portion to GPU
-            Span<QuadVertex> usedVertices = _data.QuadVertexBufferBase.AsSpan(0, vertexCount);
+            var usedVertices = _data.QuadVertexBufferBase.AsSpan(0, vertexCount);
             _data.QuadVertexBuffer.SetData(usedVertices, dataSize);
 
             // Bind textures
@@ -360,11 +375,11 @@ public class Graphics2D : IGraphics2D
             _data.LineVertexArray.Bind();
 
             // Calculate actual data size (already known from index)
-            int lineVertexCount = _data.CurrentLineVertexBufferIndex;
-            int dataSize = lineVertexCount * LineVertex.GetSize();
+            var lineVertexCount = _data.CurrentLineVertexBufferIndex;
+            var dataSize = lineVertexCount * LineVertex.GetSize();
 
             // Upload only used portion to GPU
-            Span<LineVertex> usedLineVertices = _data.LineVertexBufferBase.AsSpan(0, lineVertexCount);
+            var usedLineVertices = _data.LineVertexBufferBase.AsSpan(0, lineVertexCount);
             _data.LineVertexBuffer.SetData(usedLineVertices, dataSize);
 
             //_data.TextureShader.Bind();
@@ -387,13 +402,13 @@ public class Graphics2D : IGraphics2D
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]);
 
-        _data.QuadVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
+        _data.QuadVertexBuffer = _vertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
         _data.QuadVertexBuffer.SetLayout(layout);
         _data.QuadVertexArray.AddVertexBuffer(_data.QuadVertexBuffer);
         _data.QuadVertexBufferBase = new QuadVertex[Renderer2DData.MaxVertices];
 
         var quadIndices = CreateQuadIndices();
-        var indexBuffer = IndexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
+        var indexBuffer = _indexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
         
         var lineVertexSize = LineVertex.GetSize();
@@ -403,7 +418,7 @@ public class Graphics2D : IGraphics2D
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]);
         
-        _data.LineVertexBuffer = VertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * lineVertexSize));
+        _data.LineVertexBuffer = _vertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * lineVertexSize));
         _data.LineVertexBuffer.SetLayout(lineLayout);
         _data.LineVertexArray.AddVertexBuffer(_data.LineVertexBuffer);
         _data.LineVertexBufferBase = new LineVertex[Renderer2DData.MaxVertices];
@@ -411,7 +426,7 @@ public class Graphics2D : IGraphics2D
 
     private void InitWhiteTexture()
     {
-        _data.WhiteTexture = TextureFactory.GetWhiteTexture();
+        _data.WhiteTexture = _textureFactory.GetWhiteTexture();
         _data.TextureSlots[0] = _data.WhiteTexture;
     }
 
@@ -421,12 +436,12 @@ public class Graphics2D : IGraphics2D
         for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
             samplers[i] = i;
 
-        _data.QuadShader = ShaderFactory.Create("assets/shaders/opengl/textureShader.vert",
+        _data.QuadShader = _shaderFactory.Create("assets/shaders/opengl/textureShader.vert",
             "assets/shaders/opengl/textureShader.frag");
         _data.QuadShader.Bind();
         _data.QuadShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
 
-        _data.LineShader = ShaderFactory.Create("assets/shaders/opengl/lineShader.vert",
+        _data.LineShader = _shaderFactory.Create("assets/shaders/opengl/lineShader.vert",
             "assets/shaders/opengl/lineShader.frag");
         _data.LineShader.Bind();
     }

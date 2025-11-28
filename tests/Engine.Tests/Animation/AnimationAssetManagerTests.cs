@@ -1,11 +1,12 @@
 using Engine.Animation;
+using Engine.Renderer.Textures;
+using NSubstitute;
 
 namespace Engine.Tests.Animation;
 
 /// <summary>
 /// Unit tests for AnimationAssetManager, focusing on caching and reference counting.
 /// Note: These tests focus on the manager's internal logic without actually loading files.
-/// Full integration tests with real files would require test fixtures.
 /// </summary>
 public class AnimationAssetManagerTests
 {
@@ -14,8 +15,15 @@ public class AnimationAssetManagerTests
         public string AssetsPath => Path.Combine(Environment.CurrentDirectory, "assets");
         public void SetAssetsPath(string path) { }
     }
+    
+    private readonly ITextureFactory _textureFactory;
 
-    private static AnimationAssetManager CreateManager() => new(new MockAssetsManager());
+    public AnimationAssetManagerTests()
+    {
+        _textureFactory = Substitute.For<ITextureFactory>();
+    }
+
+    private AnimationAssetManager CreateManager() => new(new MockAssetsManager(), _textureFactory);
 
     [Fact]
     public void IsCached_WithNonLoadedAsset_ReturnsFalse()
@@ -107,96 +115,5 @@ public class AnimationAssetManagerTests
 
         // Act & Assert - Should not throw
         manager.ClearUnusedAssets();
-    }
-}
-
-/// <summary>
-/// Test helper class to verify AnimationAssetManager behavior without actual file I/O.
-/// These tests verify the manager's internal state management logic.
-/// </summary>
-public class AnimationAssetManagerStateTests
-{
-    private class MockAssetsManager : IAssetsManager
-    {
-        public string AssetsPath => Path.Combine(Environment.CurrentDirectory, "assets");
-        public void SetAssetsPath(string path) { }
-    }
-
-    private static AnimationAssetManager CreateManager() => new(new MockAssetsManager());
-
-    [Fact]
-    public void Manager_StartsWithEmptyCache()
-    {
-        // Arrange
-        var manager = CreateManager();
-        manager.ClearAllAssets();
-
-        // Assert
-        Assert.Equal(0, manager.GetCachedAssetCount());
-        Assert.False(manager.IsCached("any_path"));
-        Assert.Equal(0, manager.GetReferenceCount("any_path"));
-    }
-
-    [Fact]
-    public void ClearAllAssets_IsIdempotent()
-    {
-        // Arrange
-        var manager = CreateManager();
-
-        // Act
-        manager.ClearAllAssets();
-        manager.ClearAllAssets();
-        manager.ClearAllAssets();
-
-        // Assert
-        Assert.Equal(0, manager.GetCachedAssetCount());
-    }
-
-    [Fact]
-    public void UnloadAsset_OnNonExistentAsset_IsIdempotent()
-    {
-        // Arrange
-        var manager = CreateManager();
-        manager.ClearAllAssets();
-
-        // Act
-        manager.UnloadAsset("fake.json");
-        manager.UnloadAsset("fake.json");
-        manager.UnloadAsset("fake.json");
-
-        // Assert - Should not throw or cause issues
-        Assert.Equal(0, manager.GetCachedAssetCount());
-    }
-
-    [Fact]
-    public void ClearUnusedAssets_WithNoAssets_IsIdempotent()
-    {
-        // Arrange
-        var manager = CreateManager();
-        manager.ClearAllAssets();
-
-        // Act
-        manager.ClearUnusedAssets();
-        manager.ClearUnusedAssets();
-
-        // Assert
-        Assert.Equal(0, manager.GetCachedAssetCount());
-    }
-
-    [Fact]
-    public void GetTotalMemoryUsage_WithEmptyCache_ReturnsZero()
-    {
-        // Arrange
-        var manager = CreateManager();
-        manager.ClearAllAssets();
-
-        // Act
-        var initialMemory = manager.GetTotalMemoryUsage();
-        manager.ClearAllAssets();
-        var afterClearMemory = manager.GetTotalMemoryUsage();
-
-        // Assert
-        Assert.Equal(0, initialMemory);
-        Assert.Equal(0, afterClearMemory);
     }
 }

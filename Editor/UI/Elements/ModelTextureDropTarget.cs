@@ -18,7 +18,8 @@ public static class ModelTextureDropTarget
     /// <param name="label">Label for the button</param>
     /// <param name="onTextureChanged">Callback invoked when a texture is dropped</param>
     /// <param name="assetsManager">Assets manager for resolving asset paths</param>
-    public static void Draw(string label, Action<Texture2D> onTextureChanged, IAssetsManager assetsManager)
+    /// <param name="textureFactory">Texture factory for creating textures</param>
+    public static void Draw(string label, Action<Texture2D> onTextureChanged, IAssetsManager assetsManager, ITextureFactory textureFactory)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -37,7 +38,7 @@ public static class ModelTextureDropTarget
                 path =>
                 {
                     var texturePath = Path.Combine(assetsManager.AssetsPath, path);
-                    onTextureChanged(TextureFactory.Create(texturePath));
+                    onTextureChanged(textureFactory.Create(texturePath));
                 });
         });
     }

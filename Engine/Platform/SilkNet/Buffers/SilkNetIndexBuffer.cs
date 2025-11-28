@@ -4,7 +4,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public class SilkNetIndexBuffer : IIndexBuffer
+public sealed class SilkNetIndexBuffer : IIndexBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetIndexBuffer>();
     private uint _rendererId;
@@ -26,11 +26,6 @@ public class SilkNetIndexBuffer : IIndexBuffer
                 GLDebug.CheckError(SilkNetContext.GL, "BufferData(IndexBuffer)");
             }
         }
-    }
-
-    ~SilkNetIndexBuffer()
-    {
-        Dispose(false);
     }
     
     public int Count { get; }
@@ -55,7 +50,7 @@ public class SilkNetIndexBuffer : IIndexBuffer
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;
@@ -70,10 +65,14 @@ public class SilkNetIndexBuffer : IIndexBuffer
         }
         catch (Exception e)
         {
-            // Finalizers and Dispose must not throw exceptions
             Logger.Error(e, "Failed to delete OpenGL index buffer {RendererId}", _rendererId);
         }
 
         _disposed = true;
+    }
+    
+    ~SilkNetIndexBuffer()
+    {
+        Dispose(false);
     }
 }

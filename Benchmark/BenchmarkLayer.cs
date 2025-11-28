@@ -17,10 +17,11 @@ namespace Benchmark;
 public class BenchmarkLayer : ILayer
 {
     private readonly IGraphics2D _graphics2D;
-    private readonly ISceneSystemRegistry _sceneSystemRegistry;
     private readonly SceneFactory _sceneFactory;
+    private readonly ITextureFactory _textureFactory;
     
-    private readonly List<BenchmarkResult> _results = new();
+    
+    private readonly List<BenchmarkResult> _results = [];
     private readonly Stopwatch _frameTimer = new();
     private readonly Queue<float> _frameTimes = new();
     private const int MaxFrameSamples = 120;
@@ -52,13 +53,13 @@ public class BenchmarkLayer : ILayer
     private float _testElapsedTime;
     private bool _isRunning;
     private int _frameCount;
-    private List<BenchmarkResult> _baselineResults = new();
+    private List<BenchmarkResult> _baselineResults = [];
 
-    public BenchmarkLayer(IGraphics2D graphics2D, ISceneSystemRegistry sceneSystemRegistry, SceneFactory sceneFactory)
+    public BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, ITextureFactory textureFactory)
     {
         _graphics2D = graphics2D;
-        _sceneSystemRegistry = sceneSystemRegistry;
         _sceneFactory = sceneFactory;
+        _textureFactory = textureFactory;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -123,18 +124,18 @@ public class BenchmarkLayer : ILayer
     private void LoadTestAssets()
     {
         // Use shared white test texture
-        _testTextures["white"] = TextureFactory.GetWhiteTexture();
+        _testTextures["white"] = _textureFactory.GetWhiteTexture();
             
         // Create colored test textures with proper data initialization
-        var colors = new uint[] { 0xFF0000FF, 0xFF00FF00, 0xFFFF0000, 0xFFFF00FF, 0xFF00FFFF };
-        for (int i = 0; i < colors.Length; i++)
+        var colors = new[] { 0xFF0000FF, 0xFF00FF00, 0xFFFF0000, 0xFFFF00FF, 0xFF00FFFF };
+        for (var i = 0; i < colors.Length; i++)
         {
-            var texture = TextureFactory.Create(1, 1); // Use 1x1 for simplicity
+            var texture = _textureFactory.Create(1, 1); // Use 1x1 for simplicity
             texture.SetData(colors[i], sizeof(uint)); // FIXED: Actually set the color data
             _testTextures[$"color_{i}"] = texture;
         }
         
-        _testTextures["container"] = TextureFactory.Create("assets/textures/container.png");
+        _testTextures["container"] = _textureFactory.Create("assets/textures/container.png");
     }
 
     private void RenderBenchmarkUI()
@@ -258,8 +259,8 @@ public class BenchmarkLayer : ILayer
                     ImGui.Indent();
 
                     // Performance comparison
-                    float fpsDiff = result.AverageFPS - baseline.AverageFPS;
-                    float frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
+                    var fpsDiff = result.AverageFPS - baseline.AverageFPS;
+                    var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
 
                     ImGui.PushStyleColor(ImGuiCol.Text, fpsDiff >= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
                     ImGui.Text($"Δ Avg FPS: {fpsDiff:+0.00;-0.00;0.00}");
@@ -270,13 +271,13 @@ public class BenchmarkLayer : ILayer
                     ImGui.PopStyleColor();
 
                     // CPU comparison
-                    float cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
+                    var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
                     ImGui.PushStyleColor(ImGuiCol.Text, cpuDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
                     ImGui.Text($"Δ Avg CPU: {cpuDiff:+0.00;-0.00;0.00}%");
                     ImGui.PopStyleColor();
 
                     // Memory comparison
-                    long memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
+                    var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
                     ImGui.PushStyleColor(ImGuiCol.Text, memoryDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
                     ImGui.Text($"Δ Avg Memory: {memoryDiff:+0;-0;0} MB");
                     ImGui.PopStyleColor();
@@ -491,7 +492,7 @@ public class BenchmarkLayer : ILayer
         var textureKeys = _testTextures.Keys.ToArray();
         var random = new Random();
             
-        for (int i = 0; i < _entityCount; i++)
+        for (var i = 0; i < _entityCount; i++)
         {
             var entity = _currentTestScene.CreateEntity($"TexturedSprite_{i}");
             entity.AddComponent<TransformComponent>(); // Add required component
@@ -511,7 +512,7 @@ public class BenchmarkLayer : ILayer
         // Create entities that will force many draw calls
         var random = new Random();
             
-        for (int i = 0; i < _drawCallsPerFrame; i++)
+        for (var i = 0; i < _drawCallsPerFrame; i++)
         {
             var entity = _currentTestScene.CreateEntity($"DrawCall_{i}");
             entity.AddComponent<TransformComponent>(); // Add required component

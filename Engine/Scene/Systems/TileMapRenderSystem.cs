@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Serilog;
 
@@ -16,15 +17,17 @@ public class TileMapRenderSystem : ISystem
 
     private readonly IGraphics2D _graphics2D;
     private readonly IContext _context;
+    private readonly ITextureFactory _textureFactory;
     private readonly Dictionary<string, TileSet> _loadedTileSets = new();
     private readonly HashSet<int> _loggedEntities = new();
 
     public int Priority => 190; // Render before sprites
 
-    public TileMapRenderSystem(IGraphics2D graphics2D, IContext context)
+    public TileMapRenderSystem(IGraphics2D graphics2D, IContext context, ITextureFactory textureFactory)
     {
         _graphics2D = graphics2D;
         _context = context;
+        _textureFactory = textureFactory;
     }
 
     public void OnInit()
@@ -106,7 +109,7 @@ public class TileMapRenderSystem : ISystem
             Rows = tileMap.TileSetRows
         };
 
-        tileSet.LoadTexture();
+        tileSet.LoadTexture(_textureFactory);
 
         if (tileSet.Texture != null)
         {

@@ -52,12 +52,24 @@ public class Program
         options.Size = new Vector2D<int>(props.Width, props.Height);
         options.Title = "Game Window";
 
+        container.Register<IRendererApiConfig>(Reuse.Singleton,
+            made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))
+        );
+        container.Register<IRendererAPI>(
+            made: Made.Of(
+                r => ServiceInfo.Of<IRendererApiFactory>(),
+                f => f.Create()
+            )
+        );
         container.Register<IWindow>(Reuse.Singleton,
             made: Made.Of(() => Window.Create(options))
         );
-
-        container.Register<IGameWindow>(Reuse.Singleton,
-            made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
+        container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
+        container.Register<IGameWindow>(
+            made: Made.Of(
+                r => ServiceInfo.Of<IGameWindowFactory>(),
+                f => f.Create()
+            )
         );
 
         container.Register<EventBus, EventBus>(Reuse.Singleton);

@@ -8,7 +8,8 @@ namespace Engine.Renderer;
 
 public class Graphics3D : IGraphics3D
 {
-    private readonly IRendererAPI _rendererApi = RendererApiFactory.Create();
+    private readonly IRendererAPI _rendererApi;
+    private readonly IShaderFactory _shaderFactory;
     private IShader _phongShader;
     private Vector3 _lightPosition = new(0.0f, 3.0f, 3.0f);
     private Vector3 _lightColor = new(1.0f, 1.0f, 1.0f);
@@ -17,9 +18,15 @@ public class Graphics3D : IGraphics3D
     private readonly Statistics _stats = new();
     private bool _disposed;
 
+    public Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory)
+    {
+        _rendererApi = rendererApi ?? throw new ArgumentNullException(nameof(rendererApi));
+        _shaderFactory = shaderFactory ?? throw new ArgumentNullException(nameof(shaderFactory));
+    }
+
     public void Init()
     {
-        _phongShader = ShaderFactory.Create("assets/shaders/opengl/phong.vert", "assets/shaders/opengl/phong.frag");
+        _phongShader = _shaderFactory.Create("assets/shaders/opengl/phong.vert", "assets/shaders/opengl/phong.frag");
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -58,7 +65,7 @@ public class Graphics3D : IGraphics3D
         
         // Calculate normal matrix (inverse transpose of the model matrix)
         var normalMatrix = transform;
-        bool inverted = Matrix4x4.Invert(normalMatrix, out normalMatrix);
+        var inverted = Matrix4x4.Invert(normalMatrix, out normalMatrix);
         if (inverted)
         {
             normalMatrix = Matrix4x4.Transpose(normalMatrix);
@@ -68,11 +75,10 @@ public class Graphics3D : IGraphics3D
         _phongShader.SetFloat4("u_Color", color);
         
         // Check if we're using a texture
-        bool hasTexture = mesh.DiffuseTexture.Width > 1;
+        var hasTexture = mesh.DiffuseTexture.Width > 1;
         _phongShader.SetInt("u_UseTexture", hasTexture ? 1 : 0);
-        
-        // Bind the mesh
-        mesh.Initialize();
+
+        // Bind the mesh (already initialized)
         mesh.Bind();
         
         // Draw

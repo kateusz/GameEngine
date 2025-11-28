@@ -1,5 +1,7 @@
 using System.Numerics;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Textures;
+using Engine.Renderer.VertexArray;
 using Silk.NET.Assimp;
 using AssimpMesh = Silk.NET.Assimp.Mesh;
 
@@ -7,13 +9,24 @@ namespace Engine.Renderer;
 
 public class Model : IModel
 {
-    public Model(string path)
+    private readonly ITextureFactory _textureFactory;
+    private readonly IVertexArrayFactory _vertexArrayFactory;
+    private readonly IVertexBufferFactory _vertexBufferFactory;
+    private readonly IIndexBufferFactory _indexBufferFactory;
+
+    public Model(string path, ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
+        IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
     {
+        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
+        _vertexArrayFactory = vertexArrayFactory ?? throw new ArgumentNullException(nameof(vertexArrayFactory));
+        _vertexBufferFactory = vertexBufferFactory ?? throw new ArgumentNullException(nameof(vertexBufferFactory));
+        _indexBufferFactory = indexBufferFactory ?? throw new ArgumentNullException(nameof(indexBufferFactory));
+
         var assimp = Assimp.GetApi();
         _assimp = assimp;
         LoadModel(path);
     }
-    
+
     private Assimp _assimp;
     private List<Texture2D> _texturesLoaded = new();
     public string Directory { get; protected set; } = string.Empty;
@@ -53,14 +66,14 @@ public class Model : IModel
     private unsafe Mesh ProcessMesh(AssimpMesh* mesh, Silk.NET.Assimp.Scene* scene)
     {
         // data to fill
-        List<Mesh.Vertex> vertices = new List<Mesh.Vertex>();
-        List<uint> indices = new List<uint>();
-        List<Texture2D> textures = new List<Texture2D>();
+        var vertices = new List<Mesh.Vertex>();
+        var indices = new List<uint>();
+        var textures = new List<Texture2D>();
 
         // walk through each of the mesh's vertices
         for (uint i = 0; i < mesh->MNumVertices; i++)
         {
-            Mesh.Vertex vertex = new Mesh.Vertex();
+            var vertex = new Mesh.Vertex();
             //vertex.BoneIds = new int[Mesh.Vertex.MAX_BONE_INFLUENCE];
             //vertex.Weights = new float[Mesh.Vertex.MAX_BONE_INFLUENCE];
 
@@ -81,7 +94,7 @@ public class Model : IModel
             {
                 // a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
                 // use models where a vertex can have multiple texture coordinates so we always take the first set (0).
-                Vector3 texcoord3 = mesh->MTextureCoords[0][i];
+                var texcoord3 = mesh->MTextureCoords[0][i];
                 vertex.TexCoord = new Vector2(texcoord3.X, texcoord3.Y);
             }
 
@@ -91,14 +104,14 @@ public class Model : IModel
         // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
         for (uint i = 0; i < mesh->MNumFaces; i++)
         {
-            Face face = mesh->MFaces[i];
+            var face = mesh->MFaces[i];
             // retrieve all indices of the face and store them in the indices vector
             for (uint j = 0; j < face.MNumIndices; j++)
                 indices.Add(face.MIndices[j]);
         }
 
         // process materials
-        Material* material = scene->MMaterials[mesh->MMaterialIndex];
+        var material = scene->MMaterials[mesh->MMaterialIndex];
         // we assume a convention for sampler names in the shaders. Each diffuse texture should be named
         // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
         // Same applies to other texture as the following list summarizes:
@@ -125,26 +138,26 @@ public class Model : IModel
 
         // return a mesh object created from the extracted mesh data
         //var result = new Mesh(, BuildIndices(indices), textures);
-        var result = new Mesh
+        var result = new Mesh("Model_Mesh", _textureFactory)
         {
             Vertices = vertices,
             Indices = indices,
             Textures = textures
         };
-        result.Initialize();
+        result.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
         return result;
     }
 
     private unsafe List<Texture2D> LoadMaterialTextures(Material* mat, TextureType type)
     {
         var textureCount = _assimp.GetMaterialTextureCount(mat, type);
-        List<Texture2D> textures = new List<Texture2D>();
+        var textures = new List<Texture2D>();
         for (uint i = 0; i < textureCount; i++)
         {
             AssimpString path;
             _assimp.GetMaterialTexture(mat, type, i, &path, null, null, null, null, null, null);
-            bool skip = false;
-            for (int j = 0; j < _texturesLoaded.Count; j++)
+            var skip = false;
+            for (var j = 0; j < _texturesLoaded.Count; j++)
             {
                 if (_texturesLoaded[j].Path == path)
                 {
@@ -155,7 +168,7 @@ public class Model : IModel
             }
             if (!skip)
             {
-                var texture = TextureFactory.Create(path);
+                var texture = _textureFactory.Create(path);
                 texture.Path = path;
                 textures.Add(texture);
                 _texturesLoaded.Add(texture);

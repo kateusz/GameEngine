@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Engine.Renderer.Textures;
 
-public record SubTexture2D
+public sealed record SubTexture2D
 {
     public Texture2D Texture { get; }
     public Vector2[] TexCoords { get; } = new Vector2[RenderingConstants.QuadVertexCount];

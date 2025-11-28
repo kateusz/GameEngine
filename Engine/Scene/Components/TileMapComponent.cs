@@ -82,9 +82,9 @@ public class TileMapComponent : IComponent
         foreach (var layer in Layers)
         {
             var newTiles = new int[newWidth, newHeight];
-            for (int x = 0; x < newWidth; x++)
+            for (var x = 0; x < newWidth; x++)
             {
-                for (int y = 0; y < newHeight; y++)
+                for (var y = 0; y < newHeight; y++)
                 {
                     if (x < Width && y < Height)
                     {

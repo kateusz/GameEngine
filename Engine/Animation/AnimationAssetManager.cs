@@ -29,10 +29,12 @@ public class AnimationAssetManager
 
     private readonly Dictionary<string, CacheEntry> _cache = new();
     private readonly IAssetsManager _assetsManager;
+    private readonly ITextureFactory _textureFactory;
 
-    public AnimationAssetManager(IAssetsManager assetsManager)
+    public AnimationAssetManager(IAssetsManager assetsManager, ITextureFactory textureFactory)
     {
         _assetsManager = assetsManager;
+        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
     }
 
     /// <summary>
@@ -73,7 +75,7 @@ public class AnimationAssetManager
 
             // Load texture atlas
             var atlasFullPath = ResolveAssetPath(animationAsset.AtlasPath);
-            var atlasTexture = TextureFactory.Create(atlasFullPath);
+            var atlasTexture = _textureFactory.Create(atlasFullPath);
 
             // Assign texture to asset
             animationAsset.Atlas = atlasTexture;

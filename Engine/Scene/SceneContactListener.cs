@@ -35,7 +35,7 @@ public class SceneContactListener : ContactListener
             }
             
             // Check if either fixture is a sensor (trigger)
-            bool isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
+            var isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
             
             if (isTrigger)
             {
@@ -73,7 +73,7 @@ public class SceneContactListener : ContactListener
             if (entityA == null || entityB == null)
                 return;
             
-            bool isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
+            var isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
             
             if (isTrigger)
             {

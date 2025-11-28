@@ -23,6 +23,11 @@ using Editor.Windows;
 using Engine.Animation;
 using Engine.Events;
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
+using Engine.Renderer.Shaders;
+using Engine.Renderer.Textures;
+using Engine.Renderer.VertexArray;
 using Engine.Scene.Systems;
 
 static void ConfigureContainer(Container container)
@@ -32,24 +37,42 @@ static void ConfigureContainer(Container container)
     options.Size = new Vector2D<int>(props.Width, props.Height);
     options.Title = "Game Window";
 
-    container.Register<IWindow>(Reuse.Singleton, 
+    container.Register<IRendererApiConfig>(Reuse.Singleton,
+        made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))
+    );
+    container.Register<IRendererAPI>(
+        made: Made.Of(
+            r => ServiceInfo.Of<IRendererApiFactory>(),
+            f => f.Create()
+        )
+    );
+    container.Register<IWindow>(Reuse.Singleton,
         made: Made.Of(() => Window.Create(options))
     );
-
-    container.Register<IGameWindow>(Reuse.Singleton, 
-        made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
+    container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
+    container.Register<IGameWindow>(
+        made: Made.Of(
+            r => ServiceInfo.Of<IGameWindowFactory>(),
+            f => f.Create()
+        )
     );
 
     container.Register<EventBus, EventBus>(Reuse.Singleton);
     container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
     container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
-    
+
     container.Register<DebugSettings>(Reuse.Singleton);
     container.Register<Engine.IAssetsManager, Engine.AssetsManager>(Reuse.Singleton);
-    
-    container.Register<IRendererAPI>(Reuse.Singleton,
-        made: Made.Of(() => RendererApiFactory.Create())
-    );
+
+    // Register all factories
+    container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
+    container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
+    container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
+    container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
+    container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
+    container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
+    container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);
+    container.Register<IVertexArrayFactory, VertexArrayFactory>(Reuse.Singleton);
 
     container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
     container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);

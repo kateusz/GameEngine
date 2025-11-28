@@ -62,7 +62,7 @@ public class SilkNetAudioClip : IAudioClip, IDisposable
             }
 
             // Calculate duration
-            int bytesPerSample = Channels * 2; // Assuming 16-bit
+            var bytesPerSample = Channels * 2; // Assuming 16-bit
             Duration = (float)DataSize / (SampleRate * bytesPerSample);
 
             IsLoaded = true;

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Platform.SilkNet.Buffers;
 
-public class SilkNetVertexBuffer : IVertexBuffer
+public sealed class SilkNetVertexBuffer : IVertexBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetVertexBuffer>();
     private uint _rendererId;
@@ -21,12 +21,14 @@ public class SilkNetVertexBuffer : IVertexBuffer
 
     public SilkNetVertexBuffer(uint size)
     {
-        // Validate buffer size to prevent memory allocation issues
-        if (size == 0)
-            throw new ArgumentException("Buffer size must be greater than zero", nameof(size));
-
-        if (size > MaxBufferSize)
-            throw new ArgumentException($"Buffer size {size} bytes exceeds maximum {MaxBufferSize} bytes ({MaxBufferSize / (1024 * 1024)} MB)", nameof(size));
+        switch (size)
+        {
+            // Validate buffer size to prevent memory allocation issues
+            case 0:
+                throw new ArgumentException("Buffer size must be greater than zero", nameof(size));
+            case > MaxBufferSize:
+                throw new ArgumentException($"Buffer size {size} bytes exceeds maximum {MaxBufferSize} bytes ({MaxBufferSize / (1024 * 1024)} MB)", nameof(size));
+        }
 
         _rendererId = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
@@ -36,18 +38,11 @@ public class SilkNetVertexBuffer : IVertexBuffer
             unsafe
             {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, size, null, BufferUsageARB.DynamicDraw);
-            }
-
-            // Check for OpenGL errors after buffer allocation
-            var error = SilkNetContext.GL.GetError();
-            if (error != GLEnum.NoError)
-            {
-                throw new InvalidOperationException($"OpenGL error during vertex buffer creation: {error}");
+                GLDebug.CheckError(SilkNetContext.GL, "ArrayBuffer BufferData DynamicDraw");
             }
         }
         catch
         {
-            // Clean up buffer on failure to prevent resource leak
             SilkNetContext.GL.DeleteBuffer(_rendererId);
             throw;
         }
@@ -64,7 +59,7 @@ public class SilkNetVertexBuffer : IVertexBuffer
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;

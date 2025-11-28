@@ -4,7 +4,7 @@ using Silk.NET.OpenGL;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetShader : IShader
+public sealed class SilkNetShader : IShader
 {
     private readonly uint _handle;
     private readonly Dictionary<string, int> _uniformLocations;
@@ -12,8 +12,8 @@ public class SilkNetShader : IShader
 
     public SilkNetShader(string vertPath, string fragPath)
     {
-        uint vertex = LoadShader(ShaderType.VertexShader, vertPath);
-        uint fragment = LoadShader(ShaderType.FragmentShader, fragPath);
+        var vertex = LoadShader(ShaderType.VertexShader, vertPath);
+        var fragment = LoadShader(ShaderType.FragmentShader, fragPath);
 
         //Create the shader program.
         _handle = SilkNetContext.GL.CreateProgram();
@@ -68,19 +68,7 @@ public class SilkNetShader : IShader
 
     // The shader sources provided with this project use hardcoded layout(location)-s. If you want to do it dynamically,
     // you can omit the layout(location=X) lines in the vertex shader, and use this in VertexAttribPointer instead of the hardcoded values.
-    public int GetAttribLocation(string attribName)
-    {
-        return SilkNetContext.GL.GetAttribLocation(_handle, attribName);
-    }
-
-    // Uniform setters
-    // Uniforms are variables that can be set by user code, instead of reading them from the VBO.
-    // You use VBOs for vertex-related data, and uniforms for almost everything else.
-
-    // Setting a uniform is almost always the exact same, so I'll explain it here once, instead of in every method:
-    //     1. Bind the program you want to set the uniform on
-    //     2. Get a handle to the location of the uniform with GL.GetUniformLocation.
-    //     3. Use the appropriate GL.Uniform* function to set the uniform.
+    public int GetAttribLocation(string attribName) => SilkNetContext.GL.GetAttribLocation(_handle, attribName);
 
     /// <summary>
     /// Set a uniform int on this shader.
@@ -123,7 +111,7 @@ public class SilkNetShader : IShader
     /// <param name="data">The data to set</param>
     public void SetMat4(string name, Matrix4x4 data)
     {
-        ReadOnlySpan<float> matrix = Matrix4x4ToReadOnlySpan(data);
+        var matrix = Matrix4x4ToReadOnlySpan(data);
 
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.UniformMatrix4(_uniformLocations[name], true, matrix);
@@ -151,11 +139,10 @@ public class SilkNetShader : IShader
         SilkNetContext.GL.Uniform4(_uniformLocations[name], data);
     }
 
-    public static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)
+    private static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)
     {
-        float[] matrixArray = new float[16]; // Create a float array to hold the matrix elements
-
-        // Copy the elements of the matrix into the array
+        var matrixArray = new float[16];
+        
         matrixArray[0] = matrix.M11;
         matrixArray[1] = matrix.M12;
         matrixArray[2] = matrix.M13;
@@ -173,7 +160,7 @@ public class SilkNetShader : IShader
         matrixArray[14] = matrix.M43;
         matrixArray[15] = matrix.M44;
 
-        return new ReadOnlySpan<float>(matrixArray); // Create a ReadOnlySpan<float> from the array
+        return new ReadOnlySpan<float>(matrixArray);
     }
 
     private static uint LoadShader(ShaderType type, string path)
@@ -184,14 +171,14 @@ public class SilkNetShader : IShader
         //3) Upload the source to opengl.
         //4) Compile the shader.
         //5) Check for errors.
-        string src = File.ReadAllText(path);
-        uint handle = SilkNetContext.GL.CreateShader(type);
+        var src = File.ReadAllText(path);
+        var handle = SilkNetContext.GL.CreateShader(type);
         GLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");
         SilkNetContext.GL.ShaderSource(handle, src);
         GLDebug.CheckError(SilkNetContext.GL, "ShaderSource");
         SilkNetContext.GL.CompileShader(handle);
         GLDebug.CheckError(SilkNetContext.GL, "CompileShader");
-        string infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
+        var infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
         {
             throw new Exception($"Error compiling shader of type {type}, failed with error {infoLog}");
@@ -213,38 +200,22 @@ public class SilkNetShader : IShader
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
-    /// <summary>
-    /// Finalizer to ensure GPU resources are released even if Dispose is not called explicitly.
-    /// </summary>
-    /// <remarks>
-    /// This serves as a safety net for resource cleanup, but explicit Dispose calls are preferred
-    /// as finalizers run on a separate thread and may be delayed by the garbage collector.
-    /// </remarks>
+    
     ~SilkNetShader()
     {
         Dispose(false);
     }
-
-    /// <summary>
-    /// Releases the unmanaged and optionally the managed resources used by the shader.
-    /// </summary>
-    /// <param name="disposing">
-    /// True to release both managed and unmanaged resources; false to release only unmanaged resources.
-    /// This parameter is false when called from the finalizer.
-    /// </param>
-    protected virtual void Dispose(bool disposing)
+    
+    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;
 
         if (disposing)
         {
-            // Dispose managed resources
             _uniformLocations?.Clear();
         }
-
-        // Free unmanaged resources (GPU resources)
+        
         try
         {
             if (_handle != 0)
@@ -254,7 +225,6 @@ public class SilkNetShader : IShader
         }
         catch (Exception e)
         {
-            // Finalizers and Dispose must not throw exceptions
             System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL shader program {_handle}: {e.Message}");
         }
 

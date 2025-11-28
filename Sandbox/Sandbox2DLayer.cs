@@ -48,6 +48,7 @@ public class Sandbox2DLayer : ILayer
     private static readonly ILogger Logger = Log.ForContext<Sandbox2DLayer>();
 
     private readonly IGraphics2D _graphics2D;
+    private readonly ITextureFactory _textureFactory;
     private IOrthographicCameraController _orthographicCameraController;
     private Texture2D _spriteSheet;
     private SubTexture2D _textureBarrel;
@@ -55,9 +56,10 @@ public class Sandbox2DLayer : ILayer
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
 
-    public Sandbox2DLayer(IGraphics2D graphics2D)
+    public Sandbox2DLayer(IGraphics2D graphics2D, ITextureFactory textureFactory)
     {
         _graphics2D = graphics2D;
+        _textureFactory = textureFactory;
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }
 
@@ -66,7 +68,7 @@ public class Sandbox2DLayer : ILayer
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
         _orthographicCameraController = new OrthographicCameraController(3840.0f / 2160.0f, true);
-        _spriteSheet = TextureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
+        _spriteSheet = _textureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
 
         _textureBarrel =
             SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(8, 2), new Vector2(128, 128), new Vector2(1, 1));

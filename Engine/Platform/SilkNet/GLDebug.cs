@@ -17,10 +17,10 @@ public static class GLDebug
     [Conditional("DEBUG")]
     public static void CheckError(GL gl, string operation)
     {
-        GLEnum error = gl.GetError();
+        var error = gl.GetError();
         if (error != GLEnum.NoError)
         {
-            string errorMessage = GetErrorDescription(error);
+            var errorMessage = GetErrorDescription(error);
             Debug.WriteLine($"OpenGL Error after {operation}: {error} (0x{(int)error:X}) - {errorMessage}");
             throw new InvalidOperationException($"OpenGL Error after {operation}: {error} (0x{(int)error:X}) - {errorMessage}");
         }
@@ -34,10 +34,10 @@ public static class GLDebug
     /// <param name="operation">Description of the operation that was performed.</param>
     public static void CheckErrorAlways(GL gl, string operation)
     {
-        GLEnum error = gl.GetError();
+        var error = gl.GetError();
         if (error != GLEnum.NoError)
         {
-            string errorMessage = GetErrorDescription(error);
+            var errorMessage = GetErrorDescription(error);
             Debug.WriteLine($"OpenGL Error after {operation}: {error} (0x{(int)error:X}) - {errorMessage}");
             throw new InvalidOperationException($"OpenGL Error after {operation}: {error} (0x{(int)error:X}) - {errorMessage}");
         }

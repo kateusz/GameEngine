@@ -54,7 +54,7 @@ public class ModelRenderingSystem : ISystem
     {
         // Find the primary camera in the scene
         Camera? mainCamera = null;
-        Matrix4x4 cameraTransform = Matrix4x4.Identity;
+        var cameraTransform = Matrix4x4.Identity;
 
         var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         foreach (var entity in cameraGroup)

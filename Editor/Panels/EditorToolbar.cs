@@ -9,16 +9,18 @@ namespace Editor.Panels;
 public class EditorToolbar
 {
     private readonly ISceneContext _sceneContext;
-    
+    private readonly ITextureFactory _textureFactory;
+
     private Texture2D _iconPlay = null!;
     private Texture2D _iconStop = null!;
     private Texture2D _iconSelect = null!;
     private Texture2D _iconMove = null!;
     private Texture2D _iconScale = null!;
 
-    public EditorToolbar(ISceneContext sceneContext)
+    public EditorToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
     {
         _sceneContext = sceneContext;
+        _textureFactory = textureFactory;
     }
 
     public event Action OnPlayScene;
@@ -29,11 +31,11 @@ public class EditorToolbar
     
     public void Init()
     {
-        _iconPlay = TextureFactory.Create("Resources/Icons/PlayButton.png");
-        _iconStop = TextureFactory.Create("Resources/Icons/StopButton.png");
-        _iconSelect = TextureFactory.Create("Resources/Icons/select.png");
-        _iconMove = TextureFactory.Create("Resources/Icons/move.png");
-        _iconScale = TextureFactory.Create("Resources/Icons/scale.png");
+        _iconPlay = _textureFactory.Create("Resources/Icons/PlayButton.png");
+        _iconStop = _textureFactory.Create("Resources/Icons/StopButton.png");
+        _iconSelect = _textureFactory.Create("Resources/Icons/select.png");
+        _iconMove = _textureFactory.Create("Resources/Icons/move.png");
+        _iconScale = _textureFactory.Create("Resources/Icons/scale.png");
     }
 
     public void Render()
