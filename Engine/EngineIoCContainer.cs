@@ -5,6 +5,7 @@ using Engine.Core;
 using Engine.Core.Window;
 using Engine.Events;
 using Engine.ImGuiNet;
+using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -34,7 +35,7 @@ public static class EngineIoCContainer
         container.Register<IRendererApiConfig>(Reuse.Singleton,
             made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))
         );
-        container.Register<IRendererAPI>(
+        container.Register<IRendererAPI>(Reuse.Singleton,
             made: Made.Of(
                 r => ServiceInfo.Of<IRendererApiFactory>(),
                 f => f.Create()

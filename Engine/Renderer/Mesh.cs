@@ -38,7 +38,6 @@ public class Mesh : IDisposable
         Vertices = [];
         Indices = [];
         Textures = [];
-        // Use provided white texture or null (must be set later)
         DiffuseTexture = textureFactory?.GetWhiteTexture()!;
     }
 

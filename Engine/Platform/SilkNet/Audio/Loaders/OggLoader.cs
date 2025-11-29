@@ -52,7 +52,8 @@ internal sealed class OggLoader : IAudioLoader
             if (channels > 2)
             {
                 Logger.Error("Unsupported channel count in OGG file: {Channels} (max 2)", channels);
-                throw new NotSupportedException($"OGG files with more than 2 channels are not supported. File has {channels} channels.");
+                throw new NotSupportedException(
+                    $"OGG files with more than 2 channels are not supported. File has {channels} channels.");
             }
 
             if (totalSamples <= 0)
@@ -89,11 +90,11 @@ internal sealed class OggLoader : IAudioLoader
                 path, durationSeconds, sampleRate, channels);
 
             return new AudioData(
-                data: pcm16Data,
-                sampleRate: sampleRate,
-                channels: channels,
-                bitsPerSample: 16,
-                format: AudioFormat.OGG
+                pcm16Data,
+                sampleRate,
+                channels,
+                16,
+                AudioFormat.OGG
             );
         }
         catch (FileNotFoundException)
@@ -135,7 +136,7 @@ internal sealed class OggLoader : IAudioLoader
             var sample16 = (short)(sample * 32767.0f);
 
             // Write as little-endian bytes
-            pcm16Bytes[i * 2] = (byte)(sample16 & 0xFF);         // LSB
+            pcm16Bytes[i * 2] = (byte)(sample16 & 0xFF); // LSB
             pcm16Bytes[i * 2 + 1] = (byte)((sample16 >> 8) & 0xFF); // MSB
         }
 

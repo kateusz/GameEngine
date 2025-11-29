@@ -17,7 +17,7 @@ internal sealed class GameWindowFactory : IGameWindowFactory
     public GameWindowFactory(IRendererApiConfig apiConfig, IWindow window)
     {
         _apiConfig = apiConfig ?? throw new ArgumentNullException(nameof(apiConfig));
-        _window = window;
+        _window = window ?? throw new ArgumentNullException(nameof(window));
     }
 
     public IGameWindow Create()

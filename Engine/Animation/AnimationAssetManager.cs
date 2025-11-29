@@ -33,7 +33,7 @@ internal sealed class AnimationAssetManager : IAnimationAssetManager
 
     public AnimationAssetManager(IAssetsManager assetsManager, ITextureFactory textureFactory)
     {
-        _assetsManager = assetsManager;
+        _assetsManager = assetsManager ?? throw new ArgumentNullException(nameof(assetsManager));
         _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
     }
 
