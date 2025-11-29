@@ -40,16 +40,13 @@ internal sealed class Scene : IScene
         _context = context;
         _textureFactory = textureFactory;
         _context.Clear();
-
-        // Initialize ECS systems
+        
         _systemManager = new SystemManager();
 
         // Populate system manager from registry (singleton systems shared across scenes)
         systemRegistry.PopulateSystemManager(_systemManager);
-
-        // Initialize physics world (per-scene, cannot be shared)
+        
         _physicsWorld = new World(new Vector2(0, -9.8f));
-
         var contactListener = new SceneContactListener();
         _physicsWorld.SetContactListener(contactListener);
 
@@ -75,11 +72,10 @@ internal sealed class Scene : IScene
         if (entity.Id <= 0)
             throw new ArgumentException($"Entity ID must be positive, got {entity.Id}", nameof(entity));
 
-        // Track highest ID when adding existing entities (e.g., from deserialization)
+        // Track the highest ID when adding existing entities (e.g., from deserialization)
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
-
-        // Subscribe to component events to maintain consistency with CreateEntity
+        
         entity.OnComponentAdded += OnComponentAdded;
 
         _context.Register(entity);
@@ -96,10 +92,7 @@ internal sealed class Scene : IScene
 
     public void DestroyEntity(Entity entity)
     {
-        // Unsubscribe from all events before removing to prevent memory leak
         entity.OnComponentAdded -= OnComponentAdded;
-
-        // O(1) removal via dictionary lookup
         _context.Remove(entity.Id);
     }
 
@@ -116,7 +109,7 @@ internal sealed class Scene : IScene
                 position = new Vector2(transform.Translation.X, transform.Translation.Y),
                 angle = transform.Rotation.Z,
                 type = RigidBody2DTypeToBox2DBody(component.BodyType),
-                bullet = component.BodyType == RigidBodyType.Dynamic ? true : false
+                bullet = component.BodyType == RigidBodyType.Dynamic
             };
 
             var body = _physicsWorld.CreateBody(bodyDef);

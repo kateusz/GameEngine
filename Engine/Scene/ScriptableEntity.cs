@@ -9,10 +9,11 @@ namespace Engine.Scene;
 
 /// <summary>
 /// Base class for all script components in the engine.
-/// Script components provide behavior to entities through inheritance.
 /// </summary>
 public abstract class ScriptableEntity
 {
+    private ISceneContext? _sceneContext;
+
     #region Reflection Cache
 
     /// <summary>
@@ -32,12 +33,10 @@ public abstract class ScriptableEntity
     /// <summary>
     /// The entity this script is attached to
     /// </summary>
-    public Entity Entity { get; set; }
+    public Entity? Entity { get; private set; }
 
-    /// <summary>
-    /// The scene context for accessing the active scene
-    /// </summary>
-    internal ISceneContext? SceneContext { get; set; }
+    internal void SetEntity(Entity entity) => Entity = entity;
+    internal void SetSceneContext(ISceneContext ctx) => _sceneContext = ctx;
 
     #region Lifecycle Methods
 
@@ -65,75 +64,20 @@ public abstract class ScriptableEntity
     {
     }
 
-    /// <summary>
-    /// Called when the script component is enabled.
-    /// </summary>
-    public virtual void OnEnable()
-    {
-    }
-
-    /// <summary>
-    /// Called when the script component is disabled.
-    /// </summary>
-    public virtual void OnDisable()
-    {
-    }
-
     #endregion
 
     #region Input Event Methods
 
-    /// <summary>
-    /// Called when a key is pressed.
-    /// </summary>
-    /// <param name="keyCode">The code of the key that was pressed</param>
     public virtual void OnKeyPressed(KeyCodes key)
     {
-        // Key press handling - override in derived classes
     }
 
-    /// <summary>
-    /// Called when a key is released.
-    /// </summary>
-    /// <param name="keyCode">The code of the key that was released</param>
     public virtual void OnKeyReleased(KeyCodes keyCode)
     {
     }
 
-    /// <summary>
-    /// Called when a mouse button is pressed.
-    /// </summary>
-    /// <param name="button">The button that was pressed (0 = left, 1 = right, 2 = middle)</param>
     public virtual void OnMouseButtonPressed(int button)
     {
-        // Mouse button press handling - override in derived classes
-    }
-
-    /// <summary>
-    /// Called when a mouse button is released.
-    /// </summary>
-    /// <param name="button">The button that was released (0 = left, 1 = right, 2 = middle)</param>
-    public virtual void OnMouseButtonReleased(int button)
-    {
-        // Mouse button release handling - override in derived classes
-    }
-
-    /// <summary>
-    /// Called when the mouse is moved.
-    /// </summary>
-    /// <param name="position">The new mouse position</param>
-    public virtual void OnMouseMoved(Vector2 position)
-    {
-        // Mouse movement handling - override in derived classes
-    }
-
-    /// <summary>
-    /// Called when the mouse wheel is scrolled.
-    /// </summary>
-    /// <param name="offset">The scroll offset (positive = up, negative = down)</param>
-    public virtual void OnMouseScrolled(Vector2 offset)
-    {
-        // Mouse scroll handling - override in derived classes
     }
 
     #endregion
@@ -176,52 +120,38 @@ public abstract class ScriptableEntity
 
     #region Component Utility Methods
 
-    /// <summary>
-    /// Get a component from the entity this script is attached to.
-    /// </summary>
-    /// <typeparam name="T">The component type to get</typeparam>
-    /// <returns>The component instance, or null if not found</returns>
     protected T GetComponent<T>() where T : IComponent
     {
+        if (Entity == null)
+            throw new InvalidOperationException("Entity is not set!");
         return Entity.GetComponent<T>();
     }
 
-    /// <summary>
-    /// Check if the entity has a specific component.
-    /// </summary>
-    /// <typeparam name="T">The component type to check for</typeparam>
-    /// <returns>True if the entity has the component, false otherwise</returns>
     protected bool HasComponent<T>() where T : IComponent
     {
+        if (Entity == null)
+            throw new InvalidOperationException("Entity is not set!");
         return Entity.HasComponent<T>();
     }
 
-    /// <summary>
-    /// Add a component to the entity.
-    /// </summary>
-    /// <typeparam name="T">The component type to add</typeparam>
-    /// <returns>The newly added component</returns>
     protected T AddComponent<T>() where T : IComponent, new()
     {
+        if (Entity == null)
+            throw new InvalidOperationException("Entity is not set!");
         return Entity.AddComponent<T>();
     }
 
-    /// <summary>
-    /// Add a component to the entity.
-    /// </summary>
-    /// <typeparam name="T">The component type to add</typeparam>
-    /// <returns>The newly added component</returns>
     protected void AddComponent<T>(T component) where T : IComponent
     {
+        if (Entity == null)
+            throw new InvalidOperationException("Entity is not set!");
         Entity.AddComponent<T>(component);
     }
 
-    /// <summary>
-    /// Remove a component from the entity.
-    /// </summary>
-    /// <typeparam name="T">The component type to remove</typeparam>
     protected void RemoveComponent<T>() where T : IComponent
     {
+        if (Entity == null)
+            throw new InvalidOperationException("Entity is not set!");
         Entity.RemoveComponent<T>();
     }
 
@@ -229,15 +159,11 @@ public abstract class ScriptableEntity
 
     #region Entity Utility Methods
 
-    /// <summary>
-    /// Find an entity by name in the current scene.
-    /// </summary>
-    /// <param name="name">The name of the entity to find</param>
-    /// <returns>The entity if found, null otherwise</returns>
     protected Entity? FindEntity(string name)
     {
-        var currentScene = SceneContext?.ActiveScene;
-        if (currentScene == null) return null;
+        var currentScene = _sceneContext?.ActiveScene;
+        if (currentScene == null)
+            return null;
 
         foreach (var entity in currentScene.Entities)
         {
@@ -248,24 +174,15 @@ public abstract class ScriptableEntity
         return null;
     }
 
-    /// <summary>
-    /// Create a new entity in the current scene.
-    /// </summary>
-    /// <param name="name">The name for the new entity</param>
-    /// <returns>The newly created entity</returns>
     protected Entity CreateEntity(string name)
     {
-        var currentScene = SceneContext?.ActiveScene;
-        return currentScene?.CreateEntity(name);
+        var currentScene = _sceneContext?.ActiveScene;
+        return currentScene?.CreateEntity(name)!;
     }
 
-    /// <summary>
-    /// Destroy an entity in the current scene.
-    /// </summary>
-    /// <param name="entity">The entity to destroy</param>
     protected void DestroyEntity(Entity entity)
     {
-        var currentScene = SceneContext?.ActiveScene;
+        var currentScene = _sceneContext?.ActiveScene;
         currentScene?.DestroyEntity(entity);
     }
 
@@ -273,22 +190,10 @@ public abstract class ScriptableEntity
 
     #region Transform Utility Methods
 
-    /// <summary>
-    /// Get the position of this entity.
-    /// </summary>
-    /// <returns>The world position as a Vector3</returns>
-    protected Vector3 GetPosition()
-    {
-        if (!HasComponent<TransformComponent>())
-            return Vector3.Zero;
+    protected Vector3 GetPosition() => !HasComponent<TransformComponent>()
+        ? Vector3.Zero
+        : GetComponent<TransformComponent>().Translation;
 
-        return GetComponent<TransformComponent>()!.Translation;
-    }
-
-    /// <summary>
-    /// Set the position of this entity.
-    /// </summary>
-    /// <param name="position">The new world position</param>
     protected void SetPosition(Vector3 position)
     {
         if (!HasComponent<TransformComponent>())
@@ -303,18 +208,10 @@ public abstract class ScriptableEntity
     /// Get the rotation of this entity.
     /// </summary>
     /// <returns>The rotation in radians as a Vector3 (XYZ = pitch, yaw, roll)</returns>
-    protected Vector3 GetRotation()
-    {
-        if (!HasComponent<TransformComponent>())
-            return Vector3.Zero;
+    protected Vector3 GetRotation() => !HasComponent<TransformComponent>()
+        ? Vector3.Zero
+        : GetComponent<TransformComponent>().Rotation;
 
-        return GetComponent<TransformComponent>().Rotation;
-    }
-
-    /// <summary>
-    /// Set the rotation of this entity.
-    /// </summary>
-    /// <param name="rotation">The new rotation in radians</param>
     protected void SetRotation(Vector3 rotation)
     {
         if (!HasComponent<TransformComponent>())
@@ -325,22 +222,9 @@ public abstract class ScriptableEntity
         AddComponent(transform);
     }
 
-    /// <summary>
-    /// Get the scale of this entity.
-    /// </summary>
-    /// <returns>The scale as a Vector3</returns>
-    protected Vector3 GetScale()
-    {
-        if (!HasComponent<TransformComponent>())
-            return Vector3.One;
+    protected Vector3 GetScale() =>
+        !HasComponent<TransformComponent>() ? Vector3.One : GetComponent<TransformComponent>().Scale;
 
-        return GetComponent<TransformComponent>().Scale;
-    }
-
-    /// <summary>
-    /// Set the scale of this entity.
-    /// </summary>
-    /// <param name="scale">The new scale</param>
     protected void SetScale(Vector3 scale)
     {
         if (!HasComponent<TransformComponent>())
@@ -351,16 +235,10 @@ public abstract class ScriptableEntity
         AddComponent(transform);
     }
 
-    /// <summary>
-    /// Get the forward direction vector of this entity.
-    /// </summary>
-    /// <returns>The forward direction as a normalized Vector3</returns>
     protected Vector3 GetForward()
     {
-        // Calculate forward direction based on rotation
         var rotation = GetRotation();
 
-        // Assuming Z is forward in your coordinate system
         // Use rotation to calculate the forward vector
         var cosY = MathF.Cos(rotation.Y);
         var sinY = MathF.Sin(rotation.Y);
@@ -374,47 +252,16 @@ public abstract class ScriptableEntity
         ));
     }
 
-    /// <summary>
-    /// Get the right direction vector of this entity.
-    /// </summary>
-    /// <returns>The right direction as a normalized Vector3</returns>
     protected Vector3 GetRight()
     {
         // Right is perpendicular to forward and up
         return Vector3.Normalize(Vector3.Cross(GetForward(), Vector3.UnitY));
     }
 
-    /// <summary>
-    /// Get the up direction vector of this entity.
-    /// </summary>
-    /// <returns>The up direction as a normalized Vector3</returns>
     protected Vector3 GetUp()
     {
         // Up is perpendicular to forward and right
         return Vector3.Normalize(Vector3.Cross(GetRight(), GetForward()));
-    }
-
-    /// <summary>
-    /// Make this entity look at a target position.
-    /// </summary>
-    /// <param name="target">The position to look at</param>
-    protected void LookAt(Vector3 target)
-    {
-        if (!HasComponent<TransformComponent>())
-            return;
-
-        var transform = GetComponent<TransformComponent>();
-        var position = transform.Translation;
-
-        // Calculate direction vector
-        var direction = Vector3.Normalize(target - position);
-
-        // Calculate rotation angles
-        var yaw = MathF.Atan2(direction.X, direction.Z);
-        var pitch = -MathF.Asin(direction.Y);
-
-        // Set rotation
-        transform.Rotation = new Vector3(pitch, yaw, 0);
     }
 
     #endregion
@@ -426,12 +273,6 @@ public abstract class ScriptableEntity
     /// Uses cached reflection metadata to minimize allocations and improve performance during serialization
     /// and editor updates.
     /// </summary>
-    /// <remarks>
-    /// Performance: Uses static ConcurrentDictionary caches to avoid repeated reflection operations.
-    /// First call for each script type will perform reflection and cache results.
-    /// Subsequent calls retrieve cached metadata with O(1) dictionary lookups.
-    /// Thread-safe: ConcurrentDictionary ensures safe access from multiple threads without explicit locking.
-    /// </remarks>
     public IEnumerable<(string Name, Type Type, object Value)> GetExposedFields()
     {
         var type = GetType();
@@ -439,8 +280,8 @@ public abstract class ScriptableEntity
         // Get cached fields or compute and cache them
         var fields = _fieldCache.GetOrAdd(type, t =>
             t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-             .Where(f => IsSupportedType(f.FieldType))
-             .ToArray());
+                .Where(f => IsSupportedType(f.FieldType))
+                .ToArray());
 
         // Yield field values using cached metadata
         foreach (var field in fields)
@@ -451,8 +292,8 @@ public abstract class ScriptableEntity
         // Get cached properties or compute and cache them
         var properties = _propertyCache.GetOrAdd(type, t =>
             t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-             .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
-             .ToArray());
+                .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
+                .ToArray());
 
         // Yield property values using cached metadata
         foreach (var prop in properties)
@@ -463,11 +304,7 @@ public abstract class ScriptableEntity
 
     /// <summary>
     /// Gets the value of a public field or property by name.
-    /// Uses cached reflection metadata for improved performance.
     /// </summary>
-    /// <remarks>
-    /// Performance: Searches cached field and property arrays instead of performing reflection on each call.
-    /// </remarks>
     public object GetFieldValue(string name)
     {
         var type = GetType();
@@ -475,8 +312,8 @@ public abstract class ScriptableEntity
         // Search in cached fields
         var fields = _fieldCache.GetOrAdd(type, t =>
             t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-             .Where(f => IsSupportedType(f.FieldType))
-             .ToArray());
+                .Where(f => IsSupportedType(f.FieldType))
+                .ToArray());
 
         var field = Array.Find(fields, f => f.Name == name);
         if (field != null)
@@ -485,8 +322,8 @@ public abstract class ScriptableEntity
         // Search in cached properties
         var properties = _propertyCache.GetOrAdd(type, t =>
             t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-             .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
-             .ToArray());
+                .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
+                .ToArray());
 
         var prop = Array.Find(properties, p => p.Name == name);
         if (prop != null && prop.CanRead)
@@ -497,11 +334,7 @@ public abstract class ScriptableEntity
 
     /// <summary>
     /// Sets the value of a public field or property by name.
-    /// Uses cached reflection metadata for improved performance.
     /// </summary>
-    /// <remarks>
-    /// Performance: Searches cached field and property arrays instead of performing reflection on each call.
-    /// </remarks>
     public void SetFieldValue(string name, object value)
     {
         var type = GetType();
@@ -509,8 +342,8 @@ public abstract class ScriptableEntity
         // Search in cached fields
         var fields = _fieldCache.GetOrAdd(type, t =>
             t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-             .Where(f => IsSupportedType(f.FieldType))
-             .ToArray());
+                .Where(f => IsSupportedType(f.FieldType))
+                .ToArray());
 
         var field = Array.Find(fields, f => f.Name == name);
         if (field != null)
@@ -522,8 +355,8 @@ public abstract class ScriptableEntity
         // Search in cached properties
         var properties = _propertyCache.GetOrAdd(type, t =>
             t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-             .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
-             .ToArray());
+                .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
+                .ToArray());
 
         var prop = Array.Find(properties, p => p.Name == name);
         if (prop != null && prop.CanWrite)
@@ -542,16 +375,23 @@ public abstract class ScriptableEntity
                type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4);
     }
 
-    private static object ConvertToSupportedType(object value, Type targetType)
+    private static object ConvertToSupportedType(object? value, Type targetType)
     {
-        if (value == null) return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
-        if (targetType.IsAssignableFrom(value.GetType())) return value;
-        if (targetType == typeof(Vector2) && value is System.Text.Json.Nodes.JsonArray arr2 && arr2.Count == 2)
+        if (value == null) 
+            return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+        
+        if (targetType.IsInstanceOfType(value)) 
+            return value;
+        
+        if (targetType == typeof(Vector2) && value is System.Text.Json.Nodes.JsonArray { Count: 2 } arr2)
             return new Vector2((float)arr2[0]!, (float)arr2[1]!);
-        if (targetType == typeof(Vector3) && value is System.Text.Json.Nodes.JsonArray arr3 && arr3.Count == 3)
+        
+        if (targetType == typeof(Vector3) && value is System.Text.Json.Nodes.JsonArray { Count: 3 } arr3)
             return new Vector3((float)arr3[0]!, (float)arr3[1]!, (float)arr3[2]!);
-        if (targetType == typeof(Vector4) && value is System.Text.Json.Nodes.JsonArray arr4 && arr4.Count == 4)
+        
+        if (targetType == typeof(Vector4) && value is System.Text.Json.Nodes.JsonArray { Count: 4 } arr4)
             return new Vector4((float)arr4[0]!, (float)arr4[1]!, (float)arr4[2]!, (float)arr4[3]!);
+        
         return Convert.ChangeType(value, targetType);
     }
 

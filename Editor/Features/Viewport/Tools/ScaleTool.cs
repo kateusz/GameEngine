@@ -1,6 +1,5 @@
 using System.Numerics;
 using ECS;
-using Editor.Features.Viewport;
 using Engine.Renderer.Cameras;
 using Engine.Scene.Components;
 

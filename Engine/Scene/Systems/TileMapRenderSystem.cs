@@ -150,6 +150,7 @@ internal sealed class TileMapRenderSystem : ISystem
                 transform.Translation.X + tileMap.Width * tileMap.TileSize.X,
                 transform.Translation.Y,
                 transform.Translation.Y + tileMap.Height * tileMap.TileSize.Y);
+            Logger.Information("  Coordinate system: X increases right, Y increases up, tile[0,0] at bottom-left");
             Logger.Information("  Layers: {LayerCount}", tileMap.Layers.Count);
 
             // Log first few tile positions
@@ -208,9 +209,10 @@ internal sealed class TileMapRenderSystem : ISystem
                     }
 
                     // Calculate tile position in world space
+                    // Flip Y: y=0 should render at the top, so use (Height-1-y) to invert
                     var tilePos = new Vector3(
                         transform.Translation.X + x * tileMap.TileSize.X,
-                        transform.Translation.Y + y * tileMap.TileSize.Y,
+                        transform.Translation.Y + (tileMap.Height - 1 - y) * tileMap.TileSize.Y,
                         transform.Translation.Z + layer.ZIndex * 0.01f
                     );
 

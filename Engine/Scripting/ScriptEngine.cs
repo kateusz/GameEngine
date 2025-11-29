@@ -60,8 +60,8 @@ internal sealed class ScriptEngine : IScriptEngine
 
             if (scriptComponent.ScriptableEntity.Entity == null)
             {
-                scriptComponent.ScriptableEntity.Entity = entity;
-                scriptComponent.ScriptableEntity.SceneContext = _sceneContext;
+                scriptComponent.ScriptableEntity.SetEntity(entity);
+                scriptComponent.ScriptableEntity.SetSceneContext(_sceneContext);
                 try
                 {
                     scriptComponent.ScriptableEntity.OnCreate();
@@ -846,8 +846,8 @@ internal sealed class ScriptEngine : IScriptEngine
             if (newInstance.IsSuccess)
             {
                 scriptComponent.ScriptableEntity = newInstance.Value;
-                scriptComponent.ScriptableEntity.Entity = entity;
-                scriptComponent.ScriptableEntity.SceneContext = _sceneContext;
+                scriptComponent.ScriptableEntity.SetEntity(entity);
+                scriptComponent.ScriptableEntity.SetSceneContext(_sceneContext);
                 scriptComponent.ScriptableEntity.OnCreate();
             }
         }

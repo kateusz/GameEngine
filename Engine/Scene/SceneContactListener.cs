@@ -102,7 +102,7 @@ internal sealed class SceneContactListener : ContactListener
     {
     }
 
-    private void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)
+    private static void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)
     {
         // Check if entity has a script component
         if (!entity.HasComponent<NativeScriptComponent>())

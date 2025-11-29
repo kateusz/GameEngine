@@ -9,7 +9,7 @@ public class SystemManager : ISystemManager
 {
     private readonly List<ISystem> _systems = [];
     private readonly HashSet<ISystem> _sharedSystems = [];
-    private bool _disposed = false;
+    private bool _disposed;
 
     public void RegisterSystem(ISystem system, bool isShared = false)
     {

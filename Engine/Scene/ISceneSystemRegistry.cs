@@ -1,4 +1,3 @@
-using ECS;
 using ECS.Systems;
 
 namespace Engine.Scene;
@@ -15,10 +14,5 @@ public interface ISceneSystemRegistry
     /// </summary>
     /// <param name="systemManager">The system manager to populate with systems.</param>
     /// <returns>List of registered systems (singleton instances).</returns>
-    /// <remarks>
-    /// This method is thread-safe and can be called concurrently for multiple scenes.
-    /// All returned systems are singletons that will be shared across scenes.
-    /// Systems are marked as shared to prevent multiple OnShutdown() calls when scenes are disposed.
-    /// </remarks>
     IReadOnlyList<ISystem> PopulateSystemManager(ISystemManager systemManager);
 }

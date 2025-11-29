@@ -553,7 +553,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         }
 
         // Pan with middle mouse button
-        if (ImGui.IsMouseDown(ImGuiMouseButton.Middle))
+        if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
         {
             _panOffset += io.MouseDelta / _zoom;
         }
