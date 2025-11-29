@@ -379,7 +379,7 @@ public class AudioUtilsTests
     public void IsValidVolume_RandomValidValues_ShouldReturnTrue()
     {
         // Arrange & Act & Assert
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             var volume = _faker.Random.Float(0f, 1f);
             AudioUtils.IsValidVolume(volume).ShouldBeTrue();
@@ -432,7 +432,7 @@ public class AudioUtilsTests
     public void IsValidPitch_RandomValidValues_ShouldReturnTrue()
     {
         // Arrange & Act & Assert
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             var pitch = _faker.Random.Float(0.1f, 4f);
             AudioUtils.IsValidPitch(pitch).ShouldBeTrue();
@@ -450,13 +450,13 @@ public class AudioUtilsTests
         var pitches = new List<float>();
 
         // Act - Generate pitches for full chromatic scale (12 semitones)
-        for (int semitones = 0; semitones <= 12; semitones++)
+        for (var semitones = 0; semitones <= 12; semitones++)
         {
             pitches.Add(AudioUtils.SemitonesToPitch(semitones));
         }
 
         // Assert - Each pitch should be greater than the previous
-        for (int i = 1; i < pitches.Count; i++)
+        for (var i = 1; i < pitches.Count; i++)
         {
             pitches[i].ShouldBeGreaterThan(pitches[i - 1]);
         }

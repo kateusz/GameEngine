@@ -16,19 +16,12 @@ namespace Editor.ComponentEditors;
 /// Inspector editor for AnimationComponent.
 /// Provides UI for asset selection, clip control, playback settings, and frame scrubbing.
 /// </summary>
-public class AnimationComponentEditor : IComponentEditor
+public class AnimationComponentEditor(
+    IAnimationAssetManager animationAssetManager,
+    AnimationTimelineWindow? timelineWindow)
+    : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();
-
-    private readonly IAnimationAssetManager _animationAssetManager;
-    private readonly AnimationTimelineWindow? _timelineWindow;
-
-    public AnimationComponentEditor(IAnimationAssetManager animationAssetManager,
-        AnimationTimelineWindow? timelineWindow)
-    {
-        _animationAssetManager = animationAssetManager;
-        _timelineWindow = timelineWindow;
-    }
 
     public void DrawComponent(Entity e)
     {
@@ -38,7 +31,7 @@ public class AnimationComponentEditor : IComponentEditor
 
             if (component.Asset is null)
             {
-                component.Asset = _animationAssetManager.LoadAsset(component.AssetPath);
+                component.Asset = animationAssetManager.LoadAsset(component.AssetPath);
             }
 
             DrawAssetPath(entity, component);
@@ -94,11 +87,11 @@ public class AnimationComponentEditor : IComponentEditor
                     // Unload previous asset if exists
                     if (component.Asset != null && !string.IsNullOrWhiteSpace(component.AssetPath))
                     {
-                        _animationAssetManager.UnloadAsset(component.AssetPath);
+                        animationAssetManager.UnloadAsset(component.AssetPath);
                     }
 
                     // Load new asset
-                    var animation = _animationAssetManager.LoadAsset(droppedPath);
+                    var animation = animationAssetManager.LoadAsset(droppedPath);
 
                     component.AssetPath = droppedPath;
                     component.Asset = animation;
@@ -153,7 +146,7 @@ public class AnimationComponentEditor : IComponentEditor
         ImGui.SameLine();
 
         // Loop checkbox
-        bool loop = component.Loop;
+        var loop = component.Loop;
         if (ImGui.Checkbox("Loop", ref loop))
         {
             component.Loop = loop;
@@ -165,7 +158,7 @@ public class AnimationComponentEditor : IComponentEditor
         ImGui.Text("Speed:");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
-        float speed = component.PlaybackSpeed;
+        var speed = component.PlaybackSpeed;
         if (ImGui.SliderFloat("##Speed", ref speed, 0.1f, 3.0f, "%.1fx"))
         {
             AnimationController.SetSpeed(entity, speed);
@@ -191,9 +184,9 @@ public class AnimationComponentEditor : IComponentEditor
         ImGui.SameLine();
 
         // Frame scrubber
-        int currentFrame = component.CurrentFrameIndex;
-        int maxFrame = clip.Frames.Length - 1;
-        float scrubberWidth = ImGui.GetContentRegionAvail().X;
+        var currentFrame = component.CurrentFrameIndex;
+        var maxFrame = clip.Frames.Length - 1;
+        var scrubberWidth = ImGui.GetContentRegionAvail().X;
 
         ImGui.SetNextItemWidth(scrubberWidth);
         if (ImGui.SliderInt("##FrameScrubber", ref currentFrame, 0, maxFrame,
@@ -203,7 +196,7 @@ public class AnimationComponentEditor : IComponentEditor
         }
 
         // Time info
-        float currentTime = currentFrame / clip.Fps;
+        var currentTime = currentFrame / clip.Fps;
         ImGui.Text($"Time: {currentTime:F2}s / {clip.Duration:F2}s");
     }
 
@@ -268,15 +261,15 @@ public class AnimationComponentEditor : IComponentEditor
     {
         ButtonDrawer.DrawButton("Open Timeline Editor", EditorUIConstants.WideButtonWidth, 0, () =>
         {
-            if (_timelineWindow != null)
+            if (timelineWindow != null)
             {
-                _timelineWindow.SetEntity(entity);
+                timelineWindow.SetEntity(entity);
             }
         });
 
         ImGui.SameLine();
 
-        bool showDebug = component.ShowDebugInfo;
+        var showDebug = component.ShowDebugInfo;
         if (ImGui.Checkbox("Show Debug", ref showDebug))
         {
             component.ShowDebugInfo = showDebug;

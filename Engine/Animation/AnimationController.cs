@@ -11,9 +11,7 @@ namespace Engine.Animation;
 public static class AnimationController
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(AnimationController));
-
-    // ===== Basic Controls =====
-
+    
     /// <summary>
     /// Play animation clip by name.
     /// </summary>
@@ -143,9 +141,7 @@ public static class AnimationController
         var targetFrame = (int)(t * (clip.Frames.Length - 1));
         SetFrame(entity, targetFrame);
     }
-
-    // ===== State Queries =====
-
+    
     /// <summary>
     /// Get current frame index.
     /// </summary>
@@ -209,9 +205,7 @@ public static class AnimationController
         if (!entity.HasComponent<AnimationComponent>()) return false;
         return entity.GetComponent<AnimationComponent>().IsPlaying;
     }
-
-    // ===== Clip Management =====
-
+    
     /// <summary>
     /// Get array of all available clip names.
     /// </summary>

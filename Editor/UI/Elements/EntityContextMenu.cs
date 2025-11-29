@@ -6,7 +6,7 @@ namespace Editor.UI.Elements;
 
 public class EntityContextMenu
 {
-    public void Render(IScene context)
+    public static void Render(IScene context)
     {
         if (ImGui.BeginPopupContextWindow("WindowContextMenu",
                 ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))

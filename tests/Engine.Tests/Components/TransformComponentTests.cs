@@ -403,7 +403,7 @@ public class TransformComponentTests
         var transform = new TransformComponent();
 
         // Act & Assert - Perform multiple random updates
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             transform.Translation = new Vector3(
                 _faker.Random.Float(-50, 50),

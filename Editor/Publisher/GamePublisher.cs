@@ -41,8 +41,8 @@ public class GamePublisher : IGamePublisher
     
     public static void CopyAssets(string buildOutput)
     {
-        string assetsSource = Path.Combine(AppContext.BaseDirectory, "Assets");
-        string assetsTarget = Path.Combine(buildOutput, "Assets");
+        var assetsSource = Path.Combine(AppContext.BaseDirectory, "Assets");
+        var assetsTarget = Path.Combine(buildOutput, "Assets");
         Directory.CreateDirectory(assetsTarget);
         foreach (var file in Directory.GetFiles(assetsSource, "*.*", SearchOption.AllDirectories))
         {

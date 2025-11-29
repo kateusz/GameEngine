@@ -5,12 +5,11 @@ using Engine;
 
 namespace Editor.Features.Project;
 
-public class NewProjectPopup
+public class NewProjectPopup(
+    IProjectManager projectManager,
+    IContentBrowserPanel contentBrowserPanel,
+    IAssetsManager assetsManager)
 {
-    private readonly IProjectManager _projectManager;
-    private readonly IContentBrowserPanel _contentBrowserPanel;
-    private readonly IAssetsManager _assetsManager;
-
     private bool _showNewProjectPopup;
     private bool _showOpenProjectPopup;
 
@@ -18,13 +17,6 @@ public class NewProjectPopup
     private string _newProjectError = string.Empty;
     private string _openProjectPath = string.Empty;
     private string _openProjectError = string.Empty;
-
-    public NewProjectPopup(IProjectManager projectManager, IContentBrowserPanel contentBrowserPanel, IAssetsManager assetsManager)
-    {
-        _projectManager = projectManager;
-        _contentBrowserPanel = contentBrowserPanel;
-        _assetsManager = assetsManager;
-    }
 
     public void ShowNewProjectPopup() => _showNewProjectPopup = true;
     public void ShowOpenProjectPopup() => _showOpenProjectPopup = true;
@@ -37,8 +29,8 @@ public class NewProjectPopup
 
     private void RenderNewProjectPopup()
     {
-        bool isValid = _projectManager.IsValidProjectName(_newProjectName);
-        string? validationMessage = (!isValid && !string.IsNullOrEmpty(_newProjectName))
+        var isValid = projectManager.IsValidProjectName(_newProjectName);
+        var validationMessage = (!isValid && !string.IsNullOrEmpty(_newProjectName))
             ? "Project name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores."
             : null;
 
@@ -53,11 +45,11 @@ public class NewProjectPopup
             isValid: isValid,
             onOk: () =>
             {
-                if (_projectManager.TryCreateNewProject(_newProjectName?.Trim() ?? string.Empty, out var err))
+                if (projectManager.TryCreateNewProject(_newProjectName?.Trim() ?? string.Empty, out var err))
                 {
                     _newProjectName = string.Empty;
                     _newProjectError = string.Empty;
-                    _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
+                    contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
                 }
                 else
                 {
@@ -75,7 +67,7 @@ public class NewProjectPopup
 
     private void RenderOpenProjectPopup()
     {
-        bool hasInput = !string.IsNullOrWhiteSpace(_openProjectPath);
+        var hasInput = !string.IsNullOrWhiteSpace(_openProjectPath);
 
         ModalDrawer.RenderInputModal(
             title: "Open Project",
@@ -88,11 +80,11 @@ public class NewProjectPopup
             isValid: hasInput,
             onOk: () =>
             {
-                if (_projectManager.TryOpenProject(_openProjectPath?.Trim() ?? string.Empty, out var err))
+                if (projectManager.TryOpenProject(_openProjectPath?.Trim() ?? string.Empty, out var err))
                 {
                     _openProjectPath = string.Empty;
                     _openProjectError = string.Empty;
-                    _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
+                    contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
                 }
                 else
                 {

@@ -8,16 +8,10 @@ namespace Editor.Input;
 /// <summary>
 /// Panel that displays all available keyboard shortcuts grouped by category.
 /// </summary>
-public class KeyboardShortcutsPanel
+public class KeyboardShortcutsPanel(ShortcutManager shortcutManager)
 {
-    private readonly ShortcutManager _shortcutManager;
     private bool _isVisible;
     private string _filterText = string.Empty;
-
-    public KeyboardShortcutsPanel(ShortcutManager shortcutManager)
-    {
-        _shortcutManager = shortcutManager;
-    }
 
     /// <summary>
     /// Shows the shortcuts panel.
@@ -88,7 +82,7 @@ public class KeyboardShortcutsPanel
 
     private void DrawShortcutsTable()
     {
-        var categories = _shortcutManager.GetCategories();
+        var categories = shortcutManager.GetCategories();
 
         if (categories.Count == 0)
         {
@@ -101,7 +95,7 @@ public class KeyboardShortcutsPanel
         {
             foreach (var category in categories)
             {
-                var shortcuts = _shortcutManager.GetShortcutsByCategory(category);
+                var shortcuts = shortcutManager.GetShortcutsByCategory(category);
 
                 // Filter shortcuts if filter is active
                 if (!string.IsNullOrWhiteSpace(_filterText))

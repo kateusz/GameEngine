@@ -17,8 +17,7 @@ public class RulerTool
 
     // Expose measuring state so other editor systems can query it
     public bool IsMeasuring => _isMeasuring;
-
-
+    
     /// <summary>
     /// Starts a new measurement from the given screen position.
     /// </summary>

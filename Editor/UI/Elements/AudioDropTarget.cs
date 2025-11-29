@@ -9,16 +9,10 @@ namespace Editor.UI.Elements;
 /// UI element that provides drag-and-drop functionality for audio files.
 /// Allows users to drag audio files (.wav, .ogg) from the content browser onto audio properties.
 /// </summary>
-public class AudioDropTarget
+public class AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsManager)
 {
-    private readonly IAudioEngine _audioEngine;
-    private readonly IAssetsManager _assetsManager;
-
-    public AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsManager)
-    {
-        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
-        _assetsManager = assetsManager ?? throw new ArgumentNullException(nameof(assetsManager));
-    }
+    private readonly IAudioEngine _audioEngine = audioEngine;
+    private readonly IAssetsManager _assetsManager = assetsManager;
 
     /// <summary>
     /// Draws a drag-and-drop target button for audio clips.
@@ -31,7 +25,7 @@ public class AudioDropTarget
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
             // Display current audio clip name or "None" if no clip is assigned
-            string buttonLabel = currentClip != null
+            var buttonLabel = currentClip != null
                 ? Path.GetFileName(currentClip.Path)
                 : "None (Drop audio here)";
 

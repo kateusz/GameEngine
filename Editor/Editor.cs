@@ -6,10 +6,11 @@ using Engine.Renderer;
 
 namespace Editor;
 
-public class Editor : Application
-{
-    public Editor(IGameWindow gameWindow, IGraphics2D graphics2D, IGraphics3D graphics3D, IAudioEngine audioEngine, IMeshFactory meshFactory, IImGuiLayer imGuiLayer)
-        : base(gameWindow, graphics2D, graphics3D, audioEngine, meshFactory, imGuiLayer)
-    {
-    }
-}
+public class Editor(
+    IGameWindow gameWindow,
+    IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
+    IAudioEngine audioEngine,
+    IMeshFactory meshFactory,
+    IImGuiLayer imGuiLayer)
+    : Application(gameWindow, graphics2D, graphics3D, audioEngine, meshFactory, imGuiLayer);

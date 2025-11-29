@@ -2,23 +2,13 @@ using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Textures;
 
-internal sealed class TextureFactory : ITextureFactory
+internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFactory
 {
-    private readonly IRendererApiConfig _apiConfig;
     private Texture2D? _whiteTexture;
     private readonly Lock _whiteLock = new();
     private readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
 
-    /// <summary>
-    /// Initializes a new instance of the TextureFactory class.
-    /// </summary>
-    /// <param name="apiConfig">The renderer API configuration.</param>
-    public TextureFactory(IRendererApiConfig apiConfig)
-    {
-        _apiConfig = apiConfig ?? throw new ArgumentNullException(nameof(apiConfig));
-    }
-    
     public Texture2D GetWhiteTexture()
     {
         if (_whiteTexture != null)
@@ -63,10 +53,10 @@ internal sealed class TextureFactory : ITextureFactory
             }
 
             // Create new texture (use original path for loading)
-            var texture = _apiConfig.Type switch
+            var texture = apiConfig.Type switch
             {
                 ApiType.SilkNet => SilkNetTexture2D.Create(path),
-                _ => throw new NotSupportedException($"Unsupported Render API type: {_apiConfig.Type}")
+                _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
             };
 
             // Add to cache with weak reference using normalized path
@@ -77,10 +67,10 @@ internal sealed class TextureFactory : ITextureFactory
     
     public Texture2D Create(int width, int height)
     {
-        return _apiConfig.Type switch
+        return apiConfig.Type switch
         {
             ApiType.SilkNet => SilkNetTexture2D.Create(width, height),
-            _ => throw new NotSupportedException($"Unsupported Render API type: {_apiConfig.Type}")
+            _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }
     

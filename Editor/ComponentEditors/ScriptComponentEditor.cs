@@ -12,21 +12,14 @@ using Serilog;
 
 namespace Editor.ComponentEditors;
 
-public class ScriptComponentEditor
+public class ScriptComponentEditor(IScriptEngine scriptEngine)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentEditor));
-
-    private readonly IScriptEngine _scriptEngine;
 
     private bool _showCreateScriptPopup;
     private bool _showScriptSelectorPopup;
     private string _newScriptName = string.Empty;
     private Entity _selectedEntity;
-
-    public ScriptComponentEditor(IScriptEngine scriptEngine)
-    {
-        _scriptEngine = scriptEngine;
-    }
 
     public void Draw()
     {
@@ -68,7 +61,7 @@ public class ScriptComponentEditor
             if (ImGui.MenuItem("Remove"))
             {
                 entity.RemoveComponent<NativeScriptComponent>();
-                _scriptEngine.ForceRecompile();
+                scriptEngine.ForceRecompile();
             }
 
             ImGui.EndPopup();
@@ -141,7 +134,7 @@ public class ScriptComponentEditor
         var isValidName = !string.IsNullOrEmpty(_newScriptName) &&
                           System.Text.RegularExpressions.Regex.IsMatch(_newScriptName, @"^[a-zA-Z][a-zA-Z0-9_]*$");
 
-        string? validationMessage = !isValidName
+        var validationMessage = !isValidName
             ? "Script name must start with a letter and contain only letters, numbers, and underscores."
             : null;
 
@@ -164,7 +157,7 @@ public class ScriptComponentEditor
 
                 try
                 {
-                    var scriptInstanceResult = _scriptEngine.CreateScriptInstance(_newScriptName);
+                    var scriptInstanceResult = scriptEngine.CreateScriptInstance(_newScriptName);
                     if (scriptInstanceResult.IsSuccess)
                     {
                         var scriptInstance = scriptInstanceResult.Value;
@@ -194,7 +187,7 @@ public class ScriptComponentEditor
 
     private void RenderScriptSelectorPopup()
     {
-        var availableScripts = _scriptEngine.GetAvailableScriptNames();
+        var availableScripts = scriptEngine.GetAvailableScriptNames();
 
         ModalDrawer.RenderListSelectionModal(
             title: "Select Script",
@@ -206,7 +199,7 @@ public class ScriptComponentEditor
                 {
                     try
                     {
-                        var scriptInstanceResult = _scriptEngine.CreateScriptInstance(scriptName);
+                        var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptName);
                         if (scriptInstanceResult.IsSuccess)
                         {
                             var scriptInstance = scriptInstanceResult.Value;
@@ -235,7 +228,7 @@ public class ScriptComponentEditor
             emptyMessage: "No scripts available. Create one first!",
             renderItem: (scriptName, i) =>
             {
-                bool itemClicked = false;
+                var itemClicked = false;
 
                 if (ImGui.Selectable(scriptName, false, ImGuiSelectableFlags.DontClosePopups))
                 {
@@ -251,7 +244,7 @@ public class ScriptComponentEditor
                 {
                     if (ImGui.MenuItem("Delete"))
                     {
-                        if (_scriptEngine.DeleteScript(scriptName))
+                        if (scriptEngine.DeleteScript(scriptName))
                         {
                             Logger.Information("Deleted script {ScriptName}", scriptName);
                         }

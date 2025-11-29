@@ -68,8 +68,8 @@ public class ContentBrowserPanel : IContentBrowserPanel
             ImGui.PushID(filenameString);
 
             Texture2D icon;
-            bool isImage = false;
-            bool isPrefab = false;
+            var isImage = false;
+            var isPrefab = false;
 
             if (isDirectory)
             {

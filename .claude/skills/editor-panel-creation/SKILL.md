@@ -89,12 +89,10 @@ using Editor.Managers;
 /// <summary>
 /// Panel for managing and displaying [functionality].
 /// </summary>
-public class MyNewPanel : IMyNewPanel
+public class MyNewPanel(
+    ISceneManager sceneManager,
+    IProjectManager projectManager) : IMyNewPanel
 {
-    // Injected dependencies
-    private readonly ISceneManager _sceneManager;
-    private readonly IProjectManager _projectManager;
-
     // Panel state
     private bool _isOpen = true;
     private bool _showConfirmModal = false;
@@ -103,14 +101,6 @@ public class MyNewPanel : IMyNewPanel
 
     // Input buffers (use EditorUIConstants for sizes)
     private readonly byte[] _nameBuffer = new byte[EditorUIConstants.MaxNameLength];
-
-    public MyNewPanel(
-        ISceneManager sceneManager,
-        IProjectManager projectManager)
-    {
-        _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
-        _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
-    }
 
     /// <inheritdoc/>
     public bool IsOpen
@@ -203,28 +193,20 @@ private static void ConfigureServices(Container container)
 
 **Constructor Injection**:
 ```csharp
-public class EditorLayer : Layer
+public class EditorLayer(
+    // ... existing parameters
+    ISceneHierarchyPanel sceneHierarchyPanel,
+    IPropertiesPanel propertiesPanel,
+    IConsolePanel consolePanel,
+    IMyNewPanel myNewPanel) : Layer
 {
-    // Existing panels
-    private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
-    private readonly IPropertiesPanel _propertiesPanel;
-    private readonly IConsolePanel _consolePanel;
-
-    // New panel
-    private readonly IMyNewPanel _myNewPanel;
-
-    public EditorLayer(
-        // ... existing parameters
-        IMyNewPanel myNewPanel)
-    {
-        // ... existing initializations
-        _myNewPanel = myNewPanel ?? throw new ArgumentNullException(nameof(myNewPanel));
-    }
-
     public override void OnImGuiRender()
     {
         // ... existing panel renders
-        _myNewPanel.OnImGuiRender();
+        sceneHierarchyPanel.OnImGuiRender();
+        propertiesPanel.OnImGuiRender();
+        consolePanel.OnImGuiRender();
+        myNewPanel.OnImGuiRender();
     }
 }
 ```
@@ -451,16 +433,15 @@ private readonly SystemManager _systemManager;
 private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
 ```
 
-### Constructor Pattern
+### Constructor Pattern (Use Primary Constructor)
 ```csharp
-public MyPanel(
+public class MyPanel(
     ISceneManager sceneManager,
     IProjectManager projectManager,
-    ITextureFactory textureFactory)
+    ITextureFactory textureFactory) : IMyPanel
 {
-    _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
-    _projectManager = projectManager ?? throw new ArgumentNullException(nameof(projectManager));
-    _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
+    // Dependencies are automatically available as private readonly fields
+    // No null validation needed - non-nullable reference types handle this
 }
 ```
 

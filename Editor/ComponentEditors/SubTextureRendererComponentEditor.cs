@@ -8,17 +8,9 @@ using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
-public class SubTextureRendererComponentEditor : IComponentEditor
+public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
+    : IComponentEditor
 {
-    private readonly IAssetsManager _assetsManager;
-    private readonly ITextureFactory _textureFactory;
-
-    public SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
-    {
-        _assetsManager = assetsManager;
-        _textureFactory = textureFactory;
-    }
-
     public void DrawComponent(Entity e)
     {
         ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", e, entity =>
@@ -29,7 +21,7 @@ public class SubTextureRendererComponentEditor : IComponentEditor
             var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
             ImGui.BeginDisabled(hasAnimationComponent);
 
-            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, _assetsManager, _textureFactory);
+            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, assetsManager, textureFactory);
 
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);

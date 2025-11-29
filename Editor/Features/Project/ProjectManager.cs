@@ -5,13 +5,13 @@ using Serilog;
 
 namespace Editor.Features.Project;
 
-public class ProjectManager : IProjectManager
+public class ProjectManager(
+    IEditorPreferences editorPreferences,
+    IScriptEngine scriptEngine,
+    IAssetsManager assetsManager)
+    : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
-
-    private readonly IEditorPreferences _editorPreferences;
-    private readonly IScriptEngine _scriptEngine;
-    private readonly IAssetsManager _assetsManager;
 
     private static readonly string[] RequiredDirs =
     [
@@ -21,19 +21,6 @@ public class ProjectManager : IProjectManager
         Path.Combine("assets", "scripts"),
         Path.Combine("assets", "prefabs")
     ];
-
-    /// <summary>
-    /// Initializes a new instance of the ProjectManager.
-    /// </summary>
-    /// <param name="editorPreferences">Editor preferences for tracking recent projects.</param>
-    /// <param name="scriptEngine">Script engine for managing script directories.</param>
-    /// <param name="assetsManager">Assets manager for managing asset paths.</param>
-    public ProjectManager(IEditorPreferences editorPreferences, IScriptEngine scriptEngine, IAssetsManager assetsManager)
-    {
-        _editorPreferences = editorPreferences;
-        _scriptEngine = scriptEngine;
-        _assetsManager = assetsManager;
-    }
 
     public string? CurrentProjectDirectory { get; private set; }
     
@@ -81,7 +68,7 @@ public class ProjectManager : IProjectManager
             SetCurrentProject(projectDir);
 
             Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
-            _editorPreferences.AddRecentProject(projectDir, projectName.Trim());
+            editorPreferences.AddRecentProject(projectDir, projectName.Trim());
             return true;
         }
         catch (Exception ex)
@@ -105,7 +92,7 @@ public class ProjectManager : IProjectManager
             if (!Directory.Exists(full))
             {
                 error = "Project directory does not exist.";
-                _editorPreferences.RemoveRecentProject(full);
+                editorPreferences.RemoveRecentProject(full);
                 return false;
             }
 
@@ -119,7 +106,7 @@ public class ProjectManager : IProjectManager
 
             Logger.Information("📂 Project opened: {ProjectPath}", full);
             var projectName = Path.GetFileName(full);
-            _editorPreferences.AddRecentProject(full, projectName);
+            editorPreferences.AddRecentProject(full, projectName);
 
             return true;
         }
@@ -140,10 +127,10 @@ public class ProjectManager : IProjectManager
             ? Path.Combine(projectDir, "assets")
             : projectDir;
 
-        _assetsManager.SetAssetsPath(assetsDir);
+        assetsManager.SetAssetsPath(assetsDir);
 
         // Point the scripting engine to /assets/scripts if that exists
         var scriptsDir = Path.Combine(projectDir, "assets", "scripts");
-        _scriptEngine.SetScriptsDirectory(scriptsDir);
+        scriptEngine.SetScriptsDirectory(scriptsDir);
     }
 }

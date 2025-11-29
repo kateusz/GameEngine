@@ -7,20 +7,11 @@ namespace Editor.Features.Scene;
 /// <summary>
 /// Handles scene-related UI popups and modals in the editor.
 /// </summary>
-public class SceneSettingsPopup
+public class SceneSettingsPopup(ISceneManager sceneManager)
 {
-    private readonly ISceneManager _sceneManager;
-    private readonly IProjectManager _projectManager;
-
     private bool _showNewScenePopup;
     private string _newSceneName = string.Empty;
     private string _newSceneError = string.Empty;
-
-    public SceneSettingsPopup(ISceneManager sceneManager, IProjectManager projectManager)
-    {
-        _sceneManager = sceneManager;
-        _projectManager = projectManager;
-    }
 
     /// <summary>
     /// Shows the new scene popup.
@@ -38,8 +29,8 @@ public class SceneSettingsPopup
 
     private void RenderNewScenePopup()
     {
-        bool isValid = IsValidSceneName(_newSceneName);
-        string? validationMessage = (!isValid && !string.IsNullOrEmpty(_newSceneName))
+        var isValid = IsValidSceneName(_newSceneName);
+        var validationMessage = (!isValid && !string.IsNullOrEmpty(_newSceneName))
             ? "Scene name must be non-empty and contain only letters, numbers, spaces, dashes, or underscores."
             : null;
 
@@ -57,7 +48,7 @@ public class SceneSettingsPopup
                 try
                 {
                     // Create new scene
-                    _sceneManager.New();
+                    sceneManager.New();
 
                     // TODO: Set scene path when saving is implemented
                     // Scene will be saved when the user explicitly saves

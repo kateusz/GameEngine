@@ -7,44 +7,37 @@ using ImGuiNET;
 
 namespace Editor.ComponentEditors.Core;
 
-public class ComponentEditorRegistry : IComponentEditorRegistry
+public class ComponentEditorRegistry(
+    TransformComponentEditor transformComponentEditor,
+    CameraComponentEditor cameraComponentEditor,
+    SpriteRendererComponentEditor spriteRendererComponentEditor,
+    MeshComponentEditor meshComponentEditor,
+    ModelRendererComponentEditor modelRendererComponentEditor,
+    RigidBody2DComponentEditor rigidBody2DComponentEditor,
+    BoxCollider2DComponentEditor boxCollider2DComponentEditor,
+    SubTextureRendererComponentEditor subTextureRendererComponentEditor,
+    AudioSourceComponentEditor audioSourceComponentEditor,
+    AudioListenerComponentEditor audioListenerComponentEditor,
+    AnimationComponentEditor animationComponentEditor,
+    TileMapComponentEditor tileMapComponentEditor,
+    ScriptComponentEditor scriptComponentEditor)
+    : IComponentEditorRegistry
 {
-    private readonly Dictionary<Type, IComponentEditor> _editors;
-    private readonly ScriptComponentEditor _scriptComponentEditor;
-
-    public ComponentEditorRegistry(
-        TransformComponentEditor transformComponentEditor,
-        CameraComponentEditor cameraComponentEditor,
-        SpriteRendererComponentEditor spriteRendererComponentEditor,
-        MeshComponentEditor meshComponentEditor,
-        ModelRendererComponentEditor modelRendererComponentEditor,
-        RigidBody2DComponentEditor rigidBody2DComponentEditor,
-        BoxCollider2DComponentEditor boxCollider2DComponentEditor,
-        SubTextureRendererComponentEditor subTextureRendererComponentEditor,
-        AudioSourceComponentEditor audioSourceComponentEditor,
-        AudioListenerComponentEditor audioListenerComponentEditor,
-        AnimationComponentEditor animationComponentEditor,
-        TileMapComponentEditor tileMapComponentEditor,
-        ScriptComponentEditor scriptComponentEditor
-        )
+    private readonly Dictionary<Type, IComponentEditor> _editors = new()
     {
-        _editors = new Dictionary<Type, IComponentEditor>
-        {
-            { typeof(TransformComponent), transformComponentEditor },
-            { typeof(CameraComponent), cameraComponentEditor},
-            { typeof(SpriteRendererComponent), spriteRendererComponentEditor },
-            { typeof(MeshComponent), meshComponentEditor },
-            { typeof(ModelRendererComponent), modelRendererComponentEditor },
-            { typeof(RigidBody2DComponent), rigidBody2DComponentEditor },
-            { typeof(BoxCollider2DComponent), boxCollider2DComponentEditor },
-            { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
-            { typeof(AudioSourceComponent), audioSourceComponentEditor },
-            { typeof(AudioListenerComponent), audioListenerComponentEditor },
-            { typeof(AnimationComponent), animationComponentEditor },
-            { typeof(TileMapComponent), tileMapComponentEditor }
-        };
-        _scriptComponentEditor = scriptComponentEditor;
-    }
+        { typeof(TransformComponent), transformComponentEditor },
+        { typeof(CameraComponent), cameraComponentEditor},
+        { typeof(SpriteRendererComponent), spriteRendererComponentEditor },
+        { typeof(MeshComponent), meshComponentEditor },
+        { typeof(ModelRendererComponent), modelRendererComponentEditor },
+        { typeof(RigidBody2DComponent), rigidBody2DComponentEditor },
+        { typeof(BoxCollider2DComponent), boxCollider2DComponentEditor },
+        { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
+        { typeof(AudioSourceComponent), audioSourceComponentEditor },
+        { typeof(AudioListenerComponent), audioListenerComponentEditor },
+        { typeof(AnimationComponent), animationComponentEditor },
+        { typeof(TileMapComponent), tileMapComponentEditor }
+    };
 
     public void DrawAllComponents(Entity entity)
     {
@@ -54,25 +47,25 @@ public class ComponentEditorRegistry : IComponentEditorRegistry
         }
 
         // Special handling for script components
-        _scriptComponentEditor.DrawScriptComponent(entity);
+        scriptComponentEditor.DrawScriptComponent(entity);
     }
 
     public static void DrawComponent<T>(string name, Entity entity, Action<Entity> uiFunction) where T : IComponent
     {
-        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
-                                                                          | ImGuiTreeNodeFlags.SpanAvailWidth |
-                                                                          ImGuiTreeNodeFlags.AllowOverlap |
-                                                                          ImGuiTreeNodeFlags.FramePadding;
+        var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
+                                                           | ImGuiTreeNodeFlags.SpanAvailWidth |
+                                                           ImGuiTreeNodeFlags.AllowOverlap |
+                                                           ImGuiTreeNodeFlags.FramePadding;
 
         if (entity.TryGetComponent<T>(out _))
         {
-            Vector2 contentRegionAvailable = ImGui.GetContentRegionAvail();
+            var contentRegionAvailable = ImGui.GetContentRegionAvail();
 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
-            float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            var lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
             ImGui.Separator();
 
-            bool open = ImGui.TreeNodeEx(typeof(T).GetHashCode().ToString(), treeNodeFlags, name);
+            var open = ImGui.TreeNodeEx(typeof(T).GetHashCode().ToString(), treeNodeFlags, name);
             ImGui.PopStyleVar();
 
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);

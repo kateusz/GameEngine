@@ -309,23 +309,17 @@ container.Register<ComponentEditorRegistry>(Reuse.Singleton);
 ### ComponentEditorRegistry Constructor Pattern
 
 ```csharp
-public class ComponentEditorRegistry : IComponentEditorRegistry
+public class ComponentEditorRegistry(
+    TransformComponentEditor transformComponentEditor,
+    CameraComponentEditor cameraComponentEditor,
+    MyComponentEditor myComponentEditor) : IComponentEditorRegistry  // Add your editor here
 {
-    private readonly Dictionary<Type, IComponentEditor> _editors;
-
-    public ComponentEditorRegistry(
-        TransformComponentEditor transformComponentEditor,
-        CameraComponentEditor cameraComponentEditor,
-        MyComponentEditor myComponentEditor  // Add your editor here
-    )
+    private readonly Dictionary<Type, IComponentEditor> _editors = new()
     {
-        _editors = new Dictionary<Type, IComponentEditor>
-        {
-            { typeof(TransformComponent), transformComponentEditor },
-            { typeof(CameraComponent), cameraComponentEditor },
-            { typeof(MyComponent), myComponentEditor }  // Register component type
-        };
-    }
+        { typeof(TransformComponent), transformComponentEditor },
+        { typeof(CameraComponent), cameraComponentEditor },
+        { typeof(MyComponent), myComponentEditor }  // Register component type
+    };
 
     public void DrawAllComponents(Entity entity)
     {
@@ -485,13 +479,12 @@ container.Register<MyComponentEditor>(Reuse.Singleton);
 ### Step 3: Add to ComponentEditorRegistry
 
 ```csharp
-// ComponentEditorRegistry.cs constructor
-public ComponentEditorRegistry(
+// ComponentEditorRegistry.cs - use primary constructor
+public class ComponentEditorRegistry(
     // ... existing editors
-    MyComponentEditor myComponentEditor  // Add parameter
-)
+    MyComponentEditor myComponentEditor) // Add parameter
 {
-    _editors = new Dictionary<Type, IComponentEditor>
+    private readonly Dictionary<Type, IComponentEditor> _editors = new()
     {
         // ... existing registrations
         { typeof(MyComponent), myComponentEditor }  // Add to dictionary

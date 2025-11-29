@@ -10,7 +10,8 @@ namespace Engine.Animation;
 /// Singleton manager for loading, caching, and lifecycle management of animation assets.
 /// Implements reference counting to automatically unload unused assets.
 /// </summary>
-internal sealed class AnimationAssetManager : IAnimationAssetManager
+internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextureFactory textureFactory)
+    : IAnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
 
@@ -28,14 +29,7 @@ internal sealed class AnimationAssetManager : IAnimationAssetManager
     };
 
     private readonly Dictionary<string, CacheEntry> _cache = new();
-    private readonly IAssetsManager _assetsManager;
-    private readonly ITextureFactory _textureFactory;
-
-    public AnimationAssetManager(IAssetsManager assetsManager, ITextureFactory textureFactory)
-    {
-        _assetsManager = assetsManager ?? throw new ArgumentNullException(nameof(assetsManager));
-        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
-    }
+    private readonly ITextureFactory _textureFactory = textureFactory;
 
     /// <summary>
     /// Load animation asset from JSON file.
@@ -198,5 +192,5 @@ internal sealed class AnimationAssetManager : IAnimationAssetManager
     /// <summary>
     /// Resolve asset path relative to Assets/ directory.
     /// </summary>
-    private string ResolveAssetPath(string relativePath) => Path.Combine(_assetsManager.AssetsPath, relativePath);
+    private string ResolveAssetPath(string relativePath) => Path.Combine(assetsManager.AssetsPath, relativePath);
 }

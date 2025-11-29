@@ -41,12 +41,12 @@ internal sealed class Graphics2D : IGraphics2D
         ITextureFactory textureFactory,
         IShaderFactory shaderFactory)
     {
-        _rendererApi = rendererApi ?? throw new ArgumentNullException(nameof(rendererApi));
-        _vertexArrayFactory = vertexArrayFactory ?? throw new ArgumentNullException(nameof(vertexArrayFactory));
-        _vertexBufferFactory = vertexBufferFactory ?? throw new ArgumentNullException(nameof(vertexBufferFactory));
-        _indexBufferFactory = indexBufferFactory ?? throw new ArgumentNullException(nameof(indexBufferFactory));
-        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
-        _shaderFactory = shaderFactory ?? throw new ArgumentNullException(nameof(shaderFactory));
+        _rendererApi = rendererApi;
+        _vertexArrayFactory = vertexArrayFactory;
+        _vertexBufferFactory = vertexBufferFactory;
+        _indexBufferFactory = indexBufferFactory;
+        _textureFactory = textureFactory;
+        _shaderFactory = shaderFactory;
     }
 
     public void Init()

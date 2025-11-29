@@ -35,17 +35,16 @@ Invoke this skill when:
 ## Quick Reference
 
 ## ✅ **Do**
-* Constructor injection
+* Primary constructors for all classes with dependencies
 * Register services in `Program.cs`
-* Use `ArgumentNullException.ThrowIfNull()`
 * Use events for decoupling
 * Interface-based design
 * Use **Singleton** for stateful services
 
-## ❌ **Don’t**
+## ❌ **Don't**
 * Static singletons
 * Manual `new()` for services
-* Null-forgiving operator (`!`) on dependencies
+* Null validation in constructors (non-nullable types handle this)
 * Circular dependencies
 * Concrete dependencies everywhere
 * Use **Transient** for managers/factories
@@ -66,25 +65,16 @@ Everything else uses dependency injection.
 
 ### 1. Constructor Injection Pattern
 
-All dependencies must be injected through the constructor, not through properties or methods.
+All dependencies must be injected through the primary constructor.
 
-**✅ CORRECT**:
+**✅ CORRECT (Use Primary Constructor)**:
 ```csharp
-public class AnimationSystem : ISystem
+public class AnimationSystem(
+    ITextureFactory textureFactory,
+    IResourceManager resourceManager) : ISystem
 {
-    private readonly ITextureFactory _textureFactory;
-    private readonly IResourceManager _resourceManager;
-
-    public AnimationSystem(
-        ITextureFactory textureFactory,
-        IResourceManager resourceManager)
-    {
-        ArgumentNullException.ThrowIfNull(textureFactory);
-        ArgumentNullException.ThrowIfNull(resourceManager);
-
-        _textureFactory = textureFactory;
-        _resourceManager = resourceManager;
-    }
+    // Dependencies are automatically available as private readonly fields
+    // Use textureFactory and resourceManager directly in methods
 }
 ```
 
@@ -169,7 +159,7 @@ public interface ISceneManager
     void LoadScene(string path);
 }
 
-public class SceneManager : ISceneManager { }
+public class SceneManager(IDependency dep) : ISceneManager { }
 
 // Factories - abstraction from creation logic
 public interface ITextureFactory
@@ -177,7 +167,7 @@ public interface ITextureFactory
     Texture2D CreateTexture(string path);
 }
 
-public class TextureFactory : ITextureFactory { }
+public class TextureFactory(ICache cache) : ITextureFactory { }
 
 // Cross-cutting concerns - different implementations per platform
 public interface IRendererAPI
@@ -185,22 +175,16 @@ public interface IRendererAPI
     void DrawIndexed(uint indexCount);
 }
 
-public class OpenGLRendererAPI : IRendererAPI { }
+public class OpenGLRendererAPI(IContext context) : IRendererAPI { }
 ```
 
 **✅ SKIP INTERFACES FOR**:
 ```csharp
 // Editor panels - concrete UI implementations
-public class ConsolePanel
-{
-    public ConsolePanel(ILogger logger) { }
-}
+public class ConsolePanel(ILogger logger) { }
 
 // ECS Systems - concrete game logic
-public class AnimationSystem : ISystem
-{
-    public AnimationSystem(ITextureFactory factory) { }
-}
+public class AnimationSystem(ITextureFactory factory) : ISystem { }
 
 // Pure data classes - no behavior to abstract
 public class Transform
@@ -210,10 +194,7 @@ public class Transform
 }
 
 // Component Editors - concrete UI for specific components
-public class TransformComponentEditor
-{
-    public TransformComponentEditor(IFieldEditor<Vector3> vector3Editor) { }
-}
+public class TransformComponentEditor(IFieldEditor<Vector3> vector3Editor) { }
 ```
 
 **Decision Guide**:
@@ -261,9 +242,10 @@ public class ServiceA
     public event Action<Data>? OnDataChanged;
 }
 
-public class ServiceB
+public class ServiceB(IServiceA serviceA)
 {
-    public ServiceB(IServiceA serviceA)
+    // Subscribe to events in constructor body or init method
+    public void Initialize()
     {
         serviceA.OnDataChanged += HandleDataChanged;
     }
@@ -293,30 +275,14 @@ public class ServiceB
 3. **Does one service only need data, not behavior?** → Use Option 3 (Pass data directly)
 4. **Still circular?** → Rethink your design - you may have incorrect separation of concerns
 
-### 5. Null Reference Validation
-
-**✅ ALWAYS validate injected dependencies**:
-```csharp
-public MyClass(
-    ISceneManager sceneManager,
-    IProjectManager projectManager)
-{
-    ArgumentNullException.ThrowIfNull(sceneManager);
-    ArgumentNullException.ThrowIfNull(projectManager);
-
-    _sceneManager = sceneManager;
-    _projectManager = projectManager;
-}
-```
-
 ## Registration Patterns
 
 ### Registering with Dependencies
 ```csharp
-// Service with dependencies
-public class AnimationSystem
+// Service with dependencies (using primary constructor)
+public class AnimationSystem(ITextureFactory textureFactory) : ISystem
 {
-    public AnimationSystem(ITextureFactory textureFactory) { }
+    // Use textureFactory in methods
 }
 
 // Simple registration - DryIoc auto-resolves dependencies
@@ -343,7 +309,6 @@ When reviewing code for DI compliance, follow this systematic approach:
 2. **Check constructor injection**:
    - Verify all dependencies are in constructor parameters
    - Ensure no property injection or service locator usage
-   - Confirm `ArgumentNullException.ThrowIfNull()` calls exist
 
 3. **Validate registrations**:
    - Open `Editor/Program.cs` or `Runtime/Program.cs`

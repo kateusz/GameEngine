@@ -8,17 +8,10 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class PropertiesPanel : IPropertiesPanel
+public class PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors)
+    : IPropertiesPanel
 {
     private Entity? _selectedEntity;
-    private readonly IComponentEditorRegistry _componentEditors;
-    private readonly IPrefabManager _prefabManager;
-
-    public PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors)
-    {
-        _prefabManager = prefabManager;
-        _componentEditors = componentEditors;
-    }
 
     public void SetSelectedEntity(Entity? entity)
     {
@@ -33,7 +26,7 @@ public class PropertiesPanel : IPropertiesPanel
         DrawEntityProperties();
         ImGui.End();
 
-        _prefabManager.RenderPopups();
+        prefabManager.RenderPopups();
     }
 
     private void DrawEntityProperties()
@@ -50,9 +43,9 @@ public class PropertiesPanel : IPropertiesPanel
 
         // Save as prefab button
         ButtonDrawer.DrawButton("Save as Prefab",
-            () => _prefabManager.ShowSavePrefabPopup(_selectedEntity));
+            () => prefabManager.ShowSavePrefabPopup(_selectedEntity));
 
         // Render all components
-        _componentEditors.DrawAllComponents(_selectedEntity);
+        componentEditors.DrawAllComponents(_selectedEntity);
     }
 }

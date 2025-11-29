@@ -9,21 +9,15 @@ namespace Editor.Panels;
 /// <summary>
 /// TileMap editor panel with Godot-like functionality
 /// </summary>
-public class TileMapPanel
+public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory)
 {
-    private readonly Engine.Renderer.Textures.ITextureFactory _textureFactory;
     private TileMapComponent? _activeTileMap;
     private TileSet? _tileSet;
     private int _selectedTileId = -1;
     private TileMapTool _currentTool = TileMapTool.Paint;
     private bool _showGrid = true;
-    private Vector4 _gridColor = new Vector4(1, 1, 1, 0.3f);
-    private bool _hasBeenDockedOnce = false;
-
-    public TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory)
-    {
-        _textureFactory = textureFactory;
-    }
+    private readonly Vector4 _gridColor = new(1, 1, 1, 0.3f);
+    private bool _hasBeenDockedOnce;
 
     // Painting state
     private bool _isPainting;
@@ -66,7 +60,7 @@ public class TileMapPanel
             Columns = columns,
             Rows = rows
         };
-        _tileSet.LoadTexture(_textureFactory);
+        _tileSet.LoadTexture(textureFactory);
         
         if (_tileSet.Texture == null)
         {
@@ -103,7 +97,7 @@ public class TileMapPanel
             _hasBeenDockedOnce = true;
         }
 
-        bool isOpen = true;
+        var isOpen = true;
         if (ImGui.Begin("TileMap Editor", ref isOpen))
         {
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
@@ -181,7 +175,7 @@ public class TileMapPanel
         if (ImGui.BeginChild("LayersList", new Vector2(0, 120), ImGuiChildFlags.Border))
         {
             ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Top padding
-            for (int i = _activeTileMap.Layers.Count - 1; i >= 0; i--) // Draw from top to bottom
+            for (var i = _activeTileMap.Layers.Count - 1; i >= 0; i--) // Draw from top to bottom
             {
                 var layer = _activeTileMap.Layers[i];
 
@@ -189,7 +183,7 @@ public class TileMapPanel
                 ImGui.Indent(EditorUIConstants.SmallPadding);
 
                 // Visibility toggle (eye icon)
-                bool visible = layer.Visible;
+                var visible = layer.Visible;
                 if (ImGui.Checkbox(visible ? "👁" : "  ", ref visible))
                 {
                     layer.Visible = visible;
@@ -205,7 +199,7 @@ public class TileMapPanel
                 ImGui.SameLine();
 
                 // Layer selection
-                bool isSelected = i == _activeTileMap.ActiveLayerIndex;
+                var isSelected = i == _activeTileMap.ActiveLayerIndex;
 
                 // Highlight selected layer with background color
                 if (isSelected)
@@ -298,7 +292,7 @@ public class TileMapPanel
 
         ImGui.SameLine();
 
-        bool canRemoveLayer = _activeTileMap.Layers.Count > 1;
+        var canRemoveLayer = _activeTileMap.Layers.Count > 1;
         ButtonDrawer.DrawButton("🗑 Remove Layer",
             () => _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex),
             disabled: !canRemoveLayer);
@@ -347,7 +341,7 @@ public class TileMapPanel
 
         // Opacity slider for active layer
         var activeLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
-        float opacity = activeLayer.Opacity;
+        var opacity = activeLayer.Opacity;
         ImGui.SetNextItemWidth(100);
         if (ImGui.SliderFloat("Opacity", ref opacity, 0.0f, 1.0f, "%.2f"))
         {
@@ -384,10 +378,10 @@ public class TileMapPanel
 
         // Calculate how many tiles fit per row in the palette window (with some padding)
         var availableWidth = ImGui.GetContentRegionAvail().X - EditorUIConstants.LargePadding * 2;
-        int tilesPerRow = Math.Max(1, (int)((availableWidth - 10) / (tileDisplaySize.X + spacing)));
+        var tilesPerRow = Math.Max(1, (int)((availableWidth - 10) / (tileDisplaySize.X + spacing)));
 
         ImGui.Indent(EditorUIConstants.SmallPadding);
-        for (int i = 0; i < _tileSet.Tiles.Count; i++)
+        for (var i = 0; i < _tileSet.Tiles.Count; i++)
         {
             ImGui.PushID(i);
 
@@ -395,7 +389,7 @@ public class TileMapPanel
             var uvMin = texCoords[0];
             var uvMax = texCoords[2];
             
-            bool isSelected = _selectedTileId == i;
+            var isSelected = _selectedTileId == i;
             var bgColor = isSelected ? new Vector4(0.3f, 0.5f, 0.8f, 1.0f) : new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
             
             var cursorPos = ImGui.GetCursorScreenPos();
@@ -478,11 +472,11 @@ public class TileMapPanel
         {
             if (!layer.Visible) continue;
 
-            for (int y = 0; y < _activeTileMap.Height; y++)
+            for (var y = 0; y < _activeTileMap.Height; y++)
             {
-                for (int x = 0; x < _activeTileMap.Width; x++)
+                for (var x = 0; x < _activeTileMap.Width; x++)
                 {
-                    int tileId = layer.Tiles[x, y];
+                    var tileId = layer.Tiles[x, y];
                     if (tileId < 0) continue;
 
                     var screenPos = WorldToScreen(new Vector2(x, y), tileDisplaySize);
@@ -504,7 +498,7 @@ public class TileMapPanel
         var gridColorU32 = ImGui.ColorConvertFloat4ToU32(_gridColor);
 
         // Vertical lines
-        for (int x = 0; x <= _activeTileMap.Width; x++)
+        for (var x = 0; x <= _activeTileMap.Width; x++)
         {
             var start = WorldToScreen(new Vector2(x, 0), tileDisplaySize);
             var end = WorldToScreen(new Vector2(x, _activeTileMap.Height), tileDisplaySize);
@@ -512,7 +506,7 @@ public class TileMapPanel
         }
 
         // Horizontal lines
-        for (int y = 0; y <= _activeTileMap.Height; y++)
+        for (var y = 0; y <= _activeTileMap.Height; y++)
         {
             var start = WorldToScreen(new Vector2(0, y), tileDisplaySize);
             var end = WorldToScreen(new Vector2(_activeTileMap.Width, y), tileDisplaySize);
@@ -568,7 +562,7 @@ public class TileMapPanel
     {
         if (_activeTileMap == null) return;
 
-        int layer = _activeTileMap.ActiveLayerIndex;
+        var layer = _activeTileMap.ActiveLayerIndex;
 
         switch (_currentTool)
         {
@@ -593,7 +587,7 @@ public class TileMapPanel
     {
         if (_activeTileMap == null || _selectedTileId < 0) return;
 
-        int targetTile = _activeTileMap.GetTile(x, y, layer);
+        var targetTile = _activeTileMap.GetTile(x, y, layer);
         if (targetTile == _selectedTileId) return;
 
         var stack = new Stack<(int x, int y)>();

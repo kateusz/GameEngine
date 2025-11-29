@@ -36,7 +36,7 @@ public class CameraComponentEditor : IComponentEditor
 
             if (camera.ProjectionType == ProjectionType.Perspective)
             {
-                float verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
+                var verticalFov = MathHelpers.RadiansToDegrees(camera.PerspectiveFOV);
                 UIPropertyRenderer.DrawPropertyField("Vertical FOV", verticalFov,
                     newValue => camera.PerspectiveFOV = MathHelpers.DegreesToRadians((float)newValue));
 

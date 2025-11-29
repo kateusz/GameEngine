@@ -130,12 +130,12 @@ public class Sandbox2DLayer : ILayer
 
     static char[,] ConvertMapTo2DArray(string mapTiles, int mapWidth, int mapHeight)
     {
-        char[,] mapArray = new char[mapHeight, mapWidth];
-        string[] rows = mapTiles.Trim().Split('\n');
+        var mapArray = new char[mapHeight, mapWidth];
+        var rows = mapTiles.Trim().Split('\n');
 
-        for (int row = 0; row < mapHeight; row++)
+        for (var row = 0; row < mapHeight; row++)
         {
-            for (int col = 0; col < mapWidth; col++)
+            for (var col = 0; col < mapWidth; col++)
             {
                 mapArray[row, col] = rows[row][col];
             }

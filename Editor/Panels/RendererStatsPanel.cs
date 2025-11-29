@@ -4,18 +4,9 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class RendererStatsPanel
+public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
 {
-    private readonly IGraphics2D _graphics2D;
-    private readonly IGraphics3D _graphics3D;
-    
     public bool IsVisible { get; set; }
-
-    public RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
-    {
-        _graphics2D = graphics2D;
-        _graphics3D = graphics3D;
-    }
 
     public void Draw(string hoveredEntityName, Vector3 cameraPosition, float cameraRotation, Action? renderPerformanceMonitor)
     {
@@ -38,7 +29,7 @@ public class RendererStatsPanel
         ImGui.Separator();
         
         // --- Renderer2D Stats ---
-        var stats2D = _graphics2D.GetStats();
+        var stats2D = graphics2D.GetStats();
         ImGui.Text("Renderer2D Stats:");
         ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
         ImGui.Text($"Quads: {stats2D.QuadCount}");
@@ -48,7 +39,7 @@ public class RendererStatsPanel
         ImGui.Separator();
 
         // --- Renderer3D Stats ---
-        var stats3D = _graphics3D.GetStats();
+        var stats3D = graphics3D.GetStats();
         ImGui.Text("Renderer3D Stats:");
         ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
 
