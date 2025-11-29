@@ -1,8 +1,8 @@
 using System.Numerics;
-using ImGuiNET;
 using Editor.UI.Constants;
+using ImGuiNET;
 
-namespace Editor.Panels;
+namespace Editor.UI.Elements;
 
 public static class VectorPanel
 {

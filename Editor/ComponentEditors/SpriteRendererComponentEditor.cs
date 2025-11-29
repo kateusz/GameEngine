@@ -1,7 +1,7 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
-using Engine;
+using Engine.Core;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 

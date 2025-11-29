@@ -1,10 +1,9 @@
-using System.Linq;
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Editor.Windows;
 using Engine.Animation;
 using Engine.Scene.Components;
 using ImGuiNET;
@@ -18,7 +17,7 @@ namespace Editor.ComponentEditors;
 /// </summary>
 public class AnimationComponentEditor(
     IAnimationAssetManager animationAssetManager,
-    AnimationTimelineWindow? timelineWindow)
+    AnimationTimelinePanel? timelineWindow)
     : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();
@@ -97,7 +96,7 @@ public class AnimationComponentEditor(
                     component.Asset = animation;
 
                     // Auto-play first clip if available
-                    if (animation != null && animation.Clips.Length > 0)
+                    if (animation is { Clips.Length: > 0 })
                     {
                         AnimationController.Play(entity, animation.Clips[0].Name);
                     }

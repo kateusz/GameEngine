@@ -1,6 +1,6 @@
 ﻿using DryIoc;
-using Engine;
 using Engine.Core;
+using Engine.Core.DI;
 
 namespace Sandbox;
 

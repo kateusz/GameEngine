@@ -1,4 +1,3 @@
-using Editor.Features.Project;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 

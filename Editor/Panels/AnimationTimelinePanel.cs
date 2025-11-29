@@ -5,13 +5,13 @@ using Editor.UI.Drawers;
 using Engine.Scene.Components;
 using ImGuiNET;
 
-namespace Editor.Windows;
+namespace Editor.Panels;
 
 /// <summary>
 /// Advanced animation timeline editor window.
 /// Provides visual authoring tools for animators with frame-by-frame control.
 /// </summary>
-public class AnimationTimelineWindow
+public class AnimationTimelinePanel
 {
     private bool _isOpen;
     private bool _hasBeenDockedOnce;

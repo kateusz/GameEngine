@@ -1,4 +1,4 @@
-namespace Engine;
+namespace Engine.Core;
 
 public interface IAssetsManager
 {

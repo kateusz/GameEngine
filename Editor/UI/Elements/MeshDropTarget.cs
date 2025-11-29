@@ -1,5 +1,5 @@
 using Editor.UI.Drawers;
-using Engine;
+using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.VertexArray;

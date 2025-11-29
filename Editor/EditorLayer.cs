@@ -1,7 +1,6 @@
 using System.Numerics;
 using ECS;
 using Editor.ComponentEditors;
-using Editor.Features;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
@@ -10,8 +9,6 @@ using Editor.Panels;
 using Editor.Systems;
 using Editor.UI.Drawers;
 using Editor.Utilities;
-using Editor.Windows;
-using Engine;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -44,12 +41,12 @@ public class EditorLayer : ILayer
     private readonly ISceneManager _sceneManager;
     private readonly IEditorPreferences _editorPreferences;
     private readonly RendererStatsPanel _rendererStatsPanel;
-    private readonly EditorToolbar _editorToolbar;
+    private readonly SceneToolbar _sceneToolbar;
     private readonly PerformanceMonitorPanel _performanceMonitor;
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
-    private readonly AnimationTimelineWindow _animationTimeline;
-    private readonly RecentProjectsWindow _recentProjectsWindow;
+    private readonly AnimationTimelinePanel _animationTimeline;
+    private readonly RecentProjectsPanel _recentProjectsPanel;
     private readonly ViewportRuler _viewportRuler;
     private readonly TileMapPanel _tileMapPanel;
     private readonly ShortcutManager _shortcutManager;
@@ -78,9 +75,9 @@ public class EditorLayer : ILayer
         IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
         IPropertiesPanel propertiesPanel, ISceneHierarchyPanel sceneHierarchyPanel,
         ISceneContext sceneContext, ISceneManager sceneManager,
-        IContentBrowserPanel contentBrowserPanel, EditorToolbar editorToolbar, NewProjectPopup newProjectPopup,
+        IContentBrowserPanel contentBrowserPanel, SceneToolbar sceneToolbar, NewProjectPopup newProjectPopup,
         SceneSettingsPopup sceneSettingsPopup, IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel,
-        AnimationTimelineWindow animationTimeline, RecentProjectsWindow recentProjectsWindow,
+        AnimationTimelinePanel animationTimeline, RecentProjectsPanel recentProjectsPanel,
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ObjectManipulator objectManipulator, RulerTool rulerTool,
@@ -95,13 +92,13 @@ public class EditorLayer : ILayer
         _sceneContext = sceneContext;
         _sceneManager = sceneManager;
         _contentBrowserPanel = contentBrowserPanel;
-        _editorToolbar = editorToolbar;
+        _sceneToolbar = sceneToolbar;
         _newProjectPopup = newProjectPopup;
         _sceneSettingsPopup = sceneSettingsPopup;
         _graphics2D = graphics2D;
         _rendererStatsPanel = rendererStatsPanel;
         _animationTimeline = animationTimeline;
-        _recentProjectsWindow = recentProjectsWindow;
+        _recentProjectsPanel = recentProjectsPanel;
         _tileMapPanel = tileMapPanel;
         _shortcutManager = shortcutManager;
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
@@ -116,9 +113,9 @@ public class EditorLayer : ILayer
         _frameBufferFactory = frameBufferFactory;
 
         _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
-        _editorToolbar.OnPlayScene += () => _sceneManager.Play();
-        _editorToolbar.OnStopScene += () => _sceneManager.Stop();
-        _editorToolbar.OnRestartScene += () => _sceneManager.Restart();
+        _sceneToolbar.OnPlayScene += () => _sceneManager.Play();
+        _sceneToolbar.OnStopScene += () => _sceneManager.Stop();
+        _sceneToolbar.OnRestartScene += () => _sceneManager.Restart();
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -134,7 +131,7 @@ public class EditorLayer : ILayer
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
 
         _contentBrowserPanel.Init();
-        _editorToolbar.Init();
+        _sceneToolbar.Init();
 
         // Apply settings from preferences
         ApplyEditorSettings();
@@ -176,29 +173,29 @@ public class EditorLayer : ILayer
         // Editor mode shortcuts (Godot-style)
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Q, KeyModifiers.ShiftOnly,
-            () => _editorToolbar.CurrentMode = EditorMode.Select,
+            () => _sceneToolbar.CurrentMode = EditorMode.Select,
             "Select tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.W, KeyModifiers.ShiftOnly,
-            () => _editorToolbar.CurrentMode = EditorMode.Move,
+            () => _sceneToolbar.CurrentMode = EditorMode.Move,
             "Move tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.R, KeyModifiers.ShiftOnly,
-            () => _editorToolbar.CurrentMode = EditorMode.Scale,
+            () => _sceneToolbar.CurrentMode = EditorMode.Scale,
             "Scale tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.E, KeyModifiers.ShiftOnly,
-            () => _editorToolbar.CurrentMode = EditorMode.Ruler,
+            () => _sceneToolbar.CurrentMode = EditorMode.Ruler,
             "Ruler tool", "Tools"));
 
         _shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Escape, KeyModifiers.None,
             () =>
             {
-                if (_editorToolbar.CurrentMode == EditorMode.Ruler) _rulerTool.ClearMeasurement();
+                if (_sceneToolbar.CurrentMode == EditorMode.Ruler) _rulerTool.ClearMeasurement();
             },
             "Clear ruler measurement", "Tools"));
 
@@ -413,7 +410,7 @@ public class EditorLayer : ILayer
                     ImGui.Separator();
 
                     if (ImGui.MenuItem("Show Recent Projects"))
-                        _recentProjectsWindow.Show();
+                        _recentProjectsPanel.Show();
 
                     // Add Recent Projects submenu
                     if (ImGui.BeginMenu("Recent Projects"))
@@ -522,7 +519,7 @@ public class EditorLayer : ILayer
             _consolePanel.Draw();
 
             _scriptComponentEditor.Draw();
-            _recentProjectsWindow.Draw();
+            _recentProjectsPanel.Draw();
             _keyboardShortcutsPanel.Draw();
 
             var selectedEntity = _sceneHierarchyPanel.GetSelectedEntity();
@@ -565,7 +562,7 @@ public class EditorLayer : ILayer
                 // Handle entity selection on mouse click in viewport
                 if (ImGui.IsWindowHovered())
                 {
-                    var currentMode = _editorToolbar.CurrentMode;
+                    var currentMode = _sceneToolbar.CurrentMode;
 
                     // Prepare local mouse coordinates relative to the viewport
                     var globalMousePos = ImGui.GetMousePos();
@@ -648,7 +645,7 @@ public class EditorLayer : ILayer
             ImGui.End();
             ImGui.PopStyleVar();
 
-            _editorToolbar.Render();
+            _sceneToolbar.Render();
             ImGui.End();
         }
 

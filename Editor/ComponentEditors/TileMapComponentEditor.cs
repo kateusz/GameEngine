@@ -2,14 +2,18 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Panels;
 using Editor.UI.Drawers;
-using Engine;
+using Editor.UI.Elements;
+using Engine.Core;
 using Engine.Scene.Components;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.ComponentEditors;
 
 public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager) : IComponentEditor
 {
+    private static readonly ILogger Logger = Log.ForContext<TileMapComponentEditor>();
+    
     public void DrawComponent(Entity entity)
     {
         ComponentEditorRegistry.DrawComponent<TileMapComponent>("TileMap", entity, e =>
@@ -35,23 +39,27 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
             {
                 component.TileSize = tileSize;
             }
-
-            // TileSet Configuration
+            
             ImGui.Separator();
-            ImGui.Text("TileSet Configuration");
-
-            // TileSet Path (file picker would be better)
-            var tileSetPath = component.TileSetPath;
-            if (ImGui.InputText("TileSet Path", ref tileSetPath, 512))
+            UIPropertyRenderer.DrawPropertyRow("TileSet file", () =>
             {
-                // TODO
-                component.TileSetPath = Path.Combine(assetsManager.AssetsPath, "textures", $"spritesheet.{tileSetPath}");
-            }
+                var tileSetPath = string.IsNullOrWhiteSpace(component.TileSetPath) ? "None" : component.TileSetPath;
+                var tileSetName = Path.GetFileName(tileSetPath);
+                ButtonDrawer.DrawFullWidthButton(tileSetName, () =>
+                {
+                    // TODO: Open file browser popup (Phase 3 enhancement)
+                    Logger.Information("File browser not yet implemented");
+                });
 
-            ButtonDrawer.DrawButton("Browse...", () =>
-            {
-                // TODO: Open file popup
-                ImGui.OpenPopup("FileBrowser");
+                DragDropDrawer.HandleFileDropTarget(
+                    DragDropDrawer.ContentBrowserItemPayload,
+                    path => !string.IsNullOrWhiteSpace(path) &&
+                            DragDropDrawer.HasValidExtension(path, ".png"),
+                    droppedPath =>
+                    {
+                        var tilemapPath = Path.Combine(assetsManager.AssetsPath, droppedPath);
+                        component.TileSetPath = tilemapPath;
+                    });
             });
 
             var columns = component.TileSetColumns;

@@ -1,7 +1,7 @@
 using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
-using Engine;
+using Engine.Core;
 
 namespace Editor.Features.Project;
 

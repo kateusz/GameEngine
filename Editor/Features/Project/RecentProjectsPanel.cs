@@ -2,7 +2,6 @@ using System.Numerics;
 using Editor.Features.Settings;
 using Editor.Panels;
 using Editor.UI.Drawers;
-using Engine;
 using Engine.Core;
 using ImGuiNET;
 using Serilog;
@@ -13,14 +12,14 @@ namespace Editor.Features.Project;
 /// Startup window displaying recent projects with quick access options.
 /// Shown automatically on editor launch for streamlined workflow.
 /// </summary>
-public class RecentProjectsWindow(
+public class RecentProjectsPanel(
     IEditorPreferences editorPreferences,
     IProjectManager projectManager,
     IContentBrowserPanel contentBrowserPanel,
     NewProjectPopup newProjectPopup,
     IAssetsManager assetsManager)
 {
-    private static readonly ILogger Logger = Log.ForContext<RecentProjectsWindow>();
+    private static readonly ILogger Logger = Log.ForContext<RecentProjectsPanel>();
         
     private bool _isOpen = true;
     private bool _isLoading;

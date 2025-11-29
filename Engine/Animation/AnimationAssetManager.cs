@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Engine.Core;
 using Engine.Renderer.Textures;
 using Engine.Scene.Serializer;
 using Serilog;
@@ -29,7 +30,6 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
     };
 
     private readonly Dictionary<string, CacheEntry> _cache = new();
-    private readonly ITextureFactory _textureFactory = textureFactory;
 
     /// <summary>
     /// Load animation asset from JSON file.
@@ -69,7 +69,7 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
 
             // Load texture atlas
             var atlasFullPath = ResolveAssetPath(animationAsset.AtlasPath);
-            var atlasTexture = _textureFactory.Create(atlasFullPath);
+            var atlasTexture = textureFactory.Create(atlasFullPath);
 
             // Assign texture to asset
             animationAsset.Atlas = atlasTexture;

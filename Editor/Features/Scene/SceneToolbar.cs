@@ -4,15 +4,17 @@ using Engine.Renderer.Textures;
 using Engine.Scene;
 using ImGuiNET;
 
-namespace Editor.Panels;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-public class EditorToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
+namespace Editor.Features.Scene;
+
+public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
 {
-    private Texture2D _iconPlay = null!;
-    private Texture2D _iconStop = null!;
-    private Texture2D _iconSelect = null!;
-    private Texture2D _iconMove = null!;
-    private Texture2D _iconScale = null!;
+    private Texture2D _iconPlay;
+    private Texture2D _iconStop;
+    private Texture2D _iconSelect;
+    private Texture2D _iconMove;
+    private Texture2D _iconScale;
 
     public event Action OnPlayScene;
     public event Action OnStopScene;

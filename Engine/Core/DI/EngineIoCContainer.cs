@@ -1,11 +1,9 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
 using Engine.Animation;
-using Engine.Core;
 using Engine.Core.Window;
 using Engine.Events;
 using Engine.ImGuiNet;
-using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -21,7 +19,7 @@ using Silk.NET.Windowing;
 
 [assembly: InternalsVisibleTo("Engine.Tests")]
 
-namespace Engine;
+namespace Engine.Core.DI;
 
 public static class EngineIoCContainer
 {
@@ -42,7 +40,7 @@ public static class EngineIoCContainer
             )
         );
         container.Register<IWindow>(Reuse.Singleton,
-            made: Made.Of(() => Window.Create(options))
+            made: Made.Of(() => Silk.NET.Windowing.Window.Create(options))
         );
         container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
         container.Register<IGameWindow>(

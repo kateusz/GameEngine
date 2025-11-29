@@ -8,12 +8,9 @@ using Editor.Input;
 using Editor.Panels;
 using Editor.UI.Elements;
 using Editor.Utilities;
-using Editor.Windows;
 using Engine.Core;
-using Engine.ImGuiNet;
 
-
-namespace Editor;
+namespace Editor.DI;
 
 public static class EditorIoCContainer
 {
@@ -40,8 +37,8 @@ public static class EditorIoCContainer
         container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
         container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
         container.Register<AnimationComponentEditor>(Reuse.Singleton);
-        container.Register<AnimationTimelineWindow>(Reuse.Singleton);
-        container.Register<RecentProjectsWindow>(Reuse.Singleton);
+        container.Register<AnimationTimelinePanel>(Reuse.Singleton);
+        container.Register<RecentProjectsPanel>(Reuse.Singleton);
         container.Register<TileMapPanel>(Reuse.Singleton);
         container.Register<TileMapComponentEditor>(Reuse.Singleton);
     
@@ -56,7 +53,7 @@ public static class EditorIoCContainer
         container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
         container.Register<NewProjectPopup>(Reuse.Singleton);
         container.Register<SceneSettingsPopup>(Reuse.Singleton);
-        container.Register<EditorToolbar>(Reuse.Singleton);
+        container.Register<SceneToolbar>(Reuse.Singleton);
         container.Register<RendererStatsPanel>(Reuse.Singleton);
         container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
         container.Register<ScriptComponentEditor>(Reuse.Singleton);

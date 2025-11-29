@@ -1,4 +1,4 @@
-namespace Engine;
+namespace Engine.Core;
 
 internal sealed class AssetsManager : IAssetsManager
 {

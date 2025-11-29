@@ -1,12 +1,11 @@
 ﻿using DryIoc;
-using Editor;
+using Editor.DI;
 using Editor.Panels;
 using Engine.Core;
-using Engine.ImGuiNet;
 using Engine.Scripting;
 using Serilog;
 using Editor.Logging;
-using Engine;
+using Engine.Core.DI;
 
 static void ConfigureContainer(Container container)
 {
