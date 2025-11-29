@@ -122,27 +122,18 @@ internal sealed class SilkNetVertexArray : IVertexArray
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
         if (_disposed)
             return;
 
         try
         {
-            if (_vertexArrayObject != 0) 
+            if (_vertexArrayObject != 0)
                 SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
 
-            if (disposing)
-            {
-                foreach (var vertexBuffer in VertexBuffers) 
-                    vertexBuffer?.Dispose();
+            foreach (var vertexBuffer in VertexBuffers)
+                vertexBuffer?.Dispose();
 
-                IndexBuffer?.Dispose();
-            }
+            IndexBuffer?.Dispose();
         }
         catch (Exception e)
         {
@@ -150,11 +141,5 @@ internal sealed class SilkNetVertexArray : IVertexArray
         }
 
         _disposed = true;
-    }
-    
-    ~SilkNetVertexArray()
-    {
-        if (!_disposed && _vertexArrayObject != 0) 
-            System.Diagnostics.Debug.WriteLine($"GPU LEAK: VertexArray (ID: {_vertexArrayObject}) not disposed!");
     }
 }

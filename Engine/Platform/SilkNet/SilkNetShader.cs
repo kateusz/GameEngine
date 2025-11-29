@@ -197,25 +197,11 @@ internal sealed class SilkNetShader : IShader
     /// </remarks>
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    
-    ~SilkNetShader()
-    {
-        Dispose(false);
-    }
-    
-    private void Dispose(bool disposing)
-    {
         if (_disposed)
             return;
 
-        if (disposing)
-        {
-            _uniformLocations?.Clear();
-        }
-        
+        _uniformLocations?.Clear();
+
         try
         {
             if (_handle != 0)

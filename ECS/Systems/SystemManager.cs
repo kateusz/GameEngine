@@ -1,4 +1,4 @@
-namespace ECS;
+namespace ECS.Systems;
 
 /// <summary>
 /// Manages the lifecycle and execution of systems in the Entity Component System.

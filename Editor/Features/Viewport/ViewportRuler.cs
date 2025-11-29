@@ -1,7 +1,7 @@
 using System.Numerics;
 using ImGuiNET;
 
-namespace Editor.Utilities;
+namespace Editor.Features.Viewport;
 
 /// <summary>
 /// Renders horizontal and vertical rulers in the viewport, similar to Godot's 2D editor rulers.

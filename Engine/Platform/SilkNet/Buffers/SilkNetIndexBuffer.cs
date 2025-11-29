@@ -46,12 +46,6 @@ internal sealed class SilkNetIndexBuffer : IIndexBuffer
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
         if (_disposed)
             return;
 
@@ -69,10 +63,5 @@ internal sealed class SilkNetIndexBuffer : IIndexBuffer
         }
 
         _disposed = true;
-    }
-    
-    ~SilkNetIndexBuffer()
-    {
-        Dispose(false);
     }
 }

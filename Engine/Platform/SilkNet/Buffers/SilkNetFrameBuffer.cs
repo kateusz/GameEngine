@@ -335,16 +335,13 @@ internal sealed class SilkNetFrameBuffer : FrameBuffer
         GLDebug.CheckError(SilkNetContext.GL, "FramebufferTexture2D (depth)");
     }
     
-    private void Dispose(bool disposing)
+    public override void Dispose()
     {
-        if (_disposed) 
+        if (_disposed)
             return;
-        
-        if (disposing)
-        {
-            _colorAttachmentSpecs?.Clear();
-        }
-        
+
+        _colorAttachmentSpecs?.Clear();
+
         if (_rendererId != 0)
         {
             SilkNetContext.GL.DeleteFramebuffer(_rendererId);
@@ -370,16 +367,5 @@ internal sealed class SilkNetFrameBuffer : FrameBuffer
         }
 
         _disposed = true;
-    }
-
-    public override void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    ~SilkNetFrameBuffer()
-    {
-        Dispose(false);
     }
 }

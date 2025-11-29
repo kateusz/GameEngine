@@ -41,12 +41,31 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         _activeTileMap = tileMap;
         if (tileMap != null && !string.IsNullOrEmpty(tileMap.TileSetPath))
         {
-            LoadTileSet(tileMap.TileSetPath, tileMap.TileSetColumns, tileMap.TileSetRows);
+            LoadTileSet(tileMap.TileSetPath, tileMap.TileSetColumns, tileMap.TileSetRows, tileMap.TileSize);
         }
         IsOpen = true; // Automatically open when a tilemap is set
     }
 
-    private void LoadTileSet(string path, int columns, int rows)
+    /// <summary>
+    /// Checks if the panel is currently editing the specified tilemap component
+    /// </summary>
+    public bool IsActiveFor(TileMapComponent tileMap)
+    {
+        return _activeTileMap == tileMap;
+    }
+
+    /// <summary>
+    /// Reloads the tileset with current tilemap settings
+    /// </summary>
+    public void ReloadTileSet()
+    {
+        if (_activeTileMap != null && !string.IsNullOrEmpty(_activeTileMap.TileSetPath))
+        {
+            LoadTileSet(_activeTileMap.TileSetPath, _activeTileMap.TileSetColumns, _activeTileMap.TileSetRows, _activeTileMap.TileSize);
+        }
+    }
+
+    private void LoadTileSet(string path, int columns, int rows, Vector2 tileSize)
     {
         if (!File.Exists(path))
         {
@@ -58,26 +77,26 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         {
             TexturePath = path,
             Columns = columns,
-            Rows = rows
+            Rows = rows,
+            TileWidth = (int)tileSize.X,
+            TileHeight = (int)tileSize.Y
         };
         _tileSet.LoadTexture(textureFactory);
-        
+
         if (_tileSet.Texture == null)
         {
             Console.WriteLine($"Failed to load TileSet texture: {path}");
             return;
         }
-        
-        // Calculate tile dimensions from texture size
-        _tileSet.TileWidth = _tileSet.Texture.Width / columns;
-        _tileSet.TileHeight = _tileSet.Texture.Height / rows;
-        
+
+        // Tile dimensions are set from user input, not calculated from texture size
+
         _tileSet.GenerateTiles();
-        
+
         Console.WriteLine($"TileSet loaded: {path}");
         Console.WriteLine($"  Texture size: {_tileSet.Texture.Width}x{_tileSet.Texture.Height}");
         Console.WriteLine($"  Grid: {columns}x{rows} = {_tileSet.Tiles.Count} tiles");
-        Console.WriteLine($"  Tile size: {_tileSet.TileWidth}x{_tileSet.TileHeight}");
+        Console.WriteLine($"  Tile size (user-defined): {_tileSet.TileWidth}x{_tileSet.TileHeight}");
     }
 
     public void OnImGuiRender(uint viewportDockId = 0)

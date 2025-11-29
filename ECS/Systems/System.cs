@@ -1,4 +1,4 @@
-namespace ECS;
+namespace ECS.Systems;
 
 public abstract class System
 {

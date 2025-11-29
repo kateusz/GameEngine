@@ -7,9 +7,6 @@ namespace Engine.Animation;
 /// </summary>
 public record AnimationClip
 {
-    /// <summary>
-    /// Clip name (e.g., "idle", "walk")
-    /// </summary>
     public required string Name { get; init; }
 
     /// <summary>

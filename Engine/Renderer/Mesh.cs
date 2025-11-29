@@ -102,35 +102,18 @@ public class Mesh : IDisposable
 
     public int GetIndexCount() => Indices.Count;
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed) return;
-
-        if (disposing)
-        {
-            // Dispose managed resources (OpenGL objects)
-            _vertexArray?.Dispose();
-            _vertexBuffer?.Dispose();
-            _indexBuffer?.Dispose();
-
-            // Note: Textures are owned by Model and should be disposed there
-            // DiffuseTexture is often a shared white texture, so we don't dispose it
-        }
-
-        // No unmanaged resources to clean up directly in this class
-        // (OpenGL handles are managed through the wrapper objects above)
-
-        _disposed = true;
-    }
-
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
+        if (_disposed)
+            return;
 
-    ~Mesh()
-    {
-        Dispose(disposing: false);
+        _vertexArray?.Dispose();
+        _vertexBuffer?.Dispose();
+        _indexBuffer?.Dispose();
+
+        // Note: Textures are owned by Model and should be disposed there
+        // DiffuseTexture is often a shared white texture, so we don't dispose it
+
+        _disposed = true;
     }
 }

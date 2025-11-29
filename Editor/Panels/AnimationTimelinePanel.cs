@@ -8,7 +8,6 @@ using ImGuiNET;
 namespace Editor.Panels;
 
 /// <summary>
-/// Advanced animation timeline editor window.
 /// Provides visual authoring tools for animators with frame-by-frame control.
 /// </summary>
 public class AnimationTimelinePanel
@@ -17,13 +16,11 @@ public class AnimationTimelinePanel
     private bool _hasBeenDockedOnce;
     private Entity? _selectedEntity;
     private AnimationComponent? _component;
-
-    // Independent playback state (decoupled from scene play mode)
+    
     private bool _previewPlaying;
     private float _previewSpeed = 1.0f;
     private int _selectedFrameIndex;
-
-    // UI state
+    
     private const float FrameBoxWidth = 120.0f;
     private const float FrameBoxHeight = 120.0f;
     private const float TimelineHeight = 150.0f;

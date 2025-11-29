@@ -7,7 +7,8 @@ using Editor.Features.Settings;
 using Editor.Input;
 using Editor.Panels;
 using Editor.UI.Elements;
-using Editor.Utilities;
+using Editor.Features.Viewport;
+using Editor.Features.Viewport.Tools;
 using Engine.Core;
 
 namespace Editor.DI;
@@ -58,9 +59,15 @@ public static class EditorIoCContainer
         container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
         container.Register<ScriptComponentEditor>(Reuse.Singleton);
     
+        // Viewport infrastructure
         container.Register<ViewportRuler>(Reuse.Singleton);
-        container.Register<ObjectManipulator>(Reuse.Singleton);
+
+        // Viewport tools
+        container.Register<SelectionTool>(Reuse.Singleton);
+        container.Register<MoveTool>(Reuse.Singleton);
+        container.Register<ScaleTool>(Reuse.Singleton);
         container.Register<RulerTool>(Reuse.Singleton);
+        container.Register<ViewportToolManager>(Reuse.Singleton);
         
         container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
         

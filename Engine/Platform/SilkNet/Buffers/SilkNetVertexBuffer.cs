@@ -48,18 +48,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
         }
     }
 
-    ~SilkNetVertexBuffer()
-    {
-        Dispose(false);
-    }
-
     public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
     {
         if (_disposed)
             return;
@@ -74,8 +63,6 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
         }
         catch (Exception e)
         {
-            // Finalizers and Dispose must not throw exceptions
-            // Log the error but suppress it to prevent application crashes
             Logger.Error(e, "Failed to delete OpenGL vertex buffer {RendererId}", _rendererId);
         }
 

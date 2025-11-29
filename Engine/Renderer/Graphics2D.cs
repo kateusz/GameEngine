@@ -511,31 +511,21 @@ internal sealed class Graphics2D : IGraphics2D
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
         if (_disposed)
             return;
 
-        if (disposing)
-        {
-            // Dispose managed resources
-            _data.QuadShader?.Dispose();
-            _data.LineShader?.Dispose();
-            _data.QuadVertexArray?.Dispose();
-            _data.LineVertexArray?.Dispose();
-            _data.QuadVertexBuffer?.Dispose();
-            _data.LineVertexBuffer?.Dispose();
-            _data.WhiteTexture?.Dispose();
+        _data.QuadShader?.Dispose();
+        _data.LineShader?.Dispose();
+        _data.QuadVertexArray?.Dispose();
+        _data.LineVertexArray?.Dispose();
+        _data.QuadVertexBuffer?.Dispose();
+        _data.LineVertexBuffer?.Dispose();
+        _data.WhiteTexture?.Dispose();
 
-            // Dispose textures in texture slots
-            foreach (var texture in _data.TextureSlots)
-            {
-                texture?.Dispose();
-            }
+        // Dispose textures in texture slots
+        foreach (var texture in _data.TextureSlots)
+        {
+            texture?.Dispose();
         }
 
         _disposed = true;

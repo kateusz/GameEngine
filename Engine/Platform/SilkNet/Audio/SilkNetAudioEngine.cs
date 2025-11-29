@@ -185,19 +185,10 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         }
     }
     
-    private void Dispose(bool disposing)
-    {
-        if (!disposing) 
-            return;
-
-        ClearLoadedClips();
-        Shutdown();
-    }
-
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        ClearLoadedClips();
+        Shutdown();
     }
 
     // Protected helper methods for subclasses

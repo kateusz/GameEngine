@@ -9,7 +9,6 @@ namespace Editor.Features.Settings;
 
 /// <summary>
 /// Manages editor preferences including recent projects list and editor settings.
-/// Persists data to AppData/GameEngine/editor-preferences.json
 /// </summary>
 public class EditorPreferences : IEditorPreferences
 {

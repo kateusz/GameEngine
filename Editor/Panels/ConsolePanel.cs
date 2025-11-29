@@ -255,10 +255,10 @@ internal class ConsoleTextWriter : TextWriter
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            _lineBuffer.Clear();
-        }
+        if (!disposing)
+            return;
+
+        _lineBuffer.Clear();
         base.Dispose(disposing);
     }
 }

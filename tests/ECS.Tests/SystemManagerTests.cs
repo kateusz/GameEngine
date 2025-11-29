@@ -1,3 +1,5 @@
+using ECS.Systems;
+
 namespace ECS.Tests;
 
 public class SystemManagerTests

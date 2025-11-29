@@ -1,4 +1,4 @@
-namespace Editor.Utilities;
+namespace Editor.UI.Drawers;
 
 /// <summary>
 /// Message types for message box modals.
