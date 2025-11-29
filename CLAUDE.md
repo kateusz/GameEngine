@@ -47,7 +47,7 @@ GameEngine/
 
 **ECS**: Entity (GUID) + Component (data-only) + System (logic with priority ordering)
 
-**Dependency Injection**: Constructor injection via DryIoc, NO static singletons (Program.cs has 50+ registrations)
+**Dependency Injection**: Primary constructor injection via DryIoc, NO static singletons (Program.cs has 50+ registrations)
 
 **Factories**: TextureFactory, ShaderFactory, RendererApiFactory, etc. (caching + DI)
 
@@ -66,7 +66,7 @@ GameEngine/
 
 ### Core Principles
 
-1. **Dependency Injection** - Constructor injection via DryIoc, NO static singletons
+1. **Dependency Injection** - Primary constructor injection via DryIoc, NO static singletons, NO null validation
 2. **Use constants** - EditorUIConstants, RenderingConstants (never magic numbers)
 3. **Performance matters** - Minimize allocations in hot paths, use caching, profile changes
 4. **Cross-platform** - All OpenGL via IRendererAPI, use Path.Combine(), platform abstractions
@@ -77,11 +77,40 @@ GameEngine/
 
 ### C# Style
 
-- **Modern C#**: Records, nullable types, pattern matching, required properties
+- **Modern C#**: Records, nullable types, pattern matching, required properties, **primary constructors**
 - **Naming**: PascalCase (classes/methods/properties), _camelCase (private fields), camelCase (locals)
+- **Primary Constructors**: ALWAYS use primary constructors for dependency injection (C# 12+)
 - **Components**: Data-only classes (matrix calculations OK, but no game logic)
 - **IDisposable**: Implement for all OpenGL resources (textures, buffers, shaders, etc.)
 - **Performance**: Use Span<T> for stack allocs, object pooling, avoid boxing in hot paths
+- **No Null Checks**: Non-nullable reference types eliminate need for constructor null validation
+
+**Primary Constructor Example**:
+```csharp
+// ✅ CORRECT - Use primary constructor
+public class AnimationSystem(
+    ITextureFactory textureFactory,
+    IResourceManager resourceManager) : ISystem
+{
+    // Dependencies are automatically available as private readonly fields
+    public void OnUpdate(float deltaTime)
+    {
+        var texture = textureFactory.LoadTexture("sprite.png");
+        resourceManager.Track(texture);
+    }
+}
+
+// ❌ FORBIDDEN - Traditional constructor with null checks
+public class AnimationSystem : ISystem
+{
+    private readonly ITextureFactory _textureFactory;
+
+    public AnimationSystem(ITextureFactory textureFactory)
+    {
+        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
+    }
+}
+```
 
 ### Constants (NO magic numbers!)
 

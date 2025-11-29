@@ -32,7 +32,7 @@ public static class MeshDropTarget
             path => DragDropDrawer.HasValidExtension(path, SupportedExtensions),
             path =>
             {
-                string fullPath = Path.Combine(assetsManager.AssetsPath, path);
+                var fullPath = Path.Combine(assetsManager.AssetsPath, path);
                 var mesh = meshFactory.Create(fullPath);
                 mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
                 meshComponent.SetMesh(mesh);

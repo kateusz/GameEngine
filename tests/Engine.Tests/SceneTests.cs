@@ -148,7 +148,7 @@ public class SceneTests : IDisposable
 
         // Act
         var entities = new List<Entity>();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             entities.Add(scene.CreateEntity($"entity-{i}"));
         }
@@ -524,13 +524,13 @@ public class SceneTests : IDisposable
 
         // Act - Create 1000 entities
         var entities = new List<Entity>();
-        for (int i = 0; i < 1000; i++)
+        for (var i = 0; i < 1000; i++)
         {
             entities.Add(scene.CreateEntity($"entity-{i}"));
         }
 
         // Destroy half of them
-        for (int i = 0; i < 500; i++)
+        for (var i = 0; i < 500; i++)
         {
             scene.DestroyEntity(entities[i * 2]);
         }
@@ -547,7 +547,7 @@ public class SceneTests : IDisposable
 
         // Act - Create entities with various components
         var entities = new List<Entity>();
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             var entity = scene.CreateEntity($"entity-{i}");
             entity.AddComponent(new TagComponent { Tag = $"tag-{i}" });

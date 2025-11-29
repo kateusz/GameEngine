@@ -13,35 +13,21 @@ namespace Editor.Features.Project;
 /// Startup window displaying recent projects with quick access options.
 /// Shown automatically on editor launch for streamlined workflow.
 /// </summary>
-public class RecentProjectsWindow
+public class RecentProjectsWindow(
+    IEditorPreferences editorPreferences,
+    IProjectManager projectManager,
+    IContentBrowserPanel contentBrowserPanel,
+    NewProjectPopup newProjectPopup,
+    IAssetsManager assetsManager)
 {
     private static readonly ILogger Logger = Log.ForContext<RecentProjectsWindow>();
         
     private bool _isOpen = true;
     private bool _isLoading;
     private string _loadingProjectName = string.Empty;
-    private readonly IEditorPreferences _editorPreferences;
-    private readonly IProjectManager _projectManager;
-    private readonly IContentBrowserPanel _contentBrowserPanel;
-    private readonly NewProjectPopup _newProjectPopup;
-    private readonly IAssetsManager _assetsManager;
     private string? _projectToRemove;
     private float _loadingSpinnerRotation;
 
-
-    public RecentProjectsWindow(
-        IEditorPreferences editorPreferences,
-        IProjectManager projectManager,
-        IContentBrowserPanel contentBrowserPanel,
-        NewProjectPopup newProjectPopup,
-        IAssetsManager assetsManager)
-    {
-        _editorPreferences = editorPreferences;
-        _projectManager = projectManager;
-        _contentBrowserPanel = contentBrowserPanel;
-        _newProjectPopup = newProjectPopup;
-        _assetsManager = assetsManager;
-    }
 
     public void Draw()
     {
@@ -80,14 +66,14 @@ public class RecentProjectsWindow
         // Handle deferred project removal (can't remove during iteration)
         if (_projectToRemove != null)
         {
-            _editorPreferences.RemoveRecentProject(_projectToRemove);
+            editorPreferences.RemoveRecentProject(_projectToRemove);
             _projectToRemove = null;
         }
     }
 
     private void DrawRecentProjects()
     {
-        var recentProjects = _editorPreferences.GetRecentProjects();
+        var recentProjects = editorPreferences.GetRecentProjects();
 
         if (recentProjects.Count == 0)
         {
@@ -201,9 +187,9 @@ public class RecentProjectsWindow
         {
             try
             {
-                if (_projectManager.TryOpenProject(project.Path, out var error))
+                if (projectManager.TryOpenProject(project.Path, out var error))
                 {
-                    _contentBrowserPanel.SetRootDirectory(_assetsManager.AssetsPath);
+                    contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
                     Logger.Information("Opened project: {Name}", project.Name);
                     
                     // Close window on next frame
@@ -230,7 +216,7 @@ public class RecentProjectsWindow
 
         ButtonDrawer.DrawModalButton("New Project", () =>
         {
-            _newProjectPopup.ShowNewProjectPopup();
+            newProjectPopup.ShowNewProjectPopup();
             _isOpen = false;
         }, buttonWidth, 20);
 
@@ -266,7 +252,7 @@ public class RecentProjectsWindow
         const int segments = 12;
         const float thickness = 4.0f;
 
-        for (int i = 0; i < segments; i++)
+        for (var i = 0; i < segments; i++)
         {
             var angle = (_loadingSpinnerRotation + (i * MathF.PI * 2.0f / segments)) % (MathF.PI * 2.0f);
             var alpha = 1.0f - (i / (float)segments);

@@ -8,11 +8,9 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneHierarchyPanel : ISceneHierarchyPanel
+public class SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
+    : ISceneHierarchyPanel
 {
-    private readonly EntityContextMenu _contextMenu;
-    private readonly PrefabDropTarget _prefabDropTarget;
-
     private IScene _scene;
     private Entity? _selectionContext;
 
@@ -23,12 +21,6 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
 
     public Action<Entity> EntitySelected { get; set; } = null!;
 
-    public SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
-    {
-        _contextMenu = contextMenu;
-        _prefabDropTarget = prefabDropTarget;
-    }
-    
     public void SetScene(IScene scene)
     {
         _scene = scene;
@@ -50,7 +42,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
             _selectionContext = null;
 
-        _contextMenu.Render(_scene);
+        EntityContextMenu.Render(_scene);
 
         ImGui.End();
     }
@@ -62,10 +54,10 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     private void DrawEntityNode(Entity entity)
     {
         var tag = entity.Name;
-        bool isSelected = _selectionContext?.Id == entity.Id;
-        bool entityDeleted = false;
+        var isSelected = _selectionContext?.Id == entity.Id;
+        var entityDeleted = false;
 
-        bool opened = TreeDrawer.DrawSelectableTreeNode(
+        var opened = TreeDrawer.DrawSelectableTreeNode(
             label: tag,
             isSelected: isSelected,
             onClicked: () =>
@@ -82,7 +74,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         );
 
         // Prefab drag & drop handling
-        _prefabDropTarget.HandleEntityDrop(entity);
+        prefabDropTarget.HandleEntityDrop(entity);
 
         if (opened)
         {
@@ -142,8 +134,8 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
     {
         var isDirectMatch = MatchesFilter(entity, _searchQuery);
         var tag = entity.Name;
-        bool isSelected = _selectionContext?.Id == entity.Id;
-        bool entityDeleted = false;
+        var isSelected = _selectionContext?.Id == entity.Id;
+        var entityDeleted = false;
 
         // Highlight matched entities with colored tree node
         bool opened;
@@ -186,7 +178,7 @@ public class SceneHierarchyPanel : ISceneHierarchyPanel
         }
 
         // Prefab drag & drop handling
-        _prefabDropTarget.HandleEntityDrop(entity);
+        prefabDropTarget.HandleEntityDrop(entity);
 
         if (opened)
         {

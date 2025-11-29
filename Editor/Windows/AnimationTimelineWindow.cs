@@ -130,7 +130,7 @@ public class AnimationTimelineWindow
         {
             foreach (var clipName in asset.Clips.Select(x => x.Name))
             {
-                bool isSelected = clipName == _component.CurrentClipName;
+                var isSelected = clipName == _component.CurrentClipName;
                 if (ImGui.Selectable(clipName, isSelected))
                 {
                     _component.CurrentClipName = clipName;
@@ -214,7 +214,7 @@ public class AnimationTimelineWindow
             var frame = clip.Frames[i];
 
             // Frame box background
-            uint frameColor = i == _selectedFrameIndex
+            var frameColor = i == _selectedFrameIndex
                 ? ImGui.GetColorU32(new Vector4(0.3f, 0.5f, 0.8f, 1.0f))
                 : ImGui.GetColorU32(new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
 
@@ -281,7 +281,7 @@ public class AnimationTimelineWindow
         }
 
         // Playhead indicator
-        int currentFrame = _component.CurrentFrameIndex;
+        var currentFrame = _component.CurrentFrameIndex;
         var playheadPos = cursorPos with { X = cursorPos.X + currentFrame * (FrameBoxWidth + EditorUIConstants.LargePadding * 2) + FrameBoxWidth / 2 };
         drawList.AddLine(playheadPos, playheadPos + new Vector2(0, TimelineHeight - 20),
             ImGui.GetColorU32(EditorUIConstants.ErrorColor), 3.0f);
@@ -326,7 +326,7 @@ public class AnimationTimelineWindow
 
             // Calculate preview size maintaining aspect ratio
             const float maxPreviewSize = 128.0f;
-            float aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
+            var aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
             Vector2 previewSize;
 
             if (aspectRatio > 1.0f)
@@ -410,7 +410,7 @@ public class AnimationTimelineWindow
         if (clip == null) return;
 
         // Advance preview frame independently
-        float frameDuration = 1.0f / clip.Fps;
+        var frameDuration = 1.0f / clip.Fps;
         _component.FrameTimer += deltaTime * _previewSpeed;
 
         if (_component.FrameTimer >= frameDuration)

@@ -7,17 +7,9 @@ using Engine.Scene.Components;
 
 namespace Editor.ComponentEditors;
 
-public class SpriteRendererComponentEditor : IComponentEditor
+public class SpriteRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
+    : IComponentEditor
 {
-    private readonly IAssetsManager _assetsManager;
-    private readonly ITextureFactory _textureFactory;
-
-    public SpriteRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
-    {
-        _assetsManager = assetsManager;
-        _textureFactory = textureFactory;
-    }
-
     public void DrawComponent(Entity e)
     {
         ComponentEditorRegistry.DrawComponent<SpriteRendererComponent>("Sprite Renderer", e, entity =>
@@ -27,7 +19,7 @@ public class SpriteRendererComponentEditor : IComponentEditor
             UIPropertyRenderer.DrawPropertyField("Color", component.Color,
                 newValue => component.Color = (System.Numerics.Vector4)newValue);
 
-            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, _assetsManager, _textureFactory);
+            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, assetsManager, textureFactory);
 
             UIPropertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
                 newValue => component.TilingFactor = (float)newValue);

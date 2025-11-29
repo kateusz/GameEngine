@@ -12,8 +12,8 @@ internal sealed class SilkNetInputSystem : IInputSystem
 
     public SilkNetInputSystem(IInputContext inputContext)
     {
-        Context = inputContext ?? throw new ArgumentNullException(nameof(inputContext));
-        
+        Context = inputContext;
+
         var silkKeyboard = Context.Keyboards.FirstOrDefault()
                            ?? throw new InvalidOperationException("No keyboard found");
         var silkMouse = Context.Mice.FirstOrDefault()

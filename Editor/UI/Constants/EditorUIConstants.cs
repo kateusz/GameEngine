@@ -9,8 +9,6 @@ namespace Editor.UI.Constants;
 /// </summary>
 public static class EditorUIConstants
 {
-    // ==================== Button Sizes ====================
-    
     /// <summary>
     /// Standard width for modal buttons (Create, Save, Cancel, etc.)
     /// </summary>
@@ -41,8 +39,6 @@ public static class EditorUIConstants
     /// Standard size for icon buttons
     /// </summary>
     public const float IconSize = 16f;
-
-    // ==================== Layout Ratios ====================
     
     /// <summary>
     /// Ratio for property label column (1/3 of available width)
@@ -55,8 +51,6 @@ public static class EditorUIConstants
     /// Complementary to PropertyLabelRatio for input controls
     /// </summary>
     public const float PropertyInputRatio = 0.67f;
-    
-    // ==================== Column Widths ====================
     
     /// <summary>
     /// Default width for narrow label columns (e.g., "Tag" label in EntityNameEditor)
@@ -73,8 +67,6 @@ public static class EditorUIConstants
     /// </summary>
     public const float FilterInputWidth = 200f;
     
-    // ==================== Spacing and Padding ====================
-    
     /// <summary>
     /// Standard padding for frame elements (ImGui.PushStyleVar FramePadding)
     /// </summary>
@@ -89,8 +81,6 @@ public static class EditorUIConstants
     /// Small padding for compact layouts
     /// </summary>
     public const float SmallPadding = 2f;
-
-    // ==================== Input Buffer Limits ====================
     
     /// <summary>
     /// Maximum length for general text input fields (names, labels, etc.)
@@ -108,8 +98,6 @@ public static class EditorUIConstants
     /// Used for more constrained input fields
     /// </summary>
     public const uint MaxNameLength = 100;
-
-    // ==================== Standard Colors ====================
     
     /// <summary>
     /// Error color for validation messages and error indicators (bright red)
@@ -131,8 +119,6 @@ public static class EditorUIConstants
     /// </summary>
     public static readonly Vector4 InfoColor = new(0.7f, 0.7f, 0.7f, 1.0f);
     
-    // ==================== Axis Colors ====================
-    
     /// <summary>
     /// X-axis color (red) - used for transform gizmos and vector editors
     /// </summary>
@@ -147,8 +133,6 @@ public static class EditorUIConstants
     /// Z-axis color (blue) - used for transform gizmos and vector editors
     /// </summary>
     public static readonly Vector4 AxisZColor = new(0.1f, 0.25f, 0.8f, 1.0f);
-    
-    // ==================== Common UI Sizes ====================
     
     /// <summary>
     /// Width for list boxes in selector popups (e.g., script selector)

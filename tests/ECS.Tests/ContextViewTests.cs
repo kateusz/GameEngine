@@ -186,7 +186,7 @@ public class ContextViewTests : IDisposable
         // Arrange
         const int entityCount = 1000;
         
-        for (int i = 0; i < entityCount; i++)
+        for (var i = 0; i < entityCount; i++)
         {
             var entity = Entity.Create(i, $"Entity{i}");
             var component = entity.AddComponent<TestComponentA>();
@@ -202,7 +202,7 @@ public class ContextViewTests : IDisposable
         Assert.Equal(entityCount, results.Count);
         
         // Verify all entities are present and have correct values
-        for (int i = 0; i < entityCount; i++)
+        for (var i = 0; i < entityCount; i++)
         {
             var result = results.FirstOrDefault(r => r.Entity.Id == i);
             Assert.Equal(i, result.Component.Value);

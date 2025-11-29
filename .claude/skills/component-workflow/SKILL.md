@@ -152,12 +152,12 @@ container.Register<AudioDropTarget>(Reuse.Singleton);
 
 **Step 4b: Add Editor to ComponentEditorRegistry**:
 ```csharp
-// In ComponentEditorRegistry.cs constructor
-public ComponentEditorRegistry(
+// In ComponentEditorRegistry.cs - use primary constructor
+public class ComponentEditorRegistry(
     // ... other existing editors
     ParticleEmitterComponentEditor particleEmitterComponentEditor) // Add parameter
 {
-    _editors = new Dictionary<Type, IComponentEditor>
+    private readonly Dictionary<Type, IComponentEditor> _editors = new()
     {
         // ... other mappings
         { typeof(ParticleEmitterComponent), particleEmitterComponentEditor } // Add mapping

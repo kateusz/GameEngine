@@ -8,17 +8,8 @@ using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
-public class TileMapComponentEditor : IComponentEditor
+public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager) : IComponentEditor
 {
-    private readonly TileMapPanel _tileMapPanel;
-    private readonly IAssetsManager _assetsManager;
-
-    public TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager)
-    {
-        _tileMapPanel = tileMapPanel;
-        _assetsManager = assetsManager;
-    }
-
     public void DrawComponent(Entity entity)
     {
         ComponentEditorRegistry.DrawComponent<TileMapComponent>("TileMap", entity, e =>
@@ -26,13 +17,13 @@ public class TileMapComponentEditor : IComponentEditor
             var component = e.GetComponent<TileMapComponent>();
 
             // Dimensions
-            int width = component.Width;
+            var width = component.Width;
             if (ImGui.DragInt("Width", ref width, 1, 1, 1000))
             {
                 component.Resize(width, component.Height);
             }
 
-            int height = component.Height;
+            var height = component.Height;
             if (ImGui.DragInt("Height", ref height, 1, 1, 1000))
             {
                 component.Resize(component.Width, height);
@@ -54,7 +45,7 @@ public class TileMapComponentEditor : IComponentEditor
             if (ImGui.InputText("TileSet Path", ref tileSetPath, 512))
             {
                 // TODO
-                component.TileSetPath = Path.Combine(_assetsManager.AssetsPath, "textures", $"spritesheet.{tileSetPath}");
+                component.TileSetPath = Path.Combine(assetsManager.AssetsPath, "textures", $"spritesheet.{tileSetPath}");
             }
 
             ButtonDrawer.DrawButton("Browse...", () =>
@@ -63,13 +54,13 @@ public class TileMapComponentEditor : IComponentEditor
                 ImGui.OpenPopup("FileBrowser");
             });
 
-            int columns = component.TileSetColumns;
+            var columns = component.TileSetColumns;
             if (ImGui.DragInt("Columns", ref columns, 1, 1, 64))
             {
                 component.TileSetColumns = columns;
             }
 
-            int rows = component.TileSetRows;
+            var rows = component.TileSetRows;
             if (ImGui.DragInt("Rows", ref rows, 1, 1, 64))
             {
                 component.TileSetRows = rows;
@@ -84,7 +75,7 @@ public class TileMapComponentEditor : IComponentEditor
             ImGui.Separator();
             ButtonDrawer.DrawButton("Open TileMap Editor", -1, 30, () =>
             {
-                _tileMapPanel.SetTileMap(component);
+                tileMapPanel.SetTileMap(component);
             });
         });
     }

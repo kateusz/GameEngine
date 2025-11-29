@@ -21,7 +21,7 @@ public class TransformComponentEditor : IComponentEditor
                 tc.Translation = newTranslation;
 
             var rotationRadians = tc.Rotation;
-            Vector3 rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
+            var rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
             VectorPanel.DrawVec3Control("Rotation", ref rotationDegrees);
             var newRotationRadians = MathHelpers.ToRadians(rotationDegrees);
 

@@ -9,9 +9,9 @@ public static class EntityNameEditor
     public static void Draw(Entity entity)
     {
         var tag = entity.Name;
-        byte[] buffer = new byte[EditorUIConstants.MaxTextInputLength];
+        var buffer = new byte[EditorUIConstants.MaxTextInputLength];
         Array.Clear(buffer, 0, buffer.Length);
-        byte[] tagBytes = System.Text.Encoding.UTF8.GetBytes(tag);
+        var tagBytes = System.Text.Encoding.UTF8.GetBytes(tag);
         Array.Copy(tagBytes, buffer, Math.Min(tagBytes.Length, buffer.Length - 1));
 
         ImGui.Columns(2, "tag_columns", false);

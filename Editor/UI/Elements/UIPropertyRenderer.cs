@@ -41,7 +41,7 @@ public static class UIPropertyRenderer
             return false;
         }
 
-        bool changed = false;
+        var changed = false;
         DrawPropertyRow(label, () =>
         {
             var inputLabel = $"##{label}";

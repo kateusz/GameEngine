@@ -19,7 +19,7 @@ public static class BenchmarkStorage
     public static List<BenchmarkResult> LoadBaseline()
     {
         if (!File.Exists(BaselineFilePath))
-            return new List<BenchmarkResult>();
+            return [];
 
         var json = File.ReadAllText(BaselineFilePath);
         return JsonSerializer.Deserialize<List<BenchmarkResult>>(json) ?? new List<BenchmarkResult>();

@@ -266,18 +266,18 @@ MeshDropTarget.Draw("Mesh", onMeshChanged, assetsManager);
 **Why**: DI pattern, consistency, automatic layout ratios.
 
 ```csharp
-// Always inject field editors via constructor
-public MyComponentEditor(
+// Always inject field editors via primary constructor
+public class MyComponentEditor(
     IFieldEditor<float> floatEditor,
-    IFieldEditor<Vector3> vectorEditor)
+    IFieldEditor<Vector3> vectorEditor) : IComponentEditor
 {
-    _floatEditor = floatEditor;
-    _vectorEditor = vectorEditor;
+    // Use in DrawEditor - injected parameters are available as fields
+    public void DrawEditor()
+    {
+        floatEditor.DrawField("Speed", ref component.Speed);
+        vectorEditor.DrawField("Position", ref component.Position);
+    }
 }
-
-// Use in DrawEditor
-_floatEditor.DrawField("Speed", ref component.Speed);
-_vectorEditor.DrawField("Position", ref component.Position);
 ```
 
 ### 4. Use EditorUIConstants for All Sizing/Spacing

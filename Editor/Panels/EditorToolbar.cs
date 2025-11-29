@@ -6,22 +6,13 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class EditorToolbar
+public class EditorToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
 {
-    private readonly ISceneContext _sceneContext;
-    private readonly ITextureFactory _textureFactory;
-
     private Texture2D _iconPlay = null!;
     private Texture2D _iconStop = null!;
     private Texture2D _iconSelect = null!;
     private Texture2D _iconMove = null!;
     private Texture2D _iconScale = null!;
-
-    public EditorToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
-    {
-        _sceneContext = sceneContext;
-        _textureFactory = textureFactory;
-    }
 
     public event Action OnPlayScene;
     public event Action OnStopScene;
@@ -31,11 +22,11 @@ public class EditorToolbar
     
     public void Init()
     {
-        _iconPlay = _textureFactory.Create("Resources/Icons/PlayButton.png");
-        _iconStop = _textureFactory.Create("Resources/Icons/StopButton.png");
-        _iconSelect = _textureFactory.Create("Resources/Icons/select.png");
-        _iconMove = _textureFactory.Create("Resources/Icons/move.png");
-        _iconScale = _textureFactory.Create("Resources/Icons/scale.png");
+        _iconPlay = textureFactory.Create("Resources/Icons/PlayButton.png");
+        _iconStop = textureFactory.Create("Resources/Icons/StopButton.png");
+        _iconSelect = textureFactory.Create("Resources/Icons/select.png");
+        _iconMove = textureFactory.Create("Resources/Icons/move.png");
+        _iconScale = textureFactory.Create("Resources/Icons/scale.png");
     }
 
     public void Render()
@@ -90,13 +81,13 @@ public class EditorToolbar
         ImGui.SameLine();
 
         // Use toggle button for ruler since we don't have an icon yet
-        bool isRulerMode = CurrentMode == EditorMode.Ruler;
+        var isRulerMode = CurrentMode == EditorMode.Ruler;
         if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: 25, height: 19))
         {
             CurrentMode = EditorMode.Ruler;
         }
         
-        var icon = _sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
+        var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
         ImGui.SetCursorPosY(2.0f);
@@ -104,7 +95,7 @@ public class EditorToolbar
         if (ButtonDrawer.DrawTransparentIconButton("playstop", icon.GetRendererId(), new Vector2(20, 20),
                 onClick: () =>
                 {
-                    switch (_sceneContext.State)
+                    switch (sceneContext.State)
                     {
                         case SceneState.Edit:
                             OnPlayScene();
@@ -114,7 +105,7 @@ public class EditorToolbar
                             break;
                     }
                 },
-                tooltip: _sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene"))
+                tooltip: sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene"))
         {
             // Action handled in onClick
         }

@@ -19,11 +19,8 @@ public readonly struct KeyModifiers : IEquatable<KeyModifiers>
     /// Whether the Alt key is required.
     /// </summary>
     public bool Alt { get; init; }
-
-    /// <summary>
-    /// Initializes a new instance of KeyModifiers.
-    /// </summary>
-    public KeyModifiers(bool control = false, bool shift = false, bool alt = false)
+    
+    private KeyModifiers(bool control = false, bool shift = false, bool alt = false)
     {
         Control = control;
         Shift = shift;

@@ -22,10 +22,10 @@ internal sealed class MeshFactory : IMeshFactory
     public MeshFactory(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
     {
-        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
-        _vertexArrayFactory = vertexArrayFactory ?? throw new ArgumentNullException(nameof(vertexArrayFactory));
-        _vertexBufferFactory = vertexBufferFactory ?? throw new ArgumentNullException(nameof(vertexBufferFactory));
-        _indexBufferFactory = indexBufferFactory ?? throw new ArgumentNullException(nameof(indexBufferFactory));
+        _textureFactory = textureFactory;
+        _vertexArrayFactory = vertexArrayFactory;
+        _vertexBufferFactory = vertexBufferFactory;
+        _indexBufferFactory = indexBufferFactory;
     }
 
     /// <summary>

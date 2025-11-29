@@ -24,8 +24,8 @@ internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
 
     public SilkNetAudioClip(string path, AL al)
     {
-        Path = path ?? throw new ArgumentNullException(nameof(path));
-        _al = al ?? throw new ArgumentNullException(nameof(al));
+        Path = path;
+        _al = al;
         Format = AudioClipFactory.DetectFormat(path);
 
         if (!AudioClipFactory.IsSupportedFormat(path))

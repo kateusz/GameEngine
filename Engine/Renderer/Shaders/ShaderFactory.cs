@@ -6,21 +6,11 @@ namespace Engine.Renderer.Shaders;
 /// Factory for creating and managing shader resources with automatic caching.
 /// Uses weak references to allow garbage collection when shaders are no longer in use.
 /// </summary>
-internal sealed class ShaderFactory : IShaderFactory
+internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFactory
 {
-    private readonly IRendererApiConfig _apiConfig;
     private readonly Dictionary<(string, string, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
     private readonly Lock _cacheLock = new();
 
-    /// <summary>
-    /// Initializes a new instance of the ShaderFactory class.
-    /// </summary>
-    /// <param name="apiConfig">The renderer API configuration.</param>
-    public ShaderFactory(IRendererApiConfig apiConfig)
-    {
-        _apiConfig = apiConfig ?? throw new ArgumentNullException(nameof(apiConfig));
-    }
-    
     public IShader Create(string vertPath, string fragPath)
     {
         DateTime vertModTime, fragModTime;
@@ -55,10 +45,10 @@ internal sealed class ShaderFactory : IShaderFactory
         }
 
         // Create shader outside of lock to allow concurrent creation of different shaders
-        var shader = _apiConfig.Type switch
+        var shader = apiConfig.Type switch
         {
             ApiType.SilkNet => new SilkNetShader(vertPath, fragPath),
-            _ => throw new NotSupportedException($"Unsupported Render API type: {_apiConfig.Type}")
+            _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
 
         // Second check: Store in cache (double-checked locking pattern)

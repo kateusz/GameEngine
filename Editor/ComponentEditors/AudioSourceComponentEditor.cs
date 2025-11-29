@@ -8,16 +8,10 @@ using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
-public class AudioSourceComponentEditor : IComponentEditor
+public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarget audioDropTarget) : IComponentEditor
 {
-    private readonly IAudioEngine _audioEngine;
-    private readonly AudioDropTarget _audioDropTarget;
-
-    public AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarget audioDropTarget)
-    {
-        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
-        _audioDropTarget = audioDropTarget ?? throw new ArgumentNullException(nameof(audioDropTarget));
-    }
+    private readonly IAudioEngine _audioEngine = audioEngine;
+    private readonly AudioDropTarget _audioDropTarget = audioDropTarget;
 
     public void DrawComponent(Entity e)
     {

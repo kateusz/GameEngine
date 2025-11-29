@@ -20,8 +20,8 @@ internal sealed class Graphics3D : IGraphics3D
 
     public Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory)
     {
-        _rendererApi = rendererApi ?? throw new ArgumentNullException(nameof(rendererApi));
-        _shaderFactory = shaderFactory ?? throw new ArgumentNullException(nameof(shaderFactory));
+        _rendererApi = rendererApi;
+        _shaderFactory = shaderFactory;
     }
 
     public void Init()

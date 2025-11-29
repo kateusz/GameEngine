@@ -73,25 +73,25 @@ public class ViewportRuler
             LineColor);
 
         // Calculate world space range visible in viewport
-        float worldWidth = viewportSize.X / _zoom;
-        float worldLeft = _cameraPosition.X - worldWidth / 2.0f;
+        var worldWidth = viewportSize.X / _zoom;
+        var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
         
         // Determine tick spacing based on zoom
-        float tickSpacing = CalculateTickSpacing(_zoom);
-        float majorTickInterval = tickSpacing * 10.0f;
+        var tickSpacing = CalculateTickSpacing(_zoom);
+        var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
-        float firstMajorTick = (float)Math.Floor(worldLeft / majorTickInterval) * majorTickInterval;
+        var firstMajorTick = (float)Math.Floor(worldLeft / majorTickInterval) * majorTickInterval;
         
         // Draw ticks
-        for (float worldX = firstMajorTick; worldX < worldLeft + worldWidth; worldX += tickSpacing)
+        for (var worldX = firstMajorTick; worldX < worldLeft + worldWidth; worldX += tickSpacing)
         {
-            float screenX = WorldToScreenX(worldX, viewportMin.X, viewportSize.X);
+            var screenX = WorldToScreenX(worldX, viewportMin.X, viewportSize.X);
             
             if (screenX < viewportMin.X || screenX > viewportMin.X + viewportSize.X)
                 continue;
             
-            bool isMajorTick = Math.Abs(worldX % majorTickInterval) < 0.001f;
+            var isMajorTick = Math.Abs(worldX % majorTickInterval) < 0.001f;
             
             if (isMajorTick)
             {
@@ -102,7 +102,7 @@ public class ViewportRuler
                     MajorTickColor, 1.5f);
                 
                 // Label
-                string label = $"{(int)worldX}";
+                var label = $"{(int)worldX}";
                 var textSize = ImGui.CalcTextSize(label);
                 drawList.AddText(
                     new Vector2(screenX - textSize.X / 2.0f, rulerMin.Y + TextOffset),
@@ -135,25 +135,25 @@ public class ViewportRuler
             LineColor);
 
         // Calculate world space range visible in viewport
-        float worldHeight = viewportSize.Y / _zoom;
-        float worldTop = _cameraPosition.Y + worldHeight / 2.0f;
+        var worldHeight = viewportSize.Y / _zoom;
+        var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
         
         // Determine tick spacing based on zoom
-        float tickSpacing = CalculateTickSpacing(_zoom);
-        float majorTickInterval = tickSpacing * 10.0f;
+        var tickSpacing = CalculateTickSpacing(_zoom);
+        var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
-        float firstMajorTick = (float)Math.Ceiling((worldTop - worldHeight) / majorTickInterval) * majorTickInterval;
+        var firstMajorTick = (float)Math.Ceiling((worldTop - worldHeight) / majorTickInterval) * majorTickInterval;
         
         // Draw ticks
-        for (float worldY = firstMajorTick; worldY < worldTop; worldY += tickSpacing)
+        for (var worldY = firstMajorTick; worldY < worldTop; worldY += tickSpacing)
         {
-            float screenY = WorldToScreenY(worldY, viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
+            var screenY = WorldToScreenY(worldY, viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
             
             if (screenY < viewportMin.Y + RulerThickness || screenY > viewportMin.Y + viewportSize.Y)
                 continue;
             
-            bool isMajorTick = Math.Abs(worldY % majorTickInterval) < 0.001f;
+            var isMajorTick = Math.Abs(worldY % majorTickInterval) < 0.001f;
             
             if (isMajorTick)
             {
@@ -164,7 +164,7 @@ public class ViewportRuler
                     MajorTickColor, 1.5f);
                 
                 // Label (rotated text would be nice but ImGui doesn't support it easily)
-                string label = $"{(int)worldY}";
+                var label = $"{(int)worldY}";
                 var textSize = ImGui.CalcTextSize(label);
                 drawList.AddText(
                     new Vector2(rulerMin.X + TextOffset, screenY - textSize.Y / 2.0f),
@@ -202,17 +202,17 @@ public class ViewportRuler
 
     private float WorldToScreenX(float worldX, float viewportMinX, float viewportWidth)
     {
-        float worldWidth = viewportWidth / _zoom;
-        float worldLeft = _cameraPosition.X - worldWidth / 2.0f;
-        float normalizedX = (worldX - worldLeft) / worldWidth;
+        var worldWidth = viewportWidth / _zoom;
+        var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
+        var normalizedX = (worldX - worldLeft) / worldWidth;
         return viewportMinX + normalizedX * viewportWidth;
     }
 
     private float WorldToScreenY(float worldY, float viewportMinY, float viewportHeight)
     {
-        float worldHeight = viewportHeight / _zoom;
-        float worldTop = _cameraPosition.Y + worldHeight / 2.0f;
-        float normalizedY = (worldTop - worldY) / worldHeight;
+        var worldHeight = viewportHeight / _zoom;
+        var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
+        var normalizedY = (worldTop - worldY) / worldHeight;
         return viewportMinY + normalizedY * viewportHeight;
     }
 
@@ -220,14 +220,14 @@ public class ViewportRuler
     {
         // Calculate optimal tick spacing based on zoom level
         // We want ticks to be roughly 50-100 pixels apart
-        float pixelsPerUnit = zoom;
-        float targetPixelSpacing = 50.0f;
+        var pixelsPerUnit = zoom;
+        var targetPixelSpacing = 50.0f;
         
-        float rawSpacing = targetPixelSpacing / pixelsPerUnit;
+        var rawSpacing = targetPixelSpacing / pixelsPerUnit;
         
         // Round to nice numbers (1, 2, 5, 10, 20, 50, 100, etc.)
-        float magnitude = (float)Math.Pow(10, Math.Floor(Math.Log10(rawSpacing)));
-        float normalizedSpacing = rawSpacing / magnitude;
+        var magnitude = (float)Math.Pow(10, Math.Floor(Math.Log10(rawSpacing)));
+        var normalizedSpacing = rawSpacing / magnitude;
         
         float niceSpacing;
         if (normalizedSpacing < 2.0f)

@@ -8,26 +8,17 @@ namespace Editor.Systems;
 /// System responsible for updating the editor camera controller.
 /// This system only runs when the viewport is focused in Edit mode.
 /// </summary>
-public class EditorCameraSystem : ISystem
+public class EditorCameraSystem(IOrthographicCameraController cameraController) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<EditorCameraSystem>();
 
-    private IOrthographicCameraController _cameraController;
+    private IOrthographicCameraController _cameraController = cameraController;
     private bool _isViewportFocused;
 
     /// <summary>
     /// Priority of 50 ensures this system updates before rendering systems.
     /// </summary>
     public int Priority => 50;
-
-    /// <summary>
-    /// Creates a new EditorCameraSystem.
-    /// </summary>
-    /// <param name="cameraController">The camera controller to update.</param>
-    public EditorCameraSystem(IOrthographicCameraController cameraController)
-    {
-        _cameraController = cameraController ?? throw new ArgumentNullException(nameof(cameraController));
-    }
 
     /// <summary>
     /// Sets the camera controller to update.

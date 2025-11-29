@@ -5,55 +5,42 @@ using ImGuiNET;
 
 namespace Editor.Features.Settings;
 
-public class EditorSettingsUI
+public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings)
 {
     private bool _open;
-
-    private readonly IEditorPreferences _editorPreferences;
-    private readonly DebugSettings _debugSettings;
-
-    public EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings)
-    {
-        _editorPreferences = editorPreferences;
-        _debugSettings = debugSettings;
-    }
 
     public void Show() => _open = true;
 
     public void Render()
     {
-        // Use ModalDrawer for consistent modal handling and centering
         if (!ModalDrawer.BeginCenteredModal("Editor Settings", ref _open))
             return;
-
-        // --- Background Color ---
+        
         ImGui.Text("Editor Background Color");
-        var backgroundColor = _editorPreferences.BackgroundColor;
+        var backgroundColor = editorPreferences.BackgroundColor;
         if (ImGui.ColorEdit4("Background Color", ref backgroundColor))
         {
-            _editorPreferences.BackgroundColor = backgroundColor;
-            _editorPreferences.Save();
+            editorPreferences.BackgroundColor = backgroundColor;
+            editorPreferences.Save();
         }
 
         ImGui.Separator();
-
-        // --- Debug Visualization Settings ---
         ImGui.SeparatorText("Debug Visualization");
 
-        bool showColliders = _editorPreferences.ShowColliderBounds;
+        var showColliders = editorPreferences.ShowColliderBounds;
         if (ImGui.Checkbox("Show Collider Bounds", ref showColliders))
         {
-            _editorPreferences.ShowColliderBounds = showColliders;
-            _debugSettings.ShowColliderBounds = showColliders;
-            _editorPreferences.Save();
+            editorPreferences.ShowColliderBounds = showColliders;
+            debugSettings.ShowColliderBounds = showColliders;
+            editorPreferences.Save();
         }
 
-        bool showFps = _editorPreferences.ShowFPS;
+        var showFps = editorPreferences.ShowFPS;
         if (ImGui.Checkbox("Show FPS Counter", ref showFps))
         {
-            _editorPreferences.ShowFPS = showFps;
-            _debugSettings.ShowFPS = showFps;
-            _editorPreferences.Save();
+            editorPreferences.ShowFPS = showFps;
+            debugSettings.ShowFPS = showFps;
+            editorPreferences.Save();
         }
 
         ModalDrawer.EndModal();
@@ -62,5 +49,5 @@ public class EditorSettingsUI
     /// <summary>
     /// Gets the current background color from preferences.
     /// </summary>
-    public Vector4 GetBackgroundColor() => _editorPreferences.BackgroundColor;
+    public Vector4 GetBackgroundColor() => editorPreferences.BackgroundColor;
 }

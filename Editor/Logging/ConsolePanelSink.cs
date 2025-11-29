@@ -9,16 +9,13 @@ namespace Editor.Logging;
 /// <summary>
 /// Custom Serilog sink that writes log events to the Editor's ConsolePanel.
 /// </summary>
-public class ConsolePanelSink : ILogEventSink
+public class ConsolePanelSink(
+    IConsolePanel consolePanel,
+    string outputTemplate = "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    : ILogEventSink
 {
-    private readonly IConsolePanel _consolePanel;
-    private readonly ITextFormatter _formatter;
-
-    public ConsolePanelSink(IConsolePanel consolePanel, string outputTemplate = "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}")
-    {
-        _consolePanel = consolePanel ?? throw new ArgumentNullException(nameof(consolePanel));
-        _formatter = new MessageTemplateTextFormatter(outputTemplate);
-    }
+    private readonly IConsolePanel _consolePanel = consolePanel;
+    private readonly ITextFormatter _formatter = new MessageTemplateTextFormatter(outputTemplate);
 
     public void Emit(LogEvent logEvent)
     {

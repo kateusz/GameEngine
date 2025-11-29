@@ -260,7 +260,7 @@ public class EditorLayer : ILayer
             _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
 
             // Update camera aspect ratio when viewport changes
-            float aspectRatio = _viewportSize.X / _viewportSize.Y;
+            var aspectRatio = _viewportSize.X / _viewportSize.Y;
             _cameraController = new OrthographicCameraController(_cameraController.Camera, aspectRatio, true);
 
             // Update the camera system with the new controller instance
