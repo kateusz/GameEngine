@@ -24,6 +24,12 @@ public class SubTextureRenderingSystem : ISystem
     private readonly IContext _context;
 
     /// <summary>
+    /// The current scene this system is rendering for. Set by the Scene when it registers systems.
+    /// Used to access the cached primary camera data.
+    /// </summary>
+    public IScene? Scene { get; set; }
+
+    /// <summary>
     /// Priority of 205 ensures this system renders after regular sprites (200)
     /// but before 3D models (210).
     /// </summary>
@@ -50,28 +56,13 @@ public class SubTextureRenderingSystem : ISystem
 
     /// <summary>
     /// Updates and renders all subtextures in the scene.
-    /// Finds the primary camera and renders all entities with subtexture components.
+    /// Uses the cached primary camera from the scene for O(1) access.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since last frame.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Find the primary camera
-        Camera? mainCamera = null;
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var entity in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
+        // Get primary camera data from scene cache (O(1) operation)
+        var (mainCamera, cameraTransform) = Scene?.GetPrimaryCameraData() ?? (null, Matrix4x4.Identity);
 
         // Only render if we have a camera
         if (mainCamera == null)

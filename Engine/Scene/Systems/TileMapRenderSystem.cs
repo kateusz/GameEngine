@@ -19,6 +19,12 @@ public class TileMapRenderSystem : ISystem
     private readonly Dictionary<string, TileSet> _loadedTileSets = new();
     private readonly HashSet<int> _loggedEntities = new();
 
+    /// <summary>
+    /// The current scene this system is rendering for. Set by the Scene when it registers systems.
+    /// Used to access the cached primary camera data.
+    /// </summary>
+    public IScene? Scene { get; set; }
+
     public int Priority => 190; // Render before sprites
 
     public TileMapRenderSystem(IGraphics2D graphics2D, IContext context)
@@ -39,23 +45,8 @@ public class TileMapRenderSystem : ISystem
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Find the primary camera
-        Camera? mainCamera = null;
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var entity in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
+        // Get primary camera data from scene cache (O(1) operation)
+        var (mainCamera, cameraTransform) = Scene?.GetPrimaryCameraData() ?? (null, Matrix4x4.Identity);
 
         // Only render if we have a camera
         if (mainCamera == null)

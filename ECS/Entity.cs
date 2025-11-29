@@ -11,8 +11,9 @@ public class Entity : IEquatable<Entity>
     
     public int Id { get; private set; }
     public required string Name { get; set; }
-    
+
     public event Action<IComponent>? OnComponentAdded;
+    public event Action<IComponent>? OnComponentRemoved;
 
     /// <summary>
     /// Validates that this entity does not already have a component of the specified type.
@@ -65,7 +66,11 @@ public class Entity : IEquatable<Entity>
 
     public void RemoveComponent<T>() where T : IComponent
     {
-        _components.Remove(typeof(T));
+        if (_components.TryGetValue(typeof(T), out var component))
+        {
+            _components.Remove(typeof(T));
+            OnComponentRemoved?.Invoke(component);
+        }
     }
 
     /// <summary>
