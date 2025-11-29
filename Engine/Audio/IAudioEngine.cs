@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Engine.Audio;
 
-public interface IAudioEngine
+public interface IAudioEngine : IDisposable
 {
     void Initialize();
     void Shutdown();
