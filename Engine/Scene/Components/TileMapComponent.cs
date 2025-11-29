@@ -19,9 +19,9 @@ public class TileMapComponent : IComponent
     public int Height { get; set; } = 16;
     
     /// <summary>
-    /// Size of each tile in world units
+    /// Size of each tile in world units (0..1) range
     /// </summary>
-    public Vector2 TileSize { get; set; } = new Vector2(1.0f, 1.0f);
+    public Vector2 TileSize { get; set; } = new(1.0f, 1.0f);
     
     /// <summary>
     /// Path to the tileset texture asset

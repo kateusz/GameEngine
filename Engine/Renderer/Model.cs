@@ -198,43 +198,25 @@ public class Model : IModel
         return indices.ToArray();
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed) return;
-
-        if (disposing)
-        {
-            // Dispose managed resources
-
-            // Dispose all meshes
-            foreach (var mesh in Meshes)
-            {
-                mesh?.Dispose();
-            }
-            Meshes.Clear();
-
-            // Dispose all loaded textures
-            foreach (var texture in _texturesLoaded)
-            {
-                texture?.Dispose();
-            }
-            _texturesLoaded.Clear();
-        }
-
-        // No unmanaged resources to clean up directly
-        // (Assimp handles are managed by Silk.NET)
-
-        _disposed = true;
-    }
-
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
+        if (_disposed)
+            return;
 
-    ~Model()
-    {
-        Dispose(disposing: false);
+        // Dispose all meshes
+        foreach (var mesh in Meshes)
+        {
+            mesh?.Dispose();
+        }
+        Meshes.Clear();
+
+        // Dispose all loaded textures
+        foreach (var texture in _texturesLoaded)
+        {
+            texture?.Dispose();
+        }
+        _texturesLoaded.Clear();
+
+        _disposed = true;
     }
 }

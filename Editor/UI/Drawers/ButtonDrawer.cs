@@ -1,6 +1,5 @@
 using System.Numerics;
 using Editor.UI.Constants;
-using Editor.Utilities;
 using ImGuiNET;
 
 namespace Editor.UI.Drawers;

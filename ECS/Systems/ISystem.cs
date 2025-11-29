@@ -1,4 +1,4 @@
-namespace ECS;
+namespace ECS.Systems;
 
 /// <summary>
 /// Defines the contract for a system in the Entity Component System.

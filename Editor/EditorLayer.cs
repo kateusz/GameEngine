@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using ECS.Systems;
 using Editor.ComponentEditors;
 using Editor.Features.Project;
 using Editor.Features.Scene;
@@ -8,7 +9,8 @@ using Editor.Input;
 using Editor.Panels;
 using Editor.Systems;
 using Editor.UI.Drawers;
-using Editor.Utilities;
+using Editor.Features.Viewport;
+using Editor.Features.Viewport.Tools;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -59,8 +61,7 @@ public class EditorLayer : ILayer
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
-    private readonly ObjectManipulator _objectManipulator;
-    private readonly RulerTool _rulerTool;
+    private readonly ViewportToolManager _viewportToolManager;
 
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
@@ -80,7 +81,7 @@ public class EditorLayer : ILayer
         AnimationTimelinePanel animationTimeline, RecentProjectsPanel recentProjectsPanel,
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
-        IAssetsManager assetsManager, ObjectManipulator objectManipulator, RulerTool rulerTool,
+        IAssetsManager assetsManager, ViewportToolManager viewportToolManager,
         ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory)
     {
         _projectManager = projectManager;
@@ -107,8 +108,7 @@ public class EditorLayer : ILayer
         _debugSettings = debugSettings;
         _performanceMonitor = performanceMonitor;
         _assetsManager = assetsManager;
-        _objectManipulator = objectManipulator;
-        _rulerTool = rulerTool;
+        _viewportToolManager = viewportToolManager;
         _viewportRuler = viewportRuler;
         _frameBufferFactory = frameBufferFactory;
 
@@ -129,6 +129,7 @@ public class EditorLayer : ILayer
         _sceneManager.New();
 
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
+        _viewportToolManager.SubscribeToEntitySelection(EntitySelected);
 
         _contentBrowserPanel.Init();
         _sceneToolbar.Init();
@@ -195,7 +196,11 @@ public class EditorLayer : ILayer
             KeyCodes.Escape, KeyModifiers.None,
             () =>
             {
-                if (_sceneToolbar.CurrentMode == EditorMode.Ruler) _rulerTool.ClearMeasurement();
+                if (_sceneToolbar.CurrentMode == EditorMode.Ruler)
+                {
+                    var rulerTool = _viewportToolManager.GetTool<RulerTool>();
+                    rulerTool?.ClearMeasurement();
+                }
             },
             "Clear ruler measurement", "Tools"));
 
@@ -565,7 +570,7 @@ public class EditorLayer : ILayer
                     sceneValidator,
                     onDropped: path => { _sceneManager.Open(Path.Combine(_assetsManager.AssetsPath, path)); });
 
-                // Handle entity selection on mouse click in viewport
+                // Handle viewport interactions via ViewportToolManager
                 if (ImGui.IsWindowHovered())
                 {
                     var currentMode = _sceneToolbar.CurrentMode;
@@ -575,59 +580,39 @@ public class EditorLayer : ILayer
                     var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X,
                         globalMousePos.Y - _viewportBounds[0].Y);
 
-                    // Handle Ruler mode
-                    if (currentMode == EditorMode.Ruler)
+                    // Update active tool based on toolbar mode
+                    _viewportToolManager.SetMode(currentMode);
+
+                    // Update hovered entity for selection tool
+                    _viewportToolManager.SetHoveredEntity(_hoveredEntity);
+
+                    // Update target entity for manipulation tools
+                    var currentSelection = _sceneHierarchyPanel.GetSelectedEntity();
+                    if (currentSelection != null)
                     {
-                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                        {
-                            _rulerTool.StartMeasurement(localMousePos, _viewportBounds, _cameraController.Camera);
-                        }
+                        _viewportToolManager.SetTargetEntity(currentSelection);
+                    }
 
-                        if (_rulerTool.IsMeasuring)
-                        {
-                            _rulerTool.UpdateMeasurement(localMousePos, _viewportBounds, _cameraController.Camera);
-                        }
+                    // Handle mouse events through tool manager
+                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    {
+                        _viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _cameraController.Camera);
 
-                        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                        // Update hierarchy panel selection when entity is clicked
+                        if (_hoveredEntity != null && currentMode != EditorMode.Ruler)
                         {
-                            _rulerTool.EndMeasurement();
+                            _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
                         }
                     }
-                    else
+
+                    if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
                     {
-                        // Start dragging
-                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                        {
-                            if (_hoveredEntity != null)
-                            {
-                                _sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+                        _viewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _cameraController.Camera);
+                    }
 
-                                if (currentMode == EditorMode.Move || currentMode == EditorMode.Scale)
-                                {
-                                    // Start manipulation
-                                    _objectManipulator.StartDrag(_hoveredEntity, localMousePos, _viewportBounds,
-                                        _cameraController.Camera);
-                                }
-                                else
-                                {
-                                    // Select mode - just focus on entity
-                                    EntitySelected(_hoveredEntity);
-                                }
-                            }
-                        }
-
-                        // Update dragging
-                        if (_objectManipulator.IsDragging && ImGui.IsMouseDown(ImGuiMouseButton.Left))
-                        {
-                            _objectManipulator.UpdateDrag(currentMode, localMousePos, _viewportBounds,
-                                _cameraController.Camera);
-                        }
-
-                        // End dragging
-                        if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
-                        {
-                            _objectManipulator.EndDrag();
-                        }
+                    if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                    {
+                        _viewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _cameraController.Camera);
                     }
                 }
 
@@ -637,8 +622,8 @@ public class EditorLayer : ILayer
                 var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
                 _viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
-                // Render ruler tool measurements
-                _rulerTool.Render(_viewportBounds, _cameraController.Camera);
+                // Render active tool overlays (measurements, gizmos, etc.)
+                _viewportToolManager.RenderActiveTool(_viewportBounds, _cameraController.Camera);
             }
 
             // Render windows that should dock to Viewport

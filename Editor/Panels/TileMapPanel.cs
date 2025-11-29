@@ -43,7 +43,27 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         {
             LoadTileSet(tileMap.TileSetPath, tileMap.TileSetColumns, tileMap.TileSetRows);
         }
+
         IsOpen = true; // Automatically open when a tilemap is set
+    }
+
+    /// <summary>
+    /// Checks if the panel is currently editing the specified tilemap component
+    /// </summary>
+    public bool IsActiveFor(TileMapComponent tileMap)
+    {
+        return _activeTileMap == tileMap;
+    }
+
+    /// <summary>
+    /// Reloads the tileset with current tilemap settings
+    /// </summary>
+    public void ReloadTileSet()
+    {
+        if (_activeTileMap != null && !string.IsNullOrEmpty(_activeTileMap.TileSetPath))
+        {
+            LoadTileSet(_activeTileMap.TileSetPath, _activeTileMap.TileSetColumns, _activeTileMap.TileSetRows);
+        }
     }
 
     private void LoadTileSet(string path, int columns, int rows)
@@ -61,23 +81,23 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
             Rows = rows
         };
         _tileSet.LoadTexture(textureFactory);
-        
+
         if (_tileSet.Texture == null)
         {
             Console.WriteLine($"Failed to load TileSet texture: {path}");
             return;
         }
-        
-        // Calculate tile dimensions from texture size
+
+        // Calculate tile pixel dimensions from texture size and grid
         _tileSet.TileWidth = _tileSet.Texture.Width / columns;
         _tileSet.TileHeight = _tileSet.Texture.Height / rows;
-        
+
         _tileSet.GenerateTiles();
-        
+
         Console.WriteLine($"TileSet loaded: {path}");
         Console.WriteLine($"  Texture size: {_tileSet.Texture.Width}x{_tileSet.Texture.Height}");
         Console.WriteLine($"  Grid: {columns}x{rows} = {_tileSet.Tiles.Count} tiles");
-        Console.WriteLine($"  Tile size: {_tileSet.TileWidth}x{_tileSet.TileHeight}");
+        Console.WriteLine($"  Tile size (pixels): {_tileSet.TileWidth}x{_tileSet.TileHeight}");
     }
 
     public void OnImGuiRender(uint viewportDockId = 0)
@@ -100,8 +120,10 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         var isOpen = true;
         if (ImGui.Begin("TileMap Editor", ref isOpen))
         {
-            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing,
+                new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.LargePadding));
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,
+                new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
 
             ImGui.Spacing();
             DrawToolbar();
@@ -124,6 +146,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
             ImGui.PopStyleVar(2);
         }
+
         ImGui.End();
 
         // Update IsOpen state based on window close button
@@ -209,7 +232,8 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                     ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0.5f, 0.7f, 1.0f, 0.8f));
                 }
 
-                if (ImGui.Selectable($"{layer.Name} (Z:{layer.ZIndex})##layer{i}", isSelected, ImGuiSelectableFlags.None, new Vector2(0, 20)))
+                if (ImGui.Selectable($"{layer.Name} (Z:{layer.ZIndex})##layer{i}", isSelected,
+                        ImGuiSelectableFlags.None, new Vector2(0, 20)))
                 {
                     _activeTileMap.ActiveLayerIndex = i;
                 }
@@ -280,15 +304,14 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 ImGui.Unindent(EditorUIConstants.SmallPadding);
                 ImGui.PopID();
             }
+
             ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Bottom padding
             ImGui.EndChild();
         }
 
         // Layer controls
-        ButtonDrawer.DrawButton("➕ Add Layer", () =>
-        {
-            _activeTileMap.AddLayer($"Layer {_activeTileMap.Layers.Count}");
-        });
+        ButtonDrawer.DrawButton("➕ Add Layer",
+            () => { _activeTileMap.AddLayer($"Layer {_activeTileMap.Layers.Count}"); });
 
         ImGui.SameLine();
 
@@ -388,22 +411,22 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
             var texCoords = _tileSet.GetTileTextureCoords(i);
             var uvMin = texCoords[0];
             var uvMax = texCoords[2];
-            
+
             var isSelected = _selectedTileId == i;
             var bgColor = isSelected ? new Vector4(0.3f, 0.5f, 0.8f, 1.0f) : new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
-            
+
             var cursorPos = ImGui.GetCursorScreenPos();
             var drawList = ImGui.GetWindowDrawList();
-            
+
             drawList.AddRectFilled(cursorPos, cursorPos + tileDisplaySize, ImGui.ColorConvertFloat4ToU32(bgColor));
-            
+
             ImGui.Image(textureId, tileDisplaySize, uvMin, uvMax);
-            
+
             if (ImGui.IsItemClicked())
             {
                 _selectedTileId = i;
             }
-            
+
             // Show tile ID on hover
             if (ImGui.IsItemHovered())
             {
@@ -420,6 +443,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
             ImGui.PopID();
         }
+
         ImGui.Unindent(EditorUIConstants.SmallPadding);
 
         ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Bottom padding
@@ -430,7 +454,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
     {
         if (_activeTileMap == null) return;
 
-        ImGui.BeginChild("TileMapCanvas", new Vector2(0, 0), ImGuiChildFlags.Border, 
+        ImGui.BeginChild("TileMapCanvas", new Vector2(0, 0), ImGuiChildFlags.Border,
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         _viewportPos = ImGui.GetCursorScreenPos();
@@ -439,7 +463,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         var drawList = ImGui.GetWindowDrawList();
 
         // Draw background
-        drawList.AddRectFilled(_viewportPos, _viewportPos + _viewportSize, 
+        drawList.AddRectFilled(_viewportPos, _viewportPos + _viewportSize,
             ImGui.ColorConvertFloat4ToU32(new Vector4(0.15f, 0.15f, 0.15f, 1.0f)));
 
         // Calculate tile display size - use fixed pixel size for editor, not world-space TileSize
@@ -538,7 +562,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
             var tileCoord = ScreenToTile(mousePos, tileDisplaySize);
-            
+
             if (tileCoord.X >= 0 && tileCoord.X < _activeTileMap!.Width &&
                 tileCoord.Y >= 0 && tileCoord.Y < _activeTileMap.Height)
             {
@@ -571,6 +595,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 {
                     _activeTileMap.SetTile(tileCoord.X, tileCoord.Y, _selectedTileId, layer);
                 }
+
                 break;
 
             case TileMapTool.Erase:
@@ -653,4 +678,3 @@ public struct Vector2Int
         Y = y;
     }
 }
-

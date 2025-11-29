@@ -140,20 +140,10 @@ internal sealed class Graphics3D : IGraphics3D
 
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
         if (_disposed)
             return;
 
-        if (disposing)
-        {
-            // Dispose managed resources
-            _phongShader?.Dispose();
-        }
+        _phongShader?.Dispose();
 
         _disposed = true;
     }

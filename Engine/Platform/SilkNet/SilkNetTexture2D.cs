@@ -199,7 +199,7 @@ internal sealed class SilkNetTexture2D : Texture2D
         return _hashCode;
     }
 
-    protected override void Dispose(bool disposing)
+    public override void Dispose()
     {
         if (_disposed)
             return;
@@ -214,20 +214,9 @@ internal sealed class SilkNetTexture2D : Texture2D
         }
         catch (Exception e)
         {
-            // Finalizers and Dispose must not throw exceptions
             System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL texture {_rendererId}: {e.Message}");
         }
 
         _disposed = true;
-        base.Dispose(disposing);
-    }
-
-    ~SilkNetTexture2D()
-    {
-        if (_rendererId != 0)
-        {
-            // NEVER call OpenGL in finalizer - just log warning
-            System.Diagnostics.Debug.WriteLine($"GPU LEAK: Texture {Path} (ID: {_rendererId}) not disposed!");
-        }
     }
 }

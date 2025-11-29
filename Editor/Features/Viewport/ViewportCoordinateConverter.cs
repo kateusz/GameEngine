@@ -1,7 +1,7 @@
 using System.Numerics;
 using Engine.Renderer.Cameras;
 
-namespace Editor.Utilities;
+namespace Editor.Features.Viewport;
 
 /// <summary>
 /// Helper class for converting between screen space and world space coordinates in the editor viewport.

@@ -11,11 +11,12 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
     
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
-    private AL _al;
-    private ALContext _alc;
+    private AL _al = null!;
+    private ALContext _alc = null!;
     private Device* _device;
     private Context* _context;
-    private readonly List<SilkNetAudioSource> _activeSources = new();
+    private readonly List<SilkNetAudioSource> _activeSources = [];
+    private bool _disposed;
 
     public void Initialize()
     {
@@ -109,17 +110,9 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         return source;
     }
 
-    private IAudioClip CreateAudioClip(string path)
-    {
-        return new SilkNetAudioClip(path, _al);
-    }
+    private IAudioClip CreateAudioClip(string path) => new SilkNetAudioClip(path, _al);
 
-    internal void UnregisterSource(SilkNetAudioSource source)
-    {
-        _activeSources.Remove(source);
-    }
-
-    public AL GetAL() => _al;
+    private void UnregisterSource(SilkNetAudioSource source) => _activeSources.Remove(source);
 
     // Virtual methods with default implementation that can be overridden
     public IAudioClip LoadAudioClip(string path)
@@ -185,19 +178,15 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         }
     }
     
-    private void Dispose(bool disposing)
-    {
-        if (!disposing) 
-            return;
-
-        ClearLoadedClips();
-        Shutdown();
-    }
-
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        if (_disposed)
+            return;
+        
+        ClearLoadedClips();
+        Shutdown();
+        
+        _disposed = true;
     }
 
     // Protected helper methods for subclasses

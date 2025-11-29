@@ -13,7 +13,7 @@ namespace Editor.ComponentEditors;
 public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager) : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<TileMapComponentEditor>();
-    
+
     public void DrawComponent(Entity entity)
     {
         ComponentEditorRegistry.DrawComponent<TileMapComponent>("TileMap", entity, e =>
@@ -33,13 +33,13 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
                 component.Resize(component.Width, height);
             }
 
-            // Tile Size
             var tileSize = component.TileSize;
             if (ImGui.DragFloat2("Tile Size", ref tileSize, 0.1f, 0.1f, 100.0f))
             {
                 component.TileSize = tileSize;
+                ReloadTileMapIfActive(component);
             }
-            
+
             ImGui.Separator();
             UIPropertyRenderer.DrawPropertyRow("TileSet file", () =>
             {
@@ -59,6 +59,7 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
                     {
                         var tilemapPath = Path.Combine(assetsManager.AssetsPath, droppedPath);
                         component.TileSetPath = tilemapPath;
+                        ReloadTileMapIfActive(component);
                     });
             });
 
@@ -66,12 +67,14 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
             if (ImGui.DragInt("Columns", ref columns, 1, 1, 64))
             {
                 component.TileSetColumns = columns;
+                ReloadTileMapIfActive(component);
             }
 
             var rows = component.TileSetRows;
             if (ImGui.DragInt("Rows", ref rows, 1, 1, 64))
             {
                 component.TileSetRows = rows;
+                ReloadTileMapIfActive(component);
             }
 
             // Layers info
@@ -86,6 +89,14 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
                 tileMapPanel.SetTileMap(component);
             });
         });
+    }
+    
+    private void ReloadTileMapIfActive(TileMapComponent component)
+    {
+        if (tileMapPanel.IsOpen && tileMapPanel.IsActiveFor(component))
+        {
+            tileMapPanel.ReloadTileSet();
+        }
     }
 }
 
