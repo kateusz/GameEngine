@@ -2,6 +2,7 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
 using Engine;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -10,10 +11,12 @@ namespace Editor.ComponentEditors;
 public class SubTextureRendererComponentEditor : IComponentEditor
 {
     private readonly IAssetsManager _assetsManager;
+    private readonly ITextureFactory _textureFactory;
 
-    public SubTextureRendererComponentEditor(IAssetsManager assetsManager)
+    public SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
     {
         _assetsManager = assetsManager;
+        _textureFactory = textureFactory;
     }
 
     public void DrawComponent(Entity e)
@@ -26,7 +29,7 @@ public class SubTextureRendererComponentEditor : IComponentEditor
             var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
             ImGui.BeginDisabled(hasAnimationComponent);
 
-            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, _assetsManager);
+            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, _assetsManager, _textureFactory);
 
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);

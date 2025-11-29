@@ -32,26 +32,33 @@ public class Mesh : IDisposable
         return _vertexArray;
     }
 
-    public Mesh(string name = "Unnamed")
+    public Mesh(string name = "Unnamed", ITextureFactory? textureFactory = null)
     {
         Name = name;
         Vertices = [];
         Indices = [];
         Textures = [];
-        DiffuseTexture = TextureFactory.GetWhiteTexture(); // Shared white texture
+        DiffuseTexture = textureFactory?.GetWhiteTexture()!;
     }
 
-    public void Initialize()
+    public void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
     {
+        if (vertexArrayFactory == null)
+            throw new ArgumentNullException(nameof(vertexArrayFactory));
+        if (vertexBufferFactory == null)
+            throw new ArgumentNullException(nameof(vertexBufferFactory));
+        if (indexBufferFactory == null)
+            throw new ArgumentNullException(nameof(indexBufferFactory));
+
         if (_initialized)
             throw new InvalidOperationException($"Mesh '{Name}' already initialized. Initialize() should only be called once.");
-        
+
         // Create vertex array
-        _vertexArray = VertexArrayFactory.Create();
-        
+        _vertexArray = vertexArrayFactory.Create();
+
         // Create vertex buffer
-        _vertexBuffer = VertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
-        
+        _vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
+
         var layout = new BufferLayout(new []
         {
             new BufferElement(ShaderDataType.Float3, "a_Position"),
@@ -59,17 +66,17 @@ public class Mesh : IDisposable
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         });
-        
+
         _vertexBuffer.SetLayout(layout);
         _vertexArray.AddVertexBuffer(_vertexBuffer);
-        
+
         // Upload vertex data
         UploadVertexData();
-        
+
         // Create index buffer
-        _indexBuffer = IndexBufferFactory.Create(Indices.ToArray(), Indices.Count);
+        _indexBuffer = indexBufferFactory.Create(Indices.ToArray(), Indices.Count);
         _vertexArray.SetIndexBuffer(_indexBuffer);
-        
+
         _initialized = true;
     }
 

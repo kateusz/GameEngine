@@ -2,7 +2,7 @@ using Engine.Platform.SilkNet.Audio.Loaders;
 
 namespace Engine.Audio;
 
-public static class AudioLoaderRegistry
+internal static class AudioLoaderRegistry
 {
     private static readonly List<IAudioLoader> Loaders =
     [

@@ -14,17 +14,17 @@ namespace Engine.Scene.Systems;
 ///
 /// Priority: 198 (after scripts, before rendering)
 /// </summary>
-public class AnimationSystem : ISystem
+internal sealed class AnimationSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationSystem>();
 
     public int Priority => 198;
 
     private readonly EventBus _eventBus;
-    private readonly AnimationAssetManager _animationAssetManager;
+    private readonly IAnimationAssetManager _animationAssetManager;
     private readonly IContext _context;
 
-    public AnimationSystem(EventBus eventBus, AnimationAssetManager animationAssetManager, IContext context)
+    public AnimationSystem(EventBus eventBus, IAnimationAssetManager animationAssetManager, IContext context)
     {
         _eventBus = eventBus;
         _animationAssetManager = animationAssetManager;

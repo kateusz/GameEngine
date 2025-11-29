@@ -8,7 +8,7 @@ namespace Engine.Scene;
 /// Central registry for scene systems. Provides system configuration that can be reused across multiple scenes.
 /// Uses factory delegates for system creation to support proper dependency injection.
 /// </summary>
-public class SceneSystemRegistry : ISceneSystemRegistry
+internal sealed class SceneSystemRegistry : ISceneSystemRegistry
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemRegistry>();
 

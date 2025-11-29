@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Serilog;
 
@@ -13,7 +14,7 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-public class PrefabSerializer : IPrefabSerializer
+internal sealed class PrefabSerializer : IPrefabSerializer
 {
     private static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
     
@@ -27,6 +28,7 @@ public class PrefabSerializer : IPrefabSerializer
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
     private readonly IAudioEngine _audioEngine;
+    private readonly ITextureFactory _textureFactory;
 
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
@@ -40,9 +42,10 @@ public class PrefabSerializer : IPrefabSerializer
         }
     };
 
-    public PrefabSerializer(IAudioEngine audioEngine)
+    public PrefabSerializer(IAudioEngine audioEngine, ITextureFactory textureFactory)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
+        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
     }
 
     /// <summary>
@@ -344,7 +347,7 @@ public class PrefabSerializer : IPrefabSerializer
         // Reload texture from disk if path exists
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
-            component.Texture = Renderer.Textures.TextureFactory.Create(component.Texture.Path);
+            component.Texture = _textureFactory.Create(component.Texture.Path);
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
@@ -359,7 +362,7 @@ public class PrefabSerializer : IPrefabSerializer
         // Reload texture from disk if path exists
         if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
         {
-            component.Texture = Renderer.Textures.TextureFactory.Create(component.Texture.Path);
+            component.Texture = _textureFactory.Create(component.Texture.Path);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);

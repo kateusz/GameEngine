@@ -8,9 +8,9 @@ using Serilog;
 
 namespace Engine.Scene;
 
-public class SceneContactListener : ContactListener
+internal sealed class SceneContactListener : ContactListener
 {
-    private static readonly Serilog.ILogger Logger = Log.ForContext<SceneContactListener>();
+    private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
     
     public override void BeginContact(in Contact contact)
     {
@@ -35,7 +35,7 @@ public class SceneContactListener : ContactListener
             }
             
             // Check if either fixture is a sensor (trigger)
-            bool isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
+            var isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
             
             if (isTrigger)
             {
@@ -73,7 +73,7 @@ public class SceneContactListener : ContactListener
             if (entityA == null || entityB == null)
                 return;
             
-            bool isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
+            var isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
             
             if (isTrigger)
             {

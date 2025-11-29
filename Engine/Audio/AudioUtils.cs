@@ -1,6 +1,6 @@
 namespace Engine.Audio;
 
-public static class AudioUtils
+internal static class AudioUtils
 {
     public static float DecibelToLinear(float decibel)
     {

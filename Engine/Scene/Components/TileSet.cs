@@ -36,13 +36,17 @@ public class TileSet
     public List<Tile> Tiles { get; set; } = new();
 
     /// <summary>
-    /// Loads the tileset texture
+    /// Loads the tileset texture using the provided texture factory
     /// </summary>
-    public void LoadTexture()
+    /// <param name="textureFactory">Factory for creating textures</param>
+    public void LoadTexture(ITextureFactory textureFactory)
     {
+        if (textureFactory == null)
+            throw new ArgumentNullException(nameof(textureFactory));
+
         if (!string.IsNullOrEmpty(TexturePath) && File.Exists(TexturePath))
         {
-            Texture = TextureFactory.Create(TexturePath);
+            Texture = textureFactory.Create(TexturePath);
         }
     }
 
@@ -55,10 +59,10 @@ public class TileSet
         
         if (Texture == null) return;
         
-        int tileId = 0;
-        for (int row = 0; row < Rows; row++)
+        var tileId = 0;
+        for (var row = 0; row < Rows; row++)
         {
-            for (int col = 0; col < Columns; col++)
+            for (var col = 0; col < Columns; col++)
             {
                 var tile = new Tile
                 {
@@ -84,11 +88,11 @@ public class TileSet
         float x = Margin + column * (TileWidth + Spacing);
         float y = Margin + row * (TileHeight + Spacing);
         
-        float minU = x / texWidth;
-        float minV = y / texHeight;
+        var minU = x / texWidth;
+        var minV = y / texHeight;
         
-        float maxU = (x + TileWidth) / texWidth;
-        float maxV = (y + TileHeight) / texHeight;
+        var maxU = (x + TileWidth) / texWidth;
+        var maxV = (y + TileHeight) / texHeight;
         
         var min = new Vector2(minU, minV);
         var max = new Vector2(maxU, maxV);

@@ -13,7 +13,7 @@ using ZLinq;
 
 namespace Engine.Scripting;
 
-public class ScriptEngine : IScriptEngine
+internal sealed class ScriptEngine : IScriptEngine
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
@@ -24,15 +24,12 @@ public class ScriptEngine : IScriptEngine
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
 
-    // Debug support fields
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
-    private bool _debugMode = true; // Enable debugging by default in development
+    private bool _debugMode = true;
 
     public ScriptEngine(ISceneContext sceneContext)
     {
         _sceneContext = sceneContext;
-
-        // Default to current directory, but allow override
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
     }
@@ -46,11 +43,11 @@ public class ScriptEngine : IScriptEngine
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Check for script changes
         CheckForScriptChanges();
 
-        // Update all script components
-        if (_sceneContext.ActiveScene == null) return;
+        // TODO: check if ActiveScene could be null
+        if (_sceneContext.ActiveScene == null)
+            return;
 
         var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
@@ -61,7 +58,6 @@ public class ScriptEngine : IScriptEngine
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
             if (scriptComponent.ScriptableEntity == null) continue;
 
-            // Initialize if needed
             if (scriptComponent.ScriptableEntity.Entity == null)
             {
                 scriptComponent.ScriptableEntity.Entity = entity;
@@ -76,7 +72,6 @@ public class ScriptEngine : IScriptEngine
                 }
             }
 
-            // Update script
             try
             {
                 scriptComponent.ScriptableEntity.OnUpdate(deltaTime);
@@ -90,8 +85,8 @@ public class ScriptEngine : IScriptEngine
 
     public void OnRuntimeStop()
     {
-        // Handle OnDestroy lifecycle for all script entities
-        if (_sceneContext.ActiveScene == null) return;
+        if (_sceneContext.ActiveScene == null)
+            return;
 
         var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
@@ -126,17 +121,19 @@ public class ScriptEngine : IScriptEngine
 
     public void ProcessEvent(Event @event)
     {
-        if (_sceneContext.ActiveScene == null) return;
+        if (_sceneContext.ActiveScene == null)
+            return;
 
         var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
+
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            if (scriptComponent.ScriptableEntity == null) continue;
+            if (scriptComponent.ScriptableEntity == null) 
+                continue;
 
-            // Forward events to appropriate script handlers
             try
             {
                 switch (@event)
@@ -159,32 +156,23 @@ public class ScriptEngine : IScriptEngine
         }
     }
 
-    public string[] GetAvailableScriptNames()
-    {
-        return _scriptTypes.Keys.ToArray();
-    }
+    public string[] GetAvailableScriptNames() => _scriptTypes.Keys.ToArray();
 
-    public Type? GetScriptType(string scriptName)
-    {
-        return _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
-    }
+    public Type? GetScriptType(string scriptName) => _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
 
     public string GetScriptSource(string scriptName)
     {
         if (_scriptSources.TryGetValue(scriptName, out var source))
-        {
             return source;
-        }
 
         var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-        if (File.Exists(scriptPath))
-        {
-            var src = File.ReadAllText(scriptPath);
-            _scriptSources[scriptName] = src;
-            return src;
-        }
+        if (!File.Exists(scriptPath)) 
+            return string.Empty;
+        
+        var src = File.ReadAllText(scriptPath);
+        _scriptSources[scriptName] = src;
+        return src;
 
-        return string.Empty;
     }
 
     public Result<ScriptableEntity> CreateScriptInstance(string scriptName)
@@ -199,7 +187,9 @@ public class ScriptEngine : IScriptEngine
         try
         {
             var instance = Activator.CreateInstance(scriptType) as ScriptableEntity;
-            return instance is null ? Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}") : Result.Success(instance);
+            return instance is null
+                ? Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}")
+                : Result.Success(instance);
         }
         catch (Exception ex)
         {
@@ -209,20 +199,18 @@ public class ScriptEngine : IScriptEngine
         }
     }
 
-    public async Task<(bool Success, string[] Errors)> CreateOrUpdateScriptAsync(string scriptName, string scriptContent)
+    public async Task<(bool Success, string[] Errors)> CreateOrUpdateScriptAsync(string scriptName,
+        string scriptContent)
     {
         var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-            
+
         try
         {
-            // Save script content
             await File.WriteAllTextAsync(scriptPath, scriptContent);
             _scriptSources[scriptName] = scriptContent;
             _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
-                
-            // Compile the script
+            
             var (success, errors) = CompileScript(scriptName, scriptContent);
-                
             if (success)
             {
                 Logger.Information("Script '{ScriptName}' successfully compiled", scriptName);
@@ -242,21 +230,18 @@ public class ScriptEngine : IScriptEngine
     public bool DeleteScript(string scriptName)
     {
         var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-            
+
         try
         {
-            if (File.Exists(scriptPath))
-            {
+            if (File.Exists(scriptPath)) 
                 File.Delete(scriptPath);
-            }
-                
+
             _scriptTypes.Remove(scriptName);
             _scriptSources.Remove(scriptName);
             _scriptLastModified.Remove(scriptName);
-                
-            // Recompile all scripts to ensure dependencies are handled
+            
             CompileAllScripts();
-                
+
             return true;
         }
         catch (Exception ex)
@@ -268,17 +253,15 @@ public class ScriptEngine : IScriptEngine
 
     public void EnableHybridDebugging(bool enable = true)
     {
-        _debugMode = enable; // Also enable script debugging
-        
+        _debugMode = enable;
+
         if (enable)
         {
-            // Ensure scripts are compiled with debug info
             Logger.Information("Hybrid debugging enabled - engine + scripts");
             CompileAllScripts();
         }
     }
-
-    // Method to save debug symbols to disk (useful for external debuggers)
+    
     public bool SaveDebugSymbols(string outputPath, string assemblyName = "DynamicScripts")
     {
         try
@@ -286,15 +269,16 @@ public class ScriptEngine : IScriptEngine
             if (_debugSymbols.TryGetValue(assemblyName, out var symbols))
             {
                 File.WriteAllBytes($"{outputPath}.pdb", symbols);
-                
+
                 // Also save the assembly for complete debugging setup
                 if (_dynamicAssembly != null && !string.IsNullOrEmpty(_dynamicAssembly.Location))
                 {
                     File.Copy(_dynamicAssembly.Location, $"{outputPath}.dll", true);
                 }
-                
+
                 return true;
             }
+
             return false;
         }
         catch (Exception ex)
@@ -303,64 +287,60 @@ public class ScriptEngine : IScriptEngine
             return false;
         }
     }
-
-    // Enhanced debugging information
+    
     public void PrintDebugInfo()
     {
         Logger.Debug("=== SCRIPT ENGINE DEBUG INFO ===");
         Logger.Debug("Debug Mode: {DebugMode}", _debugMode);
         Logger.Debug("Scripts Directory: {ScriptsDirectory}", _scriptsDirectory);
         Logger.Debug("Loaded Scripts: {ScriptCount}", _scriptTypes.Count);
-        
+
         foreach (var (name, type) in _scriptTypes)
         {
             Logger.Debug("  - {ScriptName}: {TypeFullName}", name, type.FullName);
         }
-        
+
         Logger.Debug("Debug Symbols Available: {DebugSymbolsAvailable}", _debugSymbols.Count > 0);
-        
+
         if (_dynamicAssembly != null)
         {
             Logger.Debug("Assembly Location: {AssemblyLocation}", _dynamicAssembly.Location);
             Logger.Debug("Assembly Full Name: {AssemblyFullName}", _dynamicAssembly.FullName);
         }
-        
+
         Logger.Debug("================================");
     }
-
-    // Force recompile method for hot reload
+    
     public void CompileAllScripts()
     {
         Logger.Information("Compiling all scripts...");
-            
+
         var scriptFiles = Directory.GetFiles(_scriptsDirectory, "*.cs");
         if (scriptFiles.Length == 0)
         {
             Logger.Information("No scripts found to compile");
             return;
         }
-            
+
         var syntaxTrees = new List<SyntaxTree>();
-            
+
         foreach (var scriptPath in scriptFiles)
         {
             var scriptName = Path.GetFileNameWithoutExtension(scriptPath);
-                
+
             try
             {
-                // Read file with proper encoding for debug symbols
                 var scriptContent = File.ReadAllText(scriptPath, System.Text.Encoding.UTF8);
-                    
+
                 _scriptSources[scriptName] = scriptContent;
                 _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
-                    
-                // Create syntax tree with proper encoding and file path for debugging
+                
                 var syntaxTree = CSharpSyntaxTree.ParseText(
                     text: scriptContent,
                     options: CSharpParseOptions.Default,
                     path: scriptPath,
-                    encoding: System.Text.Encoding.UTF8); // FIXED: Add encoding for debug symbols
-                    
+                    encoding: System.Text.Encoding.UTF8);
+
                 syntaxTrees.Add(syntaxTree);
                 Logger.Debug("✅ Loaded script: {ScriptName} with encoding: UTF-8", scriptName);
             }
@@ -369,7 +349,7 @@ public class ScriptEngine : IScriptEngine
                 Logger.Error(ex, "Failed to load script: {ScriptName}", scriptName);
             }
         }
-            
+
         if (syntaxTrees.Count > 0)
         {
             CompileScripts(syntaxTrees.ToArray());
@@ -382,22 +362,22 @@ public class ScriptEngine : IScriptEngine
 
     private void CheckForScriptChanges()
     {
-        bool needsRecompile = false;
-        
+        var needsRecompile = false;
+
         foreach (var (scriptName, lastModified) in _scriptLastModified)
         {
             var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-            if (File.Exists(scriptPath))
+            if (!File.Exists(scriptPath)) 
+                continue;
+            
+            var currentModified = File.GetLastWriteTime(scriptPath);
+            if (currentModified > lastModified)
             {
-                var currentModified = File.GetLastWriteTime(scriptPath);
-                if (currentModified > lastModified)
-                {
-                    needsRecompile = true;
-                    break;
-                }
+                needsRecompile = true;
+                break;
             }
         }
-        
+
         if (needsRecompile)
         {
             Logger.Information("Script changes detected, recompiling...");
@@ -408,48 +388,46 @@ public class ScriptEngine : IScriptEngine
     private (bool Success, string[] Errors) CompileScript(string scriptName, string scriptContent)
     {
         var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-        
+
         try
         {
-            // Create syntax tree with proper encoding - for new/modified scripts
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 text: scriptContent,
                 options: CSharpParseOptions.Default,
                 path: scriptPath,
-                encoding: System.Text.Encoding.UTF8); // FIXED: Add encoding
-            
-            // Add existing scripts to compilation
+                encoding: System.Text.Encoding.UTF8);
+
             var syntaxTrees = new List<SyntaxTree> { syntaxTree };
-            
+
+            // TODO: check performance
             foreach (var (name, source) in _scriptSources)
             {
-                if (name != scriptName)
+                if (name == scriptName) 
+                    continue;
+                
+                var existingPath = Path.Combine(_scriptsDirectory, $"{name}.cs");
+                
+                var existingContent = source;
+                if (File.Exists(existingPath))
                 {
-                    var existingPath = Path.Combine(_scriptsDirectory, $"{name}.cs");
-                    
-                    // For existing scripts, read from file with proper encoding
-                    string existingContent = source;
-                    if (File.Exists(existingPath))
-                    {
-                        existingContent = File.ReadAllText(existingPath, System.Text.Encoding.UTF8);
-                    }
-                    
-                    var existingTree = CSharpSyntaxTree.ParseText(
-                        text: existingContent,
-                        options: CSharpParseOptions.Default,
-                        path: existingPath,
-                        encoding: System.Text.Encoding.UTF8);
-                        
-                    syntaxTrees.Add(existingTree);
+                    existingContent = File.ReadAllText(existingPath, System.Text.Encoding.UTF8);
                 }
+
+                var existingTree = CSharpSyntaxTree.ParseText(
+                    text: existingContent,
+                    options: CSharpParseOptions.Default,
+                    path: existingPath,
+                    encoding: System.Text.Encoding.UTF8);
+
+                syntaxTrees.Add(existingTree);
             }
-            
+
             return CompileScripts(syntaxTrees.ToArray());
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error preparing compilation for script: {ScriptName}", scriptName);
-            return (false, new[] { ex.Message });
+            return (false, [ex.Message]);
         }
     }
 
@@ -457,40 +435,36 @@ public class ScriptEngine : IScriptEngine
     {
         try
         {
-            // Get required references
             var references = GetReferencesFromRuntimeDirectory();
             
-            // Validate that we have all required references
             var validationResult = ValidateReferences(references);
             if (!validationResult.Success)
             {
                 return (false, validationResult.Errors);
             }
-                
-            // Create compilation with debug options - FIXED Platform enum
+            
             var compilationOptions = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: _debugMode ? OptimizationLevel.Debug : OptimizationLevel.Release,
                 allowUnsafe: true,
-                platform: Microsoft.CodeAnalysis.Platform.AnyCpu, // FIXED: Correct namespace
+                platform: Microsoft.CodeAnalysis.Platform.AnyCpu,
                 warningLevel: 4,
                 deterministic: true,
                 checkOverflow: false);
-                
+
             var compilation = CSharpCompilation.Create(
                 "DynamicScripts",
                 syntaxTrees,
                 references,
                 compilationOptions);
             
-            // CHECK DIAGNOSTICS BEFORE EMITTING - This is crucial!
             var preEmitDiagnostics = compilation.GetDiagnostics();
             Logger.Debug("=== PRE-EMIT DIAGNOSTICS ({DiagnosticsCount}) ===", preEmitDiagnostics.Length);
-        
+
             var errorDiagnostics = preEmitDiagnostics
                 .AsValueEnumerable()
                 .Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
-            
+
             if (errorDiagnostics.Length > 0)
             {
                 Logger.Error("❌ COMPILATION ERRORS DETECTED:");
@@ -500,11 +474,11 @@ public class ScriptEngine : IScriptEngine
                     Logger.Error("  Location: {Location}", diagnostic.Location);
                     Logger.Error("  Id: {DiagnosticId}", diagnostic.Id);
                 }
-                
+
                 var errors = errorDiagnostics.Select(d => d.GetMessage()).ToArray();
                 return (false, errors);
             }
-            
+
             foreach (var diagnostic in preEmitDiagnostics)
             {
                 Logger.Debug("{Severity}: {Message}", diagnostic.Severity, diagnostic.GetMessage());
@@ -512,26 +486,27 @@ public class ScriptEngine : IScriptEngine
                 {
                     Logger.Debug("  Location: {Location}", diagnostic.Location);
                 }
+
                 Logger.Debug("  Id: {DiagnosticId}", diagnostic.Id);
                 Logger.Debug("");
             }
             
-            // Configure emit options for debugging
             var emitOptions = new EmitOptions(
-                debugInformationFormat: _debugMode ? DebugInformationFormat.PortablePdb : DebugInformationFormat.Embedded,
+                debugInformationFormat: _debugMode
+                    ? DebugInformationFormat.PortablePdb
+                    : DebugInformationFormat.Embedded,
                 includePrivateMembers: _debugMode);
             
-            // Emit to memory with debug symbols
             using var assemblyStream = new MemoryStream();
             using var symbolsStream = _debugMode ? new MemoryStream() : null;
-            
+
             var emitResult = compilation.Emit(
                 peStream: assemblyStream,
                 pdbStream: symbolsStream,
                 options: emitOptions);
-            
+
             Logger.Debug("=== EMIT RESULT: {EmitSuccess} ===", emitResult.Success);
-        
+
             if (!emitResult.Success)
             {
                 Logger.Error("=== EMIT DIAGNOSTICS ===");
@@ -539,7 +514,7 @@ public class ScriptEngine : IScriptEngine
                 {
                     Logger.Error("{Severity}: {Message}", diagnostic.Severity, diagnostic.GetMessage());
                 }
-                
+
                 var errors = emitResult.Diagnostics
                     .AsValueEnumerable()
                     .Where(d => d.Severity == DiagnosticSeverity.Error)
@@ -553,27 +528,27 @@ public class ScriptEngine : IScriptEngine
 
             // Load assembly with debug symbols
             assemblyStream.Seek(0, SeekOrigin.Begin);
-            byte[] assemblyBytes = assemblyStream.ToArray();
-            
+            var assemblyBytes = assemblyStream.ToArray();
+
             byte[]? symbolBytes = null;
             if (symbolsStream != null)
             {
                 symbolsStream.Seek(0, SeekOrigin.Begin);
                 symbolBytes = symbolsStream.ToArray();
-                
+
                 // Store debug symbols for later use
                 _debugSymbols["DynamicScripts"] = symbolBytes;
             }
-            
+
             // Load assembly with debug information
-            _dynamicAssembly = symbolBytes != null 
+            _dynamicAssembly = symbolBytes != null
                 ? Assembly.Load(assemblyBytes, symbolBytes)
                 : Assembly.Load(assemblyBytes);
-                    
-            // Update script types dictionary - FIXED: Added missing method
+            
             UpdateScriptTypes();
 
-            Logger.Information("Successfully compiled {ScriptCount} scripts with debug support: {DebugMode}", _scriptTypes.Count, _debugMode);
+            Logger.Information("Successfully compiled {ScriptCount} scripts with debug support: {DebugMode}",
+                _scriptTypes.Count, _debugMode);
             return (true, []);
         }
         catch (Exception ex)
@@ -582,12 +557,12 @@ public class ScriptEngine : IScriptEngine
             return (false, [ex.Message]);
         }
     }
-    
-    private (bool Success, string[] Errors) ValidateReferences(MetadataReference[] references)
+
+    private static (bool Success, string[] Errors) ValidateReferences(MetadataReference[] references)
     {
         var errors = new List<string>();
         var referenceNames = new HashSet<string>();
-        
+
         // Extract assembly names from references
         foreach (var reference in references)
         {
@@ -597,18 +572,16 @@ public class ScriptEngine : IScriptEngine
                 referenceNames.Add(fileName);
             }
         }
-        
+
         Logger.Debug("=== REFERENCE VALIDATION ({ReferenceCount} references) ===", referenceNames.Count);
-        
-        // Check for required assemblies
         var requiredAssemblies = new[]
         {
             "System.Private.CoreLib",
-            "System.Runtime", 
+            "System.Runtime",
             "System.Numerics.Vectors",
-            "ECS"  // CRITICAL for Entity class
+            "ECS"
         };
-        
+
         foreach (var required in requiredAssemblies)
         {
             if (referenceNames.Contains(required))
@@ -622,33 +595,32 @@ public class ScriptEngine : IScriptEngine
                 errors.Add($"Missing required assembly: {required}");
             }
         }
-        
+
         // Check for engine assemblies
         var engineAssemblies = new[] { "Engine", "ECS", "Editor" };
-        
+
         var foundEngineAssemblies = referenceNames
             .AsValueEnumerable()
             .Where(name => engineAssemblies.Any(name.StartsWith)).ToArray();
-            
+
         Logger.Debug("Engine assemblies found: {EngineAssemblies}", string.Join(", ", foundEngineAssemblies));
-        
+
         if (!foundEngineAssemblies.Any(name => name == "ECS"))
         {
             errors.Add("ECS assembly is required but not found. Scripts cannot access Entity class without it.");
         }
-        
+
         Logger.Debug("=== VALIDATION RESULT: {ValidationResult} ===", errors.Count == 0 ? "SUCCESS" : "FAILED");
-        
+
         return (errors.Count == 0, errors.ToArray());
     }
-
-    // FIXED: Added missing UpdateScriptTypes method
+    
     private void UpdateScriptTypes()
     {
         _scriptTypes.Clear();
-        
+
         if (_dynamicAssembly == null) return;
-        
+
         foreach (var type in _dynamicAssembly.GetTypes())
         {
             if (typeof(ScriptableEntity).IsAssignableFrom(type) && !type.IsAbstract)
@@ -663,12 +635,12 @@ public class ScriptEngine : IScriptEngine
     {
         Logger.Debug("=== LOADING REFERENCES FOR SCRIPT COMPILATION ===");
         var references = new List<MetadataReference>();
-        
+
         try
         {
             var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
             Logger.Debug("Runtime directory: {RuntimeDir}", runtimeDir);
-            
+
             // Essential .NET 8 assemblies
             var essentialAssemblies = new[]
             {
@@ -677,13 +649,13 @@ public class ScriptEngine : IScriptEngine
                 "System.Collections.dll",
                 "System.Console.dll",
                 "System.Linq.dll",
-                "System.Numerics.dll",           // Basic numerics
-                "System.Numerics.Vectors.dll",   // Vector3, Vector4, etc. - CRITICAL!
+                "System.Numerics.dll",
+                "System.Numerics.Vectors.dll",
                 "netstandard.dll",
                 "mscorlib.dll",
                 "System.Collections.Concurrent.dll"
             };
-            
+
             foreach (var assemblyName in essentialAssemblies)
             {
                 var path = Path.Combine(runtimeDir, assemblyName);
@@ -705,67 +677,67 @@ public class ScriptEngine : IScriptEngine
                 }
             }
             
-            // Add engine assemblies from loaded assemblies - IMPROVED
             var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
                 .AsValueEnumerable()
                 .Where(a => !a.IsDynamic)
                 .ToArray();
-            
+
             Logger.Debug("Found {AssemblyCount} loaded assemblies", loadedAssemblies.Length);
-            
+
             foreach (var assembly in loadedAssemblies)
             {
                 var name = assembly.GetName().Name;
                 Logger.Debug("Checking assembly: {AssemblyName}", name);
-                
+
                 // Check for engine-related assemblies
-                if (name.StartsWith("Engine") || name.StartsWith("ECS") || name.StartsWith("Editor"))
+                if (!name!.StartsWith("Engine") && !name.StartsWith("ECS") && !name.StartsWith("Editor")) 
+                    continue;
+                
+                try
                 {
-                    try
+                    // Handle assemblies without location (in-memory assemblies)
+                    if (!string.IsNullOrEmpty(assembly.Location))
                     {
-                        // Handle assemblies without location (in-memory assemblies)
-                        if (!string.IsNullOrEmpty(assembly.Location))
+                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                        Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Location}", name,
+                            assembly.Location);
+                    }
+                    else
+                    {
+                        // For in-memory assemblies, we need to find them in the output directory
+                        var currentDir = Environment.CurrentDirectory;
+                        var possiblePaths = new[]
                         {
-                            references.Add(MetadataReference.CreateFromFile(assembly.Location));
-                            Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Location}", name, assembly.Location);
-                        }
-                        else
+                            Path.Combine(currentDir, $"{name}.dll"),
+                            Path.Combine(currentDir, "bin", "Debug", "net8.0", $"{name}.dll"),
+                            Path.Combine(currentDir, "..", name, "bin", "Debug", "net8.0", $"{name}.dll")
+                        };
+
+                        var found = false;
+                        foreach (var possiblePath in possiblePaths)
                         {
-                            // For in-memory assemblies, we need to find them in the output directory
-                            var currentDir = Environment.CurrentDirectory;
-                            var possiblePaths = new[]
+                            if (File.Exists(possiblePath))
                             {
-                                Path.Combine(currentDir, $"{name}.dll"),
-                                Path.Combine(currentDir, "bin", "Debug", "net8.0", $"{name}.dll"),
-                                Path.Combine(currentDir, "..", name, "bin", "Debug", "net8.0", $"{name}.dll")
-                            };
-                            
-                            bool found = false;
-                            foreach (var possiblePath in possiblePaths)
-                            {
-                                if (File.Exists(possiblePath))
-                                {
-                                    references.Add(MetadataReference.CreateFromFile(possiblePath));
-                                    Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Path}", name, possiblePath);
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            
-                            if (!found)
-                            {
-                                Logger.Warning("❌ Could not find assembly file for: {AssemblyName}", name);
+                                references.Add(MetadataReference.CreateFromFile(possiblePath));
+                                Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Path}", name,
+                                    possiblePath);
+                                found = true;
+                                break;
                             }
                         }
+
+                        if (!found)
+                        {
+                            Logger.Warning("❌ Could not find assembly file for: {AssemblyName}", name);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.Warning(ex, "❌ Error adding engine assembly {AssemblyName}", name);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning(ex, "❌ Error adding engine assembly {AssemblyName}", name);
                 }
             }
             
-            // CRITICAL: Ensure ECS assembly is included even if not found above
             var ecsAssemblyPath = FindECSAssembly();
             if (!string.IsNullOrEmpty(ecsAssemblyPath))
             {
@@ -784,25 +756,8 @@ public class ScriptEngine : IScriptEngine
                 Logger.Error("❌ CRITICAL: ECS assembly not found! Scripts will fail to compile.");
             }
             
-            // Add Box2D if available
-            try
-            {
-                var box2dPath = Path.Combine(Environment.CurrentDirectory, "Box2D.NetStandard.dll");
-                if (File.Exists(box2dPath))
-                {
-                    references.Add(MetadataReference.CreateFromFile(box2dPath));
-                    Logger.Debug("✅ Added Box2D: {Box2DPath}", box2dPath);
-                }
-                else
-                {
-                    Logger.Debug("❌ Box2D not found at: {Box2DPath}", box2dPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex, "❌ Error adding Box2D");
-            }
-            
+            AddBox2D(references);
+
             Logger.Debug("Total references added: {ReferenceCount}", references.Count);
             return references.ToArray();
         }
@@ -812,8 +767,29 @@ public class ScriptEngine : IScriptEngine
             throw;
         }
     }
-    
-    private string FindECSAssembly()
+
+    private static void AddBox2D(List<MetadataReference> references)
+    {
+        try
+        {
+            var box2dPath = Path.Combine(Environment.CurrentDirectory, "Box2D.NetStandard.dll");
+            if (File.Exists(box2dPath))
+            {
+                references.Add(MetadataReference.CreateFromFile(box2dPath));
+                Logger.Debug("✅ Added Box2D: {Box2DPath}", box2dPath);
+            }
+            else
+            {
+                Logger.Debug("❌ Box2D not found at: {Box2DPath}", box2dPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "❌ Error adding Box2D");
+        }
+    }
+
+    private string? FindECSAssembly()
     {
         // Try to find ECS assembly in various locations
         var currentDir = Environment.CurrentDirectory;
@@ -824,7 +800,7 @@ public class ScriptEngine : IScriptEngine
             Path.Combine(currentDir, "..", "ECS", "bin", "Debug", "net8.0", "ECS.dll"),
             Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ECS.dll")
         };
-        
+
         foreach (var path in possiblePaths)
         {
             if (File.Exists(path))
@@ -834,29 +810,27 @@ public class ScriptEngine : IScriptEngine
             }
         }
         
-        // Try to get it from loaded assemblies
         var ecsAssembly = AppDomain.CurrentDomain.GetAssemblies()
             .AsValueEnumerable()
             .FirstOrDefault(a => a.GetName().Name == "ECS");
-            
+
         if (ecsAssembly != null && !string.IsNullOrEmpty(ecsAssembly.Location))
         {
             Logger.Debug("Found ECS assembly from loaded assemblies: {Location}", ecsAssembly.Location);
             return ecsAssembly.Location;
         }
-        
+
         Logger.Warning("ECS assembly not found in any location");
         return null;
     }
-
-    // Force recompile method for debugging
+    
     public void ForceRecompile()
     {
         Logger.Information("Force recompiling scripts for debugging...");
         CompileAllScripts();
-
-        // Notify all script components to reload
-        if (_sceneContext.ActiveScene == null) return;
+        
+        if (_sceneContext.ActiveScene == null) 
+            return;
 
         var scriptEntities = _sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
@@ -865,22 +839,20 @@ public class ScriptEngine : IScriptEngine
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
             var scriptType = scriptComponent.ScriptableEntity?.GetType();
-            if (scriptType != null && _scriptTypes.ContainsKey(scriptType.Name))
+            if (scriptType == null || !_scriptTypes.ContainsKey(scriptType.Name)) 
+                continue;
+            
+            var newInstance = CreateScriptInstance(scriptType.Name);
+            if (newInstance.IsSuccess)
             {
-                // Recreate script instance with updated code
-                var newInstance = CreateScriptInstance(scriptType.Name);
-                if (newInstance.IsSuccess)
-                {
-                    scriptComponent.ScriptableEntity = newInstance.Value;
-                    scriptComponent.ScriptableEntity.Entity = entity;
-                    scriptComponent.ScriptableEntity.SceneContext = _sceneContext;
-                    scriptComponent.ScriptableEntity.OnCreate();
-                }
+                scriptComponent.ScriptableEntity = newInstance.Value;
+                scriptComponent.ScriptableEntity.Entity = entity;
+                scriptComponent.ScriptableEntity.SceneContext = _sceneContext;
+                scriptComponent.ScriptableEntity.OnCreate();
             }
         }
     }
-        
-    // Creates a default script template for a new script
+    
     public static string GenerateScriptTemplate(string scriptName)
     {
         return $$"""
@@ -898,12 +870,12 @@ public class ScriptEngine : IScriptEngine
                      {
                          Console.WriteLine("{{scriptName}} created!");
                      }
-                 
+
                      public override void OnUpdate(TimeSpan ts)
                      {
                          // Your update logic here
                      }
-                 
+
                      public override void OnDestroy()
                      {
                          Console.WriteLine("{{scriptName}} destroyed!");

@@ -7,6 +7,7 @@ namespace Editor.Panels;
 
 public class ContentBrowserPanel : IContentBrowserPanel
 {
+    private readonly ITextureFactory _textureFactory;
     private string _assetPath;
     private string _currentDirectory;
     private Texture2D _directoryIcon = null!;
@@ -14,8 +15,9 @@ public class ContentBrowserPanel : IContentBrowserPanel
     private Texture2D _prefabIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
 
-    public ContentBrowserPanel()
+    public ContentBrowserPanel(ITextureFactory textureFactory)
     {
+        _textureFactory = textureFactory;
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
         _currentDirectory = _assetPath;
@@ -23,9 +25,9 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     public void Init()
     {
-        _directoryIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/DirectoryIcon.png");
-        _fileIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/FileIcon.png");
-        _prefabIcon = TextureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
+        _directoryIcon = _textureFactory.Create("Resources/Icons/ContentBrowser/DirectoryIcon.png");
+        _fileIcon = _textureFactory.Create("Resources/Icons/ContentBrowser/FileIcon.png");
+        _prefabIcon = _textureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
     }
 
     public void Draw()
@@ -81,7 +83,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
                 {
                     try
                     {
-                        icon = TextureFactory.Create(entry);
+                        icon = _textureFactory.Create(entry);
                         _imageCache[entry] = icon;
                     }
                     catch

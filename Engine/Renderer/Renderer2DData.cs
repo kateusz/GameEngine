@@ -6,7 +6,7 @@ using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
 
-public class Renderer2DData
+internal sealed class Renderer2DData
 {
     public const int MaxVertices = RenderingConstants.MaxVertices;
     public const int MaxIndices = RenderingConstants.MaxIndices;

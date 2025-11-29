@@ -140,7 +140,7 @@ public static class AnimationController
         if (t < 0.0f) t = 0.0f;
         if (t > 1.0f) t = 1.0f;
         
-        int targetFrame = (int)(t * (clip.Frames.Length - 1));
+        var targetFrame = (int)(t * (clip.Frames.Length - 1));
         SetFrame(entity, targetFrame);
     }
 
@@ -174,10 +174,10 @@ public static class AnimationController
     /// </summary>
     public static float GetNormalizedTime(Entity entity)
     {
-        int frameCount = GetFrameCount(entity);
+        var frameCount = GetFrameCount(entity);
         if (frameCount <= 1) return 0.0f;
 
-        int currentFrame = GetCurrentFrame(entity);
+        var currentFrame = GetCurrentFrame(entity);
         return currentFrame / (float)(frameCount - 1);
     }
 

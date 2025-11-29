@@ -11,6 +11,7 @@ namespace Editor.Panels;
 /// </summary>
 public class TileMapPanel
 {
+    private readonly Engine.Renderer.Textures.ITextureFactory _textureFactory;
     private TileMapComponent? _activeTileMap;
     private TileSet? _tileSet;
     private int _selectedTileId = -1;
@@ -18,6 +19,11 @@ public class TileMapPanel
     private bool _showGrid = true;
     private Vector4 _gridColor = new Vector4(1, 1, 1, 0.3f);
     private bool _hasBeenDockedOnce = false;
+
+    public TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory)
+    {
+        _textureFactory = textureFactory;
+    }
 
     // Painting state
     private bool _isPainting;
@@ -60,7 +66,7 @@ public class TileMapPanel
             Columns = columns,
             Rows = rows
         };
-        _tileSet.LoadTexture();
+        _tileSet.LoadTexture(_textureFactory);
         
         if (_tileSet.Texture == null)
         {

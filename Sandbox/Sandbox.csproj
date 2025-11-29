@@ -41,10 +41,6 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="DryIoc" Version="5.4.3" />
-    </ItemGroup>
-
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/opengl" />
     </Target>

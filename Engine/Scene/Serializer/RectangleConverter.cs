@@ -4,7 +4,7 @@ using Engine.Animation;
 
 namespace Engine.Scene.Serializer;
 
-public class RectangleConverter : JsonConverter<Rectangle>
+internal sealed class RectangleConverter : JsonConverter<Rectangle>
 {
     public override Rectangle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

@@ -11,7 +11,7 @@ namespace Engine.Scene.Systems;
 /// System responsible for rendering 2D sprites.
 /// Operates on entities with SpriteRendererComponent and TransformComponent.
 /// </summary>
-public class SpriteRenderingSystem : ISystem
+internal sealed class SpriteRenderingSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SpriteRenderingSystem>();
 

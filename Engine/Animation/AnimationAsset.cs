@@ -8,7 +8,7 @@ namespace Engine.Animation;
 /// In-memory representation of a loaded animation asset.
 /// Contains texture atlas reference and all animation clips.
 /// </summary>
-public record AnimationAsset : IDisposable
+public sealed record AnimationAsset : IDisposable
 {
     /// <summary>
     /// Asset identifier (from JSON "id" field).

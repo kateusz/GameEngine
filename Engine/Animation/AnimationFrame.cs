@@ -55,11 +55,11 @@ public record AnimationFrame
     {
         // Convert pixel rect to normalized UV coordinates (0..1 range)
         // Rect.X and Rect.Y are in pixels
-        float uvMinX = Rect.X / (float)atlasWidth;
-        float uvMaxX = (Rect.X + Rect.Width) / (float)atlasWidth;
+        var uvMinX = Rect.X / (float)atlasWidth;
+        var uvMaxX = (Rect.X + Rect.Width) / (float)atlasWidth;
 
-        float uvMinY = Rect.Y / (float)atlasHeight;
-        float uvMaxY = (Rect.Y + Rect.Height) / (float)atlasHeight;
+        var uvMinY = Rect.Y / (float)atlasHeight;
+        var uvMaxY = (Rect.Y + Rect.Height) / (float)atlasHeight;
 
         // Base UV coordinates (counter-clockwise from bottom-left)
         TexCoords[0] = new Vector2(uvMinX, uvMinY);  // Bottom-left

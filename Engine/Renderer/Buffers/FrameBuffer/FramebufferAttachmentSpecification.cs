@@ -1,0 +1,3 @@
+namespace Engine.Renderer.Buffers.FrameBuffer;
+
+public sealed record FramebufferAttachmentSpecification(IReadOnlyList<FramebufferTextureSpecification> Attachments);

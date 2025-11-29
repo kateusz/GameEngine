@@ -7,7 +7,7 @@ namespace Engine.Scene.Serializer;
 /// <summary>
 /// Custom JSON converter for TileMapComponent to handle 2D array serialization
 /// </summary>
-public class TileMapComponentConverter : JsonConverter<TileMapComponent>
+internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent>
 {
     public override TileMapComponent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -44,10 +44,10 @@ public class TileMapComponentConverter : JsonConverter<TileMapComponent>
                 if (layerElement.TryGetProperty("Tiles", out var tilesElement))
                 {
                     var tilesArray = tilesElement.EnumerateArray().ToArray();
-                    for (int y = 0; y < component.Height && y < tilesArray.Length; y++)
+                    for (var y = 0; y < component.Height && y < tilesArray.Length; y++)
                     {
                         var rowArray = tilesArray[y].EnumerateArray().ToArray();
-                        for (int x = 0; x < component.Width && x < rowArray.Length; x++)
+                        for (var x = 0; x < component.Width && x < rowArray.Length; x++)
                         {
                             layer.Tiles[x, y] = rowArray[x].GetInt32();
                         }
@@ -91,10 +91,10 @@ public class TileMapComponentConverter : JsonConverter<TileMapComponent>
             writer.WritePropertyName("Tiles");
             writer.WriteStartArray();
             
-            for (int y = 0; y < value.Height; y++)
+            for (var y = 0; y < value.Height; y++)
             {
                 writer.WriteStartArray();
-                for (int x = 0; x < value.Width; x++)
+                for (var x = 0; x < value.Width; x++)
                 {
                     writer.WriteNumberValue(layer.Tiles[x, y]);
                 }

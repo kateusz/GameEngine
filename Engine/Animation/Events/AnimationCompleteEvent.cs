@@ -5,7 +5,7 @@ namespace Engine.Animation.Events;
 /// <summary>
 /// Event dispatched when non-looping animation reaches last frame and stops.
 /// </summary>
-public class AnimationCompleteEvent : IAnimationEvent
+internal sealed class AnimationCompleteEvent : IAnimationEvent
 {
     /// <summary>
     /// Entity that completed the animation.

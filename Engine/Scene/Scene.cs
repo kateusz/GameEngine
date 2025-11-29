@@ -13,12 +13,13 @@ using Serilog;
 
 namespace Engine.Scene;
 
-public class Scene : IScene
+internal sealed class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
     private readonly IContext _context;
     private readonly IGraphics2D _graphics2D;
+    private readonly ITextureFactory _textureFactory;
     private readonly string _path;
     private uint _viewportWidth;
     private uint _viewportHeight;
@@ -31,11 +32,12 @@ public class Scene : IScene
     // Key format: "path|columns|rows" to handle different grid configurations of the same texture
     private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
-    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context)
+    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context, ITextureFactory textureFactory)
     {
         _path = path;
         _graphics2D = graphics2D;
         _context = context;
+        _textureFactory = textureFactory;
         _context.Clear();
 
         // Initialize ECS systems
@@ -405,7 +407,7 @@ public class Scene : IScene
             Rows = tileMapComponent.TileSetRows
         };
 
-        tileSet.LoadTexture();
+        tileSet.LoadTexture(_textureFactory);
 
         if (tileSet.Texture != null)
         {

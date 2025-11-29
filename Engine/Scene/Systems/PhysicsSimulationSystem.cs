@@ -12,7 +12,7 @@ namespace Engine.Scene.Systems;
 /// Handles fixed timestep physics stepping and synchronization between physics bodies and transforms.
 /// This is a PER-SCENE system - each scene has its own instance with its own physics world.
 /// </summary>
-public class PhysicsSimulationSystem : ISystem, IDisposable
+internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
 
@@ -74,7 +74,7 @@ public class PhysicsSimulationSystem : ISystem, IDisposable
         _physicsAccumulator += deltaSeconds;
 
         // Step physics multiple times if needed to catch up
-        int stepCount = 0;
+        var stepCount = 0;
         while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
             _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);

@@ -104,10 +104,10 @@ public class WavLoader : IAudioLoader
     {
         var data16Bit = new byte[data8Bit.Length * 2];
 
-        for (int i = 0; i < data8Bit.Length; i++)
+        for (var i = 0; i < data8Bit.Length; i++)
         {
             // Convert 8-bit unsigned (0-255) to 16-bit signed (-32768 to 32767)
-            short sample16 = (short)((data8Bit[i] - 128) * 256);
+            var sample16 = (short)((data8Bit[i] - 128) * 256);
 
             // Little endian
             data16Bit[i * 2] = (byte)(sample16 & 0xFF);
@@ -123,13 +123,13 @@ public class WavLoader : IAudioLoader
         var samplesCount = data24Bit.Length / 3;
         var data16Bit = new byte[samplesCount * 2];
 
-        for (int i = 0; i < samplesCount; i++)
+        for (var i = 0; i < samplesCount; i++)
         {
-            int index24 = i * 3;
-            int index16 = i * 2;
+            var index24 = i * 3;
+            var index16 = i * 2;
 
             // Read 24-bit sample (little endian: LSB, mid, MSB)
-            int sample24 = data24Bit[index24] |
+            var sample24 = data24Bit[index24] |
                            (data24Bit[index24 + 1] << 8) |
                            (data24Bit[index24 + 2] << 16);
 
@@ -141,7 +141,7 @@ public class WavLoader : IAudioLoader
 
             // Convert 24-bit (-8,388,608 to 8,388,607) to 16-bit (-32,768 to 32,767)
             // Divide by 256 (shift right by 8 bits)
-            short sample16 = (short)(sample24 >> 8);
+            var sample16 = (short)(sample24 >> 8);
 
             // Save as little endian
             data16Bit[index16] = (byte)(sample16 & 0xFF);

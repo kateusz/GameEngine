@@ -4,4 +4,4 @@ using Engine.Renderer.VertexArray;
 
 namespace Engine.Renderer;
 
-public record Renderer2DStorage(IVertexArray QuadVertexArray, IShader TextureShader, Texture2D WhiteTexture);
+internal record Renderer2DStorage(IVertexArray QuadVertexArray, IShader TextureShader, Texture2D WhiteTexture);

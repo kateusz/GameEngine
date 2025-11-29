@@ -11,7 +11,7 @@ namespace Engine.Scene;
 /// Base class for all script components in the engine.
 /// Script components provide behavior to entities through inheritance.
 /// </summary>
-public class ScriptableEntity
+public abstract class ScriptableEntity
 {
     #region Reflection Cache
 
@@ -362,10 +362,10 @@ public class ScriptableEntity
 
         // Assuming Z is forward in your coordinate system
         // Use rotation to calculate the forward vector
-        float cosY = MathF.Cos(rotation.Y);
-        float sinY = MathF.Sin(rotation.Y);
-        float cosX = MathF.Cos(rotation.X);
-        float sinX = MathF.Sin(rotation.X);
+        var cosY = MathF.Cos(rotation.Y);
+        var sinY = MathF.Sin(rotation.Y);
+        var cosX = MathF.Cos(rotation.X);
+        var sinX = MathF.Sin(rotation.X);
 
         return Vector3.Normalize(new Vector3(
             sinY * cosX,
@@ -410,8 +410,8 @@ public class ScriptableEntity
         var direction = Vector3.Normalize(target - position);
 
         // Calculate rotation angles
-        float yaw = MathF.Atan2(direction.X, direction.Z);
-        float pitch = -MathF.Asin(direction.Y);
+        var yaw = MathF.Atan2(direction.X, direction.Z);
+        var pitch = -MathF.Asin(direction.Y);
 
         // Set rotation
         transform.Rotation = new Vector3(pitch, yaw, 0);

@@ -20,10 +20,10 @@ public class AnimationComponentEditor : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();
 
-    private readonly AnimationAssetManager _animationAssetManager;
+    private readonly IAnimationAssetManager _animationAssetManager;
     private readonly AnimationTimelineWindow? _timelineWindow;
 
-    public AnimationComponentEditor(AnimationAssetManager animationAssetManager,
+    public AnimationComponentEditor(IAnimationAssetManager animationAssetManager,
         AnimationTimelineWindow? timelineWindow)
     {
         _animationAssetManager = animationAssetManager;

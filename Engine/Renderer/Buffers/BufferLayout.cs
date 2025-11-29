@@ -2,8 +2,8 @@ namespace Engine.Renderer.Buffers;
 
 public struct BufferLayout
 {
-    public IList<BufferElement> Elements { get; set; }
-    public int Stride { get; set; }
+    public IList<BufferElement> Elements { get; }
+    public int Stride { get; private set; }
     
     public BufferLayout(IList<BufferElement> elements)
     {
@@ -18,7 +18,7 @@ public struct BufferLayout
         Stride = 0;
         
         // Use for loop instead of foreach to avoid readonly iteration variable issue with structs
-        for (int i = 0; i < Elements.Count; i++)
+        for (var i = 0; i < Elements.Count; i++)
         {
             var element = Elements[i];
             element.Offset = offset;

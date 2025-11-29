@@ -5,14 +5,13 @@ namespace Engine.Scene.Components;
 
 public class MeshComponent : IComponent
 {
-    public Mesh Mesh { get; set; }
-    
+    public Mesh Mesh { get; set; } = null!;
+
     public MeshComponent()
     {
-        // Create a default cube mesh
-        Mesh = MeshFactory.CreateCube();
+        // Mesh must be set externally via SetMesh() or property setter
     }
-    
+
     public MeshComponent(Mesh mesh)
     {
         Mesh = mesh;

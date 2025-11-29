@@ -5,7 +5,7 @@ namespace Engine.Animation.Events;
 /// <summary>
 /// Event dispatched when animation enters a new frame that has events defined.
 /// </summary>
-public class AnimationFrameEvent : IAnimationEvent
+internal sealed class AnimationFrameEvent : IAnimationEvent
 {
     /// <summary>
     /// Entity that triggered the event.

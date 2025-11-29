@@ -5,7 +5,7 @@ namespace Engine.Animation.Events;
 /// <summary>
 /// Base interface for animation events.
 /// </summary>
-public interface IAnimationEvent
+internal interface IAnimationEvent
 {
     /// <summary>
     /// Entity that triggered the event.

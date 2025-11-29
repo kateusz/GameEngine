@@ -2,26 +2,27 @@ using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Shaders;
 
-public static class ShaderFactory
+/// <summary>
+/// Factory for creating and managing shader resources with automatic caching.
+/// Uses weak references to allow garbage collection when shaders are no longer in use.
+/// </summary>
+internal sealed class ShaderFactory : IShaderFactory
 {
-    private static readonly Dictionary<(string, string, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
-    private static readonly object _cacheLock = new();
+    private readonly IRendererApiConfig _apiConfig;
+    private readonly Dictionary<(string, string, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
+    private readonly Lock _cacheLock = new();
 
     /// <summary>
-    /// Creates or retrieves a cached shader instance for the specified vertex and fragment shader paths.
-    /// Uses weak references to allow garbage collection when shaders are no longer in use.
+    /// Initializes a new instance of the ShaderFactory class.
     /// </summary>
-    /// <param name="vertPath">Path to the vertex shader file.</param>
-    /// <param name="fragPath">Path to the fragment shader file.</param>
-    /// <returns>A shader instance, either from cache or newly created.</returns>
-    /// <remarks>
-    /// This method is thread-safe. Shader compilation is expensive (100ms+), so caching
-    /// significantly improves performance when the same shader is requested multiple times.
-    /// The cache automatically invalidates when shader files are modified on disk.
-    /// </remarks>
-    public static IShader Create(string vertPath, string fragPath)
+    /// <param name="apiConfig">The renderer API configuration.</param>
+    public ShaderFactory(IRendererApiConfig apiConfig)
     {
-        // Get file modification times for cache invalidation
+        _apiConfig = apiConfig ?? throw new ArgumentNullException(nameof(apiConfig));
+    }
+    
+    public IShader Create(string vertPath, string fragPath)
+    {
         DateTime vertModTime, fragModTime;
         try
         {
@@ -47,19 +48,17 @@ public static class ShaderFactory
                 {
                     return cachedShader;
                 }
-                else
-                {
-                    // Weak reference target was collected, remove dead entry
-                    _shaderCache.Remove(key);
-                }
+
+                // Weak reference target was collected, remove dead entry
+                _shaderCache.Remove(key);
             }
         }
 
         // Create shader outside of lock to allow concurrent creation of different shaders
-        var shader = RendererApiType.Type switch
+        var shader = _apiConfig.Type switch
         {
             ApiType.SilkNet => new SilkNetShader(vertPath, fragPath),
-            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+            _ => throw new NotSupportedException($"Unsupported Render API type: {_apiConfig.Type}")
         };
 
         // Second check: Store in cache (double-checked locking pattern)
@@ -82,7 +81,7 @@ public static class ShaderFactory
     /// Clears the shader cache, forcing all subsequent shader requests to recompile.
     /// Useful for development scenarios where shaders need to be reloaded.
     /// </summary>
-    public static void ClearCache()
+    public void ClearCache()
     {
         lock (_cacheLock)
         {

@@ -38,7 +38,7 @@ public static class MathHelpers
      public static bool DecomposeTransform(Matrix4x4 transform, out Vector3 translation, out Vector3 rotation, out Vector3 scale)
     {
         // Create a local copy of the transform matrix
-        Matrix4x4 localMatrix = transform;
+        var localMatrix = transform;
 
         // Normalize the matrix. Ensure the last element is not zero to proceed.
         if (System.Math.Abs(localMatrix.M44) < float.Epsilon)
@@ -61,7 +61,7 @@ public static class MathHelpers
         localMatrix.M41 = localMatrix.M42 = localMatrix.M43 = 0;
 
         // Extract scale
-        Vector3[] rows = new Vector3[3];
+        var rows = new Vector3[3];
         rows[0] = new Vector3(localMatrix.M11, localMatrix.M12, localMatrix.M13);
         rows[1] = new Vector3(localMatrix.M21, localMatrix.M22, localMatrix.M23);
         rows[2] = new Vector3(localMatrix.M31, localMatrix.M32, localMatrix.M33);
@@ -75,7 +75,7 @@ public static class MathHelpers
 
         // Detect coordinate system flip
         // In C++, this section was disabled, but it is included here for completeness
-        Vector3 pdum3 = Vector3.Cross(rows[1], rows[2]);
+        var pdum3 = Vector3.Cross(rows[1], rows[2]);
         if (Vector3.Dot(rows[0], pdum3) < 0)
         {
             scale *= -1;
@@ -102,17 +102,17 @@ public static class MathHelpers
      
     public static Quaternion QuaternionFromEuler(Vector3 euler)
     {
-        float roll = euler.X;
-        float pitch = euler.Y;
-        float yaw = euler.Z;
+        var roll = euler.X;
+        var pitch = euler.Y;
+        var yaw = euler.Z;
 
         // Compute quaternion from Euler angles
-        float cy = (float)System.Math.Cos(yaw * 0.5);
-        float sy = (float)System.Math.Sin(yaw * 0.5);
-        float cp = (float)System.Math.Cos(pitch * 0.5);
-        float sp = (float)System.Math.Sin(pitch * 0.5);
-        float cr = (float)System.Math.Cos(roll * 0.5);
-        float sr = (float)System.Math.Sin(roll * 0.5);
+        var cy = (float)System.Math.Cos(yaw * 0.5);
+        var sy = (float)System.Math.Sin(yaw * 0.5);
+        var cp = (float)System.Math.Cos(pitch * 0.5);
+        var sp = (float)System.Math.Sin(pitch * 0.5);
+        var cr = (float)System.Math.Cos(roll * 0.5);
+        var sr = (float)System.Math.Sin(roll * 0.5);
 
         Quaternion q;
         q.W = cy * cp * cr + sy * sp * sr;
@@ -127,18 +127,18 @@ public static class MathHelpers
     {
         var mat = new Matrix4x4();
 
-        float x2 = q.X + q.X;
-        float y2 = q.Y + q.Y;
-        float z2 = q.Z + q.Z;
-        float xx = q.X * x2;
-        float xy = q.X * y2;
-        float xz = q.X * z2;
-        float yy = q.Y * y2;
-        float yz = q.Y * z2;
-        float zz = q.Z * z2;
-        float wx = q.W * x2;
-        float wy = q.W * y2;
-        float wz = q.W * z2;
+        var x2 = q.X + q.X;
+        var y2 = q.Y + q.Y;
+        var z2 = q.Z + q.Z;
+        var xx = q.X * x2;
+        var xy = q.X * y2;
+        var xz = q.X * z2;
+        var yy = q.Y * y2;
+        var yz = q.Y * z2;
+        var zz = q.Z * z2;
+        var wx = q.W * x2;
+        var wy = q.W * y2;
+        var wz = q.W * z2;
 
         mat.M11 = 1.0f - (yy + zz);
         mat.M12 = xy + wz;

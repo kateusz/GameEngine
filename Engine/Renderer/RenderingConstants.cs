@@ -5,7 +5,7 @@ namespace Engine.Renderer;
 /// Defines all magic numbers used throughout the renderer to improve maintainability
 /// and prevent inconsistencies.
 /// </summary>
-public static class RenderingConstants
+internal static class RenderingConstants
 {
     // Batch configuration
     /// <summary>

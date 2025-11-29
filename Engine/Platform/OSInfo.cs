@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Platform;
 
-public static class OSInfo
+internal static class OSInfo
 {
     // Property to check if the operating system is Windows
     public static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);

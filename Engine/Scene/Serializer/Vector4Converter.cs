@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Engine.Scene.Serializer;
 
-public class Vector4Converter : JsonConverter<Vector4>
+public sealed class Vector4Converter : JsonConverter<Vector4>
 {
     public override Vector4 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

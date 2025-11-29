@@ -2,14 +2,25 @@ using Engine.Platform.SilkNet.Buffers;
 
 namespace Engine.Renderer.Buffers;
 
-public static class IndexBufferFactory
+internal sealed class IndexBufferFactory : IIndexBufferFactory
 {
-    public static IIndexBuffer Create(uint[] indices, int count)
+    private readonly IRendererApiConfig _apiConfig;
+
+    /// <summary>
+    /// Initializes a new instance of the IndexBufferFactory class.
+    /// </summary>
+    /// <param name="apiConfig">The renderer API configuration.</param>
+    public IndexBufferFactory(IRendererApiConfig apiConfig)
     {
-        return RendererApiType.Type switch
+        _apiConfig = apiConfig ?? throw new ArgumentNullException(nameof(apiConfig));
+    }
+    
+    public IIndexBuffer Create(uint[] indices, int count)
+    {
+        return _apiConfig.Type switch
         {
             ApiType.SilkNet => new SilkNetIndexBuffer(indices, count),
-            _ => throw new NotSupportedException($"Unsupported Render API type: {RendererApiType.Type}")
+            _ => throw new NotSupportedException($"Unsupported Render API type: {_apiConfig.Type}")
         };
     }
 }

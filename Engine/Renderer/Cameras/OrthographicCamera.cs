@@ -4,10 +4,6 @@ using Serilog;
 
 namespace Engine.Renderer.Cameras;
 
-/// <summary>
-/// Orthographic camera implementation for 2D rendering.
-/// Provides position, rotation, and scale controls with combined view-projection matrix.
-/// </summary>
 public class OrthographicCamera : Camera
 {
     private static readonly ILogger Logger = Log.ForContext<OrthographicCamera>();

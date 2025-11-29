@@ -4,7 +4,7 @@ namespace Engine.Audio.Effects;
 /// Represents an effect slot that can hold an audio effect.
 /// Effect slots are limited resources in OpenAL - typical implementations support 2-4 per source.
 /// </summary>
-public interface IAudioEffectSlot : IDisposable
+internal interface IAudioEffectSlot : IDisposable
 {
     /// <summary>
     /// Gets the OpenAL effect slot ID.

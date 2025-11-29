@@ -1,136 +1,18 @@
 ﻿using DryIoc;
 using Editor;
-using Editor.ComponentEditors;
-using Editor.ComponentEditors.Core;
-using Editor.Features.Project;
-using Editor.Features.Scene;
-using Editor.Features.Settings;
 using Editor.Panels;
 using Engine.Core;
-using Engine.Core.Window;
 using Engine.ImGuiNet;
-using Engine.Scene;
-using Engine.Scene.Serializer;
 using Engine.Scripting;
-using Silk.NET.Maths;
-using Silk.NET.Windowing;
 using Serilog;
 using Editor.Logging;
-using Editor.Input;
-using Editor.UI.Elements;
-using Editor.Utilities;
-using Editor.Windows;
-using Engine.Animation;
-using Engine.Events;
-using Engine.Renderer;
-using Engine.Scene.Systems;
+using Engine;
 
 static void ConfigureContainer(Container container)
 {
-    var props = new WindowProps("Editor", (int)DisplayConfig.DefaultWindowWidth, (int)DisplayConfig.DefaultWindowHeight);
-    var options = WindowOptions.Default;
-    options.Size = new Vector2D<int>(props.Width, props.Height);
-    options.Title = "Game Window";
-
-    container.Register<IWindow>(Reuse.Singleton, 
-        made: Made.Of(() => Window.Create(options))
-    );
-
-    container.Register<IGameWindow>(Reuse.Singleton, 
-        made: Made.Of(() => GameWindowFactory.Create(Arg.Of<IWindow>()))
-    );
-
-    container.Register<EventBus, EventBus>(Reuse.Singleton);
-    container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
-    container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
+    EngineIoCContainer.Register(container);
+    EditorIoCContainer.Register(container);
     
-    container.Register<DebugSettings>(Reuse.Singleton);
-    container.Register<Engine.IAssetsManager, Engine.AssetsManager>(Reuse.Singleton);
-    
-    container.Register<IRendererAPI>(Reuse.Singleton,
-        made: Made.Of(() => RendererApiFactory.Create())
-    );
-
-    container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
-    container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
-    container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
-
-    // Register SceneSystemRegistry and systems
-    container.Register<SceneFactory>(Reuse.Singleton);
-    container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
-
-    // Register ECS systems (all now use dependency injection)
-    container.Register<SpriteRenderingSystem>(Reuse.Singleton);
-    container.Register<ModelRenderingSystem>(Reuse.Singleton);
-    container.Register<ScriptUpdateSystem>(Reuse.Singleton);
-    container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
-    container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
-    container.Register<AudioSystem>(Reuse.Singleton);
-    container.Register<TileMapRenderSystem>(Reuse.Singleton);
-    
-    container.Register<AnimationAssetManager>(Reuse.Singleton);
-    container.Register<AnimationSystem>(Reuse.Singleton);
-
-    container.Register<ShortcutManager>(Reuse.Singleton);
-
-    container.Register<ILayer, EditorLayer>(Reuse.Singleton);
-    container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
-    container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
-    container.Register<IEditorPreferences, EditorPreferences>(Reuse.Singleton,
-        made: Made.Of(() => EditorPreferences.Load())
-    );
-    container.Register<EditorSettingsUI>(Reuse.Singleton);
-    container.Register<AudioDropTarget>(Reuse.Singleton);
-    container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
-    
-    container.Register<TransformComponentEditor>(Reuse.Singleton);
-    container.Register<CameraComponentEditor>(Reuse.Singleton);
-    container.Register<SpriteRendererComponentEditor>(Reuse.Singleton);
-    container.Register<MeshComponentEditor>(Reuse.Singleton);
-    container.Register<ModelRendererComponentEditor>(Reuse.Singleton);
-    container.Register<RigidBody2DComponentEditor>(Reuse.Singleton);
-    container.Register<BoxCollider2DComponentEditor>(Reuse.Singleton);
-    container.Register<SubTextureRendererComponentEditor>(Reuse.Singleton);
-    container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
-    container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
-    container.Register<AnimationComponentEditor>(Reuse.Singleton);
-    container.Register<AnimationTimelineWindow>(Reuse.Singleton);
-    container.Register<RecentProjectsWindow>(Reuse.Singleton);
-    container.Register<TileMapPanel>(Reuse.Singleton);
-    container.Register<TileMapComponentEditor>(Reuse.Singleton);
-    
-    container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
-    container.Register<IPropertiesPanel, PropertiesPanel>(Reuse.Singleton);
-    container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
-    container.Register<EntityContextMenu>(Reuse.Singleton);
-    container.Register<PrefabDropTarget>(Reuse.Singleton);
-    
-    container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
-    container.RegisterMany<SceneManager>(Reuse.Singleton);
-
-    container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
-    container.Register<NewProjectPopup>(Reuse.Singleton);
-    container.Register<SceneSettingsPopup>(Reuse.Singleton);
-    container.Register<EditorToolbar>(Reuse.Singleton);
-    container.Register<RendererStatsPanel>(Reuse.Singleton);
-    container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
-    container.Register<ScriptComponentEditor>(Reuse.Singleton);
-    
-    container.Register<ViewportRuler>(Reuse.Singleton);
-    container.Register<ObjectManipulator>(Reuse.Singleton);
-    container.Register<RulerTool>(Reuse.Singleton);
-    
-    // Generic service resolver function
-    container.RegisterDelegate<Func<Type, object>>(r => r.Resolve);
-    
-    container.Register<IPrefabSerializer, PrefabSerializer>(Reuse.Singleton);
-    container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
-    container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
-    container.Register<Editor.Editor>(Reuse.Singleton);
-
-    // Register ConsolePanel as singleton so it can be resolved early for logging
-    container.Register<IConsolePanel, ConsolePanel>(Reuse.Singleton);
-
     container.ValidateAndThrow();
 }
 

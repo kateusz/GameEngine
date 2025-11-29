@@ -58,6 +58,7 @@ public class EditorLayer : ILayer
     private readonly ScriptComponentEditor _scriptComponentEditor;
     private readonly DebugSettings _debugSettings;
     private readonly IAssetsManager _assetsManager;
+    private readonly IFrameBufferFactory _frameBufferFactory;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -83,7 +84,7 @@ public class EditorLayer : ILayer
         TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ObjectManipulator objectManipulator, RulerTool rulerTool,
-        ViewportRuler viewportRuler)
+        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -112,6 +113,7 @@ public class EditorLayer : ILayer
         _objectManipulator = objectManipulator;
         _rulerTool = rulerTool;
         _viewportRuler = viewportRuler;
+        _frameBufferFactory = frameBufferFactory;
 
         _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
         _editorToolbar.OnPlayScene += () => _sceneManager.Play();
@@ -125,17 +127,7 @@ public class EditorLayer : ILayer
 
         // Initialize 2D camera controller with default aspect ratio for editor
         _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio);
-
-        var frameBufferSpec = new FrameBufferSpecification(DisplayConfig.DefaultEditorViewportWidth,
-            DisplayConfig.DefaultEditorViewportHeight)
-        {
-            AttachmentsSpec = new FramebufferAttachmentSpecification([
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8),
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
-                new FramebufferTextureSpecification(FramebufferTextureFormat.Depth),
-            ])
-        };
-        _frameBuffer = FrameBufferFactory.Create(frameBufferSpec);
+        _frameBuffer = _frameBufferFactory.Create();
 
         _sceneManager.New();
 

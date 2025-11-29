@@ -1,3 +1,3 @@
 namespace Engine.Core.Window;
 
-public record WindowProps(string Title, int Width, int Height);
+internal record WindowProps(string Title, int Width, int Height);

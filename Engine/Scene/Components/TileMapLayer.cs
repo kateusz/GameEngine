@@ -16,9 +16,9 @@ public class TileMapLayer
     public TileMapLayer(int width, int height)
     {
         Tiles = new int[width, height];
-        for (int x = 0; x < width; x++)
+        for (var x = 0; x < width; x++)
         {
-            for (int y = 0; y < height; y++)
+            for (var y = 0; y < height; y++)
             {
                 Tiles[x, y] = -1;
             }

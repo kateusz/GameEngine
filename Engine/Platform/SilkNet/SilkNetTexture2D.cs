@@ -13,7 +13,7 @@ using TextureWrapMode = Silk.NET.OpenGL.TextureWrapMode;
 
 namespace Engine.Platform.SilkNet;
 
-public class SilkNetTexture2D : Texture2D
+internal sealed class SilkNetTexture2D : Texture2D
 {
     // StbImageSharp flag to flip texture vertically during loading
     // OpenGL expects texture coordinates with origin at bottom-left, but most image formats have origin at top-left
@@ -160,7 +160,7 @@ public class SilkNetTexture2D : Texture2D
         var internalFormat = InternalFormat.Rgba8;
         var dataFormat = PixelFormat.Rgba;
 
-        uint[] textures = new uint[1];
+        var textures = new uint[1];
         SilkNetContext.GL.GenTextures(1, textures);
         GLDebug.CheckError(SilkNetContext.GL, "GenTextures");
         var rendererId = textures[0];
@@ -220,5 +220,14 @@ public class SilkNetTexture2D : Texture2D
 
         _disposed = true;
         base.Dispose(disposing);
+    }
+
+    ~SilkNetTexture2D()
+    {
+        if (_rendererId != 0)
+        {
+            // NEVER call OpenGL in finalizer - just log warning
+            System.Diagnostics.Debug.WriteLine($"GPU LEAK: Texture {Path} (ID: {_rendererId}) not disposed!");
+        }
     }
 }

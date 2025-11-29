@@ -5,7 +5,7 @@ using Silk.NET.OpenAL;
 
 namespace Engine.Platform.SilkNet.Audio;
 
-public unsafe class SilkNetAudioEngine : IAudioEngine
+internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetAudioEngine>();
     
@@ -184,21 +184,14 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
             _al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
         }
     }
-
-    // Cleanup methods
-    protected virtual void Dispose(bool disposing)
+    
+    private void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            foreach (var clip in _loadedClips.Values)
-            {
-                clip.Unload();
-            }
+        if (!disposing) 
+            return;
 
-            _loadedClips.Clear();
-
-            Shutdown();
-        }
+        ClearLoadedClips();
+        Shutdown();
     }
 
     public void Dispose()
@@ -208,7 +201,7 @@ public unsafe class SilkNetAudioEngine : IAudioEngine
     }
 
     // Protected helper methods for subclasses
-    protected void ClearLoadedClips()
+    private void ClearLoadedClips()
     {
         foreach (var clip in _loadedClips.Values)
         {
