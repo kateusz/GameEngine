@@ -215,6 +215,12 @@ public class EditorLayer : ILayer
             () => _sceneManager.DuplicateEntity(_selectedEntity),
             "Duplicate entity", "Edit"));
 
+        // Navigation
+        _shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.R, KeyModifiers.CtrlOnly,
+            ResetCamera,
+            "Reset camera", "Navigation"));
+
         Logger.Debug("Registered {Count} keyboard shortcuts", _shortcutManager.Shortcuts.Count);
     }
 

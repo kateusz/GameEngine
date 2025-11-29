@@ -19,9 +19,6 @@
 
         <!-- Kopiuj rekurencyjnie wszystko z assets i Resources -->
         <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
-        <None Include="bin\Debug\net10.0\test\assets\textures\spritesheet-gemini.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
         <None Include="Resources/**/*.*" CopyToOutputDirectory="PreserveNewest" />
         <None Include="libs/**/*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
