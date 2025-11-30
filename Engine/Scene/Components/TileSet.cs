@@ -43,6 +43,11 @@ public class UniqueTile
 /// </summary>
 public class TileSet
 {
+    /// <summary>
+    /// Epsilon value for floating-point UV coordinate comparison
+    /// </summary>
+    private const float UvComparisonEpsilon = 0.0001f;
+    
     public string Name { get; set; } = "New TileSet";
     public string TexturePath { get; set; } = string.Empty;
     public Texture2D? Texture { get; private set; }
@@ -166,18 +171,17 @@ public class TileSet
     /// <returns>List of unique tiles with mappings to all original tile IDs sharing the same visual</returns>
     public List<UniqueTile> GetUniqueTiles()
     {
-        const float epsilon = 0.0001f;
         var uniqueTiles = new List<UniqueTile>();
+        var uvKeyToUniqueTile = new Dictionary<string, UniqueTile>();
         
         foreach (var tile in Tiles)
         {
             if (tile.SubTexture == null) continue;
             
-            // Check if we already have a unique tile with matching UV coordinates
-            var existingUnique = uniqueTiles.FirstOrDefault(u => 
-                AreTexCoordsEqual(u.SubTexture?.TexCoords, tile.SubTexture.TexCoords, epsilon));
+            // Generate a hash key based on quantized UV coordinates for O(1) lookup
+            var uvKey = GenerateUvKey(tile.SubTexture.TexCoords);
             
-            if (existingUnique != null)
+            if (uvKeyToUniqueTile.TryGetValue(uvKey, out var existingUnique))
             {
                 // Add this tile ID to the existing unique tile's list
                 existingUnique.AllTileIds.Add(tile.Id);
@@ -192,6 +196,7 @@ public class TileSet
                     SubTexture = tile.SubTexture
                 };
                 uniqueTiles.Add(uniqueTile);
+                uvKeyToUniqueTile[uvKey] = uniqueTile;
             }
         }
         
@@ -199,23 +204,22 @@ public class TileSet
     }
     
     /// <summary>
-    /// Compares two sets of texture coordinates for equality within epsilon tolerance
+    /// Generates a hash key for UV coordinates by quantizing them based on epsilon tolerance.
+    /// This enables O(1) dictionary lookups for deduplication.
     /// </summary>
-    private static bool AreTexCoordsEqual(Vector2[]? coords1, Vector2[]? coords2, float epsilon)
+    private static string GenerateUvKey(Vector2[] coords)
     {
-        if (coords1 == null || coords2 == null) return false;
-        if (coords1.Length != coords2.Length) return false;
+        // Quantize coordinates to epsilon precision to ensure matching within tolerance
+        var quantizeFactor = 1.0f / UvComparisonEpsilon;
+        var parts = new int[coords.Length * 2];
         
-        for (var i = 0; i < coords1.Length; i++)
+        for (var i = 0; i < coords.Length; i++)
         {
-            if (System.Math.Abs(coords1[i].X - coords2[i].X) > epsilon ||
-                System.Math.Abs(coords1[i].Y - coords2[i].Y) > epsilon)
-            {
-                return false;
-            }
+            parts[i * 2] = (int)MathF.Round(coords[i].X * quantizeFactor);
+            parts[i * 2 + 1] = (int)MathF.Round(coords[i].Y * quantizeFactor);
         }
         
-        return true;
+        return string.Join(",", parts);
     }
 }
 
