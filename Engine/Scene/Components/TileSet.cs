@@ -18,6 +18,27 @@ public class Tile
 }
 
 /// <summary>
+/// Represents a unique tile in a tileset palette, potentially mapping to multiple original tile IDs
+/// </summary>
+public class UniqueTile
+{
+    /// <summary>
+    /// The first tile ID with this visual (used for painting)
+    /// </summary>
+    public int PrimaryTileId { get; set; }
+    
+    /// <summary>
+    /// All tile IDs that share this visual
+    /// </summary>
+    public List<int> AllTileIds { get; set; } = new();
+    
+    /// <summary>
+    /// Reference to the SubTexture for rendering in the palette
+    /// </summary>
+    public SubTexture2D? SubTexture { get; set; }
+}
+
+/// <summary>
 /// Asset that defines a collection of tiles from a texture atlas
 /// </summary>
 public class TileSet
@@ -136,6 +157,65 @@ public class TileSet
     {
         var tile = GetTile(tileId);
         return tile?.SubTexture;
+    }
+    
+    /// <summary>
+    /// Gets a list of unique tiles by deduplicating tiles with identical UV coordinates.
+    /// Tiles are considered duplicates if their UV coordinates match within a small epsilon.
+    /// </summary>
+    /// <returns>List of unique tiles with mappings to all original tile IDs sharing the same visual</returns>
+    public List<UniqueTile> GetUniqueTiles()
+    {
+        const float epsilon = 0.0001f;
+        var uniqueTiles = new List<UniqueTile>();
+        
+        foreach (var tile in Tiles)
+        {
+            if (tile.SubTexture == null) continue;
+            
+            // Check if we already have a unique tile with matching UV coordinates
+            var existingUnique = uniqueTiles.FirstOrDefault(u => 
+                AreTexCoordsEqual(u.SubTexture?.TexCoords, tile.SubTexture.TexCoords, epsilon));
+            
+            if (existingUnique != null)
+            {
+                // Add this tile ID to the existing unique tile's list
+                existingUnique.AllTileIds.Add(tile.Id);
+            }
+            else
+            {
+                // Create a new unique tile entry
+                var uniqueTile = new UniqueTile
+                {
+                    PrimaryTileId = tile.Id,
+                    AllTileIds = new List<int> { tile.Id },
+                    SubTexture = tile.SubTexture
+                };
+                uniqueTiles.Add(uniqueTile);
+            }
+        }
+        
+        return uniqueTiles;
+    }
+    
+    /// <summary>
+    /// Compares two sets of texture coordinates for equality within epsilon tolerance
+    /// </summary>
+    private static bool AreTexCoordsEqual(Vector2[]? coords1, Vector2[]? coords2, float epsilon)
+    {
+        if (coords1 == null || coords2 == null) return false;
+        if (coords1.Length != coords2.Length) return false;
+        
+        for (var i = 0; i < coords1.Length; i++)
+        {
+            if (System.Math.Abs(coords1[i].X - coords2[i].X) > epsilon ||
+                System.Math.Abs(coords1[i].Y - coords2[i].Y) > epsilon)
+            {
+                return false;
+            }
+        }
+        
+        return true;
     }
 }
 

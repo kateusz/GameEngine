@@ -388,7 +388,13 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         ImGui.BeginChild("TileSetPalette", new Vector2(250, 0), ImGuiChildFlags.Border);
         ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Top padding
         ImGui.Indent(EditorUIConstants.SmallPadding);
-        ImGui.Text($"TileSet Palette ({_tileSet.Tiles.Count} tiles)");
+        
+        // Get unique tiles for display
+        var uniqueTiles = _tileSet.GetUniqueTiles();
+        var totalTileCount = _tileSet.Tiles.Count;
+        var uniqueTileCount = uniqueTiles.Count;
+        
+        ImGui.Text($"TileSet Palette ({uniqueTileCount} unique / {totalTileCount} total)");
         ImGui.Text($"{_tileSet.Columns}x{_tileSet.Rows}");
         ImGui.Unindent(EditorUIConstants.SmallPadding);
         ImGui.Spacing();
@@ -404,15 +410,18 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         var tilesPerRow = Math.Max(1, (int)((availableWidth - 10) / (tileDisplaySize.X + spacing)));
 
         ImGui.Indent(EditorUIConstants.SmallPadding);
-        for (var i = 0; i < _tileSet.Tiles.Count; i++)
+        for (var i = 0; i < uniqueTiles.Count; i++)
         {
+            var uniqueTile = uniqueTiles[i];
+            if (uniqueTile.SubTexture == null) continue;
+            
             ImGui.PushID(i);
 
-            var texCoords = _tileSet.GetTileTextureCoords(i);
+            var texCoords = uniqueTile.SubTexture.TexCoords;
             var uvMin = texCoords[0];
             var uvMax = texCoords[2];
 
-            var isSelected = _selectedTileId == i;
+            var isSelected = _selectedTileId == uniqueTile.PrimaryTileId;
             var bgColor = isSelected ? new Vector4(0.3f, 0.5f, 0.8f, 1.0f) : new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
 
             var cursorPos = ImGui.GetCursorScreenPos();
@@ -424,15 +433,22 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
             if (ImGui.IsItemClicked())
             {
-                _selectedTileId = i;
+                _selectedTileId = uniqueTile.PrimaryTileId;
             }
 
-            // Show tile ID on hover
+            // Show tile information on hover
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text($"Tile ID: {i}");
-                ImGui.Text($"Position: ({i % _tileSet.Columns}, {i / _tileSet.Columns})");
+                ImGui.Text($"Tile ID: {uniqueTile.PrimaryTileId}");
+                var primaryId = uniqueTile.PrimaryTileId;
+                ImGui.Text($"Position: ({primaryId % _tileSet.Columns}, {primaryId / _tileSet.Columns})");
+                if (uniqueTile.AllTileIds.Count > 1)
+                {
+                    ImGui.Separator();
+                    ImGui.Text($"Duplicates: {uniqueTile.AllTileIds.Count} tiles share this visual");
+                    ImGui.Text($"IDs: {string.Join(", ", uniqueTile.AllTileIds)}");
+                }
                 ImGui.EndTooltip();
             }
 
