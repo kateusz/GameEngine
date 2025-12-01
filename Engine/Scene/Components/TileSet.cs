@@ -20,27 +20,6 @@ public class Tile
 }
 
 /// <summary>
-/// Represents a unique tile in a tileset palette, potentially mapping to multiple original tile IDs
-/// </summary>
-public class UniqueTile
-{
-    /// <summary>
-    /// The first tile ID with this visual (used for painting)
-    /// </summary>
-    public int PrimaryTileId { get; set; }
-    
-    /// <summary>
-    /// All tile IDs that share this visual
-    /// </summary>
-    public List<int> AllTileIds { get; set; } = new();
-    
-    /// <summary>
-    /// Reference to the SubTexture for rendering in the palette
-    /// </summary>
-    public SubTexture2D? SubTexture { get; set; }
-}
-
-/// <summary>
 /// Asset that defines a collection of tiles from a texture atlas
 /// </summary>
 public class TileSet
@@ -165,10 +144,10 @@ public class TileSet
     /// Gets a list of unique tiles by deduplicating tiles with identical pixel content.
     /// Tiles are considered duplicates if their pixel data is identical.
     /// </summary>
-    /// <returns>List of unique tiles with mappings to all original tile IDs sharing the same visual</returns>
-    public List<UniqueTile> GetUniqueTiles()
+    /// <returns>List of unique tiles (first occurrence of each unique visual)</returns>
+    public List<Tile> GetUniqueTiles()
     {
-        var uniqueTiles = new List<UniqueTile>();
+        var uniqueTiles = new List<Tile>();
         
         // If we can't access pixel data, fall back to returning all tiles as unique
         if (string.IsNullOrEmpty(TexturePath) || !File.Exists(TexturePath))
@@ -176,13 +155,7 @@ public class TileSet
             foreach (var tile in Tiles)
             {
                 if (tile.SubTexture == null) continue;
-                
-                uniqueTiles.Add(new UniqueTile
-                {
-                    PrimaryTileId = tile.Id,
-                    AllTileIds = new List<int> { tile.Id },
-                    SubTexture = tile.SubTexture
-                });
+                uniqueTiles.Add(tile);
             }
             return uniqueTiles;
         }
@@ -200,18 +173,12 @@ public class TileSet
             foreach (var tile in Tiles)
             {
                 if (tile.SubTexture == null) continue;
-                
-                uniqueTiles.Add(new UniqueTile
-                {
-                    PrimaryTileId = tile.Id,
-                    AllTileIds = new List<int> { tile.Id },
-                    SubTexture = tile.SubTexture
-                });
+                uniqueTiles.Add(tile);
             }
             return uniqueTiles;
         }
         
-        var pixelHashToUniqueTile = new Dictionary<string, UniqueTile>();
+        var seenPixelHashes = new HashSet<string>();
         
         foreach (var tile in Tiles)
         {
@@ -220,22 +187,10 @@ public class TileSet
             // Compute the pixel hash for this tile region
             var pixelHash = ComputeTilePixelHash(image, tile.Id);
             
-            if (pixelHashToUniqueTile.TryGetValue(pixelHash, out var existingUnique))
+            // Only add the tile if we haven't seen this pixel pattern before
+            if (seenPixelHashes.Add(pixelHash))
             {
-                // Add this tile ID to the existing unique tile's list
-                existingUnique.AllTileIds.Add(tile.Id);
-            }
-            else
-            {
-                // Create a new unique tile entry
-                var uniqueTile = new UniqueTile
-                {
-                    PrimaryTileId = tile.Id,
-                    AllTileIds = new List<int> { tile.Id },
-                    SubTexture = tile.SubTexture
-                };
-                uniqueTiles.Add(uniqueTile);
-                pixelHashToUniqueTile[pixelHash] = uniqueTile;
+                uniqueTiles.Add(tile);
             }
         }
         

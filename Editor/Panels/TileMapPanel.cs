@@ -402,16 +402,16 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         ImGui.Indent(EditorUIConstants.SmallPadding);
         for (var i = 0; i < uniqueTiles.Count; i++)
         {
-            var uniqueTile = uniqueTiles[i];
-            if (uniqueTile.SubTexture == null) continue;
+            var tile = uniqueTiles[i];
+            if (tile.SubTexture == null) continue;
             
             ImGui.PushID(i);
 
-            var texCoords = uniqueTile.SubTexture.TexCoords;
+            var texCoords = tile.SubTexture.TexCoords;
             var uvMin = texCoords[0];
             var uvMax = texCoords[2];
 
-            var isSelected = _selectedTileId == uniqueTile.PrimaryTileId;
+            var isSelected = _selectedTileId == tile.Id;
             var bgColor = isSelected ? new Vector4(0.3f, 0.5f, 0.8f, 1.0f) : new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
 
             var cursorPos = ImGui.GetCursorScreenPos();
@@ -423,22 +423,15 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
             if (ImGui.IsItemClicked())
             {
-                _selectedTileId = uniqueTile.PrimaryTileId;
+                _selectedTileId = tile.Id;
             }
 
             // Show tile information on hover
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text($"Tile ID: {uniqueTile.PrimaryTileId}");
-                var primaryId = uniqueTile.PrimaryTileId;
-                ImGui.Text($"Position: ({primaryId % _tileSet.Columns}, {primaryId / _tileSet.Columns})");
-                if (uniqueTile.AllTileIds.Count > 1)
-                {
-                    ImGui.Separator();
-                    ImGui.Text($"Duplicates: {uniqueTile.AllTileIds.Count} tiles share this visual");
-                    ImGui.Text($"IDs: {string.Join(", ", uniqueTile.AllTileIds)}");
-                }
+                ImGui.Text($"Tile ID: {tile.Id}");
+                ImGui.Text($"Position: ({tile.Id % _tileSet.Columns}, {tile.Id / _tileSet.Columns})");
                 ImGui.EndTooltip();
             }
 

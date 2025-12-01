@@ -48,9 +48,7 @@ public class TileSetTests
         uniqueTiles.Count.ShouldBe(4);
         for (var i = 0; i < 4; i++)
         {
-            uniqueTiles[i].PrimaryTileId.ShouldBe(i);
-            uniqueTiles[i].AllTileIds.Count.ShouldBe(1);
-            uniqueTiles[i].AllTileIds.ShouldContain(i);
+            uniqueTiles[i].Id.ShouldBe(i);
         }
     }
 
@@ -73,8 +71,8 @@ public class TileSetTests
 
         // Assert - Without texture file, fallback returns all non-null tiles as unique
         uniqueTiles.Count.ShouldBe(2);
-        uniqueTiles[0].AllTileIds.ShouldContain(0);
-        uniqueTiles[1].AllTileIds.ShouldContain(2);
+        uniqueTiles[0].Id.ShouldBe(0);
+        uniqueTiles[1].Id.ShouldBe(2);
     }
 
     [Fact]
