@@ -4,13 +4,10 @@ using Serilog;
 
 namespace Editor.Publisher;
 
-/// <summary>
-/// Publishes game projects by building the runtime and copying assets/scripts.
-/// </summary>
 public class GamePublisher(IProjectManager projectManager) : IGamePublisher
 {
     private static readonly ILogger Logger = Log.ForContext<GamePublisher>();
-    
+
     private static readonly HashSet<string> SupportedRuntimeIdentifiers = new(StringComparer.OrdinalIgnoreCase)
     {
         "win-x64", "win-x86", "win-arm64",
@@ -18,42 +15,37 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         "linux-x64", "linux-arm64"
     };
 
-    /// <inheritdoc />
     public void Publish()
     {
-        // Legacy synchronous method - delegates to async version with default settings
-        // Note: Using GetAwaiter().GetResult() instead of Wait() to properly propagate exceptions
         var settings = new PublishSettings
         {
-            OutputPath = GetDefaultOutputPath()
+            OutputPath = GetDefaultOutputPath(),
+            RuntimeIdentifier = "osx-arm64"
         };
-        
+
         var result = PublishAsync(settings).GetAwaiter().GetResult();
-        
+
         if (!result.Success)
         {
             Logger.Error("Publish failed: {Error}", result.ErrorMessage);
         }
     }
 
-    /// <inheritdoc />
     public async Task<PublishResult> PublishAsync(
-        PublishSettings settings, 
-        IProgress<string>? progress = null, 
+        PublishSettings settings,
+        IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
         var buildOutput = new List<string>();
-        
+
         try
         {
-            // Validate project is loaded
             var validationResult = ValidateProject();
             if (!validationResult.Success)
             {
                 return validationResult;
             }
 
-            // Validate settings
             var settingsValidation = ValidateSettings(settings);
             if (!settingsValidation.Success)
             {
@@ -61,14 +53,13 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             }
 
             progress?.Report("Preparing build directory...");
-            Logger.Information("Starting publish with settings: OutputPath={OutputPath}, Runtime={Runtime}", 
+            Logger.Information("Starting publish with settings: OutputPath={OutputPath}, Runtime={Runtime}",
                 settings.OutputPath, settings.RuntimeIdentifier);
 
-            // Create output directory
-            var outputPath = string.IsNullOrWhiteSpace(settings.OutputPath) 
-                ? GetDefaultOutputPath() 
+            var outputPath = string.IsNullOrWhiteSpace(settings.OutputPath)
+                ? GetDefaultOutputPath()
                 : settings.OutputPath;
-            
+
             try
             {
                 Directory.CreateDirectory(outputPath);
@@ -80,33 +71,24 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
                 return PublishResult.Failed(error);
             }
 
-            // Build the runtime
             progress?.Report("Building game runtime...");
             var buildResult = await BuildRuntimeAsync(settings, buildOutput, progress, cancellationToken);
             if (!buildResult.Success)
-            {
                 return buildResult;
-            }
 
-            // Copy assets
             progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(outputPath);
             if (!copyAssetsResult.Success)
-            {
                 return copyAssetsResult;
-            }
 
-            // Copy scripts
             progress?.Report("Copying scripts...");
             var copyScriptsResult = CopyScripts(outputPath);
             if (!copyScriptsResult.Success)
-            {
                 return copyScriptsResult;
-            }
 
             progress?.Report("Publish completed successfully!");
             Logger.Information("Game published successfully to {OutputPath}", outputPath);
-            
+
             return new PublishResult
             {
                 Success = true,
@@ -144,11 +126,11 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             Logger.Warning(error);
             return PublishResult.Failed(error);
         }
-        
+
         return new PublishResult { Success = true };
     }
 
-    private PublishResult ValidateSettings(PublishSettings settings)
+    private static PublishResult ValidateSettings(PublishSettings settings)
     {
         if (!SupportedRuntimeIdentifiers.Contains(settings.RuntimeIdentifier))
         {
@@ -157,26 +139,15 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             Logger.Warning(error);
             return PublishResult.Failed(error);
         }
-        
+
         if (string.IsNullOrWhiteSpace(settings.Configuration))
-        {
             return PublishResult.Failed("Build configuration cannot be empty.");
-        }
-        
+
         return new PublishResult { Success = true };
     }
 
-    private string GetDefaultOutputPath()
-    {
-        // Use project-relative Builds directory if a project is loaded
-        if (projectManager.CurrentProjectDirectory is not null)
-        {
-            return Path.Combine(projectManager.CurrentProjectDirectory, "Builds");
-        }
-        
-        // Fallback to current directory
-        return Path.Combine(Environment.CurrentDirectory, "Builds");
-    }
+    private string GetDefaultOutputPath() 
+        => Path.Combine(projectManager.CurrentProjectDirectory ?? Environment.CurrentDirectory, "Builds");
 
     private async Task<PublishResult> BuildRuntimeAsync(
         PublishSettings settings,
@@ -193,12 +164,12 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             return PublishResult.Failed(error);
         }
 
-        var outputPath = string.IsNullOrWhiteSpace(settings.OutputPath) 
-            ? GetDefaultOutputPath() 
+        var outputPath = string.IsNullOrWhiteSpace(settings.OutputPath)
+            ? GetDefaultOutputPath()
             : settings.OutputPath;
 
         var arguments = BuildDotnetPublishArguments(settings, runtimeProjectPath, outputPath);
-        
+
         Logger.Information("Running: dotnet {Arguments}", arguments);
         progress?.Report($"Running: dotnet {arguments}");
 
@@ -215,7 +186,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         try
         {
             using var process = new Process { StartInfo = psi };
-            
+
             process.OutputDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -225,7 +196,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
                     progress?.Report(e.Data);
                 }
             };
-            
+
             process.ErrorDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -331,7 +302,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         }
 
         var assetsTarget = Path.Combine(buildOutput, "assets");
-        
+
         try
         {
             CopyDirectory(assetsSource, assetsTarget);
@@ -356,7 +327,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         }
 
         var scriptsTarget = Path.Combine(buildOutput, "assets", "scripts");
-        
+
         try
         {
             CopyDirectory(scriptsSource, scriptsTarget);
@@ -374,18 +345,18 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
     private static void CopyDirectory(string sourceDir, string targetDir)
     {
         Directory.CreateDirectory(targetDir);
-        
+
         foreach (var file in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceDir, file);
             var destPath = Path.Combine(targetDir, relativePath);
             var destDirectory = Path.GetDirectoryName(destPath);
-            
+
             if (!string.IsNullOrEmpty(destDirectory))
             {
                 Directory.CreateDirectory(destDirectory);
             }
-            
+
             File.Copy(file, destPath, overwrite: true);
         }
     }
