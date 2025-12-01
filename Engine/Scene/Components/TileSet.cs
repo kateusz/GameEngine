@@ -1,5 +1,7 @@
 using System.Numerics;
+using System.Security.Cryptography;
 using Engine.Renderer.Textures;
+using StbImageSharp;
 
 namespace Engine.Scene.Components;
 
@@ -43,11 +45,6 @@ public class UniqueTile
 /// </summary>
 public class TileSet
 {
-    /// <summary>
-    /// Epsilon value for floating-point UV coordinate comparison
-    /// </summary>
-    private const float UvComparisonEpsilon = 0.0001f;
-    
     public string Name { get; set; } = "New TileSet";
     public string TexturePath { get; set; } = string.Empty;
     public Texture2D? Texture { get; private set; }
@@ -165,23 +162,65 @@ public class TileSet
     }
     
     /// <summary>
-    /// Gets a list of unique tiles by deduplicating tiles with identical UV coordinates.
-    /// Tiles are considered duplicates if their UV coordinates match within a small epsilon.
+    /// Gets a list of unique tiles by deduplicating tiles with identical pixel content.
+    /// Tiles are considered duplicates if their pixel data is identical.
     /// </summary>
     /// <returns>List of unique tiles with mappings to all original tile IDs sharing the same visual</returns>
     public List<UniqueTile> GetUniqueTiles()
     {
         var uniqueTiles = new List<UniqueTile>();
-        var uvKeyToUniqueTile = new Dictionary<string, UniqueTile>();
+        
+        // If we can't access pixel data, fall back to returning all tiles as unique
+        if (string.IsNullOrEmpty(TexturePath) || !File.Exists(TexturePath))
+        {
+            foreach (var tile in Tiles)
+            {
+                if (tile.SubTexture == null) continue;
+                
+                uniqueTiles.Add(new UniqueTile
+                {
+                    PrimaryTileId = tile.Id,
+                    AllTileIds = new List<int> { tile.Id },
+                    SubTexture = tile.SubTexture
+                });
+            }
+            return uniqueTiles;
+        }
+        
+        // Load the image to access pixel data for comparison
+        ImageResult? image = null;
+        try
+        {
+            using var stream = File.OpenRead(TexturePath);
+            image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+        }
+        catch
+        {
+            // If we can't load the image, return all tiles as unique
+            foreach (var tile in Tiles)
+            {
+                if (tile.SubTexture == null) continue;
+                
+                uniqueTiles.Add(new UniqueTile
+                {
+                    PrimaryTileId = tile.Id,
+                    AllTileIds = new List<int> { tile.Id },
+                    SubTexture = tile.SubTexture
+                });
+            }
+            return uniqueTiles;
+        }
+        
+        var pixelHashToUniqueTile = new Dictionary<string, UniqueTile>();
         
         foreach (var tile in Tiles)
         {
             if (tile.SubTexture == null) continue;
             
-            // Generate a hash key based on quantized UV coordinates for O(1) lookup
-            var uvKey = GenerateUvKey(tile.SubTexture.TexCoords);
+            // Compute the pixel hash for this tile region
+            var pixelHash = ComputeTilePixelHash(image, tile.Id);
             
-            if (uvKeyToUniqueTile.TryGetValue(uvKey, out var existingUnique))
+            if (pixelHashToUniqueTile.TryGetValue(pixelHash, out var existingUnique))
             {
                 // Add this tile ID to the existing unique tile's list
                 existingUnique.AllTileIds.Add(tile.Id);
@@ -196,7 +235,7 @@ public class TileSet
                     SubTexture = tile.SubTexture
                 };
                 uniqueTiles.Add(uniqueTile);
-                uvKeyToUniqueTile[uvKey] = uniqueTile;
+                pixelHashToUniqueTile[pixelHash] = uniqueTile;
             }
         }
         
@@ -204,22 +243,39 @@ public class TileSet
     }
     
     /// <summary>
-    /// Generates a hash key for UV coordinates by quantizing them based on epsilon tolerance.
-    /// This enables O(1) dictionary lookups for deduplication.
+    /// Computes a hash of the pixel data for a specific tile region.
     /// </summary>
-    private static string GenerateUvKey(Vector2[] coords)
+    private string ComputeTilePixelHash(ImageResult image, int tileId)
     {
-        // Quantize coordinates to epsilon precision to ensure matching within tolerance
-        var quantizeFactor = 1.0f / UvComparisonEpsilon;
-        var parts = new int[coords.Length * 2];
+        // Calculate the tile's position in the image
+        var col = tileId % Columns;
+        var row = tileId / Columns;
         
-        for (var i = 0; i < coords.Length; i++)
+        var startX = Margin + col * (TileWidth + Spacing);
+        var startY = Margin + row * (TileHeight + Spacing);
+        
+        // Extract pixel data for this tile region
+        var pixelData = new byte[TileWidth * TileHeight * 4]; // RGBA = 4 bytes per pixel
+        var index = 0;
+        
+        for (var y = startY; y < startY + TileHeight && y < image.Height; y++)
         {
-            parts[i * 2] = (int)MathF.Round(coords[i].X * quantizeFactor);
-            parts[i * 2 + 1] = (int)MathF.Round(coords[i].Y * quantizeFactor);
+            for (var x = startX; x < startX + TileWidth && x < image.Width; x++)
+            {
+                var sourceIndex = (y * image.Width + x) * 4;
+                if (sourceIndex + 3 < image.Data.Length)
+                {
+                    pixelData[index++] = image.Data[sourceIndex];     // R
+                    pixelData[index++] = image.Data[sourceIndex + 1]; // G
+                    pixelData[index++] = image.Data[sourceIndex + 2]; // B
+                    pixelData[index++] = image.Data[sourceIndex + 3]; // A
+                }
+            }
         }
         
-        return string.Join(",", parts);
+        // Compute MD5 hash of the pixel data
+        var hashBytes = MD5.HashData(pixelData);
+        return Convert.ToHexString(hashBytes);
     }
 }
 
