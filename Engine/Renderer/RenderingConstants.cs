@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Engine.Renderer;
 
 /// <summary>
@@ -81,4 +83,9 @@ internal static class RenderingConstants
     /// Maximum number of indices that can be batched (MaxQuads * QuadIndexCount).
     /// </summary>
     public const int MaxIndices = DefaultMaxQuads * QuadIndexCount;
+
+    public const float DefaultTilingFactor = 1.0f;
+    public const float DefaultTileScale = 1.0f;
+    public const float TileLayerZSpacing = 0.01f;
+    public static readonly Vector4? OpaqueWhiteTint = new Vector4(1, 1, 1, 1);
 }

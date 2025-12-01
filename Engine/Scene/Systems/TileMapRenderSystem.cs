@@ -25,7 +25,14 @@ internal sealed class TileMapRenderSystem(IGraphics2D graphics2D, IContext conte
 
     public void OnInit() => _loadedTileSets.Clear();
 
-    public void OnShutdown() => _loadedTileSets.Clear();
+    public void OnShutdown()
+    {
+        foreach (var tileSet in _loadedTileSets.Values)
+        {
+            tileSet.Texture?.Dispose();
+        }
+        _loadedTileSets.Clear();
+    }
 
     public void OnUpdate(TimeSpan deltaTime)
     {
@@ -163,22 +170,22 @@ internal sealed class TileMapRenderSystem(IGraphics2D graphics2D, IContext conte
         var tilePos = new Vector3(
             transform.Translation.X + x * tileMap.TileSize.X,
             transform.Translation.Y + (tileMap.Height - 1 - y) * tileMap.TileSize.Y,
-            transform.Translation.Z + layer.ZIndex * 0.01f
+            transform.Translation.Z + layer.ZIndex * RenderingConstants.TileLayerZSpacing
         );
 
         // Create transform for this tile
         // Each tile has its own size (TileSize), not affected by entity scale
-        var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMap.TileSize, 1.0f)) *
+        var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMap.TileSize, RenderingConstants.DefaultTileScale)) *
                             Matrix4x4.CreateRotationZ(transform.Rotation.Z) *
                             Matrix4x4.CreateTranslation(tilePos);
 
-        var tintColor = new Vector4(1, 1, 1, 1);
+        var tintColor = RenderingConstants.OpaqueWhiteTint;
 
         graphics2D.DrawQuad(
             tileTransform,
             subTexture.Texture,
             subTexture.TexCoords,
-            1.0f,
+            RenderingConstants.DefaultTilingFactor,
             tintColor,
             entityId
         );

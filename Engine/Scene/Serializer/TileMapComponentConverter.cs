@@ -21,16 +21,20 @@ internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent
         component.SetHeight(root.GetProperty("Height").GetInt32());
         component.SetTileSize(JsonSerializer.Deserialize<System.Numerics.Vector2>(
             root.GetProperty("TileSize").GetRawText(), options));
-        component.SetTileSetPath(root.GetProperty("TileSetPath").GetString() ?? throw new SerializationException("Missing TileSetPath"));
+        component.SetTileSetPath(root.GetProperty("TileSetPath").GetString() ??
+                                 throw new SerializationException("Missing TileSetPath"));
         component.SetTileSetColumns(root.GetProperty("TileSetColumns").GetInt32());
         component.SetTileSetRows(root.GetProperty("TileSetRows").GetInt32());
         component.SetActiveLayerIndex(root.GetProperty("ActiveLayerIndex").GetInt32());
         
-        // Deserialize layers
-        component.Layers.Clear();
-        if (!root.TryGetProperty("Layers", out var layersElement)) 
+        if (!root.TryGetProperty("Layers", out var layersElement))
+        {
+            // No layers in JSON; keep the default layer created by the component constructor.
             return component;
-        
+        }
+
+        component.Layers.Clear();
+
         foreach (var layerElement in layersElement.EnumerateArray())
         {
             var layer = new TileMapLayer(component.Width, component.Height)
@@ -76,19 +80,19 @@ internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent
         // Serialize layers
         writer.WritePropertyName("Layers");
         writer.WriteStartArray();
-        
+
         foreach (var layer in value.Layers)
         {
             writer.WriteStartObject();
-            
+
             writer.WriteString("Name", layer.Name);
             writer.WriteBoolean("Visible", layer.Visible);
             writer.WriteNumber("ZIndex", layer.ZIndex);
-            
+
             // Serialize 2D tile array as array of arrays
             writer.WritePropertyName("Tiles");
             writer.WriteStartArray();
-            
+
             for (var y = 0; y < value.Height; y++)
             {
                 writer.WriteStartArray();
@@ -96,15 +100,15 @@ internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent
                 {
                     writer.WriteNumberValue(layer.Tiles[x, y]);
                 }
+
                 writer.WriteEndArray();
             }
-            
+
             writer.WriteEndArray(); // End Tiles array
             writer.WriteEndObject(); // End layer object
         }
-        
+
         writer.WriteEndArray(); // End Layers array
         writer.WriteEndObject(); // End component object
     }
 }
-
