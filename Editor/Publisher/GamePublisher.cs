@@ -22,17 +22,17 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
     public void Publish()
     {
         // Legacy synchronous method - delegates to async version with default settings
+        // Note: Using GetAwaiter().GetResult() instead of Wait() to properly propagate exceptions
         var settings = new PublishSettings
         {
             OutputPath = GetDefaultOutputPath()
         };
         
-        var task = PublishAsync(settings);
-        task.Wait();
+        var result = PublishAsync(settings).GetAwaiter().GetResult();
         
-        if (!task.Result.Success)
+        if (!result.Success)
         {
-            Logger.Error("Publish failed: {Error}", task.Result.ErrorMessage);
+            Logger.Error("Publish failed: {Error}", result.ErrorMessage);
         }
     }
 
@@ -169,9 +169,9 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
     private string GetDefaultOutputPath()
     {
         // Use project-relative Builds directory if a project is loaded
-        if (projectManager is ProjectManager pm && pm.CurrentProjectDirectory is not null)
+        if (projectManager.CurrentProjectDirectory is not null)
         {
-            return Path.Combine(pm.CurrentProjectDirectory, "Builds");
+            return Path.Combine(projectManager.CurrentProjectDirectory, "Builds");
         }
         
         // Fallback to current directory
@@ -317,13 +317,13 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
     private PublishResult CopyAssets(string buildOutput)
     {
         // Get assets source from the project manager
-        if (projectManager is not ProjectManager pm || pm.CurrentProjectDirectory is null)
+        if (projectManager.CurrentProjectDirectory is null)
         {
             Logger.Warning("No project directory available for asset copying");
             return new PublishResult { Success = true }; // Not a failure, just nothing to copy
         }
 
-        var assetsSource = Path.Combine(pm.CurrentProjectDirectory, "assets");
+        var assetsSource = Path.Combine(projectManager.CurrentProjectDirectory, "assets");
         if (!Directory.Exists(assetsSource))
         {
             Logger.Information("No assets directory found at {Path}, skipping asset copy", assetsSource);
