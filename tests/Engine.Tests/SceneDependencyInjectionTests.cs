@@ -85,7 +85,7 @@ public class SceneDependencyInjectionTests
 
         // Assert
         system.ShouldNotBeNull();
-        system.Priority.ShouldBe(200);
+        system.Priority.ShouldBe(SystemPriorities.SpriteRenderSystem);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class SceneDependencyInjectionTests
 
         // Assert
         system.ShouldNotBeNull();
-        system.Priority.ShouldBe(150);
+        system.Priority.ShouldBe(SystemPriorities.ScriptUpdateSystem);
     }
 
     [Fact]

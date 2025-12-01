@@ -1,6 +1,6 @@
 using System.Numerics;
 using Engine.Renderer.Textures;
-using Engine.Scene.Components;
+using Engine.Tiles;
 using NSubstitute;
 using Shouldly;
 
@@ -12,7 +12,12 @@ public class TileSetTests
     public void GetUniqueTiles_WithEmptyTiles_ShouldReturnEmptyList()
     {
         // Arrange
-        var tileSet = new TileSet();
+        var tileSet = new TileSet
+        {
+            TexturePath = "/nonexistent/path/to/texture.png",
+            Columns = 8,
+            Rows = 8
+        };
 
         // Act
         var uniqueTiles = tileSet.GetUniqueTiles();
@@ -25,7 +30,12 @@ public class TileSetTests
     public void GetUniqueTiles_WithoutTextureFile_ShouldReturnAllTilesAsUnique()
     {
         // Arrange
-        var tileSet = new TileSet();
+        var tileSet = new TileSet
+        {
+            TexturePath = "/nonexistent/path/to/texture.png",
+            Columns = 8,
+            Rows = 8
+        };
         var mockTexture = Substitute.For<Texture2D>();
         
         // Create 4 tiles - without a texture file, all should be returned as unique
@@ -56,15 +66,20 @@ public class TileSetTests
     public void GetUniqueTiles_WithNullSubTextures_ShouldSkipNullTiles()
     {
         // Arrange
-        var tileSet = new TileSet();
+        var tileSet = new TileSet
+        {
+            TexturePath = "/nonexistent/path/to/texture.png",
+            Columns = 8,
+            Rows = 8
+        };
         var mockTexture = Substitute.For<Texture2D>();
         
         var min = new Vector2(0f, 0f);
         var max = new Vector2(0.25f, 0.25f);
         
-        tileSet.Tiles.Add(new Tile { Id = 0, SubTexture = new SubTexture2D(mockTexture, min, max) });
-        tileSet.Tiles.Add(new Tile { Id = 1, SubTexture = null });
-        tileSet.Tiles.Add(new Tile { Id = 2, SubTexture = new SubTexture2D(mockTexture, min, max) });
+        tileSet.Tiles.Add(new Tile { Id = 0, Name = "Tile_0", SubTexture = new SubTexture2D(mockTexture, min, max) });
+        tileSet.Tiles.Add(new Tile { Id = 1, Name = "Tile_1", SubTexture = null });
+        tileSet.Tiles.Add(new Tile { Id = 2, Name = "Tile_2", SubTexture = new SubTexture2D(mockTexture, min, max) });
 
         // Act
         var uniqueTiles = tileSet.GetUniqueTiles();
@@ -79,14 +94,19 @@ public class TileSetTests
     public void GetUniqueTiles_PreservesSubTextureReference()
     {
         // Arrange
-        var tileSet = new TileSet();
+        var tileSet = new TileSet
+        {
+            TexturePath = "/nonexistent/path/to/texture.png",
+            Columns = 8,
+            Rows = 8
+        };
         var mockTexture = Substitute.For<Texture2D>();
         
         var min = new Vector2(0f, 0f);
         var max = new Vector2(0.25f, 0.25f);
         var subTexture = new SubTexture2D(mockTexture, min, max);
         
-        tileSet.Tiles.Add(new Tile { Id = 0, SubTexture = subTexture });
+        tileSet.Tiles.Add(new Tile { Id = 0, Name = "Tile_0", SubTexture = subTexture });
 
         // Act
         var uniqueTiles = tileSet.GetUniqueTiles();
@@ -101,7 +121,9 @@ public class TileSetTests
         // Arrange
         var tileSet = new TileSet
         {
-            TexturePath = "/nonexistent/path/to/texture.png"
+            TexturePath = "/nonexistent/path/to/texture.png",
+            Columns = 8,
+            Rows = 8
         };
         var mockTexture = Substitute.For<Texture2D>();
         
@@ -112,6 +134,7 @@ public class TileSetTests
             tileSet.Tiles.Add(new Tile
             {
                 Id = i,
+                Name = $"Tile_{i}",
                 SubTexture = new SubTexture2D(mockTexture, min, max)
             });
         }
