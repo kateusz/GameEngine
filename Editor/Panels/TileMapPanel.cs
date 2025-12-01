@@ -2,6 +2,7 @@ using System.Numerics;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Scene.Components;
+using Engine.Scene.Systems;
 using Engine.Tiles;
 using ImGuiNET;
 
@@ -10,7 +11,7 @@ namespace Editor.Panels;
 /// <summary>
 /// TileMap editor panel with Godot-like functionality
 /// </summary>
-public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory)
+public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory, TileMapEditingSystem tileMapEditingSystem)
 {
     private TileMapComponent? _activeTileMap;
     private TileSet? _tileSet;
@@ -312,13 +313,13 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
         // Layer controls
         ButtonDrawer.DrawButton("➕ Add Layer",
-            () => { _activeTileMap.AddLayer($"Layer {_activeTileMap.Layers.Count}"); });
+            () => { tileMapEditingSystem.AddLayer(_activeTileMap, $"Layer {_activeTileMap.Layers.Count}"); });
 
         ImGui.SameLine();
 
         var canRemoveLayer = _activeTileMap.Layers.Count > 1;
         ButtonDrawer.DrawButton("🗑 Remove Layer",
-            () => _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex),
+            () => tileMapEditingSystem.RemoveLayer(_activeTileMap, _activeTileMap.ActiveLayerIndex),
             disabled: !canRemoveLayer);
 
         // Tooltip on disabled items requires special handling

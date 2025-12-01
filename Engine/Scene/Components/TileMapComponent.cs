@@ -5,7 +5,8 @@ using Engine.Tiles;
 namespace Engine.Scene.Components;
 
 /// <summary>
-/// Component for storing and managing tilemap data
+/// Component for storing tilemap data.
+/// Note: Editing operations (Resize, AddLayer, RemoveLayer) should be performed through TileMapEditingSystem.
 /// </summary>
 public class TileMapComponent : IComponent
 {
@@ -53,58 +54,6 @@ public class TileMapComponent : IComponent
         if (layer < 0 || layer >= Layers.Count) return;
         if (x < 0 || x >= Width || y < 0 || y >= Height) return;
         Layers[layer].Tiles[x, y] = tileIndex;
-    }
-
-    /// <summary>
-    /// Resizes the tilemap (preserves existing tile data where possible)
-    /// </summary>
-    public void Resize(int newWidth, int newHeight)
-    {
-        foreach (var layer in Layers)
-        {
-            var newTiles = new int[newWidth, newHeight];
-            for (var x = 0; x < newWidth; x++)
-            {
-                for (var y = 0; y < newHeight; y++)
-                {
-                    if (x < Width && y < Height)
-                    {
-                        newTiles[x, y] = layer.Tiles[x, y];
-                    }
-                    else
-                    {
-                        newTiles[x, y] = -1;
-                    }
-                }
-            }
-            layer.SetTiles(newTiles);
-        }
-        Width = newWidth;
-        Height = newHeight;
-    }
-
-    /// <summary>
-    /// Adds a new layer
-    /// </summary>
-    public void AddLayer(string name = "New Layer")
-    {
-        var layer = new TileMapLayer(Width, Height) { Name = name, ZIndex = Layers.Count };
-        Layers.Add(layer);
-    }
-
-    /// <summary>
-    /// Removes a layer at the specified index
-    /// </summary>
-    public void RemoveLayer(int index)
-    {
-        if (index >= 0 && index < Layers.Count && Layers.Count > 1)
-        {
-            Layers.RemoveAt(index);
-            if (ActiveLayerIndex >= Layers.Count)
-            {
-                ActiveLayerIndex = Layers.Count - 1;
-            }
-        }
     }
 
     public IComponent Clone()

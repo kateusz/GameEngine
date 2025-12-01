@@ -5,12 +5,13 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
 using Engine.Scene.Components;
+using Engine.Scene.Systems;
 using ImGuiNET;
 using Serilog;
 
 namespace Editor.ComponentEditors;
 
-public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager) : IComponentEditor
+public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager, TileMapEditingSystem tileMapEditingSystem) : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<TileMapComponentEditor>();
 
@@ -78,13 +79,13 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
         var width = component.Width;
         if (ImGui.DragInt("Width", ref width, 1, 1, 1000))
         {
-            component.Resize(width, component.Height);
+            tileMapEditingSystem.Resize(component, width, component.Height);
         }
 
         var height = component.Height;
         if (ImGui.DragInt("Height", ref height, 1, 1, 1000))
         {
-            component.Resize(component.Width, height);
+            tileMapEditingSystem.Resize(component, component.Width, height);
         }
 
         var tileSize = component.TileSize;
@@ -103,4 +104,3 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
         }
     }
 }
-
