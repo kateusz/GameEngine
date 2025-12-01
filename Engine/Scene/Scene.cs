@@ -280,7 +280,7 @@ internal sealed class Scene : IScene
                                             Matrix4x4.CreateRotationZ(transformComponent.Rotation.Z) *
                                             Matrix4x4.CreateTranslation(tilePos);
 
-                        var tintColor = new Vector4(1, 1, 1, layer.Opacity);
+                        var tintColor = new Vector4(1, 1, 1, 1);
 
                         _graphics2D.DrawQuad(
                             tileTransform,

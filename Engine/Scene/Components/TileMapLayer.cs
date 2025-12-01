@@ -7,7 +7,6 @@ public class TileMapLayer
 {
     public string Name { get; set; } = "Layer";
     public bool Visible { get; set; } = true;
-    public float Opacity { get; set; } = 1.0f;
     public int ZIndex { get; set; } = 0;
     
     // Tile data: -1 = empty, >= 0 = tile index in tileset

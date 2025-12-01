@@ -222,7 +222,7 @@ internal sealed class TileMapRenderSystem : ISystem
                                       Matrix4x4.CreateRotationZ(transform.Rotation.Z) *
                                       Matrix4x4.CreateTranslation(tilePos);
 
-                    var tintColor = new Vector4(1, 1, 1, layer.Opacity);
+                    var tintColor = new Vector4(1, 1, 1, 1);
 
                     _graphics2D.DrawQuad(
                         tileTransform,

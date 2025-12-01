@@ -36,7 +36,6 @@ internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent
                 {
                     Name = layerElement.GetProperty("Name").GetString() ?? "Layer",
                     Visible = layerElement.GetProperty("Visible").GetBoolean(),
-                    Opacity = layerElement.GetProperty("Opacity").GetSingle(),
                     ZIndex = layerElement.GetProperty("ZIndex").GetInt32()
                 };
 
@@ -84,7 +83,6 @@ internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent
             
             writer.WriteString("Name", layer.Name);
             writer.WriteBoolean("Visible", layer.Visible);
-            writer.WriteNumber("Opacity", layer.Opacity);
             writer.WriteNumber("ZIndex", layer.ZIndex);
             
             // Serialize 2D tile array as array of arrays

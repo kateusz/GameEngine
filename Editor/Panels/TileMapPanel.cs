@@ -360,16 +360,6 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         // Show active layer info
         ImGui.Separator();
         ImGui.Text($"Active: {_activeTileMap.Layers[_activeTileMap.ActiveLayerIndex].Name}");
-        ImGui.SameLine();
-
-        // Opacity slider for active layer
-        var activeLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
-        var opacity = activeLayer.Opacity;
-        ImGui.SetNextItemWidth(100);
-        if (ImGui.SliderFloat("Opacity", ref opacity, 0.0f, 1.0f, "%.2f"))
-        {
-            activeLayer.Opacity = opacity;
-        }
     }
 
     private void DrawTileSetPalette()
@@ -524,7 +514,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                     var uvMin = texCoords[0];
                     var uvMax = texCoords[2];
 
-                    var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, layer.Opacity));
+                    var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, 1));
                     drawList.AddImage(textureId, screenPos, screenPos + tileDisplaySize, uvMin, uvMax, color);
                 }
             }
