@@ -2,6 +2,7 @@ using System.Numerics;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Scene.Components;
+using Engine.Tiles;
 using ImGuiNET;
 
 namespace Editor.Panels;
@@ -235,7 +236,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 if (ImGui.Selectable($"{layer.Name} (Z:{layer.ZIndex})##layer{i}", isSelected,
                         ImGuiSelectableFlags.None, new Vector2(0, 20)))
                 {
-                    _activeTileMap.ActiveLayerIndex = i;
+                    _activeTileMap.SetActiveLayerIndex(i);
                 }
 
                 if (isSelected)
@@ -263,9 +264,9 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
                         // Update active layer index if needed
                         if (_activeTileMap.ActiveLayerIndex == i)
-                            _activeTileMap.ActiveLayerIndex = i + 1;
+                            _activeTileMap.SetActiveLayerIndex(i + 1);
                         else if (_activeTileMap.ActiveLayerIndex == i + 1)
-                            _activeTileMap.ActiveLayerIndex = i;
+                            _activeTileMap.SetActiveLayerIndex(i);
                     }
                 }
                 else
@@ -291,9 +292,9 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
                         // Update active layer index if needed
                         if (_activeTileMap.ActiveLayerIndex == i)
-                            _activeTileMap.ActiveLayerIndex = i - 1;
+                            _activeTileMap.SetActiveLayerIndex(i - 1);
                         else if (_activeTileMap.ActiveLayerIndex == i - 1)
-                            _activeTileMap.ActiveLayerIndex = i;
+                            _activeTileMap.SetActiveLayerIndex(i);
                     }
                 }
                 else
@@ -353,7 +354,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                     return;
 
                 var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
-                currentLayer.Name = _renameLayerInput;
+                currentLayer.SetName(_renameLayerInput);
             },
             onCancel: () => { });
 

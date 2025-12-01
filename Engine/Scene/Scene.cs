@@ -10,6 +10,7 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scene.Systems;
+using Engine.Tiles;
 using Serilog;
 
 namespace Engine.Scene;

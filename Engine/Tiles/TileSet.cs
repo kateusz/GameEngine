@@ -3,39 +3,21 @@ using System.Security.Cryptography;
 using Engine.Renderer.Textures;
 using StbImageSharp;
 
-namespace Engine.Scene.Components;
-
-/// <summary>
-/// Represents a single tile definition in a tileset
-/// </summary>
-public class Tile
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public SubTexture2D? SubTexture { get; set; }
-    
-    // Optional properties for advanced features
-    public bool IsCollidable { get; set; } = false;
-    public Dictionary<string, object> CustomProperties { get; set; } = new();
-}
+namespace Engine.Tiles;
 
 /// <summary>
 /// Asset that defines a collection of tiles from a texture atlas
 /// </summary>
 public class TileSet
 {
-    public string Name { get; set; } = "New TileSet";
-    public string TexturePath { get; set; } = string.Empty;
+    public required string TexturePath { get; init; }
+    public required int Columns { get; init; }
+    public required int Rows { get; init; }
     public Texture2D? Texture { get; private set; }
-    
-    public int TileWidth { get; set; } = 16;
-    public int TileHeight { get; set; } = 16;
-    public int Columns { get; set; } = 8;
-    public int Rows { get; set; } = 8;
-    public int Spacing { get; set; } = 0;
-    public int Margin { get; set; } = 0;
-    
-    public List<Tile> Tiles { get; set; } = new();
+
+    public int TileWidth { get; set; }
+    public int TileHeight { get; set; }
+    public List<Tile> Tiles { get; } = [];
 
     /// <summary>
     /// Loads the tileset texture using the provided texture factory
@@ -58,9 +40,9 @@ public class TileSet
     public void GenerateTiles()
     {
         Tiles.Clear();
-        
+
         if (Texture == null) return;
-        
+
         var tileId = 0;
         for (var row = 0; row < Rows; row++)
         {
@@ -77,37 +59,27 @@ public class TileSet
         }
     }
 
-    /// <summary>
-    /// Creates a SubTexture2D for a tile at the specified position
-    /// </summary>
     private SubTexture2D? CreateSubTexture(int column, int row)
     {
-        if (Texture == null) return null;
+        if (Texture == null)
+            return null;
 
         float texWidth = Texture.Width;
         float texHeight = Texture.Height;
-        
-        float x = Margin + column * (TileWidth + Spacing);
-        float y = Margin + row * (TileHeight + Spacing);
-        
+
+        float x = column * TileWidth;
+        float y = row * TileHeight;
+
         var minU = x / texWidth;
         var minV = y / texHeight;
-        
+
         var maxU = (x + TileWidth) / texWidth;
         var maxV = (y + TileHeight) / texHeight;
-        
+
         var min = new Vector2(minU, minV);
         var max = new Vector2(maxU, maxV);
-        
-        return new SubTexture2D(Texture, min, max);
-    }
 
-    /// <summary>
-    /// Gets a tile by its ID
-    /// </summary>
-    public Tile? GetTile(int id)
-    {
-        return Tiles.FirstOrDefault(t => t.Id == id);
+        return new SubTexture2D(Texture, min, max);
     }
 
     /// <summary>
@@ -116,30 +88,27 @@ public class TileSet
     public Vector2[] GetTileTextureCoords(int tileId)
     {
         var tile = GetTile(tileId);
-        if (tile?.SubTexture == null)
+        if (tile?.SubTexture is null)
         {
             // Return default quad texture coordinates
-            return new[]
-            {
+            return
+            [
                 new Vector2(0, 0),
                 new Vector2(1, 0),
                 new Vector2(1, 1),
                 new Vector2(0, 1)
-            };
+            ];
         }
 
         return tile.SubTexture.TexCoords;
     }
-    
-    /// <summary>
-    /// Gets the SubTexture2D for a specific tile ID
-    /// </summary>
+
     public SubTexture2D? GetTileSubTexture(int tileId)
     {
         var tile = GetTile(tileId);
         return tile?.SubTexture;
     }
-    
+
     /// <summary>
     /// Gets a list of unique tiles by deduplicating tiles with identical pixel content.
     /// Tiles are considered duplicates if their pixel data is identical.
@@ -148,20 +117,7 @@ public class TileSet
     public List<Tile> GetUniqueTiles()
     {
         var uniqueTiles = new List<Tile>();
-        
-        // If we can't access pixel data, fall back to returning all tiles as unique
-        if (string.IsNullOrEmpty(TexturePath) || !File.Exists(TexturePath))
-        {
-            foreach (var tile in Tiles)
-            {
-                if (tile.SubTexture == null) continue;
-                uniqueTiles.Add(tile);
-            }
-            return uniqueTiles;
-        }
-        
-        // Load the image to access pixel data for comparison
-        ImageResult? image = null;
+        ImageResult? image;
         try
         {
             using var stream = File.OpenRead(TexturePath);
@@ -172,65 +128,69 @@ public class TileSet
             // If we can't load the image, return all tiles as unique
             foreach (var tile in Tiles)
             {
-                if (tile.SubTexture == null) continue;
+                if (tile.SubTexture == null) 
+                    continue;
                 uniqueTiles.Add(tile);
             }
+
             return uniqueTiles;
         }
-        
+
         var seenPixelHashes = new HashSet<string>();
-        
         foreach (var tile in Tiles)
         {
-            if (tile.SubTexture == null) continue;
+            if (tile.SubTexture == null) 
+                continue;
             
-            // Compute the pixel hash for this tile region
             var pixelHash = ComputeTilePixelHash(image, tile.Id);
-            
+
             // Only add the tile if we haven't seen this pixel pattern before
             if (seenPixelHashes.Add(pixelHash))
             {
                 uniqueTiles.Add(tile);
             }
         }
-        
+
         return uniqueTiles;
     }
+
+    private Tile? GetTile(int id) => Tiles.FirstOrDefault(t => t.Id == id);
     
-    /// <summary>
-    /// Computes a hash of the pixel data for a specific tile region.
-    /// </summary>
     private string ComputeTilePixelHash(ImageResult image, int tileId)
+    {
+        var pixelData = GetPixelDataFromImage(tileId, image);
+        var hashBytes = MD5.HashData(pixelData);
+        return Convert.ToHexString(hashBytes);
+    }
+    
+    private byte[] GetPixelDataFromImage(int tileId, ImageResult imageResult)
     {
         // Calculate the tile's position in the image
         var col = tileId % Columns;
         var row = tileId / Columns;
         
-        var startX = Margin + col * (TileWidth + Spacing);
-        var startY = Margin + row * (TileHeight + Spacing);
+        var startX = col * TileWidth;
+        var startY = row * TileHeight;
         
-        // Extract pixel data for this tile region
-        var pixelData = new byte[TileWidth * TileHeight * 4]; // RGBA = 4 bytes per pixel
-        var index = 0;
-        
-        for (var y = startY; y < startY + TileHeight && y < image.Height; y++)
+        var bytes = new byte[TileWidth * TileHeight * 4];
+        var pixelDataIndex = 0;
+
+        for (var y = startY; y < startY + TileHeight && y < imageResult.Height; y++)
         {
-            for (var x = startX; x < startX + TileWidth && x < image.Width; x++)
+            for (var x = startX; x < startX + TileWidth && x < imageResult.Width; x++)
             {
-                var sourceIndex = (y * image.Width + x) * 4;
-                if (sourceIndex + 3 < image.Data.Length)
-                {
-                    pixelData[index++] = image.Data[sourceIndex];     // R
-                    pixelData[index++] = image.Data[sourceIndex + 1]; // G
-                    pixelData[index++] = image.Data[sourceIndex + 2]; // B
-                    pixelData[index++] = image.Data[sourceIndex + 3]; // A
-                }
+                var sourceIndex = (y * imageResult.Width + x) * 4;
+                if (sourceIndex + 3 >= imageResult.Data.Length) 
+                    continue; // next pixel
+                    
+                // RGBA = 4 bytes per pixel
+                bytes[pixelDataIndex++] = imageResult.Data[sourceIndex]; // R
+                bytes[pixelDataIndex++] = imageResult.Data[sourceIndex + 1]; // G
+                bytes[pixelDataIndex++] = imageResult.Data[sourceIndex + 2]; // B
+                bytes[pixelDataIndex++] = imageResult.Data[sourceIndex + 3]; // A
             }
         }
-        
-        // Compute MD5 hash of the pixel data
-        var hashBytes = MD5.HashData(pixelData);
-        return Convert.ToHexString(hashBytes);
+
+        return bytes;
     }
 }
-

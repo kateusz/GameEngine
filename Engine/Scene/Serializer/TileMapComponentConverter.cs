@@ -1,6 +1,8 @@
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Engine.Scene.Components;
+using Engine.Tiles;
 
 namespace Engine.Scene.Serializer;
 
@@ -14,47 +16,45 @@ internal sealed class TileMapComponentConverter : JsonConverter<TileMapComponent
         using var doc = JsonDocument.ParseValue(ref reader);
         var root = doc.RootElement;
 
-        var component = new TileMapComponent
-        {
-            Width = root.GetProperty("Width").GetInt32(),
-            Height = root.GetProperty("Height").GetInt32(),
-            TileSize = JsonSerializer.Deserialize<System.Numerics.Vector2>(
-                root.GetProperty("TileSize").GetRawText(), options),
-            TileSetPath = root.GetProperty("TileSetPath").GetString() ?? string.Empty,
-            TileSetColumns = root.GetProperty("TileSetColumns").GetInt32(),
-            TileSetRows = root.GetProperty("TileSetRows").GetInt32(),
-            ActiveLayerIndex = root.GetProperty("ActiveLayerIndex").GetInt32()
-        };
-
+        var component = new TileMapComponent();
+        component.SetWidth(root.GetProperty("Width").GetInt32());
+        component.SetHeight(root.GetProperty("Height").GetInt32());
+        component.SetTileSize(JsonSerializer.Deserialize<System.Numerics.Vector2>(
+            root.GetProperty("TileSize").GetRawText(), options));
+        component.SetTileSetPath(root.GetProperty("TileSetPath").GetString() ?? throw new SerializationException("Missing TileSetPath"));
+        component.SetTileSetColumns(root.GetProperty("TileSetColumns").GetInt32());
+        component.SetTileSetRows(root.GetProperty("TileSetRows").GetInt32());
+        component.SetActiveLayerIndex(root.GetProperty("ActiveLayerIndex").GetInt32());
+        
         // Deserialize layers
         component.Layers.Clear();
-        if (root.TryGetProperty("Layers", out var layersElement))
+        if (!root.TryGetProperty("Layers", out var layersElement)) 
+            return component;
+        
+        foreach (var layerElement in layersElement.EnumerateArray())
         {
-            foreach (var layerElement in layersElement.EnumerateArray())
+            var layer = new TileMapLayer(component.Width, component.Height)
             {
-                var layer = new TileMapLayer(component.Width, component.Height)
-                {
-                    Name = layerElement.GetProperty("Name").GetString() ?? "Layer",
-                    Visible = layerElement.GetProperty("Visible").GetBoolean(),
-                    ZIndex = layerElement.GetProperty("ZIndex").GetInt32()
-                };
+                Name = layerElement.GetProperty("Name").GetString() ?? "Layer",
+                Visible = layerElement.GetProperty("Visible").GetBoolean(),
+                ZIndex = layerElement.GetProperty("ZIndex").GetInt32()
+            };
 
-                // Deserialize 2D tile array
-                if (layerElement.TryGetProperty("Tiles", out var tilesElement))
+            // Deserialize 2D tile array
+            if (layerElement.TryGetProperty("Tiles", out var tilesElement))
+            {
+                var tilesArray = tilesElement.EnumerateArray().ToArray();
+                for (var y = 0; y < component.Height && y < tilesArray.Length; y++)
                 {
-                    var tilesArray = tilesElement.EnumerateArray().ToArray();
-                    for (var y = 0; y < component.Height && y < tilesArray.Length; y++)
+                    var rowArray = tilesArray[y].EnumerateArray().ToArray();
+                    for (var x = 0; x < component.Width && x < rowArray.Length; x++)
                     {
-                        var rowArray = tilesArray[y].EnumerateArray().ToArray();
-                        for (var x = 0; x < component.Width && x < rowArray.Length; x++)
-                        {
-                            layer.Tiles[x, y] = rowArray[x].GetInt32();
-                        }
+                        layer.Tiles[x, y] = rowArray[x].GetInt32();
                     }
                 }
-
-                component.Layers.Add(layer);
             }
+
+            component.Layers.Add(layer);
         }
 
         return component;

@@ -19,10 +19,7 @@ internal sealed class SpriteRenderingSystem : ISystem
     private readonly IGraphics2D _renderer;
     private readonly IContext _context;
 
-    /// <summary>
-    /// Priority of 200 ensures this system renders after scripts (priority 150).
-    /// </summary>
-    public int Priority => 200;
+    public int Priority => SystemPriorities.SpriteRenderSystem;
 
     /// <summary>
     /// Creates a new SpriteRenderingSystem.

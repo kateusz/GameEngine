@@ -21,8 +21,8 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
     private readonly IContext _context;
 
     // Fixed timestep accumulator for deterministic physics
-    private float _physicsAccumulator = 0f;
-    private bool _disposed = false;
+    private float _physicsAccumulator;
+    private bool _disposed;
 
     /// <summary>
     /// Maximum physics steps per frame to prevent spiral of death.
@@ -30,12 +30,8 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
     /// Beyond this threshold, the accumulator is clamped to prevent unbounded physics execution.
     /// </summary>
     private const int MaxPhysicsStepsPerFrame = 5;
-
-    /// <summary>
-    /// Gets the priority of this system.
-    /// Priority 100 ensures physics runs after transforms (10-20) and before rendering (200+).
-    /// </summary>
-    public int Priority => 100;
+    
+    public int Priority => SystemPriorities.PhysicsSimulationSystem;
 
     /// <summary>
     /// Creates a new PhysicsSimulationSystem with the specified physics world.

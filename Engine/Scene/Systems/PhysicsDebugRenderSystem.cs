@@ -25,7 +25,7 @@ internal sealed class PhysicsDebugRenderSystem : ISystem
     /// Execution priority for this system.
     /// Set to 500 to ensure it renders after main rendering systems.
     /// </summary>
-    public int Priority => 500;
+    public int Priority => SystemPriorities.PhysicsDebugRenderSystem;
 
     /// <summary>
     /// Creates a new PhysicsDebugRenderSystem.

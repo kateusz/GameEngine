@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Engine.Tiles;
 
 namespace Engine.Scene.Components;
 
@@ -11,47 +12,27 @@ public class TileMapComponent : IComponent
     /// <summary>
     /// Width of the tilemap in tiles
     /// </summary>
-    public int Width { get; set; } = 16;
+    public int Width { get; private set; } = 16;
     
     /// <summary>
     /// Height of the tilemap in tiles
     /// </summary>
-    public int Height { get; set; } = 16;
+    public int Height { get; private set; } = 16;
     
     /// <summary>
     /// Size of each tile in world units (0..1) range
     /// </summary>
-    public Vector2 TileSize { get; set; } = new(1.0f, 1.0f);
-    
-    /// <summary>
-    /// Path to the tileset texture asset
-    /// </summary>
-    public string TileSetPath { get; set; } = string.Empty;
-    
-    /// <summary>
-    /// Number of columns in the tileset texture
-    /// </summary>
-    public int TileSetColumns { get; set; } = 20;
-    
-    /// <summary>
-    /// Number of rows in the tileset texture
-    /// </summary>
-    public int TileSetRows { get; set; } = 13;
-    
-    /// <summary>
-    /// Layers of the tilemap
-    /// </summary>
-    public List<TileMapLayer> Layers { get; set; } = new();
-    
-    /// <summary>
-    /// Currently active layer index for editing
-    /// </summary>
-    public int ActiveLayerIndex { get; set; } = 0;
+    public Vector2 TileSize { get; private set; } = new(1.0f, 1.0f);
+    public string TileSetPath { get; private set; }
+    public int TileSetColumns { get; private set; }
+    public int TileSetRows { get; private set; }
+    public List<TileMapLayer> Layers { get; } = [];
+    public int ActiveLayerIndex { get; private set; }
 
     public TileMapComponent()
     {
         // Create default layer
-        Layers.Add(new TileMapLayer(Width, Height) { Name = "Ground" });
+        Layers.Add(new TileMapLayer(Width, Height) { Name = "Test Layer", ZIndex = 0});
     }
 
     /// <summary>
@@ -96,7 +77,7 @@ public class TileMapComponent : IComponent
                     }
                 }
             }
-            layer.Tiles = newTiles;
+            layer.SetTiles(newTiles);
         }
         Width = newWidth;
         Height = newHeight;
@@ -130,4 +111,12 @@ public class TileMapComponent : IComponent
     {
         throw new NotImplementedException();
     }
+
+    public void SetTileSetColumns(int columns) => TileSetColumns = columns;
+    public void SetTileSetRows(int rows) => TileSetRows = rows;
+    public void SetTileSetPath(string path) => TileSetPath = path;
+    public void SetActiveLayerIndex(int index) => ActiveLayerIndex = index;
+    public void SetWidth(int width) => Width = width;
+    public void SetHeight(int height) => Height = height;
+    public void SetTileSize(Vector2 tileSize) => TileSize = tileSize;
 }
