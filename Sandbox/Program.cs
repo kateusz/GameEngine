@@ -17,6 +17,8 @@ public class Program
             var sandboxLayer = container.Resolve<ILayer>();
             app.PushLayer(sandboxLayer);
             app.Run();
+            
+            container.Dispose();
         }
         catch (Exception ex)
         {

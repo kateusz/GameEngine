@@ -520,13 +520,11 @@ internal sealed class Graphics2D : IGraphics2D
         _data.LineVertexArray?.Dispose();
         _data.QuadVertexBuffer?.Dispose();
         _data.LineVertexBuffer?.Dispose();
-        _data.WhiteTexture?.Dispose();
-
-        // Dispose textures in texture slots
-        foreach (var texture in _data.TextureSlots)
-        {
-            texture?.Dispose();
-        }
+        
+        // textures are disposed at factory
+        Array.Clear(_data.TextureSlots, 0, _data.TextureSlots.Length);
+        _data.TextureSlotCache.Clear();
+        _data.WhiteTexture = null!;
 
         _disposed = true;
     }

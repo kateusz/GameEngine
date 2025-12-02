@@ -2,12 +2,13 @@ using Engine.Platform.SilkNet;
 
 namespace Engine.Renderer.Textures;
 
-internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFactory
+internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFactory, IDisposable
 {
     private Texture2D? _whiteTexture;
     private readonly Lock _whiteLock = new();
     private readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
+    private bool _disposed;
 
     public Texture2D GetWhiteTexture()
     {
@@ -78,15 +79,39 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
     {
         lock (_cacheLock)
         {
+            foreach (var weakRef in _textureCache.Values)
+            {
+                if (weakRef.TryGetTarget(out var texture))
+                {
+                    texture?.Dispose();
+                }
+            }
+
             _textureCache.Clear();
         }
     }
-    
+
     public int GetCacheSize()
     {
         lock (_cacheLock)
         {
             return _textureCache.Count;
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        
+        lock (_whiteLock)
+        {
+            _whiteTexture?.Dispose();
+            _whiteTexture = null;
+        }
+        
+        ClearCache();
+
+        _disposed = true;
     }
 }

@@ -19,5 +19,7 @@ public class Program
         var app = container.Resolve<BenchmarkApplication>();
         app.PushLayer(layer);
         app.Run();
+        
+        container.Dispose();
     }
 }
