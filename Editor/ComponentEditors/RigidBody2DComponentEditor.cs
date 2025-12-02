@@ -13,9 +13,9 @@ public class RigidBody2DComponentEditor : IComponentEditor
 
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<RigidBody2DComponent>("Rigidbody 2D", e, entity =>
+        ComponentEditorRegistry.DrawComponent<RigidBody2DComponent>("Rigidbody 2D", e, () =>
         {
-            var component = entity.GetComponent<RigidBody2DComponent>();
+            var component = e.GetComponent<RigidBody2DComponent>();
 
             LayoutDrawer.DrawComboBox("Body Type", component.BodyType.ToString(), BodyTypeStrings,
                 selectedType =>

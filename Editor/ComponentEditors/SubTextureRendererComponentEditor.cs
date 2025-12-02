@@ -13,12 +13,12 @@ public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITe
 {
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", e, entity =>
+        ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", e, () =>
         {
-            var component = entity.GetComponent<SubTextureRendererComponent>();
+            var component = e.GetComponent<SubTextureRendererComponent>();
 
             // Disable all fields if entity has AnimationComponent (AnimationSystem controls these values)
-            var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
+            var hasAnimationComponent = e.HasComponent<AnimationComponent>();
             ImGui.BeginDisabled(hasAnimationComponent);
 
             TextureDropTarget.Draw("Texture", texture => component.Texture = texture, assetsManager, textureFactory);

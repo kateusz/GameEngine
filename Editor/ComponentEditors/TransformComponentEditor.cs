@@ -10,9 +10,9 @@ public class TransformComponentEditor : IComponentEditor
 {
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", e, entity =>
+        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", e, () =>
         {
-            var tc = entity.GetComponent<TransformComponent>();
+            var tc = e.GetComponent<TransformComponent>();
             var newTranslation = tc.Translation;
             VectorPanel.DrawVec3Control("Translation", ref newTranslation);
 

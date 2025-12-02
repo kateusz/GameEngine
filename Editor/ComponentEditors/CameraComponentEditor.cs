@@ -14,9 +14,9 @@ public class CameraComponentEditor : IComponentEditor
 
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<CameraComponent>("Camera", e, entity =>
+        ComponentEditorRegistry.DrawComponent<CameraComponent>("Camera", e, () =>
         {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
+            var cameraComponent = e.GetComponent<CameraComponent>();
             var camera = cameraComponent.Camera;
 
             UIPropertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,

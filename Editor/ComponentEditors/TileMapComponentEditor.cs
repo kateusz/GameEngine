@@ -20,9 +20,9 @@ public class TileMapComponentEditor(
 
     public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<TileMapComponent>("TileMap", entity, e =>
+        ComponentEditorRegistry.DrawComponent<TileMapComponent>("TileMap", entity, () =>
         {
-            var component = e.GetComponent<TileMapComponent>();
+            var component = entity.GetComponent<TileMapComponent>();
 
             DrawDimensionsSection(component);
             ImGui.Separator();

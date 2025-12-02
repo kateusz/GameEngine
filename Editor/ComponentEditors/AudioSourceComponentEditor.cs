@@ -15,9 +15,9 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
 
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", e, entity =>
+        ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", e, () =>
         {
-            var component = entity.GetComponent<AudioSourceComponent>();
+            var component = e.GetComponent<AudioSourceComponent>();
 
             // Audio clip with drag-and-drop support
             _audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>

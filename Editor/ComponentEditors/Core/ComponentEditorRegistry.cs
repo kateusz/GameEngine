@@ -50,7 +50,7 @@ public class ComponentEditorRegistry(
         scriptComponentEditor.DrawScriptComponent(entity);
     }
 
-    public static void DrawComponent<T>(string name, Entity entity, Action<Entity> uiFunction) where T : IComponent
+    public static void DrawComponent<T>(string name, Entity entity, Action uiFunction) where T : IComponent
     {
         var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
                                                            | ImGuiTreeNodeFlags.SpanAvailWidth |
@@ -69,11 +69,11 @@ public class ComponentEditorRegistry(
             ImGui.PopStyleVar();
 
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-            ButtonDrawer.DrawButton("-", lineHeight, lineHeight, () => entity.RemoveComponent<T>());
+            ButtonDrawer.DrawButton("-", lineHeight, lineHeight, entity.RemoveComponent<T>);
 
             if (open)
             {
-                uiFunction(entity);
+                uiFunction();
                 ImGui.TreePop();
             }
         }

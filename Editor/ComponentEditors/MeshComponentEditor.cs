@@ -21,9 +21,9 @@ public class MeshComponentEditor(
 {
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", e, entity =>
+        ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", e, () =>
         {
-            var meshComponent = entity.GetComponent<MeshComponent>();
+            var meshComponent = e.GetComponent<MeshComponent>();
 
             ButtonDrawer.DrawButton("Load OBJ", 100, 0, () =>
             {

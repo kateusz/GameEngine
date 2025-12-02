@@ -12,9 +12,9 @@ public class SpriteRendererComponentEditor(IAssetsManager assetsManager, ITextur
 {
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<SpriteRendererComponent>("Sprite Renderer", e, entity =>
+        ComponentEditorRegistry.DrawComponent<SpriteRendererComponent>("Sprite Renderer", e, () =>
         {
-            var component = entity.GetComponent<SpriteRendererComponent>();
+            var component = e.GetComponent<SpriteRendererComponent>();
 
             UIPropertyRenderer.DrawPropertyField("Color", component.Color,
                 newValue => component.Color = (System.Numerics.Vector4)newValue);

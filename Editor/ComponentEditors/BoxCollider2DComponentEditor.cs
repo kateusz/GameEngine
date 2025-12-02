@@ -9,9 +9,9 @@ public class BoxCollider2DComponentEditor : IComponentEditor
 {
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<BoxCollider2DComponent>("Box Collider 2D", e, entity =>
+        ComponentEditorRegistry.DrawComponent<BoxCollider2DComponent>("Box Collider 2D", e, () =>
         {
-            var component = entity.GetComponent<BoxCollider2DComponent>();
+            var component = e.GetComponent<BoxCollider2DComponent>();
 
             UIPropertyRenderer.DrawPropertyField("Offset", component.Offset,
                 newValue => component.Offset = (System.Numerics.Vector2)newValue);

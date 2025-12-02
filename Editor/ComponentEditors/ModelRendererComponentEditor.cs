@@ -12,9 +12,9 @@ public class ModelRendererComponentEditor(IAssetsManager assetsManager, ITexture
 {
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<ModelRendererComponent>("Model Renderer", e, entity =>
+        ComponentEditorRegistry.DrawComponent<ModelRendererComponent>("Model Renderer", e, () =>
         {
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+            var modelRendererComponent = e.GetComponent<ModelRendererComponent>();
 
             UIPropertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
                 newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);

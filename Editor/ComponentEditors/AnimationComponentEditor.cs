@@ -24,36 +24,36 @@ public class AnimationComponentEditor(
 
     public void DrawComponent(Entity e)
     {
-        ComponentEditorRegistry.DrawComponent<AnimationComponent>("Animation", e, entity =>
+        ComponentEditorRegistry.DrawComponent<AnimationComponent>("Animation", e, () =>
         {
-            var component = entity.GetComponent<AnimationComponent>();
+            var component = e.GetComponent<AnimationComponent>();
 
             if (component.Asset is null)
             {
                 component.Asset = animationAssetManager.LoadAsset(component.AssetPath);
             }
 
-            DrawAssetPath(entity, component);
+            DrawAssetPath(e, component);
             ImGui.Spacing();
 
             if (component.Asset != null)
             {
-                DrawClipSelector(entity, component);
+                DrawClipSelector(e, component);
                 ImGui.Spacing();
 
-                DrawPlaybackControls(entity, component);
+                DrawPlaybackControls(e, component);
                 ImGui.Spacing();
 
-                DrawTimeline(entity, component);
+                DrawTimeline(e, component);
                 ImGui.Spacing();
 
                 DrawFrameInfo(component);
                 ImGui.Spacing();
 
-                DrawClipList(entity, component);
+                DrawClipList(e, component);
                 ImGui.Spacing();
 
-                DrawActionButtons(entity, component);
+                DrawActionButtons(e, component);
             }
             else
             {
