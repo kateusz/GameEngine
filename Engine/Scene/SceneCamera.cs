@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Engine.Renderer.Cameras;
 using Engine.Math;
 using Engine.Platform;
@@ -33,6 +34,7 @@ public class SceneCamera : Camera
     /// Gets the projection matrix, lazily recalculating it only when needed.
     /// The matrix is recalculated only when camera properties change and this property is accessed.
     /// </summary>
+    [JsonIgnore]
     public Matrix4x4 Projection
     {
         get
