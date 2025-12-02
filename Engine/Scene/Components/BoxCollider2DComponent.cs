@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 
 namespace Engine.Scene.Components;
@@ -58,6 +59,7 @@ public class BoxCollider2DComponent : IComponent
     /// Indicates whether fixture properties (Density, Friction, Restitution) have been modified
     /// and need to be synchronized with the Box2D fixture.
     /// </summary>
+    [JsonIgnore]
     public bool IsDirty { get; private set; }
 
     /// <summary>

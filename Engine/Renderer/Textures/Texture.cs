@@ -1,8 +1,13 @@
+using System.Text.Json.Serialization;
+
 namespace Engine.Renderer.Textures;
 
 public abstract class Texture : IDisposable
 {
+    [JsonIgnore]
     public virtual int Width { get; set; }
+
+    [JsonIgnore]
     public virtual int Height { get; set; }
 
     public string? Path { get; set; }
