@@ -7,11 +7,11 @@ namespace Editor.ComponentEditors;
 
 public class BoxCollider2DComponentEditor : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<BoxCollider2DComponent>("Box Collider 2D", e, () =>
+        ComponentEditorRegistry.DrawComponent<BoxCollider2DComponent>("Box Collider 2D", entity, () =>
         {
-            var component = e.GetComponent<BoxCollider2DComponent>();
+            var component = entity.GetComponent<BoxCollider2DComponent>();
 
             UIPropertyRenderer.DrawPropertyField("Offset", component.Offset,
                 newValue => component.Offset = (System.Numerics.Vector2)newValue);

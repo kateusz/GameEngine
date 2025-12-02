@@ -41,7 +41,7 @@ public class ComponentEditorRegistry(
 
     public void DrawAllComponents(Entity entity)
     {
-        foreach (var (componentType, editor) in _editors)
+        foreach (var (_, editor) in _editors)
         {
             editor.DrawComponent(entity);
         }

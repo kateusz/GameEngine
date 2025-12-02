@@ -11,18 +11,17 @@ namespace Editor.ComponentEditors;
 public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
     : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", e, () =>
+        ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", entity, () =>
         {
-            var component = e.GetComponent<SubTextureRendererComponent>();
+            var component = entity.GetComponent<SubTextureRendererComponent>();
 
             // Disable all fields if entity has AnimationComponent (AnimationSystem controls these values)
-            var hasAnimationComponent = e.HasComponent<AnimationComponent>();
+            var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
             ImGui.BeginDisabled(hasAnimationComponent);
 
             TextureDropTarget.Draw("Texture", texture => component.Texture = texture, assetsManager, textureFactory);
-
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);
 
@@ -31,7 +30,6 @@ public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITe
 
             UIPropertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
                 newValue => component.CellSize = (System.Numerics.Vector2)newValue);
-
             UIPropertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
                 newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
 

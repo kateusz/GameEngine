@@ -7,11 +7,11 @@ namespace Editor.ComponentEditors;
 
 public class AudioListenerComponentEditor : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<AudioListenerComponent>("Audio Listener", e, () =>
+        ComponentEditorRegistry.DrawComponent<AudioListenerComponent>("Audio Listener", entity, () =>
         {
-            var component = e.GetComponent<AudioListenerComponent>();
+            var component = entity.GetComponent<AudioListenerComponent>();
 
             UIPropertyRenderer.DrawPropertyField("Is Active", component.IsActive,
                 newValue => component.IsActive = (bool)newValue);

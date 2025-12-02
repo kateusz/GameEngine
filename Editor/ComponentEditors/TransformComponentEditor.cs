@@ -8,11 +8,11 @@ namespace Editor.ComponentEditors;
 
 public class TransformComponentEditor : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", e, () =>
+        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", entity, () =>
         {
-            var tc = e.GetComponent<TransformComponent>();
+            var tc = entity.GetComponent<TransformComponent>();
             var newTranslation = tc.Translation;
             VectorPanel.DrawVec3Control("Translation", ref newTranslation);
 

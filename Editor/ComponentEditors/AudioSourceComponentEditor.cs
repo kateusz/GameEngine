@@ -10,42 +10,24 @@ namespace Editor.ComponentEditors;
 
 public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarget audioDropTarget) : IComponentEditor
 {
-    private readonly IAudioEngine _audioEngine = audioEngine;
-    private readonly AudioDropTarget _audioDropTarget = audioDropTarget;
-
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", e, () =>
+        ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", entity, () =>
         {
-            var component = e.GetComponent<AudioSourceComponent>();
-
-            // Audio clip with drag-and-drop support
-            _audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>
-            {
-                component.AudioClip = audioClip;
-            });
-
-            // Volume slider
+            var component = entity.GetComponent<AudioSourceComponent>();
+            audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip => { component.AudioClip = audioClip; });
+            
             UIPropertyRenderer.DrawPropertyField("Volume", component.Volume,
                 newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));
-
-            // Pitch slider
             UIPropertyRenderer.DrawPropertyField("Pitch", component.Pitch,
                 newValue => component.Pitch = System.Math.Clamp((float)newValue, 0.1f, 3.0f));
-
-            // Loop checkbox
             UIPropertyRenderer.DrawPropertyField("Loop", component.Loop,
                 newValue => component.Loop = (bool)newValue);
-
-            // Play on awake checkbox
             UIPropertyRenderer.DrawPropertyField("Play On Awake", component.PlayOnAwake,
                 newValue => component.PlayOnAwake = (bool)newValue);
-
-            // 3D audio checkbox
             UIPropertyRenderer.DrawPropertyField("Is 3D", component.Is3D,
                 newValue => component.Is3D = (bool)newValue);
-
-            // 3D audio settings (only show if Is3D is true)
+            
             if (component.Is3D)
             {
                 LayoutDrawer.DrawIndentedSection(() =>
@@ -57,19 +39,17 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
                         newValue => component.MaxDistance = System.Math.Max((float)newValue, component.MinDistance));
                 });
             }
-
-            // Playback controls
+            
             LayoutDrawer.DrawSeparatorWithSpacing();
             ImGui.Text("Playback Controls:");
 
             ButtonDrawer.DrawButton("Play", () =>
             {
                 var path = component.AudioClip?.Path;
-                if(!string.IsNullOrWhiteSpace(path))
-                    _audioEngine.PlayOneShot(path, volume: 0.5f);
+                if (!string.IsNullOrWhiteSpace(path))
+                    audioEngine.PlayOneShot(path, volume: 0.5f);
             });
-
-            // Playing status
+            
             ImGui.Text($"Status: {(component.IsPlaying ? "Playing" : "Stopped")}");
         });
     }

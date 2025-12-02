@@ -10,13 +10,13 @@ namespace Editor.ComponentEditors;
 
 public class CameraComponentEditor : IComponentEditor
 {
-    private static readonly string[] ProjectionTypeStrings = { "Perspective", "Orthographic" };
+    private static readonly string[] ProjectionTypeStrings = ["Perspective", "Orthographic"];
 
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<CameraComponent>("Camera", e, () =>
+        ComponentEditorRegistry.DrawComponent<CameraComponent>("Camera", entity, () =>
         {
-            var cameraComponent = e.GetComponent<CameraComponent>();
+            var cameraComponent = entity.GetComponent<CameraComponent>();
             var camera = cameraComponent.Camera;
 
             UIPropertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,

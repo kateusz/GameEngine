@@ -62,15 +62,13 @@ public class TileMapComponentEditor(
                 component.SetTileSetRows(rows);
                 ReloadTileMapIfActive(component);
             }
-
-            // Layers info
+            
             ImGui.Separator();
             ImGui.Text($"Layers: {component.Layers.Count}");
             ImGui.Text($"Active Layer Index: {component.ActiveLayerIndex}");
-
-            // Open TileMap Editor button
+            
             ImGui.Separator();
-            ButtonDrawer.DrawButton("Open TileMap Editor", -1, 30, () => { tileMapPanel.SetTileMap(component); });
+            ButtonDrawer.DrawCompactButton("Open TileMap Editor", () => { tileMapPanel.SetTileMap(component); });
         });
     }
 

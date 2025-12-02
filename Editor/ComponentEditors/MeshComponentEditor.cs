@@ -19,21 +19,22 @@ public class MeshComponentEditor(
     IIndexBufferFactory indexBufferFactory)
     : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", e, () =>
+        ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", entity, () =>
         {
-            var meshComponent = e.GetComponent<MeshComponent>();
+            var meshComponent = entity.GetComponent<MeshComponent>();
 
             ButtonDrawer.DrawButton("Load OBJ", 100, 0, () =>
             {
-                var objPath = "assets/objModels/person.model";
-                if (File.Exists(objPath))
-                {
-                    var mesh = meshFactory.Create(objPath);
-                    mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-                    meshComponent.SetMesh(mesh);
-                }
+                // TODO
+                const string objPath = "assets/objModels/person.model";
+                if (!File.Exists(objPath)) 
+                    return;
+                
+                var mesh = meshFactory.Create(objPath);
+                mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+                meshComponent.SetMesh(mesh);
             });
 
             ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
