@@ -66,7 +66,7 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         }
     }
 
-    public void Shutdown()
+    private void Shutdown()
     {
         try
         {
@@ -113,8 +113,7 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
     private IAudioClip CreateAudioClip(string path) => new SilkNetAudioClip(path, _al);
 
     private void UnregisterSource(SilkNetAudioSource source) => _activeSources.Remove(source);
-
-    // Virtual methods with default implementation that can be overridden
+    
     public IAudioClip LoadAudioClip(string path)
     {
         if (_loadedClips.TryGetValue(path, out var existingClip))

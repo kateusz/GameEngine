@@ -197,7 +197,7 @@ public abstract class Application : IApplication
         _layersStack.Clear();
         _graphics2D?.Dispose();
         _graphics3D?.Dispose();
-        _audioEngine.Shutdown();
+        _audioEngine.Dispose();
         _meshFactory.Clear();
     }
 }
