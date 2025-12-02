@@ -1,18 +1,24 @@
 using System.Numerics;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Core;
 using Engine.Scene.Components;
-using Engine.Scene.Systems;
+using Engine.Scene.Services;
 using Engine.Tiles;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.Panels;
 
 /// <summary>
 /// TileMap editor panel with Godot-like functionality
 /// </summary>
-public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory, TileMapEditingSystem tileMapEditingSystem)
+public class TileMapPanel(
+    Engine.Renderer.Textures.ITextureFactory textureFactory,
+    TileMapEditingService tileMapEditingService) : ITileMapPanel
 {
+    private static readonly ILogger Logger = Log.ForContext<TileMapPanel>();
+
     private TileMapComponent? _activeTileMap;
     private TileSet? _tileSet;
     private int _selectedTileId = -1;
@@ -72,7 +78,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
     {
         if (!File.Exists(path))
         {
-            Console.WriteLine($"TileSet texture not found: {path}");
+            Logger.Warning("TileSet texture not found: {Path}", path);
             return;
         }
 
@@ -86,7 +92,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
         if (_tileSet.Texture == null)
         {
-            Console.WriteLine($"Failed to load TileSet texture: {path}");
+            Logger.Error("Failed to load TileSet texture: {Path}", path);
             return;
         }
 
@@ -96,10 +102,8 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
         _tileSet.GenerateTiles();
 
-        Console.WriteLine($"TileSet loaded: {path}");
-        Console.WriteLine($"  Texture size: {_tileSet.Texture.Width}x{_tileSet.Texture.Height}");
-        Console.WriteLine($"  Grid: {columns}x{rows} = {_tileSet.Tiles.Count} tiles");
-        Console.WriteLine($"  Tile size (pixels): {_tileSet.TileWidth}x{_tileSet.TileHeight}");
+        Logger.Information("TileSet loaded: {Path}, Texture size: {Width}x{Height}, Grid: {Columns}x{Rows} = {TileCount} tiles, Tile size (pixels): {TileWidth}x{TileHeight}",
+            path, _tileSet.Texture.Width, _tileSet.Texture.Height, columns, rows, _tileSet.Tiles.Count, _tileSet.TileWidth, _tileSet.TileHeight);
     }
 
     public void OnImGuiRender(uint viewportDockId = 0)
@@ -252,7 +256,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 // Move up button
                 if (i < _activeTileMap.Layers.Count - 1)
                 {
-                    if (ImGui.SmallButton("↑"))
+                    if (ButtonDrawer.DrawButton("↑", width: 20, height: 20))
                     {
                         // Swap with layer above
                         var temp = _activeTileMap.Layers[i];
@@ -268,6 +272,8 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                             _activeTileMap.SetActiveLayerIndex(i + 1);
                         else if (_activeTileMap.ActiveLayerIndex == i + 1)
                             _activeTileMap.SetActiveLayerIndex(i);
+
+                        Logger.Debug("Moved layer up from index {OldIndex} to {NewIndex}", i, i + 1);
                     }
                 }
                 else
@@ -280,7 +286,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 // Move down button
                 if (i > 0)
                 {
-                    if (ImGui.SmallButton("↓"))
+                    if (ButtonDrawer.DrawButton("↓", width: 20, height: 20))
                     {
                         // Swap with layer below
                         var temp = _activeTileMap.Layers[i];
@@ -296,6 +302,8 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                             _activeTileMap.SetActiveLayerIndex(i - 1);
                         else if (_activeTileMap.ActiveLayerIndex == i - 1)
                             _activeTileMap.SetActiveLayerIndex(i);
+
+                        Logger.Debug("Moved layer down from index {OldIndex} to {NewIndex}", i, i - 1);
                     }
                 }
                 else
@@ -312,15 +320,23 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         }
 
         // Layer controls
-        ButtonDrawer.DrawButton("➕ Add Layer",
-            () => { tileMapEditingSystem.AddLayer(_activeTileMap, $"Layer {_activeTileMap.Layers.Count}"); });
+        ButtonDrawer.DrawButton("➕ Add Layer", () =>
+        {
+            var layerName = $"Layer {_activeTileMap.Layers.Count}";
+            tileMapEditingService.AddLayer(_activeTileMap, layerName);
+            Logger.Information("Added layer {LayerName}", layerName);
+        });
 
         ImGui.SameLine();
 
         var canRemoveLayer = _activeTileMap.Layers.Count > 1;
-        ButtonDrawer.DrawButton("🗑 Remove Layer",
-            () => tileMapEditingSystem.RemoveLayer(_activeTileMap, _activeTileMap.ActiveLayerIndex),
-            disabled: !canRemoveLayer);
+        ButtonDrawer.DrawButton("🗑 Remove Layer", () =>
+        {
+            var layerIndex = _activeTileMap.ActiveLayerIndex;
+            var layerName = _activeTileMap.Layers[layerIndex].Name;
+            tileMapEditingService.RemoveLayer(_activeTileMap, layerIndex);
+            Logger.Information("Removed layer {LayerName} at index {Index}", layerName, layerIndex);
+        }, disabled: !canRemoveLayer);
 
         // Tooltip on disabled items requires special handling
         if (!canRemoveLayer && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -355,7 +371,9 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                     return;
 
                 var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
+                var oldName = currentLayer.Name;
                 currentLayer.SetName(_renameLayerInput);
+                Logger.Information("Renamed layer from {OldName} to {NewName}", oldName, _renameLayerInput);
             },
             onCancel: () => { });
 
@@ -657,25 +675,5 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
             (int)(worldPos.X / tileDisplaySize.X),
             (int)(worldPos.Y / tileDisplaySize.Y)
         );
-    }
-}
-
-public enum TileMapTool
-{
-    Paint,
-    Erase,
-    Fill,
-    Select
-}
-
-public struct Vector2Int
-{
-    public int X;
-    public int Y;
-
-    public Vector2Int(int x, int y)
-    {
-        X = x;
-        Y = y;
     }
 }

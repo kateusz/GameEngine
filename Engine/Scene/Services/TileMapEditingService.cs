@@ -1,13 +1,13 @@
 using Engine.Scene.Components;
 using Engine.Tiles;
 
-namespace Engine.Scene.Systems;
+namespace Engine.Scene.Services;
 
 /// <summary>
-/// System responsible for tilemap editing operations.
+/// Service responsible for editor-only tilemap editing operations.
 /// This centralizes tilemap mutation logic (resize, add/remove layers) outside the component.
 /// </summary>
-public class TileMapEditingSystem
+public class TileMapEditingService
 {
     /// <summary>
     /// Resizes the tilemap (preserves existing tile data where possible)

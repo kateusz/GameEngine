@@ -10,7 +10,7 @@ namespace Editor.Panels;
 /// <summary>
 /// Provides visual authoring tools for animators with frame-by-frame control.
 /// </summary>
-public class AnimationTimelinePanel
+public class AnimationTimelinePanel : IAnimationTimelinePanel
 {
     private bool _isOpen;
     private bool _hasBeenDockedOnce;

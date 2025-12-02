@@ -5,13 +5,16 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
 using Engine.Scene.Components;
-using Engine.Scene.Systems;
+using Engine.Scene.Services;
 using ImGuiNET;
 using Serilog;
 
 namespace Editor.ComponentEditors;
 
-public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager assetsManager, TileMapEditingSystem tileMapEditingSystem) : IComponentEditor
+public class TileMapComponentEditor(
+    ITileMapPanel tileMapPanel,
+    IAssetsManager assetsManager,
+    TileMapEditingService tileMapEditingService) : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<TileMapComponentEditor>();
 
@@ -20,10 +23,10 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
         ComponentEditorRegistry.DrawComponent<TileMapComponent>("TileMap", entity, e =>
         {
             var component = e.GetComponent<TileMapComponent>();
-            
+
             DrawDimensionsSection(component);
             ImGui.Separator();
-            
+
             UIPropertyRenderer.DrawPropertyRow("TileSet file", () =>
             {
                 var tileSetPath = string.IsNullOrWhiteSpace(component.TileSetPath) ? "None" : component.TileSetPath;
@@ -67,10 +70,7 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
 
             // Open TileMap Editor button
             ImGui.Separator();
-            ButtonDrawer.DrawButton("Open TileMap Editor", -1, 30, () =>
-            {
-                tileMapPanel.SetTileMap(component);
-            });
+            ButtonDrawer.DrawButton("Open TileMap Editor", -1, 30, () => { tileMapPanel.SetTileMap(component); });
         });
     }
 
@@ -79,13 +79,13 @@ public class TileMapComponentEditor(TileMapPanel tileMapPanel, IAssetsManager as
         var width = component.Width;
         if (ImGui.DragInt("Width", ref width, 1, 1, 1000))
         {
-            tileMapEditingSystem.Resize(component, width, component.Height);
+            tileMapEditingService.Resize(component, width, component.Height);
         }
 
         var height = component.Height;
         if (ImGui.DragInt("Height", ref height, 1, 1, 1000))
         {
-            tileMapEditingSystem.Resize(component, component.Width, height);
+            tileMapEditingService.Resize(component, component.Width, height);
         }
 
         var tileSize = component.TileSize;

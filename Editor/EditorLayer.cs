@@ -47,10 +47,10 @@ public class EditorLayer : ILayer
     private readonly PerformanceMonitorPanel _performanceMonitor;
     private readonly EditorSettingsUI _editorSettingsUI;
     private readonly IGraphics2D _graphics2D;
-    private readonly AnimationTimelinePanel _animationTimeline;
+    private readonly IAnimationTimelinePanel _animationTimeline;
     private readonly RecentProjectsPanel _recentProjectsPanel;
     private readonly ViewportRuler _viewportRuler;
-    private readonly TileMapPanel _tileMapPanel;
+    private readonly ITileMapPanel _tileMapPanel;
     private readonly ShortcutManager _shortcutManager;
     private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
     private readonly IScriptEngine _scriptEngine;
@@ -78,8 +78,8 @@ public class EditorLayer : ILayer
         ISceneContext sceneContext, ISceneManager sceneManager,
         IContentBrowserPanel contentBrowserPanel, SceneToolbar sceneToolbar, NewProjectPopup newProjectPopup,
         SceneSettingsPopup sceneSettingsPopup, IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel,
-        AnimationTimelinePanel animationTimeline, RecentProjectsPanel recentProjectsPanel,
-        TileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
+        IAnimationTimelinePanel animationTimeline, RecentProjectsPanel recentProjectsPanel,
+        ITileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ViewportToolManager viewportToolManager,
         ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory)
