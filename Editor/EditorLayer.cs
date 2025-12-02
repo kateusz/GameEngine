@@ -11,6 +11,7 @@ using Editor.Systems;
 using Editor.UI.Drawers;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
+using Editor.Publisher;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -58,6 +59,7 @@ public class EditorLayer : ILayer
     private readonly DebugSettings _debugSettings;
     private readonly IAssetsManager _assetsManager;
     private readonly IFrameBufferFactory _frameBufferFactory;
+    private readonly IGamePublisher _gamePublisher;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -82,7 +84,7 @@ public class EditorLayer : ILayer
         ITileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ViewportToolManager viewportToolManager,
-        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory)
+        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory, IGamePublisher gamePublisher)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -111,6 +113,7 @@ public class EditorLayer : ILayer
         _viewportToolManager = viewportToolManager;
         _viewportRuler = viewportRuler;
         _frameBufferFactory = frameBufferFactory;
+        _gamePublisher = gamePublisher;
 
         _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
         _sceneToolbar.OnPlayScene += () => _sceneManager.Play();
@@ -646,10 +649,7 @@ public class EditorLayer : ILayer
         _sceneSettingsPopup.Render();
     }
 
-    private void BuildAndPublish()
-    {
-        throw new NotImplementedException();
-    }
+    private void BuildAndPublish() => _gamePublisher.Publish();
 
     private void ResetCamera()
     {

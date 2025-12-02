@@ -2,6 +2,9 @@ namespace Editor.Features.Project;
 
 public interface IProjectManager
 {
+    /// <summary>Absolute path to the current project root directory (null if no project is loaded).</summary>
+    string? CurrentProjectDirectory { get; }
+    
     /// <summary>Absolute path to /assets/scripts (null if no project).</summary>
     string? ScriptsDir { get; }
 
