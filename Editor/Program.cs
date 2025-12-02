@@ -52,3 +52,7 @@ var editor = container.Resolve<Editor.Editor>();
 var editorLayer = container.Resolve<ILayer>();
 editor.PushLayer(editorLayer);
 editor.Run();
+
+container.Dispose();
+Log.Information("Program has shut down cleanly.");
+Log.CloseAndFlush();

@@ -84,6 +84,7 @@ GameEngine/
 - **IDisposable**: Implement for all OpenGL resources (textures, buffers, shaders, etc.)
 - **Performance**: Use Span<T> for stack allocs, object pooling, avoid boxing in hot paths
 - **No Null Checks**: Non-nullable reference types eliminate need for constructor null validation
+- **Comments**: XML docs for public APIs, inline comments for complex logic - do not include obvious comments. The same applies to XML docs - do not write obvious docs. If Interface has XML docs, the implementation does not need to repeat them.
 
 **Primary Constructor Example**:
 ```csharp

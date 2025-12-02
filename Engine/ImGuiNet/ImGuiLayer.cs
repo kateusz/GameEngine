@@ -9,14 +9,16 @@ using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Engine.ImGuiNet;
 
-internal sealed class ImGuiLayer : IImGuiLayer
+internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
 {
     private IInputSystem _inputSystem;
     private ImGuiController _controller;
     private bool _blockEvents;
-    
+    private bool _disposed;
+
     public void OnDetach()
     {
+        Dispose();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -65,7 +67,7 @@ internal sealed class ImGuiLayer : IImGuiLayer
     {
         if (@event is WindowCloseEvent)
         {
-            _controller.Dispose();
+            Dispose();
         }
     }
     
@@ -95,7 +97,6 @@ internal sealed class ImGuiLayer : IImGuiLayer
         var style = ImGui.GetStyle();
         if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
-            // Modern sharp-edged style - no rounded corners
             style.WindowRounding = 0.0f;
             style.ChildRounding = 0.0f;
             style.FrameRounding = 0.0f;
@@ -104,18 +105,18 @@ internal sealed class ImGuiLayer : IImGuiLayer
             style.GrabRounding = 0.0f;
             style.TabRounding = 0.0f;
             
-            // Borders for clean separation (scaled 25% smaller)
+            // Borders for clean separation
             style.WindowBorderSize = 0.75f;
             style.FrameBorderSize = 0.75f;
             style.PopupBorderSize = 0.75f;
             
-            // Spacing and padding (all scaled 25% smaller)
-            style.IndentSpacing = 13.5f;        // was 18.0f
-            style.WindowPadding = new Vector2(9, 9);      // was (12, 12)
-            style.FramePadding = new Vector2(6, 3);       // was (8, 4)
-            style.ItemSpacing = new Vector2(6, 4.5f);     // was (8, 6)
-            style.ItemInnerSpacing = new Vector2(4.5f, 3);// was (6, 4)
-            style.GrabMinSize = 15.0f;          // was 20.0f
+            // Spacing and padding
+            style.IndentSpacing = 13.5f;
+            style.WindowPadding = new Vector2(9, 9);
+            style.FramePadding = new Vector2(6, 3);
+            style.ItemSpacing = new Vector2(6, 4.5f);
+            style.ItemInnerSpacing = new Vector2(4.5f, 3);
+            style.GrabMinSize = 15.0f;
             style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
         }
 
@@ -125,7 +126,6 @@ internal sealed class ImGuiLayer : IImGuiLayer
     private static void SetDarkThemeColors()
     {
         var colors = ImGui.GetStyle().Colors;
-        // Modern dark background
         colors[(int)ImGuiCol.WindowBg] = new Vector4(0.13f, 0.14f, 0.17f, 1.0f);
         colors[(int)ImGuiCol.ChildBg] = new Vector4(0.16f, 0.17f, 0.20f, 1.0f);
         colors[(int)ImGuiCol.PopupBg] = new Vector4(0.13f, 0.14f, 0.17f, 0.98f);
@@ -177,5 +177,15 @@ internal sealed class ImGuiLayer : IImGuiLayer
         // Plot
         colors[(int)ImGuiCol.PlotLines] = new Vector4(0.36f, 0.54f, 0.96f, 1.0f);
         colors[(int)ImGuiCol.PlotHistogram] = new Vector4(0.36f, 0.54f, 0.96f, 1.0f);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _controller?.Dispose();
+        _controller = null!;
+        _disposed = true;
     }
 }

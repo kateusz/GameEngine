@@ -105,7 +105,7 @@ public abstract class Application : IApplication
         }
     }
 
-    private void SafeDetachLayer(ILayer layer)
+    private static void SafeDetachLayer(ILayer layer)
     {
         try
         {
@@ -195,11 +195,9 @@ public abstract class Application : IApplication
         }
 
         _layersStack.Clear();
-
-        // Shutdown audio engine
+        _graphics2D?.Dispose();
+        _graphics3D?.Dispose();
         _audioEngine.Shutdown();
-
-        // Clear mesh factory cache and dispose all loaded models
         _meshFactory.Clear();
     }
 }
