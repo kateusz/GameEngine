@@ -91,15 +91,6 @@ Also highlight:
 - Well-optimized sections worth keeping as reference
 - Clever solutions to complex problems
 - Good architectural decisions that improve maintainability
-
-## Context Information
-
-Before reviewing, consider asking:
-- What platform(s) is this targeting?: PC
-- What are the target frame rate and resolution? At least 60
-- What engine architecture is used? (ECS, traditional OOP, data-oriented): ECS
-- What rendering API? (DirectX, Vulkan, Metal, OpenGL): OpenGL using Silk.Net
-
 ---
 
 Be concise.
