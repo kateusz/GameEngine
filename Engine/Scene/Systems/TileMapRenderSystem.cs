@@ -5,6 +5,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
+using Engine.Tiles;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -12,63 +13,37 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// System responsible for rendering tilemaps
 /// </summary>
-internal sealed class TileMapRenderSystem : ISystem
+internal sealed class TileMapRenderSystem(IGraphics2D graphics2D, IContext context, ITextureFactory textureFactory)
+    : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<TileMapRenderSystem>();
 
-    private readonly IGraphics2D _graphics2D;
-    private readonly IContext _context;
-    private readonly ITextureFactory _textureFactory;
     private readonly Dictionary<string, TileSet> _loadedTileSets = new();
-    private readonly HashSet<int> _loggedEntities = new();
+    private readonly HashSet<int> _loggedEntities = [];
 
-    public int Priority => 190; // Render before sprites
+    public int Priority => SystemPriorities.TileMapRenderSystem;
 
-    public TileMapRenderSystem(IGraphics2D graphics2D, IContext context, ITextureFactory textureFactory)
-    {
-        _graphics2D = graphics2D;
-        _context = context;
-        _textureFactory = textureFactory;
-    }
-
-    public void OnInit()
-    {
-        _loadedTileSets.Clear();
-    }
+    public void OnInit() => _loadedTileSets.Clear();
 
     public void OnShutdown()
     {
+        foreach (var tileSet in _loadedTileSets.Values)
+        {
+            tileSet.Texture?.Dispose();
+        }
         _loadedTileSets.Clear();
     }
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Find the primary camera
-        Camera? mainCamera = null;
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var entity in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
-
-        // Only render if we have a camera
-        if (mainCamera == null)
+        var (primaryCamera, cameraTransform) = GetPrimaryCameraAndTransform();
+        if (primaryCamera == null || cameraTransform == null)
             return;
 
         // Begin rendering with the camera's view and projection
-        _graphics2D.BeginScene(mainCamera, cameraTransform);
+        graphics2D.BeginScene(primaryCamera, cameraTransform.Value);
 
-        var entities = _context.GetGroup([typeof(TileMapComponent), typeof(TransformComponent)]);
+        var entities = context.GetGroup([typeof(TileMapComponent), typeof(TransformComponent)]);
 
         foreach (var entity in entities)
         {
@@ -93,7 +68,24 @@ internal sealed class TileMapRenderSystem : ISystem
         }
 
         // End the rendering batch
-        _graphics2D.EndScene();
+        graphics2D.EndScene();
+    }
+
+    private (Camera?, Matrix4x4?) GetPrimaryCameraAndTransform()
+    {
+        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        foreach (var entity in cameraGroup)
+        {
+            var transformComponent = entity.GetComponent<TransformComponent>();
+            var cameraComponent = entity.GetComponent<CameraComponent>();
+
+            if (cameraComponent.Primary)
+            {
+                return (cameraComponent.Camera, transformComponent.GetTransform());
+            }
+        }
+
+        return (null, null);
     }
 
     private TileSet? GetOrLoadTileSet(TileMapComponent tileMap)
@@ -110,7 +102,7 @@ internal sealed class TileMapRenderSystem : ISystem
             Rows = tileMap.TileSetRows
         };
 
-        tileSet.LoadTexture(_textureFactory);
+        tileSet.LoadTexture(textureFactory);
 
         if (tileSet.Texture != null)
         {
@@ -118,7 +110,8 @@ internal sealed class TileMapRenderSystem : ISystem
             tileSet.TileWidth = tileSet.Texture.Width / tileMap.TileSetColumns;
             tileSet.TileHeight = tileSet.Texture.Height / tileMap.TileSetRows;
 
-            Logger.Information("Loaded tileset: {Width}x{Height}, TileSize: {TileWidth}x{TileHeight}, Grid: {Columns}x{Rows}",
+            Logger.Information(
+                "Loaded tileset: {Width}x{Height}, TileSize: {TileWidth}x{TileHeight}, Grid: {Columns}x{Rows}",
                 tileSet.Texture.Width, tileSet.Texture.Height,
                 tileSet.TileWidth, tileSet.TileHeight,
                 tileSet.Columns, tileSet.Rows);
@@ -134,52 +127,9 @@ internal sealed class TileMapRenderSystem : ISystem
 
     private void RenderTileMap(TileMapComponent tileMap, TileSet tileSet, TransformComponent transform, int entityId)
     {
-        // Log tilemap info once per entity
         if (!_loggedEntities.Contains(entityId))
         {
-            Logger.Information("=== TileMap Rendering Info for Entity {EntityId} ===", entityId);
-            Logger.Information("  Transform Position: ({X}, {Y}, {Z})", transform.Translation.X, transform.Translation.Y, transform.Translation.Z);
-            Logger.Information("  Transform Rotation: ({X}, {Y}, {Z})", transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z);
-            Logger.Information("  Transform Scale: ({X}, {Y}, {Z})", transform.Scale.X, transform.Scale.Y, transform.Scale.Z);
-            Logger.Information("  TileMap Size: {Width}x{Height} tiles", tileMap.Width, tileMap.Height);
-            Logger.Information("  Tile Size (world units): {TileWidth}x{TileHeight}", tileMap.TileSize.X, tileMap.TileSize.Y);
-            Logger.Information("  Total world size: {WorldWidth}x{WorldHeight} units",
-                tileMap.Width * tileMap.TileSize.X, tileMap.Height * tileMap.TileSize.Y);
-            Logger.Information("  World bounds: X:[{MinX} to {MaxX}], Y:[{MinY} to {MaxY}]",
-                transform.Translation.X,
-                transform.Translation.X + tileMap.Width * tileMap.TileSize.X,
-                transform.Translation.Y,
-                transform.Translation.Y + tileMap.Height * tileMap.TileSize.Y);
-            Logger.Information("  Coordinate system: X increases right, Y increases up, tile[0,0] at bottom-left");
-            Logger.Information("  Layers: {LayerCount}", tileMap.Layers.Count);
-
-            // Log first few tile positions
-            Logger.Information("  Sample tile positions:");
-            var sampleCount = 0;
-            foreach (var layer in tileMap.Layers.Take(1))
-            {
-                var maxY = tileMap.Height < 3 ? tileMap.Height : 3;
-                var maxX = tileMap.Width < 3 ? tileMap.Width : 3;
-
-                for (var y = 0; y < maxY; y++)
-                {
-                    for (var x = 0; x < maxX; x++)
-                    {
-                        var tileId = layer.Tiles[x, y];
-                        if (tileId >= 0)
-                        {
-                            var posX = transform.Translation.X + x * tileMap.TileSize.X;
-                            var posY = transform.Translation.Y + y * tileMap.TileSize.Y;
-                            Logger.Information("    Tile[{X},{Y}] ID:{TileId} at world pos ({PosX}, {PosY})",
-                                x, y, tileId, posX, posY);
-                            sampleCount++;
-                            if (sampleCount >= 5) break;
-                        }
-                    }
-                    if (sampleCount >= 5) break;
-                }
-            }
-
+            LogTileSetInformation(tileMap, transform, entityId);
             _loggedEntities.Add(entityId);
         }
 
@@ -189,9 +139,7 @@ internal sealed class TileMapRenderSystem : ISystem
         foreach (var layer in sortedLayers)
         {
             if (!layer.Visible)
-            {
                 continue;
-            }
 
             for (var y = 0; y < tileMap.Height; y++)
             {
@@ -201,41 +149,68 @@ internal sealed class TileMapRenderSystem : ISystem
                     if (tileId < 0)
                         continue; // Empty tile
 
-                    var subTexture = tileSet.GetTileSubTexture(tileId);
-                    if (subTexture == null)
-                    {
-                        Logger.Warning("Failed to get subtexture for tile ID {TileId} at ({X}, {Y})", tileId, x, y);
-                        continue;
-                    }
-
-                    // Calculate tile position in world space
-                    // Flip Y: y=0 should render at the top, so use (Height-1-y) to invert
-                    var tilePos = new Vector3(
-                        transform.Translation.X + x * tileMap.TileSize.X,
-                        transform.Translation.Y + (tileMap.Height - 1 - y) * tileMap.TileSize.Y,
-                        transform.Translation.Z + layer.ZIndex * 0.01f
-                    );
-
-                    // Create transform for this tile
-                    // Each tile has its own size (TileSize), not affected by entity scale
-                    var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMap.TileSize, 1.0f)) *
-                                      Matrix4x4.CreateRotationZ(transform.Rotation.Z) *
-                                      Matrix4x4.CreateTranslation(tilePos);
-
-                    var tintColor = new Vector4(1, 1, 1, layer.Opacity);
-
-                    _graphics2D.DrawQuad(
-                        tileTransform,
-                        subTexture.Texture,
-                        subTexture.TexCoords,
-                        1.0f,
-                        tintColor,
-                        entityId
-                    );
+                    RenderTile(tileMap, tileSet, transform, entityId, tileId, x, y, layer);
                 }
             }
         }
     }
+
+    private void RenderTile(TileMapComponent tileMap, TileSet tileSet, TransformComponent transform, int entityId,
+        int tileId, int x, int y, TileMapLayer layer)
+    {
+        var subTexture = tileSet.GetTileSubTexture(tileId);
+        if (subTexture == null)
+        {
+            Logger.Warning("Failed to get subtexture for tile ID {TileId} at ({X}, {Y})", tileId, x, y);
+            return;
+        }
+
+        // Calculate tile position in world space
+        // Flip Y: y=0 should render at the top, so use (Height-1-y) to invert
+        var tilePos = new Vector3(
+            transform.Translation.X + x * tileMap.TileSize.X,
+            transform.Translation.Y + (tileMap.Height - 1 - y) * tileMap.TileSize.Y,
+            transform.Translation.Z + layer.ZIndex * RenderingConstants.TileLayerZSpacing
+        );
+
+        // Create transform for this tile
+        // Each tile has its own size (TileSize), not affected by entity scale
+        var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMap.TileSize, RenderingConstants.DefaultTileScale)) *
+                            Matrix4x4.CreateRotationZ(transform.Rotation.Z) *
+                            Matrix4x4.CreateTranslation(tilePos);
+
+        var tintColor = RenderingConstants.OpaqueWhiteTint;
+
+        graphics2D.DrawQuad(
+            tileTransform,
+            subTexture.Texture,
+            subTexture.TexCoords,
+            RenderingConstants.DefaultTilingFactor,
+            tintColor,
+            entityId
+        );
+    }
+
+    private static void LogTileSetInformation(TileMapComponent tileMap, TransformComponent transform, int entityId)
+    {
+        Logger.Information("=== TileMap Rendering Info for Entity {EntityId} ===", entityId);
+        Logger.Information("  Transform Position: ({X}, {Y}, {Z})", transform.Translation.X, transform.Translation.Y,
+            transform.Translation.Z);
+        Logger.Information("  Transform Rotation: ({X}, {Y}, {Z})", transform.Rotation.X, transform.Rotation.Y,
+            transform.Rotation.Z);
+        Logger.Information("  Transform Scale: ({X}, {Y}, {Z})", transform.Scale.X, transform.Scale.Y,
+            transform.Scale.Z);
+        Logger.Information("  TileMap Size: {Width}x{Height} tiles", tileMap.Width, tileMap.Height);
+        Logger.Information("  Tile Size (world units): {TileWidth}x{TileHeight}", tileMap.TileSize.X,
+            tileMap.TileSize.Y);
+        Logger.Information("  Total world size: {WorldWidth}x{WorldHeight} units",
+            tileMap.Width * tileMap.TileSize.X, tileMap.Height * tileMap.TileSize.Y);
+        Logger.Information("  World bounds: X:[{MinX} to {MaxX}], Y:[{MinY} to {MaxY}]",
+            transform.Translation.X,
+            transform.Translation.X + tileMap.Width * tileMap.TileSize.X,
+            transform.Translation.Y,
+            transform.Translation.Y + tileMap.Height * tileMap.TileSize.Y);
+        Logger.Information("  Coordinate system: X increases right, Y increases up, tile[0,0] at bottom-left");
+        Logger.Information("  Layers: {LayerCount}", tileMap.Layers.Count);
+    }
 }
-
-

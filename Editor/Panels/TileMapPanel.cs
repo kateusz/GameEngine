@@ -1,16 +1,24 @@
 using System.Numerics;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Core;
 using Engine.Scene.Components;
+using Engine.Scene.Services;
+using Engine.Tiles;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.Panels;
 
 /// <summary>
 /// TileMap editor panel with Godot-like functionality
 /// </summary>
-public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactory)
+public class TileMapPanel(
+    Engine.Renderer.Textures.ITextureFactory textureFactory,
+    TileMapEditingService tileMapEditingService) : ITileMapPanel
 {
+    private static readonly ILogger Logger = Log.ForContext<TileMapPanel>();
+
     private TileMapComponent? _activeTileMap;
     private TileSet? _tileSet;
     private int _selectedTileId = -1;
@@ -70,7 +78,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
     {
         if (!File.Exists(path))
         {
-            Console.WriteLine($"TileSet texture not found: {path}");
+            Logger.Warning("TileSet texture not found: {Path}", path);
             return;
         }
 
@@ -84,7 +92,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
         if (_tileSet.Texture == null)
         {
-            Console.WriteLine($"Failed to load TileSet texture: {path}");
+            Logger.Error("Failed to load TileSet texture: {Path}", path);
             return;
         }
 
@@ -94,10 +102,8 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
         _tileSet.GenerateTiles();
 
-        Console.WriteLine($"TileSet loaded: {path}");
-        Console.WriteLine($"  Texture size: {_tileSet.Texture.Width}x{_tileSet.Texture.Height}");
-        Console.WriteLine($"  Grid: {columns}x{rows} = {_tileSet.Tiles.Count} tiles");
-        Console.WriteLine($"  Tile size (pixels): {_tileSet.TileWidth}x{_tileSet.TileHeight}");
+        Logger.Information("TileSet loaded: {Path}, Texture size: {Width}x{Height}, Grid: {Columns}x{Rows} = {TileCount} tiles, Tile size (pixels): {TileWidth}x{TileHeight}",
+            path, _tileSet.Texture.Width, _tileSet.Texture.Height, columns, rows, _tileSet.Tiles.Count, _tileSet.TileWidth, _tileSet.TileHeight);
     }
 
     public void OnImGuiRender(uint viewportDockId = 0)
@@ -235,7 +241,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 if (ImGui.Selectable($"{layer.Name} (Z:{layer.ZIndex})##layer{i}", isSelected,
                         ImGuiSelectableFlags.None, new Vector2(0, 20)))
                 {
-                    _activeTileMap.ActiveLayerIndex = i;
+                    _activeTileMap.SetActiveLayerIndex(i);
                 }
 
                 if (isSelected)
@@ -250,7 +256,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 // Move up button
                 if (i < _activeTileMap.Layers.Count - 1)
                 {
-                    if (ImGui.SmallButton("↑"))
+                    if (ButtonDrawer.DrawButton("↑", width: 20, height: 20))
                     {
                         // Swap with layer above
                         var temp = _activeTileMap.Layers[i];
@@ -263,9 +269,11 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
                         // Update active layer index if needed
                         if (_activeTileMap.ActiveLayerIndex == i)
-                            _activeTileMap.ActiveLayerIndex = i + 1;
+                            _activeTileMap.SetActiveLayerIndex(i + 1);
                         else if (_activeTileMap.ActiveLayerIndex == i + 1)
-                            _activeTileMap.ActiveLayerIndex = i;
+                            _activeTileMap.SetActiveLayerIndex(i);
+
+                        Logger.Debug("Moved layer up from index {OldIndex} to {NewIndex}", i, i + 1);
                     }
                 }
                 else
@@ -278,7 +286,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                 // Move down button
                 if (i > 0)
                 {
-                    if (ImGui.SmallButton("↓"))
+                    if (ButtonDrawer.DrawButton("↓", width: 20, height: 20))
                     {
                         // Swap with layer below
                         var temp = _activeTileMap.Layers[i];
@@ -291,9 +299,11 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
                         // Update active layer index if needed
                         if (_activeTileMap.ActiveLayerIndex == i)
-                            _activeTileMap.ActiveLayerIndex = i - 1;
+                            _activeTileMap.SetActiveLayerIndex(i - 1);
                         else if (_activeTileMap.ActiveLayerIndex == i - 1)
-                            _activeTileMap.ActiveLayerIndex = i;
+                            _activeTileMap.SetActiveLayerIndex(i);
+
+                        Logger.Debug("Moved layer down from index {OldIndex} to {NewIndex}", i, i - 1);
                     }
                 }
                 else
@@ -310,15 +320,23 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         }
 
         // Layer controls
-        ButtonDrawer.DrawButton("➕ Add Layer",
-            () => { _activeTileMap.AddLayer($"Layer {_activeTileMap.Layers.Count}"); });
+        ButtonDrawer.DrawButton("➕ Add Layer", () =>
+        {
+            var layerName = $"Layer {_activeTileMap.Layers.Count}";
+            tileMapEditingService.AddLayer(_activeTileMap, layerName);
+            Logger.Information("Added layer {LayerName}", layerName);
+        });
 
         ImGui.SameLine();
 
         var canRemoveLayer = _activeTileMap.Layers.Count > 1;
-        ButtonDrawer.DrawButton("🗑 Remove Layer",
-            () => _activeTileMap.RemoveLayer(_activeTileMap.ActiveLayerIndex),
-            disabled: !canRemoveLayer);
+        ButtonDrawer.DrawButton("🗑 Remove Layer", () =>
+        {
+            var layerIndex = _activeTileMap.ActiveLayerIndex;
+            var layerName = _activeTileMap.Layers[layerIndex].Name;
+            tileMapEditingService.RemoveLayer(_activeTileMap, layerIndex);
+            Logger.Information("Removed layer {LayerName} at index {Index}", layerName, layerIndex);
+        }, disabled: !canRemoveLayer);
 
         // Tooltip on disabled items requires special handling
         if (!canRemoveLayer && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -353,23 +371,15 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                     return;
 
                 var currentLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
-                currentLayer.Name = _renameLayerInput;
+                var oldName = currentLayer.Name;
+                currentLayer.SetName(_renameLayerInput);
+                Logger.Information("Renamed layer from {OldName} to {NewName}", oldName, _renameLayerInput);
             },
             onCancel: () => { });
 
         // Show active layer info
         ImGui.Separator();
         ImGui.Text($"Active: {_activeTileMap.Layers[_activeTileMap.ActiveLayerIndex].Name}");
-        ImGui.SameLine();
-
-        // Opacity slider for active layer
-        var activeLayer = _activeTileMap.Layers[_activeTileMap.ActiveLayerIndex];
-        var opacity = activeLayer.Opacity;
-        ImGui.SetNextItemWidth(100);
-        if (ImGui.SliderFloat("Opacity", ref opacity, 0.0f, 1.0f, "%.2f"))
-        {
-            activeLayer.Opacity = opacity;
-        }
     }
 
     private void DrawTileSetPalette()
@@ -388,7 +398,13 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         ImGui.BeginChild("TileSetPalette", new Vector2(250, 0), ImGuiChildFlags.Border);
         ImGui.Dummy(new Vector2(0, EditorUIConstants.SmallPadding)); // Top padding
         ImGui.Indent(EditorUIConstants.SmallPadding);
-        ImGui.Text($"TileSet Palette ({_tileSet.Tiles.Count} tiles)");
+        
+        // Get unique tiles for display
+        var uniqueTiles = _tileSet.GetUniqueTiles();
+        var totalTileCount = _tileSet.Tiles.Count;
+        var uniqueTileCount = uniqueTiles.Count;
+        
+        ImGui.Text($"TileSet Palette ({uniqueTileCount} unique / {totalTileCount} total)");
         ImGui.Text($"{_tileSet.Columns}x{_tileSet.Rows}");
         ImGui.Unindent(EditorUIConstants.SmallPadding);
         ImGui.Spacing();
@@ -404,15 +420,18 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
         var tilesPerRow = Math.Max(1, (int)((availableWidth - 10) / (tileDisplaySize.X + spacing)));
 
         ImGui.Indent(EditorUIConstants.SmallPadding);
-        for (var i = 0; i < _tileSet.Tiles.Count; i++)
+        for (var i = 0; i < uniqueTiles.Count; i++)
         {
+            var tile = uniqueTiles[i];
+            if (tile.SubTexture == null) continue;
+            
             ImGui.PushID(i);
 
-            var texCoords = _tileSet.GetTileTextureCoords(i);
+            var texCoords = tile.SubTexture.TexCoords;
             var uvMin = texCoords[0];
             var uvMax = texCoords[2];
 
-            var isSelected = _selectedTileId == i;
+            var isSelected = _selectedTileId == tile.Id;
             var bgColor = isSelected ? new Vector4(0.3f, 0.5f, 0.8f, 1.0f) : new Vector4(0.2f, 0.2f, 0.2f, 1.0f);
 
             var cursorPos = ImGui.GetCursorScreenPos();
@@ -424,15 +443,15 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
 
             if (ImGui.IsItemClicked())
             {
-                _selectedTileId = i;
+                _selectedTileId = tile.Id;
             }
 
-            // Show tile ID on hover
+            // Show tile information on hover
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text($"Tile ID: {i}");
-                ImGui.Text($"Position: ({i % _tileSet.Columns}, {i / _tileSet.Columns})");
+                ImGui.Text($"Tile ID: {tile.Id}");
+                ImGui.Text($"Position: ({tile.Id % _tileSet.Columns}, {tile.Id / _tileSet.Columns})");
                 ImGui.EndTooltip();
             }
 
@@ -508,7 +527,7 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
                     var uvMin = texCoords[0];
                     var uvMax = texCoords[2];
 
-                    var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, layer.Opacity));
+                    var color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 1, 1));
                     drawList.AddImage(textureId, screenPos, screenPos + tileDisplaySize, uvMin, uvMax, color);
                 }
             }
@@ -656,25 +675,5 @@ public class TileMapPanel(Engine.Renderer.Textures.ITextureFactory textureFactor
             (int)(worldPos.X / tileDisplaySize.X),
             (int)(worldPos.Y / tileDisplaySize.Y)
         );
-    }
-}
-
-public enum TileMapTool
-{
-    Paint,
-    Erase,
-    Fill,
-    Select
-}
-
-public struct Vector2Int
-{
-    public int X;
-    public int Y;
-
-    public Vector2Int(int x, int y)
-    {
-        X = x;
-        Y = y;
     }
 }

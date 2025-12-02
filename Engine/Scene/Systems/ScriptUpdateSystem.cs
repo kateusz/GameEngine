@@ -12,13 +12,8 @@ internal sealed class ScriptUpdateSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptUpdateSystem>();
     private readonly IScriptEngine _scriptEngine;
-
-    /// <summary>
-    /// Gets the priority of this system.
-    /// Priority 150 ensures scripts run before physics (which executes inline after system updates)
-    /// and before rendering (typically 200). Execution order: scripts → physics → rendering.
-    /// </summary>
-    public int Priority => 150;
+    
+    public int Priority => SystemPriorities.ScriptUpdateSystem;
 
     /// <summary>
     /// Creates a new ScriptUpdateSystem.

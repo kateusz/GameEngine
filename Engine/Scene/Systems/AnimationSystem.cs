@@ -19,7 +19,7 @@ internal sealed class AnimationSystem : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationSystem>();
 
-    public int Priority => 198;
+    public int Priority => SystemPriorities.AnimationSystem;
 
     private readonly EventBus _eventBus;
     private readonly IAnimationAssetManager _animationAssetManager;

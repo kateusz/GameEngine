@@ -320,7 +320,6 @@
             {
               "Name": "Ground",
               "Visible": true,
-              "Opacity": 1,
               "ZIndex": 0,
               "Tiles": [
                 [

@@ -16,12 +16,8 @@ namespace Engine.Scene.Systems;
 internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ModelRenderingSystem>();
-
-    /// <summary>
-    /// Gets the priority of this system.
-    /// Priority 210 ensures 3D models render after 2D sprites (which typically use priority 200).
-    /// </summary>
-    public int Priority => 210;
+    
+    public int Priority => SystemPriorities.ModelRenderSystem;
 
     /// <summary>
     /// Called once when the system is registered and initialized.

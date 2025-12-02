@@ -25,11 +25,7 @@ internal sealed class AudioSystem : ISystem
         _context = context;
     }
 
-    /// <summary>
-    /// Gets the priority of this system.
-    /// Priority 160 ensures audio runs after scripts (150) and before rendering (200+).
-    /// </summary>
-    public int Priority => 160;
+    public int Priority => SystemPriorities.AudioSystem;
 
     /// <summary>
     /// Initializes the audio system.

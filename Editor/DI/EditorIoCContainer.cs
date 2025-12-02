@@ -10,6 +10,7 @@ using Editor.UI.Elements;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
+using Engine.Scene.Services;
 
 namespace Editor.DI;
 
@@ -38,9 +39,10 @@ public static class EditorIoCContainer
         container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
         container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
         container.Register<AnimationComponentEditor>(Reuse.Singleton);
-        container.Register<AnimationTimelinePanel>(Reuse.Singleton);
+        container.Register<IAnimationTimelinePanel, AnimationTimelinePanel>(Reuse.Singleton);
         container.Register<RecentProjectsPanel>(Reuse.Singleton);
-        container.Register<TileMapPanel>(Reuse.Singleton);
+        container.Register<TileMapEditingService>(Reuse.Singleton);
+        container.Register<ITileMapPanel, TileMapPanel>(Reuse.Singleton);
         container.Register<TileMapComponentEditor>(Reuse.Singleton);
     
         container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);

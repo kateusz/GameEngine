@@ -24,11 +24,8 @@ internal sealed class SubTextureRenderingSystem : ISystem
     private readonly IGraphics2D _renderer;
     private readonly IContext _context;
 
-    /// <summary>
-    /// Priority of 205 ensures this system renders after regular sprites (200)
-    /// but before 3D models (210).
-    /// </summary>
-    public int Priority => 205;
+
+    public int Priority => SystemPriorities.SubTextureRenderSystem;
 
     /// <summary>
     /// Creates a new SubTextureRenderingSystem.
