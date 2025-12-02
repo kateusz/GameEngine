@@ -150,6 +150,12 @@ internal sealed class Scene : IScene
     public void OnRuntimeStop()
     {
         _systemManager.Shutdown();
+        
+        foreach (var tileSet in _editorTileSetCache.Values)
+        {
+            tileSet.Texture?.Dispose();
+        }
+        _editorTileSetCache.Clear();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)

@@ -25,7 +25,7 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
         if (sceneContext.State != SceneState.Edit)
             Stop();
 
-        sceneContext.ActiveScene.Dispose();
+        sceneContext.ActiveScene?.Dispose();
 
         EditorScenePath = path;
         sceneContext.SetScene(sceneFactory.Create(path));
@@ -60,8 +60,21 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
 
     public void Restart()
     {
-        Open(EditorScenePath!);
-        //_sceneContext.ActiveScene.OnRuntimeStart();
+        if (string.IsNullOrEmpty(EditorScenePath))
+        {
+            Logger.Warning("Cannot restart scene: no scene path set (scene not saved)");
+            return;
+        }
+
+        if (sceneContext.State != SceneState.Play)
+        {
+            Logger.Warning("Cannot restart scene: not in play mode");
+            return;
+        }
+
+        Stop();
+        Open(EditorScenePath);
+        Play();
         Logger.Information("🔄 Scene restarted");
     }
 
