@@ -11,9 +11,9 @@ public class RigidBody2DComponentEditor : IComponentEditor
     private static readonly string[] BodyTypeStrings =
         [nameof(RigidBodyType.Static), nameof(RigidBodyType.Dynamic), nameof(RigidBodyType.Kinematic)];
 
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<RigidBody2DComponent>("Rigidbody 2D", e, entity =>
+        ComponentEditorRegistry.DrawComponent<RigidBody2DComponent>("Rigidbody 2D", entity, () =>
         {
             var component = entity.GetComponent<RigidBody2DComponent>();
 

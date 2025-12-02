@@ -7,9 +7,9 @@ namespace Editor.ComponentEditors;
 
 public class BoxCollider2DComponentEditor : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<BoxCollider2DComponent>("Box Collider 2D", e, entity =>
+        ComponentEditorRegistry.DrawComponent<BoxCollider2DComponent>("Box Collider 2D", entity, () =>
         {
             var component = entity.GetComponent<BoxCollider2DComponent>();
 

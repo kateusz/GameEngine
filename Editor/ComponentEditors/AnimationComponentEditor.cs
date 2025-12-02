@@ -22,9 +22,9 @@ public class AnimationComponentEditor(
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();
 
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<AnimationComponent>("Animation", e, entity =>
+        ComponentEditorRegistry.DrawComponent<AnimationComponent>("Animation", entity, () =>
         {
             var component = entity.GetComponent<AnimationComponent>();
 
@@ -83,27 +83,22 @@ public class AnimationComponentEditor(
                        DragDropDrawer.HasValidExtension(path, ".anim"),
                 droppedPath =>
                 {
-                    // Unload previous asset if exists
                     if (component.Asset != null && !string.IsNullOrWhiteSpace(component.AssetPath))
                     {
                         animationAssetManager.UnloadAsset(component.AssetPath);
                     }
-
-                    // Load new asset
+                    
                     var animation = animationAssetManager.LoadAsset(droppedPath);
 
                     component.AssetPath = droppedPath;
                     component.Asset = animation;
-
-                    // Auto-play first clip if available
                     if (animation is { Clips.Length: > 0 })
                     {
                         AnimationController.Play(entity, animation.Clips[0].Name);
                     }
                 });
         });
-
-        // Show load status
+        
         if (component.Asset == null && !string.IsNullOrEmpty(component.AssetPath))
         {
             TextDrawer.DrawErrorText("Failed to load");
@@ -118,8 +113,7 @@ public class AnimationComponentEditor(
         var clipNames = asset.Clips.Select(c => c.Name).ToArray();
         LayoutDrawer.DrawComboBox("Current Clip", component.CurrentClipName, clipNames,
             selectedClip => AnimationController.Play(entity, selectedClip));
-
-        // Clip info
+        
         if (currentClip != null)
         {
             ImGui.SameLine();
@@ -131,8 +125,7 @@ public class AnimationComponentEditor(
     {
         ImGui.Text("Playback:");
         ImGui.SameLine();
-
-        // Playing checkbox
+        
         var isPlaying = component.IsPlaying;
         if (ImGui.Checkbox("Playing", ref isPlaying))
         {
@@ -143,8 +136,7 @@ public class AnimationComponentEditor(
         }
 
         ImGui.SameLine();
-
-        // Loop checkbox
+        
         var loop = component.Loop;
         if (ImGui.Checkbox("Loop", ref loop))
         {
@@ -152,8 +144,7 @@ public class AnimationComponentEditor(
         }
 
         ImGui.SameLine();
-
-        // Speed slider
+        
         ImGui.Text("Speed:");
         ImGui.SameLine();
         ImGui.SetNextItemWidth(EditorUIConstants.FilterInputWidth);
@@ -164,14 +155,13 @@ public class AnimationComponentEditor(
         }
     }
 
-    private void DrawTimeline(Entity entity, AnimationComponent component)
+    private static void DrawTimeline(Entity entity, AnimationComponent component)
     {
         var clip = component.Asset!.GetClip(component.CurrentClipName);
         if (clip == null) return;
 
         ImGui.Text("Timeline:");
-
-        // Play button
+        
         ButtonDrawer.DrawSmallButton(component.IsPlaying ? "⏸" : "▶", () =>
         {
             if (component.IsPlaying)
@@ -181,8 +171,7 @@ public class AnimationComponentEditor(
         });
 
         ImGui.SameLine();
-
-        // Frame scrubber
+        
         var currentFrame = component.CurrentFrameIndex;
         var maxFrame = clip.Frames.Length - 1;
         var scrubberWidth = ImGui.GetContentRegionAvail().X;
@@ -193,13 +182,12 @@ public class AnimationComponentEditor(
         {
             AnimationController.SetFrame(entity, currentFrame);
         }
-
-        // Time info
+        
         var currentTime = currentFrame / clip.Fps;
         ImGui.Text($"Time: {currentTime:F2}s / {clip.Duration:F2}s");
     }
 
-    private void DrawFrameInfo(AnimationComponent component)
+    private static void DrawFrameInfo(AnimationComponent component)
     {
         var clip = component.Asset!.GetClip(component.CurrentClipName);
         if (clip == null || component.CurrentFrameIndex >= clip.Frames.Length)
@@ -209,14 +197,9 @@ public class AnimationComponentEditor(
 
         ImGui.Text("Frame Info:");
         ImGui.Indent();
-
-        // Rect
+        
         ImGui.Text($"Rect: [{frame.Rect.X}, {frame.Rect.Y}, {frame.Rect.Width}, {frame.Rect.Height}]");
-
-        // Pivot
         ImGui.Text($"Pivot: [{frame.Pivot.X:F2}, {frame.Pivot.Y:F2}]");
-
-        // Events
         if (frame.Events is { Length: > 0 })
         {
             ImGui.Text("Events: " + string.Join(", ", frame.Events));
@@ -229,7 +212,7 @@ public class AnimationComponentEditor(
         ImGui.Unindent();
     }
 
-    private void DrawClipList(Entity entity, AnimationComponent component)
+    private static void DrawClipList(Entity entity, AnimationComponent component)
     {
         var asset = component.Asset!;
 
@@ -260,10 +243,7 @@ public class AnimationComponentEditor(
     {
         ButtonDrawer.DrawButton("Open Timeline Editor", EditorUIConstants.WideButtonWidth, 0, () =>
         {
-            if (timelineWindow != null)
-            {
-                timelineWindow.SetEntity(entity);
-            }
+            timelineWindow?.SetEntity(entity);
         });
 
         ImGui.SameLine();

@@ -7,9 +7,9 @@ namespace Editor.ComponentEditors;
 
 public class AudioListenerComponentEditor : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<AudioListenerComponent>("Audio Listener", e, entity =>
+        ComponentEditorRegistry.DrawComponent<AudioListenerComponent>("Audio Listener", entity, () =>
         {
             var component = entity.GetComponent<AudioListenerComponent>();
 

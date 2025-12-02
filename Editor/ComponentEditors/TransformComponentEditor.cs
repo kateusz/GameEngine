@@ -8,9 +8,9 @@ namespace Editor.ComponentEditors;
 
 public class TransformComponentEditor : IComponentEditor
 {
-    public void DrawComponent(Entity e)
+    public void DrawComponent(Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", e, entity =>
+        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", entity, () =>
         {
             var tc = entity.GetComponent<TransformComponent>();
             var newTranslation = tc.Translation;
