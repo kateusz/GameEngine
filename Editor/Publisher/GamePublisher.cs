@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Editor.Features.Project;
 using Serilog;
 
@@ -20,10 +21,20 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         var settings = new PublishSettings
         {
             OutputPath = GetDefaultOutputPath(),
-            RuntimeIdentifier = "osx-arm64"
+            RuntimeIdentifier = PlatformDetection.DetectCurrentPlatform()
         };
 
-        var result = PublishAsync(settings).GetAwaiter().GetResult();
+        var gameConfig = new GameConfiguration
+        {
+            StartupScenePath = "assets/scenes/Scene.scene",
+            WindowWidth = 1920,
+            WindowHeight = 1080,
+            Fullscreen = false,
+            GameTitle = "My Game",
+            TargetFrameRate = 60
+        };
+
+        var result = PublishAsync(settings, gameConfig).GetAwaiter().GetResult();
 
         if (!result.Success)
         {
@@ -31,12 +42,32 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         }
     }
 
-    public async Task<PublishResult> PublishAsync(
+    public Task<PublishResult> PublishAsync(
         PublishSettings settings,
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        var defaultGameConfig = new GameConfiguration
+        {
+            StartupScenePath = "assets/scenes/Scene.scene",
+            WindowWidth = 1920,
+            WindowHeight = 1080,
+            Fullscreen = false,
+            GameTitle = "My Game",
+            TargetFrameRate = 60
+        };
+
+        return PublishAsync(settings, defaultGameConfig, progress, cancellationToken);
+    }
+
+    public async Task<PublishResult> PublishAsync(
+        PublishSettings settings,
+        GameConfiguration gameConfig,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
         var buildOutput = new List<string>();
+        string? tempOutputPath = null;
 
         try
         {
@@ -60,33 +91,81 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
                 ? GetDefaultOutputPath()
                 : settings.OutputPath;
 
+            // Build to temporary directory for atomicity
+            tempOutputPath = Path.Combine(Path.GetTempPath(), $"GameBuild_{Guid.NewGuid()}");
+
             try
             {
-                Directory.CreateDirectory(outputPath);
+                Directory.CreateDirectory(tempOutputPath);
             }
             catch (Exception ex)
             {
-                var error = $"Failed to create output directory '{outputPath}': {ex.Message}";
-                Logger.Error(ex, "Failed to create output directory");
+                var error = $"Failed to create temporary build directory: {ex.Message}";
+                Logger.Error(ex, "Failed to create temporary directory");
                 return PublishResult.Failed(error);
             }
 
-            progress?.Report("Building game runtime...");
-            var buildResult = await BuildRuntimeAsync(settings, buildOutput, progress, cancellationToken);
+            ReportProgress(progress, "Building game runtime...", 0.1f);
+            var buildResult = await BuildRuntimeAsync(settings, tempOutputPath, buildOutput, progress, cancellationToken);
             if (!buildResult.Success)
+            {
+                CleanupTempDirectory(tempOutputPath);
                 return buildResult;
+            }
 
-            progress?.Report("Copying assets...");
-            var copyAssetsResult = CopyAssets(outputPath);
+            ReportProgress(progress, "Copying assets...", 0.5f);
+            var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)
+            {
+                CleanupTempDirectory(tempOutputPath);
                 return copyAssetsResult;
+            }
 
-            progress?.Report("Copying scripts...");
-            var copyScriptsResult = CopyScripts(outputPath);
+            ReportProgress(progress, "Copying scripts...", 0.7f);
+            var copyScriptsResult = CopyScripts(tempOutputPath);
             if (!copyScriptsResult.Success)
+            {
+                CleanupTempDirectory(tempOutputPath);
                 return copyScriptsResult;
+            }
 
-            progress?.Report("Publish completed successfully!");
+            ReportProgress(progress, "Creating game configuration...", 0.8f);
+            var configResult = CreateGameConfig(tempOutputPath, gameConfig);
+            if (!configResult.Success)
+            {
+                CleanupTempDirectory(tempOutputPath);
+                return configResult;
+            }
+
+            ReportProgress(progress, "Validating build...", 0.9f);
+            var validationCheck = ValidatePublishedBuild(tempOutputPath, settings.RuntimeIdentifier, gameConfig);
+            if (!validationCheck.Success)
+            {
+                CleanupTempDirectory(tempOutputPath);
+                return validationCheck;
+            }
+
+            // Move from temp to final location (atomic operation)
+            ReportProgress(progress, "Finalizing build...", 0.95f);
+            try
+            {
+                if (Directory.Exists(outputPath))
+                {
+                    Directory.Delete(outputPath, recursive: true);
+                }
+
+                Directory.Move(tempOutputPath, outputPath);
+                tempOutputPath = null; // Prevent cleanup
+            }
+            catch (Exception ex)
+            {
+                var error = $"Failed to move build to output directory: {ex.Message}";
+                Logger.Error(ex, "Failed to move build");
+                CleanupTempDirectory(tempOutputPath);
+                return PublishResult.Failed(error);
+            }
+
+            ReportProgress(progress, "Publish completed successfully!", 1.0f);
             Logger.Information("Game published successfully to {OutputPath}", outputPath);
 
             return new PublishResult
@@ -99,6 +178,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         catch (OperationCanceledException)
         {
             Logger.Warning("Publish operation was cancelled");
+            CleanupTempDirectory(tempOutputPath);
             return new PublishResult
             {
                 Success = false,
@@ -109,12 +189,39 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         catch (Exception ex)
         {
             Logger.Error(ex, "Unexpected error during publish");
+            CleanupTempDirectory(tempOutputPath);
             return new PublishResult
             {
                 Success = false,
                 ErrorMessage = $"Unexpected error: {ex.Message}",
                 BuildOutput = buildOutput
             };
+        }
+    }
+
+    private static void ReportProgress(IProgress<string>? progress, string message, float percentage)
+    {
+        progress?.Report(message);
+
+        if (progress is PublishProgress publishProgress)
+        {
+            publishProgress.SetProgress(percentage);
+        }
+    }
+
+    private static void CleanupTempDirectory(string? tempPath)
+    {
+        if (tempPath != null && Directory.Exists(tempPath))
+        {
+            try
+            {
+                Directory.Delete(tempPath, recursive: true);
+                Logger.Debug("Cleaned up temporary directory: {Path}", tempPath);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Failed to clean up temporary directory: {Path}", tempPath);
+            }
         }
     }
 
@@ -146,16 +253,16 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
         return new PublishResult { Success = true };
     }
 
-    private string GetDefaultOutputPath() 
+    private string GetDefaultOutputPath()
         => Path.Combine(projectManager.CurrentProjectDirectory ?? Environment.CurrentDirectory, "Builds");
 
     private async Task<PublishResult> BuildRuntimeAsync(
         PublishSettings settings,
+        string outputPath,
         List<string> buildOutput,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
-        // Find the Runtime project - look relative to the project structure
         var runtimeProjectPath = FindRuntimeProject();
         if (runtimeProjectPath is null)
         {
@@ -164,14 +271,10 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             return PublishResult.Failed(error);
         }
 
-        var outputPath = string.IsNullOrWhiteSpace(settings.OutputPath)
-            ? GetDefaultOutputPath()
-            : settings.OutputPath;
-
         var arguments = BuildDotnetPublishArguments(settings, runtimeProjectPath, outputPath);
 
         Logger.Information("Running: dotnet {Arguments}", arguments);
-        progress?.Report($"Running: dotnet {arguments}");
+        progress?.Report($"Compiling runtime executable...");
 
         var psi = new ProcessStartInfo
         {
@@ -192,7 +295,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     buildOutput.Add(e.Data);
-                    Logger.Information("{BuildOutput}", e.Data);
+                    Logger.Debug("{BuildOutput}", e.Data);
                     progress?.Report(e.Data);
                 }
             };
@@ -203,6 +306,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
                 {
                     buildOutput.Add($"ERROR: {e.Data}");
                     Logger.Error("Build error: {ErrorData}", e.Data);
+                    progress?.Report($"ERROR: {e.Data}");
                 }
             };
 
@@ -261,14 +365,25 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
 
     private string? FindRuntimeProject()
     {
-        // Try to find Runtime.csproj relative to the solution
+        // First, try to find the solution file
+        var solutionPath = FindSolutionFile();
+        if (solutionPath != null)
+        {
+            var solutionDir = Path.GetDirectoryName(solutionPath)!;
+            var runtimeCsproj = Path.Combine(solutionDir, "Runtime", "Runtime.csproj");
+
+            if (File.Exists(runtimeCsproj))
+            {
+                Logger.Debug("Found Runtime project at {Path} (via solution file)", runtimeCsproj);
+                return runtimeCsproj;
+            }
+        }
+
+        // Fallback: try relative paths from current directory
         var possiblePaths = new[]
         {
-            // Relative to the editor's base directory
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Runtime", "Runtime.csproj"),
-            // Relative to the current working directory
             Path.Combine(Environment.CurrentDirectory, "Runtime", "Runtime.csproj"),
-            // Sibling to Editor in solution structure
             Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Runtime", "Runtime.csproj"))
         };
 
@@ -277,21 +392,41 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             var fullPath = Path.GetFullPath(path);
             if (File.Exists(fullPath))
             {
-                Logger.Debug("Found Runtime project at {Path}", fullPath);
+                Logger.Debug("Found Runtime project at {Path} (via relative path)", fullPath);
                 return fullPath;
             }
         }
 
+        Logger.Error("Could not find Runtime.csproj in any known location");
+        return null;
+    }
+
+    private string? FindSolutionFile()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (dir != null)
+        {
+            var sln = dir.GetFiles("*.sln").FirstOrDefault();
+            if (sln != null)
+            {
+                Logger.Debug("Found solution file: {Path}", sln.FullName);
+                return sln.FullName;
+            }
+
+            dir = dir.Parent;
+        }
+
+        Logger.Warning("Could not find .sln file");
         return null;
     }
 
     private PublishResult CopyAssets(string buildOutput)
     {
-        // Get assets source from the project manager
         if (projectManager.CurrentProjectDirectory is null)
         {
             Logger.Warning("No project directory available for asset copying");
-            return new PublishResult { Success = true }; // Not a failure, just nothing to copy
+            return new PublishResult { Success = true };
         }
 
         var assetsSource = Path.Combine(projectManager.CurrentProjectDirectory, "assets");
@@ -340,6 +475,69 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             Logger.Error(ex, "Failed to copy scripts from {Source} to {Target}", scriptsSource, scriptsTarget);
             return PublishResult.Failed(error);
         }
+    }
+
+    private static PublishResult CreateGameConfig(string buildOutput, GameConfiguration gameConfig)
+    {
+        try
+        {
+            var configPath = Path.Combine(buildOutput, "game.config.json");
+            var json = JsonSerializer.Serialize(gameConfig, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            File.WriteAllText(configPath, json);
+            Logger.Information("Created game configuration at {Path}", configPath);
+            return PublishResult.Succeeded(configPath);
+        }
+        catch (Exception ex)
+        {
+            var error = $"Failed to create game configuration: {ex.Message}";
+            Logger.Error(ex, "Failed to create game.config.json");
+            return PublishResult.Failed(error);
+        }
+    }
+
+    private static PublishResult ValidatePublishedBuild(
+        string outputPath,
+        string runtimeIdentifier,
+        GameConfiguration gameConfig)
+    {
+        var exeName = PlatformDetection.GetExecutableName(runtimeIdentifier);
+        var exePath = Path.Combine(outputPath, exeName);
+
+        if (!File.Exists(exePath))
+        {
+            var error = $"Published executable not found at {exePath}";
+            Logger.Error(error);
+            return PublishResult.Failed(error);
+        }
+
+        var exeInfo = new FileInfo(exePath);
+        if (exeInfo.Length < 1024 * 100)
+        {
+            var error = $"Executable suspiciously small: {exeInfo.Length} bytes";
+            Logger.Warning(error);
+        }
+
+        var configPath = Path.Combine(outputPath, "game.config.json");
+        if (!File.Exists(configPath))
+        {
+            var error = $"Game configuration not found at {configPath}";
+            Logger.Error(error);
+            return PublishResult.Failed(error);
+        }
+
+        var startupScenePath = Path.Combine(outputPath, gameConfig.StartupScenePath);
+        if (!File.Exists(startupScenePath))
+        {
+            var error = $"Startup scene not found: {startupScenePath}";
+            Logger.Warning(error);
+        }
+
+        Logger.Information("Published build validation passed");
+        return PublishResult.Succeeded("Validation passed");
     }
 
     private static void CopyDirectory(string sourceDir, string targetDir)

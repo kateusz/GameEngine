@@ -1,4 +1,6 @@
+using System.Text.Json;
 using DryIoc;
+using ECS;
 using Engine.Core;
 using Engine.Core.DI;
 using Serilog;
@@ -19,8 +21,12 @@ public class Program
         {
             Logger.Information("Starting game runtime...");
             
+            var gameConfig = LoadGameConfiguration();
+            Logger.Information("Game: {Title}", gameConfig.GameTitle);
+            Logger.Information("Startup Scene: {Scene}", gameConfig.StartupScenePath);
+
             var container = new Container();
-            ConfigureContainer(container);
+            ConfigureContainer(container, gameConfig);
 
             var app = container.Resolve<RuntimeApplication>();
             var gameLayer = container.Resolve<ILayer>();
@@ -47,14 +53,44 @@ public class Program
         }
     }
 
-    private static void ConfigureContainer(Container container)
+    private static GameConfiguration LoadGameConfiguration()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "game.config.json");
+
+        if (!File.Exists(configPath))
+        {
+            Logger.Warning("Game configuration not found at {Path}, using defaults", configPath);
+            return new GameConfiguration();
+        }
+
+        try
+        {
+            var json = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<GameConfiguration>(json);
+
+            if (config == null)
+            {
+                Logger.Warning("Failed to deserialize game configuration, using defaults");
+                return new GameConfiguration();
+            }
+
+            return config;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to load game configuration, using defaults");
+            return new GameConfiguration();
+        }
+    }
+
+    private static void ConfigureContainer(Container container, GameConfiguration gameConfig)
     {
         EngineIoCContainer.Register(container);
-        
-        container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
+        container.Register<IContext, Context>(Reuse.Singleton);
+        container.RegisterInstance(gameConfig);
         container.Register<ILayer, GameLayer>(Reuse.Singleton);
         container.Register<RuntimeApplication>(Reuse.Singleton);
-        
+
         container.ValidateAndThrow();
     }
 }

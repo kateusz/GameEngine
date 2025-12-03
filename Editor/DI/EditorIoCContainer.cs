@@ -23,6 +23,7 @@ public static class EditorIoCContainer
         
         container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
         container.Register<IGamePublisher, GamePublisher>(Reuse.Singleton);
+        container.Register<PublishSettingsUI>(Reuse.Singleton);
         container.Register<IEditorPreferences, EditorPreferences>(Reuse.Singleton,
             made: Made.Of(() => EditorPreferences.Load())
         );

@@ -59,7 +59,7 @@ public class EditorLayer : ILayer
     private readonly DebugSettings _debugSettings;
     private readonly IAssetsManager _assetsManager;
     private readonly IFrameBufferFactory _frameBufferFactory;
-    private readonly IGamePublisher _gamePublisher;
+    private readonly PublishSettingsUI _publishSettingsUI;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -84,7 +84,7 @@ public class EditorLayer : ILayer
         ITileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ViewportToolManager viewportToolManager,
-        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory, IGamePublisher gamePublisher)
+        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory, PublishSettingsUI publishSettingsUI)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -113,7 +113,7 @@ public class EditorLayer : ILayer
         _viewportToolManager = viewportToolManager;
         _viewportRuler = viewportRuler;
         _frameBufferFactory = frameBufferFactory;
-        _gamePublisher = gamePublisher;
+        _publishSettingsUI = publishSettingsUI;
 
         _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
         _sceneToolbar.OnPlayScene += () => _sceneManager.Play();
@@ -647,9 +647,10 @@ public class EditorLayer : ILayer
         _editorSettingsUI.Render();
         _newProjectPopup.Render();
         _sceneSettingsPopup.Render();
+        _publishSettingsUI.Render();
     }
 
-    private void BuildAndPublish() => _gamePublisher.Publish();
+    private void BuildAndPublish() => _publishSettingsUI.ShowPublishModal();
 
     private void ResetCamera()
     {
