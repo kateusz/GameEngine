@@ -17,10 +17,20 @@ public class Program
     
     public static void Main(string[] args)
     {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .Enrich.WithProperty("Application", "GameEngine")
+            .Enrich.WithThreadId()
+            .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
+            .WriteTo.Async(a => a.File("logs/runtime-.log",
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"))
+            .CreateLogger();
+        
+        Logger.Information("Starting game runtime...");
+        
         try
         {
-            Logger.Information("Starting game runtime...");
-            
             var gameConfig = LoadGameConfiguration();
             Logger.Information("Game: {Title}", gameConfig.GameTitle);
             Logger.Information("Startup Scene: {Scene}", gameConfig.StartupScenePath);

@@ -34,7 +34,7 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
 
     public void Begin(TimeSpan timeSpan)
     {
-        _controller.Update((float)timeSpan.TotalSeconds);
+        _controller?.Update((float)timeSpan.TotalSeconds);
         
         // ImGui_ImplOpenGL3_NewFrame();
         // ImGui_ImplGlfw_NewFrame();
@@ -47,7 +47,7 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
 
     public void End()
     {
-        _controller.Render();
+        _controller?.Render();
     }
 
     public void OnAttach(IInputSystem inputSystem)

@@ -6,6 +6,7 @@ using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
 using Serilog;
 
 namespace Runtime;
@@ -15,6 +16,7 @@ public class GameLayer(
     ISceneContext sceneContext,
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
+    IScriptEngine scriptEngine,
     GameConfiguration gameConfig)
     : ILayer
 {
@@ -26,8 +28,12 @@ public class GameLayer(
         {
             Logger.Information("Active scene changed");
         };
-        
+
         Logger.Information("Game layer attached.");
+
+        // Set scripts directory for script engine
+        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "scripts");
+        scriptEngine.SetScriptsDirectory(scriptsDir);
 
         // Load startup scene
         var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
@@ -55,7 +61,6 @@ public class GameLayer(
 
                 // Start runtime (activate systems, physics, etc.)
                 scene.OnRuntimeStart();
-
                 Logger.Information("Startup scene loaded successfully");
             }
             catch (Exception ex)
@@ -82,11 +87,13 @@ public class GameLayer(
     {
         if (sceneContext.ActiveScene == null)
         {
-            // No scene loaded, just clear screen
-            graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-            graphics2D.Clear();
+            // No scene loaded
             return;
         }
+
+        // Clear the screen before rendering the new frame
+        graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        graphics2D.Clear();
 
         // Update scene systems (this runs all ECS systems including rendering, physics, scripting, etc.)
         sceneContext.ActiveScene.OnUpdateRuntime(timeSpan);
@@ -94,14 +101,18 @@ public class GameLayer(
 
     public void HandleInputEvent(InputEvent inputEvent)
     {
-        // Input events are handled by scripts via the Input system
-        // No manual handling needed here
+        // Forward input events to scripts so they can respond to keyboard/mouse input
+        scriptEngine.ProcessEvent(inputEvent);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
-        // Window events are handled by the engine
-        // Camera control is handled by scripts
+        // Handle window resize to update scene viewport
+        if (windowEvent is WindowResizeEvent resizeEvent)
+        {
+            Logger.Information("GameLayer: Window resized: {Width}x{Height}", resizeEvent.Width, resizeEvent.Height);
+            sceneContext.ActiveScene?.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
+        }
     }
 
     public void Draw()
