@@ -17,7 +17,7 @@ namespace Editor.ComponentEditors;
 /// </summary>
 public class AnimationComponentEditor(
     IAnimationAssetManager animationAssetManager,
-    IAnimationTimelinePanel? timelineWindow)
+    IAnimationTimelinePanel timelineWindow)
     : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationComponentEditor>();

@@ -56,9 +56,7 @@ internal sealed class Graphics2D : IGraphics2D
             _data = new Renderer2DData
             {
                 QuadVertexArray = _vertexArrayFactory.Create(),
-                //CameraUniformBuffer = UniformBufferFactory.Create((uint)CameraData.GetSize(), 0),
                 Stats = new Statistics(),
-                //CameraBuffer = new CameraData(),
                 LineVertexArray = _vertexArrayFactory.Create()
             };
 
@@ -361,7 +359,6 @@ internal sealed class Graphics2D : IGraphics2D
             for (var i = 0; i < _data.TextureSlotIndex; i++)
                 _data.TextureSlots[i].Bind(i);
 
-            //_data.TextureShader.Bind();
             _rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
             _data.Stats.DrawCalls++;
         }
@@ -382,7 +379,6 @@ internal sealed class Graphics2D : IGraphics2D
             var usedLineVertices = _data.LineVertexBufferBase.AsSpan(0, lineVertexCount);
             _data.LineVertexBuffer.SetData(usedLineVertices, dataSize);
 
-            //_data.TextureShader.Bind();
             _rendererApi.SetLineWidth(Renderer2DData.LineWidth);
             _rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
             _data.Stats.DrawCalls++;
