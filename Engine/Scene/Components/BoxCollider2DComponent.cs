@@ -67,11 +67,11 @@ public class BoxCollider2DComponent : IComponent
 
     public BoxCollider2DComponent()
     {
-        Size = Vector2.Zero;
+        Size = new Vector2(0.5f, 0.5f);
         Offset = Vector2.Zero;
         _density = 1.0f;
         _friction = 0.5f;
-        _restitution = 0.0f;
+        _restitution = 0.7f;
         RestitutionThreshold = 0.5f;
         IsTrigger = false;
         IsDirty = true; // Initially dirty to ensure first-time setup
