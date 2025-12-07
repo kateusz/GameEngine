@@ -39,19 +39,15 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
     /// <returns>Loaded animation asset, or null on error</returns>
     public AnimationAsset? LoadAsset(string path)
     {
-        // Check cache first
         if (_cache.TryGetValue(path, out var entry))
         {
             entry.ReferenceCount++;
-            entry.LastAccessTime = DateTime.UtcNow;
             Logger.Information("Animation asset cached hit: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
             return entry.Asset;
         }
 
-        // Not cached - load from disk
         try
         {
-            // Resolve full path
             var fullPath = ResolveAssetPath(path);
             if (!File.Exists(fullPath))
             {
@@ -67,14 +63,9 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
                 return null;
             }
 
-            // Load texture atlas
             var atlasFullPath = ResolveAssetPath(animationAsset.AtlasPath);
             var atlasTexture = textureFactory.Create(atlasFullPath);
-
-            // Assign texture to asset
             animationAsset.Atlas = atlasTexture;
-
-            // Calculate UV coordinates for all frames
             foreach (var animationClip in animationAsset.Clips)
             {
                 foreach (var animationFrame in animationClip.Frames)
@@ -108,7 +99,6 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
         entry.ReferenceCount--;
         Logger.Information("Animation asset unload: {Path} (RefCount: {RefCount})", path, entry.ReferenceCount);
 
-        // If no more references, dispose and remove
         if (entry.ReferenceCount <= 0)
         {
             entry.Asset.Dispose();
@@ -176,12 +166,8 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
         foreach (var entry in _cache.Values)
         {
             var asset = entry.Asset;
-            if (asset.Atlas != null)
-            {
-                // Texture memory: width × height × 4 bytes (RGBA)
-                total += asset.Atlas.Width * asset.Atlas.Height * 4;
-            }
-
+            // Texture memory: width × height × 4 bytes (RGBA)
+            total += asset.Atlas.Width * asset.Atlas.Height * 4;
             // Add metadata overhead (approximate)
             total += asset.Clips.Sum(c => c.Frames.Length * 256); // ~256 bytes per frame
         }

@@ -6,7 +6,6 @@ namespace Engine.Animation;
 
 /// <summary>
 /// Helper class for controlling animation playback from scripts.
-/// Provides a clean API for manipulating AnimationComponent data.
 /// </summary>
 public static class AnimationController
 {
@@ -27,7 +26,6 @@ public static class AnimationController
         }
 
         var anim = entity.GetComponent<AnimationComponent>();
-
         if (anim.Asset == null || !anim.Asset.HasClip(clipName))
         {
             Logger.Warning("Animation clip not found: {ClipName} on entity {EntityName}", clipName, entity.Name);
@@ -87,8 +85,6 @@ public static class AnimationController
             anim.IsPlaying = true;
     }
 
-    // ===== Advanced Playback =====
-
     /// <summary>
     /// Set playback speed multiplier.
     /// </summary>
@@ -108,10 +104,9 @@ public static class AnimationController
         if (!entity.HasComponent<AnimationComponent>()) return;
         
         var anim = entity.GetComponent<AnimationComponent>();
-        if (anim.Asset == null) return;
-        
-        var clip = anim.Asset.GetClip(anim.CurrentClipName);
-        if (clip == null) return;
+        var clip = anim.Asset?.GetClip(anim.CurrentClipName);
+        if (clip == null) 
+            return;
 
         // Clamp frameIndex to valid range
         if (frameIndex < 0) frameIndex = 0;
@@ -129,10 +124,10 @@ public static class AnimationController
         if (!entity.HasComponent<AnimationComponent>()) return;
         
         var anim = entity.GetComponent<AnimationComponent>();
-        if (anim.Asset == null) return;
-        
-        var clip = anim.Asset.GetClip(anim.CurrentClipName);
-        if (clip == null) return;
+
+        var clip = anim.Asset?.GetClip(anim.CurrentClipName);
+        if (clip == null)
+            return;
 
         // Clamp t to 0..1 range
         if (t < 0.0f) t = 0.0f;
@@ -147,7 +142,8 @@ public static class AnimationController
     /// </summary>
     public static int GetCurrentFrame(Entity entity)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return 0;
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return 0;
         return entity.GetComponent<AnimationComponent>().CurrentFrameIndex;
     }
 
@@ -156,7 +152,8 @@ public static class AnimationController
     /// </summary>
     public static int GetFrameCount(Entity entity)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return 0;
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return 0;
         
         var anim = entity.GetComponent<AnimationComponent>();
         if (anim.Asset == null) return 0;
@@ -171,7 +168,8 @@ public static class AnimationController
     public static float GetNormalizedTime(Entity entity)
     {
         var frameCount = GetFrameCount(entity);
-        if (frameCount <= 1) return 0.0f;
+        if (frameCount <= 1) 
+            return 0.0f;
 
         var currentFrame = GetCurrentFrame(entity);
         return currentFrame / (float)(frameCount - 1);
@@ -182,7 +180,8 @@ public static class AnimationController
     /// </summary>
     public static string GetCurrentClipName(Entity entity)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return string.Empty;
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return string.Empty;
         return entity.GetComponent<AnimationComponent>().CurrentClipName;
     }
 
@@ -191,7 +190,8 @@ public static class AnimationController
     /// </summary>
     public static bool HasClip(Entity entity, string clipName)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return false;
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return false;
         
         var anim = entity.GetComponent<AnimationComponent>();
         return anim.Asset?.HasClip(clipName) ?? false;
@@ -202,7 +202,8 @@ public static class AnimationController
     /// </summary>
     public static bool IsPlaying(Entity entity)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return false;
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return false;
         return entity.GetComponent<AnimationComponent>().IsPlaying;
     }
     
@@ -211,7 +212,8 @@ public static class AnimationController
     /// </summary>
     public static string[] GetAvailableClips(Entity entity)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return [];
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return [];
         
         var anim = entity.GetComponent<AnimationComponent>();
         return anim.Asset?.Clips.Select(c => c.Name)?.ToArray() ?? [];
@@ -222,10 +224,12 @@ public static class AnimationController
     /// </summary>
     public static float GetClipDuration(Entity entity, string clipName)
     {
-        if (!entity.HasComponent<AnimationComponent>()) return 0.0f;
+        if (!entity.HasComponent<AnimationComponent>()) 
+            return 0.0f;
         
         var anim = entity.GetComponent<AnimationComponent>();
-        if (anim.Asset == null) return 0.0f;
+        if (anim.Asset == null) 
+            return 0.0f;
         
         var clip = anim.Asset.GetClip(clipName);
         return clip?.Duration ?? 0.0f;
