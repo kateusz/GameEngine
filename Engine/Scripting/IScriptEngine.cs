@@ -103,4 +103,11 @@ public interface IScriptEngine
     /// Used for hot-reloading during development.
     /// </summary>
     void ForceRecompile();
+
+    /// <summary>
+    /// Generates a script template with the given name.
+    /// </summary>
+    /// <param name="scriptName">Name of the script class</param>
+    /// <returns>Script template source code</returns>
+    string GenerateScriptTemplate(string scriptName);
 }
