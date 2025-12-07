@@ -132,7 +132,8 @@ public class EditorLayer : ILayer
         _sceneManager.New();
 
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
-        _viewportToolManager.SubscribeToEntitySelection(EntitySelected);
+        // Viewport selection only updates selection state - don't move camera since entity is already visible
+        _viewportToolManager.SubscribeToEntitySelection(entity => _selectedEntity = entity);
 
         _contentBrowserPanel.Init();
         _sceneToolbar.Init();
