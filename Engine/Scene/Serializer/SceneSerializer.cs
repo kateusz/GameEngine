@@ -229,13 +229,21 @@ internal sealed class SceneSerializer : ISceneSerializer
 
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
+        // Extract texture path separately to avoid abstract class deserialization issues
+        string? texturePath = null;
+        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
+            && textureObj.ContainsKey("Path") && textureObj["Path"] is JsonValue pathValue)
+        {
+            texturePath = pathValue.GetValue<string>();
+        }
+
         var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component == null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        if (!string.IsNullOrWhiteSpace(texturePath))
         {
-            component.Texture = _textureFactory.Create(component.Texture.Path);
+            component.Texture = _textureFactory.Create(texturePath);
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
@@ -243,14 +251,22 @@ internal sealed class SceneSerializer : ISceneSerializer
 
     private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
     {
+        // Extract texture path separately to avoid abstract class deserialization issues
+        string? texturePath = null;
+        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
+            && textureObj.ContainsKey("Path") && textureObj["Path"] is JsonValue pathValue)
+        {
+            texturePath = pathValue.GetValue<string>();
+        }
+
         var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
         if (component == null)
             return;
 
-        // Reload texture from disk if path exists (same as SpriteRendererComponent)
-        if (!string.IsNullOrWhiteSpace(component.Texture?.Path))
+        // Reload texture from disk if path exists
+        if (!string.IsNullOrWhiteSpace(texturePath))
         {
-            component.Texture = _textureFactory.Create(component.Texture.Path);
+            component.Texture = _textureFactory.Create(texturePath);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);

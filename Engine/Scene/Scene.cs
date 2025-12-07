@@ -225,17 +225,29 @@ internal sealed class Scene : IScene
             var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
             if (subtextureComponent.Texture is null) continue;
 
-            // Create SubTexture2D using component's cell/sprite sizes (same as runtime)
-            var subTexture = SubTexture2D.CreateFromCoords(
-                subtextureComponent.Texture,
-                subtextureComponent.Coords,
-                subtextureComponent.CellSize,
-                subtextureComponent.SpriteSize
-            );
+            // Use pre-calculated TexCoords if available (e.g., from animation system)
+            // Otherwise calculate from grid coordinates (same as SubTextureRenderingSystem)
+            Vector2[] texCoords;
+            if (subtextureComponent.TexCoords != null)
+            {
+                // Direct UV coordinates (used by animation system)
+                texCoords = subtextureComponent.TexCoords;
+            }
+            else
+            {
+                // Calculate from grid coordinates (traditional subtexture rendering)
+                var subTexture = SubTexture2D.CreateFromCoords(
+                    subtextureComponent.Texture,
+                    subtextureComponent.Coords,
+                    subtextureComponent.CellSize,
+                    subtextureComponent.SpriteSize
+                );
+                texCoords = subTexture.TexCoords;
+            }
 
             // Use transform directly without additional scaling (same as runtime)
             var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            _graphics2D.DrawQuad(transform, subTexture.Texture, subTexture.TexCoords, entityId: entity.Id);
+            _graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
 
         // TileMaps (mirror runtime system with caching)
