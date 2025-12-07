@@ -147,7 +147,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
             validationMessage: validationMessage,
             errorMessage: null,
             isValid: isValidName,
-            onOk: () =>
+            onOk: async () =>
             {
                 if (_selectedEntity == null)
                 {
@@ -157,6 +157,15 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
 
                 try
                 {
+                    var scriptTemplate = scriptEngine.GenerateScriptTemplate(_newScriptName);
+                    var (success, errors) = await scriptEngine.CreateOrUpdateScriptAsync(_newScriptName, scriptTemplate);
+
+                    if (!success)
+                    {
+                        Logger.Error("Failed to create script {ScriptName}: {Errors}", _newScriptName, string.Join(", ", errors));
+                        return;
+                    }
+
                     var scriptInstanceResult = scriptEngine.CreateScriptInstance(_newScriptName);
                     if (scriptInstanceResult.IsSuccess)
                     {
@@ -173,12 +182,12 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
                             });
                         }
 
-                        Logger.Information("Added script {ScriptName} to entity {EntityName}", _newScriptName, _selectedEntity.Name);
+                        Logger.Information("Created and attached script {ScriptName} to entity {EntityName}", _newScriptName, _selectedEntity.Name);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "Failed to create script instance for {ScriptName}", _newScriptName);
+                    Logger.Error(ex, "Failed to create script {ScriptName}", _newScriptName);
                 }
             },
             onCancel: () => { },

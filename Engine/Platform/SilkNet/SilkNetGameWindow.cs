@@ -57,13 +57,17 @@ internal sealed class SilkNetGameWindow : IGameWindow
         SilkNetContext.Window = _window;
 
         Logger.Information("SilkNet window loaded");
-        
+
         var inputContext = _window.CreateInput();
         // TODO: move to factory
         _inputSystem = new SilkNetInputSystem(inputContext);
         _inputSystem.InputReceived += OnInputReceived;
-        
+
         OnWindowLoad(_inputSystem);
+        
+        var framebufferSize = _window.FramebufferSize;
+        OnFrameBufferResize(framebufferSize);
+        Logger.Information("Initial framebuffer size: {Width}x{Height}", framebufferSize.X, framebufferSize.Y);
     }
 
     private void WindowOnUpdate(double deltaTime)
@@ -83,10 +87,15 @@ internal sealed class SilkNetGameWindow : IGameWindow
 
     private void OnFrameBufferResize(Vector2D<int> newSize)
     {
+        Logger.Information("OnFrameBufferResize called: {Width}x{Height}", newSize.X, newSize.Y);
+        Logger.Information("Setting OpenGL viewport to: {Width}x{Height}", newSize.X, newSize.Y);
+
         //Update aspect ratios, clipping regions, viewports, etc.
         SilkNetContext.GL.Viewport(newSize);
 
         var @event = new WindowResizeEvent(newSize.X, newSize.Y);
         OnWindowEvent(@event);
+
+        Logger.Information("WindowResizeEvent fired: {Width}x{Height}", newSize.X, newSize.Y);
     }
 }

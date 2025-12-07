@@ -307,6 +307,7 @@ internal sealed class Scene : IScene
 
     public void OnViewportResize(uint width, uint height)
     {
+        Logger.Information("Scene.OnViewportResize called: {Width}x{Height}", width, height);
         _viewportWidth = width;
         _viewportHeight = height;
 
@@ -316,6 +317,8 @@ internal sealed class Scene : IScene
             var cameraComponent = entity.GetComponent<CameraComponent>();
             if (!cameraComponent.FixedAspectRatio)
             {
+                Logger.Information("Updating camera viewport for entity '{EntityName}' to {Width}x{Height}",
+                    entity.Name, width, height);
                 cameraComponent.Camera.SetViewportSize(width, height);
             }
         }

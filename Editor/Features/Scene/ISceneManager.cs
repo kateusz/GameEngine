@@ -46,4 +46,10 @@ public interface ISceneManager
     /// Only works in edit mode.
     /// </summary>
     void DuplicateEntity(Entity entity);
+
+    /// <summary>
+    /// Gets the current scene file path.
+    /// </summary>
+    /// <returns>The path to the current scene file, or null if no scene is loaded or saved.</returns>
+    string? GetCurrentScenePath();
 }

@@ -6,6 +6,7 @@ using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Input;
 using Editor.Panels;
+using Editor.Publisher;
 using Editor.UI.Elements;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
@@ -21,6 +22,8 @@ public static class EditorIoCContainer
         container.Register<ShortcutManager>(Reuse.Singleton);
         
         container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
+        container.Register<IGamePublisher, GamePublisher>(Reuse.Singleton);
+        container.Register<PublishSettingsUI>(Reuse.Singleton);
         container.Register<IEditorPreferences, EditorPreferences>(Reuse.Singleton,
             made: Made.Of(() => EditorPreferences.Load())
         );

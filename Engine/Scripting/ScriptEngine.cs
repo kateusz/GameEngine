@@ -853,7 +853,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
     
-    public static string GenerateScriptTemplate(string scriptName)
+    public string GenerateScriptTemplate(string scriptName)
     {
         return $$"""
                  using System;

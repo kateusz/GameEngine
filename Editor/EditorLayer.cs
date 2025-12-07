@@ -11,6 +11,7 @@ using Editor.Systems;
 using Editor.UI.Drawers;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
+using Editor.Publisher;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -58,6 +59,7 @@ public class EditorLayer : ILayer
     private readonly DebugSettings _debugSettings;
     private readonly IAssetsManager _assetsManager;
     private readonly IFrameBufferFactory _frameBufferFactory;
+    private readonly PublishSettingsUI _publishSettingsUI;
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
@@ -82,7 +84,7 @@ public class EditorLayer : ILayer
         ITileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ViewportToolManager viewportToolManager,
-        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory)
+        ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory, PublishSettingsUI publishSettingsUI)
     {
         _projectManager = projectManager;
         _consolePanel = consolePanel;
@@ -111,6 +113,7 @@ public class EditorLayer : ILayer
         _viewportToolManager = viewportToolManager;
         _viewportRuler = viewportRuler;
         _frameBufferFactory = frameBufferFactory;
+        _publishSettingsUI = publishSettingsUI;
 
         _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
         _sceneToolbar.OnPlayScene += () => _sceneManager.Play();
@@ -129,7 +132,8 @@ public class EditorLayer : ILayer
         _sceneManager.New();
 
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
-        _viewportToolManager.SubscribeToEntitySelection(EntitySelected);
+        // Viewport selection only updates selection state - don't move camera since entity is already visible
+        _viewportToolManager.SubscribeToEntitySelection(entity => _selectedEntity = entity);
 
         _contentBrowserPanel.Init();
         _sceneToolbar.Init();
@@ -644,12 +648,10 @@ public class EditorLayer : ILayer
         _editorSettingsUI.Render();
         _newProjectPopup.Render();
         _sceneSettingsPopup.Render();
+        _publishSettingsUI.Render();
     }
 
-    private void BuildAndPublish()
-    {
-        throw new NotImplementedException();
-    }
+    private void BuildAndPublish() => _publishSettingsUI.ShowPublishModal();
 
     private void ResetCamera()
     {

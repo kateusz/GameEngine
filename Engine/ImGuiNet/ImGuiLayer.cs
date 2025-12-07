@@ -47,7 +47,7 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
 
     public void End()
     {
-        _controller.Render();
+        _controller?.Render();
     }
 
     public void OnAttach(IInputSystem inputSystem)

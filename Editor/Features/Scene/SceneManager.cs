@@ -86,4 +86,6 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
         sceneContext.ActiveScene?.DuplicateEntity(entity);
         Logger.Information("📋 Entity duplicated: {EntityName}", entity.Name);
     }
+
+    public string? GetCurrentScenePath() => EditorScenePath;
 }
