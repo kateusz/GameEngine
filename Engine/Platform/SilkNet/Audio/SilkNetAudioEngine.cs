@@ -8,15 +8,16 @@ namespace Engine.Platform.SilkNet.Audio;
 internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetAudioEngine>();
-    
+
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
-    private AL _al = null!;
-    private ALContext _alc = null!;
+    private AL? _al;
+    private ALContext? _alc;
     private Device* _device;
     private Context* _context;
     private readonly List<SilkNetAudioSource> _activeSources = [];
     private bool _disposed;
+    private bool _isAvailable;
 
     public void Initialize()
     {
@@ -28,12 +29,22 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
             // Open default audio device
             _device = _alc.OpenDevice("");
             if (_device == null)
-                throw new InvalidOperationException("Cannot open audio device");
+            {
+                Logger.Warning("Cannot open audio device - audio will be disabled. This is normal if no audio hardware is available.");
+                _isAvailable = false;
+                return;
+            }
 
             // Create audio context
             _context = _alc.CreateContext(_device, null);
             if (_context == null)
-                throw new InvalidOperationException("Cannot create audio context");
+            {
+                Logger.Warning("Cannot create audio context - audio will be disabled");
+                _alc.CloseDevice(_device);
+                _device = null;
+                _isAvailable = false;
+                return;
+            }
 
             _alc.MakeContextCurrent(_context);
 
@@ -57,17 +68,21 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
                 }
             }
 
+            _isAvailable = true;
             Logger.Information("SilkNet AudioEngine initialized successfully");
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error initializing AudioEngine");
-            throw;
+            Logger.Warning(ex, "Error initializing AudioEngine - audio will be disabled");
+            _isAvailable = false;
         }
     }
 
     private void Shutdown()
     {
+        if (!_isAvailable)
+            return;
+
         try
         {
             // Stop and remove all active sources
@@ -79,14 +94,14 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
             _activeSources.Clear();
 
             // Close context and device
-            if (_context != null)
+            if (_context != null && _alc != null)
             {
                 _alc.MakeContextCurrent(null);
                 _alc.DestroyContext(_context);
                 _context = null;
             }
 
-            if (_device != null)
+            if (_device != null && _alc != null)
             {
                 _alc.CloseDevice(_device);
                 _device = null;
@@ -105,12 +120,21 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
 
     public IAudioSource CreateAudioSource()
     {
+        if (!_isAvailable || _al == null)
+            return new NoOpAudioSource();
+
         var source = new SilkNetAudioSource(_al, UnregisterSource);
         _activeSources.Add(source);
         return source;
     }
 
-    private IAudioClip CreateAudioClip(string path) => new SilkNetAudioClip(path, _al);
+    private IAudioClip CreateAudioClip(string path)
+    {
+        if (!_isAvailable || _al == null)
+            return new NoOpAudioClip();
+
+        return new SilkNetAudioClip(path, _al);
+    }
 
     private void UnregisterSource(SilkNetAudioSource source) => _activeSources.Remove(source);
     
@@ -136,6 +160,9 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
 
     public void PlayOneShot(string clipPath, float volume = 1.0f)
     {
+        if (!_isAvailable)
+            return;
+
         var source = CreateAudioSource();
         var clip = LoadAudioClip(clipPath);
 
@@ -158,11 +185,17 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
 
     public void SetListenerPosition(Vector3 position)
     {
+        if (!_isAvailable || _al == null)
+            return;
+
         _al.SetListenerProperty(ListenerVector3.Position, position.X, position.Y, position.Z);
     }
 
     public void SetListenerOrientation(Vector3 forward, System.Numerics.Vector3 up)
     {
+        if (!_isAvailable || _al == null)
+            return;
+
         unsafe
         {
             var orientation = stackalloc float[6];
@@ -198,4 +231,24 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
 
         _loadedClips.Clear();
     }
+}
+
+internal sealed class NoOpAudioSource : IAudioSource
+{
+    private static readonly NoOpAudioClip DummyClip = new();
+
+    public IAudioClip Clip { get; set; } = DummyClip;
+    public float Volume { get; set; }
+    public float Pitch { get; set; }
+    public bool Loop { get; set; }
+    public bool IsPlaying => false;
+    public bool IsPaused => false;
+    public float PlaybackPosition { get; set; }
+
+    public void Play() { }
+    public void Pause() { }
+    public void Stop() { }
+    public void SetPosition(Vector3 position) { }
+    public void SetSpatialMode(bool is3D, float minDistance = 1.0f, float maxDistance = 100.0f) { }
+    public void Dispose() { }
 }

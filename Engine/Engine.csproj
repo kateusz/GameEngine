@@ -16,6 +16,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
         <PackageReference Include="NVorbis" Version="0.10.5" />
+        <PackageReference Include="openal.redist" Version="2.0.7" />
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
@@ -24,16 +25,12 @@
         <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />
         <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenAL" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.Soft" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0" />
         <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
         <PackageReference Include="StbImageSharp" Version="2.30.15" />
         <PackageReference Include="ZLinq" Version="1.5.4" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- Biblioteka natywna -->
-        <Content Include="bin/Debug/net8.0/runtimes/osx-arm64/native/cimgui.dylib" />
     </ItemGroup>
 
     <ItemGroup>
@@ -45,5 +42,13 @@
     </ItemGroup>
 
     <!-- No asset directories needed for Engine project -->
+
+    <!-- Copy OpenAL native DLL to output directory -->
+    <Target Name="CopyOpenALNative" AfterTargets="Build">
+        <PropertyGroup>
+            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.redist\2.0.7\build\native\bin\x64\OpenAL32.dll</OpenALNativePath>
+        </PropertyGroup>
+        <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
+    </Target>
 
 </Project>

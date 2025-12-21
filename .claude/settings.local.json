@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(Select-Object FullName)",
+      "Bash(dir:*)",
+      "Bash(dotnet add:*)",
+      "Bash(./Editor.exe)",
+      "Bash(timeout 5 ./Editor.exe:*)"
+    ]
+  }
+}

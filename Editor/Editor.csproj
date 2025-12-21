@@ -27,4 +27,12 @@
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/fonts;$(OutputPath)assets/fonts/opensans;$(OutputPath)assets/game;$(OutputPath)assets/game/textures;$(OutputPath)assets/objModels;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures;$(OutputPath)assets/textures/skybox;$(OutputPath)Resources;$(OutputPath)libs" />
     </Target>
 
+    <!-- Copy OpenAL native DLL to output directory -->
+    <Target Name="CopyOpenALNative" AfterTargets="Build">
+        <PropertyGroup>
+            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.redist\2.0.7\build\native\bin\x64\OpenAL32.dll</OpenALNativePath>
+        </PropertyGroup>
+        <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
+    </Target>
+
 </Project>
