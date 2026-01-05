@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
@@ -158,7 +159,20 @@ internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
             return;
         
         _disposed = true;
+        GC.SuppressFinalize(this);
 
         ClearLoadedClip();
     }
+
+#if DEBUG
+    ~SilkNetAudioClip()
+    {
+        if (!_disposed && BufferId != 0)
+        {
+            Debug.WriteLine(
+                $"AUDIO LEAK: AudioClip buffer {BufferId} (path: '{Path}') not disposed!"
+            );
+        }
+    }
+#endif
 }

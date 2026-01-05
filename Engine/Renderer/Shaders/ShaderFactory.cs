@@ -92,9 +92,22 @@ internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFacto
     {
         if (_disposed)
             return;
-        
+
         ClearCache();
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~ShaderFactory()
+    {
+        if (!_disposed)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                "FACTORY LEAK: ShaderFactory not disposed!"
+            );
+        }
+    }
+#endif
 }

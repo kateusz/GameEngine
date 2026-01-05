@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using Engine.Renderer.Shaders;
 using Silk.NET.OpenGL;
@@ -215,5 +216,18 @@ internal sealed class SilkNetShader : IShader
         }
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~SilkNetShader()
+    {
+        if (!_disposed && _handle != 0)
+        {
+            Debug.WriteLine(
+                $"GPU LEAK: Shader program {_handle} not disposed!"
+            );
+        }
+    }
+#endif
 }

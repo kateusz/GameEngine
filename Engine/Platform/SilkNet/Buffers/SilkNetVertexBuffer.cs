@@ -67,7 +67,20 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
         }
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~SilkNetVertexBuffer()
+    {
+        if (!_disposed && _rendererId != 0)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"GPU LEAK: VertexBuffer {_rendererId} not disposed!"
+            );
+        }
+    }
+#endif
 
     public void SetLayout(BufferLayout layout)
     {

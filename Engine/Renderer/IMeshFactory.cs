@@ -7,7 +7,7 @@ namespace Engine.Renderer;
 /// <summary>
 /// Factory interface for creating and caching mesh resources.
 /// </summary>
-public interface IMeshFactory
+public interface IMeshFactory : IDisposable
 {
     /// <summary>
     /// Creates or retrieves a cached mesh from an OBJ file.

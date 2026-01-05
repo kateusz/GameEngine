@@ -8,7 +8,8 @@
       "Bash(dir:*)",
       "Bash(dotnet add:*)",
       "Bash(./Editor.exe)",
-      "Bash(timeout 5 ./Editor.exe:*)"
+      "Bash(timeout 5 ./Editor.exe:*)",
+      "Bash(dotnet test:*)"
     ]
   }
 }

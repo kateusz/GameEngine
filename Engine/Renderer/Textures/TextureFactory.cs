@@ -103,15 +103,29 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
     {
         if (_disposed)
             return;
-        
+
         lock (_whiteLock)
         {
             _whiteTexture?.Dispose();
             _whiteTexture = null;
         }
-        
+
         ClearCache();
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~TextureFactory()
+    {
+        if (!_disposed)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"FACTORY LEAK: TextureFactory not disposed! " +
+                $"White texture: {(_whiteTexture != null ? "allocated" : "null")}"
+            );
+        }
+    }
+#endif
 }
