@@ -54,7 +54,7 @@ internal sealed class AnimationSystem(EventBus eventBus, IAnimationAssetManager 
         // If no clip specified, use first available clip
         if (string.IsNullOrEmpty(animComponent.CurrentClipName) && animComponent.Asset.Clips.Length > 0)
         {
-            animComponent.CurrentClipName = animComponent.Asset.Clips.First().Name;
+            animComponent.CurrentClipName = animComponent.Asset.Clips[0].Name;
         }
 
         // Validate clip exists
