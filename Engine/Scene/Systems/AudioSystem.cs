@@ -12,18 +12,9 @@ namespace Engine.Scene.Systems;
 /// System responsible for managing audio playback and 3D spatial audio.
 /// Handles audio source lifecycle, updates 3D positions, and manages the audio listener.
 /// </summary>
-internal sealed class AudioSystem : ISystem
+internal sealed class AudioSystem(IAudioEngine audioEngine, IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
-
-    private readonly IAudioEngine _audioEngine;
-    private readonly IContext _context;
-
-    public AudioSystem(IAudioEngine audioEngine, IContext context)
-    {
-        _audioEngine = audioEngine;
-        _context = context;
-    }
 
     public int Priority => SystemPriorities.AudioSystem;
 
@@ -36,7 +27,7 @@ internal sealed class AudioSystem : ISystem
         Logger.Debug("AudioSystem initialized with priority {Priority}", Priority);
 
         // Create audio sources for all entities that have AudioSourceComponent
-        var view = _context.View<AudioSourceComponent>();
+        var view = context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
             InitializeAudioSource(entity, component);
@@ -61,7 +52,7 @@ internal sealed class AudioSystem : ISystem
     public void OnShutdown()
     {
         // Clean up all audio sources
-        var view = _context.View<AudioSourceComponent>();
+        var view = context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.RuntimeAudioSource != null)
@@ -153,7 +144,7 @@ internal sealed class AudioSystem : ISystem
         try
         {
             // Create audio source from engine
-            component.RuntimeAudioSource = _audioEngine.CreateAudioSource();
+            component.RuntimeAudioSource = audioEngine.CreateAudioSource();
 
             // Set initial properties
             if (component.AudioClip != null)
@@ -198,7 +189,7 @@ internal sealed class AudioSystem : ISystem
         Entity? activeListenerEntity = null;
         AudioListenerComponent? activeListener = null;
 
-        var listenerView = _context.View<AudioListenerComponent>();
+        var listenerView = context.View<AudioListenerComponent>();
         foreach (var (entity, component) in listenerView)
         {
             if (component.IsActive && entity.HasComponent<TransformComponent>())
@@ -217,14 +208,14 @@ internal sealed class AudioSystem : ISystem
         var pos = transform.Translation;
 
         // Set listener position
-        _audioEngine.SetListenerPosition(pos);
+        audioEngine.SetListenerPosition(pos);
 
         // Set listener orientation based on transform rotation
         var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
         var forward = Vector3.Transform(-Vector3.UnitZ, quaternion);
         var up = Vector3.Transform(Vector3.UnitY, quaternion);
 
-        _audioEngine.SetListenerOrientation(forward, up);
+        audioEngine.SetListenerOrientation(forward, up);
     }
 
     /// <summary>
@@ -232,7 +223,7 @@ internal sealed class AudioSystem : ISystem
     /// </summary>
     private void UpdateAudioSources()
     {
-        var view = _context.View<AudioSourceComponent>();
+        var view = context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
             // Initialize audio source if not already done (for newly added components)

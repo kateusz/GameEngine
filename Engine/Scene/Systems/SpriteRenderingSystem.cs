@@ -12,25 +12,11 @@ namespace Engine.Scene.Systems;
 /// System responsible for rendering 2D sprites.
 /// Operates on entities with SpriteRendererComponent and TransformComponent.
 /// </summary>
-internal sealed class SpriteRenderingSystem : ISystem
+internal sealed class SpriteRenderingSystem(IGraphics2D renderer, IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SpriteRenderingSystem>();
 
-    private readonly IGraphics2D _renderer;
-    private readonly IContext _context;
-
     public int Priority => SystemPriorities.SpriteRenderSystem;
-
-    /// <summary>
-    /// Creates a new SpriteRenderingSystem.
-    /// </summary>
-    /// <param name="renderer">The 2D renderer interface to use for drawing sprites.</param>
-    /// <param name="context">The ECS context for querying entities.</param>
-    public SpriteRenderingSystem(IGraphics2D renderer, IContext context)
-    {
-        _renderer = renderer;
-        _context = context;
-    }
 
     /// <summary>
     /// Initializes the sprite rendering system.
@@ -49,7 +35,7 @@ internal sealed class SpriteRenderingSystem : ISystem
     {
         // Find the primary camera
         Camera? mainCamera = null;
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         var cameraTransform = Matrix4x4.Identity;
 
         foreach (var entity in cameraGroup)
@@ -70,20 +56,20 @@ internal sealed class SpriteRenderingSystem : ISystem
             return;
 
         // Begin rendering with the camera's view and projection
-        _renderer.BeginScene(mainCamera, cameraTransform);
+        renderer.BeginScene(mainCamera, cameraTransform);
 
         // Render all sprites
-        var spriteGroup = _context.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+        var spriteGroup = context.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
         foreach (var entity in spriteGroup)
         {
             var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
 
-            _renderer.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            renderer.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
         // End the rendering batch
-        _renderer.EndScene();
+        renderer.EndScene();
     }
 
     /// <summary>

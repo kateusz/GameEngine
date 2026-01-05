@@ -8,21 +8,11 @@ namespace Engine.Scene.Systems;
 /// System responsible for updating all script components in the scene.
 /// Operates on entities with NativeScriptComponent.
 /// </summary>
-internal sealed class ScriptUpdateSystem : ISystem
+internal sealed class ScriptUpdateSystem(IScriptEngine scriptEngine) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptUpdateSystem>();
-    private readonly IScriptEngine _scriptEngine;
-    
-    public int Priority => SystemPriorities.ScriptUpdateSystem;
 
-    /// <summary>
-    /// Creates a new ScriptUpdateSystem.
-    /// </summary>
-    /// <param name="scriptEngine">The script engine for executing scripts.</param>
-    public ScriptUpdateSystem(IScriptEngine scriptEngine)
-    {
-        _scriptEngine = scriptEngine;
-    }
+    public int Priority => SystemPriorities.ScriptUpdateSystem;
 
     /// <summary>
     /// Called once when the system is initialized.
@@ -44,7 +34,7 @@ internal sealed class ScriptUpdateSystem : ISystem
         // - Script initialization (OnCreate)
         // - Script updates (OnUpdate)
         // - Error handling and logging
-        _scriptEngine.OnUpdate(deltaTime);
+        scriptEngine.OnUpdate(deltaTime);
     }
 
     /// <summary>
@@ -58,6 +48,6 @@ internal sealed class ScriptUpdateSystem : ISystem
         // Delegate to ScriptEngine which handles:
         // - Script destruction (OnDestroy)
         // - Error handling and logging
-        _scriptEngine.OnRuntimeStop();
+        scriptEngine.OnRuntimeStop();
     }
 }
