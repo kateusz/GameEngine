@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Renderer.Buffers;
 using Serilog;
 using Silk.NET.OpenGL;
@@ -63,5 +64,18 @@ internal sealed class SilkNetIndexBuffer : IIndexBuffer
         }
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~SilkNetIndexBuffer()
+    {
+        if (!_disposed && _rendererId != 0)
+        {
+            Debug.WriteLine(
+                $"GPU LEAK: IndexBuffer {_rendererId} not disposed! Count: {Count}"
+            );
+        }
+    }
+#endif
 }

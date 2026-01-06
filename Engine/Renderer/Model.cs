@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Textures;
@@ -218,5 +219,19 @@ public class Model : IModel
         _texturesLoaded.Clear();
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~Model()
+    {
+        if (!_disposed)
+        {
+            Debug.WriteLine(
+                $"MODEL LEAK: Model '{Directory}' not disposed! " +
+                $"Meshes: {Meshes.Count}, Textures: {_texturesLoaded.Count}"
+            );
+        }
+    }
+#endif
 }

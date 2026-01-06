@@ -115,5 +115,19 @@ public class Mesh : IDisposable
         // DiffuseTexture is often a shared white texture, so we don't dispose it
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~Mesh()
+    {
+        if (!_disposed && _initialized)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"MESH LEAK: Mesh '{Name}' not disposed! " +
+                $"Vertices: {Vertices.Count}, Indices: {Indices.Count}"
+            );
+        }
+    }
+#endif
 }

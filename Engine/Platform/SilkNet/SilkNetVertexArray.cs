@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.VertexArray;
@@ -141,5 +142,19 @@ internal sealed class SilkNetVertexArray : IVertexArray
         }
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~SilkNetVertexArray()
+    {
+        if (!_disposed && _vertexArrayObject != 0)
+        {
+            Debug.WriteLine(
+                $"GPU LEAK: VertexArray {_vertexArrayObject} not disposed! " +
+                $"VBs: {VertexBuffers.Count}, IB: {(IndexBuffer != null ? "yes" : "no")}"
+            );
+        }
+    }
+#endif
 }

@@ -155,28 +155,41 @@ internal sealed class SilkNetAudioSource : IAudioSource
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (_disposed)
+            return;
+
+        try
         {
             Stop();
 
             if (_sourceId != 0)
             {
                 _al.DeleteSource(_sourceId);
+                Logger.Debug("Disposed AudioSource {SourceId}", _sourceId);
                 _sourceId = 0;
             }
 
             // Notify engine that this source is being disposed
             _onDispose?.Invoke(this);
-
-            _disposed = true;
         }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Error disposing AudioSource {SourceId}", _sourceId);
+        }
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
+#if DEBUG
     ~SilkNetAudioSource()
     {
-        if (!_disposed)
+        if (!_disposed && _sourceId != 0)
         {
-            Logger.Warning("Warning: SilkNetAudioSource was not properly disposed. Call Dispose().");
+            System.Diagnostics.Debug.WriteLine(
+                $"AUDIO LEAK: AudioSource {_sourceId} not disposed!"
+            );
         }
     }
+#endif
 }

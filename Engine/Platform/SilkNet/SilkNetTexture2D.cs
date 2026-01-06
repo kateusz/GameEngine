@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Renderer.Textures;
 using Silk.NET.OpenGL;
 using StbImageSharp;
@@ -218,5 +219,18 @@ internal sealed class SilkNetTexture2D : Texture2D
         }
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~SilkNetTexture2D()
+    {
+        if (!_disposed && _rendererId != 0)
+        {
+            Debug.WriteLine(
+                $"GPU LEAK: Texture {_rendererId} (path: '{Path}') not disposed!"
+            );
+        }
+    }
+#endif
 }

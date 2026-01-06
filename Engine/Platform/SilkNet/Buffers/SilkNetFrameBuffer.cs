@@ -342,30 +342,54 @@ internal sealed class SilkNetFrameBuffer : FrameBuffer
 
         _colorAttachmentSpecs?.Clear();
 
-        if (_rendererId != 0)
+        try
         {
-            SilkNetContext.GL.DeleteFramebuffer(_rendererId);
-            _rendererId = 0;
-        }
-
-        if (_colorAttachments != null && _colorAttachments.Length > 0)
-        {
-            foreach (var attachment in _colorAttachments)
+            if (_rendererId != 0)
             {
-                if (attachment != 0)
-                {
-                    SilkNetContext.GL.DeleteTexture(attachment);
-                }
+                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+                _rendererId = 0;
             }
-            Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
-        }
 
-        if (_depthAttachment != 0)
+            if (_colorAttachments != null && _colorAttachments.Length > 0)
+            {
+                foreach (var attachment in _colorAttachments)
+                {
+                    if (attachment != 0)
+                    {
+                        SilkNetContext.GL.DeleteTexture(attachment);
+                    }
+                }
+                Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
+            }
+
+            if (_depthAttachment != 0)
+            {
+                SilkNetContext.GL.DeleteTexture(_depthAttachment);
+                _depthAttachment = 0;
+            }
+        }
+        catch (Exception ex)
         {
-            SilkNetContext.GL.DeleteTexture(_depthAttachment);
-            _depthAttachment = 0;
+            Debug.WriteLine(
+                $"Error disposing FrameBuffer {_rendererId}: {ex.Message}"
+            );
         }
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~SilkNetFrameBuffer()
+    {
+        if (!_disposed && _rendererId != 0)
+        {
+            Debug.WriteLine(
+                $"GPU LEAK: FrameBuffer {_rendererId} not disposed! " +
+                $"Size: {_specification.Width}x{_specification.Height}, " +
+                $"Attachments: {_colorAttachments?.Length ?? 0}"
+            );
+        }
+    }
+#endif
 }

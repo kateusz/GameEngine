@@ -18,6 +18,7 @@ internal sealed class MeshFactory : IMeshFactory
     private readonly IIndexBufferFactory _indexBufferFactory;
     private readonly Dictionary<string, Mesh> _loadedMeshes = new();
     private readonly Dictionary<string, Model> _loadedModels = new();
+    private bool _disposed;
 
     public MeshFactory(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
@@ -155,4 +156,30 @@ internal sealed class MeshFactory : IMeshFactory
 
         _logger.Information("MeshFactory cache cleared and resources disposed");
     }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _logger.Debug("Disposing MeshFactory and clearing cache");
+
+        Clear();
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+#if DEBUG
+    ~MeshFactory()
+    {
+        if (!_disposed)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"FACTORY LEAK: MeshFactory not disposed! " +
+                $"Cached meshes: {_loadedMeshes.Count}, models: {_loadedModels.Count}"
+            );
+        }
+    }
+#endif
 }
