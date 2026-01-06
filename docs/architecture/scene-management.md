@@ -15,8 +15,9 @@
 **Key Concepts**:
 - **Entity-Component Architecture**: Scenes are collections of entities (game objects) that contain components (data and behavior)
 - **State-Based Execution**: Scenes operate in distinct modes (Edit/Play) with different update behaviors
-- **Global Context**: A singleton pattern provides unified access to all entities across the engine
+- **Dependency Injection**: Entity context and scene context are injected via DI (IContext, ISceneContext), providing unified access to all entities
 - **Lifecycle Separation**: Clear boundaries between editor-time operations and runtime gameplay
+- **System Registry**: Shared singleton systems (rendering, audio, animation) are managed via ISceneSystemRegistry while per-scene systems (physics) are created per scene
 
 ## Core Concepts
 
@@ -59,12 +60,18 @@ sequenceDiagram
     participant Editor
     participant SceneManager
     participant Scene
+    participant SystemRegistry
     participant Context
+    participant PhysicsWorld
     participant Serializer
 
     Editor->>SceneManager: New() or Open(path)
     SceneManager->>Scene: Create new Scene instance
     Scene->>Context: Clear existing entities
+    Scene->>SystemRegistry: PopulateSystemManager()
+    Note right of SystemRegistry: Register shared singleton systems
+    Scene->>PhysicsWorld: Create physics world with gravity
+    Scene->>PhysicsWorld: Attach contact listener
 
     alt Opening existing scene
         SceneManager->>Serializer: Deserialize(scene, path)
@@ -81,11 +88,14 @@ sequenceDiagram
 
 **Flow Description**:
 1. The editor requests either a new blank scene or loading an existing scene from disk
-2. A fresh scene instance is created, which automatically clears the global entity context
-3. If loading from disk, the serializer parses the JSON scene file
-4. Each entity and its components are reconstructed from JSON data
-5. Entities are registered with the global context, making them queryable by systems
-6. The scene becomes the "current" active scene accessible throughout the engine
+2. A fresh scene instance is created, which automatically clears the injected entity context (IContext)
+3. The SystemRegistry populates the SystemManager with shared singleton systems (rendering, audio, animation)
+4. A physics world is created immediately with default gravity (-9.8 Y) and contact listener attached
+5. Per-scene systems like PhysicsSimulationSystem are registered with the scene's physics world
+6. If loading from disk, the serializer parses the JSON scene file
+7. Each entity and its components are reconstructed from JSON data
+8. Entities are registered with the context, making them queryable by systems
+9. The scene becomes the "current" active scene accessible via ISceneContext
 
 ### Play Mode Transition
 
@@ -94,6 +104,7 @@ sequenceDiagram
     participant Editor
     participant SceneManager
     participant Scene
+    participant SystemManager
     participant PhysicsWorld
     participant Entities
 
@@ -101,15 +112,15 @@ sequenceDiagram
     SceneManager->>SceneManager: Set state to Play
     SceneManager->>Scene: OnRuntimeStart()
 
-    Scene->>PhysicsWorld: Create physics world
-    Scene->>PhysicsWorld: Attach collision listener
+    Scene->>SystemManager: Initialize all systems
+    Note right of SystemManager: Scripts receive OnCreate callbacks
 
     Scene->>Scene: Query all RigidBody2D entities
     loop For each physics entity
         Scene->>Entities: Get Transform + RigidBody2D components
-        Scene->>PhysicsWorld: Create physics body
-        Scene->>PhysicsWorld: Configure colliders
-        PhysicsWorld-->>Entities: Link runtime body
+        Scene->>PhysicsWorld: Create physics body from transform
+        Scene->>PhysicsWorld: Configure colliders (BoxCollider2D)
+        PhysicsWorld-->>Entities: Link runtime body reference
     end
 
     Note over Scene,PhysicsWorld: Physics simulation ready
@@ -118,14 +129,15 @@ sequenceDiagram
 
 **Flow Description**:
 1. User triggers play mode from the editor
-2. Scene state transitions from Edit to Play
-3. A new physics world is instantiated with gravity settings
+2. Scene state transitions from Edit to Play via ISceneContext
+3. SystemManager initializes all systems (scripts receive OnCreate callbacks)
 4. The scene queries all entities with rigid body components
 5. For each physics-enabled entity:
    - Transform data (position, rotation) is extracted
-   - A corresponding physics body is created in the physics world
-   - Collider shapes are generated and attached
+   - A corresponding physics body is created in the pre-existing physics world
+   - Collider shapes (BoxCollider2D) are generated with proper scaling
    - The runtime physics body reference is stored in the component
+   - Entity reference is stored in the body for collision callbacks
 6. The physics simulation is now active and ready to step forward
 
 ### Runtime Update Loop
@@ -136,39 +148,41 @@ flowchart TD
     B -->|Edit Mode| C[OnUpdateEditor]
     B -->|Play Mode| D[OnUpdateRuntime]
 
-    D --> E[Execute Script Updates]
-    E --> F[Step Physics Simulation]
-    F --> G[Sync Transforms from Physics]
-    G --> H[Find Primary Camera]
+    D --> E[SystemManager.Update]
+    E --> F[100: Physics Simulation]
+    F --> G[110: Script Updates]
+    G --> H[120: Audio System]
+    H --> I[130: TileMap Rendering]
+    I --> J[140: Animation System]
+    J --> K[150: Sprite Rendering]
+    K --> L[160: SubTexture Rendering]
+    L --> M[170: Model Rendering]
+    M --> N[180: Physics Debug Render]
+    N --> O[Frame End]
 
-    H --> I{Camera Found?}
-    I -->|Yes| J[Render 3D Scene]
-    J --> K[Render 2D Scene]
-    K --> L{Physics Debug?}
-    L -->|Enabled| M[Draw Debug Colliders]
-    M --> N[Frame End]
-    L -->|Disabled| N
-    I -->|No| N
-
-    C --> O[Render 2D with Editor Camera]
-    O --> N
+    C --> P[Render Sprites with Editor Camera]
+    P --> Q[Render SubTextures]
+    Q --> R[Render TileMaps]
+    R --> O
 ```
 
 **Flow Description**:
 
 **Edit Mode Path**:
 - Uses the editor-controlled orthographic camera
-- Renders only visual representations (sprites, meshes)
+- Renders sprites, subtextures, and tilemaps (with tileset caching)
 - No physics or script execution occurs
 
-**Play Mode Path**:
-1. **Script Execution**: All script components receive update callbacks with delta time
-2. **Physics Step**: The physics world advances by a fixed timestep (1/60th second)
-3. **Transform Synchronization**: Entity positions and rotations are updated from physics simulation results
-4. **Camera Resolution**: The scene identifies the primary camera entity
-5. **3D Rendering**: If 3D models exist, they're rendered from the camera's perspective
-6. **2D Rendering**: Sprite-based entities are rendered in screen space
-7. **Debug Visualization**: Optional physics collider outlines are drawn for debugging
+**Play Mode Path** (systems execute in priority order):
+1. **Physics Simulation (100)**: Steps the Box2D physics world and syncs transforms
+2. **Script Updates (110)**: All script components receive OnUpdate callbacks with delta time
+3. **Audio System (120)**: Updates audio sources and listener positions
+4. **TileMap Rendering (130)**: Renders tilemap layers in Z-index order
+5. **Animation System (140)**: Updates sprite animations and texture coordinates
+6. **Sprite Rendering (150)**: Renders SpriteRendererComponent entities
+7. **SubTexture Rendering (160)**: Renders SubTextureRendererComponent entities
+8. **Model Rendering (170)**: Renders 3D models (currently disabled)
+9. **Physics Debug Render (180)**: Optional collider outline visualization
 
 ### Stop Play Mode
 
@@ -177,40 +191,31 @@ sequenceDiagram
     participant Editor
     participant SceneManager
     participant Scene
-    participant Scripts
-    participant PhysicsWorld
-    participant Entities
+    participant SystemManager
+    participant TileSetCache
 
     Editor->>SceneManager: Stop()
     SceneManager->>SceneManager: Set state to Edit
     SceneManager->>Scene: OnRuntimeStop()
 
-    Scene->>Scene: Query script entities
-    loop For each script
-        Scene->>Scripts: OnDestroy()
-        Note right of Scripts: Cleanup script resources
-    end
+    Scene->>SystemManager: Shutdown()
+    Note right of SystemManager: Scripts receive OnDestroy callbacks
 
-    Scene->>PhysicsWorld: Clear contact listener
-    Scene->>PhysicsWorld: Destroy physics world
+    Scene->>TileSetCache: Dispose all cached tilesets
+    Scene->>TileSetCache: Clear cache
 
-    Scene->>Entities: Clear runtime body references
-    loop For each physics entity
-        Entities->>Entities: Set RuntimeBody = null
-    end
-
-    Note over Scene,PhysicsWorld: Physics state cleared
+    Note over Scene,SystemManager: Runtime state cleared
     Scene-->>SceneManager: Runtime stopped
 ```
 
 **Flow Description**:
 1. Editor triggers stop (returning to Edit mode)
-2. Scene state transitions back to Edit
-3. All script components receive cleanup notifications (OnDestroy)
-4. The physics contact listener is detached and cleared
-5. All runtime physics body references are nullified
-6. The entire physics world is destroyed
-7. The scene returns to a clean edit state, ready for modifications
+2. Scene state transitions back to Edit via ISceneContext
+3. SystemManager shuts down all systems (scripts receive OnDestroy callbacks)
+4. Editor tileset cache is cleared and textures disposed
+5. The scene returns to a clean edit state, ready for modifications
+
+**Note**: Physics bodies remain in the physics world but are not stepped. The physics world persists for the scene's lifetime and is only destroyed when the scene is disposed.
 
 ### Scene Serialization
 
@@ -322,7 +327,10 @@ flowchart LR
 **When**: Scene is created or loaded from disk
 
 **Operations**:
-- Clear the global entity context to ensure no stale data
+- Clear the injected entity context (IContext) to ensure no stale data
+- SystemRegistry populates SystemManager with shared singleton systems
+- Create physics world with gravity (-9.8 Y) and attach contact listener
+- Register per-scene PhysicsSimulationSystem with the physics world
 - If loading from file, deserialize all entities and components
 - Register entities with the context for system queries
 - Prepare viewport dimensions for camera initialization
@@ -335,7 +343,9 @@ flowchart LR
 **When**: Continuously while scene is open in editor
 
 **Frame Operations**:
-- Render scene using editor camera (user-controlled)
+- Render sprites using editor camera (user-controlled orthographic camera)
+- Render subtextures with calculated or pre-computed UV coordinates
+- Render tilemaps with cached tilesets (to avoid per-frame texture loading)
 - No physics simulation
 - No script execution
 - Entity modifications take effect immediately
@@ -347,54 +357,60 @@ flowchart LR
 **When**: User presses Play button in editor
 
 **Operations**:
-1. Create physics world with gravity configuration
-2. Attach collision listener for physics events
-3. Query all entities with rigid body components
-4. Instantiate physics bodies for each entity
-5. Configure collider shapes and physics properties
-6. Link physics bodies back to entity components
-7. Initialize all script components
+1. SystemManager initializes all systems (scripts receive OnCreate callbacks)
+2. Query all entities with RigidBody2DComponent
+3. For each physics entity:
+   - Extract transform position and rotation
+   - Create Box2D body with appropriate type (Static/Dynamic/Kinematic)
+   - Store entity reference in body via SetUserData
+   - Configure BoxCollider2D shapes with scaling
+   - Link runtime body reference back to component
 
 **Duration**: Single-frame operation, synchronous
+
+**Note**: Physics world already exists from scene construction; this phase only creates the runtime bodies
 
 ### Runtime Execution Phase
 
 **When**: Every frame while in Play mode
 
-**Frame Operations** (in order):
-1. **Script Update** (~beginning of frame): Execute all script OnUpdate callbacks
-2. **Physics Step** (~mid-frame): Advance physics simulation by fixed timestep
-3. **Transform Sync** (~after physics): Copy positions/rotations from physics to entities
-4. **Camera Resolution**: Find the primary camera entity
-5. **Rendering** (~end of frame):
-   - 3D model rendering
-   - 2D sprite rendering
-   - Optional physics debug visualization
+**Frame Operations** (SystemManager.Update executes systems in priority order):
+1. **Physics Simulation (100)**: Step Box2D world, sync transforms from physics bodies
+2. **Script Update (110)**: Execute all script OnUpdate callbacks with delta time
+3. **Audio System (120)**: Update audio source positions and listener
+4. **TileMap Rendering (130)**: Render tilemap layers in Z-index order
+5. **Animation System (140)**: Update sprite animations, compute texture coordinates
+6. **Sprite Rendering (150)**: Render SpriteRendererComponent entities
+7. **SubTexture Rendering (160)**: Render SubTextureRendererComponent entities
+8. **Model Rendering (170)**: Render 3D models (currently disabled)
+9. **Physics Debug Render (180)**: Optional collider visualization
 
-**Timing**: Fixed timestep for physics (1/60s), variable for rendering
+**Timing**: Systems run every frame; physics uses internal fixed timestep
 
 ### Runtime Stop Phase
 
 **When**: User presses Stop button in editor
 
 **Operations** (in order):
-1. Execute OnDestroy for all script components
-2. Detach and clear physics contact listener
-3. Null out all runtime physics body references
-4. Destroy the physics world
-5. Return to Edit mode state
+1. SystemManager.Shutdown() is called (scripts receive OnDestroy callbacks)
+2. Editor tileset cache is cleared and disposed
+3. Scene state returns to Edit mode
 
-**Important**: Entities and their component data persist (return to pre-play state)
+**Important**:
+- Entities and their component data persist
+- Physics world persists but is not stepped (bodies remain until scene disposal)
+- Runtime body references in RigidBody2DComponent remain set
 
 ### Shutdown/Cleanup
 
-**When**: Scene is unloaded or application exits
+**When**: Scene is unloaded or application exits (Scene.Dispose() called)
 
 **Operations**:
-- If in Play mode, execute runtime stop first
-- Clear all entity references from context
-- Release any texture or resource handles
-- Nullify the current scene reference
+- Unsubscribe from all entity OnComponentAdded events to prevent memory leaks
+- Dispose SystemManager (disposes per-scene systems like PhysicsSimulationSystem)
+- Shared singleton systems are NOT disposed (they persist across scenes)
+- Clear and dispose editor tileset cache
+- Clear entity context (IContext.Clear())
 
 **State**: Clean slate for next scene load
 
@@ -404,45 +420,60 @@ flowchart LR
 flowchart TB
     subgraph "Scene Container"
         A[Scene Instance]
-        B[Entity Collection]
+        B[SystemManager]
         C[Physics World]
+        D[TileSet Cache]
     end
 
-    subgraph "Global Systems"
-        D[Entity Context<br/>Singleton]
-        E[Script Engine]
-        F[2D Renderer]
-        G[3D Renderer]
+    subgraph "DI Services"
+        E[IContext<br/>Entity Registry]
+        F[ISceneContext<br/>Active Scene + State]
+        G[ISceneSystemRegistry<br/>Shared Systems]
+    end
+
+    subgraph "Systems (Priority Order)"
+        H[PhysicsSimulationSystem 100]
+        I[ScriptUpdateSystem 110]
+        J[AudioSystem 120]
+        K[TileMapRenderSystem 130]
+        L[AnimationSystem 140]
+        M[SpriteRenderingSystem 150]
     end
 
     subgraph "Persistence Layer"
-        H[Scene Serializer]
-        I[JSON Files]
+        N[ISceneSerializer]
+        O[JSON Files]
     end
 
     subgraph "Editor Layer"
-        J[Scene Manager]
-        K[Hierarchy Panel]
-        L[Viewport]
+        P[Scene Manager]
+        Q[Hierarchy Panel]
+        R[Viewport]
     end
 
+    A -->|Uses| E
     A -->|Contains| B
-    A -->|Creates/Destroys| C
-    B -->|Registers| D
-    D -->|Queries| E
-    D -->|Queries| F
-    D -->|Queries| G
+    A -->|Creates| C
+    A -->|Caches| D
+    G -->|Populates| B
+    B -->|Manages| H
+    B -->|Manages| I
+    B -->|Manages| J
+    B -->|Manages| K
+    B -->|Manages| L
+    B -->|Manages| M
 
-    J -->|Creates/Loads| A
-    J -->|Serializes via| H
-    H -->|Reads/Writes| I
+    P -->|Creates/Loads| A
+    P -->|Updates| F
+    P -->|Serializes via| N
+    N -->|Reads/Writes| O
 
-    K -->|Displays| D
-    K -->|Manipulates| A
-    L -->|Renders from| A
+    Q -->|Displays| E
+    Q -->|Manipulates| A
+    R -->|Renders from| A
 
-    C -.->|Updates| B
-    E -.->|Updates| B
+    C -.->|Updates Transforms| E
+    I -.->|Updates Components| E
 ```
 
 ## State Machine
@@ -482,21 +513,26 @@ stateDiagram-v2
 
 ### Entity Context Integration
 - **Purpose**: Provides a centralized registry of all entities across the engine
-- **Pattern**: Singleton accessed via static instance
-- **Scene's Role**: Registers entities on creation, clears context on initialization
-- **Querying**: Systems use the context to find entities with specific component combinations
+- **Pattern**: Dependency injected via IContext interface (no static singleton)
+- **Scene's Role**: Receives IContext via constructor, registers entities on creation, clears context on initialization
+- **Querying**: Systems use the injected context to find entities with specific component combinations
+- **Scene Context**: ISceneContext tracks the active scene and current state (Edit/Play)
 
 ### Physics World Integration
 - **Purpose**: Simulates realistic physics behavior for game entities
-- **Lifecycle**: Created during OnRuntimeStart, destroyed during OnRuntimeStop
-- **Data Flow**: Transform data flows TO physics on start, FROM physics during updates
-- **Entity Linking**: Physics bodies store entity references for collision callbacks
+- **Lifecycle**: Created in Scene constructor with gravity (-9.8 Y), persists until scene disposal
+- **Runtime Bodies**: Physics bodies are created in OnRuntimeStart from entity transforms
+- **Data Flow**: Transform data flows TO physics on start, FROM physics during runtime updates
+- **Entity Linking**: Physics bodies store entity references for collision callbacks via SetUserData
+- **Contact Listener**: SceneContactListener handles collision events between physics bodies
 
 ### Rendering Integration
 - **Purpose**: Visualize scene contents on screen
-- **Camera-Driven**: Scene identifies the primary camera each frame
-- **Multi-Pass**: Separate 3D and 2D rendering passes in sequence
+- **Camera-Driven**: Scene identifies the primary camera each frame (GetPrimaryCameraEntity)
+- **Graphics Interface**: Uses IGraphics2D for batched 2D rendering (sprites, subtextures, tilemaps)
+- **Multi-Pass**: Separate 3D and 2D rendering passes in sequence (3D currently disabled)
 - **State-Aware**: Different rendering paths for Edit vs Play mode
+- **TileMap Support**: Editor mode caches tileset textures to avoid per-frame disk loading
 
 ### Serialization Integration
 - **Purpose**: Persist scene data to disk for saving and loading
@@ -504,11 +540,18 @@ stateDiagram-v2
 - **Resource Handling**: Stores asset paths (textures) not binary data
 - **Script Preservation**: Serializes script types and exposed field values
 
+### System Registry Integration
+- **Purpose**: Manages registration of ECS systems with the scene's SystemManager
+- **Shared Systems**: ISceneSystemRegistry provides singleton systems (rendering, audio, animation) that persist across scenes
+- **Per-Scene Systems**: PhysicsSimulationSystem is created per-scene because each scene has its own physics world
+- **Priority Order**: Systems execute in priority order defined in SystemPriorities class
+- **Lifecycle**: Shared systems are marked `isShared: true` to prevent disposal when scenes change
+
 ### Editor Integration
 - **Scene Manager**: Orchestrates scene lifecycle operations (New, Open, Save, Play, Stop)
 - **Hierarchy Panel**: Displays and allows manipulation of scene entities
 - **Viewport**: Renders scene content with appropriate camera based on mode
-- **State Coordination**: Ensures editor UI reflects current scene state
+- **State Coordination**: Ensures editor UI reflects current scene state via ISceneContext
 
 ## Mental Model for Developers
 
@@ -531,13 +574,20 @@ Think of a scene as a **theatrical stage**:
 
 ### Common Patterns
 
-**Query Pattern**: Need entities with specific components? Use context queries:
+**Query Pattern**: Need entities with specific components? Use injected context queries:
+```csharp
+// In a system with IContext injected via constructor
+var group = _context.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
+
+// Or use the strongly-typed View method
+var view = _context.View<CameraComponent>();
+foreach (var (entity, component) in view) { ... }
 ```
-var group = Context.Instance.GetGroup([typeof(Transform), typeof(Sprite)])
-```
 
-**Lifecycle Pattern**: Need initialization or cleanup? Use OnRuntimeStart/Stop
+**Lifecycle Pattern**: Need initialization or cleanup? Use SystemManager callbacks (OnCreate/OnDestroy for scripts)
 
-**State Pattern**: Different behavior in Edit vs Play? Check scene state in your systems
+**State Pattern**: Different behavior in Edit vs Play? Check ISceneContext.State in your systems
 
-**Persistence Pattern**: Need data to survive saves? Ensure components are serializable
+**Persistence Pattern**: Need data to survive saves? Ensure components implement Clone() and have JSON serialization support
+
+**Duplicate Pattern**: Need to clone an entity? Use scene.DuplicateEntity(entity) which clones all components via reflection

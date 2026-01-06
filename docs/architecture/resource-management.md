@@ -51,12 +51,18 @@ This allows the same game code to run on different rendering APIs without modifi
 
 ### Caching Strategy
 
-Resources employ different caching strategies based on their usage patterns:
+Resources employ weak reference caching to allow garbage collection while preventing duplicate loads:
 
-- **Texture Caching**: Image files are cached by file path in dictionaries to prevent duplicate loads
-- **Model Texture Deduplication**: When loading 3D models, material textures are checked against previously loaded textures
-- **No Global Shader Cache**: Shaders are created per-request but are typically singleton instances
+- **Texture Caching**: `TextureFactory` uses weak references with normalized file paths as keys. Textures are garbage collected when no longer referenced elsewhere. Thread-safe with `Lock` objects.
+- **Shader Caching**: `ShaderFactory` caches shaders using weak references with a tuple key of `(vertexPath, fragmentPath, vertModTime, fragModTime)`. Tracks file modification times for hot-reload support.
+- **Model Texture Deduplication**: When loading 3D models, material textures are checked against the texture cache
 - **Scene Deserialization**: Resources are recreated from path references when scenes load
+- **White Texture Singleton**: A single-pixel white texture is maintained for default/fallback use
+
+**Cache Behavior**:
+- Dead weak references are automatically cleaned from caches
+- Double-checked locking pattern for concurrent resource creation
+- `ClearCache()` methods available for explicit cache invalidation
 
 ## Architecture Flow
 
@@ -349,11 +355,74 @@ sequenceDiagram
 - **Application Shutdown**: All remaining resources are disposed
 - **Explicit Disposal**: Models and meshes can be manually disposed when no longer needed
 
+**Scene Disposal Flow**:
+1. Unsubscribe entity events
+2. Dispose SystemManager (per-scene systems only)
+3. Clear tileset cache (editor mode textures)
+4. Clear entity storage
+
+**System Shutdown Details**:
+- `SystemManager.Dispose()` only disposes per-scene systems (not shared singletons)
+- `AudioSystem.OnShutdown()` disposes all `RuntimeAudioSource` instances on components
+- `PhysicsSimulationSystem.OnShutdown()` destroys all Box2D bodies and clears user data
+- Runtime stop (`OnRuntimeStop()`) clears editor tileset cache before scene reload
+
 **Memory Management**:
 - Textures loaded during scene deserialization persist until scene unloads
 - Cached textures in content browser remain until editor session ends
 - Model textures are reference-counted through cache deduplication
-- No automatic garbage collection - disposal must be explicit
+- Weak reference caches allow automatic cleanup when resources are no longer referenced
+
+## IDisposable Implementation Patterns
+
+### Classes Implementing IDisposable
+
+**Graphics/Rendering**:
+- `Texture2D` / `SilkNetTexture2D` - OpenGL texture handles
+- `Shader` / `SilkNetShader` - Shader program handles
+- `VertexBuffer` / `SilkNetVertexBuffer` - Vertex buffer objects
+- `IndexBuffer` / `SilkNetIndexBuffer` - Index buffer objects
+- `VertexArray` / `SilkNetVertexArray` - Vertex array objects
+- `FrameBuffer` / `SilkNetFrameBuffer` - Framebuffer objects + color/depth attachments
+- `TextureFactory`, `ShaderFactory` - Dispose cached resources
+
+**Audio**:
+- `IAudioSource` / `SilkNetAudioSource` - OpenAL source handles
+- `IAudioClip` / `SilkNetAudioClip` - OpenAL buffer handles
+- `IAudioEngine` - Audio system cleanup
+
+**Scene/Systems**:
+- `IScene` / `Scene` - Entity cleanup, tileset cache disposal
+- `PhysicsSimulationSystem` - Box2D body cleanup
+- `ImGuiLayer` - ImGui context cleanup
+
+### Disposal Pattern Requirements
+
+All OpenGL/OpenAL resources must follow these requirements:
+
+1. **Disposed flag** - Track disposal state to prevent double-disposal
+2. **Zero handles after deletion** - Set IDs to 0 after GPU deletion to catch use-after-dispose
+3. **Try-catch around GPU calls** - Context may be unavailable during shutdown
+4. **No finalizers for cleanup** - GPU context is unavailable in finalizers; log warnings only
+
+### Ownership Rules
+
+**Factories own cached resources**:
+- `TextureFactory` and `ShaderFactory` dispose their caches on disposal
+- Factory disposal occurs during application shutdown
+
+**Components DON'T own resources**:
+- Components hold references but don't dispose resources
+- Components store path references for serialization; actual resources are managed elsewhere
+
+**Systems manage runtime instances**:
+- `AudioSystem.OnShutdown()` disposes all `RuntimeAudioSource` instances
+- `PhysicsSimulationSystem.OnShutdown()` destroys all Box2D bodies
+- `Renderer2DSystem` creates/disposes batch resources
+
+**Scene manages unique resources**:
+- `Scene.Dispose()` clears tileset texture cache
+- Scene disposal triggers `SystemManager.Dispose()` for per-scene systems
 
 ### Key Timing Considerations
 
@@ -423,8 +492,17 @@ To add new rendering platform (e.g., DirectX, Vulkan):
 ### Memory Management
 - Dispose resources when no longer needed to prevent memory leaks
 - Be mindful of cache growth in long-running sessions
-- Consider weak references for infrequently used resources
-- Implement reference counting for shared resources
+- Factory caches use weak references - resources are collected when no external references exist
+- Systems should implement `OnShutdown()` to clean up runtime instances
+
+### Disposal Implementation
+- Always implement `IDisposable` for GPU/audio resources
+- Use disposed flag to prevent double-disposal
+- Set handles to 0 after deletion to catch use-after-dispose bugs
+- Wrap GPU calls in try-catch (context may be unavailable during shutdown)
+- Don't rely on finalizers - GPU context is unavailable in finalizers
+- Use `using` statements for temporary resources
+- Let factories manage lifetime for shared resources
 
 ### Performance
 - Preload resources during loading screens or scene transitions
