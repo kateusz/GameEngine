@@ -51,42 +51,38 @@ internal sealed class SilkNetVertexArray : IVertexArray
             {
                 var element = layout.Elements[index];
 
-                switch (element.Type)
+                switch (element.Type.ToBaseType())
                 {
-                    case ShaderDataType.Float:
-                    case ShaderDataType.Float2:
-                    case ShaderDataType.Float3:
-                    case ShaderDataType.Float4:
+                    case DataType.Float:
                     {
                         SilkNetContext.GL.EnableVertexAttribArray((uint)index);
                         GLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
                         SilkNetContext.GL.VertexAttribPointer((uint)index,
-                            element.GetComponentCount(),
-                            ShaderDataTypeToOpenGLBaseType(element.Type),
+                            element.Type.GetComponentCount(),
+                            element.Type.ToBaseType().ToGLType(),
                             element.Normalized,
                             (uint)layout.Stride,
                             (void*)element.Offset);
                         GLDebug.CheckError(SilkNetContext.GL, $"VertexAttribPointer({index})");
                     }
                         break;
-                    case ShaderDataType.Int:
-                    case ShaderDataType.Int2:
-                    case ShaderDataType.Int3:
-                    case ShaderDataType.Int4:
-                    case ShaderDataType.Bool:
+                    case DataType.Int:
+                    case DataType.UnsignedInt:
+                    case DataType.Byte:
+                    case DataType.UnsignedByte:
                     {
                         SilkNetContext.GL.EnableVertexAttribArray((uint)index);
                         GLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
                         SilkNetContext.GL.VertexAttribIPointer((uint)index,
-                            element.GetComponentCount(),
-                            ShaderDataTypeToOpenGLBaseType(element.Type),
+                            element.Type.GetComponentCount(),
+                            element.Type.ToBaseType().ToGLEnum(),
                             (uint)layout.Stride,
                             (void*)element.Offset);
                         GLDebug.CheckError(SilkNetContext.GL, $"VertexAttribIPointer({index})");
                     }
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new NotSupportedException($"BaseDataType {element.Type.ToBaseType()} not supported");
                 }
             }
         }
@@ -100,25 +96,6 @@ internal sealed class SilkNetVertexArray : IVertexArray
         indexBuffer.Bind();
 
         IndexBuffer = indexBuffer;
-    }
-
-    private GLEnum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
-    {
-        return type switch
-        {
-            ShaderDataType.Float => GLEnum.Float,
-            ShaderDataType.Float2 => GLEnum.Float,
-            ShaderDataType.Float3 => GLEnum.Float,
-            ShaderDataType.Float4 => GLEnum.Float,
-            ShaderDataType.Mat3 => GLEnum.Float,
-            ShaderDataType.Mat4 => GLEnum.Float,
-            ShaderDataType.Int => GLEnum.Int,
-            ShaderDataType.Int2 => GLEnum.Int,
-            ShaderDataType.Int3 => GLEnum.Int,
-            ShaderDataType.Int4 => GLEnum.Int,
-            ShaderDataType.Bool => GLEnum.Bool,
-            _ => 0
-        };
     }
 
     public void Dispose()

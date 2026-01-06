@@ -1,5 +1,3 @@
-using Silk.NET.OpenGL;
-
 namespace Engine.Renderer.Shaders;
 
 public enum ShaderDataType
@@ -9,41 +7,63 @@ public enum ShaderDataType
 
 public static class ShaderDataTypeExtensions
 {
-    public static int GetSize(this ShaderDataType type)
+    extension(ShaderDataType type)
     {
-        return type switch
+        public int GetSize()
         {
-            ShaderDataType.Float => RenderingConstants.FloatSize,
-            ShaderDataType.Float2 => RenderingConstants.FloatSize * 2,
-            ShaderDataType.Float3 => RenderingConstants.FloatSize * 3,
-            ShaderDataType.Float4 => RenderingConstants.FloatSize * 4,
-            ShaderDataType.Mat3 => RenderingConstants.FloatSize * 3 * 3,
-            ShaderDataType.Mat4 => RenderingConstants.FloatSize * 4 * 4,
-            ShaderDataType.Int => RenderingConstants.IntSize,
-            ShaderDataType.Int2 => RenderingConstants.IntSize * 2,
-            ShaderDataType.Int3 => RenderingConstants.IntSize * 3,
-            ShaderDataType.Int4 => RenderingConstants.IntSize * 4,
-            ShaderDataType.Bool => RenderingConstants.BoolSize,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
-    }
+            return type switch
+            {
+                ShaderDataType.Float => RenderingConstants.FloatSize,
+                ShaderDataType.Float2 => RenderingConstants.FloatSize * 2,
+                ShaderDataType.Float3 => RenderingConstants.FloatSize * 3,
+                ShaderDataType.Float4 => RenderingConstants.FloatSize * 4,
+                ShaderDataType.Mat3 => RenderingConstants.FloatSize * 3 * 3,
+                ShaderDataType.Mat4 => RenderingConstants.FloatSize * 4 * 4,
+                ShaderDataType.Int => RenderingConstants.IntSize,
+                ShaderDataType.Int2 => RenderingConstants.IntSize * 2,
+                ShaderDataType.Int3 => RenderingConstants.IntSize * 3,
+                ShaderDataType.Int4 => RenderingConstants.IntSize * 4,
+                ShaderDataType.Bool => RenderingConstants.BoolSize,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+        }
 
-    public static VertexAttribPointerType ToGLBaseType(this ShaderDataType type)
-    {
-        return type switch
+        public DataType ToBaseType()
         {
-            ShaderDataType.Float => VertexAttribPointerType.Float,
-            ShaderDataType.Float2 => VertexAttribPointerType.Float,
-            ShaderDataType.Float3 => VertexAttribPointerType.Float,
-            ShaderDataType.Float4 => VertexAttribPointerType.Float,
-            ShaderDataType.Mat3 => VertexAttribPointerType.Float,
-            ShaderDataType.Mat4 => VertexAttribPointerType.Float,
-            ShaderDataType.Int => VertexAttribPointerType.Int,
-            ShaderDataType.Int2 => VertexAttribPointerType.Int,
-            ShaderDataType.Int3 => VertexAttribPointerType.Int,
-            ShaderDataType.Int4 => VertexAttribPointerType.Int,
-            // ShaderDataType.Bool => VertexAttribPointerType.Byte, ??
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
+            return type switch
+            {
+                ShaderDataType.Float => DataType.Float,
+                ShaderDataType.Float2 => DataType.Float,
+                ShaderDataType.Float3 => DataType.Float,
+                ShaderDataType.Float4 => DataType.Float,
+                ShaderDataType.Mat3 => DataType.Float,
+                ShaderDataType.Mat4 => DataType.Float,
+                ShaderDataType.Int => DataType.Int,
+                ShaderDataType.Int2 => DataType.Int,
+                ShaderDataType.Int3 => DataType.Int,
+                ShaderDataType.Int4 => DataType.Int,
+                ShaderDataType.Bool => DataType.Byte,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+        }
+
+        public int GetComponentCount()
+        {
+            return type switch
+            {
+                ShaderDataType.Float => 1,
+                ShaderDataType.Float2 => 2,
+                ShaderDataType.Float3 => 3,
+                ShaderDataType.Float4 => 4,
+                ShaderDataType.Mat3 => 3 * 3,
+                ShaderDataType.Mat4 => 4 * 4,
+                ShaderDataType.Int => 1,
+                ShaderDataType.Int2 => 2,
+                ShaderDataType.Int3 => 3,
+                ShaderDataType.Int4 => 4,
+                ShaderDataType.Bool => 1,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+        }
     }
 }
