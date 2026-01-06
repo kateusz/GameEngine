@@ -14,15 +14,17 @@ namespace Engine.Platform.SilkNet;
 internal sealed class SilkNetGameWindow : IGameWindow
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetGameWindow>();
-    
+
     private readonly IWindow _window;
-    
+    private readonly IInputSystemFactory _inputSystemFactory;
+
     private IInputSystem? _inputSystem;
 
-    public SilkNetGameWindow(IWindow window)
+    public SilkNetGameWindow(IWindow window, IInputSystemFactory inputSystemFactory)
     {
-        _window = window ?? throw new ArgumentNullException(nameof(window));
-        
+        _window = window;
+        _inputSystemFactory = inputSystemFactory;
+
         _window.WindowState = WindowState.Maximized;
 
         _window.Load += WindowOnLoad;
@@ -59,12 +61,13 @@ internal sealed class SilkNetGameWindow : IGameWindow
         Logger.Information("SilkNet window loaded");
 
         var inputContext = _window.CreateInput();
-        // TODO: move to factory
-        _inputSystem = new SilkNetInputSystem(inputContext);
+
+        // Create input system using factory (DI-based) instead of 'new'
+        _inputSystem = _inputSystemFactory.Create(inputContext);
         _inputSystem.InputReceived += OnInputReceived;
 
         OnWindowLoad(_inputSystem);
-        
+
         var framebufferSize = _window.FramebufferSize;
         OnFrameBufferResize(framebufferSize);
         Logger.Information("Initial framebuffer size: {Width}x{Height}", framebufferSize.X, framebufferSize.Y);
