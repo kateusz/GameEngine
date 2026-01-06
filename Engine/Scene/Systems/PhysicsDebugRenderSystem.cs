@@ -13,28 +13,11 @@ namespace Engine.Scene.Systems;
 /// System responsible for rendering physics debug visualizations.
 /// Draws wireframe overlays for collision shapes to aid in debugging physics behavior.
 /// </summary>
-internal sealed class PhysicsDebugRenderSystem : ISystem
+internal sealed class PhysicsDebugRenderSystem(IGraphics2D renderer, IContext context, DebugSettings debugSettings) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
 
-    private readonly IGraphics2D _renderer;
-    private readonly IContext _context;
-    private readonly DebugSettings _debugSettings;
-    
     public int Priority => SystemPriorities.PhysicsDebugRenderSystem;
-
-    /// <summary>
-    /// Creates a new PhysicsDebugRenderSystem.
-    /// </summary>
-    /// <param name="renderer">The 2D renderer interface to use for drawing debug shapes.</param>
-    /// <param name="context">The ECS context for querying entities.</param>
-    /// <param name="debugSettings">The debug settings for controlling visualization.</param>
-    public PhysicsDebugRenderSystem(IGraphics2D renderer, IContext context, DebugSettings debugSettings)
-    {
-        _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
-        _context = context;
-        _debugSettings = debugSettings ?? throw new ArgumentNullException(nameof(debugSettings));
-    }
 
     /// <summary>
     /// System initialization
@@ -52,11 +35,11 @@ internal sealed class PhysicsDebugRenderSystem : ISystem
     public void OnUpdate(TimeSpan deltaTime)
     {
         // Only draw collider bounds if the flag is enabled
-        if (!_debugSettings.ShowColliderBounds)
+        if (!debugSettings.ShowColliderBounds)
             return;
 
         // Find the primary camera for rendering
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
 
         foreach (var entity in cameraGroup)
         {
@@ -67,12 +50,12 @@ internal sealed class PhysicsDebugRenderSystem : ISystem
                 var cameraTransform = transformComponent.GetTransform();
 
                 // Begin rendering with the camera's view and projection
-                _renderer.BeginScene(cameraComponent.Camera, cameraTransform);
+                renderer.BeginScene(cameraComponent.Camera, cameraTransform);
 
                 DrawPhysicsDebug();
 
                 // End the rendering batch
-                _renderer.EndScene();
+                renderer.EndScene();
                 break;
             }
         }
@@ -97,7 +80,7 @@ internal sealed class PhysicsDebugRenderSystem : ISystem
     /// </summary>
     private void DrawPhysicsDebug()
     {
-        var rigidBodyView = _context.View<RigidBody2DComponent>();
+        var rigidBodyView = context.View<RigidBody2DComponent>();
         foreach (var (entity, rigidBodyComponent) in rigidBodyView)
         {
             if (rigidBodyComponent.RuntimeBody == null)
@@ -140,7 +123,7 @@ internal sealed class PhysicsDebugRenderSystem : ISystem
                           * Matrix4x4.CreateRotationZ(angle)
                           * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
 
-                _renderer.DrawRect(trs, color, entity.Id);
+                renderer.DrawRect(trs, color, entity.Id);
             }
         }
     }

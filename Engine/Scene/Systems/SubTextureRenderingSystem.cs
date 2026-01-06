@@ -17,26 +17,11 @@ namespace Engine.Scene.Systems;
 /// Cell size and sprite size are configured per-entity via SubTextureRendererComponent properties.
 /// This allows for flexible sprite atlas configurations with different cell sizes.
 /// </remarks>
-internal sealed class SubTextureRenderingSystem : ISystem
+internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
 
-    private readonly IGraphics2D _renderer;
-    private readonly IContext _context;
-
-
     public int Priority => SystemPriorities.SubTextureRenderSystem;
-
-    /// <summary>
-    /// Creates a new SubTextureRenderingSystem.
-    /// </summary>
-    /// <param name="renderer">The 2D renderer interface to use for drawing subtextures.</param>
-    /// <param name="context">The ECS context for querying entities.</param>
-    public SubTextureRenderingSystem(IGraphics2D renderer, IContext context)
-    {
-        _renderer = renderer;
-        _context = context;
-    }
 
     /// <summary>
     /// Initializes the subtexture rendering system.
@@ -55,7 +40,7 @@ internal sealed class SubTextureRenderingSystem : ISystem
     {
         // Find the primary camera
         Camera? mainCamera = null;
-        var cameraGroup = _context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
+        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
         var cameraTransform = Matrix4x4.Identity;
 
         foreach (var entity in cameraGroup)
@@ -76,11 +61,11 @@ internal sealed class SubTextureRenderingSystem : ISystem
             return;
 
         // Begin rendering with the camera's view and projection
-        _renderer.BeginScene(mainCamera, cameraTransform);
+        renderer.BeginScene(mainCamera, cameraTransform);
 
         // Render all subtextures
         var subtextureGroup =
-            _context.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
+            context.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
         foreach (var entity in subtextureGroup)
         {
             var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
@@ -114,11 +99,11 @@ internal sealed class SubTextureRenderingSystem : ISystem
                 texCoords = subTexture.TexCoords;
             }
             // Draw the subtexture quad with entity ID for picking
-            _renderer.DrawQuad(transform, subtextureComponent.Texture, texCoords, 1.0f, Vector4.One, entity.Id);
+            renderer.DrawQuad(transform, subtextureComponent.Texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
 
         // End the rendering batch
-        _renderer.EndScene();
+        renderer.EndScene();
     }
 
     /// <summary>

@@ -13,12 +13,9 @@ namespace Engine.Scene.Systems;
 /// Handles fixed timestep physics stepping and synchronization between physics bodies and transforms.
 /// This is a PER-SCENE system - each scene has its own instance with its own physics world.
 /// </summary>
-internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
+internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext context) : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
-
-    private readonly World _physicsWorld;
-    private readonly IContext _context;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator;
@@ -30,19 +27,8 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
     /// Beyond this threshold, the accumulator is clamped to prevent unbounded physics execution.
     /// </summary>
     private const int MaxPhysicsStepsPerFrame = 5;
-    
-    public int Priority => SystemPriorities.PhysicsSimulationSystem;
 
-    /// <summary>
-    /// Creates a new PhysicsSimulationSystem with the specified physics world.
-    /// </summary>
-    /// <param name="physicsWorld">The Box2D World instance to simulate.</param>
-    /// <param name="context">The ECS context for querying entities.</param>
-    public PhysicsSimulationSystem(World physicsWorld, IContext context)
-    {
-        _physicsWorld = physicsWorld ?? throw new ArgumentNullException(nameof(physicsWorld));
-        _context = context;
-    }
+    public int Priority => SystemPriorities.PhysicsSimulationSystem;
 
     /// <summary>
     /// Initializes the physics system.
@@ -74,7 +60,7 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
         var stepCount = 0;
         while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
-            _physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
+            physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
             _physicsAccumulator -= CameraConfig.PhysicsTimestep;
             stepCount++;
         }
@@ -87,7 +73,7 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
         }
 
         // Retrieve transform from Box2D and sync with entities
-        var view = _context.View<RigidBody2DComponent>();
+        var view = context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
@@ -118,7 +104,7 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
         Logger.Debug("PhysicsSimulationSystem shutting down - cleaning up physics bodies");
 
         // Properly destroy all physics bodies before clearing references
-        var view = _context.View<RigidBody2DComponent>();
+        var view = context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.RuntimeBody != null)
@@ -127,7 +113,7 @@ internal sealed class PhysicsSimulationSystem : ISystem, IDisposable
                 component.RuntimeBody.SetUserData(null);
 
                 // Destroy the Box2D body
-                _physicsWorld.DestroyBody(component.RuntimeBody);
+                physicsWorld.DestroyBody(component.RuntimeBody);
 
                 // Clear component reference to prevent double-cleanup
                 component.RuntimeBody = null;

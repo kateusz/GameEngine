@@ -13,11 +13,11 @@ public class BoxCollider2DComponentTests
         var component = new BoxCollider2DComponent();
 
         // Assert
-        component.Size.ShouldBe(Vector2.Zero);
+        component.Size.ShouldBe(new Vector2(0.5f, 0.5f));
         component.Offset.ShouldBe(Vector2.Zero);
         component.Density.ShouldBe(1.0f);
         component.Friction.ShouldBe(0.5f);
-        component.Restitution.ShouldBe(0.0f);
+        component.Restitution.ShouldBe(0.7f);
         component.RestitutionThreshold.ShouldBe(0.5f);
         component.IsTrigger.ShouldBeFalse();
         component.IsDirty.ShouldBeTrue(); // Initially dirty

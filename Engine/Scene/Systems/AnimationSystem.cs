@@ -15,29 +15,18 @@ namespace Engine.Scene.Systems;
 ///
 /// Priority: 198 (after scripts, before rendering)
 /// </summary>
-internal sealed class AnimationSystem : ISystem
+internal sealed class AnimationSystem(EventBus eventBus, IAnimationAssetManager animationAssetManager, IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationSystem>();
 
     public int Priority => SystemPriorities.AnimationSystem;
-
-    private readonly EventBus _eventBus;
-    private readonly IAnimationAssetManager _animationAssetManager;
-    private readonly IContext _context;
-
-    public AnimationSystem(EventBus eventBus, IAnimationAssetManager animationAssetManager, IContext context)
-    {
-        _eventBus = eventBus;
-        _animationAssetManager = animationAssetManager;
-        _context = context;
-    }
 
     public void OnUpdate(TimeSpan deltaTime)
     {
         var dt = (float)deltaTime.TotalSeconds;
 
         // Iterate over all entities with AnimationComponent
-        foreach (var (entity, animComponent) in _context.View<AnimationComponent>())
+        foreach (var (entity, animComponent) in context.View<AnimationComponent>())
         {
             // Update animation
             UpdateAnimation(entity, animComponent, dt);
@@ -54,7 +43,7 @@ internal sealed class AnimationSystem : ISystem
             return;
 
         // Load asset
-        animComponent.Asset = _animationAssetManager.LoadAsset(animComponent.AssetPath);
+        animComponent.Asset = animationAssetManager.LoadAsset(animComponent.AssetPath);
 
         if (animComponent.Asset == null)
         {
@@ -65,7 +54,7 @@ internal sealed class AnimationSystem : ISystem
         // If no clip specified, use first available clip
         if (string.IsNullOrEmpty(animComponent.CurrentClipName) && animComponent.Asset.Clips.Length > 0)
         {
-            animComponent.CurrentClipName = animComponent.Asset.Clips.First().Name;
+            animComponent.CurrentClipName = animComponent.Asset.Clips[0].Name;
         }
 
         // Validate clip exists
@@ -211,7 +200,7 @@ internal sealed class AnimationSystem : ISystem
         foreach (var eventName in frame.Events)
         {
             var evt = new AnimationFrameEvent(entity, clipName, eventName, frameIndex, frame);
-            _eventBus.Publish(evt);
+            eventBus.Publish(evt);
 
             Logger.Debug("Animation frame event: {EntityName}.{ClipName}[{FrameIndex}] → {EventName}", entity.Name, clipName, frameIndex, eventName);
         }
@@ -223,7 +212,7 @@ internal sealed class AnimationSystem : ISystem
     private void DispatchCompleteEvent(Entity entity, string clipName)
     {
         var evt = new AnimationCompleteEvent(entity, clipName);
-        _eventBus.Publish(evt);
+        eventBus.Publish(evt);
 
         Logger.Debug("Animation complete: {EntityName}.{ClipName}", entity.Name, clipName);
     }
@@ -234,7 +223,7 @@ internal sealed class AnimationSystem : ISystem
         Logger.Debug("AnimationSystem initialized with priority {Priority}", Priority);
 
         // Initialize animation assets for all existing entities with AnimationComponent
-        var view = _context.View<AnimationComponent>();
+        var view = context.View<AnimationComponent>();
         var entityCount = 0;
         foreach (var (_, animComponent) in view)
         {
