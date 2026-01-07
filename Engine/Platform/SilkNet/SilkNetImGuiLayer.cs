@@ -3,18 +3,18 @@ using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
-using Engine.Platform.SilkNet;
+using Engine.ImGuiNet;
 using ImGuiNET;
 using Silk.NET.OpenGL.Extensions.ImGui;
 
-namespace Engine.ImGuiNet;
+namespace Engine.Platform.SilkNet;
 
-internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
+internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 {
-    private IInputSystem _inputSystem;
-    private ImGuiController _controller;
+    private ImGuiController? _controller;
     private bool _blockEvents;
     private bool _disposed;
+    private IInputSystem? _inputSystem;
 
     public void OnDetach()
     {
@@ -35,11 +35,11 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
     public void Begin(TimeSpan timeSpan)
     {
         _controller?.Update((float)timeSpan.TotalSeconds);
-        
+
         // ImGui_ImplOpenGL3_NewFrame();
         // ImGui_ImplGlfw_NewFrame();
         //ImGui.NewFrame();
-        
+
         // TODO: ImGuizmo CRASH
         //ImGuizmoWrapper.SetOrthographic(false);
         //ImGuizmoWrapper.BeginFrame();
@@ -52,12 +52,14 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
 
     public void OnAttach(IInputSystem inputSystem)
     {
+        _inputSystem = inputSystem;
+
         var view = SilkNetContext.Window;
         var inputContext = inputSystem.Context;
         var gl = SilkNetContext.GL;
 
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
-        
+
         // TODO: ImGuizmo
         //var ctx = ImGui.GetCurrentContext();
         //ImGuizmoWrapper.SetImGuiContext(ctx);
@@ -70,7 +72,7 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
             Dispose();
         }
     }
-    
+
     public void HandleInputEvent(InputEvent windowEvent)
     {
         if (_blockEvents)
@@ -88,7 +90,7 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
         io.WantSaveIniSettings = true;
 
-        var fontSize = 15.0f;// 25% smaller than original 18.0f
+        var fontSize = 15.0f;
         io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", fontSize);
         //io.FontDefault = io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", fontSize);
 
@@ -104,12 +106,12 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
             style.ScrollbarRounding = 0.0f;
             style.GrabRounding = 0.0f;
             style.TabRounding = 0.0f;
-            
+
             // Borders for clean separation
             style.WindowBorderSize = 0.75f;
             style.FrameBorderSize = 0.75f;
             style.PopupBorderSize = 0.75f;
-            
+
             // Spacing and padding
             style.IndentSpacing = 13.5f;
             style.WindowPadding = new Vector2(9, 9);

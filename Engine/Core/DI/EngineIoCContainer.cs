@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
 using Engine.Animation;
+using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using Engine.ImGuiNet;
@@ -50,7 +51,15 @@ public static class EngineIoCContainer
             )
         );
         
-        container.Register<IImGuiLayer, ImGuiLayer>(Reuse.Singleton);
+        container.Register<IInputSystemFactory, InputSystemFactory>(Reuse.Singleton);
+
+        container.Register<IImGuiLayerFactory, ImGuiLayerFactory>(Reuse.Singleton);
+        container.Register<IImGuiLayer>(
+            made: Made.Of(
+                r => ServiceInfo.Of<IImGuiLayerFactory>(),
+                f => f.Create()
+            )
+        );
         
         container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
