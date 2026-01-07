@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet.Buffers;
+using Engine.Platform.OpenGL.Buffers;
 
 namespace Engine.Renderer.Buffers;
 
@@ -8,7 +8,7 @@ internal sealed class VertexBufferFactory(IRendererApiConfig apiConfig) : IVerte
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetVertexBuffer(size),
+            ApiType.SilkNet => new OpenGLVertexBuffer(size),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

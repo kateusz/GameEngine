@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet;
+using Engine.Platform.OpenGL;
 
 namespace Engine.Renderer;
 
@@ -8,7 +8,7 @@ internal sealed class RendererApiFactory(IRendererApiConfig apiConfig) : IRender
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetRendererApi(),
+            ApiType.SilkNet => new OpenGLRendererApi(),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

@@ -2,7 +2,6 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
-using Engine.Platform.SilkNet.Input;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;

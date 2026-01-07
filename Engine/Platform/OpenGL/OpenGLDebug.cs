@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using Silk.NET.OpenGL;
 
-namespace Engine.Platform.SilkNet;
+namespace Engine.Platform.OpenGL;
 
 /// <summary>
 /// OpenGL debug utility for error checking.
 /// </summary>
-internal static class GLDebug
+internal static class OpenGLDebug
 {
     /// <summary>
     /// Checks for OpenGL errors in DEBUG builds only.

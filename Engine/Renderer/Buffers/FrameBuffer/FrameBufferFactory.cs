@@ -1,5 +1,5 @@
 using Engine.Core;
-using Engine.Platform.SilkNet.Buffers;
+using Engine.Platform.OpenGL.Buffers;
 
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
@@ -20,7 +20,7 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
         
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetFrameBuffer(frameBufferSpec),
+            ApiType.SilkNet => new OpenGLFrameBuffer(frameBufferSpec),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

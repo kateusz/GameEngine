@@ -5,6 +5,7 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
 using Engine.ImGuiNet;
+using Engine.Platform.OpenAL;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -70,7 +71,7 @@ public static class EngineIoCContainer
         
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
-        container.Register<Engine.Audio.IAudioEngine, Engine.Platform.SilkNet.Audio.SilkNetAudioEngine>(Reuse.Singleton);
+        container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);
 
         // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);

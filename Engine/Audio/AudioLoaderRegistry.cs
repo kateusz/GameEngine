@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet.Audio.Loaders;
+using Engine.Platform.OpenAL.Loaders;
 
 namespace Engine.Audio;
 

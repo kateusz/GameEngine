@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet.Buffers;
+using Engine.Platform.OpenGL.Buffers;
 
 namespace Engine.Renderer.Buffers;
 
@@ -8,7 +8,7 @@ internal sealed class IndexBufferFactory(IRendererApiConfig apiConfig) : IIndexB
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetIndexBuffer(indices, count),
+            ApiType.SilkNet => new OpenGLIndexBuffer(indices, count),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

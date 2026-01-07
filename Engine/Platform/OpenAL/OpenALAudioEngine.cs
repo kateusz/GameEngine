@@ -3,11 +3,11 @@ using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
 
-namespace Engine.Platform.SilkNet.Audio;
+namespace Engine.Platform.OpenAL;
 
-internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
+internal sealed unsafe class OpenALAudioEngine : IAudioEngine
 {
-    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioEngine>();
+    private static readonly ILogger Logger = Log.ForContext<OpenALAudioEngine>();
 
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
@@ -15,7 +15,7 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
     private ALContext? _alc;
     private Device* _device;
     private Context* _context;
-    private readonly List<SilkNetAudioSource> _activeSources = [];
+    private readonly List<OpenALAudioSource> _activeSources = [];
     private bool _disposed;
     private bool _isAvailable;
 
@@ -123,7 +123,7 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         if (!_isAvailable || _al == null)
             return new NoOpAudioSource();
 
-        var source = new SilkNetAudioSource(_al, UnregisterSource);
+        var source = new OpenALAudioSource(_al, UnregisterSource);
         _activeSources.Add(source);
         return source;
     }
@@ -133,10 +133,10 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         if (!_isAvailable || _al == null)
             return new NoOpAudioClip();
 
-        return new SilkNetAudioClip(path, _al);
+        return new OpenALAudioClip(path, _al);
     }
 
-    private void UnregisterSource(SilkNetAudioSource source) => _activeSources.Remove(source);
+    private void UnregisterSource(OpenALAudioSource source) => _activeSources.Remove(source);
     
     public IAudioClip LoadAudioClip(string path)
     {

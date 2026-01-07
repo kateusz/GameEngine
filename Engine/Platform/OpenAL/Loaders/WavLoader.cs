@@ -2,7 +2,7 @@ using System.Text;
 using Engine.Audio;
 using Serilog;
 
-namespace Engine.Platform.SilkNet.Audio.Loaders;
+namespace Engine.Platform.OpenAL.Loaders;
 
 public class WavLoader : IAudioLoader
 {

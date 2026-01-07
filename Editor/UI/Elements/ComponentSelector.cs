@@ -1,9 +1,9 @@
 using ECS;
 using Editor.UI.Drawers;
 using Engine.Core;
-using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
+using CameraController = Editor.assets.scripts.CameraController;
 
 namespace Editor.UI.Elements;
 

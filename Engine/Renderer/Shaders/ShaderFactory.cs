@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet;
+using Engine.Platform.OpenGL;
 
 namespace Engine.Renderer.Shaders;
 
@@ -48,7 +48,7 @@ internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFacto
         // Create shader outside of lock to allow concurrent creation of different shaders
         var shader = apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetShader(vertPath, fragPath),
+            ApiType.SilkNet => new OpenGLShader(vertPath, fragPath),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
 

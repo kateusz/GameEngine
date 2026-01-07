@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet;
+using Engine.Platform.OpenGL;
 
 namespace Engine.Renderer.Textures;
 
@@ -56,7 +56,7 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
             // Create new texture (use original path for loading)
             var texture = apiConfig.Type switch
             {
-                ApiType.SilkNet => SilkNetTexture2D.Create(path),
+                ApiType.SilkNet => OpenGLTexture2D.Create(path),
                 _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
             };
 
@@ -70,7 +70,7 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => SilkNetTexture2D.Create(width, height),
+            ApiType.SilkNet => OpenGLTexture2D.Create(width, height),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

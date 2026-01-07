@@ -1,10 +1,10 @@
-using System;
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Renderer.Cameras;
+using Engine.Scene;
 using Engine.Scene.Components;
 
-namespace Engine.Scene;
+namespace Editor.assets.scripts;
 
 // TODO: this must be removed from the engine and implemented in the user project
 public class CameraController : ScriptableEntity

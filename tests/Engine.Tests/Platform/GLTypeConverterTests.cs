@@ -1,4 +1,4 @@
-using Engine.Platform.SilkNet;
+using Engine.Platform.OpenGL;
 using Engine.Renderer.Shaders;
 using Shouldly;
 using Silk.NET.OpenGL;

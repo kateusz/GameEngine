@@ -3,19 +3,19 @@ using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
 
-namespace Engine.Platform.SilkNet.Audio;
+namespace Engine.Platform.OpenAL;
 
-internal sealed class SilkNetAudioSource : IAudioSource
+internal sealed class OpenALAudioSource : IAudioSource
 {
-    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioSource>();
+    private static readonly ILogger Logger = Log.ForContext<OpenALAudioSource>();
 
     private readonly AL _al;
-    private readonly Action<SilkNetAudioSource> _onDispose;
+    private readonly Action<OpenALAudioSource> _onDispose;
     private uint _sourceId;
     private IAudioClip _clip;
     private bool _disposed = false;
 
-    public SilkNetAudioSource(AL al, Action<SilkNetAudioSource> onDispose)
+    public OpenALAudioSource(AL al, Action<OpenALAudioSource> onDispose)
     {
         _al = al;
         _onDispose = onDispose;
@@ -38,7 +38,7 @@ internal sealed class SilkNetAudioSource : IAudioSource
             Stop();
             _clip = value;
 
-            if (_clip is SilkNetAudioClip { IsLoaded: true } silkClip)
+            if (_clip is OpenALAudioClip { IsLoaded: true } silkClip)
             {
                 _al.SetSourceProperty(_sourceId, SourceInteger.Buffer, (int)silkClip.BufferId);
             }
@@ -182,7 +182,7 @@ internal sealed class SilkNetAudioSource : IAudioSource
     }
 
 #if DEBUG
-    ~SilkNetAudioSource()
+    ~OpenALAudioSource()
     {
         if (!_disposed && _sourceId != 0)
         {

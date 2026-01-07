@@ -1,6 +1,6 @@
 ﻿using Engine.Audio;
 
-namespace Engine.Platform.SilkNet.Audio;
+namespace Engine.Platform.OpenAL;
 
 internal sealed class NoOpAudioClip : IAudioClip
 {

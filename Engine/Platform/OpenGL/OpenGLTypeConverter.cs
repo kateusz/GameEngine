@@ -1,7 +1,7 @@
-using Silk.NET.OpenGL;
 using Engine.Renderer.Shaders;
+using Silk.NET.OpenGL;
 
-namespace Engine.Platform.SilkNet;
+namespace Engine.Platform.OpenGL;
 
 /// <summary>
 /// Extension methods for converting platform-agnostic types to OpenGL-specific types

@@ -1,3 +1,4 @@
+using Engine.Platform.SilkNet.Input;
 using Engine.Renderer;
 using Silk.NET.Input;
 
@@ -9,7 +10,7 @@ internal sealed class InputSystemFactory(IRendererApiConfig apiConfig) : IInputS
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new Platform.SilkNet.Input.SilkNetInputSystem(inputContext),
+            ApiType.SilkNet => new SilkNetInputSystem(inputContext),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

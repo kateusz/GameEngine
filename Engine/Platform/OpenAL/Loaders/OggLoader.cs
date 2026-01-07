@@ -2,7 +2,7 @@ using Engine.Audio;
 using NVorbis;
 using Serilog;
 
-namespace Engine.Platform.SilkNet.Audio.Loaders;
+namespace Engine.Platform.OpenAL.Loaders;
 
 /// <summary>
 /// Audio loader for OGG Vorbis format files.

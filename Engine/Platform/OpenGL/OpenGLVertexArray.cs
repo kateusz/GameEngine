@@ -1,20 +1,20 @@
 using System.Diagnostics;
+using Engine.Platform.SilkNet;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.VertexArray;
-using Silk.NET.OpenGL;
 
-namespace Engine.Platform.SilkNet;
+namespace Engine.Platform.OpenGL;
 
-internal sealed class SilkNetVertexArray : IVertexArray
+internal sealed class OpenGLVertexArray : IVertexArray
 {
     private readonly uint _vertexArrayObject;
     private bool _disposed;
 
-    public SilkNetVertexArray()
+    public OpenGLVertexArray()
     {
         _vertexArrayObject = SilkNetContext.GL.GenVertexArray();
-        GLDebug.CheckError(SilkNetContext.GL, "GenVertexArray");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "GenVertexArray");
         VertexBuffers = new List<IVertexBuffer>();
     }
 
@@ -25,13 +25,13 @@ internal sealed class SilkNetVertexArray : IVertexArray
     public void Bind()
     {
         SilkNetContext.GL.BindVertexArray(_vertexArrayObject);
-        GLDebug.CheckError(SilkNetContext.GL, "BindVertexArray");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindVertexArray");
     }
 
     public void Unbind()
     {
         SilkNetContext.GL.BindVertexArray(0);
-        GLDebug.CheckError(SilkNetContext.GL, "UnbindVertexArray");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "UnbindVertexArray");
     }
 
     public void AddVertexBuffer(IVertexBuffer vertexBuffer)
@@ -56,14 +56,14 @@ internal sealed class SilkNetVertexArray : IVertexArray
                     case DataType.Float:
                     {
                         SilkNetContext.GL.EnableVertexAttribArray((uint)index);
-                        GLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
+                        OpenGLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
                         SilkNetContext.GL.VertexAttribPointer((uint)index,
                             element.Type.GetComponentCount(),
                             element.Type.ToBaseType().ToGLType(),
                             element.Normalized,
                             (uint)layout.Stride,
                             (void*)element.Offset);
-                        GLDebug.CheckError(SilkNetContext.GL, $"VertexAttribPointer({index})");
+                        OpenGLDebug.CheckError(SilkNetContext.GL, $"VertexAttribPointer({index})");
                     }
                         break;
                     case DataType.Int:
@@ -72,13 +72,13 @@ internal sealed class SilkNetVertexArray : IVertexArray
                     case DataType.UnsignedByte:
                     {
                         SilkNetContext.GL.EnableVertexAttribArray((uint)index);
-                        GLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
+                        OpenGLDebug.CheckError(SilkNetContext.GL, $"EnableVertexAttribArray({index})");
                         SilkNetContext.GL.VertexAttribIPointer((uint)index,
                             element.Type.GetComponentCount(),
                             element.Type.ToBaseType().ToGLEnum(),
                             (uint)layout.Stride,
                             (void*)element.Offset);
-                        GLDebug.CheckError(SilkNetContext.GL, $"VertexAttribIPointer({index})");
+                        OpenGLDebug.CheckError(SilkNetContext.GL, $"VertexAttribIPointer({index})");
                     }
                         break;
                     default:
@@ -123,7 +123,7 @@ internal sealed class SilkNetVertexArray : IVertexArray
     }
 
 #if DEBUG
-    ~SilkNetVertexArray()
+    ~OpenGLVertexArray()
     {
         if (!_disposed && _vertexArrayObject != 0)
         {

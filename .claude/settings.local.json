@@ -11,7 +11,9 @@
       "Bash(timeout 5 ./Editor.exe:*)",
       "Bash(dotnet test:*)",
       "Bash(git checkout:*)",
-      "Bash(timeout 5 dotnet run:*)"
+      "Bash(timeout 5 dotnet run:*)",
+      "Bash(git mv:*)",
+      "WebSearch"
     ]
   }
 }

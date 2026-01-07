@@ -3,11 +3,11 @@ using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
 
-namespace Engine.Platform.SilkNet.Audio;
+namespace Engine.Platform.OpenAL;
 
-internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
+internal sealed class OpenALAudioClip : IAudioClip, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<SilkNetAudioClip>();
+    private static readonly ILogger Logger = Log.ForContext<OpenALAudioClip>();
 
     private readonly AL _al;
     private bool _disposed;
@@ -23,7 +23,7 @@ internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
 
     internal uint BufferId { get; private set; }
 
-    public SilkNetAudioClip(string path, AL al)
+    public OpenALAudioClip(string path, AL al)
     {
         Path = path;
         _al = al;
@@ -35,7 +35,7 @@ internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
 
     public void Load()
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(SilkNetAudioClip));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(OpenALAudioClip));
 
         if (IsLoaded)
             return;
@@ -165,7 +165,7 @@ internal sealed class SilkNetAudioClip : IAudioClip, IDisposable
     }
 
 #if DEBUG
-    ~SilkNetAudioClip()
+    ~OpenALAudioClip()
     {
         if (!_disposed && BufferId != 0)
         {

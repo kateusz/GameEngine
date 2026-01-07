@@ -1,14 +1,15 @@
+using System.Runtime.InteropServices;
+using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Serilog;
 using Silk.NET.OpenGL;
-using System.Runtime.InteropServices;
 
-namespace Engine.Platform.SilkNet.Buffers;
+namespace Engine.Platform.OpenGL.Buffers;
 
-internal sealed class SilkNetVertexBuffer : IVertexBuffer
+internal sealed class OpenGLVertexBuffer : IVertexBuffer
 {
-    private static readonly ILogger Logger = Log.ForContext<SilkNetVertexBuffer>();
+    private static readonly ILogger Logger = Log.ForContext<OpenGLVertexBuffer>();
     private uint _rendererId;
     private bool _disposed;
 
@@ -19,7 +20,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
     // - Difficult debugging of size calculation errors
     private const uint MaxBufferSize = 256 * 1024 * 1024;
 
-    public SilkNetVertexBuffer(uint size)
+    public OpenGLVertexBuffer(uint size)
     {
         switch (size)
         {
@@ -38,7 +39,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             unsafe
             {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, size, null, BufferUsageARB.DynamicDraw);
-                GLDebug.CheckError(SilkNetContext.GL, "ArrayBuffer BufferData DynamicDraw");
+                OpenGLDebug.CheckError(SilkNetContext.GL, "ArrayBuffer BufferData DynamicDraw");
             }
         }
         catch
@@ -71,7 +72,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
     }
 
 #if DEBUG
-    ~SilkNetVertexBuffer()
+    ~OpenGLVertexBuffer()
     {
         if (!_disposed && _rendererId != 0)
         {
@@ -98,7 +99,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
-        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
         {
@@ -107,7 +108,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             fixed (byte* pData = vertexSpan)
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
-                GLDebug.CheckError(SilkNetContext.GL, "BufferSubData(QuadVertex)");
+                OpenGLDebug.CheckError(SilkNetContext.GL, "BufferSubData(QuadVertex)");
             }
         }
     }
@@ -120,7 +121,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
-        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
         {
@@ -129,12 +130,12 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             fixed (byte* pData = vertexSpan)
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
-                GLDebug.CheckError(SilkNetContext.GL, "BufferSubData(LineVertex)");
+                OpenGLDebug.CheckError(SilkNetContext.GL, "BufferSubData(LineVertex)");
             }
         }
     }
 
-    // In SilkNetVertexBuffer.cs, modify SetMeshData to handle large data in chunks
+    // In OpenGLVertexBuffer.cs, modify SetMeshData to handle large data in chunks
     public void SetMeshData(List<Mesh.Vertex> vertices, int dataSize)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -143,7 +144,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             return;
 
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
-        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
         {
@@ -154,7 +155,7 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
             {
                 SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)byteSpan.Length, pData,
                     BufferUsageARB.StaticDraw);
-                GLDebug.CheckError(SilkNetContext.GL, "BufferData(MeshVertex)");
+                OpenGLDebug.CheckError(SilkNetContext.GL, "BufferData(MeshVertex)");
             }
         }
     }
@@ -163,13 +164,13 @@ internal sealed class SilkNetVertexBuffer : IVertexBuffer
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
-        GLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
     }
 
     public void Unbind()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, 0);
-        GLDebug.CheckError(SilkNetContext.GL, "UnbindBuffer(ArrayBuffer)");
+        OpenGLDebug.CheckError(SilkNetContext.GL, "UnbindBuffer(ArrayBuffer)");
     }
 }
