@@ -8,7 +8,7 @@ internal sealed class IndexBufferFactory(IRendererApiConfig apiConfig) : IIndexB
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLIndexBuffer(indices, count),
+            ApiType.OpenGL => new OpenGLIndexBuffer(indices, count),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

@@ -20,7 +20,7 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
         
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLFrameBuffer(frameBufferSpec),
+            ApiType.OpenGL => new OpenGLFrameBuffer(frameBufferSpec),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

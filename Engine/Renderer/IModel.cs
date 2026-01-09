@@ -1,8 +1,7 @@
 namespace Engine.Renderer;
 
 /// <summary>
-/// Interface for a 3D model loaded from file.
-/// Contains meshes and textures loaded using the Assimp library.
+/// Interface for a loaded 3D model containing meshes and textures.
 /// </summary>
 public interface IModel : IDisposable
 {
