@@ -33,7 +33,7 @@ public static class EngineIoCContainer
         options.Title = "Game Window";
             
         container.Register<IRendererApiConfig>(Reuse.Singleton,
-            made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))
+            made: Made.Of(() => new RendererApiConfig(ApiType.OpenGL))
         );
         container.Register<IRendererAPI>(Reuse.Singleton,
             made: Made.Of(
@@ -105,5 +105,6 @@ public static class EngineIoCContainer
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);
         container.Register<IVertexArrayFactory, VertexArrayFactory>(Reuse.Singleton);
+        container.Register<IModelLoaderFactory, ModelLoaderFactory>(Reuse.Singleton);
     }
 }

@@ -8,7 +8,7 @@ internal sealed class RendererApiFactory(IRendererApiConfig apiConfig) : IRender
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLRendererApi(),
+            ApiType.OpenGL => new OpenGLRendererApi(),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

@@ -11,7 +11,7 @@ internal sealed class GameWindowFactory(IRendererApiConfig apiConfig, IWindow wi
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetGameWindow(window, inputSystemFactory),
+            ApiType.OpenGL => new SilkNetGameWindow(window, inputSystemFactory),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

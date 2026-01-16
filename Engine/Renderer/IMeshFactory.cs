@@ -1,7 +1,3 @@
-using Engine.Renderer.Buffers;
-using Engine.Renderer.Textures;
-using Engine.Renderer.VertexArray;
-
 namespace Engine.Renderer;
 
 /// <summary>
@@ -19,13 +15,8 @@ public interface IMeshFactory : IDisposable
     /// <summary>
     /// Creates a procedural cube mesh.
     /// </summary>
-    /// <param name="textureFactory">Factory for creating textures</param>
-    /// <param name="vertexArrayFactory">Factory for creating vertex arrays</param>
-    /// <param name="vertexBufferFactory">Factory for creating vertex buffers</param>
-    /// <param name="indexBufferFactory">Factory for creating index buffers</param>
     /// <returns>A new cube mesh.</returns>
-    Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
-        IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory);
+    Mesh CreateCube();
 
     /// <summary>
     /// Clears all cached meshes and disposes loaded models to free GPU resources.

@@ -10,7 +10,7 @@ internal sealed class InputSystemFactory(IRendererApiConfig apiConfig) : IInputS
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetInputSystem(inputContext),
+            ApiType.OpenGL => new SilkNetInputSystem(inputContext),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

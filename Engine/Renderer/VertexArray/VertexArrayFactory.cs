@@ -8,7 +8,7 @@ internal sealed class VertexArrayFactory(IRendererApiConfig apiConfig) : IVertex
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLVertexArray(),
+            ApiType.OpenGL => new OpenGLVertexArray(),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

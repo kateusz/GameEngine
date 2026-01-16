@@ -8,7 +8,7 @@ internal sealed class ImGuiLayerFactory(IRendererApiConfig apiConfig) : IImGuiLa
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new Platform.SilkNet.SilkNetImGuiLayer(),
+            ApiType.OpenGL => new Platform.SilkNet.SilkNetImGuiLayer(),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }
