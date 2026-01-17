@@ -148,40 +148,7 @@ public class EntityComponentTests
         Assert.True(entity.HasComponent<TestComponent>());
         Assert.True(entity.HasComponent<AnotherTestComponent>());
     }
-
-    [Fact]
-    public void AddComponent_InvokesOnComponentAddedEvent()
-    {
-        // Arrange
-        var entity = Entity.Create(1, "TestEntity");
-        IComponent? addedComponent = null;
-        entity.OnComponentAdded += component => addedComponent = component;
-
-        // Act
-        var component = entity.AddComponent<TestComponent>();
-
-        // Assert
-        Assert.NotNull(addedComponent);
-        Assert.Same(component, addedComponent);
-    }
-
-    [Fact]
-    public void AddComponent_WithPreConstructedComponent_InvokesOnComponentAddedEvent()
-    {
-        // Arrange
-        var entity = Entity.Create(1, "TestEntity");
-        IComponent? addedComponent = null;
-        entity.OnComponentAdded += component => addedComponent = component;
-        var component = new TestComponent();
-
-        // Act
-        entity.AddComponent(component);
-
-        // Assert
-        Assert.NotNull(addedComponent);
-        Assert.Same(component, addedComponent);
-    }
-
+    
     [Fact]
     public void AddComponent_AfterRemovingComponent_CanAddAgain()
     {

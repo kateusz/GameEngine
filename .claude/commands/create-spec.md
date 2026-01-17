@@ -1,13 +1,47 @@
-Your objective is to produce a complete specification
-You will ask me for explanations about the specification to be created by asking questions, I will answer so you have the information.
-Then, you will ask the questions necessary for your understanding before starting. Don't begin the task until it's clear.
-Then, you can start writing.
-Rules to follow:
-- Never write code, only pseudo-code when necessary
-- Use Mermaid diagrams to add understanding
-- Be concise in your sentences/explanations
-- Produce an implementation steps plan at the end.
-  Once the specification is done, save it in a Markdown file
-  If you loop or get lost, 
+You will help me create a detailed specification for a new project/feature/system.
 
-Write results to docs/specs directory
+## Phase 1: Information Gathering (Interactive)
+Ask me clarifying questions about what needs to be specified. I'll provide answers. Continue asking until you have sufficient understanding.
+
+## Phase 2: Planning (Plan Mode) - ENTER PLAN MODE NOW
+Before writing the specification:
+1. Outline the key topics/sections the spec must cover
+2. Identify dependencies and prerequisite knowledge needed
+3. List any assumptions you're making
+4. Ask final clarification questions if anything is ambiguous
+5. Confirm understanding is complete before proceeding
+
+## Phase 3: Specification Writing
+Create two separate markdown files:
+
+**File 1: `complete-spec.md`**
+- Full specification with all details
+- Architecture diagrams (Mermaid)
+- Implementation pseudocode where relevant
+- Complete implementation steps plan
+- Technical rationale and design decisions
+
+**File 2: `developer-guide.md`**
+- Simplified, developer-focused version
+- Step-by-step implementation requirements with explanations
+- Essential terminology/concepts glossary
+- Key architecture diagrams (Mermaid)
+- Only what's needed to implement - no noise
+
+**File 3: `introduction.md`**
+- Conceptual overview - what problem does this solve?
+- What will this system/feature achieve?
+- High-level benefits and outcomes
+- All required terminology with clear definitions
+- Key patterns, methodologies, and principles used (explained conceptually)
+- Architecture philosophy and design approach
+- No code, no pseudocode - purely educational foundation
+
+## Rules
+- No actual code - use pseudocode only when clarifying logic
+- Mermaid diagrams: flowcharts, sequence diagrams, architecture diagrams
+- Keep language concise and precise
+- Avoid loops - if stuck, explicitly ask for clarification
+- Write files to `docs/specs/{name_of_feature}` directory
+
+**Ready to begin. What would you like me to specify?**

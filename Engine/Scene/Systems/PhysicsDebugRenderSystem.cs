@@ -29,45 +29,31 @@ internal sealed class PhysicsDebugRenderSystem(IGraphics2D renderer, IContext co
 
     /// <summary>
     /// Updates the system, rendering debug visualizations for all physics bodies.
-    /// Only renders if debug settings are enabled.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since last update (unused by this system).</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Only draw collider bounds if the flag is enabled
         if (!debugSettings.ShowColliderBounds)
             return;
+        
+        var cameraGroup = context.View<CameraComponent>();
 
-        // Find the primary camera for rendering
-        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-
-        foreach (var entity in cameraGroup)
+        foreach (var (entity, cameraComponent) in cameraGroup)
         {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
             if (cameraComponent.Primary)
             {
                 var transformComponent = entity.GetComponent<TransformComponent>();
                 var cameraTransform = transformComponent.GetTransform();
-
-                // Begin rendering with the camera's view and projection
+                
                 renderer.BeginScene(cameraComponent.Camera, cameraTransform);
-
                 DrawPhysicsDebug();
-
-                // End the rendering batch
                 renderer.EndScene();
                 break;
             }
         }
     }
-
-    /// <summary>
-    /// System shutdown.
-    /// </summary>
-    public void OnShutdown()
-    {
-        // No cleanup required
-    }
+    
+    public void OnShutdown() {}
 
     /// <summary>
     /// Renders debug wireframes for all entities with physics bodies.
@@ -90,7 +76,6 @@ internal sealed class PhysicsDebugRenderSystem(IGraphics2D renderer, IContext co
             var body = rigidBodyComponent.RuntimeBody;
             var bodyPosition = body.GetPosition();
             var angle = body.GetAngle();
-
 
             // Draw BoxCollider2D if it exists
             if (entity.TryGetComponent<BoxCollider2DComponent>(out var boxCollider))

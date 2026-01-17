@@ -23,12 +23,11 @@ internal sealed class Scene : IScene
     private readonly IGraphics2D _graphics2D;
     private readonly ITextureFactory _textureFactory;
     private readonly string _path;
-    private uint _viewportWidth;
-    private uint _viewportHeight;
     private readonly World _physicsWorld;
     private int _nextEntityId = 1;
     private readonly ISystemManager _systemManager;
-    private bool _disposed = false;
+    private bool _disposed;
+    private readonly List<Entity> _entities = [];
 
     // Cache for tileset textures in editor mode (to avoid loading from disk every frame)
     // Key format: "path|columns|rows" to handle different grid configurations of the same texture
@@ -57,13 +56,13 @@ internal sealed class Scene : IScene
         _systemManager.RegisterSystem(physicsSimulationSystem);
     }
 
-    public IEnumerable<Entity> Entities => _context.Entities;
+    public IEnumerable<Entity> Entities => _entities;
 
     public Entity CreateEntity(string name)
     {
         var entity = Entity.Create(_nextEntityId++, name);
-        entity.OnComponentAdded += OnComponentAdded;
         _context.Register(entity);
+        _entities.Add(entity);
 
         return entity;
     }
@@ -76,25 +75,15 @@ internal sealed class Scene : IScene
         // Track the highest ID when adding existing entities (e.g., from deserialization)
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
-        
-        entity.OnComponentAdded += OnComponentAdded;
 
         _context.Register(entity);
-    }
-
-    private void OnComponentAdded(IComponent component)
-    {
-        if (component is CameraComponent cameraComponent)
-        {
-            if (_viewportWidth > 0 && _viewportHeight > 0)
-                cameraComponent.Camera.SetViewportSize(_viewportWidth, _viewportHeight);
-        }
+        _entities.Add(entity);
     }
 
     public void DestroyEntity(Entity entity)
     {
-        entity.OnComponentAdded -= OnComponentAdded;
         _context.Remove(entity.Id);
+        _entities.Remove(entity);
     }
 
     public void OnRuntimeStart()
@@ -204,26 +193,21 @@ internal sealed class Scene : IScene
 
         Renderer3D.Instance.EndScene();
         */
-
-        // Render 2D sprites using the editor viewport camera
+        
         _graphics2D.BeginScene(camera);
 
-        // Sprites
-        var spriteGroup = _context.GetGroup([typeof(TransformComponent), typeof(SpriteRendererComponent)]);
-        foreach (var entity in spriteGroup)
+        var spriteGroup = _context.View<SpriteRendererComponent>();
+        foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
-            var spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
             _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
-        // Subtextures (mirror runtime system)
-        var subtextureGroup =
-            _context.GetGroup([typeof(TransformComponent), typeof(SubTextureRendererComponent)]);
-        foreach (var entity in subtextureGroup)
+        var subtextureGroup = _context.View<SubTextureRendererComponent>();
+        foreach (var (entity, subtextureComponent) in subtextureGroup)
         {
-            var subtextureComponent = entity.GetComponent<SubTextureRendererComponent>();
-            if (subtextureComponent.Texture is null) continue;
+            if (subtextureComponent.Texture is null) 
+                continue;
 
             // Use pre-calculated TexCoords if available (e.g., from animation system)
             // Otherwise calculate from grid coordinates (same as SubTextureRenderingSystem)
@@ -251,24 +235,18 @@ internal sealed class Scene : IScene
         }
 
         // TileMaps (mirror runtime system with caching)
-        var tilemapGroup = _context.GetGroup([typeof(TransformComponent), typeof(TileMapComponent)]);
-        foreach (var entity in tilemapGroup)
+        var tilemapGroup = _context.View<TileMapComponent>();
+        foreach (var (entity, tileMapComponent) in tilemapGroup)
         {
-            var tileMapComponent = entity.GetComponent<TileMapComponent>();
             var transformComponent = entity.GetComponent<TransformComponent>();
-
-            // Skip if no tileset path
             if (string.IsNullOrEmpty(tileMapComponent.TileSetPath))
                 continue;
-
-            // Get or load cached tileset
+            
             var tileSet = GetOrLoadEditorTileSet(tileMapComponent);
             if (tileSet?.Texture == null)
                 continue;
-
-            // Render layers in Z-index order
+            
             var sortedLayers = tileMapComponent.Layers.OrderBy(l => l.ZIndex).ToList();
-
             foreach (var layer in sortedLayers)
             {
                 if (!layer.Visible)
@@ -280,9 +258,8 @@ internal sealed class Scene : IScene
                     {
                         var tileId = layer.Tiles[x, y];
                         if (tileId < 0)
-                            continue; // Empty tile
-
-                        // Get pre-computed subtexture from cache
+                            continue;
+                        
                         var subTexture = tileSet.GetTileSubTexture(tileId);
                         if (subTexture == null)
                             continue;
@@ -320,13 +297,10 @@ internal sealed class Scene : IScene
     public void OnViewportResize(uint width, uint height)
     {
         Logger.Information("Scene.OnViewportResize called: {Width}x{Height}", width, height);
-        _viewportWidth = width;
-        _viewportHeight = height;
 
-        var group = _context.GetGroup([typeof(CameraComponent)]);
-        foreach (var entity in group)
+        var group = _context.View<CameraComponent>();
+        foreach (var (entity, cameraComponent) in group)
         {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
             if (!cameraComponent.FixedAspectRatio)
             {
                 Logger.Information("Updating camera viewport for entity '{EntityName}' to {Width}x{Height}",
@@ -348,7 +322,7 @@ internal sealed class Scene : IScene
         return null;
     }
 
-    private BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
+    private static BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
     {
         return componentBodyType switch
         {
@@ -361,8 +335,6 @@ internal sealed class Scene : IScene
 
     /// <summary>
     /// Duplicates an entity by cloning all of its components.
-    /// This method uses reflection to automatically handle all component types,
-    /// eliminating the need for manual updates when new components are added.
     /// </summary>
     /// <param name="entity">The entity to duplicate.</param>
     /// <returns>The newly created entity with cloned components.</returns>
@@ -370,31 +342,9 @@ internal sealed class Scene : IScene
     {
         var newEntity = CreateEntity(entity.Name);
 
-        // Clone all components using their Clone() implementation
         foreach (var component in entity.GetAllComponents())
         {
-            var clonedComponent = component.Clone();
-            var componentType = component.GetType();
-
-            // Get the generic AddComponent<T>(T component) method
-            var addComponentMethod = typeof(Entity)
-                .GetMethods()
-                .FirstOrDefault(m =>
-                    m.Name == nameof(Entity.AddComponent) &&
-                    m.IsGenericMethod &&
-                    m.GetParameters().Length == 1 &&
-                    m.GetParameters()[0].ParameterType.IsGenericParameter);
-
-            if (addComponentMethod != null)
-            {
-                // Make the generic method concrete with the component type
-                var genericMethod = addComponentMethod.MakeGenericMethod(componentType);
-                genericMethod.Invoke(newEntity, new[] { clonedComponent });
-            }
-            else
-            {
-                Logger.Warning("Could not find AddComponent method for type {ComponentTypeName}", componentType.Name);
-            }
+            newEntity.AddComponentDynamic(component.Clone());
         }
 
         return newEntity;
@@ -449,15 +399,10 @@ internal sealed class Scene : IScene
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed) 
+            return;
 
         Logger.Debug("Disposing scene '{Path}'", _path);
-
-        // Unsubscribe from all entity component events to prevent memory leaks
-        foreach (var entity in _context.Entities)
-        {
-            entity.OnComponentAdded -= OnComponentAdded;
-        }
 
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
         // Singleton systems (rendering, scripts) are shared and won't be disposed

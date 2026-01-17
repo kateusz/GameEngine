@@ -6,6 +6,7 @@ using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Shouldly;
 using EngineScene = Engine.Scene.Scene;
 
@@ -56,7 +57,6 @@ public class SceneTests : IDisposable
         // Arrange - Add an entity to the context before creating scene
         var existingEntity = Entity.Create(1, "existing");
         _context.Register(existingEntity);
-        _context.Entities.ShouldNotBeEmpty();
 
         // Act
         using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context, _textureFactory);
@@ -138,7 +138,7 @@ public class SceneTests : IDisposable
 
         // Assert
         scene.Entities.ShouldContain(entity);
-        _context.Entities.ShouldContain(entity);
+        _context.GetById(entity.Id).ShouldNotBeNull();
     }
 
     [Fact]
@@ -246,7 +246,6 @@ public class SceneTests : IDisposable
 
         // Assert
         scene.Entities.ShouldNotContain(entity);
-        _context.Entities.ShouldNotContain(entity);
     }
 
     [Fact]
@@ -255,13 +254,13 @@ public class SceneTests : IDisposable
         // Arrange
         using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context, _textureFactory);
         var entity = scene.CreateEntity("to-destroy");
-        _context.Entities.ShouldContain(entity);
 
         // Act
         scene.DestroyEntity(entity);
 
         // Assert
-        _context.Entities.ShouldNotContain(entity);
+        var act = () => _context.GetById(entity.Id);
+        act.ShouldThrow<KeyNotFoundException>();
     }
 
     [Fact]
