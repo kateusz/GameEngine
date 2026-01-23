@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECS.Tests", "tests\ECS.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Runtime", "Runtime\Runtime.csproj", "{CEA7C243-8FCC-437A-97DD-A30BE8E3F76A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECS.Benchmarks", "tests\ECS.Benchmarks\ECS.Benchmarks.csproj", "{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,6 +129,18 @@ Global
 		{CEA7C243-8FCC-437A-97DD-A30BE8E3F76A}.Release|x64.Build.0 = Release|Any CPU
 		{CEA7C243-8FCC-437A-97DD-A30BE8E3F76A}.Release|x86.ActiveCfg = Release|Any CPU
 		{CEA7C243-8FCC-437A-97DD-A30BE8E3F76A}.Release|x86.Build.0 = Release|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Debug|x64.Build.0 = Debug|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Debug|x86.Build.0 = Debug|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Release|x64.ActiveCfg = Release|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Release|x64.Build.0 = Release|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Release|x86.ActiveCfg = Release|Any CPU
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -134,5 +148,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{AB2B37AF-23D3-4F5A-A7B8-0703798A78CD} = {D3DE13DC-6230-4996-96AF-31FF7884FA81}
 		{9EEB0790-EA1A-44E3-9829-86235D75AC77} = {D3DE13DC-6230-4996-96AF-31FF7884FA81}
+		{C3631B4D-B9FE-4791-8E14-1106AC0BBE80} = {D3DE13DC-6230-4996-96AF-31FF7884FA81}
 	EndGlobalSection
 EndGlobal

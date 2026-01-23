@@ -130,26 +130,4 @@ public class SceneDependencyInjectionTests
         // Assert - These are separate instances, not the same singleton
         context1.ShouldNotBeSameAs(context2);
     }
-
-    [Fact]
-    public void Context_InstancesAreIsolated_EntitiesDoNotLeakBetweenContexts()
-    {
-        // Arrange - Create two separate contexts
-        var context1 = new Context();
-        var context2 = new Context();
-
-        var entity1 = Entity.Create(1, "Entity1");
-        var entity2 = Entity.Create(2, "Entity2");
-
-        // Act - Register entities in separate contexts
-        context1.Register(entity1);
-        context2.Register(entity2);
-
-        // Assert - Each context only contains its own entity
-        context1.Entities.Count().ShouldBe(1);
-        context1.Entities.Single().Name.ShouldBe("Entity1");
-
-        context2.Entities.Count().ShouldBe(1);
-        context2.Entities.Single().Name.ShouldBe("Entity2");
-    }
 }

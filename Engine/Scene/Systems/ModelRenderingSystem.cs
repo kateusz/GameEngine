@@ -9,19 +9,14 @@ using Serilog;
 namespace Engine.Scene.Systems;
 
 /// <summary>
-/// System responsible for rendering 3D models with MeshComponent and ModelRendererComponent.
-/// This system operates on entities that have TransformComponent, MeshComponent, and ModelRendererComponent.
-/// Automatically finds the primary camera in the scene - no manual camera setup required.
+/// System responsible for rendering 3D models
 /// </summary>
 internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ModelRenderingSystem>();
     
     public int Priority => SystemPriorities.ModelRenderSystem;
-
-    /// <summary>
-    /// Called once when the system is registered and initialized.
-    /// </summary>
+    
     public void OnInit()
     {
         Logger.Debug("ModelRenderingSystem initialized with priority {Priority}", Priority);
@@ -29,19 +24,16 @@ internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext cont
 
     /// <summary>
     /// Called every frame to update and render 3D models.
-    /// Automatically finds the primary camera in the scene.
     /// </summary>
     /// <param name="deltaTime">The time elapsed since the last update.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // Find the primary camera in the scene
         Camera? mainCamera = null;
         var cameraTransform = Matrix4x4.Identity;
 
-        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        foreach (var entity in cameraGroup)
+        var cameraGroup = context.View<CameraComponent>();
+        foreach (var (entity, cameraComponent) in cameraGroup)
         {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
             if (cameraComponent.Primary)
             {
                 mainCamera = cameraComponent.Camera;
@@ -50,27 +42,18 @@ internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext cont
                 break;
             }
         }
-
-        // Skip rendering if no primary camera is found
+        
         if (mainCamera == null)
             return;
 
         graphics3D.BeginScene(mainCamera, cameraTransform);
-
-        // Get all entities with the required components for 3D model rendering
-        var group = context.GetGroup([
-            typeof(TransformComponent),
-            typeof(MeshComponent),
-            typeof(ModelRendererComponent)
-        ]);
-
-        foreach (var entity in group)
+        
+        var view = context.View<MeshComponent>();
+        foreach (var (entity, meshComponent) in view)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
-            var meshComponent = entity.GetComponent<MeshComponent>();
             var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
 
-            // Draw the model with entity ID for editor picking functionality
             graphics3D.DrawModel(
                 transformComponent.GetTransform(),
                 meshComponent,
@@ -81,12 +64,6 @@ internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext cont
 
         graphics3D.EndScene();
     }
-
-    /// <summary>
-    /// Called when the system is being shut down.
-    /// </summary>
-    public void OnShutdown()
-    {
-        // No cleanup needed for now
-    }
+    
+    public void OnShutdown() {}
 }

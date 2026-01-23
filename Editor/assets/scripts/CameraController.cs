@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Renderer.Cameras;
@@ -9,7 +10,7 @@ namespace Editor.assets.scripts;
 // TODO: this must be removed from the engine and implemented in the user project
 public class CameraController : ScriptableEntity
 {
-    private const float CameraSpeed = CameraConfig.DefaultTranslationSpeed;
+    private const float CameraSpeed = 0.5f;
     private Vector3 _inputDirection = Vector3.Zero;
 
     public override void OnUpdate(TimeSpan ts)

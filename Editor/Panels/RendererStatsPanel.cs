@@ -6,7 +6,7 @@ namespace Editor.Panels;
 
 public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
 {
-    public bool IsVisible { get; set; }
+    public bool IsVisible { get; set; } = true;
 
     public void Draw(string hoveredEntityName, Vector3 cameraPosition, float cameraRotation, Action? renderPerformanceMonitor)
     {

@@ -13,7 +13,11 @@
       "Bash(git checkout:*)",
       "Bash(timeout 5 dotnet run:*)",
       "Bash(git mv:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(xargs cat:*)",
+      "Bash(find:*)",
+      "Skill(dependency-injection-review)",
+      "Bash(grep:*)"
     ]
   }
 }

@@ -9,11 +9,13 @@ public class Entity : IEquatable<Entity>
 {
     private readonly Dictionary<Type, IComponent> _components = new();
     
-    public int Id { get; private set; }
+    public required int Id { get; init; }
     public required string Name { get; set; }
-    
-    public event Action<IComponent>? OnComponentAdded;
 
+    private Entity()
+    {
+    }
+    
     /// <summary>
     /// Validates that this entity does not already have a component of the specified type.
     /// </summary>
@@ -42,7 +44,6 @@ public class Entity : IEquatable<Entity>
     {
         ValidateComponentNotExists<TComponent>();
         _components[typeof(TComponent)] = component;
-        OnComponentAdded?.Invoke(component);
         return component;
     }
 
@@ -59,8 +60,18 @@ public class Entity : IEquatable<Entity>
         ValidateComponentNotExists<TComponent>();
         var component = new TComponent();
         _components[typeof(TComponent)] = component;
-        OnComponentAdded?.Invoke(component);
         return component;
+    }
+    
+    /// <summary>
+    /// Adds a component without compile-time type information.
+    /// Used internally for cloning operations.
+    /// </summary>
+    public void AddComponentDynamic(IComponent component)
+    {
+        var componentType = component.GetType();
+        if (!_components.TryAdd(componentType, component))
+            throw new InvalidOperationException($"Entity {Id} ('{Name}') already has component {componentType.Name}");
     }
 
     public void RemoveComponent<T>() where T : IComponent

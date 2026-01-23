@@ -43,11 +43,10 @@ internal sealed class TileMapRenderSystem(IGraphics2D graphics2D, IContext conte
         // Begin rendering with the camera's view and projection
         graphics2D.BeginScene(primaryCamera, cameraTransform.Value);
 
-        var entities = context.GetGroup([typeof(TileMapComponent), typeof(TransformComponent)]);
+        var entities = context.View<TileMapComponent>();
 
-        foreach (var entity in entities)
+        foreach (var (entity, tileMap) in entities)
         {
-            var tileMap = entity.GetComponent<TileMapComponent>();
             var transform = entity.GetComponent<TransformComponent>();
 
             if (string.IsNullOrEmpty(tileMap.TileSetPath))
@@ -73,12 +72,10 @@ internal sealed class TileMapRenderSystem(IGraphics2D graphics2D, IContext conte
 
     private (Camera?, Matrix4x4?) GetPrimaryCameraAndTransform()
     {
-        var cameraGroup = context.GetGroup([typeof(TransformComponent), typeof(CameraComponent)]);
-        foreach (var entity in cameraGroup)
+        var cameraGroup = context.View<CameraComponent>();
+        foreach (var (entity, cameraComponent) in cameraGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
-            var cameraComponent = entity.GetComponent<CameraComponent>();
-
             if (cameraComponent.Primary)
             {
                 return (cameraComponent.Camera, transformComponent.GetTransform());
