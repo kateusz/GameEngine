@@ -10,7 +10,6 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scene.Systems;
-using Engine.Tiles;
 using Serilog;
 
 namespace Engine.Scene;
@@ -28,10 +27,6 @@ internal sealed class Scene : IScene
     private readonly ISystemManager _systemManager;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
-
-    // Cache for tileset textures in editor mode (to avoid loading from disk every frame)
-    // Key format: "path|columns|rows" to handle different grid configurations of the same texture
-    private readonly Dictionary<string, TileSet> _editorTileSetCache = new();
 
     public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context, ITextureFactory textureFactory)
     {
@@ -139,12 +134,6 @@ internal sealed class Scene : IScene
     public void OnRuntimeStop()
     {
         _systemManager.Shutdown();
-        
-        foreach (var tileSet in _editorTileSetCache.Values)
-        {
-            tileSet.Texture?.Dispose();
-        }
-        _editorTileSetCache.Clear();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
@@ -233,64 +222,7 @@ internal sealed class Scene : IScene
             var transform = entity.GetComponent<TransformComponent>().GetTransform();
             _graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
-
-        // TileMaps (mirror runtime system with caching)
-        var tilemapGroup = _context.View<TileMapComponent>();
-        foreach (var (entity, tileMapComponent) in tilemapGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            if (string.IsNullOrEmpty(tileMapComponent.TileSetPath))
-                continue;
-            
-            var tileSet = GetOrLoadEditorTileSet(tileMapComponent);
-            if (tileSet?.Texture == null)
-                continue;
-            
-            var sortedLayers = tileMapComponent.Layers.OrderBy(l => l.ZIndex).ToList();
-            foreach (var layer in sortedLayers)
-            {
-                if (!layer.Visible)
-                    continue;
-
-                for (var y = 0; y < tileMapComponent.Height; y++)
-                {
-                    for (var x = 0; x < tileMapComponent.Width; x++)
-                    {
-                        var tileId = layer.Tiles[x, y];
-                        if (tileId < 0)
-                            continue;
-                        
-                        var subTexture = tileSet.GetTileSubTexture(tileId);
-                        if (subTexture == null)
-                            continue;
-
-                        // Calculate tile position in world space
-                        var tilePos = new Vector3(
-                            transformComponent.Translation.X + x * tileMapComponent.TileSize.X,
-                            transformComponent.Translation.Y + y * tileMapComponent.TileSize.Y,
-                            transformComponent.Translation.Z + layer.ZIndex * 0.01f
-                        );
-
-                        // Create transform for this tile
-                        var tileTransform = Matrix4x4.CreateScale(new Vector3(tileMapComponent.TileSize, 1.0f)) *
-                                            Matrix4x4.CreateRotationZ(transformComponent.Rotation.Z) *
-                                            Matrix4x4.CreateTranslation(tilePos);
-
-                        var tintColor = new Vector4(1, 1, 1, 1);
-
-                        _graphics2D.DrawQuad(
-                            tileTransform,
-                            subTexture.Texture,
-                            subTexture.TexCoords,
-                            1.0f,
-                            tintColor,
-                            entity.Id
-                        );
-                    }
-                }
-            }
-        }
-
+        
         _graphics2D.EndScene();
     }
 
@@ -349,49 +281,7 @@ internal sealed class Scene : IScene
 
         return newEntity;
     }
-
-    /// <summary>
-    /// Gets or loads a tileset from the editor cache. This prevents loading textures from disk every frame.
-    /// </summary>
-    private TileSet? GetOrLoadEditorTileSet(TileMapComponent tileMapComponent)
-    {
-        // Generate cache key that includes grid dimensions
-        var cacheKey =
-            $"{tileMapComponent.TileSetPath}|{tileMapComponent.TileSetColumns}|{tileMapComponent.TileSetRows}";
-        
-        // Check cache first
-        if (_editorTileSetCache.TryGetValue(cacheKey, out var cachedTileSet))
-        {
-            return cachedTileSet;
-        }
-
-        // Not in cache, load it
-        var tileSet = new TileSet
-        {
-            TexturePath = tileMapComponent.TileSetPath,
-            Columns = tileMapComponent.TileSetColumns,
-            Rows = tileMapComponent.TileSetRows
-        };
-
-        tileSet.LoadTexture(_textureFactory);
-
-        if (tileSet.Texture != null)
-        {
-            // Calculate tile dimensions from texture size
-            tileSet.TileWidth = tileSet.Texture.Width / tileMapComponent.TileSetColumns;
-            tileSet.TileHeight = tileSet.Texture.Height / tileMapComponent.TileSetRows;
-
-            // Generate all tile subtextures
-            tileSet.GenerateTiles();
-
-            // Cache for future frames
-            _editorTileSetCache[cacheKey] = tileSet;
-            return tileSet;
-        }
-
-        return null;
-    }
-
+    
     /// <summary>
     /// Disposes the scene and cleans up all resources.
     /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
@@ -407,15 +297,7 @@ internal sealed class Scene : IScene
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
         // Singleton systems (rendering, scripts) are shared and won't be disposed
         _systemManager?.Dispose();
-
-        // Clear tileset cache to prevent memory leaks
-        foreach (var tileSet in _editorTileSetCache.Values)
-        {
-            tileSet.Texture?.Dispose();
-        }
-
-        _editorTileSetCache.Clear();
-
+        
         // Clear entity storage
         _context.Clear();
 

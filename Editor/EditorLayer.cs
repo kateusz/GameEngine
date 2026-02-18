@@ -51,7 +51,6 @@ public class EditorLayer : ILayer
     private readonly IAnimationTimelinePanel _animationTimeline;
     private readonly RecentProjectsPanel _recentProjectsPanel;
     private readonly ViewportRuler _viewportRuler;
-    private readonly ITileMapPanel _tileMapPanel;
     private readonly ShortcutManager _shortcutManager;
     private readonly KeyboardShortcutsPanel _keyboardShortcutsPanel;
     private readonly IScriptEngine _scriptEngine;
@@ -81,7 +80,7 @@ public class EditorLayer : ILayer
         IContentBrowserPanel contentBrowserPanel, SceneToolbar sceneToolbar, NewProjectPopup newProjectPopup,
         SceneSettingsPopup sceneSettingsPopup, IGraphics2D graphics2D, RendererStatsPanel rendererStatsPanel,
         IAnimationTimelinePanel animationTimeline, RecentProjectsPanel recentProjectsPanel,
-        ITileMapPanel tileMapPanel, ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
+        ShortcutManager shortcutManager, KeyboardShortcutsPanel keyboardShortcutsPanel,
         IScriptEngine scriptEngine, ScriptComponentEditor scriptComponentEditor, DebugSettings debugSettings, PerformanceMonitorPanel performanceMonitor,
         IAssetsManager assetsManager, ViewportToolManager viewportToolManager,
         ViewportRuler viewportRuler, IFrameBufferFactory frameBufferFactory, PublishSettingsUI publishSettingsUI)
@@ -102,7 +101,6 @@ public class EditorLayer : ILayer
         _rendererStatsPanel = rendererStatsPanel;
         _animationTimeline = animationTimeline;
         _recentProjectsPanel = recentProjectsPanel;
-        _tileMapPanel = tileMapPanel;
         _shortcutManager = shortcutManager;
         _keyboardShortcutsPanel = keyboardShortcutsPanel;
         _scriptEngine = scriptEngine;
@@ -633,7 +631,6 @@ public class EditorLayer : ILayer
             // Render windows that should dock to Viewport
             var viewportDockId = ImGui.GetWindowDockID();
             _animationTimeline.OnImGuiRender(viewportDockId);
-            _tileMapPanel.OnImGuiRender(viewportDockId);
 
             ImGui.End();
 

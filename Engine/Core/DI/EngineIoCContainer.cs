@@ -84,7 +84,6 @@ public static class EngineIoCContainer
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
-        container.Register<TileMapRenderSystem>(Reuse.Singleton);
         
         container.Register<IAnimationAssetManager, AnimationAssetManager>(Reuse.Singleton);
         container.Register<AnimationSystem>(Reuse.Singleton);

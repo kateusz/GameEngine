@@ -11,8 +11,7 @@ internal sealed class SceneSystemRegistry(
     SubTextureRenderingSystem subTextureRenderingSystem,
     PhysicsDebugRenderSystem physicsDebugRenderSystem,
     AudioSystem audioSystem,
-    AnimationSystem animationSystem,
-    TileMapRenderSystem tileMapRenderSystem)
+    AnimationSystem animationSystem)
     : ISceneSystemRegistry
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemRegistry>();
@@ -25,7 +24,6 @@ internal sealed class SceneSystemRegistry(
         {
             var systems = new List<ISystem>
             {
-                tileMapRenderSystem,
                 scriptUpdateSystem,
                 spriteRenderingSystem,
                 subTextureRenderingSystem,

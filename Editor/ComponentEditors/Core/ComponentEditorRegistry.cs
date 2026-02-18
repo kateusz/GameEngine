@@ -19,7 +19,6 @@ public class ComponentEditorRegistry(
     AudioSourceComponentEditor audioSourceComponentEditor,
     AudioListenerComponentEditor audioListenerComponentEditor,
     AnimationComponentEditor animationComponentEditor,
-    TileMapComponentEditor tileMapComponentEditor,
     ScriptComponentEditor scriptComponentEditor)
     : IComponentEditorRegistry
 {
@@ -35,8 +34,7 @@ public class ComponentEditorRegistry(
         { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
         { typeof(AudioSourceComponent), audioSourceComponentEditor },
         { typeof(AudioListenerComponent), audioListenerComponentEditor },
-        { typeof(AnimationComponent), animationComponentEditor },
-        { typeof(TileMapComponent), tileMapComponentEditor }
+        { typeof(AnimationComponent), animationComponentEditor }
     };
 
     public void DrawAllComponents(Entity entity)
