@@ -17,7 +17,10 @@
       "Bash(xargs cat:*)",
       "Bash(find:*)",
       "Skill(dependency-injection-review)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:docs.godotengine.org)",
+      "WebFetch(domain:rokojori.com)",
+      "Bash(git worktree:*)"
     ]
   }
 }

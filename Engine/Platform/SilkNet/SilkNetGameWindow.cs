@@ -10,28 +10,12 @@ using Silk.NET.Windowing;
 
 namespace Engine.Platform.SilkNet;
 
-internal sealed class SilkNetGameWindow : IGameWindow
+internal sealed class SilkNetGameWindow(IWindow window, IInputSystemFactory inputSystemFactory) : IGameWindow
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetGameWindow>();
 
-    private readonly IWindow _window;
-    private readonly IInputSystemFactory _inputSystemFactory;
-
     private IInputSystem? _inputSystem;
 
-    public SilkNetGameWindow(IWindow window, IInputSystemFactory inputSystemFactory)
-    {
-        _window = window;
-        _inputSystemFactory = inputSystemFactory;
-
-        _window.WindowState = WindowState.Maximized;
-
-        _window.Load += WindowOnLoad;
-        _window.Update += WindowOnUpdate;
-        _window.Closing += OnWindowClosing;
-        _window.FramebufferResize += OnFrameBufferResize;
-    }
-    
     public event Action<InputEvent> OnInputEvent;
     public event Action<double> OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;
@@ -39,7 +23,14 @@ internal sealed class SilkNetGameWindow : IGameWindow
 
     public void Run()
     {
-        _window.Run();
+        window.WindowState = WindowState.Maximized;
+
+        window.Load += WindowOnLoad;
+        window.Update += WindowOnUpdate;
+        window.Closing += OnWindowClosing;
+        window.FramebufferResize += OnFrameBufferResize;
+
+        window.Run();
     }
 
     public event Action<WindowEvent>? OnWindowEvent;
@@ -51,23 +42,23 @@ internal sealed class SilkNetGameWindow : IGameWindow
         // Unload OpenGL
         SilkNetContext.GL.Dispose();
     }
-    
+
     private void WindowOnLoad()
     {
-        SilkNetContext.GL = _window.CreateOpenGL();
-        SilkNetContext.Window = _window;
+        SilkNetContext.GL = window.CreateOpenGL();
+        SilkNetContext.Window = window;
 
         Logger.Information("SilkNet window loaded");
 
-        var inputContext = _window.CreateInput();
+        var inputContext = window.CreateInput();
 
         // Create input system using factory (DI-based) instead of 'new'
-        _inputSystem = _inputSystemFactory.Create(inputContext);
+        _inputSystem = inputSystemFactory.Create(inputContext);
         _inputSystem.InputReceived += OnInputReceived;
 
         OnWindowLoad(_inputSystem);
 
-        var framebufferSize = _window.FramebufferSize;
+        var framebufferSize = window.FramebufferSize;
         OnFrameBufferResize(framebufferSize);
         Logger.Information("Initial framebuffer size: {Width}x{Height}", framebufferSize.X, framebufferSize.Y);
     }
@@ -76,14 +67,14 @@ internal sealed class SilkNetGameWindow : IGameWindow
     {
         OnUpdate(deltaTime);
     }
-    
+
     private void OnInputReceived(InputEvent inputEvent)
     {
         if (inputEvent is KeyPressedEvent { KeyCode: KeyCodes.Escape })
         {
-            _window.Close();
+            window.Close();
         }
-        
+
         OnInputEvent(inputEvent);
     }
 

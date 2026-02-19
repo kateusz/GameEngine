@@ -9,25 +9,16 @@ namespace Engine.Renderer;
 /// <summary>
 /// Factory for creating and caching mesh resources.
 /// </summary>
-internal sealed class MeshFactory : IMeshFactory
+internal sealed class MeshFactory(
+    ITextureFactory textureFactory,
+    IVertexArrayFactory vertexArrayFactory,
+    IVertexBufferFactory vertexBufferFactory,
+    IIndexBufferFactory indexBufferFactory) : IMeshFactory
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
-    private readonly ITextureFactory _textureFactory;
-    private readonly IVertexArrayFactory _vertexArrayFactory;
-    private readonly IVertexBufferFactory _vertexBufferFactory;
-    private readonly IIndexBufferFactory _indexBufferFactory;
     private readonly Dictionary<string, Mesh> _loadedMeshes = new();
     private readonly Dictionary<string, Model> _loadedModels = new();
     private bool _disposed;
-
-    public MeshFactory(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
-        IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
-    {
-        _textureFactory = textureFactory;
-        _vertexArrayFactory = vertexArrayFactory;
-        _vertexBufferFactory = vertexBufferFactory;
-        _indexBufferFactory = indexBufferFactory;
-    }
 
     /// <summary>
     /// Creates or retrieves a cached mesh from an OBJ file.
@@ -43,7 +34,7 @@ internal sealed class MeshFactory : IMeshFactory
         }
 
         // Load the model and keep it alive to prevent disposal of shared textures
-        var model = new Model(objFilePath, _textureFactory, _vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
+        var model = new Model(objFilePath, textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
         var mesh = model.Meshes.First();
 
         // Log information about mesh size
@@ -70,11 +61,6 @@ internal sealed class MeshFactory : IMeshFactory
     public Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
     {
-        if (textureFactory == null) throw new ArgumentNullException(nameof(textureFactory));
-        if (vertexArrayFactory == null) throw new ArgumentNullException(nameof(vertexArrayFactory));
-        if (vertexBufferFactory == null) throw new ArgumentNullException(nameof(vertexBufferFactory));
-        if (indexBufferFactory == null) throw new ArgumentNullException(nameof(indexBufferFactory));
-
         var mesh = new Mesh("Cube", textureFactory);
 
         // Define vertices
