@@ -1,9 +1,11 @@
+using System.Text.Json.Serialization;
 using ECS;
 
 namespace Engine.Scene.Components;
 
 public class NativeScriptComponent : IComponent
 {
+    [JsonIgnore]
     public ScriptableEntity? ScriptableEntity { get; set; }
 
     public IComponent Clone()

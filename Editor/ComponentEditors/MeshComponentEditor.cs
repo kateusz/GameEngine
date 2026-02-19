@@ -37,9 +37,12 @@ public class MeshComponentEditor(
                 meshComponent.SetMesh(mesh);
             });
 
-            ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
-            ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
-            ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+            if (meshComponent.Mesh != null)
+            {
+                ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
+                ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
+                ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+            }
 
             MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
         });

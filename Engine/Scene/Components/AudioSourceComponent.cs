@@ -10,13 +10,23 @@ namespace Engine.Scene.Components;
 /// </summary>
 public class AudioSourceComponent : IComponent
 {
+    private IAudioClip? _audioClip;
+
     /// <summary>
     /// The audio clip to play.
     /// </summary>
     [JsonIgnore]
-    public IAudioClip? AudioClip { get; set; }
+    public IAudioClip? AudioClip
+    {
+        get => _audioClip;
+        set
+        {
+            _audioClip = value;
+            AudioClipPath = value?.Path;
+        }
+    }
 
-    public string? AudioClipPath => AudioClip?.Path;
+    public string? AudioClipPath { get; set; }
 
     /// <summary>
     /// Volume of the audio source (0.0 to 1.0).
@@ -77,6 +87,7 @@ public class AudioSourceComponent : IComponent
         float minDistance = 1.0f, float maxDistance = 100.0f)
     {
         AudioClip = audioClip;
+        AudioClipPath = audioClip?.Path;
         Volume = volume;
         Pitch = pitch;
         Loop = loop;

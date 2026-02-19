@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Renderer;
 
@@ -5,7 +6,10 @@ namespace Engine.Scene.Components;
 
 public class MeshComponent : IComponent
 {
-    public Mesh Mesh { get; set; } = null!;
+    public string MeshPath { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public Mesh? Mesh { get; set; }
 
     public MeshComponent()
     {
@@ -17,11 +21,19 @@ public class MeshComponent : IComponent
         Mesh = mesh;
     }
 
+    public MeshComponent(string meshPath)
+    {
+        MeshPath = meshPath;
+    }
+
     public void SetMesh(Mesh mesh) => Mesh = mesh;
 
     public IComponent Clone()
     {
-        // Share the same Mesh reference (meshes are typically immutable resources)
-        return new MeshComponent(Mesh);
+        return new MeshComponent
+        {
+            MeshPath = MeshPath,
+            Mesh = Mesh
+        };
     }
 }

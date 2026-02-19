@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
+using Engine.Renderer;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Engine.Scripting;
@@ -31,26 +32,14 @@ internal sealed class SceneSerializer : ISceneSerializer
     private readonly IAudioEngine _audioEngine;
     private readonly IScriptEngine _scriptEngine;
     private readonly ITextureFactory _textureFactory;
+    private readonly IMeshFactory _meshFactory;
 
-    // TODO: this is duplicated in AnimationComponentEditor
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
-
-    public SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine, ITextureFactory textureFactory)
+    public SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine, ITextureFactory textureFactory, IMeshFactory meshFactory)
     {
         _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
         _scriptEngine = scriptEngine ?? throw new ArgumentNullException(nameof(scriptEngine));
         _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
+        _meshFactory = meshFactory ?? throw new ArgumentNullException(nameof(meshFactory));
     }
 
     /// <summary>
@@ -218,6 +207,12 @@ internal sealed class SceneSerializer : ISceneSerializer
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
+            case nameof(ModelRendererComponent):
+                DeserializeModelRendererComponent(entity, componentObj);
+                break;
+            case nameof(MeshComponent):
+                DeserializeMeshComponent(entity, componentObj);
+                break;
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
         }
@@ -225,84 +220,99 @@ internal sealed class SceneSerializer : ISceneSerializer
 
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract texture path separately to avoid abstract class deserialization issues
-        string? texturePath = null;
-        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
-                                                && textureObj.ContainsKey("Path") &&
-                                                textureObj["Path"] is JsonValue pathValue)
-        {
-            texturePath = pathValue.GetValue<string>();
-        }
-
-        var component =
-            JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<SpriteRendererComponent>(SerializerOptionsFactory.Default);
         if (component == null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(texturePath))
+        // Backward compat: old format stored Texture as nested JSON object
+        if (string.IsNullOrWhiteSpace(component.TexturePath) &&
+            componentObj["Texture"] is JsonObject textureObj &&
+            textureObj["Path"] is JsonValue pathValue)
         {
-            component.Texture = _textureFactory.Create(texturePath);
+            component.TexturePath = pathValue.GetValue<string>();
         }
+
+        if (!string.IsNullOrWhiteSpace(component.TexturePath))
+            component.Texture = _textureFactory.Create(component.TexturePath);
 
         entity.AddComponent<SpriteRendererComponent>(component);
     }
 
     private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract texture path separately to avoid abstract class deserialization issues
-        string? texturePath = null;
-        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
-                                                && textureObj.ContainsKey("Path") &&
-                                                textureObj["Path"] is JsonValue pathValue)
-        {
-            texturePath = pathValue.GetValue<string>();
-        }
-
-        var component =
-            JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(),
-                DefaultSerializerOptions);
+        var component = componentObj.Deserialize<SubTextureRendererComponent>(SerializerOptionsFactory.Default);
         if (component == null)
             return;
 
-        // Reload texture from disk if path exists
-        if (!string.IsNullOrWhiteSpace(texturePath))
+        // Backward compat: old format stored Texture as nested JSON object
+        if (string.IsNullOrWhiteSpace(component.TexturePath) &&
+            componentObj["Texture"] is JsonObject textureObj &&
+            textureObj["Path"] is JsonValue pathValue)
         {
-            component.Texture = _textureFactory.Create(texturePath);
+            component.TexturePath = pathValue.GetValue<string>();
         }
+
+        if (!string.IsNullOrWhiteSpace(component.TexturePath))
+            component.Texture = _textureFactory.Create(component.TexturePath);
 
         entity.AddComponent<SubTextureRendererComponent>(component);
     }
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract the AudioClip path separately to avoid interface deserialization issues
-        string? audioClipPath = null;
-        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
-        {
-            audioClipPath = pathValue.GetValue<string>();
-        }
-
-        var component =
-            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<AudioSourceComponent>(SerializerOptionsFactory.Default);
         if (component == null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(audioClipPath))
+        if (!string.IsNullOrWhiteSpace(component.AudioClipPath))
         {
             try
             {
-                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+                component.AudioClip = _audioEngine.LoadAudioClip(component.AudioClipPath);
             }
             catch (Exception ex)
             {
-                // Log error but continue scene deserialization
                 Logger.Warning(ex,
                     "Failed to load audio clip '{AudioClipPath}' for entity '{EntityName}'. Audio component will be created without clip.",
-                    audioClipPath, entity.Name);
+                    component.AudioClipPath, entity.Name);
             }
         }
 
         entity.AddComponent<AudioSourceComponent>(component);
+    }
+
+    private void DeserializeModelRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = componentObj.Deserialize<ModelRendererComponent>(SerializerOptionsFactory.Default);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.OverrideTexturePath))
+            component.OverrideTexture = _textureFactory.Create(component.OverrideTexturePath);
+
+        entity.AddComponent<ModelRendererComponent>(component);
+    }
+
+    private void DeserializeMeshComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = componentObj.Deserialize<MeshComponent>(SerializerOptionsFactory.Default);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.MeshPath))
+        {
+            try
+            {
+                component.Mesh = _meshFactory.Create(component.MeshPath);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Failed to load mesh '{MeshPath}'. Mesh component will be created without mesh.",
+                    component.MeshPath);
+            }
+        }
+
+        entity.AddComponent<MeshComponent>(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -340,7 +350,7 @@ internal sealed class SceneSerializer : ISceneSerializer
                             .FirstOrDefault(f => f.Name == fieldName);
                         if (exposed.Name != null)
                         {
-                            var value = fieldValueNode.Deserialize(exposed.Type, DefaultSerializerOptions);
+                            var value = fieldValueNode.Deserialize(exposed.Type, SerializerOptionsFactory.Default);
                             scriptInstance.SetFieldValue(fieldName, value);
                         }
                     }
@@ -360,7 +370,7 @@ internal sealed class SceneSerializer : ISceneSerializer
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
-        var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<T>(SerializerOptionsFactory.Default);
         if (component != null)
         {
             entity.AddComponent<T>(component);
@@ -384,6 +394,8 @@ internal sealed class SceneSerializer : ISceneSerializer
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
         SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
+        SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
+        SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
         SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 
@@ -396,7 +408,7 @@ internal sealed class SceneSerializer : ISceneSerializer
             return;
 
         var component = entity.GetComponent<AudioSourceComponent>();
-        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        var element = JsonSerializer.SerializeToNode(component, SerializerOptionsFactory.Default);
         if (element != null)
         {
             element[NameKey] = nameof(AudioSourceComponent);
@@ -426,7 +438,7 @@ internal sealed class SceneSerializer : ISceneSerializer
             var fieldsObj = new JsonObject();
             foreach (var (fieldName, fieldType, fieldValue) in component.ScriptableEntity.GetExposedFields())
             {
-                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, DefaultSerializerOptions);
+                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, SerializerOptionsFactory.Default);
             }
 
             if (fieldsObj.Count > 0)
@@ -445,7 +457,7 @@ internal sealed class SceneSerializer : ISceneSerializer
             return;
 
         var component = entity.GetComponent<T>();
-        var element = JsonSerializer.SerializeToNode(component, DefaultSerializerOptions);
+        var element = JsonSerializer.SerializeToNode(component, SerializerOptionsFactory.Default);
         if (element != null)
         {
             element[NameKey] = componentName;

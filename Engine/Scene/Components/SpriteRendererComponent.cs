@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Renderer.Textures;
 
@@ -7,7 +8,9 @@ namespace Engine.Scene.Components;
 public class SpriteRendererComponent : IComponent
 {
     public Vector4 Color { get; set; }
+    [JsonIgnore]
     public Texture2D? Texture { get; set; }
+    public string? TexturePath { get; set; }
     public float TilingFactor { get; set; }
 
     public SpriteRendererComponent()

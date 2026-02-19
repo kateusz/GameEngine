@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Engine.Core;
 using Engine.Renderer.Textures;
 using Engine.Scene.Serializer;
@@ -15,19 +14,6 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
     : IAnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
-
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
 
     private readonly Dictionary<string, CacheEntry> _cache = new();
 
@@ -56,7 +42,7 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
             }
 
             var jsonText = File.ReadAllText(fullPath);
-            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, DefaultSerializerOptions);
+            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, SerializerOptionsFactory.Default);
             if (animationAsset == null)
             {
                 Logger.Error("Failed to deserialize animation asset: {Path}", path);
