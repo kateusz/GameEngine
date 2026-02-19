@@ -510,8 +510,8 @@ internal sealed class Graphics2D : IGraphics2D
         if (_disposed)
             return;
 
-        _data.QuadShader?.Dispose();
-        _data.LineShader?.Dispose();
+        _data.QuadShader = null!;
+        _data.LineShader = null!;
         _data.QuadVertexArray?.Dispose();
         _data.LineVertexArray?.Dispose();
         _data.QuadVertexBuffer?.Dispose();
@@ -522,6 +522,7 @@ internal sealed class Graphics2D : IGraphics2D
         _data.TextureSlotCache.Clear();
         _data.WhiteTexture = null!;
 
+        GC.SuppressFinalize(this);
         _disposed = true;
     }
 }

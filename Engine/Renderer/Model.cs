@@ -211,11 +211,6 @@ public class Model : IModel
         }
         Meshes.Clear();
 
-        // Dispose all loaded textures
-        foreach (var texture in _texturesLoaded)
-        {
-            texture?.Dispose();
-        }
         _texturesLoaded.Clear();
 
         _disposed = true;

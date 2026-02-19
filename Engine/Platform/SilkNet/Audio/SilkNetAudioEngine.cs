@@ -219,6 +219,7 @@ internal sealed unsafe class SilkNetAudioEngine : IAudioEngine
         Shutdown();
         
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     // Protected helper methods for subclasses

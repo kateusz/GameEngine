@@ -143,8 +143,9 @@ internal sealed class Graphics3D : IGraphics3D
         if (_disposed)
             return;
 
-        _phongShader?.Dispose();
+        _phongShader = null!;
 
+        GC.SuppressFinalize(this);
         _disposed = true;
     }
 }

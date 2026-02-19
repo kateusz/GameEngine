@@ -186,6 +186,7 @@ internal sealed class ImGuiLayer : IImGuiLayer, IDisposable
 
         _controller?.Dispose();
         _controller = null!;
+        GC.SuppressFinalize(this);
         _disposed = true;
     }
 }

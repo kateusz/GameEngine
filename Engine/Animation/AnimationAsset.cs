@@ -29,7 +29,7 @@ public sealed record AnimationAsset : IDisposable
     
     public void Dispose()
     {
-        Atlas?.Dispose();
         Atlas = null!;
+        GC.SuppressFinalize(this);
     }
 }

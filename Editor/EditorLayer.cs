@@ -73,6 +73,11 @@ public class EditorLayer : ILayer
     private ISystemManager _editorSystems;
     private EditorCameraSystem _editorCameraSystem;
     private Entity _selectedEntity;
+    private Action<IScene>? _onSceneChanged;
+    private Action? _onPlayScene;
+    private Action? _onStopScene;
+    private Action? _onRestartScene;
+    private Action<Entity>? _onEntitySelected;
 
     public EditorLayer(IProjectManager projectManager,
         IEditorPreferences editorPreferences, IConsolePanel consolePanel, EditorSettingsUI editorSettingsUI,
@@ -115,10 +120,14 @@ public class EditorLayer : ILayer
         _frameBufferFactory = frameBufferFactory;
         _publishSettingsUI = publishSettingsUI;
 
-        _sceneContext.SceneChanged += newScene => _sceneHierarchyPanel.SetScene(newScene);
-        _sceneToolbar.OnPlayScene += () => _sceneManager.Play();
-        _sceneToolbar.OnStopScene += () => _sceneManager.Stop();
-        _sceneToolbar.OnRestartScene += () => _sceneManager.Restart();
+        _onSceneChanged = newScene => _sceneHierarchyPanel.SetScene(newScene);
+        _onPlayScene = () => _sceneManager.Play();
+        _onStopScene = () => _sceneManager.Stop();
+        _onRestartScene = () => _sceneManager.Restart();
+        _sceneContext.SceneChanged += _onSceneChanged;
+        _sceneToolbar.OnPlayScene += _onPlayScene;
+        _sceneToolbar.OnStopScene += _onStopScene;
+        _sceneToolbar.OnRestartScene += _onRestartScene;
     }
 
     public void OnAttach(IInputSystem inputSystem)
@@ -133,7 +142,8 @@ public class EditorLayer : ILayer
 
         _sceneHierarchyPanel.EntitySelected = EntitySelected;
         // Viewport selection only updates selection state - don't move camera since entity is already visible
-        _viewportToolManager.SubscribeToEntitySelection(entity => _selectedEntity = entity);
+        _onEntitySelected = entity => _selectedEntity = entity;
+        _viewportToolManager.SubscribeToEntitySelection(_onEntitySelected);
 
         _contentBrowserPanel.Init();
         _sceneToolbar.Init();
@@ -246,6 +256,13 @@ public class EditorLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+
+        _sceneContext.SceneChanged -= _onSceneChanged;
+        _sceneToolbar.OnPlayScene -= _onPlayScene;
+        _sceneToolbar.OnStopScene -= _onStopScene;
+        _sceneToolbar.OnRestartScene -= _onRestartScene;
+        if (_onEntitySelected != null)
+            _viewportToolManager.UnsubscribeFromEntitySelection(_onEntitySelected);
 
         // Shutdown editor systems
         _editorSystems?.ShutdownAll();
