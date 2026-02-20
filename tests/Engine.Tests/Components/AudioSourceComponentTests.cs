@@ -134,17 +134,18 @@ public class AudioSourceComponentTests
     }
 
     [Fact]
-    public void AudioSourceComponent_AudioClipPath_ShouldReturnPathWhenClipExists()
+    public void AudioSourceComponent_AudioClipPath_ShouldReturnPathWhenExplicitlySet()
     {
-        // Arrange
+        // AudioClipPath is now a stored property independent of AudioClip.
+        // Setting AudioClip alone does not update AudioClipPath; callers must set it explicitly.
         var mockClip = Substitute.For<IAudioClip>();
         mockClip.Path.Returns("audio/test.wav");
-        var component = new AudioSourceComponent { AudioClip = mockClip };
+        var component = new AudioSourceComponent
+        {
+            AudioClip = mockClip,
+            AudioClipPath = mockClip.Path
+        };
 
-        // Act
-        var path = component.AudioClipPath;
-
-        // Assert
-        path.ShouldBe("audio/test.wav");
+        component.AudioClipPath.ShouldBe("audio/test.wav");
     }
 }
