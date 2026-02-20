@@ -377,7 +377,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
-        var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<T>(DefaultSerializerOptions);
         if (component != null)
         {
             entity.AddComponent<T>(component);
