@@ -358,22 +358,21 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
     private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract texture path separately to avoid abstract class deserialization issues
-        string? texturePath = null;
-        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
-            && textureObj.ContainsKey("Path") && textureObj["Path"] is JsonValue pathValue)
-        {
-            texturePath = pathValue.GetValue<string>();
-        }
-
-        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<SubTextureRendererComponent>(DefaultSerializerOptions);
         if (component == null)
             return;
 
-        // Reload texture from disk if path exists
-        if (!string.IsNullOrWhiteSpace(texturePath))
+        // Support old format: "Texture": { "Path": "..." }
+        if (string.IsNullOrWhiteSpace(component.TexturePath)
+            && componentObj["Texture"] is JsonObject textureObj
+            && textureObj["Path"] is JsonValue pathValue)
         {
-            component.Texture = textureFactory.Create(texturePath);
+            component.TexturePath = pathValue.GetValue<string>();
+        }
+
+        if (!string.IsNullOrWhiteSpace(component.TexturePath))
+        {
+            component.Texture = textureFactory.Create(component.TexturePath);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);

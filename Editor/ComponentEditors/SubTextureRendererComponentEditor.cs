@@ -21,7 +21,11 @@ public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITe
             var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
             ImGui.BeginDisabled(hasAnimationComponent);
 
-            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, assetsManager, textureFactory);
+            TextureDropTarget.Draw("Texture", texture =>
+            {
+                component.Texture = texture;
+                component.TexturePath = texture.Path;
+            }, assetsManager, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);
 
