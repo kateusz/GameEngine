@@ -493,8 +493,9 @@ internal sealed class Graphics2D(
         if (_disposed)
             return;
 
-        _data.QuadShader?.Dispose();
-        _data.LineShader?.Dispose();
+        // Factory owns shader lifetime; just release our references
+        _data.QuadShader = null!;
+        _data.LineShader = null!;
         _data.QuadVertexArray?.Dispose();
         _data.LineVertexArray?.Dispose();
         _data.QuadVertexBuffer?.Dispose();

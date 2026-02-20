@@ -211,11 +211,7 @@ public class Model : IModel
         }
         Meshes.Clear();
 
-        // Dispose all loaded textures
-        foreach (var texture in _texturesLoaded)
-        {
-            texture?.Dispose();
-        }
+        // Factory owns texture lifetime; just release our references
         _texturesLoaded.Clear();
 
         _disposed = true;
