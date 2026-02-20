@@ -73,7 +73,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
         var json = File.ReadAllText(prefabPath);
         var jsonObj = JsonNode.Parse(json)?.AsObject() ??
-                      throw new InvalidOperationException("Invalid prefab JSON");
+                      throw new InvalidSceneJsonException($"Invalid prefab JSON in {prefabPath}");
 
         // Clear existing components (except ID and Name)
         ClearEntityComponents(entity);
@@ -83,7 +83,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
         foreach (var componentNode in componentsArray)
         {
             DeserializeComponent(entity, componentNode ??
-                                         throw new InvalidOperationException("Got null JSON Component"));
+                                         throw new InvalidSceneJsonException("Got null JSON Component in prefab"));
         }
     }
 
@@ -101,7 +101,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
         var json = File.ReadAllText(prefabPath);
         var jsonObj = JsonNode.Parse(json)?.AsObject() ??
-                      throw new InvalidOperationException("Invalid prefab JSON");
+                      throw new InvalidSceneJsonException($"Invalid prefab JSON in {prefabPath}");
 
         var entity = Entity.Create(entityId, entityName);
 
@@ -109,7 +109,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
         foreach (var componentNode in componentsArray)
         {
             DeserializeComponent(entity, componentNode ??
-                                         throw new InvalidOperationException("Got null JSON Component"));
+                                         throw new InvalidSceneJsonException("Got null JSON Component in prefab"));
         }
 
         return entity;
@@ -220,7 +220,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
     private void DeserializeComponent(Entity entity, JsonNode componentNode)
     {
         if (componentNode is not JsonObject componentObj || componentObj[NameKey] is null)
-            throw new InvalidOperationException("Invalid component JSON");
+            throw new InvalidSceneJsonException("Invalid component JSON in prefab");
 
         var componentName = componentObj[NameKey]!.GetValue<string>();
 
@@ -384,9 +384,9 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
         }
     }
 
-    private JsonArray GetJsonArray(JsonObject jsonObject, string key)
+    private static JsonArray GetJsonArray(JsonObject jsonObject, string key)
     {
         return jsonObject[key] as JsonArray ??
-               throw new InvalidOperationException($"Got invalid {key} JSON");
+               throw new InvalidSceneJsonException($"'{key}' must be a JSON array in prefab");
     }
 }
