@@ -18,8 +18,7 @@ internal sealed class Scene(
     string path,
     ISceneSystemRegistry systemRegistry,
     IGraphics2D graphics2D,
-    IContext context,
-    ITextureFactory textureFactory) : IScene
+    IContext context) : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
@@ -27,14 +26,8 @@ internal sealed class Scene(
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
-
-    // textureFactory retained for potential future scene-level texture operations
-    private readonly ITextureFactory _textureFactory = textureFactory;
-
     private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
     {
-        context.Clear();
-
         var systemManager = new SystemManager();
 
         // Populate system manager from registry (singleton systems shared across scenes)
