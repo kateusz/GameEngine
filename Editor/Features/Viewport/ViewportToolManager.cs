@@ -74,6 +74,11 @@ public class ViewportToolManager(
     public void SubscribeToEntitySelection(Action<Entity> handler) => selectionTool.OnEntitySelected += handler;
 
     /// <summary>
+    /// Unsubscribes a handler previously added via <see cref="SubscribeToEntitySelection"/>.
+    /// </summary>
+    public void UnsubscribeFromEntitySelection(Action<Entity> handler) => selectionTool.OnEntitySelected -= handler;
+
+    /// <summary>
     /// Handles mouse down event and delegates to active tool.
     /// </summary>
     public void HandleMouseDown(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
