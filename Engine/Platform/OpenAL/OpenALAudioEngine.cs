@@ -217,8 +217,9 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
         
         ClearLoadedClips();
         Shutdown();
-        
+
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     // Protected helper methods for subclasses

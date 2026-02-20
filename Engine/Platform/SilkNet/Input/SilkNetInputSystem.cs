@@ -86,6 +86,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         {
             _disposed = true;
             Context?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
