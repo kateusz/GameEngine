@@ -81,6 +81,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, int entityId = -1)
     {
         var mesh = meshComponent.Mesh;
+        if (mesh == null)
+            return;
+
         var color = modelRenderer.Color;
 
         // If an override texture is specified, temporarily replace the mesh's texture
