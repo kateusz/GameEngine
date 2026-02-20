@@ -10,14 +10,14 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-internal sealed class Graphics2D : IGraphics2D
+internal sealed class Graphics2D(
+    IRendererAPI rendererApi,
+    IVertexArrayFactory vertexArrayFactory,
+    IVertexBufferFactory vertexBufferFactory,
+    IIndexBufferFactory indexBufferFactory,
+    ITextureFactory textureFactory,
+    IShaderFactory shaderFactory) : IGraphics2D
 {
-    private readonly IRendererAPI _rendererApi;
-    private readonly IVertexArrayFactory _vertexArrayFactory;
-    private readonly IVertexBufferFactory _vertexBufferFactory;
-    private readonly IIndexBufferFactory _indexBufferFactory;
-    private readonly ITextureFactory _textureFactory;
-    private readonly IShaderFactory _shaderFactory;
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
     private bool _disposed;
@@ -33,31 +33,15 @@ internal sealed class Graphics2D : IGraphics2D
         ];
     }
 
-    public Graphics2D(
-        IRendererAPI rendererApi,
-        IVertexArrayFactory vertexArrayFactory,
-        IVertexBufferFactory vertexBufferFactory,
-        IIndexBufferFactory indexBufferFactory,
-        ITextureFactory textureFactory,
-        IShaderFactory shaderFactory)
-    {
-        _rendererApi = rendererApi;
-        _vertexArrayFactory = vertexArrayFactory;
-        _vertexBufferFactory = vertexBufferFactory;
-        _indexBufferFactory = indexBufferFactory;
-        _textureFactory = textureFactory;
-        _shaderFactory = shaderFactory;
-    }
-
     public void Init()
     {
         try
         {
             _data = new Renderer2DData
             {
-                QuadVertexArray = _vertexArrayFactory.Create(),
+                QuadVertexArray = vertexArrayFactory.Create(),
                 Stats = new Statistics(),
-                LineVertexArray = _vertexArrayFactory.Create()
+                LineVertexArray = vertexArrayFactory.Create()
             };
 
             InitBuffers();
@@ -76,7 +60,7 @@ internal sealed class Graphics2D : IGraphics2D
         // Deprecated: Use Dispose() instead
         Dispose();
     }
-    
+
     public void BeginScene(Camera camera)
     {
         // Calculate view-projection matrix using unified camera interface
@@ -131,7 +115,7 @@ internal sealed class Graphics2D : IGraphics2D
     {
         DrawQuad(position with { Z = 0.0f }, size, rotation: 0, texture: null, textureCoords: DefaultTextureCoords, tilingFactor: 1.0f, tintColor: color);
     }
-    
+
     public void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D subTexture)
     {
         var transform = CalculateTransform(position, size, rotation);
@@ -251,7 +235,7 @@ internal sealed class Graphics2D : IGraphics2D
         _data.QuadIndexBufferCount += RenderingConstants.QuadIndexCount;
         _data.Stats.QuadCount++;
     }
-    
+
     public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
     {
         if (src.Texture is not null)
@@ -259,13 +243,13 @@ internal sealed class Graphics2D : IGraphics2D
         else
             DrawQuad(transform, src.Color, entityId);
     }
-    
+
     public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
     {
         // Check if we need to flush before adding 2 more vertices
         if (_data.CurrentLineVertexBufferIndex + 2 >= Renderer2DData.MaxVertices)
             NextBatch();
-        
+
         _data.LineVertexBufferBase[_data.CurrentLineVertexBufferIndex] = new LineVertex
         {
             Position = p0,
@@ -285,7 +269,7 @@ internal sealed class Graphics2D : IGraphics2D
         _data.CurrentLineVertexBufferIndex++;
         _data.LineVertexCount += 2;
     }
-    
+
     public void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId)
     {
         // Calculate the four corners of the rectangle
@@ -300,7 +284,7 @@ internal sealed class Graphics2D : IGraphics2D
         DrawLine(p2, p3, color, entityId);
         DrawLine(p3, p0, color, entityId);
     }
-    
+
     public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId)
     {
         var lineVertices = new Vector3[RenderingConstants.QuadVertexCount];
@@ -317,7 +301,7 @@ internal sealed class Graphics2D : IGraphics2D
         DrawLine(lineVertices[2], lineVertices[3], color, entityId);
         DrawLine(lineVertices[3], lineVertices[0], color, entityId);
     }
-    
+
     private void StartBatch()
     {
         Array.Clear(_data.QuadVertexBufferBase, 0, _data.QuadVertexBufferBase.Length);
@@ -330,13 +314,13 @@ internal sealed class Graphics2D : IGraphics2D
         _data.LineVertexCount = 0;
         _data.CurrentLineVertexBufferIndex = 0;
     }
-    
+
     private void NextBatch()
     {
         Flush();
         StartBatch();
     }
-    
+
     private void Flush()
     {
         if (_data.QuadIndexBufferCount > 0)
@@ -359,7 +343,7 @@ internal sealed class Graphics2D : IGraphics2D
             for (var i = 0; i < _data.TextureSlotIndex; i++)
                 _data.TextureSlots[i].Bind(i);
 
-            _rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+            rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
             _data.Stats.DrawCalls++;
         }
 
@@ -379,11 +363,10 @@ internal sealed class Graphics2D : IGraphics2D
             var usedLineVertices = _data.LineVertexBufferBase.AsSpan(0, lineVertexCount);
             _data.LineVertexBuffer.SetData(usedLineVertices, dataSize);
 
-            _rendererApi.SetLineWidth(Renderer2DData.LineWidth);
-            _rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
+            rendererApi.SetLineWidth(Renderer2DData.LineWidth);
+            rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
             _data.Stats.DrawCalls++;
         }
-
     }
 
     private void InitBuffers()
@@ -398,23 +381,23 @@ internal sealed class Graphics2D : IGraphics2D
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]);
 
-        _data.QuadVertexBuffer = _vertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
+        _data.QuadVertexBuffer = vertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * quadVertexSize));
         _data.QuadVertexBuffer.SetLayout(layout);
         _data.QuadVertexArray.AddVertexBuffer(_data.QuadVertexBuffer);
         _data.QuadVertexBufferBase = new QuadVertex[Renderer2DData.MaxVertices];
 
         var quadIndices = CreateQuadIndices();
-        var indexBuffer = _indexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
+        var indexBuffer = indexBufferFactory.Create(quadIndices, Renderer2DData.MaxIndices);
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
-        
+
         var lineVertexSize = LineVertex.GetSize();
         var lineLayout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float4, "a_Color"),
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]);
-        
-        _data.LineVertexBuffer = _vertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * lineVertexSize));
+
+        _data.LineVertexBuffer = vertexBufferFactory.Create((uint)(Renderer2DData.MaxVertices * lineVertexSize));
         _data.LineVertexBuffer.SetLayout(lineLayout);
         _data.LineVertexArray.AddVertexBuffer(_data.LineVertexBuffer);
         _data.LineVertexBufferBase = new LineVertex[Renderer2DData.MaxVertices];
@@ -422,7 +405,7 @@ internal sealed class Graphics2D : IGraphics2D
 
     private void InitWhiteTexture()
     {
-        _data.WhiteTexture = _textureFactory.GetWhiteTexture();
+        _data.WhiteTexture = textureFactory.GetWhiteTexture();
         _data.TextureSlots[0] = _data.WhiteTexture;
     }
 
@@ -432,12 +415,12 @@ internal sealed class Graphics2D : IGraphics2D
         for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
             samplers[i] = i;
 
-        _data.QuadShader = _shaderFactory.Create("assets/shaders/opengl/textureShader.vert",
+        _data.QuadShader = shaderFactory.Create("assets/shaders/opengl/textureShader.vert",
             "assets/shaders/opengl/textureShader.frag");
         _data.QuadShader.Bind();
         _data.QuadShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
 
-        _data.LineShader = _shaderFactory.Create("assets/shaders/opengl/lineShader.vert",
+        _data.LineShader = shaderFactory.Create("assets/shaders/opengl/lineShader.vert",
             "assets/shaders/opengl/lineShader.frag");
         _data.LineShader.Bind();
     }
@@ -472,7 +455,7 @@ internal sealed class Graphics2D : IGraphics2D
 
         return quadIndices;
     }
-    
+
     private static Matrix4x4 CalculateTransform(Vector3 position, Vector2 size, float rotation)
     {
         var transform = Matrix4x4.CreateTranslation(position);
@@ -493,7 +476,7 @@ internal sealed class Graphics2D : IGraphics2D
         _data.Stats.QuadCount = 0;
         _data.Stats.DrawCalls = 0;
     }
-    
+
     public Statistics GetStats()
     {
         return _data.Stats;
@@ -501,9 +484,9 @@ internal sealed class Graphics2D : IGraphics2D
 
     #endregion
 
-    public void SetClearColor(Vector4 color) => _rendererApi.SetClearColor(color);
+    public void SetClearColor(Vector4 color) => rendererApi.SetClearColor(color);
 
-    public void Clear() => _rendererApi.Clear();
+    public void Clear() => rendererApi.Clear();
 
     public void Dispose()
     {
@@ -516,7 +499,7 @@ internal sealed class Graphics2D : IGraphics2D
         _data.LineVertexArray?.Dispose();
         _data.QuadVertexBuffer?.Dispose();
         _data.LineVertexBuffer?.Dispose();
-        
+
         // textures are disposed at factory
         Array.Clear(_data.TextureSlots, 0, _data.TextureSlots.Length);
         _data.TextureSlotCache.Clear();

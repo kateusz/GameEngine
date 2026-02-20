@@ -27,11 +27,11 @@ public abstract class Application : IApplication
 
     protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IAudioEngine audioEngine, IMeshFactory meshFactory, IImGuiLayer? imGuiLayer = null)
     {
-        _gameWindow = gameWindow ?? throw new ArgumentNullException(nameof(gameWindow));
-        _graphics2D = graphics2D ?? throw new ArgumentNullException(nameof(graphics2D));
+        _gameWindow = gameWindow;
+        _graphics2D = graphics2D;
         _graphics3D = graphics3D;
         _audioEngine = audioEngine;
-        _meshFactory = meshFactory ?? throw new ArgumentNullException(nameof(meshFactory));
+        _meshFactory = meshFactory;
 
         _gameWindow.OnWindowEvent += HandleWindowEvent;
         _gameWindow.OnInputEvent += HandleInputEvent;

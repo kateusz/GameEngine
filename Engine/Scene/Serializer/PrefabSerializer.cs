@@ -14,10 +14,10 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-internal sealed class PrefabSerializer : IPrefabSerializer
+internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory textureFactory) : IPrefabSerializer
 {
     private static readonly ILogger Logger = Log.ForContext<PrefabSerializer>();
-    
+
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
     private const string ComponentsKey = "Components";
@@ -26,9 +26,6 @@ internal sealed class PrefabSerializer : IPrefabSerializer
     private const string VersionKey = "Version";
     private const string ScriptTypeKey = "ScriptType";
     private const string PrefabAssetsDirectory = "assets/prefabs";
-
-    private readonly IAudioEngine _audioEngine;
-    private readonly ITextureFactory _textureFactory;
 
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
@@ -41,12 +38,6 @@ internal sealed class PrefabSerializer : IPrefabSerializer
             new JsonStringEnumConverter()
         }
     };
-
-    public PrefabSerializer(IAudioEngine audioEngine, ITextureFactory textureFactory)
-    {
-        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
-        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
-    }
 
     /// <summary>
     /// Serialize an entity to a prefab file
@@ -297,7 +288,7 @@ internal sealed class PrefabSerializer : IPrefabSerializer
         {
             try
             {
-                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+                component.AudioClip = audioEngine.LoadAudioClip(audioClipPath);
             }
             catch (Exception ex)
             {
@@ -355,7 +346,7 @@ internal sealed class PrefabSerializer : IPrefabSerializer
         // Reload texture from disk if path exists
         if (!string.IsNullOrWhiteSpace(texturePath))
         {
-            component.Texture = _textureFactory.Create(texturePath);
+            component.Texture = textureFactory.Create(texturePath);
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
@@ -378,7 +369,7 @@ internal sealed class PrefabSerializer : IPrefabSerializer
         // Reload texture from disk if path exists
         if (!string.IsNullOrWhiteSpace(texturePath))
         {
-            component.Texture = _textureFactory.Create(texturePath);
+            component.Texture = textureFactory.Create(texturePath);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);

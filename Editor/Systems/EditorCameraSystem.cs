@@ -27,7 +27,7 @@ public class EditorCameraSystem(IOrthographicCameraController cameraController) 
     /// <param name="cameraController">The new camera controller to update.</param>
     public void SetCameraController(IOrthographicCameraController cameraController)
     {
-        _cameraController = cameraController ?? throw new ArgumentNullException(nameof(cameraController));
+        _cameraController = cameraController;
         Logger.Debug("Camera controller updated");
     }
 

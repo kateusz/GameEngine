@@ -16,7 +16,7 @@ namespace Engine.Scene.Serializer;
     "IL3050:Calling members annotated with \'RequiresDynamicCodeAttribute\' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with \'RequiresUnreferencedCodeAttribute\' require dynamic access otherwise can break functionality when trimming application code")]
-internal sealed class SceneSerializer : ISceneSerializer
+internal sealed class SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine, ITextureFactory textureFactory) : ISceneSerializer
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
 
@@ -27,10 +27,6 @@ internal sealed class SceneSerializer : ISceneSerializer
     private const string NameKey = "Name";
     private const string IdKey = "Id";
     private const string ScriptTypeKey = "ScriptType";
-
-    private readonly IAudioEngine _audioEngine;
-    private readonly IScriptEngine _scriptEngine;
-    private readonly ITextureFactory _textureFactory;
 
     // TODO: this is duplicated in AnimationComponentEditor
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
@@ -45,13 +41,6 @@ internal sealed class SceneSerializer : ISceneSerializer
             new JsonStringEnumConverter()
         }
     };
-
-    public SceneSerializer(IAudioEngine audioEngine, IScriptEngine scriptEngine, ITextureFactory textureFactory)
-    {
-        _audioEngine = audioEngine ?? throw new ArgumentNullException(nameof(audioEngine));
-        _scriptEngine = scriptEngine ?? throw new ArgumentNullException(nameof(scriptEngine));
-        _textureFactory = textureFactory ?? throw new ArgumentNullException(nameof(textureFactory));
-    }
 
     /// <summary>
     /// Serializes a scene to a JSON file at the specified path.
@@ -241,7 +230,7 @@ internal sealed class SceneSerializer : ISceneSerializer
 
         if (!string.IsNullOrWhiteSpace(texturePath))
         {
-            component.Texture = _textureFactory.Create(texturePath);
+            component.Texture = textureFactory.Create(texturePath);
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
@@ -267,7 +256,7 @@ internal sealed class SceneSerializer : ISceneSerializer
         // Reload texture from disk if path exists
         if (!string.IsNullOrWhiteSpace(texturePath))
         {
-            component.Texture = _textureFactory.Create(texturePath);
+            component.Texture = textureFactory.Create(texturePath);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);
@@ -291,7 +280,7 @@ internal sealed class SceneSerializer : ISceneSerializer
         {
             try
             {
-                component.AudioClip = _audioEngine.LoadAudioClip(audioClipPath);
+                component.AudioClip = audioEngine.LoadAudioClip(audioClipPath);
             }
             catch (Exception ex)
             {
@@ -322,7 +311,7 @@ internal sealed class SceneSerializer : ISceneSerializer
         }
 
         // First try to create script instance using ScriptEngine (for dynamic scripts)
-        var scriptInstanceResult = _scriptEngine.CreateScriptInstance(scriptTypeName);
+        var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptTypeName);
         if (scriptInstanceResult.IsSuccess)
         {
             var scriptInstance = scriptInstanceResult.Value;

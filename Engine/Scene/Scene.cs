@@ -14,41 +14,35 @@ using Serilog;
 
 namespace Engine.Scene;
 
-internal sealed class Scene : IScene
+internal sealed class Scene(
+    string path,
+    ISceneSystemRegistry systemRegistry,
+    IGraphics2D graphics2D,
+    IContext context) : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
-    private readonly IContext _context;
-    private readonly IGraphics2D _graphics2D;
-    private readonly ITextureFactory _textureFactory;
-    private readonly string _path;
-    private readonly World _physicsWorld;
+    private readonly (ISystemManager SystemManager, World PhysicsWorld) _init = Initialize(systemRegistry, context);
     private int _nextEntityId = 1;
-    private readonly ISystemManager _systemManager;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
-
-    public Scene(string path, ISceneSystemRegistry systemRegistry, IGraphics2D graphics2D, IContext context, ITextureFactory textureFactory)
+    private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
     {
-        _path = path;
-        _graphics2D = graphics2D;
-        _context = context;
-        _textureFactory = textureFactory;
-        _context.Clear();
-        
-        _systemManager = new SystemManager();
+        var systemManager = new SystemManager();
 
         // Populate system manager from registry (singleton systems shared across scenes)
-        systemRegistry.PopulateSystemManager(_systemManager);
-        
-        _physicsWorld = new World(new Vector2(0, -9.8f));
+        systemRegistry.PopulateSystemManager(systemManager);
+
+        var physicsWorld = new World(new Vector2(0, -9.8f));
         var contactListener = new SceneContactListener();
-        _physicsWorld.SetContactListener(contactListener);
+        physicsWorld.SetContactListener(contactListener);
 
         // Create and register physics simulation system with the physics world
         // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(_physicsWorld, _context);
-        _systemManager.RegisterSystem(physicsSimulationSystem);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(physicsWorld, context);
+        systemManager.RegisterSystem(physicsSimulationSystem);
+
+        return (systemManager, physicsWorld);
     }
 
     public IEnumerable<Entity> Entities => _entities;
@@ -56,7 +50,7 @@ internal sealed class Scene : IScene
     public Entity CreateEntity(string name)
     {
         var entity = Entity.Create(_nextEntityId++, name);
-        _context.Register(entity);
+        context.Register(entity);
         _entities.Add(entity);
 
         return entity;
@@ -71,21 +65,21 @@ internal sealed class Scene : IScene
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
 
-        _context.Register(entity);
+        context.Register(entity);
         _entities.Add(entity);
     }
 
     public void DestroyEntity(Entity entity)
     {
-        _context.Remove(entity.Id);
+        context.Remove(entity.Id);
         _entities.Remove(entity);
     }
 
     public void OnRuntimeStart()
     {
-        _systemManager.Initialize();
+        _init.SystemManager.Initialize();
 
-        var view = _context.View<RigidBody2DComponent>();
+        var view = context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
@@ -97,7 +91,7 @@ internal sealed class Scene : IScene
                 bullet = component.BodyType == RigidBodyType.Dynamic
             };
 
-            var body = _physicsWorld.CreateBody(bodyDef);
+            var body = _init.PhysicsWorld.CreateBody(bodyDef);
             body.SetFixedRotation(component.FixedRotation);
 
             body.SetUserData(entity);
@@ -133,7 +127,7 @@ internal sealed class Scene : IScene
 
     public void OnRuntimeStop()
     {
-        _systemManager.Shutdown();
+        _init.SystemManager.Shutdown();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
@@ -145,7 +139,7 @@ internal sealed class Scene : IScene
         // 205: SubTextureRenderingSystem
         // 210: ModelRenderingSystem
         // 500: PhysicsDebugRenderSystem
-        _systemManager.Update(ts);
+        _init.SystemManager.Update(ts);
     }
 
 
@@ -167,7 +161,7 @@ internal sealed class Scene : IScene
 
         Renderer3D.Instance.BeginScene(baseCamera, cameraTransform);
 
-        var modelGroup = _context.GetGroup([
+        var modelGroup = context.GetGroup([
             typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
         ]);
         foreach (var entity in modelGroup)
@@ -182,20 +176,20 @@ internal sealed class Scene : IScene
 
         Renderer3D.Instance.EndScene();
         */
-        
-        _graphics2D.BeginScene(camera);
 
-        var spriteGroup = _context.View<SpriteRendererComponent>();
+        graphics2D.BeginScene(camera);
+
+        var spriteGroup = context.View<SpriteRendererComponent>();
         foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
-            _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
-        var subtextureGroup = _context.View<SubTextureRendererComponent>();
+        var subtextureGroup = context.View<SubTextureRendererComponent>();
         foreach (var (entity, subtextureComponent) in subtextureGroup)
         {
-            if (subtextureComponent.Texture is null) 
+            if (subtextureComponent.Texture is null)
                 continue;
 
             // Use pre-calculated TexCoords if available (e.g., from animation system)
@@ -220,17 +214,17 @@ internal sealed class Scene : IScene
 
             // Use transform directly without additional scaling (same as runtime)
             var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            _graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
+            graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
-        
-        _graphics2D.EndScene();
+
+        graphics2D.EndScene();
     }
 
     public void OnViewportResize(uint width, uint height)
     {
         Logger.Information("Scene.OnViewportResize called: {Width}x{Height}", width, height);
 
-        var group = _context.View<CameraComponent>();
+        var group = context.View<CameraComponent>();
         foreach (var (entity, cameraComponent) in group)
         {
             if (!cameraComponent.FixedAspectRatio)
@@ -244,7 +238,7 @@ internal sealed class Scene : IScene
 
     public Entity? GetPrimaryCameraEntity()
     {
-        var view = _context.View<CameraComponent>();
+        var view = context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.Primary)
@@ -281,7 +275,7 @@ internal sealed class Scene : IScene
 
         return newEntity;
     }
-    
+
     /// <summary>
     /// Disposes the scene and cleans up all resources.
     /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
@@ -289,19 +283,19 @@ internal sealed class Scene : IScene
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) 
+        if (_disposed)
             return;
 
-        Logger.Debug("Disposing scene '{Path}'", _path);
+        Logger.Debug("Disposing scene '{Path}'", path);
 
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
         // Singleton systems (rendering, scripts) are shared and won't be disposed
-        _systemManager?.Dispose();
-        
+        _init.SystemManager?.Dispose();
+
         // Clear entity storage
-        _context.Clear();
+        context.Clear();
 
         _disposed = true;
-        Logger.Debug("Scene '{Path}' disposed successfully", _path);
+        Logger.Debug("Scene '{Path}' disposed successfully", path);
     }
 }
