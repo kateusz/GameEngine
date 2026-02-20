@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Renderer.Textures;
 
@@ -7,7 +8,9 @@ namespace Engine.Scene.Components;
 public class SubTextureRendererComponent : IComponent
 {
     public Vector2 Coords { get; set; }
+    [JsonIgnore]
     public Texture2D? Texture { get; set; }
+    public string? TexturePath { get; set; }
 
     /// <summary>
     /// Size of each cell in the sprite atlas (in pixels).
@@ -41,6 +44,7 @@ public class SubTextureRendererComponent : IComponent
     {
         Coords = coords;
         Texture = texture;
+        TexturePath = texture?.Path;
         CellSize = new Vector2(16, 16);
         SpriteSize = new Vector2(1, 1);
     }
