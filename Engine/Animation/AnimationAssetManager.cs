@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Engine.Core;
 using Engine.Renderer.Textures;
 using Engine.Scene.Serializer;
@@ -16,18 +15,7 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
 
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
+    private static readonly JsonSerializerOptions DefaultSerializerOptions = SerializerOptions.Default;
 
     private readonly Dictionary<string, CacheEntry> _cache = new();
 

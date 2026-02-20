@@ -18,7 +18,11 @@ public class SpriteRendererComponentEditor(IAssetsManager assetsManager, ITextur
 
             UIPropertyRenderer.DrawPropertyField("Color", component.Color,
                 newValue => component.Color = (System.Numerics.Vector4)newValue);
-            TextureDropTarget.Draw("Texture", texture => component.Texture = texture, assetsManager, textureFactory);
+            TextureDropTarget.Draw("Texture", texture =>
+            {
+                component.Texture = texture;
+                component.TexturePath = texture.Path;
+            }, assetsManager, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
                 newValue => component.TilingFactor = (float)newValue);
         });

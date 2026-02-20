@@ -27,17 +27,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
     private const string ScriptTypeKey = "ScriptType";
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new JsonStringEnumConverter()
-        }
-    };
+    private static readonly JsonSerializerOptions DefaultSerializerOptions = SerializerOptions.Default;
 
     /// <summary>
     /// Serialize an entity to a prefab file
@@ -83,7 +73,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
         var json = File.ReadAllText(prefabPath);
         var jsonObj = JsonNode.Parse(json)?.AsObject() ??
-                      throw new InvalidOperationException("Invalid prefab JSON");
+                      throw new InvalidSceneJsonException($"Invalid prefab JSON in {prefabPath}");
 
         // Clear existing components (except ID and Name)
         ClearEntityComponents(entity);
@@ -93,7 +83,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
         foreach (var componentNode in componentsArray)
         {
             DeserializeComponent(entity, componentNode ??
-                                         throw new InvalidOperationException("Got null JSON Component"));
+                                         throw new InvalidSceneJsonException("Got null JSON Component in prefab"));
         }
     }
 
@@ -111,7 +101,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
         var json = File.ReadAllText(prefabPath);
         var jsonObj = JsonNode.Parse(json)?.AsObject() ??
-                      throw new InvalidOperationException("Invalid prefab JSON");
+                      throw new InvalidSceneJsonException($"Invalid prefab JSON in {prefabPath}");
 
         var entity = Entity.Create(entityId, entityName);
 
@@ -119,7 +109,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
         foreach (var componentNode in componentsArray)
         {
             DeserializeComponent(entity, componentNode ??
-                                         throw new InvalidOperationException("Got null JSON Component"));
+                                         throw new InvalidSceneJsonException("Got null JSON Component in prefab"));
         }
 
         return entity;
@@ -221,6 +211,8 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
             entity.RemoveComponent<AudioListenerComponent>();
         if (entity.HasComponent<AudioSourceComponent>())
             entity.RemoveComponent<AudioSourceComponent>();
+        if (entity.HasComponent<AnimationComponent>())
+            entity.RemoveComponent<AnimationComponent>();
         if (entity.HasComponent<NativeScriptComponent>())
             entity.RemoveComponent<NativeScriptComponent>();
     }
@@ -228,7 +220,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
     private void DeserializeComponent(Entity entity, JsonNode componentNode)
     {
         if (componentNode is not JsonObject componentObj || componentObj[NameKey] is null)
-            throw new InvalidOperationException("Invalid component JSON");
+            throw new InvalidSceneJsonException("Invalid component JSON in prefab");
 
         var componentName = componentObj[NameKey]!.GetValue<string>();
 
@@ -256,13 +248,16 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
                 AddComponent<MeshComponent>(entity, componentObj);
                 break;
             case nameof(ModelRendererComponent):
-                AddComponent<ModelRendererComponent>(entity, componentObj);
+                DeserializeModelRendererComponent(entity, componentObj);
                 break;
             case nameof(AudioListenerComponent):
                 AddComponent<AudioListenerComponent>(entity, componentObj);
                 break;
             case nameof(AudioSourceComponent):
                 DeserializeAudioSourceComponent(entity, componentObj);
+                break;
+            case nameof(AnimationComponent):
+                AddComponent<AnimationComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
@@ -272,28 +267,21 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract the AudioClip path separately to avoid interface deserialization issues
-        string? audioClipPath = null;
-        if (componentObj.ContainsKey("AudioClipPath") && componentObj["AudioClipPath"] is JsonValue pathValue)
-        {
-            audioClipPath = pathValue.GetValue<string>();
-        }
-
-        var component =
-            JsonSerializer.Deserialize<AudioSourceComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<AudioSourceComponent>(DefaultSerializerOptions);
         if (component == null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(audioClipPath))
+        if (!string.IsNullOrWhiteSpace(component.AudioClipPath))
         {
             try
             {
-                component.AudioClip = audioEngine.LoadAudioClip(audioClipPath);
+                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath);
             }
             catch (Exception ex)
             {
-                // Log error but continue prefab deserialization
-                Logger.Warning(ex, "Failed to load audio clip '{AudioClipPath}' for prefab entity '{EntityName}'. Audio component will be created without clip.", audioClipPath, entity.Name);
+                Logger.Warning(ex,
+                    "Failed to load audio clip '{AudioClipPath}' for prefab entity '{EntityName}'. Audio component will be created without clip.",
+                    component.AudioClipPath, entity.Name);
             }
         }
 
@@ -331,22 +319,21 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
     private void DeserializeSpriteRendererComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract texture path separately to avoid abstract class deserialization issues
-        string? texturePath = null;
-        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
-            && textureObj.ContainsKey("Path") && textureObj["Path"] is JsonValue pathValue)
-        {
-            texturePath = pathValue.GetValue<string>();
-        }
-
-        var component = JsonSerializer.Deserialize<SpriteRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<SpriteRendererComponent>(DefaultSerializerOptions);
         if (component == null)
             return;
 
-        // Reload texture from disk if path exists
-        if (!string.IsNullOrWhiteSpace(texturePath))
+        // Support old format: "Texture": { "Path": "..." }
+        if (string.IsNullOrWhiteSpace(component.TexturePath)
+            && componentObj["Texture"] is JsonObject textureObj
+            && textureObj["Path"] is JsonValue pathValue)
         {
-            component.Texture = textureFactory.Create(texturePath);
+            component.TexturePath = pathValue.GetValue<string>();
+        }
+
+        if (!string.IsNullOrWhiteSpace(component.TexturePath))
+        {
+            component.Texture = textureFactory.Create(component.TexturePath);
         }
 
         entity.AddComponent<SpriteRendererComponent>(component);
@@ -354,39 +341,52 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
 
     private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
     {
-        // Extract texture path separately to avoid abstract class deserialization issues
-        string? texturePath = null;
-        if (componentObj.ContainsKey("Texture") && componentObj["Texture"] is JsonObject textureObj
-            && textureObj.ContainsKey("Path") && textureObj["Path"] is JsonValue pathValue)
-        {
-            texturePath = pathValue.GetValue<string>();
-        }
-
-        var component = JsonSerializer.Deserialize<SubTextureRendererComponent>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<SubTextureRendererComponent>(DefaultSerializerOptions);
         if (component == null)
             return;
 
-        // Reload texture from disk if path exists
-        if (!string.IsNullOrWhiteSpace(texturePath))
+        // Support old format: "Texture": { "Path": "..." }
+        if (string.IsNullOrWhiteSpace(component.TexturePath)
+            && componentObj["Texture"] is JsonObject textureObj
+            && textureObj["Path"] is JsonValue pathValue)
         {
-            component.Texture = textureFactory.Create(texturePath);
+            component.TexturePath = pathValue.GetValue<string>();
+        }
+
+        if (!string.IsNullOrWhiteSpace(component.TexturePath))
+        {
+            component.Texture = textureFactory.Create(component.TexturePath);
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);
     }
 
+    private void DeserializeModelRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = componentObj.Deserialize<ModelRendererComponent>(DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.OverrideTexturePath))
+        {
+            component.OverrideTexture = textureFactory.Create(component.OverrideTexturePath);
+        }
+
+        entity.AddComponent<ModelRendererComponent>(component);
+    }
+
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
-        var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
+        var component = componentObj.Deserialize<T>(DefaultSerializerOptions);
         if (component != null)
         {
             entity.AddComponent<T>(component);
         }
     }
 
-    private JsonArray GetJsonArray(JsonObject jsonObject, string key)
+    private static JsonArray GetJsonArray(JsonObject jsonObject, string key)
     {
         return jsonObject[key] as JsonArray ??
-               throw new InvalidOperationException($"Got invalid {key} JSON");
+               throw new InvalidSceneJsonException($"'{key}' must be a JSON array in prefab");
     }
 }

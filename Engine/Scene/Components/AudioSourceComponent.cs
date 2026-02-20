@@ -16,7 +16,7 @@ public class AudioSourceComponent : IComponent
     [JsonIgnore]
     public IAudioClip? AudioClip { get; set; }
 
-    public string? AudioClipPath => AudioClip?.Path;
+    public string? AudioClipPath { get; set; }
 
     /// <summary>
     /// Volume of the audio source (0.0 to 1.0).
@@ -77,6 +77,7 @@ public class AudioSourceComponent : IComponent
         float minDistance = 1.0f, float maxDistance = 100.0f)
     {
         AudioClip = audioClip;
+        AudioClipPath = audioClip?.Path;
         Volume = volume;
         Pitch = pitch;
         Loop = loop;
@@ -88,6 +89,9 @@ public class AudioSourceComponent : IComponent
 
     public IComponent Clone()
     {
-        return new AudioSourceComponent(AudioClip, Volume, Pitch, Loop, PlayOnAwake, Is3D, MinDistance, MaxDistance);
+        return new AudioSourceComponent(AudioClip, Volume, Pitch, Loop, PlayOnAwake, Is3D, MinDistance, MaxDistance)
+        {
+            AudioClipPath = AudioClipPath
+        };
     }
 }
