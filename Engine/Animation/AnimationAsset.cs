@@ -31,5 +31,6 @@ public sealed record AnimationAsset : IDisposable
     {
         // Factory owns texture lifetime; just release our reference
         Atlas = null!;
+        GC.SuppressFinalize(this);
     }
 }

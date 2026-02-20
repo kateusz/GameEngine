@@ -507,5 +507,6 @@ internal sealed class Graphics2D(
         _data.WhiteTexture = null!;
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }
