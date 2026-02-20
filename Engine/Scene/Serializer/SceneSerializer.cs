@@ -28,19 +28,7 @@ internal sealed class SceneSerializer(IAudioEngine audioEngine, IScriptEngine sc
     private const string IdKey = "Id";
     private const string ScriptTypeKey = "ScriptType";
 
-    // TODO: this is duplicated in AnimationComponentEditor
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
+    private static readonly JsonSerializerOptions DefaultSerializerOptions = SerializerOptions.Default;
 
     /// <summary>
     /// Serializes a scene to a JSON file at the specified path.

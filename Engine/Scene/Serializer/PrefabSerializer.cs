@@ -27,17 +27,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
     private const string ScriptTypeKey = "ScriptType";
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
-    {
-        WriteIndented = true,
-        Converters =
-        {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new JsonStringEnumConverter()
-        }
-    };
+    private static readonly JsonSerializerOptions DefaultSerializerOptions = SerializerOptions.Default;
 
     /// <summary>
     /// Serialize an entity to a prefab file
