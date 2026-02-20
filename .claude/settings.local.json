@@ -20,7 +20,10 @@
       "Bash(grep:*)",
       "WebFetch(domain:docs.godotengine.org)",
       "WebFetch(domain:rokojori.com)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "Bash(python3:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
