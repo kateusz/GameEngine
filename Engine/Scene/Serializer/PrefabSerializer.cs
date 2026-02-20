@@ -221,6 +221,8 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
             entity.RemoveComponent<AudioListenerComponent>();
         if (entity.HasComponent<AudioSourceComponent>())
             entity.RemoveComponent<AudioSourceComponent>();
+        if (entity.HasComponent<AnimationComponent>())
+            entity.RemoveComponent<AnimationComponent>();
         if (entity.HasComponent<NativeScriptComponent>())
             entity.RemoveComponent<NativeScriptComponent>();
     }
@@ -263,6 +265,9 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
                 break;
             case nameof(AudioSourceComponent):
                 DeserializeAudioSourceComponent(entity, componentObj);
+                break;
+            case nameof(AnimationComponent):
+                AddComponent<AnimationComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
