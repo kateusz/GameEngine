@@ -258,7 +258,7 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
                 AddComponent<MeshComponent>(entity, componentObj);
                 break;
             case nameof(ModelRendererComponent):
-                AddComponent<ModelRendererComponent>(entity, componentObj);
+                DeserializeModelRendererComponent(entity, componentObj);
                 break;
             case nameof(AudioListenerComponent):
                 AddComponent<AudioListenerComponent>(entity, componentObj);
@@ -376,6 +376,20 @@ internal sealed class PrefabSerializer(IAudioEngine audioEngine, ITextureFactory
         }
 
         entity.AddComponent<SubTextureRendererComponent>(component);
+    }
+
+    private void DeserializeModelRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = componentObj.Deserialize<ModelRendererComponent>(DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.OverrideTexturePath))
+        {
+            component.OverrideTexture = textureFactory.Create(component.OverrideTexturePath);
+        }
+
+        entity.AddComponent<ModelRendererComponent>(component);
     }
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent

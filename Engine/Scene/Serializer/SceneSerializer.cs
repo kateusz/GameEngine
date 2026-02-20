@@ -201,6 +201,12 @@ internal sealed class SceneSerializer(IAudioEngine audioEngine, IScriptEngine sc
             case nameof(AudioSourceComponent):
                 DeserializeAudioSourceComponent(entity, componentObj);
                 break;
+            case nameof(MeshComponent):
+                AddComponent<MeshComponent>(entity, componentObj);
+                break;
+            case nameof(ModelRendererComponent):
+                DeserializeModelRendererComponent(entity, componentObj);
+                break;
             case nameof(AnimationComponent):
                 AddComponent<AnimationComponent>(entity, componentObj);
                 break;
@@ -341,6 +347,20 @@ internal sealed class SceneSerializer(IAudioEngine audioEngine, IScriptEngine sc
         entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
     }
 
+    private void DeserializeModelRendererComponent(Entity entity, JsonObject componentObj)
+    {
+        var component = componentObj.Deserialize<ModelRendererComponent>(DefaultSerializerOptions);
+        if (component == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(component.OverrideTexturePath))
+        {
+            component.OverrideTexture = textureFactory.Create(component.OverrideTexturePath);
+        }
+
+        entity.AddComponent<ModelRendererComponent>(component);
+    }
+
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
         var component = JsonSerializer.Deserialize<T>(componentObj.ToJsonString(), DefaultSerializerOptions);
@@ -366,6 +386,8 @@ internal sealed class SceneSerializer(IAudioEngine audioEngine, IScriptEngine sc
         SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
         SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
+        SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
+        SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
         SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
         SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
