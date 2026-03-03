@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+.claude/worktrees/*
+
+docs/specs
+docs/audits
+
 # User-specific files
 *.rsuser
 *.suo
