@@ -13,6 +13,8 @@ internal sealed class OpenGLShadowMap : IShadowMap
     private uint _depthTexture;
     private bool _disposed;
 
+    private uint _previousFbo;
+
     public uint Width { get; }
     public uint Height { get; }
     public uint DepthTextureId => _depthTexture;
@@ -69,6 +71,11 @@ internal sealed class OpenGLShadowMap : IShadowMap
     public void Bind()
     {
         var gl = SilkNetContext.GL;
+
+        // Save the currently bound framebuffer so we can restore it
+        gl.GetInteger(GetPName.FramebufferBinding, out int currentFbo);
+        _previousFbo = (uint)currentFbo;
+
         gl.Viewport(0, 0, Width, Height);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
         gl.Clear(ClearBufferMask.DepthBufferBit);
@@ -76,7 +83,8 @@ internal sealed class OpenGLShadowMap : IShadowMap
 
     public void Unbind()
     {
-        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        // Restore the previously bound framebuffer (e.g. editor's FBO)
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _previousFbo);
     }
 
     public void Dispose()
