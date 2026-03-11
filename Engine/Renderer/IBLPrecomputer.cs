@@ -165,7 +165,7 @@ internal sealed class IBLPrecomputer : IDisposable
         IShaderFactory shaderFactory, uint fbo, uint rbo, uint cubeVao)
     {
         const uint envSize = 512;
-        var envCubemap = new OpenGLCubemap(envSize, InternalFormat.Rgb16f);
+        var envCubemap = new OpenGLCubemap(envSize, InternalFormat.Rgba16f);
 
         gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, rbo);
         gl.RenderbufferStorage(RenderbufferTarget.Renderbuffer, InternalFormat.DepthComponent24, envSize, envSize);
@@ -212,7 +212,7 @@ internal sealed class IBLPrecomputer : IDisposable
     private static OpenGLCubemap ComputeIrradianceMap(GL gl, OpenGLCubemap envCubemap,
         IShaderFactory shaderFactory, uint fbo, uint rbo, uint cubeVao)
     {
-        var irradianceMap = new OpenGLCubemap(IrradianceSize, InternalFormat.Rgb16f);
+        var irradianceMap = new OpenGLCubemap(IrradianceSize, InternalFormat.Rgba16f);
 
         gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, rbo);
         gl.RenderbufferStorage(RenderbufferTarget.Renderbuffer, InternalFormat.DepthComponent24,
@@ -250,7 +250,7 @@ internal sealed class IBLPrecomputer : IDisposable
     private static OpenGLCubemap ComputePrefilterMap(GL gl, OpenGLCubemap envCubemap,
         IShaderFactory shaderFactory, uint fbo, uint rbo, uint cubeVao)
     {
-        var prefilterMap = new OpenGLCubemap(PrefilterSize, InternalFormat.Rgb16f, generateMipmaps: true);
+        var prefilterMap = new OpenGLCubemap(PrefilterSize, InternalFormat.Rgba16f, generateMipmaps: true);
 
         var shader = shaderFactory.Create(
             "assets/shaders/opengl/prefilter.vert",

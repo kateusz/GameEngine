@@ -90,10 +90,11 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 
+        // Load as RGBA - macOS OpenGL drivers have issues with RGB float textures
         ImageResultFloat image;
         using (var stream = File.OpenRead(path))
         {
-            image = ImageResultFloat.FromStream(stream, ColorComponents.RedGreenBlue);
+            image = ImageResultFloat.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
         }
 
         var handle = SilkNetContext.GL.GenTexture();
@@ -107,8 +108,8 @@ internal sealed class OpenGLTexture2D : Texture2D
         {
             fixed (float* ptr = image.Data)
             {
-                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgb16f,
-                    (uint)image.Width, (uint)image.Height, 0, PixelFormat.Rgb, PixelType.Float, ptr);
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f,
+                    (uint)image.Width, (uint)image.Height, 0, PixelFormat.Rgba, PixelType.Float, ptr);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D(HDR)");
             }
 
@@ -124,7 +125,7 @@ internal sealed class OpenGLTexture2D : Texture2D
         }
 
         return new OpenGLTexture2D(path, handle, image.Width, image.Height,
-            InternalFormat.Rgb16f, PixelFormat.Rgb);
+            InternalFormat.Rgba16f, PixelFormat.Rgba);
     }
 
     private static Texture2D CreateFromStb(string path, bool srgb)

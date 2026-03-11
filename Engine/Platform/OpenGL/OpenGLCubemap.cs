@@ -27,9 +27,10 @@ internal sealed class OpenGLCubemap : IDisposable
         {
             unsafe
             {
+                // Use RGBA pixel format for compatibility (macOS drivers have issues with RGB float textures)
                 gl.TexImage2D(
                     TextureTarget.TextureCubeMapPositiveX + i, 0, internalFormat,
-                    size, size, 0, PixelFormat.Rgb, PixelType.Float, null);
+                    size, size, 0, PixelFormat.Rgba, PixelType.Float, null);
             }
         }
 
