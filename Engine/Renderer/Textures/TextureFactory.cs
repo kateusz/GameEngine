@@ -34,34 +34,33 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
         }
     }
     
-    public Texture2D Create(string path)
+    public Texture2D Create(string path) => Create(path, srgb: false);
+
+    public Texture2D Create(string path, bool srgb)
     {
-        // Normalize the path to ensure cache consistency across different path representations
+        // Include srgb flag in cache key so the same file can be cached in both formats
         var normalizedPath = Path.GetFullPath(path);
+        var cacheKey = srgb ? normalizedPath + "|srgb" : normalizedPath;
 
         lock (_cacheLock)
         {
-            // Check cache first
-            if (_textureCache.TryGetValue(normalizedPath, out var weakRef))
+            if (_textureCache.TryGetValue(cacheKey, out var weakRef))
             {
                 if (weakRef.TryGetTarget(out var cachedTexture))
                 {
                     return cachedTexture;
                 }
 
-                // Weak reference died, remove from cache
-                _textureCache.Remove(normalizedPath);
+                _textureCache.Remove(cacheKey);
             }
 
-            // Create new texture (use original path for loading)
             var texture = apiConfig.Type switch
             {
-                ApiType.SilkNet => OpenGLTexture2D.Create(normalizedPath),
+                ApiType.SilkNet => OpenGLTexture2D.Create(normalizedPath, srgb),
                 _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
             };
 
-            // Add to cache with weak reference using normalized path
-            _textureCache[normalizedPath] = new WeakReference<Texture2D>(texture);
+            _textureCache[cacheKey] = new WeakReference<Texture2D>(texture);
             return texture;
         }
     }

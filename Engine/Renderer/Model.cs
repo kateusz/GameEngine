@@ -163,18 +163,18 @@ public class Model : IModel
     {
         var pbrMaterial = new PBRMaterial();
 
-        // Albedo/Diffuse
-        var diffuseMaps = LoadMaterialTextures(mat, TextureType.Diffuse);
+        // Albedo/Diffuse — sRGB color data
+        var diffuseMaps = LoadMaterialTextures(mat, TextureType.Diffuse, srgb: true);
         if (diffuseMaps.Count > 0)
         {
             pbrMaterial.AlbedoMap = diffuseMaps[0];
             textures.AddRange(diffuseMaps);
         }
 
-        // Try BaseColor for glTF PBR
+        // Try BaseColor for glTF PBR — sRGB color data
         if (pbrMaterial.AlbedoMap == null)
         {
-            var baseColorMaps = LoadMaterialTextures(mat, TextureType.BaseColor);
+            var baseColorMaps = LoadMaterialTextures(mat, TextureType.BaseColor, srgb: true);
             if (baseColorMaps.Count > 0)
             {
                 pbrMaterial.AlbedoMap = baseColorMaps[0];
@@ -182,8 +182,8 @@ public class Model : IModel
             }
         }
 
-        // Normal maps
-        var normalMaps = LoadMaterialTextures(mat, TextureType.Normals);
+        // Normal maps — linear data
+        var normalMaps = LoadMaterialTextures(mat, TextureType.Normals, srgb: false);
         if (normalMaps.Count > 0)
         {
             pbrMaterial.NormalMap = normalMaps[0];
@@ -191,7 +191,7 @@ public class Model : IModel
         }
         else
         {
-            var heightMaps = LoadMaterialTextures(mat, TextureType.Height);
+            var heightMaps = LoadMaterialTextures(mat, TextureType.Height, srgb: false);
             if (heightMaps.Count > 0)
             {
                 pbrMaterial.NormalMap = heightMaps[0];
@@ -199,16 +199,16 @@ public class Model : IModel
             }
         }
 
-        // Metallic
-        var metallicMaps = LoadMaterialTextures(mat, TextureType.Metalness);
+        // Metallic — linear data
+        var metallicMaps = LoadMaterialTextures(mat, TextureType.Metalness, srgb: false);
         if (metallicMaps.Count > 0)
         {
             pbrMaterial.MetallicMap = metallicMaps[0];
             textures.AddRange(metallicMaps);
         }
 
-        // Roughness
-        var roughnessMaps = LoadMaterialTextures(mat, TextureType.DiffuseRoughness);
+        // Roughness — linear data
+        var roughnessMaps = LoadMaterialTextures(mat, TextureType.DiffuseRoughness, srgb: false);
         if (roughnessMaps.Count > 0)
         {
             pbrMaterial.RoughnessMap = roughnessMaps[0];
@@ -217,7 +217,7 @@ public class Model : IModel
 
         if (pbrMaterial.RoughnessMap == null)
         {
-            var specularMaps = LoadMaterialTextures(mat, TextureType.Specular);
+            var specularMaps = LoadMaterialTextures(mat, TextureType.Specular, srgb: false);
             if (specularMaps.Count > 0)
             {
                 pbrMaterial.RoughnessMap = specularMaps[0];
@@ -225,8 +225,8 @@ public class Model : IModel
             }
         }
 
-        // Ambient Occlusion
-        var aoMaps = LoadMaterialTextures(mat, TextureType.AmbientOcclusion);
+        // Ambient Occlusion — linear data
+        var aoMaps = LoadMaterialTextures(mat, TextureType.AmbientOcclusion, srgb: false);
         if (aoMaps.Count > 0)
         {
             pbrMaterial.AmbientOcclusionMap = aoMaps[0];
@@ -234,7 +234,7 @@ public class Model : IModel
         }
         else
         {
-            var ambientMaps = LoadMaterialTextures(mat, TextureType.Ambient);
+            var ambientMaps = LoadMaterialTextures(mat, TextureType.Ambient, srgb: false);
             if (ambientMaps.Count > 0)
             {
                 pbrMaterial.AmbientOcclusionMap = ambientMaps[0];
@@ -242,8 +242,8 @@ public class Model : IModel
             }
         }
 
-        // Emissive
-        var emissiveMaps = LoadMaterialTextures(mat, TextureType.Emissive);
+        // Emissive — sRGB color data
+        var emissiveMaps = LoadMaterialTextures(mat, TextureType.Emissive, srgb: true);
         if (emissiveMaps.Count > 0)
         {
             pbrMaterial.EmissiveMap = emissiveMaps[0];
@@ -295,7 +295,7 @@ public class Model : IModel
         }
     }
 
-    private unsafe List<Texture2D> LoadMaterialTextures(Material* mat, TextureType type)
+    private unsafe List<Texture2D> LoadMaterialTextures(Material* mat, TextureType type, bool srgb)
     {
         var textureCount = _assimp.GetMaterialTextureCount(mat, type);
         var textures = new List<Texture2D>();
@@ -333,7 +333,7 @@ public class Model : IModel
 
                 try
                 {
-                    var texture = _textureFactory.Create(texturePath);
+                    var texture = _textureFactory.Create(texturePath, srgb);
                     texture.Path = texturePath;
                     textures.Add(texture);
                     _texturesLoaded.Add(texture);

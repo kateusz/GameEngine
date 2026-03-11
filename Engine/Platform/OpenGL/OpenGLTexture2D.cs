@@ -71,19 +71,63 @@ internal sealed class OpenGLTexture2D : Texture2D
         return SupportedExtensions.Contains(ext);
     }
 
-    public static Texture2D Create(string path)
+    public static Texture2D Create(string path, bool srgb = false)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
         var ext = System.IO.Path.GetExtension(path);
         if (PfimExtensions.Contains(ext))
-            return CreateFromPfim(path);
+            return CreateFromPfim(path, srgb);
 
-        return CreateFromStb(path);
+        return CreateFromStb(path, srgb);
     }
 
-    private static Texture2D CreateFromStb(string path)
+    public static Texture2D CreateHDR(string path)
+    {
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"HDR texture file not found: {path}", path);
+
+        StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
+
+        ImageResultFloat image;
+        using (var stream = File.OpenRead(path))
+        {
+            image = ImageResultFloat.FromStream(stream, ColorComponents.RedGreenBlue);
+        }
+
+        var handle = SilkNetContext.GL.GenTexture();
+        OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture(HDR)");
+
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(HDR)");
+
+        unsafe
+        {
+            fixed (float* ptr = image.Data)
+            {
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgb16f,
+                    (uint)image.Width, (uint)image.Height, 0, PixelFormat.Rgb, PixelType.Float, ptr);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D(HDR)");
+            }
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.Linear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Linear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                (int)TextureWrapMode.ClampToEdge);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                (int)TextureWrapMode.ClampToEdge);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(HDR)");
+        }
+
+        return new OpenGLTexture2D(path, handle, image.Width, image.Height,
+            InternalFormat.Rgb16f, PixelFormat.Rgb);
+    }
+
+    private static Texture2D CreateFromStb(string path, bool srgb)
     {
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 
@@ -93,10 +137,11 @@ internal sealed class OpenGLTexture2D : Texture2D
             image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
         }
 
-        return UploadTexture(path, image.Data, image.Width, image.Height, InternalFormat.Rgba8, PixelFormat.Rgba);
+        var internalFormat = srgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8;
+        return UploadTexture(path, image.Data, image.Width, image.Height, internalFormat, PixelFormat.Rgba);
     }
 
-    private static Texture2D CreateFromPfim(string path)
+    private static Texture2D CreateFromPfim(string path, bool srgb)
     {
         using var pfimImage = Pfimage.FromFile(path);
         if (pfimImage.Compressed)
@@ -104,8 +149,8 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         var (internalFormat, dataFormat) = pfimImage.Format switch
         {
-            Pfim.ImageFormat.Rgba32 => (InternalFormat.Rgba8, PixelFormat.Bgra),
-            Pfim.ImageFormat.Rgb24 => (InternalFormat.Rgb8, PixelFormat.Bgr),
+            Pfim.ImageFormat.Rgba32 => (srgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8, PixelFormat.Bgra),
+            Pfim.ImageFormat.Rgb24 => (srgb ? InternalFormat.Srgb8 : InternalFormat.Rgb8, PixelFormat.Bgr),
             Pfim.ImageFormat.R5g5b5 => (InternalFormat.Rgb5, PixelFormat.Bgr),
             Pfim.ImageFormat.R5g6b5 => (InternalFormat.Rgb565, PixelFormat.Bgr),
             Pfim.ImageFormat.R5g5b5a1 => (InternalFormat.Rgb5A1, PixelFormat.Bgra),

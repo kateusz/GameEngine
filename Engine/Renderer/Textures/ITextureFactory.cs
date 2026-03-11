@@ -22,6 +22,14 @@ public interface ITextureFactory
     Texture2D Create(string path);
 
     /// <summary>
+    /// Creates or retrieves a cached texture with explicit sRGB format control.
+    /// Use srgb=true for color textures (albedo, emissive) so OpenGL performs
+    /// correct linear-space mipmap generation and texture filtering.
+    /// Use srgb=false for data textures (normal, metallic, roughness, AO).
+    /// </summary>
+    Texture2D Create(string path, bool srgb);
+
+    /// <summary>
     /// Creates a new procedural texture with the specified dimensions.
     /// Procedural textures are not cached as they may have different content despite identical dimensions.
     /// </summary>

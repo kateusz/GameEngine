@@ -1,10 +1,12 @@
 using System.Numerics;
 using Engine.Platform.OpenGL;
+using Engine.Platform.SilkNet;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Materials;
 using Engine.Renderer.Shaders;
 using Engine.Scene.Components;
 using Serilog;
+using Silk.NET.OpenGL;
 
 namespace Engine.Renderer;
 
@@ -30,6 +32,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     private uint _viewportHeight;
 
     private readonly Statistics _stats = new();
+    private IBLPrecomputer? _iblPrecomputer;
     private bool _disposed;
 
     private const uint ShadowMapSize = 4096;
@@ -42,6 +45,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     private const int AOSlot = 4;
     private const int EmissiveSlot = 5;
     private const int ShadowSlot = 6;
+    private const int IrradianceSlot = 7;
+    private const int PrefilterSlot = 8;
+    private const int BrdfLutSlot = 9;
 
     public void Init()
     {
@@ -50,6 +56,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _phongShader = shaderFactory.Create("assets/shaders/opengl/phong.vert", "assets/shaders/opengl/phong.frag");
 
         _shadowMap = new OpenGLShadowMap(ShadowMapSize, ShadowMapSize);
+
+        // Enable seamless cubemap filtering for IBL (GL_TEXTURE_CUBE_MAP_SEAMLESS = 0x884F)
+        SilkNetContext.GL.Enable((EnableCap)0x884F);
 
         // Set sampler uniforms once
         _pbrShader.Bind();
@@ -60,9 +69,19 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _pbrShader.SetInt("u_AOMap", AOSlot);
         _pbrShader.SetInt("u_EmissiveMap", EmissiveSlot);
         _pbrShader.SetInt("u_ShadowMap", ShadowSlot);
+        _pbrShader.SetInt("u_IrradianceMap", IrradianceSlot);
+        _pbrShader.SetInt("u_PrefilterMap", PrefilterSlot);
+        _pbrShader.SetInt("u_BrdfLUT", BrdfLutSlot);
         _pbrShader.Unbind();
 
         Logger.Information("PBR Graphics3D initialized with {ShadowMapSize}x{ShadowMapSize} shadow map", ShadowMapSize, ShadowMapSize);
+    }
+
+    public void SetEnvironmentMap(string hdrPath)
+    {
+        _iblPrecomputer?.Dispose();
+        _iblPrecomputer = new IBLPrecomputer();
+        _iblPrecomputer.Compute(hdrPath, shaderFactory);
     }
 
     // ============== Shadow Pass ==============
@@ -136,9 +155,22 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Scene lighting controls
-        _pbrShader.SetFloat("u_Exposure", 1.0f);
-        _pbrShader.SetFloat("u_AmbientIntensity", 0.25f);
+        _pbrShader.SetFloat("u_Exposure", 1.2f);
+        _pbrShader.SetFloat("u_AmbientIntensity", 0.35f);
         _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 1.0f, 1.0f));
+
+        // Bind IBL textures if available
+        if (_iblPrecomputer is { IsReady: true })
+        {
+            _iblPrecomputer.BindIrradiance(IrradianceSlot);
+            _iblPrecomputer.BindPrefilter(PrefilterSlot);
+            _iblPrecomputer.BindBrdfLut(BrdfLutSlot);
+            _pbrShader.SetInt("u_HasIBL", 1);
+        }
+        else
+        {
+            _pbrShader.SetInt("u_HasIBL", 0);
+        }
 
         // Default sun light (used when no directional light entity in scene)
         _pbrShader.SetInt("u_HasDirLight", 1);
@@ -392,6 +424,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _shadowShader?.Dispose();
         _phongShader?.Dispose();
         _shadowMap?.Dispose();
+        _iblPrecomputer?.Dispose();
 
         _disposed = true;
     }

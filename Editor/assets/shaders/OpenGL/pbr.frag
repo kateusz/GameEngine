@@ -23,6 +23,12 @@ uniform sampler2D u_AOMap;
 uniform sampler2D u_EmissiveMap;
 uniform sampler2D u_ShadowMap;
 
+// IBL textures
+uniform samplerCube u_IrradianceMap;
+uniform samplerCube u_PrefilterMap;
+uniform sampler2D u_BrdfLUT;
+uniform int u_HasIBL;
+
 // Material scalar fallbacks
 uniform vec4 u_AlbedoColor;
 uniform float u_Metallic;
@@ -44,8 +50,9 @@ uniform int u_HasShadowMap;
 uniform vec3 u_ViewPosition;
 
 // Scene lighting controls
-uniform float u_Exposure;       // HDR exposure (default 1.5)
-uniform float u_AmbientIntensity; // Ambient light strength (default 0.3)
+uniform float u_Exposure;
+uniform float u_AmbientIntensity;
+uniform vec3 u_AmbientColor;
 
 // Directional light
 uniform vec3 u_DirLightDirection;
@@ -54,13 +61,6 @@ uniform float u_DirLightIntensity;
 uniform int u_HasDirLight;
 
 // Point lights
-struct PointLight {
-    vec3 position;
-    vec3 color;
-    float intensity;
-    float range;
-};
-
 uniform int u_NumPointLights;
 uniform vec3 u_PointLightPositions[MAX_POINT_LIGHTS];
 uniform vec3 u_PointLightColors[MAX_POINT_LIGHTS];
@@ -115,6 +115,11 @@ vec3 F_Schlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+vec3 F_SchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 // Point light attenuation
 float attenuate(float distance, float range)
 {
@@ -142,18 +147,18 @@ float calculateShadow(vec4 lightSpacePos, vec3 normal, vec3 lightDir)
     // Slope-based bias to reduce shadow acne
     float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
 
-    // PCF 3x3
+    // PCF 5x5
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
-    for (int x = -1; x <= 1; ++x)
+    for (int x = -2; x <= 2; ++x)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int y = -2; y <= 2; ++y)
         {
             float pcfDepth = texture(u_ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= 25.0;
 
     return shadow;
 }
@@ -187,6 +192,8 @@ vec3 calculatePBRLighting(vec3 L, vec3 V, vec3 N, vec3 albedo, float metallic,
 void main()
 {
     // Sample material properties
+    // Note: albedo textures use GL_SRGB8_ALPHA8 format, so GPU automatically
+    // converts sRGB to linear on texture fetch — no manual pow(2.2) needed
     vec4 albedo4;
     if (u_HasAlbedoMap == 1)
         albedo4 = texture(u_AlbedoMap, v_TexCoord) * u_AlbedoColor;
@@ -197,7 +204,7 @@ void main()
     if (albedo4.a < 0.1)
         discard;
 
-    vec3 albedo = pow(albedo4.rgb, vec3(2.2)); // sRGB to linear
+    vec3 albedo = albedo4.rgb;
 
     float metallic;
     if (u_HasMetallicMap == 1)
@@ -231,6 +238,7 @@ void main()
     }
 
     vec3 V = normalize(u_ViewPosition - v_WorldPos);
+    float NdotV = max(dot(N, V), 0.0);
 
     // F0: reflectance at normal incidence (0.04 for dielectrics, albedo for metals)
     vec3 F0 = vec3(0.04);
@@ -277,11 +285,37 @@ void main()
                                     F0, u_SpotLightColors[i], u_SpotLightIntensities[i]) * att * spotIntensity;
     }
 
-    // Ambient lighting - use uniform with sensible default fallback
-    float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.3;
-    vec3 ambient = vec3(ambientStr) * albedo * ao;
+    // Ambient / IBL lighting
+    vec3 ambient;
+    if (u_HasIBL == 1)
+    {
+        // Fresnel with roughness for IBL
+        vec3 F = F_SchlickRoughness(NdotV, F0, roughness);
+        vec3 kS = F;
+        vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
-    // Emissive
+        // Diffuse IBL from irradiance map
+        vec3 irradiance = texture(u_IrradianceMap, N).rgb;
+        vec3 diffuseIBL = irradiance * albedo;
+
+        // Specular IBL (split-sum approximation)
+        vec3 R = reflect(-V, N);
+        const float MAX_REFLECTION_LOD = 4.0;
+        vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
+        vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
+
+        ambient = (kD * diffuseIBL + specularIBL) * ao;
+    }
+    else
+    {
+        // Fallback flat ambient
+        float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.3;
+        vec3 ambientColor = length(u_AmbientColor) > 0.0 ? u_AmbientColor : vec3(1.0);
+        ambient = ambientColor * ambientStr * albedo * ao;
+    }
+
+    // Emissive (emissive textures also use sRGB format, GPU converts automatically)
     vec3 emissive = vec3(0.0);
     if (u_HasEmissiveMap == 1)
         emissive = texture(u_EmissiveMap, v_TexCoord).rgb * u_EmissiveIntensity;
