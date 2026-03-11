@@ -77,8 +77,11 @@ internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext cont
         // Shadow pass for directional light
         if (dirLight is { CastShadows: true })
         {
+            // Compute scene bounds from all shadow-casting entities
+            var (sceneCenter, sceneRadius) = ComputeSceneBounds();
+
             var lightSpaceMatrix = Graphics3D.ComputeDirectionalLightSpaceMatrix(
-                dirLightDirection, Vector3.Zero, 50.0f);
+                dirLightDirection, sceneCenter, sceneRadius);
 
             graphics3D.BeginShadowPass(lightSpaceMatrix);
 
@@ -123,6 +126,31 @@ internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext cont
         }
 
         graphics3D.EndScene();
+    }
+
+    private (Vector3 Center, float Radius) ComputeSceneBounds()
+    {
+        var min = new Vector3(float.MaxValue);
+        var max = new Vector3(float.MinValue);
+        var hasEntities = false;
+
+        var meshView = context.View<MeshComponent>();
+        foreach (var (entity, _) in meshView)
+        {
+            var transform = entity.GetComponent<TransformComponent>().GetTransform();
+            var pos = new Vector3(transform.M41, transform.M42, transform.M43);
+
+            min = Vector3.Min(min, pos);
+            max = Vector3.Max(max, pos);
+            hasEntities = true;
+        }
+
+        if (!hasEntities)
+            return (Vector3.Zero, 50.0f);
+
+        var center = (min + max) * 0.5f;
+        var radius = MathF.Max((max - min).Length() * 0.5f, 10.0f);
+        return (center, radius);
     }
 
     public void OnShutdown() { }

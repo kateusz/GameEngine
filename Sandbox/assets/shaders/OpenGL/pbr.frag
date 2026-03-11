@@ -274,7 +274,7 @@ void main()
     }
 
     // Ambient (simple IBL approximation)
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 ambient = vec3(0.15) * albedo * ao;
 
     // Emissive
     vec3 emissive = vec3(0.0);
