@@ -193,7 +193,7 @@ void main()
 {
     // Sample material properties
     // Note: albedo textures use GL_SRGB8_ALPHA8 format, so GPU automatically
-    // converts sRGB to linear on texture fetch — no manual pow(2.2) needed
+    // converts sRGB to linear on texture fetch - no manual pow(2.2) needed
     vec4 albedo4;
     if (u_HasAlbedoMap == 1)
         albedo4 = texture(u_AlbedoMap, v_TexCoord) * u_AlbedoColor;
