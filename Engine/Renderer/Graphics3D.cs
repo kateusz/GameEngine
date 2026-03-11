@@ -17,9 +17,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     private IShader _phongShader = null!;
     private IShadowMap? _shadowMap;
 
-    // Legacy light properties (backward compatibility)
-    private Vector3 _lightPosition = new(0.0f, 3.0f, 3.0f);
-    private Vector3 _lightColor = new(1.0f, 1.0f, 1.0f);
+    // Default sun light properties (used when no directional light entity in scene)
+    private Vector3 _lightPosition = new(-2.0f, 5.0f, 3.0f);
+    private Vector3 _lightColor = new(1.0f, 0.95f, 0.9f);
     private float _shininess = 32.0f;
 
     // Current frame state
@@ -139,11 +139,11 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _pbrShader.SetFloat("u_Exposure", 1.5f);
         _pbrShader.SetFloat("u_AmbientIntensity", 0.3f);
 
-        // Default directional light from legacy properties
+        // Default sun light (used when no directional light entity in scene)
         _pbrShader.SetInt("u_HasDirLight", 1);
         _pbrShader.SetFloat3("u_DirLightDirection", Vector3.Normalize(_lightPosition * -1));
         _pbrShader.SetFloat3("u_DirLightColor", _lightColor);
-        _pbrShader.SetFloat("u_DirLightIntensity", 1.0f);
+        _pbrShader.SetFloat("u_DirLightIntensity", 2.0f);
 
         _pbrShader.SetInt("u_NumPointLights", 0);
         _pbrShader.SetInt("u_NumSpotLights", 0);
@@ -154,17 +154,13 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         ReadOnlySpan<(Vector3 Position, LightComponent Light)> pointLights,
         ReadOnlySpan<(Vector3 Position, LightComponent Light)> spotLights)
     {
-        // Directional light
+        // Directional light - if scene has one, use it; otherwise keep default from BeginScene
         if (directionalLight != null)
         {
             _pbrShader.SetInt("u_HasDirLight", 1);
             _pbrShader.SetFloat3("u_DirLightDirection", dirLightDirection);
             _pbrShader.SetFloat3("u_DirLightColor", directionalLight.Color);
             _pbrShader.SetFloat("u_DirLightIntensity", directionalLight.Intensity);
-        }
-        else
-        {
-            _pbrShader.SetInt("u_HasDirLight", 0);
         }
 
         // Point lights
