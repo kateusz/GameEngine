@@ -82,6 +82,24 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "CullFace");
     }
 
+    public void EnableDepthTest(bool enable)
+    {
+        if (enable)
+            SilkNetContext.GL.Enable(EnableCap.DepthTest);
+        else
+            SilkNetContext.GL.Disable(EnableCap.DepthTest);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "DepthTest toggle");
+    }
+
+    public void EnableBlending(bool enable)
+    {
+        if (enable)
+            SilkNetContext.GL.Enable(EnableCap.Blend);
+        else
+            SilkNetContext.GL.Disable(EnableCap.Blend);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "Blend toggle");
+    }
+
     public void BindTextureUnit(uint unit, uint textureId)
     {
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + (int)unit);

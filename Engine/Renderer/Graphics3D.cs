@@ -72,6 +72,10 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     {
         _lightSpaceMatrix = lightSpaceMatrix;
 
+        // Enable 3D rendering state
+        rendererApi.EnableDepthTest(true);
+        rendererApi.EnableBlending(false);
+
         _shadowMap?.Bind();
 
         // Cull front faces during shadow pass to reduce peter-panning
@@ -94,9 +98,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     {
         _shadowShader.Unbind();
 
-        // Restore normal culling
-        rendererApi.SetCullFace(true); // cull back faces
-        rendererApi.EnableFaceCulling(false);
+        // Restore back-face culling for main pass
+        rendererApi.SetCullFace(true);
+        rendererApi.EnableFaceCulling(true);
 
         _shadowMap?.Unbind();
 
@@ -109,6 +113,10 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
+        // Ensure 3D state is set (may not have gone through shadow pass)
+        rendererApi.EnableDepthTest(true);
+        rendererApi.EnableFaceCulling(true);
+
         _ = Matrix4x4.Invert(transform, out var transformInverted);
         Matrix4x4 viewProj;
 
@@ -204,6 +212,11 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     public void EndScene()
     {
         _pbrShader.Unbind();
+
+        // Restore state for 2D/ImGui rendering
+        rendererApi.EnableDepthTest(false);
+        rendererApi.EnableFaceCulling(false);
+        rendererApi.EnableBlending(true);
     }
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 color, int entityId = -1)

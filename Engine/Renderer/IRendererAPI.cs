@@ -13,6 +13,8 @@ public interface IRendererAPI
     void SetViewport(int x, int y, uint width, uint height);
     void EnableFaceCulling(bool enable);
     void SetCullFace(bool cullBack);
+    void EnableDepthTest(bool enable);
+    void EnableBlending(bool enable);
     void BindTextureUnit(uint unit, uint textureId);
     void Init();
     int GetError();
