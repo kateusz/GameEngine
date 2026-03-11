@@ -24,11 +24,6 @@ public interface IGraphics3D : IGraphics
     void SetLightColor(Vector3 color);
     void SetShininess(float shininess);
 
-    /// <summary>
-    /// Loads an HDR environment map and precomputes IBL maps (irradiance, prefiltered, BRDF LUT).
-    /// </summary>
-    void SetEnvironmentMap(string hdrPath);
-
     void ResetStats();
     Statistics GetStats();
 }

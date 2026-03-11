@@ -30,8 +30,6 @@ public class Sandbox3DLayer(
     // Hardcoded path to Bistro model - change this to match your local setup
     private const string BistroModelPath = "assets/models/Bistro/Exterior/BistroExterior.fbx";
     //private const string BistroModelPath = "assets/models/Bistro/Interior/BistroInterior_Wine.fbx";
-    private const string EnvironmentHdrPath = "assets/models/Bistro/san_giuseppe_bridge_4k.hdr";
-
     public void OnAttach(IInputSystem inputSystem)
     {
         Logger.Information("Sandbox3DLayer OnAttach - loading Bistro scene");
@@ -52,18 +50,6 @@ public class Sandbox3DLayer(
         Logger.Information("Loading Bistro model from {Path}...", modelPath);
         var result = modelSceneImporter.Import(_scene, modelPath, addDefaultLighting: true, addCamera: true);
         Logger.Information("Bistro scene loaded: {MeshCount} meshes", result.MeshEntities.Count);
-
-        // Load HDR environment map for IBL if available
-        var hdrPath = Path.Combine(AppContext.BaseDirectory, EnvironmentHdrPath);
-        if (File.Exists(hdrPath))
-        {
-            Logger.Information("Loading HDR environment map from {Path}...", hdrPath);
-            graphics3D.SetEnvironmentMap(hdrPath);
-        }
-        else
-        {
-            Logger.Warning("HDR environment map not found at {Path}, using fallback ambient lighting", hdrPath);
-        }
 
         _cameraEntity = result.CameraEntity;
 

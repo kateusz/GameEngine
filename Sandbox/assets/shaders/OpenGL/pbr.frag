@@ -23,12 +23,6 @@ uniform sampler2D u_AOMap;
 uniform sampler2D u_EmissiveMap;
 uniform sampler2D u_ShadowMap;
 
-// IBL textures
-uniform samplerCube u_IrradianceMap;
-uniform samplerCube u_PrefilterMap;
-uniform sampler2D u_BrdfLUT;
-uniform int u_HasIBL;
-
 // Material scalar fallbacks
 uniform vec4 u_AlbedoColor;
 uniform float u_Metallic;
@@ -50,10 +44,8 @@ uniform int u_HasShadowMap;
 uniform vec3 u_ViewPosition;
 
 // Scene lighting controls
-uniform float u_Exposure;
 uniform float u_AmbientIntensity;
 uniform vec3 u_AmbientColor;
-uniform float u_IBLIntensity;
 
 // Directional light
 uniform vec3 u_DirLightDirection;
@@ -114,11 +106,6 @@ float G_Smith(vec3 N, vec3 V, vec3 L, float roughness)
 vec3 F_Schlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-vec3 F_SchlickRoughness(float cosTheta, vec3 F0, float roughness)
-{
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 // Point light attenuation
@@ -287,48 +274,10 @@ void main()
                                     F0, u_SpotLightColors[i], u_SpotLightIntensities[i]) * att * spotIntensity;
     }
 
-    // Ambient / IBL lighting
-    vec3 ambient;
+    // Ambient lighting
     float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.5;
     vec3 ambientColor = length(u_AmbientColor) > 0.0 ? u_AmbientColor : vec3(1.0);
-
-    if (u_HasIBL == 1)
-    {
-        // Use geometric normal for IBL Fresnel to avoid blue fringing at edges
-        // Normal-mapped N can face away from camera at silhouettes, causing NdotV->0
-        // which maximizes Fresnel and shows blue sky reflections on all edges
-        float NdotVgeom = max(dot(Ngeom, V), 0.0);
-
-        vec3 F = F_SchlickRoughness(NdotVgeom, F0, roughness);
-        vec3 kS = F;
-        vec3 kD = (1.0 - kS) * (1.0 - metallic);
-
-        // Diffuse IBL: use geometric normal to avoid per-pixel noise from normal maps
-        vec3 irradiance = texture(u_IrradianceMap, Ngeom).rgb;
-        vec3 diffuseIBL = irradiance * albedo;
-
-        // Specular IBL - use geometric normal for smooth reflections
-        vec3 R = reflect(-V, Ngeom);
-        const float MAX_REFLECTION_LOD = 4.0;
-        vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-        vec2 brdf = texture(u_BrdfLUT, vec2(NdotVgeom, roughness)).rg;
-        vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
-        // Fade out specular IBL at grazing angles to prevent blue sky fringing
-        float horizonFade = smoothstep(0.0, 0.3, NdotVgeom);
-        specularIBL *= horizonFade;
-
-        float iblStr = u_IBLIntensity > 0.0 ? u_IBLIntensity : 1.0;
-        vec3 iblAmbient = (kD * diffuseIBL + specularIBL) * iblStr;
-
-        // Blend IBL with neutral flat ambient to prevent environment color cast
-        vec3 flatAmbient = ambientColor * ambientStr * albedo;
-        ambient = mix(flatAmbient, iblAmbient, 0.7) * ao;
-    }
-    else
-    {
-        // Fallback flat ambient
-        ambient = ambientColor * ambientStr * albedo * ao;
-    }
+    vec3 ambient = ambientColor * ambientStr * albedo * ao;
 
     // Emissive (emissive textures also use sRGB format, GPU converts automatically)
     vec3 emissive = vec3(0.0);
@@ -338,32 +287,6 @@ void main()
         emissive = u_EmissiveColor * u_EmissiveIntensity;
 
     vec3 color = ambient + Lo + emissive;
-
-    // HDR exposure
-    float exposure = u_Exposure > 0.0 ? u_Exposure : 1.0;
-    color *= exposure;
-
-    // ACES filmic tone mapping using ACEScg matrices (Stephen Hill fit)
-    // Preserves chromaticity better than per-channel Narkowicz approximation
-    // Input transform: sRGB -> ACEScg
-    mat3 ACESInputMat = mat3(
-        0.59719, 0.07600, 0.02840,
-        0.35458, 0.90834, 0.13383,
-        0.04823, 0.01566, 0.83777
-    );
-    // Output transform: ACEScg -> sRGB
-    mat3 ACESOutputMat = mat3(
-         1.60475, -0.10208, -0.00327,
-        -0.53108,  1.10813, -0.07276,
-        -0.07367, -0.00605,  1.07602
-    );
-    color = ACESInputMat * color;
-    // RRT and ODT fit
-    vec3 a = color * (color + 0.0245786) - 0.000090537;
-    vec3 b = color * (0.983729 * color + 0.4329510) + 0.238081;
-    color = a / b;
-    color = ACESOutputMat * color;
-    color = clamp(color, 0.0, 1.0);
 
     // Gamma correction (linear to sRGB)
     color = pow(color, vec3(1.0 / 2.2));
