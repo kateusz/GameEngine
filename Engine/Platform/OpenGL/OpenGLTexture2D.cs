@@ -4,6 +4,7 @@ using Engine.Renderer.Textures;
 using Pfim;
 using Silk.NET.OpenGL;
 using StbImageSharp;
+using Buffer = System.Buffer;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 using PixelType = Silk.NET.OpenGL.PixelType;

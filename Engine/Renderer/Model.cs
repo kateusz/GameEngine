@@ -7,6 +7,7 @@ using Engine.Renderer.VertexArray;
 using Serilog;
 using Silk.NET.Assimp;
 using AssimpMesh = Silk.NET.Assimp.Mesh;
+using File = System.IO.File;
 
 namespace Engine.Renderer;
 
