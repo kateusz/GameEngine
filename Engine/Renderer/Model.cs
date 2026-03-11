@@ -56,23 +56,35 @@ public class Model : IModel
         Directory = Path.GetDirectoryName(path) ?? string.Empty;
         Logger.Information("Loading model from {Path}, directory: {Directory}", path, Directory);
 
-        ProcessNode(scene->MRootNode, scene);
+        ProcessNode(scene->MRootNode, scene, Matrix4x4.Identity);
 
         Logger.Information("Model loaded: {MeshCount} meshes, {TextureCount} textures",
             Meshes.Count, _texturesLoaded.Count);
     }
 
-    private unsafe void ProcessNode(Node* node, Silk.NET.Assimp.Scene* scene)
+    private unsafe void ProcessNode(Node* node, Silk.NET.Assimp.Scene* scene, Matrix4x4 parentTransform)
     {
+        // Assimp stores transforms in row-major order, System.Numerics uses column-major
+        var nodeMatrix = node->MTransformation;
+        var localTransform = new Matrix4x4(
+            nodeMatrix.A1, nodeMatrix.B1, nodeMatrix.C1, nodeMatrix.D1,
+            nodeMatrix.A2, nodeMatrix.B2, nodeMatrix.C2, nodeMatrix.D2,
+            nodeMatrix.A3, nodeMatrix.B3, nodeMatrix.C3, nodeMatrix.D3,
+            nodeMatrix.A4, nodeMatrix.B4, nodeMatrix.C4, nodeMatrix.D4);
+
+        var worldTransform = localTransform * parentTransform;
+
         for (var i = 0; i < node->MNumMeshes; i++)
         {
             var mesh = scene->MMeshes[node->MMeshes[i]];
-            Meshes.Add(ProcessMesh(mesh, scene));
+            var processedMesh = ProcessMesh(mesh, scene);
+            processedMesh.NodeTransform = worldTransform;
+            Meshes.Add(processedMesh);
         }
 
         for (var i = 0; i < node->MNumChildren; i++)
         {
-            ProcessNode(node->MChildren[i], scene);
+            ProcessNode(node->MChildren[i], scene, worldTransform);
         }
     }
 

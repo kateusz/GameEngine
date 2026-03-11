@@ -38,7 +38,21 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
                 : mesh.Name;
 
             var entity = scene.CreateEntity(entityName);
-            entity.AddComponent<TransformComponent>();
+            var transform = entity.AddComponent<TransformComponent>();
+
+            // Decompose the accumulated node transform from the Assimp scene graph
+            if (Matrix4x4.Decompose(mesh.NodeTransform, out var scale, out var rotation, out var translation))
+            {
+                transform.Translation = translation;
+                transform.Scale = scale;
+                // Convert quaternion to Euler angles
+                var q = rotation;
+                var sinP = 2.0f * (q.W * q.X - q.Z * q.Y);
+                var pitch = MathF.Abs(sinP) >= 1.0f ? MathF.CopySign(MathF.PI / 2, sinP) : MathF.Asin(sinP);
+                var yaw = MathF.Atan2(2.0f * (q.W * q.Y + q.X * q.Z), 1.0f - 2.0f * (q.Y * q.Y + q.X * q.X));
+                var roll = MathF.Atan2(2.0f * (q.W * q.Z + q.X * q.Y), 1.0f - 2.0f * (q.Z * q.Z + q.X * q.X));
+                transform.Rotation = new Vector3(pitch, yaw, roll);
+            }
 
             var meshComponent = entity.AddComponent<MeshComponent>();
             meshComponent.SetMesh(mesh);

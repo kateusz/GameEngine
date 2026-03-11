@@ -68,6 +68,8 @@ public class EditorLayer(
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private bool _showModelImportPopup;
+    private bool _isImporting;
+    private string _importStatusMessage = string.Empty;
     private string _modelImportPath = "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net10.0/test/assets/models/Bistro/Exterior/BistroExterior.fbx";
     private Vector2 _viewportSize;
     private bool _viewportFocused;
@@ -616,12 +618,35 @@ public class EditorLayer(
 
     private void RenderModelImportPopup()
     {
-        if (!_showModelImportPopup)
+        if (!_showModelImportPopup && !_isImporting)
             return;
 
+        // Show loading overlay while importing
+        if (_isImporting)
+        {
+            ImGui.OpenPopup("Importing Model...");
+            var center = ImGui.GetMainViewport().GetCenter();
+            ImGui.SetNextWindowPos(center, ImGuiCond.Always, new Vector2(0.5f, 0.5f));
+            ImGui.SetNextWindowSize(new Vector2(400, 100));
+
+            var open = true;
+            if (ImGui.BeginPopupModal("Importing Model...", ref open, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove))
+            {
+                ImGui.Text(_importStatusMessage);
+                ImGui.Spacing();
+
+                // Animated spinner using dots
+                var dots = new string('.', (int)(DateTime.Now.Millisecond / 250) % 4);
+                ImGui.Text($"Loading{dots}");
+                ImGui.EndPopup();
+            }
+
+            return;
+        }
+
         ImGui.OpenPopup("Import 3D Model");
-        var center = ImGui.GetMainViewport().GetCenter();
-        ImGui.SetNextWindowPos(center, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        var popupCenter = ImGui.GetMainViewport().GetCenter();
+        ImGui.SetNextWindowPos(popupCenter, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
         ImGui.SetNextWindowSize(new Vector2(500, 200));
 
         if (ImGui.BeginPopupModal("Import 3D Model", ref _showModelImportPopup))
@@ -643,22 +668,37 @@ public class EditorLayer(
             {
                 if (!string.IsNullOrWhiteSpace(_modelImportPath))
                 {
-                    try
-                    {
-                        var scene = sceneContext.ActiveScene;
-                        if (scene != null)
-                        {
-                            var result = modelSceneImporter.Import(scene, _modelImportPath, addLights, addCamera);
-                            Logger.Information("Imported model with {MeshCount} meshes", result.MeshEntities.Count);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex, "Failed to import model from {Path}", _modelImportPath);
-                    }
-
                     _showModelImportPopup = false;
+                    _isImporting = true;
+                    _importStatusMessage = "Loading model file and textures...";
                     ImGui.CloseCurrentPopup();
+
+                    var path = _modelImportPath;
+                    var lights = addLights;
+                    var camera = addCamera;
+
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            var scene = sceneContext.ActiveScene;
+                            if (scene != null)
+                            {
+                                var result = modelSceneImporter.Import(scene, path, lights, camera);
+                                _importStatusMessage = $"Imported {result.MeshEntities.Count} meshes successfully.";
+                                Logger.Information("Imported model with {MeshCount} meshes", result.MeshEntities.Count);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _importStatusMessage = $"Import failed: {ex.Message}";
+                            Logger.Error(ex, "Failed to import model from {Path}", path);
+                        }
+                        finally
+                        {
+                            _isImporting = false;
+                        }
+                    });
                 }
             }
 

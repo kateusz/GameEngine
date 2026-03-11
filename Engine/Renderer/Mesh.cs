@@ -27,6 +27,11 @@ public class Mesh : IDisposable
     public List<Texture2D> Textures { get; set; }
     public PBRMaterial? Material { get; set; }
 
+    /// <summary>
+    /// Accumulated world transform from the Assimp scene graph node hierarchy.
+    /// </summary>
+    public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
+
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
