@@ -68,7 +68,7 @@ public class EditorLayer(
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
     private bool _showModelImportPopup;
-    private string _modelImportPath = "";
+    private string _modelImportPath = "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net10.0/test/assets/models/Bistro/Exterior/BistroExterior.fbx";
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private Entity? _hoveredEntity;

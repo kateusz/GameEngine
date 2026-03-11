@@ -174,7 +174,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Point lights
-        var numPoint = Math.Min(pointLights.Length, RenderingConstants.MaxPointLights);
+        var numPoint = System.Math.Min(pointLights.Length, RenderingConstants.MaxPointLights);
         _pbrShader.SetInt("u_NumPointLights", numPoint);
         for (var i = 0; i < numPoint; i++)
         {
@@ -186,7 +186,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Spot lights
-        var numSpot = Math.Min(spotLights.Length, RenderingConstants.MaxSpotLights);
+        var numSpot = System.Math.Min(spotLights.Length, RenderingConstants.MaxSpotLights);
         _pbrShader.SetInt("u_NumSpotLights", numSpot);
         for (var i = 0; i < numSpot; i++)
         {

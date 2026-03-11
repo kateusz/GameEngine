@@ -241,7 +241,7 @@ public class Model : IModel
         {
             float* colorData = stackalloc float[4];
             uint max = 4;
-            var result = _assimp.GetMaterialFloatArray(mat, (sbyte*)keyBytes, 0, 0, colorData, ref max);
+            var result = _assimp.GetMaterialFloatArray(mat, (byte*)keyBytes, 0, 0, colorData, ref max);
             if (result == Return.Success && max >= 3)
             {
                 pbrMaterial.AlbedoColor = new Vector4(colorData[0], colorData[1], colorData[2],
@@ -255,7 +255,7 @@ public class Model : IModel
         {
             float metallicValue = 0;
             uint max = 1;
-            var result = _assimp.GetMaterialFloatArray(mat, (sbyte*)keyBytes, 0, 0, &metallicValue, ref max);
+            var result = _assimp.GetMaterialFloatArray(mat, (byte*)keyBytes, 0, 0, &metallicValue, ref max);
             if (result == Return.Success)
                 pbrMaterial.Metallic = metallicValue;
         }
@@ -266,7 +266,7 @@ public class Model : IModel
         {
             float roughnessValue = 0.5f;
             uint max = 1;
-            var result = _assimp.GetMaterialFloatArray(mat, (sbyte*)keyBytes, 0, 0, &roughnessValue, ref max);
+            var result = _assimp.GetMaterialFloatArray(mat, (byte*)keyBytes, 0, 0, &roughnessValue, ref max);
             if (result == Return.Success)
                 pbrMaterial.Roughness = roughnessValue;
         }
@@ -287,6 +287,8 @@ public class Model : IModel
             {
                 texturePath = Path.Combine(Directory, texturePath);
             }
+
+            texturePath = texturePath.Replace('\\', '/');
 
             var skip = false;
             for (var j = 0; j < _texturesLoaded.Count; j++)
