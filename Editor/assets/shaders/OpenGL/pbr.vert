@@ -21,17 +21,18 @@ flat out int v_EntityID;
 
 void main()
 {
-    vec4 worldPos = u_Model * vec4(a_Position, 1.0);
+    // macOS: System.Numerics row-major matrices require row-vector multiplication
+    vec4 worldPos = vec4(a_Position, 1.0) * u_Model;
     v_WorldPos = worldPos.xyz;
     v_TexCoord = a_TexCoord;
     v_EntityID = a_EntityID;
 
     mat3 normalMatrix = mat3(u_NormalMatrix);
-    v_Normal = normalize(normalMatrix * a_Normal);
+    v_Normal = normalize(a_Normal * normalMatrix);
 
     // TBN matrix for normal mapping
-    vec3 T = normalize(normalMatrix * a_Tangent);
-    vec3 B = normalize(normalMatrix * a_Bitangent);
+    vec3 T = normalize(a_Tangent * normalMatrix);
+    vec3 B = normalize(a_Bitangent * normalMatrix);
     vec3 N = v_Normal;
     // Re-orthogonalize using Gram-Schmidt
     T = normalize(T - dot(T, N) * N);
@@ -39,8 +40,7 @@ void main()
     v_TBN = mat3(T, B, N);
 
     // Shadow mapping: transform to light space
-    v_LightSpacePos = u_LightSpaceMatrix * worldPos;
+    v_LightSpacePos = worldPos * u_LightSpaceMatrix;
 
-    // macOS requires reversed multiplication order
-    gl_Position = vec4(a_Position, 1.0) * u_Model * u_ViewProjection;
+    gl_Position = worldPos * u_ViewProjection;
 }

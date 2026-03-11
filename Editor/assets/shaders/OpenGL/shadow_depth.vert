@@ -12,5 +12,6 @@ uniform mat4 u_Model;
 
 void main()
 {
-    gl_Position = u_LightSpaceMatrix * u_Model * vec4(a_Position, 1.0);
+    // macOS: row-vector multiplication to match System.Numerics row-major matrices
+    gl_Position = vec4(a_Position, 1.0) * u_Model * u_LightSpaceMatrix;
 }
