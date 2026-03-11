@@ -166,7 +166,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             _iblPrecomputer.BindPrefilter(PrefilterSlot);
             _iblPrecomputer.BindBrdfLut(BrdfLutSlot);
             _pbrShader.SetInt("u_HasIBL", 1);
-            _pbrShader.SetFloat("u_IBLIntensity", 0.3f);
+            _pbrShader.SetFloat("u_IBLIntensity", 0.15f);
         }
         else
         {
