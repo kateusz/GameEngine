@@ -159,8 +159,19 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _pbrShader.SetFloat("u_AmbientIntensity", 0.35f);
         _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 1.0f, 1.0f));
 
-        // IBL temporarily disabled for debugging blue tint issue
-        _pbrShader.SetInt("u_HasIBL", 0);
+        // Bind IBL textures if available
+        if (_iblPrecomputer is { IsReady: true })
+        {
+            _iblPrecomputer.BindIrradiance(IrradianceSlot);
+            _iblPrecomputer.BindPrefilter(PrefilterSlot);
+            _iblPrecomputer.BindBrdfLut(BrdfLutSlot);
+            _pbrShader.SetInt("u_HasIBL", 1);
+            _pbrShader.SetFloat("u_IBLIntensity", 0.3f);
+        }
+        else
+        {
+            _pbrShader.SetInt("u_HasIBL", 0);
+        }
 
         // Default sun light (used when no directional light entity in scene)
         _pbrShader.SetInt("u_HasDirLight", 1);
