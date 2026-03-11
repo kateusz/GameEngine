@@ -227,6 +227,7 @@ void main()
         ao = u_AO;
 
     // Normal mapping
+    vec3 Ngeom = normalize(v_Normal); // Geometric normal (smooth, no normal map)
     vec3 N;
     if (u_HasNormalMap == 1)
     {
@@ -235,7 +236,7 @@ void main()
     }
     else
     {
-        N = normalize(v_Normal);
+        N = Ngeom;
     }
 
     vec3 V = normalize(u_ViewPosition - v_WorldPos);
@@ -288,6 +289,9 @@ void main()
 
     // Ambient / IBL lighting
     vec3 ambient;
+    float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.3;
+    vec3 ambientColor = length(u_AmbientColor) > 0.0 ? u_AmbientColor : vec3(1.0);
+
     if (u_HasIBL == 1)
     {
         // Fresnel with roughness for IBL
@@ -295,36 +299,29 @@ void main()
         vec3 kS = F;
         vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
-        // Diffuse IBL from irradiance map
-        vec3 irradiance = texture(u_IrradianceMap, N).rgb;
-        // Luminance-based tone compression: scales all channels equally by luminance
-        float irrLum = dot(irradiance, vec3(0.2126, 0.7152, 0.0722));
-        irradiance *= 1.0 / (1.0 + irrLum);
-        // Desaturate diffuse IBL to reduce environment color cast in ambient fill
-        // (specular keeps more saturation since reflections should show environment)
-        float irrGray = dot(irradiance, vec3(0.2126, 0.7152, 0.0722));
-        irradiance = mix(vec3(irrGray), irradiance, 0.5);
+        // Diffuse IBL: use geometric normal to avoid per-pixel noise from normal maps
+        // Normal-mapped N would cause speckling on detailed surfaces like cobblestones
+        vec3 irradiance = texture(u_IrradianceMap, Ngeom).rgb;
         vec3 diffuseIBL = irradiance * albedo;
 
-        // Specular IBL (split-sum approximation)
+        // Specular IBL (split-sum approximation) - uses normal-mapped N for detail
         vec3 R = reflect(-V, N);
         const float MAX_REFLECTION_LOD = 4.0;
         vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-        float prefLum = dot(prefilteredColor, vec3(0.2126, 0.7152, 0.0722));
-        prefilteredColor *= 1.0 / (1.0 + prefLum);
-        float prefGray = dot(prefilteredColor, vec3(0.2126, 0.7152, 0.0722));
-        prefilteredColor = mix(vec3(prefGray), prefilteredColor, 0.7);
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
         vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
 
         float iblStr = u_IBLIntensity > 0.0 ? u_IBLIntensity : 1.0;
-        ambient = (kD * diffuseIBL + specularIBL) * ao * iblStr;
+        vec3 iblAmbient = (kD * diffuseIBL + specularIBL) * iblStr;
+
+        // Blend IBL with neutral flat ambient to prevent environment color cast
+        // in shadow regions while preserving IBL richness in lit areas
+        vec3 flatAmbient = ambientColor * ambientStr * albedo;
+        ambient = mix(flatAmbient, iblAmbient, 0.6) * ao;
     }
     else
     {
         // Fallback flat ambient
-        float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.3;
-        vec3 ambientColor = length(u_AmbientColor) > 0.0 ? u_AmbientColor : vec3(1.0);
         ambient = ambientColor * ambientStr * albedo * ao;
     }
 
