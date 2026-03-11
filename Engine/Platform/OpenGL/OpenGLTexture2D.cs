@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Textures;
+using Pfim;
 using Silk.NET.OpenGL;
 using StbImageSharp;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
@@ -54,7 +55,13 @@ internal sealed class OpenGLTexture2D : Texture2D
 
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm", ".pgm", ".ppm"
+        ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm", ".pgm", ".ppm",
+        ".dds"
+    };
+
+    private static readonly HashSet<string> PfimExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".dds", ".tga"
     };
 
     public static bool IsSupportedFormat(string path)
@@ -68,7 +75,15 @@ internal sealed class OpenGLTexture2D : Texture2D
         if (!File.Exists(path))
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
-        // Load the image data first, before allocating any GL resources
+        var ext = System.IO.Path.GetExtension(path);
+        if (PfimExtensions.Contains(ext))
+            return CreateFromPfim(path);
+
+        return CreateFromStb(path);
+    }
+
+    private static Texture2D CreateFromStb(string path)
+    {
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 
         ImageResult image;
@@ -77,11 +92,66 @@ internal sealed class OpenGLTexture2D : Texture2D
             image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
         }
 
-        var width = image.Width;
-        var height = image.Height;
-        const InternalFormat internalFormat = InternalFormat.Rgba8;
-        const PixelFormat dataFormat = PixelFormat.Rgba;
+        return UploadTexture(path, image.Data, image.Width, image.Height, InternalFormat.Rgba8, PixelFormat.Rgba);
+    }
 
+    private static Texture2D CreateFromPfim(string path)
+    {
+        using var pfimImage = Pfimage.FromFile(path);
+        if (pfimImage.Compressed)
+            pfimImage.Decompress();
+
+        var (internalFormat, dataFormat) = pfimImage.Format switch
+        {
+            Pfim.ImageFormat.Rgba32 => (InternalFormat.Rgba8, PixelFormat.Bgra),
+            Pfim.ImageFormat.Rgb24 => (InternalFormat.Rgb8, PixelFormat.Bgr),
+            Pfim.ImageFormat.R5g5b5 => (InternalFormat.Rgb5, PixelFormat.Bgr),
+            Pfim.ImageFormat.R5g6b5 => (InternalFormat.Rgb565, PixelFormat.Bgr),
+            Pfim.ImageFormat.R5g5b5a1 => (InternalFormat.Rgb5A1, PixelFormat.Bgra),
+            Pfim.ImageFormat.Rgba16 => (InternalFormat.Rgba4, PixelFormat.Bgra),
+            _ => throw new NotSupportedException($"Unsupported Pfim format '{pfimImage.Format}' for texture: {path}")
+        };
+
+        // Pfim data may have stride padding - copy tightly packed rows if needed
+        var bytesPerPixel = pfimImage.BitsPerPixel / 8;
+        var tightStride = pfimImage.Width * bytesPerPixel;
+        byte[] data;
+
+        if (pfimImage.Stride != tightStride)
+        {
+            data = new byte[tightStride * pfimImage.Height];
+            for (var row = 0; row < pfimImage.Height; row++)
+            {
+                Buffer.BlockCopy(pfimImage.Data, row * pfimImage.Stride, data, row * tightStride, tightStride);
+            }
+        }
+        else
+        {
+            data = pfimImage.Data;
+        }
+
+        // Flip vertically to match OpenGL's bottom-left origin
+        FlipVertically(data, pfimImage.Width, pfimImage.Height, tightStride);
+
+        return UploadTexture(path, data, pfimImage.Width, pfimImage.Height, internalFormat, dataFormat);
+    }
+
+    private static void FlipVertically(byte[] data, int width, int height, int stride)
+    {
+        var tempRow = new byte[stride];
+        for (var y = 0; y < height / 2; y++)
+        {
+            var topOffset = y * stride;
+            var bottomOffset = (height - 1 - y) * stride;
+            Buffer.BlockCopy(data, topOffset, tempRow, 0, stride);
+            Buffer.BlockCopy(data, bottomOffset, data, topOffset, stride);
+            Buffer.BlockCopy(tempRow, 0, data, bottomOffset, stride);
+        }
+    }
+
+    private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
+        InternalFormat internalFormat, PixelFormat dataFormat)
+    {
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
 
@@ -92,10 +162,10 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         unsafe
         {
-            fixed (byte* ptr = image.Data)
+            fixed (byte* ptr = data)
             {
-                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)width,
-                    (uint)height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
+                    (uint)height, 0, dataFormat, PixelType.UnsignedByte, ptr);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
             }
 
@@ -119,7 +189,8 @@ internal sealed class OpenGLTexture2D : Texture2D
             OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
         }
 
-        return new OpenGLTexture2D(path, handle, width, height, internalFormat, dataFormat);
+        return new OpenGLTexture2D(path, handle, width, height, internalFormat,
+            dataFormat == PixelFormat.Bgra ? PixelFormat.Rgba : dataFormat);
     }
 
     // Activate texture
