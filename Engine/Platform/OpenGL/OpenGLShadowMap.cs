@@ -79,6 +79,7 @@ internal sealed class OpenGLShadowMap : IShadowMap
 
         gl.Viewport(0, 0, Width, Height);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+        gl.ClearDepth(1.0);
         gl.Clear(ClearBufferMask.DepthBufferBit);
     }
 

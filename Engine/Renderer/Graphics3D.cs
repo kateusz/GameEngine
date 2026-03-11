@@ -77,9 +77,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
 
         _shadowMap?.Bind();
 
-        // Cull front faces during shadow pass to reduce peter-panning
-        rendererApi.EnableFaceCulling(true);
-        rendererApi.SetCullFace(false); // cull front faces
+        // Disable face culling for shadow pass - many imported models have single-sided geometry
+        rendererApi.EnableFaceCulling(false);
 
         _shadowShader.Bind();
         _shadowShader.SetMat4("u_LightSpaceMatrix", lightSpaceMatrix);
@@ -125,8 +124,16 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _pbrShader.SetFloat3("u_ViewPosition", _currentViewPosition);
         _pbrShader.SetMat4("u_LightSpaceMatrix", _lightSpaceMatrix);
 
-        // Disable shadow map until shadow rendering is verified
-        _pbrShader.SetInt("u_HasShadowMap", 0);
+        // Bind shadow map
+        if (_shadowMap != null)
+        {
+            rendererApi.BindTextureUnit(ShadowSlot, _shadowMap.DepthTextureId);
+            _pbrShader.SetInt("u_HasShadowMap", 1);
+        }
+        else
+        {
+            _pbrShader.SetInt("u_HasShadowMap", 0);
+        }
 
         // Default directional light from legacy properties
         _pbrShader.SetInt("u_HasDirLight", 1);
