@@ -28,6 +28,11 @@ public interface IMeshFactory : IDisposable
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory);
 
     /// <summary>
+    /// Loads a model file and returns all meshes with PBR materials.
+    /// </summary>
+    IModel CreateModel(string filePath);
+
+    /// <summary>
     /// Clears all cached meshes and disposes loaded models to free GPU resources.
     /// Should be called when shutting down or when clearing the asset cache.
     /// </summary>

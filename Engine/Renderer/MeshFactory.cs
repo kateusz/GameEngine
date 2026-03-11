@@ -27,27 +27,46 @@ internal sealed class MeshFactory(
     /// <returns>A mesh instance from the model file.</returns>
     public Mesh Create(string objFilePath)
     {
-        // Check if we've already loaded this mesh
         if (_loadedMeshes.TryGetValue(objFilePath, out var existingMesh))
         {
             return existingMesh;
         }
 
-        // Load the model and keep it alive to prevent disposal of shared textures
         var model = new Model(objFilePath, textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
         var mesh = model.Meshes.First();
 
-        // Log information about mesh size
         if (mesh.Vertices.Count > 50000 || mesh.Indices.Count > 100000)
         {
             _logger.Warning("Large mesh loaded from {ObjFilePath}: {VertexCount} vertices, {IndexCount} indices",
                 objFilePath, mesh.Vertices.Count, mesh.Indices.Count);
         }
 
-        // Cache both the mesh and the model to prevent resource disposal
         _loadedMeshes[objFilePath] = mesh;
         _loadedModels[objFilePath] = model;
         return mesh;
+    }
+
+    public IModel CreateModel(string filePath)
+    {
+        if (_loadedModels.TryGetValue(filePath, out var existingModel))
+        {
+            return existingModel;
+        }
+
+        var model = new Model(filePath, textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+
+        var totalVerts = model.Meshes.Sum(m => m.Vertices.Count);
+        var totalIndices = model.Meshes.Sum(m => m.Indices.Count);
+        _logger.Information("Model loaded from {FilePath}: {MeshCount} meshes, {VertexCount} vertices, {IndexCount} indices",
+            filePath, model.Meshes.Count, totalVerts, totalIndices);
+
+        _loadedModels[filePath] = model;
+        foreach (var mesh in model.Meshes)
+        {
+            _loadedMeshes[$"{filePath}:{mesh.Name}"] = mesh;
+        }
+
+        return model;
     }
 
     /// <summary>
@@ -67,40 +86,40 @@ internal sealed class MeshFactory(
         var size = 0.5f;
 
         // Front face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), Vector3.UnitZ, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitZ, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitZ, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitZ, new Vector2(0.0f, 1.0f)));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), Vector3.UnitZ, new Vector2(0.0f, 0.0f), Vector3.UnitX, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitZ, new Vector2(1.0f, 0.0f), Vector3.UnitX, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitZ, new Vector2(1.0f, 1.0f), Vector3.UnitX, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitZ, new Vector2(0.0f, 1.0f), Vector3.UnitX, Vector3.UnitY));
 
         // Back face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitZ, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitZ, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), -Vector3.UnitZ, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitZ, new Vector2(0.0f, 0.0f)));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitZ, new Vector2(1.0f, 0.0f), -Vector3.UnitX, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitZ, new Vector2(1.0f, 1.0f), -Vector3.UnitX, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), -Vector3.UnitZ, new Vector2(0.0f, 1.0f), -Vector3.UnitX, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitZ, new Vector2(0.0f, 0.0f), -Vector3.UnitX, Vector3.UnitY));
 
         // Top face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), Vector3.UnitY, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitY, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitY, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitY, new Vector2(1.0f, 0.0f)));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), Vector3.UnitY, new Vector2(0.0f, 0.0f), Vector3.UnitX, -Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitY, new Vector2(0.0f, 1.0f), Vector3.UnitX, -Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitY, new Vector2(1.0f, 1.0f), Vector3.UnitX, -Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitY, new Vector2(1.0f, 0.0f), Vector3.UnitX, -Vector3.UnitZ));
 
         // Bottom face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitY, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitY, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), -Vector3.UnitY, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitY, new Vector2(0.0f, 0.0f)));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitY, new Vector2(0.0f, 1.0f), Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitY, new Vector2(1.0f, 1.0f), Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), -Vector3.UnitY, new Vector2(1.0f, 0.0f), Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitY, new Vector2(0.0f, 0.0f), Vector3.UnitX, Vector3.UnitZ));
 
         // Right face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), Vector3.UnitX, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitX, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitX, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitX, new Vector2(1.0f, 0.0f)));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), Vector3.UnitX, new Vector2(0.0f, 0.0f), -Vector3.UnitZ, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitX, new Vector2(0.0f, 1.0f), -Vector3.UnitZ, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitX, new Vector2(1.0f, 1.0f), -Vector3.UnitZ, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitX, new Vector2(1.0f, 0.0f), -Vector3.UnitZ, Vector3.UnitY));
 
         // Left face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitX, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitX, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), -Vector3.UnitX, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitX, new Vector2(1.0f, 1.0f)));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitX, new Vector2(1.0f, 0.0f), Vector3.UnitZ, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitX, new Vector2(0.0f, 0.0f), Vector3.UnitZ, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), -Vector3.UnitX, new Vector2(0.0f, 1.0f), Vector3.UnitZ, Vector3.UnitY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitX, new Vector2(1.0f, 1.0f), Vector3.UnitZ, Vector3.UnitY));
 
         // Define indices (6 faces, 2 triangles per face, 3 indices per triangle)
         // Front face

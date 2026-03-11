@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Materials;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
@@ -8,9 +9,15 @@ namespace Engine.Renderer;
 
 public class Mesh : IDisposable
 {
-    public record struct Vertex(Vector3 Position, Vector3 Normal, Vector2 TexCoord, int EntityId = -1)
+    public record struct Vertex(
+        Vector3 Position,
+        Vector3 Normal,
+        Vector2 TexCoord,
+        Vector3 Tangent,
+        Vector3 Bitangent,
+        int EntityId = -1)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2) + sizeof(int);
+        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3) + sizeof(int);
     }
 
     public string Name { get; set; }
@@ -18,13 +25,14 @@ public class Mesh : IDisposable
     public List<uint> Indices { get; set; }
     public Texture2D DiffuseTexture { get; set; }
     public List<Texture2D> Textures { get; set; }
-    
+    public PBRMaterial? Material { get; set; }
+
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
-    private bool _initialized = false;
-    private bool _disposed = false;
-    
+    private bool _initialized;
+    private bool _disposed;
+
     public IVertexArray GetVertexArray()
     {
         if (!_initialized)
@@ -64,6 +72,8 @@ public class Mesh : IDisposable
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float3, "a_Normal"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
+            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         });
 
@@ -82,7 +92,6 @@ public class Mesh : IDisposable
 
     private void UploadVertexData()
     {
-        // Upload the mesh vertices directly using our specialized method
         _vertexBuffer.SetMeshData(Vertices, Vertices.Count * Vertex.GetSize());
     }
 

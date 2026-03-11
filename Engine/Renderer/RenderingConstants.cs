@@ -88,4 +88,11 @@ internal static class RenderingConstants
     public const float DefaultTileScale = 1.0f;
     public const float TileLayerZSpacing = 0.01f;
     public static readonly Vector4? OpaqueWhiteTint = new Vector4(1, 1, 1, 1);
+
+    // PBR lighting limits (must match shader defines)
+    public const int MaxPointLights = 8;
+    public const int MaxSpotLights = 4;
+
+    // Shadow map
+    public const uint DefaultShadowMapSize = 4096;
 }

@@ -11,6 +11,15 @@ public interface IGraphics3D : IGraphics
     void EndScene();
     void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 color, int entityId = -1);
     void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, int entityId = -1);
+
+    /// <summary>
+    /// Renders the shadow pass for all queued meshes from the directional light's perspective.
+    /// Call before BeginScene for the main pass.
+    /// </summary>
+    void BeginShadowPass(Matrix4x4 lightSpaceMatrix);
+    void DrawShadowMesh(Matrix4x4 transform, Mesh mesh);
+    void EndShadowPass();
+
     void SetLightPosition(Vector3 position);
     void SetLightColor(Vector3 color);
     void SetShininess(float shininess);

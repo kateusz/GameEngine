@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Materials;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
+using Serilog;
 using Silk.NET.Assimp;
 using AssimpMesh = Silk.NET.Assimp.Mesh;
 
@@ -10,6 +12,8 @@ namespace Engine.Renderer;
 
 public class Model : IModel
 {
+    private static readonly ILogger Logger = Log.ForContext<Model>();
+
     private readonly ITextureFactory _textureFactory;
     private readonly IVertexArrayFactory _vertexArrayFactory;
     private readonly IVertexBufferFactory _vertexBufferFactory;
@@ -32,11 +36,15 @@ public class Model : IModel
     private List<Texture2D> _texturesLoaded = new();
     public string Directory { get; protected set; } = string.Empty;
     public List<Mesh> Meshes { get; protected set; } = new();
-    private bool _disposed = false;
-        
+    private bool _disposed;
+
     private unsafe void LoadModel(string path)
     {
-        var scene = _assimp.ImportFile(path, (uint)PostProcessSteps.Triangulate);
+        var scene = _assimp.ImportFile(path,
+            (uint)(PostProcessSteps.Triangulate |
+                   PostProcessSteps.GenerateNormals |
+                   PostProcessSteps.CalculateTangentSpace |
+                   PostProcessSteps.FlipUVs));
 
         if (scene == null || scene->MFlags == Assimp.SceneFlagsIncomplete || scene->MRootNode == null)
         {
@@ -44,9 +52,13 @@ public class Model : IModel
             throw new Exception(error);
         }
 
-        Directory = path;
+        Directory = Path.GetDirectoryName(path) ?? string.Empty;
+        Logger.Information("Loading model from {Path}, directory: {Directory}", path, Directory);
 
         ProcessNode(scene->MRootNode, scene);
+
+        Logger.Information("Model loaded: {MeshCount} meshes, {TextureCount} textures",
+            Meshes.Count, _texturesLoaded.Count);
     }
 
     private unsafe void ProcessNode(Node* node, Silk.NET.Assimp.Scene* scene)
@@ -55,7 +67,6 @@ public class Model : IModel
         {
             var mesh = scene->MMeshes[node->MMeshes[i]];
             Meshes.Add(ProcessMesh(mesh, scene));
-
         }
 
         for (var i = 0; i < node->MNumChildren; i++)
@@ -66,35 +77,27 @@ public class Model : IModel
 
     private unsafe Mesh ProcessMesh(AssimpMesh* mesh, Silk.NET.Assimp.Scene* scene)
     {
-        // data to fill
         var vertices = new List<Mesh.Vertex>();
         var indices = new List<uint>();
         var textures = new List<Texture2D>();
 
-        // walk through each of the mesh's vertices
         for (uint i = 0; i < mesh->MNumVertices; i++)
         {
             var vertex = new Mesh.Vertex();
-            //vertex.BoneIds = new int[Mesh.Vertex.MAX_BONE_INFLUENCE];
-            //vertex.Weights = new float[Mesh.Vertex.MAX_BONE_INFLUENCE];
 
             vertex.Position = mesh->MVertices[i];
 
-            // normals
             if (mesh->MNormals != null)
                 vertex.Normal = mesh->MNormals[i];
-            // tangent
-            // if (mesh->MTangents != null)
-            //     vertex.Tangent = mesh->MTangents[i];
-            // // bitangent
-            // if (mesh->MBitangents != null)
-            //     vertex.Bitangent = mesh->MBitangents[i];
 
-            // texture coordinates
-            if (mesh->MTextureCoords[0] != null) // does the mesh contain texture coordinates?
+            if (mesh->MTangents != null)
+                vertex.Tangent = mesh->MTangents[i];
+
+            if (mesh->MBitangents != null)
+                vertex.Bitangent = mesh->MBitangents[i];
+
+            if (mesh->MTextureCoords[0] != null)
             {
-                // a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
-                // use models where a vertex can have multiple texture coordinates so we always take the first set (0).
                 var texcoord3 = mesh->MTextureCoords[0][i];
                 vertex.TexCoord = new Vector2(texcoord3.X, texcoord3.Y);
             }
@@ -102,51 +105,171 @@ public class Model : IModel
             vertices.Add(vertex);
         }
 
-        // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
         for (uint i = 0; i < mesh->MNumFaces; i++)
         {
             var face = mesh->MFaces[i];
-            // retrieve all indices of the face and store them in the indices vector
             for (uint j = 0; j < face.MNumIndices; j++)
                 indices.Add(face.MIndices[j]);
         }
 
-        // process materials
-        var material = scene->MMaterials[mesh->MMaterialIndex];
-        // we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-        // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
-        // Same applies to other texture as the following list summarizes:
-        // diffuse: texture_diffuseN
-        // specular: texture_specularN
-        // normal: texture_normalN
+        // Extract PBR material
+        PBRMaterial? pbrMaterial = null;
+        if (mesh->MMaterialIndex >= 0)
+        {
+            var material = scene->MMaterials[mesh->MMaterialIndex];
+            pbrMaterial = ExtractPBRMaterial(material, ref textures);
+        }
 
-        // 1. diffuse maps
-        var diffuseMaps = LoadMaterialTextures(material, TextureType.Diffuse);
-        if (diffuseMaps.Any())
-            textures.AddRange(diffuseMaps);
-        // 2. specular maps
-        var specularMaps = LoadMaterialTextures(material, TextureType.Specular);
-        if (specularMaps.Any())
-            textures.AddRange(specularMaps);
-        // 3. normal maps
-        var normalMaps = LoadMaterialTextures(material, TextureType.Height);
-        if (normalMaps.Any())
-            textures.AddRange(normalMaps);
-        // 4. height maps
-        var heightMaps = LoadMaterialTextures(material, TextureType.Ambient);
-        if (heightMaps.Any())
-            textures.AddRange(heightMaps);
-
-        // return a mesh object created from the extracted mesh data
-        //var result = new Mesh(, BuildIndices(indices), textures);
         var result = new Mesh("Model_Mesh", _textureFactory)
         {
             Vertices = vertices,
             Indices = indices,
-            Textures = textures
+            Textures = textures,
+            Material = pbrMaterial
         };
+
+        // Set albedo as diffuse texture for backward compatibility
+        if (pbrMaterial?.AlbedoMap != null)
+            result.DiffuseTexture = pbrMaterial.AlbedoMap;
+
         result.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
         return result;
+    }
+
+    private unsafe PBRMaterial ExtractPBRMaterial(Material* mat, ref List<Texture2D> textures)
+    {
+        var pbrMaterial = new PBRMaterial();
+
+        // Albedo/Diffuse
+        var diffuseMaps = LoadMaterialTextures(mat, TextureType.Diffuse);
+        if (diffuseMaps.Count > 0)
+        {
+            pbrMaterial.AlbedoMap = diffuseMaps[0];
+            textures.AddRange(diffuseMaps);
+        }
+
+        // Try BaseColor for glTF PBR
+        if (pbrMaterial.AlbedoMap == null)
+        {
+            var baseColorMaps = LoadMaterialTextures(mat, TextureType.BaseColor);
+            if (baseColorMaps.Count > 0)
+            {
+                pbrMaterial.AlbedoMap = baseColorMaps[0];
+                textures.AddRange(baseColorMaps);
+            }
+        }
+
+        // Normal maps
+        var normalMaps = LoadMaterialTextures(mat, TextureType.Normals);
+        if (normalMaps.Count > 0)
+        {
+            pbrMaterial.NormalMap = normalMaps[0];
+            textures.AddRange(normalMaps);
+        }
+        else
+        {
+            var heightMaps = LoadMaterialTextures(mat, TextureType.Height);
+            if (heightMaps.Count > 0)
+            {
+                pbrMaterial.NormalMap = heightMaps[0];
+                textures.AddRange(heightMaps);
+            }
+        }
+
+        // Metallic
+        var metallicMaps = LoadMaterialTextures(mat, TextureType.Metalness);
+        if (metallicMaps.Count > 0)
+        {
+            pbrMaterial.MetallicMap = metallicMaps[0];
+            textures.AddRange(metallicMaps);
+        }
+
+        // Roughness
+        var roughnessMaps = LoadMaterialTextures(mat, TextureType.DiffuseRoughness);
+        if (roughnessMaps.Count > 0)
+        {
+            pbrMaterial.RoughnessMap = roughnessMaps[0];
+            textures.AddRange(roughnessMaps);
+        }
+
+        if (pbrMaterial.RoughnessMap == null)
+        {
+            var specularMaps = LoadMaterialTextures(mat, TextureType.Specular);
+            if (specularMaps.Count > 0)
+            {
+                pbrMaterial.RoughnessMap = specularMaps[0];
+                textures.AddRange(specularMaps);
+            }
+        }
+
+        // Ambient Occlusion
+        var aoMaps = LoadMaterialTextures(mat, TextureType.AmbientOcclusion);
+        if (aoMaps.Count > 0)
+        {
+            pbrMaterial.AmbientOcclusionMap = aoMaps[0];
+            textures.AddRange(aoMaps);
+        }
+        else
+        {
+            var ambientMaps = LoadMaterialTextures(mat, TextureType.Ambient);
+            if (ambientMaps.Count > 0)
+            {
+                pbrMaterial.AmbientOcclusionMap = ambientMaps[0];
+                textures.AddRange(ambientMaps);
+            }
+        }
+
+        // Emissive
+        var emissiveMaps = LoadMaterialTextures(mat, TextureType.Emissive);
+        if (emissiveMaps.Count > 0)
+        {
+            pbrMaterial.EmissiveMap = emissiveMaps[0];
+            pbrMaterial.EmissiveIntensity = 1.0f;
+            textures.AddRange(emissiveMaps);
+        }
+
+        ExtractMaterialScalars(mat, pbrMaterial);
+
+        return pbrMaterial;
+    }
+
+    private unsafe void ExtractMaterialScalars(Material* mat, PBRMaterial pbrMaterial)
+    {
+        // Diffuse color
+        var diffuseKey = System.Text.Encoding.ASCII.GetBytes("$clr.diffuse\0");
+        fixed (byte* keyBytes = diffuseKey)
+        {
+            float* colorData = stackalloc float[4];
+            uint max = 4;
+            var result = _assimp.GetMaterialFloatArray(mat, (sbyte*)keyBytes, 0, 0, colorData, ref max);
+            if (result == Return.Success && max >= 3)
+            {
+                pbrMaterial.AlbedoColor = new Vector4(colorData[0], colorData[1], colorData[2],
+                    max >= 4 ? colorData[3] : 1.0f);
+            }
+        }
+
+        // Metallic factor
+        var metallicKey = System.Text.Encoding.ASCII.GetBytes("$mat.metallicFactor\0");
+        fixed (byte* keyBytes = metallicKey)
+        {
+            float metallicValue = 0;
+            uint max = 1;
+            var result = _assimp.GetMaterialFloatArray(mat, (sbyte*)keyBytes, 0, 0, &metallicValue, ref max);
+            if (result == Return.Success)
+                pbrMaterial.Metallic = metallicValue;
+        }
+
+        // Roughness factor
+        var roughnessKey = System.Text.Encoding.ASCII.GetBytes("$mat.roughnessFactor\0");
+        fixed (byte* keyBytes = roughnessKey)
+        {
+            float roughnessValue = 0.5f;
+            uint max = 1;
+            var result = _assimp.GetMaterialFloatArray(mat, (sbyte*)keyBytes, 0, 0, &roughnessValue, ref max);
+            if (result == Return.Success)
+                pbrMaterial.Roughness = roughnessValue;
+        }
     }
 
     private unsafe List<Texture2D> LoadMaterialTextures(Material* mat, TextureType type)
@@ -157,10 +280,18 @@ public class Model : IModel
         {
             AssimpString path;
             _assimp.GetMaterialTexture(mat, type, i, &path, null, null, null, null, null, null);
+
+            // Resolve texture path relative to model directory
+            string texturePath = path;
+            if (!string.IsNullOrEmpty(Directory) && !Path.IsPathRooted(texturePath))
+            {
+                texturePath = Path.Combine(Directory, texturePath);
+            }
+
             var skip = false;
             for (var j = 0; j < _texturesLoaded.Count; j++)
             {
-                if (_texturesLoaded[j].Path == path)
+                if (_texturesLoaded[j].Path == texturePath)
                 {
                     textures.Add(_texturesLoaded[j]);
                     skip = true;
@@ -169,34 +300,20 @@ public class Model : IModel
             }
             if (!skip)
             {
-                var texture = _textureFactory.Create(path);
-                texture.Path = path;
-                textures.Add(texture);
-                _texturesLoaded.Add(texture);
+                try
+                {
+                    var texture = _textureFactory.Create(texturePath);
+                    texture.Path = texturePath;
+                    textures.Add(texture);
+                    _texturesLoaded.Add(texture);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning("Failed to load texture {Path}: {Error}", texturePath, ex.Message);
+                }
             }
         }
         return textures;
-    }
-
-    private float[] BuildVertices(List<Mesh.Vertex> vertexCollection)
-    {
-        var vertices = new List<float>();
-
-        foreach (var vertex in vertexCollection)
-        {
-            vertices.Add(vertex.Position.X);
-            vertices.Add(vertex.Position.Y);
-            vertices.Add(vertex.Position.Z);
-            vertices.Add(vertex.TexCoord.X);
-            vertices.Add(vertex.TexCoord.Y);
-        }
-
-        return vertices.ToArray();
-    }
-
-    private uint[] BuildIndices(List<uint> indices)
-    {
-        return indices.ToArray();
     }
 
     public void Dispose()
@@ -204,14 +321,12 @@ public class Model : IModel
         if (_disposed)
             return;
 
-        // Dispose all meshes
         foreach (var mesh in Meshes)
         {
             mesh?.Dispose();
         }
         Meshes.Clear();
 
-        // Dispose all loaded textures
         foreach (var texture in _texturesLoaded)
         {
             texture?.Dispose();
