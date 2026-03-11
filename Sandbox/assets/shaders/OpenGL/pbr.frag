@@ -294,30 +294,32 @@ void main()
 
     if (u_HasIBL == 1)
     {
-        // Fresnel with roughness for IBL
-        vec3 F = F_SchlickRoughness(NdotV, F0, roughness);
+        // Use geometric normal for IBL Fresnel to avoid blue fringing at edges
+        // Normal-mapped N can face away from camera at silhouettes, causing NdotV→0
+        // which maximizes Fresnel and shows blue sky reflections on all edges
+        float NdotVgeom = max(dot(Ngeom, V), 0.0);
+
+        vec3 F = F_SchlickRoughness(NdotVgeom, F0, roughness);
         vec3 kS = F;
         vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
         // Diffuse IBL: use geometric normal to avoid per-pixel noise from normal maps
-        // Normal-mapped N would cause speckling on detailed surfaces like cobblestones
         vec3 irradiance = texture(u_IrradianceMap, Ngeom).rgb;
         vec3 diffuseIBL = irradiance * albedo;
 
-        // Specular IBL - use geometric normal for smooth reflections (avoids noise)
+        // Specular IBL - use geometric normal for smooth reflections
         vec3 R = reflect(-V, Ngeom);
         const float MAX_REFLECTION_LOD = 4.0;
         vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-        vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
+        vec2 brdf = texture(u_BrdfLUT, vec2(NdotVgeom, roughness)).rg;
         vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
 
         float iblStr = u_IBLIntensity > 0.0 ? u_IBLIntensity : 1.0;
         vec3 iblAmbient = (kD * diffuseIBL + specularIBL) * iblStr;
 
         // Blend IBL with neutral flat ambient to prevent environment color cast
-        // in shadow regions while preserving IBL richness in lit areas
         vec3 flatAmbient = ambientColor * ambientStr * albedo;
-        ambient = mix(flatAmbient, iblAmbient, 0.6) * ao;
+        ambient = mix(flatAmbient, iblAmbient, 0.5) * ao;
     }
     else
     {
