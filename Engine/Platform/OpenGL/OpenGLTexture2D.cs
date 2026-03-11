@@ -180,9 +180,9 @@ internal sealed class OpenGLTexture2D : Texture2D
             }
 
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)TextureMinFilter.Linear);
+                (int)TextureMinFilter.LinearMipmapLinear);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                (int)TextureMagFilter.Nearest);
+                (int)TextureMagFilter.Linear);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
 
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
@@ -197,6 +197,11 @@ internal sealed class OpenGLTexture2D : Texture2D
 
             SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
             OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+
+            // Anisotropic filtering for sharp textures at oblique angles
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                (TextureParameterName)0x84FE, 16.0f); // GL_TEXTURE_MAX_ANISOTROPY_EXT
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(anisotropic)");
         }
 
         return new OpenGLTexture2D(path, handle, width, height, internalFormat,
@@ -268,7 +273,7 @@ internal sealed class OpenGLTexture2D : Texture2D
         OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D in Create");
 
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.Linear);
-        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Nearest);
+        SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Linear);
         OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters) in Create");
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapS, (int)GLEnum.Repeat);
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapT, (int)GLEnum.Repeat);
