@@ -295,14 +295,20 @@ void main()
         vec3 kS = F;
         vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
-        // Diffuse IBL from irradiance map (ACES tone mapping handles HDR range)
+        // Diffuse IBL from irradiance map
         vec3 irradiance = texture(u_IrradianceMap, N).rgb;
+        // Luminance-based tone compression: scales all channels equally by luminance,
+        // preserving color ratios (unlike per-channel which destroys them)
+        float irrLum = dot(irradiance, vec3(0.2126, 0.7152, 0.0722));
+        irradiance *= 1.0 / (1.0 + irrLum);
         vec3 diffuseIBL = irradiance * albedo;
 
         // Specular IBL (split-sum approximation)
         vec3 R = reflect(-V, N);
         const float MAX_REFLECTION_LOD = 4.0;
         vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        float prefLum = dot(prefilteredColor, vec3(0.2126, 0.7152, 0.0722));
+        prefilteredColor *= 1.0 / (1.0 + prefLum);
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
         vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
 
