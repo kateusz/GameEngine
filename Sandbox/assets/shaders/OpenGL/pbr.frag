@@ -274,10 +274,12 @@ void main()
                                     F0, u_SpotLightColors[i], u_SpotLightIntensities[i]) * att * spotIntensity;
     }
 
-    // Ambient lighting
+    // Hemisphere ambient: surfaces facing up get full ambient, facing down get reduced
+    // This reveals normal map detail in ambient lighting
     float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.5;
     vec3 ambientColor = length(u_AmbientColor) > 0.0 ? u_AmbientColor : vec3(1.0);
-    vec3 ambient = ambientColor * ambientStr * albedo * ao;
+    float hemiFactor = dot(N, vec3(0.0, 1.0, 0.0)) * 0.5 + 0.5;
+    vec3 ambient = ambientColor * ambientStr * albedo * ao * mix(0.4, 1.0, hemiFactor);
 
     // Emissive (emissive textures also use sRGB format, GPU converts automatically)
     vec3 emissive = vec3(0.0);
