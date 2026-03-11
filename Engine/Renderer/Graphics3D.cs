@@ -155,9 +155,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Scene lighting controls
-        _pbrShader.SetFloat("u_Exposure", 3.0f);
+        _pbrShader.SetFloat("u_Exposure", 1.6f);
         _pbrShader.SetFloat("u_AmbientIntensity", 0.6f);
-        _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 0.98f, 0.95f));
+        _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 1.0f, 1.0f));
 
         // Bind IBL textures if available
         if (_iblPrecomputer is { IsReady: true })
