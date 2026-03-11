@@ -295,7 +295,7 @@ void main()
     if (u_HasIBL == 1)
     {
         // Use geometric normal for IBL Fresnel to avoid blue fringing at edges
-        // Normal-mapped N can face away from camera at silhouettes, causing NdotV→0
+        // Normal-mapped N can face away from camera at silhouettes, causing NdotV->0
         // which maximizes Fresnel and shows blue sky reflections on all edges
         float NdotVgeom = max(dot(Ngeom, V), 0.0);
 
