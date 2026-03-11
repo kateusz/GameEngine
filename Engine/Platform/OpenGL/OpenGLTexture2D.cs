@@ -279,11 +279,6 @@ internal sealed class OpenGLTexture2D : Texture2D
             SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
             OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
 
-            // Negative LOD bias: favor sharper mip levels at oblique viewing angles
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
-                TextureParameterName.TextureLodBias, -0.5f);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(LOD bias)");
-
             // Anisotropic filtering for sharp textures at oblique angles
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
                 (TextureParameterName)0x84FE, 16.0f); // GL_TEXTURE_MAX_ANISOTROPY_EXT

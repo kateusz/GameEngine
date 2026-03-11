@@ -218,7 +218,7 @@ void main()
         roughness = texture(u_RoughnessMap, v_TexCoord).r;
     else
         roughness = u_Roughness;
-    roughness = max(roughness, 0.04); // Prevent divide by zero artifacts
+    roughness = max(roughness, 0.15); // Prevent mirror-like specular noise
 
     float ao;
     if (u_HasAOMap == 1)
@@ -304,8 +304,8 @@ void main()
         vec3 irradiance = texture(u_IrradianceMap, Ngeom).rgb;
         vec3 diffuseIBL = irradiance * albedo;
 
-        // Specular IBL (split-sum approximation) - uses normal-mapped N for detail
-        vec3 R = reflect(-V, N);
+        // Specular IBL - use geometric normal for smooth reflections (avoids noise)
+        vec3 R = reflect(-V, Ngeom);
         const float MAX_REFLECTION_LOD = 4.0;
         vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
