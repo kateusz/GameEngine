@@ -125,16 +125,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _pbrShader.SetFloat3("u_ViewPosition", _currentViewPosition);
         _pbrShader.SetMat4("u_LightSpaceMatrix", _lightSpaceMatrix);
 
-        // Bind shadow map
-        if (_shadowMap != null)
-        {
-            rendererApi.BindTextureUnit(ShadowSlot, _shadowMap.DepthTextureId);
-            _pbrShader.SetInt("u_HasShadowMap", 1);
-        }
-        else
-        {
-            _pbrShader.SetInt("u_HasShadowMap", 0);
-        }
+        // Disable shadow map until shadow rendering is verified
+        _pbrShader.SetInt("u_HasShadowMap", 0);
 
         // Default directional light from legacy properties
         _pbrShader.SetInt("u_HasDirLight", 1);
