@@ -43,6 +43,10 @@ uniform int u_HasShadowMap;
 // Camera
 uniform vec3 u_ViewPosition;
 
+// Scene lighting controls
+uniform float u_Exposure;       // HDR exposure (default 1.5)
+uniform float u_AmbientIntensity; // Ambient light strength (default 0.3)
+
 // Directional light
 uniform vec3 u_DirLightDirection;
 uniform vec3 u_DirLightColor;
@@ -273,8 +277,9 @@ void main()
                                     F0, u_SpotLightColors[i], u_SpotLightIntensities[i]) * att * spotIntensity;
     }
 
-    // Ambient (simple IBL approximation)
-    vec3 ambient = vec3(0.15) * albedo * ao;
+    // Ambient lighting - use uniform with sensible default fallback
+    float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.3;
+    vec3 ambient = vec3(ambientStr) * albedo * ao;
 
     // Emissive
     vec3 emissive = vec3(0.0);
@@ -285,8 +290,14 @@ void main()
 
     vec3 color = ambient + Lo + emissive;
 
-    // HDR tone mapping (Reinhard)
-    color = color / (color + vec3(1.0));
+    // HDR exposure
+    float exposure = u_Exposure > 0.0 ? u_Exposure : 1.5;
+    color *= exposure;
+
+    // ACES filmic tone mapping (better color preservation than Reinhard)
+    // Approximation by Krzysztof Narkowicz
+    color = (color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14);
+    color = clamp(color, 0.0, 1.0);
 
     // Gamma correction (linear to sRGB)
     color = pow(color, vec3(1.0 / 2.2));

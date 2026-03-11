@@ -135,6 +135,10 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             _pbrShader.SetInt("u_HasShadowMap", 0);
         }
 
+        // Scene lighting controls
+        _pbrShader.SetFloat("u_Exposure", 1.5f);
+        _pbrShader.SetFloat("u_AmbientIntensity", 0.3f);
+
         // Default directional light from legacy properties
         _pbrShader.SetInt("u_HasDirLight", 1);
         _pbrShader.SetFloat3("u_DirLightDirection", Vector3.Normalize(_lightPosition * -1));
