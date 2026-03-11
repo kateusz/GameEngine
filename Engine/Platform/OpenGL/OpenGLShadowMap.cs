@@ -14,6 +14,7 @@ internal sealed class OpenGLShadowMap : IShadowMap
     private bool _disposed;
 
     private uint _previousFbo;
+    private int[] _previousViewport = new int[4];
 
     public uint Width { get; }
     public uint Height { get; }
@@ -72,9 +73,9 @@ internal sealed class OpenGLShadowMap : IShadowMap
     {
         var gl = SilkNetContext.GL;
 
-        // Save the currently bound framebuffer so we can restore it
-        gl.GetInteger(GetPName.FramebufferBinding, out int currentFbo);
-        _previousFbo = (uint)currentFbo;
+        // Save the currently bound framebuffer and viewport so we can restore them
+        _previousFbo = (uint)gl.GetInteger(GLEnum.DrawFramebufferBinding);
+        gl.GetInteger(GLEnum.Viewport, _previousViewport);
 
         gl.Viewport(0, 0, Width, Height);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
@@ -83,8 +84,12 @@ internal sealed class OpenGLShadowMap : IShadowMap
 
     public void Unbind()
     {
-        // Restore the previously bound framebuffer (e.g. editor's FBO)
-        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _previousFbo);
+        var gl = SilkNetContext.GL;
+
+        // Restore the previously bound framebuffer and viewport (e.g. editor's FBO)
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _previousFbo);
+        gl.Viewport(_previousViewport[0], _previousViewport[1],
+            (uint)_previousViewport[2], (uint)_previousViewport[3]);
     }
 
     public void Dispose()

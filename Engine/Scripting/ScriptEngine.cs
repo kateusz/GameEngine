@@ -156,7 +156,11 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    public string[] GetAvailableScriptNames() => _scriptTypes.Keys.ToArray();
+    public string[] GetAvailableScriptNames()
+    {
+        lock (_scriptTypes)
+            return [.. _scriptTypes.Keys];
+    }
 
     public Type? GetScriptType(string scriptName) => _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
 
@@ -236,7 +240,8 @@ internal sealed class ScriptEngine : IScriptEngine
             if (File.Exists(scriptPath)) 
                 File.Delete(scriptPath);
 
-            _scriptTypes.Remove(scriptName);
+            lock (_scriptTypes)
+                _scriptTypes.Remove(scriptName);
             _scriptSources.Remove(scriptName);
             _scriptLastModified.Remove(scriptName);
             
@@ -617,16 +622,19 @@ internal sealed class ScriptEngine : IScriptEngine
     
     private void UpdateScriptTypes()
     {
-        _scriptTypes.Clear();
-
-        if (_dynamicAssembly == null) return;
-
-        foreach (var type in _dynamicAssembly.GetTypes())
+        lock (_scriptTypes)
         {
-            if (typeof(ScriptableEntity).IsAssignableFrom(type) && !type.IsAbstract)
+            _scriptTypes.Clear();
+
+            if (_dynamicAssembly == null) return;
+
+            foreach (var type in _dynamicAssembly.GetTypes())
             {
-                _scriptTypes[type.Name] = type;
-                Logger.Debug("Registered script type: {TypeName}", type.Name);
+                if (typeof(ScriptableEntity).IsAssignableFrom(type) && !type.IsAbstract)
+                {
+                    _scriptTypes[type.Name] = type;
+                    Logger.Debug("Registered script type: {TypeName}", type.Name);
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Numerics;
+using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;

@@ -103,10 +103,6 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         rendererApi.EnableFaceCulling(true);
 
         _shadowMap?.Unbind();
-
-        // Restore viewport
-        if (_viewportWidth > 0 && _viewportHeight > 0)
-            rendererApi.SetViewport(0, 0, _viewportWidth, _viewportHeight);
     }
 
     // ============== Main PBR Pass ==============
