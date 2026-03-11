@@ -1,5 +1,4 @@
 using System.Numerics;
-using Engine.Platform;
 using Engine.Platform.OpenGL;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Materials;
@@ -114,21 +113,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         rendererApi.EnableFaceCulling(true);
 
         _ = Matrix4x4.Invert(transform, out var transformInverted);
-        Matrix4x4 viewProj;
 
-        if (OSInfo.IsWindows)
-        {
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
-        }
-        else if (OSInfo.IsMacOS)
-        {
-            viewProj = transformInverted * camera.GetProjectionMatrix();
-        }
-        else
-        {
-            // Linux: same as Windows
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
-        }
+        // Row-vector convention: View * Projection (shaders use pos * Model * VP)
+        var viewProj = transformInverted * camera.GetProjectionMatrix();
 
         _currentViewProjection = viewProj;
         _currentViewPosition = new Vector3(transform.M41, transform.M42, transform.M43);
@@ -220,10 +207,10 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _pbrShader.Bind();
         _pbrShader.SetMat4("u_Model", transform);
 
-        // Normal matrix
-        if (Matrix4x4.Invert(transform, out var normalMatrix))
+        // Normal matrix: Inverse(Model) for row-vector convention (shader: normal * normalMatrix)
+        if (!Matrix4x4.Invert(transform, out var normalMatrix))
         {
-            normalMatrix = Matrix4x4.Transpose(normalMatrix);
+            normalMatrix = Matrix4x4.Identity;
         }
         _pbrShader.SetMat4("u_NormalMatrix", normalMatrix);
 

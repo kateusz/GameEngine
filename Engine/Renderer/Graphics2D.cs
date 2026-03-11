@@ -5,7 +5,6 @@ using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using System.Numerics;
 using Engine.Math;
-using Engine.Platform;
 using Engine.Scene.Components;
 
 namespace Engine.Renderer;
@@ -78,24 +77,15 @@ internal sealed class Graphics2D(
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
         _ = Matrix4x4.Invert(transform, out var transformInverted);
-        Matrix4x4? viewProj = null;
 
-        if (OSInfo.IsWindows)
-        {
-            viewProj = transformInverted * camera.GetProjectionMatrix();
-        }
-        else if (OSInfo.IsMacOS)
-        {
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
-        }
-        else
-            throw new InvalidOperationException("Unsupported OS version!");
+        // Row-vector convention: View * Projection (shaders use pos * VP)
+        var viewProj = transformInverted * camera.GetProjectionMatrix();
 
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
 
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
 
         StartBatch();
     }
