@@ -88,6 +88,13 @@ internal sealed class IBLPrecomputer : IDisposable
         var previousFbo = (uint)gl.GetInteger(GLEnum.DrawFramebufferBinding);
         var previousViewport = new int[4];
         gl.GetInteger(GLEnum.Viewport, previousViewport);
+        var wasCullFace = gl.IsEnabled(EnableCap.CullFace);
+        var wasDepthTest = gl.IsEnabled(EnableCap.DepthTest);
+
+        // Disable face culling - we render a cube from inside (camera at origin)
+        // so front faces have CW winding which would be culled with back-face culling
+        gl.Disable(EnableCap.CullFace);
+        gl.Enable(EnableCap.DepthTest);
 
         // Create capture FBO and RBO
         var captureFbo = gl.GenFramebuffer();
@@ -129,6 +136,9 @@ internal sealed class IBLPrecomputer : IDisposable
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, previousFbo);
         gl.Viewport(previousViewport[0], previousViewport[1],
             (uint)previousViewport[2], (uint)previousViewport[3]);
+
+        if (wasCullFace) gl.Enable(EnableCap.CullFace); else gl.Disable(EnableCap.CullFace);
+        if (wasDepthTest) gl.Enable(EnableCap.DepthTest); else gl.Disable(EnableCap.DepthTest);
 
         _computed = true;
         Logger.Information("IBL maps computed successfully (irradiance={Irr}x{Irr}, prefilter={Pre}x{Pre}, brdfLut={Brdf}x{Brdf})",
@@ -174,12 +184,21 @@ internal sealed class IBLPrecomputer : IDisposable
 
         gl.Viewport(0, 0, envSize, envSize);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, fbo);
+        gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
 
         for (var i = 0; i < 6; i++)
         {
             shader.SetMat4("u_View", CaptureViews[i]);
             gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0,
                 TextureTarget.TextureCubeMapPositiveX + i, envCubemap.TextureId, 0);
+
+            if (i == 0)
+            {
+                var status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+                if (status != GLEnum.FramebufferComplete)
+                    Logger.Error("Equirect-to-cubemap FBO incomplete: {Status}", status);
+            }
+
             gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             gl.BindVertexArray(cubeVao);
@@ -211,6 +230,7 @@ internal sealed class IBLPrecomputer : IDisposable
 
         gl.Viewport(0, 0, IrradianceSize, IrradianceSize);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, fbo);
+        gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
 
         for (var i = 0; i < 6; i++)
         {
@@ -243,6 +263,7 @@ internal sealed class IBLPrecomputer : IDisposable
         envCubemap.Bind(0);
 
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, fbo);
+        gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
 
         for (var mip = 0; mip < MaxMipLevels; mip++)
         {
