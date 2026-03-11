@@ -89,6 +89,7 @@ public static class EngineIoCContainer
         container.Register<AnimationSystem>(Reuse.Singleton);
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
+        container.Register<ModelSceneImporter>(Reuse.Singleton);
         
         container.Register<IPrefabSerializer, PrefabSerializer>(Reuse.Singleton);
         container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
