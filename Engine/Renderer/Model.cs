@@ -308,12 +308,6 @@ public class Model : IModel
                     continue;
                 }
 
-                if (!_textureFactory.IsSupportedFormat(texturePath))
-                {
-                    Logger.Warning("Skipping unsupported texture format: {Path}", texturePath);
-                    continue;
-                }
-
                 try
                 {
                     var texture = _textureFactory.Create(texturePath);

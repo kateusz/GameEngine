@@ -68,10 +68,6 @@ internal sealed class OpenGLTexture2D : Texture2D
         if (!File.Exists(path))
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
-        var ext = System.IO.Path.GetExtension(path);
-        if (!SupportedExtensions.Contains(ext))
-            throw new NotSupportedException($"Unsupported image format '{ext}' for texture: {path}");
-
         // Load the image data first, before allocating any GL resources
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 
