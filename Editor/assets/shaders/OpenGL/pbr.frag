@@ -291,7 +291,7 @@ void main()
     vec3 color = ambient + Lo + emissive;
 
     // HDR exposure
-    float exposure = u_Exposure > 0.0 ? u_Exposure : 1.5;
+    float exposure = u_Exposure > 0.0 ? u_Exposure : 1.0;
     color *= exposure;
 
     // ACES filmic tone mapping (better color preservation than Reinhard)

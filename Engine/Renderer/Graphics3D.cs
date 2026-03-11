@@ -136,9 +136,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Scene lighting controls
-        _pbrShader.SetFloat("u_Exposure", 1.5f);
-        _pbrShader.SetFloat("u_AmbientIntensity", 0.3f);
-        _pbrShader.SetFloat3("u_AmbientColor", new Vector3(0.4f, 0.6f, 1.0f)); // sky blue
+        _pbrShader.SetFloat("u_Exposure", 1.0f);
+        _pbrShader.SetFloat("u_AmbientIntensity", 0.25f);
+        _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 1.0f, 1.0f));
 
         // Default sun light (used when no directional light entity in scene)
         _pbrShader.SetInt("u_HasDirLight", 1);
