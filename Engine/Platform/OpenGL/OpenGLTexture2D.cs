@@ -115,6 +115,10 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         // Pfim data may have stride padding - copy tightly packed rows if needed
         var bytesPerPixel = pfimImage.BitsPerPixel / 8;
+        if (bytesPerPixel == 0)
+            throw new NotSupportedException(
+                $"Pfim reported BitsPerPixel=0 for '{pfimImage.Format}' in texture: {path}");
+
         var tightStride = pfimImage.Width * bytesPerPixel;
         byte[] data;
 
@@ -130,6 +134,11 @@ internal sealed class OpenGLTexture2D : Texture2D
         {
             data = pfimImage.Data;
         }
+
+        var expectedBytes = tightStride * pfimImage.Height;
+        if (data.Length < expectedBytes)
+            throw new NotSupportedException(
+                $"Pfim data too small for '{pfimImage.Format}': expected {expectedBytes} bytes, got {data.Length} in: {path}");
 
         // Flip vertically to match OpenGL's bottom-left origin
         FlipVertically(data, pfimImage.Width, pfimImage.Height, tightStride);

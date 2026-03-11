@@ -62,29 +62,39 @@ public class Model : IModel
             Meshes.Count, _texturesLoaded.Count);
     }
 
-    private unsafe void ProcessNode(Node* node, Silk.NET.Assimp.Scene* scene, Matrix4x4 parentTransform)
+    private unsafe void ProcessNode(Node* rootNode, Silk.NET.Assimp.Scene* scene, Matrix4x4 parentTransform)
     {
-        // Assimp stores transforms in row-major order, System.Numerics uses column-major
-        var nodeMatrix = node->MTransformation;
-        var localTransform = new Matrix4x4(
-            nodeMatrix.A1, nodeMatrix.B1, nodeMatrix.C1, nodeMatrix.D1,
-            nodeMatrix.A2, nodeMatrix.B2, nodeMatrix.C2, nodeMatrix.D2,
-            nodeMatrix.A3, nodeMatrix.B3, nodeMatrix.C3, nodeMatrix.D3,
-            nodeMatrix.A4, nodeMatrix.B4, nodeMatrix.C4, nodeMatrix.D4);
+        if (rootNode == null) return;
 
-        var worldTransform = localTransform * parentTransform;
+        var stack = new Stack<(nint Node, Matrix4x4 ParentTransform)>();
+        stack.Push(((nint)rootNode, parentTransform));
 
-        for (var i = 0; i < node->MNumMeshes; i++)
+        while (stack.Count > 0)
         {
-            var mesh = scene->MMeshes[node->MMeshes[i]];
-            var processedMesh = ProcessMesh(mesh, scene);
-            processedMesh.NodeTransform = worldTransform;
-            Meshes.Add(processedMesh);
-        }
+            var (nodePtr, parent) = stack.Pop();
+            var node = (Node*)nodePtr;
+            if (node == null) continue;
 
-        for (var i = 0; i < node->MNumChildren; i++)
-        {
-            ProcessNode(node->MChildren[i], scene, worldTransform);
+            var nodeMatrix = node->MTransformation;
+            // Assimp stores transforms in row-major order, System.Numerics uses column-major
+            var localTransform = Matrix4x4.Transpose(new Matrix4x4(
+                nodeMatrix.M11, nodeMatrix.M12, nodeMatrix.M13, nodeMatrix.M14,
+                nodeMatrix.M21, nodeMatrix.M22, nodeMatrix.M23, nodeMatrix.M24,
+                nodeMatrix.M31, nodeMatrix.M32, nodeMatrix.M33, nodeMatrix.M34,
+                nodeMatrix.M41, nodeMatrix.M42, nodeMatrix.M43, nodeMatrix.M44));
+
+            var worldTransform = localTransform * parent;
+
+            for (var i = 0; i < node->MNumMeshes; i++)
+            {
+                var mesh = scene->MMeshes[node->MMeshes[i]];
+                var processedMesh = ProcessMesh(mesh, scene);
+                processedMesh.NodeTransform = worldTransform;
+                Meshes.Add(processedMesh);
+            }
+
+            for (var i = 0; i < node->MNumChildren; i++)
+                stack.Push(((nint)node->MChildren[i], worldTransform));
         }
     }
 
@@ -127,7 +137,7 @@ public class Model : IModel
 
         // Extract PBR material
         PBRMaterial? pbrMaterial = null;
-        if (mesh->MMaterialIndex >= 0)
+        if (mesh->MMaterialIndex < scene->MNumMaterials)
         {
             var material = scene->MMaterials[mesh->MMaterialIndex];
             pbrMaterial = ExtractPBRMaterial(material, ref textures);

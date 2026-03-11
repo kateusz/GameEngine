@@ -677,28 +677,26 @@ public class EditorLayer(
                     var lights = addLights;
                     var camera = addCamera;
 
-                    Task.Run(() =>
+                    // Must run on main thread — OpenGL texture/buffer creation requires an active GL context
+                    try
                     {
-                        try
+                        var scene = sceneContext.ActiveScene;
+                        if (scene != null)
                         {
-                            var scene = sceneContext.ActiveScene;
-                            if (scene != null)
-                            {
-                                var result = modelSceneImporter.Import(scene, path, lights, camera);
-                                _importStatusMessage = $"Imported {result.MeshEntities.Count} meshes successfully.";
-                                Logger.Information("Imported model with {MeshCount} meshes", result.MeshEntities.Count);
-                            }
+                            var result = modelSceneImporter.Import(scene, path, lights, camera);
+                            _importStatusMessage = $"Imported {result.MeshEntities.Count} meshes successfully.";
+                            Logger.Information("Imported model with {MeshCount} meshes", result.MeshEntities.Count);
                         }
-                        catch (Exception ex)
-                        {
-                            _importStatusMessage = $"Import failed: {ex.Message}";
-                            Logger.Error(ex, "Failed to import model from {Path}", path);
-                        }
-                        finally
-                        {
-                            _isImporting = false;
-                        }
-                    });
+                    }
+                    catch (Exception ex)
+                    {
+                        _importStatusMessage = $"Import failed: {ex.Message}";
+                        Logger.Error(ex, "Failed to import model from {Path}", path);
+                    }
+                    finally
+                    {
+                        _isImporting = false;
+                    }
                 }
             }
 
