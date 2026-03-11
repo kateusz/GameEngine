@@ -226,21 +226,24 @@ public class EditorLayer(
         performanceMonitor.Update(timeSpan);
         animationTimeline.Update((float)timeSpan.TotalSeconds);
 
-        // Resize
+        // Resize - scale by DPI factor for Retina/HiDPI displays
+        var dpiScale = ImGui.GetIO().DisplayFramebufferScale;
+        var fbWidth = (uint)(_viewportSize.X * dpiScale.X);
+        var fbHeight = (uint)(_viewportSize.Y * dpiScale.Y);
         var spec = _frameBuffer.GetSpecification();
         if (_viewportSize is { X: > 0.0f, Y: > 0.0f } &&
-            (spec.Width != (uint)_viewportSize.X || spec.Height != (uint)_viewportSize.Y))
+            (spec.Width != fbWidth || spec.Height != fbHeight))
         {
-            _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            _frameBuffer.Resize(fbWidth, fbHeight);
 
-            // Update camera aspect ratio when viewport changes
+            // Update camera aspect ratio when viewport changes (aspect ratio is DPI-independent)
             var aspectRatio = _viewportSize.X / _viewportSize.Y;
             _cameraController = new OrthographicCameraController(_cameraController.Camera, aspectRatio, true);
 
             // Update the camera system with the new controller instance
             _editorCameraSystem.SetCameraController(_cameraController);
 
-            sceneContext.ActiveScene?.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
         }
 
         graphics2D.ResetStats();
@@ -272,17 +275,21 @@ public class EditorLayer(
             }
         }
 
-        // Mouse picking logic
+        // Mouse picking logic - scale to physical pixels for framebuffer reads
         var mousePos = ImGui.GetMousePos();
         var mx = mousePos.X - _viewportBounds[0].X;
         var my = mousePos.Y - _viewportBounds[0].Y;
         var viewportSize = _viewportBounds[1] - _viewportBounds[0];
         my = viewportSize.Y - my; // Flip the Y-axis
 
-        var mouseX = (int)mx;
-        var mouseY = (int)my;
+        // Scale logical mouse coordinates to physical framebuffer pixels (Retina/HiDPI)
+        var pickScale = ImGui.GetIO().DisplayFramebufferScale;
+        var mouseX = (int)(mx * pickScale.X);
+        var mouseY = (int)(my * pickScale.Y);
+        var fbViewWidth = (int)(viewportSize.X * pickScale.X);
+        var fbViewHeight = (int)(viewportSize.Y * pickScale.Y);
 
-        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < fbViewWidth && mouseY < fbViewHeight)
         {
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = sceneContext.ActiveScene?.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);

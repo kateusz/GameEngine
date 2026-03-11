@@ -59,6 +59,9 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
         SilkNetContext.GL.DepthFunc(DepthFunction.Lequal);
         OpenGLDebug.CheckError(SilkNetContext.GL, "DepthFunc");
+
+        SilkNetContext.GL.Enable(EnableCap.Multisample);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(Multisample)");
     }
 
     public void SetViewport(int x, int y, uint width, uint height)

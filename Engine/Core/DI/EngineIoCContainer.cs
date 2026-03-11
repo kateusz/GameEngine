@@ -31,6 +31,7 @@ public static class EngineIoCContainer
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(props.Width, props.Height);
         options.Title = "Game Window";
+        options.Samples = 4; // 4x MSAA for edge smoothing
             
         container.Register<IRendererApiConfig>(Reuse.Singleton,
             made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))

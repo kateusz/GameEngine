@@ -155,8 +155,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Scene lighting controls
-        _pbrShader.SetFloat("u_Exposure", 1.0f);
-        _pbrShader.SetFloat("u_AmbientIntensity", 0.35f);
+        _pbrShader.SetFloat("u_Exposure", 2.0f);
+        _pbrShader.SetFloat("u_AmbientIntensity", 0.5f);
         _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 1.0f, 1.0f));
 
         // Bind IBL textures if available
@@ -166,7 +166,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             _iblPrecomputer.BindPrefilter(PrefilterSlot);
             _iblPrecomputer.BindBrdfLut(BrdfLutSlot);
             _pbrShader.SetInt("u_HasIBL", 1);
-            _pbrShader.SetFloat("u_IBLIntensity", 0.15f);
+            _pbrShader.SetFloat("u_IBLIntensity", 0.5f);
         }
         else
         {

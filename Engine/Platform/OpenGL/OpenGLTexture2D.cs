@@ -273,11 +273,16 @@ internal sealed class OpenGLTexture2D : Texture2D
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
 
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
 
             SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
             OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+
+            // Negative LOD bias: favor sharper mip levels at oblique viewing angles
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                TextureParameterName.TextureLodBias, -0.5f);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(LOD bias)");
 
             // Anisotropic filtering for sharp textures at oblique angles
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
