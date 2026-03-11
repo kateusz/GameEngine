@@ -2,7 +2,6 @@ using System.Numerics;
 using ECS;
 using Engine.Core;
 using Engine.Core.Input;
-using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
@@ -23,7 +22,7 @@ public class Sandbox3DLayer(
 
     private IScene? _scene;
     private IModel? _model;
-    private IOrthographicCameraController? _cameraController;
+    private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
 
     // Hardcoded path to Bistro model - change this to match your local setup
@@ -34,8 +33,6 @@ public class Sandbox3DLayer(
         Logger.Information("Sandbox3DLayer OnAttach - loading Bistro scene");
 
         graphics3D.Init();
-
-        _cameraController = new OrthographicCameraController(1920.0f / 1080.0f, true);
 
         _scene = sceneFactory.Create("Bistro");
 
@@ -54,6 +51,16 @@ public class Sandbox3DLayer(
 
         _cameraEntity = result.CameraEntity;
 
+        // Initialize perspective camera at the scene camera's starting position
+        var startPos = new Vector3(0, 5, 15);
+        if (_cameraEntity != null)
+        {
+            var t = _cameraEntity.GetComponent<TransformComponent>();
+            startPos = t.Translation;
+        }
+
+        _cameraController = new PerspectiveCameraController(startPos);
+
         _scene.OnRuntimeStart();
     }
 
@@ -67,15 +74,15 @@ public class Sandbox3DLayer(
 
     public void OnUpdate(TimeSpan timeSpan)
     {
-        // Update the ortho camera controller (handles WASD/QE input)
         _cameraController?.OnUpdate(timeSpan);
 
-        // Sync the ortho camera position to the scene camera entity's transform
+        // Sync controller state to the scene camera entity's transform
         if (_cameraEntity != null && _cameraController != null)
         {
             var transform = _cameraEntity.GetComponent<TransformComponent>();
-            var camPos = _cameraController.Camera.Position;
-            transform.Translation = new Vector3(camPos.X, camPos.Y, transform.Translation.Z);
+            transform.Translation = _cameraController.Position;
+            // Euler convention: X=rotation around X (pitch), Y=rotation around Y (yaw)
+            transform.Rotation = new Vector3(_cameraController.Pitch, _cameraController.Yaw, 0);
         }
 
         graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
