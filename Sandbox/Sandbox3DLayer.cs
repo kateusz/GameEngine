@@ -15,7 +15,6 @@ namespace Sandbox;
 
 public class Sandbox3DLayer(
     IGraphics3D graphics3D,
-    IMeshFactory meshFactory,
     SceneFactory sceneFactory,
     ModelSceneImporter modelSceneImporter) : ILayer
 {
