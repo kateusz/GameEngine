@@ -52,8 +52,40 @@ internal sealed class OpenGLTexture2D : Texture2D
         return _rendererId;
     }
 
+    private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm", ".pgm", ".ppm"
+    };
+
+    public static bool IsSupportedFormat(string path)
+    {
+        var ext = System.IO.Path.GetExtension(path);
+        return SupportedExtensions.Contains(ext);
+    }
+
     public static Texture2D Create(string path)
     {
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Texture file not found: {path}", path);
+
+        var ext = System.IO.Path.GetExtension(path);
+        if (!SupportedExtensions.Contains(ext))
+            throw new NotSupportedException($"Unsupported image format '{ext}' for texture: {path}");
+
+        // Load the image data first, before allocating any GL resources
+        StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
+
+        ImageResult image;
+        using (var stream = File.OpenRead(path))
+        {
+            image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+        }
+
+        var width = image.Width;
+        var height = image.Height;
+        const InternalFormat internalFormat = InternalFormat.Rgba8;
+        const PixelFormat dataFormat = PixelFormat.Rgba;
+
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
 
@@ -62,51 +94,33 @@ internal sealed class OpenGLTexture2D : Texture2D
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
 
-        // Flip texture vertically to match OpenGL's coordinate system (bottom-left origin)
-        StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
-
-        var width = 0;
-        var height = 0;
-        const InternalFormat internalFormat = InternalFormat.Rgba8;
-        const PixelFormat dataFormat = PixelFormat.Rgba;
-
-        // Here we open a stream to the file and pass it to StbImageSharp to load.
-        using (var stream = File.OpenRead(path))
+        unsafe
         {
-            unsafe
+            fixed (byte* ptr = image.Data)
             {
-                var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
-
-                width = image.Width;
-                height = image.Height;
-
-                fixed (byte* ptr = image.Data)
-                {
-                    // Create our texture and upload the image data.
-                    SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)width,
-                        (uint)height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
-                    OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
-                }
-
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                    (int)TextureMinFilter.Linear);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                    (int)TextureMagFilter.Nearest);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
-
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
-                    (int)TextureWrapMode.Repeat);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
-                    (int)TextureWrapMode.Repeat);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
-
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
-
-                SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)width,
+                    (uint)height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
             }
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.Linear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Nearest);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                (int)TextureWrapMode.Repeat);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                (int)TextureWrapMode.Repeat);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
+
+            SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
         }
 
         return new OpenGLTexture2D(path, handle, width, height, internalFormat, dataFormat);

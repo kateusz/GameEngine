@@ -302,6 +302,18 @@ public class Model : IModel
             }
             if (!skip)
             {
+                if (!File.Exists(texturePath))
+                {
+                    Logger.Warning("Texture file not found: {Path}", texturePath);
+                    continue;
+                }
+
+                if (!_textureFactory.IsSupportedFormat(texturePath))
+                {
+                    Logger.Warning("Skipping unsupported texture format: {Path}", texturePath);
+                    continue;
+                }
+
                 try
                 {
                     var texture = _textureFactory.Create(texturePath);

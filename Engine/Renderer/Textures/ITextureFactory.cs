@@ -42,4 +42,9 @@ public interface ITextureFactory
     /// </summary>
     /// <returns>The number of cache entries.</returns>
     int GetCacheSize();
+
+    /// <summary>
+    /// Checks whether the given file path has a supported image format extension.
+    /// </summary>
+    bool IsSupportedFormat(string path);
 }

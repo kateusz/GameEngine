@@ -56,7 +56,7 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
             // Create new texture (use original path for loading)
             var texture = apiConfig.Type switch
             {
-                ApiType.SilkNet => OpenGLTexture2D.Create(path),
+                ApiType.SilkNet => OpenGLTexture2D.Create(normalizedPath),
                 _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
             };
 
@@ -64,6 +64,15 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
             _textureCache[normalizedPath] = new WeakReference<Texture2D>(texture);
             return texture;
         }
+    }
+
+    public bool IsSupportedFormat(string path)
+    {
+        return apiConfig.Type switch
+        {
+            ApiType.SilkNet => OpenGLTexture2D.IsSupportedFormat(path),
+            _ => false
+        };
     }
     
     public Texture2D Create(int width, int height)
