@@ -33,7 +33,9 @@ void main()
             nrSamples++;
         }
     }
-    irradiance = PI * irradiance * (1.0 / nrSamples);
+    // Riemann sum normalization: each sample covers solid angle ≈ Δθ×Δφ = π²/N
+    // For uniform (θ,φ) grid, the integral ∫cos(θ)sin(θ)dθdφ = π, so factor is π²/N
+    irradiance = PI * PI * irradiance * (1.0 / nrSamples);
 
     FragColor = vec4(irradiance, 1.0);
 }

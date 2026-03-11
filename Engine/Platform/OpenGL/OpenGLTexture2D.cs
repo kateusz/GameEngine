@@ -134,22 +134,24 @@ internal sealed class OpenGLTexture2D : Texture2D
     }
 
     /// <summary>
-    /// Normalizes HDR pixel data so the average luminance is approximately 1.0.
-    /// Calibrates HDR environment probes to a standard range for the IBL pipeline.
+    /// Normalizes HDR pixel data using log-average luminance (Reinhard 2002).
+    /// Log-average is robust to extreme sky values that dominate arithmetic mean.
     /// </summary>
     private static void NormalizeHdrExposure(float[] data, int channels)
     {
         const float targetAvgLuminance = 1.0f;
+        const double delta = 1e-6; // Small value to avoid log(0)
 
-        // Compute average luminance using Rec. 709 coefficients
-        double totalLuminance = 0;
+        // Compute log-average luminance using Rec. 709 coefficients
+        double totalLogLuminance = 0;
         var pixelCount = data.Length / channels;
         for (var i = 0; i < data.Length; i += channels)
         {
-            totalLuminance += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+            var luminance = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+            totalLogLuminance += Math.Log(luminance + delta);
         }
 
-        var avgLuminance = (float)(totalLuminance / pixelCount);
+        var avgLuminance = (float)Math.Exp(totalLogLuminance / pixelCount);
         if (avgLuminance <= 0.001f)
             return;
 
