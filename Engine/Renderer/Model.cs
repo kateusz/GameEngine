@@ -267,7 +267,11 @@ public class Model : IModel
             var result = _assimp.GetMaterialFloatArray(mat, (byte*)keyBytes, 0, 0, colorData, ref max);
             if (result == Return.Success && max >= 3)
             {
-                pbrMaterial.AlbedoColor = new Vector4(colorData[0], colorData[1], colorData[2],
+                // Assimp returns sRGB colors — linearize for PBR calculations
+                pbrMaterial.AlbedoColor = new Vector4(
+                    MathF.Pow(colorData[0], 2.2f),
+                    MathF.Pow(colorData[1], 2.2f),
+                    MathF.Pow(colorData[2], 2.2f),
                     max >= 4 ? colorData[3] : 1.0f);
             }
         }

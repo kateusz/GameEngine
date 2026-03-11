@@ -55,11 +55,6 @@ internal sealed class OpenGLCubemap : IDisposable
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter,
             (int)TextureMagFilter.Linear);
 
-        if (generateMipmaps)
-        {
-            gl.GenerateMipmap(TextureTarget.TextureCubeMap);
-        }
-
         gl.BindTexture(TextureTarget.TextureCubeMap, 0);
 
         Logger.Debug("Created cubemap {Size}x{Size}, format={Format}, mipmaps={Mipmaps}",

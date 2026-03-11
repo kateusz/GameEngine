@@ -97,11 +97,6 @@ internal sealed class OpenGLTexture2D : Texture2D
             image = ImageResultFloat.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
         }
 
-        // Normalize HDR exposure: compute average luminance and scale to a target range.
-        // Raw HDR sky values can be 50-1000+, which causes extreme color saturation in IBL
-        // even after tone mapping. Scaling to target avg luminance of ~1.0 produces balanced IBL.
-        NormalizeHdrExposure(image.Data, channels: 4);
-
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture(HDR)");
 
@@ -131,37 +126,6 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         return new OpenGLTexture2D(path, handle, image.Width, image.Height,
             InternalFormat.Rgba16f, PixelFormat.Rgba);
-    }
-
-    /// <summary>
-    /// Normalizes HDR pixel data so the average luminance is approximately 1.0.
-    /// This prevents extreme HDR values from causing color saturation in IBL computations.
-    /// </summary>
-    private static void NormalizeHdrExposure(float[] data, int channels)
-    {
-        const float targetAvgLuminance = 1.0f;
-
-        // Compute average luminance using Rec. 709 coefficients
-        double totalLuminance = 0;
-        var pixelCount = data.Length / channels;
-        for (var i = 0; i < data.Length; i += channels)
-        {
-            totalLuminance += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-        }
-
-        var avgLuminance = (float)(totalLuminance / pixelCount);
-        if (avgLuminance <= 0.001f)
-            return;
-
-        var scale = targetAvgLuminance / avgLuminance;
-
-        // Apply scale to RGB channels only
-        for (var i = 0; i < data.Length; i += channels)
-        {
-            data[i] *= scale;
-            data[i + 1] *= scale;
-            data[i + 2] *= scale;
-        }
     }
 
     private static Texture2D CreateFromStb(string path, bool srgb)
