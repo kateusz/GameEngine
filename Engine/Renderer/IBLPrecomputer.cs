@@ -205,6 +205,7 @@ internal sealed class IBLPrecomputer : IDisposable
             gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
         }
 
+        DetachFboColor(gl);
         shader.Unbind();
         return envCubemap;
     }
@@ -243,6 +244,7 @@ internal sealed class IBLPrecomputer : IDisposable
             gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
         }
 
+        DetachFboColor(gl);
         shader.Unbind();
         return irradianceMap;
     }
@@ -250,7 +252,7 @@ internal sealed class IBLPrecomputer : IDisposable
     private static OpenGLCubemap ComputePrefilterMap(GL gl, OpenGLCubemap envCubemap,
         IShaderFactory shaderFactory, uint fbo, uint rbo, uint cubeVao)
     {
-        var prefilterMap = new OpenGLCubemap(PrefilterSize, InternalFormat.Rgba16f, generateMipmaps: true);
+        var prefilterMap = new OpenGLCubemap(PrefilterSize, InternalFormat.Rgba16f, mipLevels: MaxMipLevels);
 
         var shader = shaderFactory.Create(
             "assets/shaders/opengl/prefilter.vert",
@@ -293,6 +295,7 @@ internal sealed class IBLPrecomputer : IDisposable
             }
         }
 
+        DetachFboColor(gl);
         shader.Unbind();
         return prefilterMap;
     }
@@ -344,12 +347,19 @@ internal sealed class IBLPrecomputer : IDisposable
         shader.Bind();
         gl.BindVertexArray(quadVao);
         gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+        DetachFboColor(gl);
         shader.Unbind();
 
         gl.DeleteBuffer(quadVbo);
         gl.DeleteVertexArray(quadVao);
 
         return brdfLutTexture;
+    }
+
+    private static void DetachFboColor(GL gl)
+    {
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0,
+            TextureTarget.Texture2D, 0, 0);
     }
 
     public void BindIrradiance(int slot) => _irradianceMap?.Bind(slot);
