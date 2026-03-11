@@ -218,7 +218,7 @@ void main()
         roughness = texture(u_RoughnessMap, v_TexCoord).r;
     else
         roughness = u_Roughness;
-    roughness = max(roughness, 0.15); // Prevent mirror-like specular noise
+    roughness = max(roughness, 0.045);
 
     float ao;
     if (u_HasAOMap == 1)
@@ -289,7 +289,7 @@ void main()
 
     // Ambient / IBL lighting
     vec3 ambient;
-    float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.3;
+    float ambientStr = u_AmbientIntensity > 0.0 ? u_AmbientIntensity : 0.5;
     vec3 ambientColor = length(u_AmbientColor) > 0.0 ? u_AmbientColor : vec3(1.0);
 
     if (u_HasIBL == 1)
@@ -313,13 +313,16 @@ void main()
         vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotVgeom, roughness)).rg;
         vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
+        // Fade out specular IBL at grazing angles to prevent blue sky fringing
+        float horizonFade = smoothstep(0.0, 0.3, NdotVgeom);
+        specularIBL *= horizonFade;
 
         float iblStr = u_IBLIntensity > 0.0 ? u_IBLIntensity : 1.0;
         vec3 iblAmbient = (kD * diffuseIBL + specularIBL) * iblStr;
 
         // Blend IBL with neutral flat ambient to prevent environment color cast
         vec3 flatAmbient = ambientColor * ambientStr * albedo;
-        ambient = mix(flatAmbient, iblAmbient, 0.5) * ao;
+        ambient = mix(flatAmbient, iblAmbient, 0.7) * ao;
     }
     else
     {
