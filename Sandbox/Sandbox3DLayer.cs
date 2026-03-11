@@ -8,6 +8,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
+using ImGuiNET;
 using Serilog;
 
 namespace Sandbox;
@@ -24,9 +25,11 @@ public class Sandbox3DLayer(
     private IModel? _model;
     private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
+    private float _fps;
 
     // Hardcoded path to Bistro model - change this to match your local setup
     private const string BistroModelPath = "assets/models/Bistro/Exterior/BistroExterior.fbx";
+    //private const string BistroModelPath = "assets/models/Bistro/Interior/BistroInterior_Wine.fbx";
 
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -74,6 +77,9 @@ public class Sandbox3DLayer(
 
     public void OnUpdate(TimeSpan timeSpan)
     {
+        if (timeSpan.TotalSeconds > 0)
+            _fps = 1.0f / (float)timeSpan.TotalSeconds;
+
         _cameraController?.OnUpdate(timeSpan);
 
         // Sync controller state to the scene camera entity's transform
@@ -93,6 +99,17 @@ public class Sandbox3DLayer(
 
     public void Draw()
     {
+        var io = ImGui.GetIO();
+        var padding = 10.0f;
+        var windowPos = new Vector2(io.DisplaySize.X - padding, padding);
+        ImGui.SetNextWindowPos(windowPos, ImGuiCond.Always, new Vector2(1, 0));
+        ImGui.SetNextWindowBgAlpha(0.0f);
+        var flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs |
+                    ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoMove |
+                    ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus;
+        ImGui.Begin("##fps", flags);
+        ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{_fps:F0} FPS");
+        ImGui.End();
     }
 
     public void HandleInputEvent(InputEvent windowEvent)
