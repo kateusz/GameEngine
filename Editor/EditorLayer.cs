@@ -55,7 +55,8 @@ public class EditorLayer(
     ViewportToolManager viewportToolManager,
     ViewportRuler viewportRuler,
     IFrameBufferFactory frameBufferFactory,
-    PublishSettingsUI publishSettingsUI) : ILayer
+    PublishSettingsUI publishSettingsUI,
+    ModelSceneImporter modelSceneImporter) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -66,6 +67,8 @@ public class EditorLayer(
 
     private IOrthographicCameraController _cameraController;
     private IFrameBuffer _frameBuffer;
+    private bool _showModelImportPopup;
+    private string _modelImportPath = "";
     private Vector2 _viewportSize;
     private bool _viewportFocused;
     private Entity? _hoveredEntity;
@@ -443,6 +446,9 @@ public class EditorLayer(
                         sceneSettingsPopup.ShowNewScenePopup();
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
                         sceneManager.Save(projectManager.ScenesDir);
+                    ImGui.Separator();
+                    if (ImGui.MenuItem("Import 3D Model..."))
+                        _showModelImportPopup = true;
                     ImGui.EndMenu();
                 }
 
@@ -605,6 +611,66 @@ public class EditorLayer(
         newProjectPopup.Render();
         sceneSettingsPopup.Render();
         publishSettingsUI.Render();
+        RenderModelImportPopup();
+    }
+
+    private void RenderModelImportPopup()
+    {
+        if (!_showModelImportPopup)
+            return;
+
+        ImGui.OpenPopup("Import 3D Model");
+        var center = ImGui.GetMainViewport().GetCenter();
+        ImGui.SetNextWindowPos(center, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        ImGui.SetNextWindowSize(new Vector2(500, 200));
+
+        if (ImGui.BeginPopupModal("Import 3D Model", ref _showModelImportPopup))
+        {
+            ImGui.Text("Enter the path to an FBX, glTF, or OBJ model file:");
+            ImGui.Spacing();
+            ImGui.InputText("Model Path", ref _modelImportPath, 1024);
+            ImGui.Spacing();
+
+            var addLights = true;
+            var addCamera = true;
+            ImGui.Checkbox("Add Default Lighting", ref addLights);
+            ImGui.Checkbox("Add Camera", ref addCamera);
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            if (ImGui.Button("Import", new Vector2(120, 0)))
+            {
+                if (!string.IsNullOrWhiteSpace(_modelImportPath))
+                {
+                    try
+                    {
+                        var scene = sceneContext.ActiveScene;
+                        if (scene != null)
+                        {
+                            var result = modelSceneImporter.Import(scene, _modelImportPath, addLights, addCamera);
+                            Logger.Information("Imported model with {MeshCount} meshes", result.MeshEntities.Count);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "Failed to import model from {Path}", _modelImportPath);
+                    }
+
+                    _showModelImportPopup = false;
+                    ImGui.CloseCurrentPopup();
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                _showModelImportPopup = false;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
     }
 
     private void BuildAndPublish() => publishSettingsUI.ShowPublishModal();
