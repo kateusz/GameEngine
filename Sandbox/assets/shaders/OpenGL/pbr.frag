@@ -297,12 +297,16 @@ void main()
 
         // Diffuse IBL from irradiance map
         vec3 irradiance = texture(u_IrradianceMap, N).rgb;
+        // Compress extreme HDR values to prevent color channel saturation
+        // Reinhard-style: maps [0,inf) -> [0,5), preserves color ratios at low values
+        irradiance = irradiance / (1.0 + irradiance * 0.2);
         vec3 diffuseIBL = irradiance * albedo;
 
         // Specular IBL (split-sum approximation)
         vec3 R = reflect(-V, N);
         const float MAX_REFLECTION_LOD = 4.0;
         vec3 prefilteredColor = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        prefilteredColor = prefilteredColor / (1.0 + prefilteredColor * 0.2);
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
         vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
 
