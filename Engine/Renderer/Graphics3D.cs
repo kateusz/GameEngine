@@ -21,7 +21,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
 
     // Default sun light properties (used when no directional light entity in scene)
     private Vector3 _lightPosition = new(-2.0f, 5.0f, 3.0f);
-    private Vector3 _lightColor = new(1.0f, 0.95f, 0.9f);
+    private Vector3 _lightColor = new(1.0f, 1.0f, 1.0f);
     private float _shininess = 32.0f;
 
     // Current frame state
@@ -155,8 +155,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         }
 
         // Scene lighting controls
-        _pbrShader.SetFloat("u_Exposure", 1.6f);
-        _pbrShader.SetFloat("u_AmbientIntensity", 0.6f);
+        _pbrShader.SetFloat("u_Exposure", 2.5f);
+        _pbrShader.SetFloat("u_AmbientIntensity", 0.8f);
         _pbrShader.SetFloat3("u_AmbientColor", new Vector3(1.0f, 1.0f, 1.0f));
 
         // Bind IBL textures if available
@@ -166,7 +166,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             _iblPrecomputer.BindPrefilter(PrefilterSlot);
             _iblPrecomputer.BindBrdfLut(BrdfLutSlot);
             _pbrShader.SetInt("u_HasIBL", 1);
-            _pbrShader.SetFloat("u_IBLIntensity", 1.0f);
+            _pbrShader.SetFloat("u_IBLIntensity", 1.5f);
         }
         else
         {
