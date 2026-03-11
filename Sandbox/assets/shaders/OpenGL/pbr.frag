@@ -53,6 +53,7 @@ uniform vec3 u_ViewPosition;
 uniform float u_Exposure;
 uniform float u_AmbientIntensity;
 uniform vec3 u_AmbientColor;
+uniform float u_IBLIntensity;
 
 // Directional light
 uniform vec3 u_DirLightDirection;
@@ -305,7 +306,8 @@ void main()
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
         vec3 specularIBL = prefilteredColor * (F * brdf.x + brdf.y);
 
-        ambient = (kD * diffuseIBL + specularIBL) * ao;
+        float iblStr = u_IBLIntensity > 0.0 ? u_IBLIntensity : 1.0;
+        ambient = (kD * diffuseIBL + specularIBL) * ao * iblStr;
     }
     else
     {
