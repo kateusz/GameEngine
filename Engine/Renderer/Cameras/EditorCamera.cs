@@ -7,7 +7,7 @@ namespace Engine.Renderer.Cameras;
 public class EditorCamera : Camera, IViewCamera
 {
     private Vector3 _focalPoint = Vector3.Zero;
-    private float _distance;
+    private float _distance = CameraConfig.DefaultEditorDistance;
     private float _pitch;
     private float _yaw;
     private float _fov;
