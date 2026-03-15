@@ -1,6 +1,7 @@
 using ECS;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
 using CameraController = Editor.assets.scripts.CameraController;
@@ -9,7 +10,7 @@ namespace Editor.UI.Elements;
 
 public static class ComponentSelector
 {
-    public static void Draw(Entity entity)
+    public static void Draw(Entity entity, IScene scene)
     {
         ButtonDrawer.DrawButton("Add Component", () => ImGui.OpenPopup("AddComponent"));
 
@@ -18,6 +19,8 @@ public static class ComponentSelector
             DrawComponentMenuItem<CameraComponent>("Camera", entity, () =>
             {
                 var c = new CameraComponent();
+                if (scene.GetPrimaryCameraEntity() is null)
+                    c.Primary = true;
                 c.Camera.SetViewportSize(DisplayConfig.DefaultWindowWidth, DisplayConfig.DefaultWindowHeight);
                 entity.AddComponent<CameraComponent>(c);
                 entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
