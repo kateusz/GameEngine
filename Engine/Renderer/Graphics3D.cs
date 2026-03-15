@@ -38,6 +38,17 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _phongShader.SetFloat("u_Shininess", _shininess);
     }
 
+    public void BeginScene(IViewCamera camera)
+    {
+        var viewProj = camera.GetViewProjectionMatrix();
+        _phongShader.Bind();
+        _phongShader.SetMat4("u_ViewProjection", viewProj);
+        _phongShader.SetFloat3("u_LightPosition", _lightPosition);
+        _phongShader.SetFloat3("u_LightColor", _lightColor);
+        _phongShader.SetFloat3("u_ViewPosition", camera.GetPosition());
+        _phongShader.SetFloat("u_Shininess", _shininess);
+    }
+
     public void EndScene()
     {
         _phongShader.Unbind();
