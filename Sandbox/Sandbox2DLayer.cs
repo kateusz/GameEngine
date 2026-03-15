@@ -1,7 +1,6 @@
 using System.Numerics;
 using Engine.Core;
 using Engine.Core.Input;
-using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
@@ -49,7 +48,7 @@ public class Sandbox2DLayer : ILayer
 
     private readonly IGraphics2D _graphics2D;
     private readonly ITextureFactory _textureFactory;
-    private IOrthographicCameraController _orthographicCameraController;
+    private EditorCamera _editorCamera = null!;
     private Texture2D _spriteSheet;
     private SubTexture2D _textureBarrel;
 
@@ -67,7 +66,7 @@ public class Sandbox2DLayer : ILayer
     {
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
-        _orthographicCameraController = new OrthographicCameraController(3840.0f / 2160.0f, true);
+        _editorCamera = new EditorCamera();
         _spriteSheet = _textureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
 
         _textureBarrel =
@@ -86,12 +85,10 @@ public class Sandbox2DLayer : ILayer
 
     public void OnUpdate(TimeSpan timeSpan)
     {
-        _orthographicCameraController.OnUpdate(timeSpan);
-
         _graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         _graphics2D.Clear();
 
-        _graphics2D.BeginScene(_orthographicCameraController.Camera);
+        _graphics2D.BeginScene(_editorCamera);
 
         // _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
         //
@@ -113,15 +110,18 @@ public class Sandbox2DLayer : ILayer
         _graphics2D.EndScene();
     }
 
-    public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);
-
-    public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
-
-    private void HandleEvent(Event @event)
+    public void HandleInputEvent(InputEvent windowEvent)
     {
-        Logger.Debug("ExampleLayer OnEvent: {0}", @event);
+        if (windowEvent is MouseScrolledEvent scrollEvent)
+            _editorCamera.OnMouseScroll(scrollEvent.YOffset);
+    }
 
-        _orthographicCameraController.OnEvent(@event);
+    public void HandleWindowEvent(WindowEvent windowEvent)
+    {
+        if (windowEvent is WindowResizeEvent resizeEvent && resizeEvent.Width > 0 && resizeEvent.Height > 0)
+        {
+            _editorCamera.SetViewportSize(resizeEvent.Width, resizeEvent.Height);
+        }
     }
 
     public void Draw()

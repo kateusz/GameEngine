@@ -1,3 +1,4 @@
+using System.Numerics;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.UI.Constants;
@@ -22,14 +23,14 @@ public class PublishSettingsUI(
     private PublishProgress? _publishProgress;
     private CancellationTokenSource? _publishCts;
 
-    private static readonly string[] SupportedPlatforms = new[]
-    {
+    private static readonly string[] SupportedPlatforms =
+    [
         "win-x64", "win-x86", "win-arm64",
         "osx-x64", "osx-arm64",
         "linux-x64", "linux-arm64"
-    };
+    ];
 
-    private static readonly string[] Configurations = new[] { "Release", "Debug" };
+    private static readonly string[] Configurations = ["Release", "Debug"];
 
     public void ShowPublishModal()
     {
@@ -50,7 +51,7 @@ public class PublishSettingsUI(
         if (!_showPublishModal)
             return;
 
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(500, 400), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(EditorUIConstants.PublishSettingsModalSize, ImGuiCond.FirstUseEver);
 
         if (ModalDrawer.BeginCenteredModal("Publish Game Settings", ref _showPublishModal, ImGuiWindowFlags.NoResize))
         {
@@ -136,7 +137,7 @@ public class PublishSettingsUI(
         if (_publishProgress == null)
             return;
 
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(600, 400), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(EditorUIConstants.PublishProgressModalSize, ImGuiCond.FirstUseEver);
 
         var isOpen = true;
         if (ModalDrawer.BeginCenteredModal("Publishing Game...", ref isOpen, ImGuiWindowFlags.NoResize))

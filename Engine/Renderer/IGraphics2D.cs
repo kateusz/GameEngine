@@ -8,20 +8,23 @@ namespace Engine.Renderer;
 public interface IGraphics2D : IGraphics
 {
     void Init();
-    void Shutdown();
 
     /// <summary>
-    /// Begins a 2D rendering scene with a camera that has a built-in view matrix.
+    /// Begins a scene using a projection-only camera and an entity transform.
+    /// Used during runtime rendering where the active camera is a <see cref="Camera"/> (e.g., SceneCamera)
+    /// attached to an entity — the view matrix is derived by inverting the entity's world transform.
     /// </summary>
-    /// <param name="camera">The camera to use for rendering (e.g., OrthographicCamera).</param>
-    void BeginScene(Camera camera);
-
-    /// <summary>
-    /// Begins a 2D rendering scene with a camera and external view transform.
-    /// </summary>
-    /// <param name="camera">The camera providing projection matrix.</param>
-    /// <param name="transform">The view transform matrix (typically from camera entity's TransformComponent).</param>
+    /// <param name="camera">The projection-only camera (typically a SceneCamera from a CameraComponent).</param>
+    /// <param name="transform">The world transform of the camera entity, inverted internally to produce the view matrix.</param>
     void BeginScene(Camera camera, Matrix4x4 transform);
+
+    /// <summary>
+    /// Begins a scene using a camera that owns its own view matrix.
+    /// Used by the editor (EditorCamera) and any standalone camera that computes its own view-projection matrix
+    /// independently of an entity transform.
+    /// </summary>
+    /// <param name="camera">A camera implementing <see cref="IViewCamera"/> (e.g., EditorCamera).</param>
+    void BeginScene(IViewCamera camera);
 
     void EndScene();
     void DrawQuad(Vector2 position, Vector2 size, Vector4 color);

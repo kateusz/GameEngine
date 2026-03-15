@@ -1,96 +1,93 @@
 using System.Numerics;
-using Engine.Renderer.Cameras;
 
 namespace Editor.Features.Viewport;
 
 /// <summary>
-/// Helper class for converting between screen space and world space coordinates in the editor viewport.
+/// Converts between screen space and world space coordinates in the editor viewport.
+/// Works with any camera type via the view-projection matrix.
 /// </summary>
 public static class ViewportCoordinateConverter
 {
     /// <summary>
-    /// Converts screen coordinates (pixels) to world coordinates.
+    /// Converts viewport-local screen coordinates to world space.
+    /// Intersects the unprojected ray with the Z=0 plane for 2D operations.
     /// </summary>
-    /// <param name="screenPos">Screen position in pixels (LOCAL to the viewport: [0..viewportWidth], [0..viewportHeight])</param>
-    /// <param name="viewportBounds">Viewport bounds [min, max] in screen space</param>
-    /// <param name="camera">Orthographic camera</param>
-    /// <returns>World position</returns>
-    public static Vector2 ScreenToWorld(Vector2 screenPos, Vector2[] viewportBounds, OrthographicCamera camera)
+    /// <param name="screenPos">Mouse position relative to viewport origin (logical pixels).</param>
+    /// <param name="viewportBounds">Viewport [min, max] bounds in screen space.</param>
+    /// <param name="viewProjectionMatrix">Camera's combined view-projection matrix.</param>
+    public static Vector3? ScreenToWorld(
+        Vector2 screenPos,
+        Vector2[] viewportBounds,
+        Matrix4x4 viewProjectionMatrix)
     {
-        // Calculate viewport dimensions
-        var viewportMin = viewportBounds[0];
-        var viewportMax = viewportBounds[1];
-        var viewportSize = viewportMax - viewportMin;
+        var viewportSize = viewportBounds[1] - viewportBounds[0];
+        if (viewportSize.X <= 0 || viewportSize.Y <= 0)
+            return null;
 
-        // screenPos is expected to be LOCAL to the viewport (origin at top-left of the viewport image).
-        // Convert screen position to normalized viewport coordinates (0-1)
         var normalizedX = screenPos.X / viewportSize.X;
         var normalizedY = screenPos.Y / viewportSize.Y;
-
-        // The framebuffer texture is rendered into the ImGui "Viewport" using inverted UVs
-        // (ImGui.Image(texture, size, new Vector2(0,1), new Vector2(1,0))). To map a mouse position on
-        // the ImGui window to the camera's clip-space correctly we must invert the Y here so the top of
-        // the ImGui region corresponds to the top of the framebuffer.
+        // Flip Y (ImGui UV inversion)
         normalizedY = 1.0f - normalizedY;
 
-        // Convert normalized coordinates to NDC space (-1 to 1)
         var ndcX = normalizedX * 2.0f - 1.0f;
         var ndcY = normalizedY * 2.0f - 1.0f;
 
-        // Create NDC position (z = 0 for 2D)
-        var ndcPos = new Vector4(ndcX, ndcY, 0.0f, 1.0f);
+        if (!Matrix4x4.Invert(viewProjectionMatrix, out var invVP))
+            return null;
 
-        // Get inverse view-projection matrix
-        Matrix4x4.Invert(camera.ViewProjectionMatrix, out var invViewProj);
+        var nearPoint4 = Vector4.Transform(new Vector4(ndcX, ndcY, -1.0f, 1.0f), invVP);
+        var farPoint4 = Vector4.Transform(new Vector4(ndcX, ndcY, 1.0f, 1.0f), invVP);
 
-        // Transform from NDC to world space
-        var worldPos4 = Vector4.Transform(ndcPos, invViewProj);
+        if (MathF.Abs(nearPoint4.W) > 0.0001f) nearPoint4 /= nearPoint4.W;
+        if (MathF.Abs(farPoint4.W) > 0.0001f) farPoint4 /= farPoint4.W;
 
-        // Perspective divide (not really needed for orthographic, but good practice)
-        if (Math.Abs(worldPos4.W) > 0.0001f)
-        {
-            worldPos4 /= worldPos4.W;
-        }
+        var rayOrigin = new Vector3(nearPoint4.X, nearPoint4.Y, nearPoint4.Z);
+        var rayEnd = new Vector3(farPoint4.X, farPoint4.Y, farPoint4.Z);
+        var rayDir = rayEnd - rayOrigin;
 
-        return new Vector2(worldPos4.X, worldPos4.Y);
+        // Ray is parallel to Z=0 plane — no intersection
+        if (MathF.Abs(rayDir.Z) < 0.0001f)
+            return null;
+
+        var t = -rayOrigin.Z / rayDir.Z;
+        return rayOrigin + rayDir * t;
     }
-    
+
     /// <summary>
-    /// Converts world coordinates to screen coordinates (pixels).
+    /// Converts a world-space position to viewport-local screen coordinates (global ImGui coordinates).
     /// </summary>
-    /// <param name="worldPos">World position</param>
-    /// <param name="viewportBounds">Viewport bounds [min, max] in screen space</param>
-    /// <param name="camera">Orthographic camera</param>
-    /// <returns>Screen position in pixels (GLOBAL ImGui coordinates)</returns>
-    public static Vector2 WorldToScreen(Vector2 worldPos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public static Vector2 WorldToScreen(
+        Vector3 worldPos,
+        Vector2[] viewportBounds,
+        Matrix4x4 viewProjectionMatrix)
     {
-        // Create world position as Vector4
-        var worldPos4 = new Vector4(worldPos.X, worldPos.Y, 0.0f, 1.0f);
-        
-        // Transform to clip space
-        var clipPos = Vector4.Transform(worldPos4, camera.ViewProjectionMatrix);
-        
-        // Perspective divide
-        if (Math.Abs(clipPos.W) > 0.0001f)
-        {
+        var clipPos = Vector4.Transform(new Vector4(worldPos, 1.0f), viewProjectionMatrix);
+
+        if (MathF.Abs(clipPos.W) > 0.0001f)
             clipPos /= clipPos.W;
-        }
-        
-        // Convert from NDC (-1 to 1) to normalized viewport coordinates (0 to 1)
+
         var normalizedX = (clipPos.X + 1.0f) * 0.5f;
         var normalizedY = (clipPos.Y + 1.0f) * 0.5f;
-        
-        // Invert Y to account for ImGui image UV flip so coordinates map to ImGui window space
+
+        // Flip Y for ImGui
         normalizedY = 1.0f - normalizedY;
-        
-        // Convert to screen coordinates (GLOBAL ImGui coords)
-        var viewportMin = viewportBounds[0];
-        var viewportMax = viewportBounds[1];
-        var viewportSize = viewportMax - viewportMin;
-        
-        var screenX = viewportMin.X + normalizedX * viewportSize.X;
-        var screenY = viewportMin.Y + normalizedY * viewportSize.Y;
-        
-        return new Vector2(screenX, screenY);
+
+        var viewportSize = viewportBounds[1] - viewportBounds[0];
+        return new Vector2(
+            viewportBounds[0].X + normalizedX * viewportSize.X,
+            viewportBounds[0].Y + normalizedY * viewportSize.Y);
+    }
+
+    /// <summary>
+    /// 2D convenience overload — returns XY on the Z=0 plane.
+    /// </summary>
+    public static Vector2? ScreenToWorld2D(
+        Vector2 screenPos,
+        Vector2[] viewportBounds,
+        Matrix4x4 viewProjectionMatrix)
+    {
+        var world3D = ScreenToWorld(screenPos, viewportBounds, viewProjectionMatrix);
+        if (world3D is null) return null;
+        return new Vector2(world3D.Value.X, world3D.Value.Y);
     }
 }

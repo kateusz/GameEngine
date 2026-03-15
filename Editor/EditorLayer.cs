@@ -1,21 +1,21 @@
 using System.Numerics;
 using ECS;
-using ECS.Systems;
 using Editor.ComponentEditors;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Input;
 using Editor.Panels;
-using Editor.Systems;
 using Editor.UI.Drawers;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Editor.Publisher;
 using Engine.Core;
 using Engine.Core.Input;
+using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
+using Engine.Math;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
@@ -55,7 +55,8 @@ public class EditorLayer(
     ViewportToolManager viewportToolManager,
     ViewportRuler viewportRuler,
     IFrameBufferFactory frameBufferFactory,
-    PublishSettingsUI publishSettingsUI) : ILayer
+    PublishSettingsUI publishSettingsUI,
+    IContentScaleProvider contentScaleProvider) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -63,14 +64,14 @@ public class EditorLayer(
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
+    private readonly HashSet<int> _pressedMouseButtons = [];
 
-    private IOrthographicCameraController _cameraController;
-    private IFrameBuffer _frameBuffer;
+    private EditorCamera _editorCamera = null!;
+    private IFrameBuffer _frameBuffer = null!;
+    private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
-    private bool _viewportFocused;
+    private bool _viewportHovered;
     private Entity? _hoveredEntity;
-    private ISystemManager _editorSystems;
-    private EditorCameraSystem _editorCameraSystem;
     private Entity _selectedEntity;
 
     // Named delegates kept so they can be unsubscribed in OnDetach
@@ -95,9 +96,9 @@ public class EditorLayer(
         sceneToolbar.OnStopScene += _stopSceneHandler;
         sceneToolbar.OnRestartScene += _restartSceneHandler;
 
-        // Initialize 2D camera controller with default aspect ratio for editor
-        _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio);
+        _editorCamera = new EditorCamera();
         _frameBuffer = frameBufferFactory.Create();
+        _contentScale = contentScaleProvider.ContentScale;
 
         sceneManager.New();
 
@@ -114,12 +115,6 @@ public class EditorLayer(
         // Prefer current project; otherwise default to CWD/assets/scripts
         var scriptsDir = projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         scriptEngine.SetScriptsDirectory(scriptsDir);
-
-        // Initialize editor systems
-        _editorSystems = new SystemManager();
-        _editorCameraSystem = new EditorCameraSystem(_cameraController);
-        _editorSystems.RegisterSystem(_editorCameraSystem);
-        _editorSystems.Initialize();
 
         // Register keyboard shortcuts
         RegisterShortcuts();
@@ -209,7 +204,7 @@ public class EditorLayer(
         // Center camera on selected entity
         if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
         {
-            _cameraController.SetPosition(transformComponent.Translation);
+            _editorCamera.SetFocalPoint(transformComponent.Translation);
         }
     }
 
@@ -224,10 +219,6 @@ public class EditorLayer(
         sceneToolbar.OnRestartScene -= _restartSceneHandler;
         viewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
 
-        // Shutdown editor systems
-        _editorSystems?.ShutdownAll();
-        _editorSystems?.Dispose();
-
         // Dispose current scene to cleanup resources
         sceneContext.ActiveScene?.Dispose();
 
@@ -241,21 +232,16 @@ public class EditorLayer(
         performanceMonitor.Update(timeSpan);
         animationTimeline.Update((float)timeSpan.TotalSeconds);
 
-        // Resize
+        // Resize (logical viewport → physical framebuffer)
         var spec = _frameBuffer.GetSpecification();
+        var fbWidth = (uint)(_viewportSize.X * _contentScale);
+        var fbHeight = (uint)(_viewportSize.Y * _contentScale);
         if (_viewportSize is { X: > 0.0f, Y: > 0.0f } &&
-            (spec.Width != (uint)_viewportSize.X || spec.Height != (uint)_viewportSize.Y))
+            (spec.Width != fbWidth || spec.Height != fbHeight))
         {
-            _frameBuffer.Resize((uint)_viewportSize.X, (uint)_viewportSize.Y);
-
-            // Update camera aspect ratio when viewport changes
-            var aspectRatio = _viewportSize.X / _viewportSize.Y;
-            _cameraController = new OrthographicCameraController(_cameraController.Camera, aspectRatio, true);
-
-            // Update the camera system with the new controller instance
-            _editorCameraSystem.SetCameraController(_cameraController);
-
-            sceneContext.ActiveScene?.OnViewportResize((uint)_viewportSize.X, (uint)_viewportSize.Y);
+            _frameBuffer.Resize(fbWidth, fbHeight);
+            _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
+            sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
         }
 
         graphics2D.ResetStats();
@@ -270,14 +256,7 @@ public class EditorLayer(
         {
             case SceneState.Edit:
             {
-                // Update viewport focus state for the camera system
-                _editorCameraSystem.SetViewportFocused(_viewportFocused);
-
-                // Update editor systems (camera controller, etc.)
-                _editorSystems.Update(timeSpan);
-
-                // Use 2D camera for editor scene rendering
-                sceneContext.ActiveScene?.OnUpdateEditor(timeSpan, _cameraController.Camera);
+                sceneContext.ActiveScene?.OnUpdateEditor(timeSpan, _editorCamera);
                 break;
             }
             case SceneState.Play:
@@ -287,17 +266,18 @@ public class EditorLayer(
             }
         }
 
-        // Mouse picking logic
+        // Mouse picking (logical mouse position → physical framebuffer coordinates)
         var mousePos = ImGui.GetMousePos();
-        var mx = mousePos.X - _viewportBounds[0].X;
-        var my = mousePos.Y - _viewportBounds[0].Y;
-        var viewportSize = _viewportBounds[1] - _viewportBounds[0];
-        my = viewportSize.Y - my; // Flip the Y-axis
+        var mx = (mousePos.X - _viewportBounds[0].X) * _contentScale;
+        var my = (mousePos.Y - _viewportBounds[0].Y) * _contentScale;
+        var physicalWidth = (_viewportBounds[1].X - _viewportBounds[0].X) * _contentScale;
+        var physicalHeight = (_viewportBounds[1].Y - _viewportBounds[0].Y) * _contentScale;
+        my = physicalHeight - my; // Flip the Y-axis
 
         var mouseX = (int)mx;
         var mouseY = (int)my;
 
-        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.X && mouseY < (int)viewportSize.Y)
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)physicalWidth && mouseY < (int)physicalHeight)
         {
             var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = sceneContext.ActiveScene?.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
@@ -309,10 +289,6 @@ public class EditorLayer(
 
     public void HandleWindowEvent(WindowEvent @event)
     {
-        if (sceneContext.State == SceneState.Edit)
-        {
-            _cameraController.OnEvent(@event);
-        }
     }
 
     public void HandleInputEvent(InputEvent windowEvent)
@@ -327,16 +303,49 @@ public class EditorLayer(
             case KeyReleasedEvent kre:
                 _pressedKeys.Remove(kre.KeyCode);
                 break;
+            case MouseButtonPressedEvent mbpe:
+                _pressedMouseButtons.Add(mbpe.Button);
+                break;
+            case MouseButtonReleasedEvent mbre:
+                _pressedMouseButtons.Remove(mbre.Button);
+                break;
         }
 
-        if (sceneContext.State == SceneState.Edit)
+        if (sceneContext.State == SceneState.Edit && _viewportHovered)
         {
-            _cameraController.OnEvent(windowEvent);
+            // Scroll zoom
+            if (windowEvent is MouseScrolledEvent scrollEvent)
+            {
+                _editorCamera.OnMouseScroll(scrollEvent.YOffset);
+            }
+
+            // Alt+mouse controls for the editor camera
+            var alt = _pressedKeys.Contains(KeyCodes.LeftAlt) || _pressedKeys.Contains(KeyCodes.RightAlt);
+
+            if (windowEvent is MouseButtonPressedEvent)
+            {
+                _editorCamera.SetPreviousMousePosition(GetMousePosition());
+            }
+            else if (windowEvent is MouseMovedEvent moveEvent && alt)
+            {
+                var currentPos = new Vector2(moveEvent.X, moveEvent.Y);
+                var leftDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Left);
+                var middleDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Middle);
+                var rightDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Right);
+
+                _editorCamera.OnMouseMove(currentPos, pan: middleDown, orbit: leftDown, zoomDrag: rightDown);
+            }
         }
-        else
+        else if (sceneContext.State == SceneState.Play)
         {
             scriptEngine.ProcessEvent(windowEvent);
         }
+    }
+
+    private static Vector2 GetMousePosition()
+    {
+        var pos = ImGui.GetMousePos();
+        return new Vector2(pos.X, pos.Y);
     }
 
     private void OnKeyPressed(KeyPressedEvent keyPressedEvent)
@@ -519,15 +528,14 @@ public class EditorLayer(
 
             // Render Stats window if visible
             var hoveredEntityName = _hoveredEntity?.Name ?? "None";
-            var camPos = _cameraController.Camera.Position;
-            var camRotation = _cameraController.Camera.Rotation;
-            rendererStatsPanel.Draw(hoveredEntityName, camPos, camRotation, () => performanceMonitor.RenderUI());
+            var camPos = _editorCamera.GetPosition();
+            rendererStatsPanel.Draw(hoveredEntityName, camPos, _editorCamera.Yaw, () => performanceMonitor.RenderUI());
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
             ImGui.Begin("Viewport");
             {
-                _viewportFocused = ImGui.IsWindowFocused();
+                _viewportHovered = ImGui.IsWindowHovered();
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
 
@@ -577,7 +585,7 @@ public class EditorLayer(
                     // Handle mouse events through tool manager
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
-                        viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _cameraController.Camera);
+                        viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
 
                         // Update hierarchy panel selection when entity is clicked
                         if (_hoveredEntity != null && currentMode != EditorMode.Ruler)
@@ -588,23 +596,26 @@ public class EditorLayer(
 
                     if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
                     {
-                        viewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _cameraController.Camera);
+                        viewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _editorCamera);
                     }
 
                     if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
                     {
-                        viewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _cameraController.Camera);
+                        viewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _editorCamera);
                     }
                 }
 
                 // Render viewport rulers
-                var cameraPos = new Vector2(_cameraController.Camera.Position.X, _cameraController.Camera.Position.Y);
-                var orthoSize = _cameraController.ZoomLevel;
-                var zoom = _viewportSize.Y / (orthoSize * 2.0f); // pixels per unit
+                var focalPoint = _editorCamera.FocalPoint;
+                var cameraPos = new Vector2(focalPoint.X, focalPoint.Y);
+                var distance = _editorCamera.Distance;
+                var fovRad = MathHelpers.DegreesToRadians(_editorCamera.FOV);
+                var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
+                var zoom = _viewportSize.Y / worldHeight;
                 viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
                 // Render active tool overlays (measurements, gizmos, etc.)
-                viewportToolManager.RenderActiveTool(_viewportBounds, _cameraController.Camera);
+                viewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
             }
 
             // Render windows that should dock to Viewport
@@ -631,9 +642,9 @@ public class EditorLayer(
 
     private void ResetCamera()
     {
-        _cameraController.SetPosition(Vector3.Zero);
-        _cameraController.SetRotation(0.0f);
-        // Reset zoom to default
-        _cameraController.SetZoom(CameraConfig.DefaultZoomLevel);
+        _editorCamera.SetFocalPoint(Vector3.Zero);
+        _editorCamera.SetDistance(CameraConfig.DefaultEditorDistance);
+        _editorCamera.SetPitch(0.0f);
+        _editorCamera.SetYaw(0.0f);
     }
 }

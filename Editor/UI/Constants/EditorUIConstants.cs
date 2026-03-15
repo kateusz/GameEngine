@@ -143,4 +143,14 @@ public static class EditorUIConstants
     /// Maximum number of visible items in list boxes before scrolling
     /// </summary>
     public const int MaxVisibleListItems = 10;
+
+    /// <summary>
+    /// Default size for the publish settings modal window.
+    /// </summary>
+    public static readonly Vector2 PublishSettingsModalSize = new(500f, 400f);
+
+    /// <summary>
+    /// Default size for the publish progress modal window.
+    /// </summary>
+    public static readonly Vector2 PublishProgressModalSize = new(600f, 400f);
 }

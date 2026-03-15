@@ -50,14 +50,17 @@ public class ScaleTool : IEntityTargetTool, IEntityHoverTool
         }
     }
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // Only start scaling if we're hovering over the target entity
         if (_draggedEntity == null || HoveredEntity != _draggedEntity)
             return;
 
+        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (worldPos is null) return;
+
         _isDragging = true;
-        _dragStartWorldPos = ViewportCoordinateConverter.ScreenToWorld(mousePos, viewportBounds, camera);
+        _dragStartWorldPos = worldPos.Value;
 
         if (_draggedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -65,7 +68,7 @@ public class ScaleTool : IEntityTargetTool, IEntityHoverTool
         }
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         if (!_isDragging || _draggedEntity == null)
             return;
@@ -73,8 +76,9 @@ public class ScaleTool : IEntityTargetTool, IEntityHoverTool
         if (!_draggedEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
-        var currentWorldPos = ViewportCoordinateConverter.ScreenToWorld(mousePos, viewportBounds, camera);
-        var delta = currentWorldPos - _dragStartWorldPos;
+        var currentWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (currentWorldPos is null) return;
+        var delta = currentWorldPos.Value - _dragStartWorldPos;
 
         // Scale based on mouse movement (both axes)
         var scaleFactor = 1.0f + (delta.X + delta.Y) * 0.5f; // Sensitivity factor
@@ -82,12 +86,12 @@ public class ScaleTool : IEntityTargetTool, IEntityHoverTool
         transform.Scale = _dragStartScale * scaleFactor;
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         _isDragging = false;
     }
 
-    public void Render(Vector2[] viewportBounds, OrthographicCamera camera)
+    public void Render(Vector2[] viewportBounds, IViewCamera camera)
     {
         // ScaleTool doesn't render any overlays
         // Scale gizmos could be added here in the future

@@ -25,6 +25,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         silkMouse.MouseDown += OnSilkMouseDown;
         silkMouse.MouseUp += OnSilkMouseUp;
         silkMouse.Scroll += OnSilkMouseScroll;
+        silkMouse.MouseMove += OnSilkMouseMove;
     }
     
     public IInputContext Context { get; set; }
@@ -77,6 +78,14 @@ internal sealed class SilkNetInputSystem : IInputSystem
         if (_disposed) return;
 
         var inputEvent = new MouseScrolledEvent(scrollWheel.X, scrollWheel.Y);
+        _inputQueue.Enqueue(inputEvent);
+    }
+
+    private void OnSilkMouseMove(IMouse mouse, System.Numerics.Vector2 position)
+    {
+        if (_disposed) return;
+
+        var inputEvent = new MouseMovedEvent(position.X, position.Y);
         _inputQueue.Enqueue(inputEvent);
     }
 

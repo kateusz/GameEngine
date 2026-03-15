@@ -143,16 +143,7 @@ internal sealed class Scene(
     }
 
 
-    /// <summary>
-    /// Updates the scene in editor mode (without running physics or scripts).
-    /// </summary>
-    /// <remarks>
-    /// Uses unified Camera interface for rendering in editor mode.
-    /// The editor camera (OrthographicCamera) provides both projection and view matrices
-    /// through the abstract Camera base class, allowing consistent rendering across
-    /// editor and runtime modes.
-    /// </remarks>
-    public void OnUpdateEditor(TimeSpan ts, Camera camera)
+    public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
         //TODO: temp disable 3D
         /*

@@ -52,6 +52,7 @@ public static class EngineIoCContainer
             )
         );
         
+        container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>());
         container.Register<IInputSystemFactory, InputSystemFactory>(Reuse.Singleton);
 
         container.Register<IImGuiLayerFactory, ImGuiLayerFactory>(Reuse.Singleton);

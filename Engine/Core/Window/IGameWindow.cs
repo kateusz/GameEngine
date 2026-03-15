@@ -4,9 +4,10 @@ using Engine.Events.Window;
 
 namespace Engine.Core.Window;
 
-public interface IGameWindow
+public interface IGameWindow : IContentScaleProvider
 {
     void Run();
+
     event Action<WindowEvent> OnWindowEvent;  // Resize, close, focus, etc.
     event Action<InputEvent> OnInputEvent;    // Keys, mouse, gamepad, etc.
     event Action<double> OnUpdate;            // Receives platform-provided delta time in seconds

@@ -24,24 +24,27 @@ public class RulerTool : IViewportTool
 
     public void OnDeactivate() => ClearMeasurement();
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // Start new measurement
-        _startPoint = ViewportCoordinateConverter.ScreenToWorld(mousePos, viewportBounds, camera);
+        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (worldPos is null) return;
+        _startPoint = worldPos.Value;
         _endPoint = _startPoint;
         _hasStartPoint = true;
         _isMeasuring = true;
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         if (!_isMeasuring)
             return;
 
-        _endPoint = ViewportCoordinateConverter.ScreenToWorld(mousePos, viewportBounds, camera);
+        var endPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (endPos is not null) _endPoint = endPos.Value;
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // End measurement
         _isMeasuring = false;
@@ -57,14 +60,14 @@ public class RulerTool : IViewportTool
         _hasStartPoint = false;
     }
 
-    public void Render(Vector2[] viewportBounds, OrthographicCamera camera)
+    public void Render(Vector2[] viewportBounds, IViewCamera camera)
     {
         if (!_hasStartPoint)
             return;
 
         var drawList = ImGui.GetWindowDrawList();
-        var startScreen = ViewportCoordinateConverter.WorldToScreen(_startPoint, viewportBounds, camera);
-        var endScreen = ViewportCoordinateConverter.WorldToScreen(_endPoint, viewportBounds, camera);
+        var startScreen = ViewportCoordinateConverter.WorldToScreen(new Vector3(_startPoint, 0), viewportBounds, camera.GetViewProjectionMatrix());
+        var endScreen = ViewportCoordinateConverter.WorldToScreen(new Vector3(_endPoint, 0), viewportBounds, camera.GetViewProjectionMatrix());
 
         DrawMeasurementLine(drawList, startScreen, endScreen);
         DrawMeasurementPoints(drawList, startScreen, endScreen);
