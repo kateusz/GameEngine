@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
-using Engine.Renderer.Cameras;
 using Engine.Math;
-using Engine.Platform;
+using Engine.Renderer.Cameras;
 using Serilog;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
@@ -28,8 +27,6 @@ public class SceneCamera : Camera
     private float _perspectiveNear = CameraConfig.DefaultPerspectiveNear;
     private float _perspectiveFar = CameraConfig.DefaultPerspectiveFar;
 
-    private Matrix4x4 _projection = Matrix4x4.Identity;
-
     /// <summary>
     /// Gets the projection matrix, lazily recalculating it only when needed.
     /// The matrix is recalculated only when camera properties change and this property is accessed.
@@ -49,17 +46,7 @@ public class SceneCamera : Camera
         protected set => _projection = value;
     }
 
-    /// <summary>
-    /// Gets the projection matrix for this camera.
-    /// </summary>
     public override Matrix4x4 GetProjectionMatrix() => Projection;
-
-    /// <summary>
-    /// Gets the view matrix for this camera.
-    /// SceneCamera returns Identity because the view transform is handled
-    /// by the camera entity's TransformComponent in the rendering system.
-    /// </summary>
-    public override Matrix4x4 GetViewMatrix() => Matrix4x4.Identity;
 
     /// <summary>
     /// Gets or sets the projection type (Perspective or Orthographic).
@@ -199,18 +186,8 @@ public class SceneCamera : Camera
 
     public SceneCamera()
     {
-        if (OSInfo.IsWindows)
-        {
-            OrthographicNear = 0.0f;
-            OrthographicFar = 1.0f;
-        }
-        else if (OSInfo.IsMacOS)
-        {
-            OrthographicNear = CameraConfig.DefaultOrthographicNear;
-            OrthographicFar = CameraConfig.DefaultOrthographicFar;
-        }
-
-        // _projectionDirty is already true by default, projection will be calculated on first access
+        OrthographicNear = CameraConfig.DefaultOrthographicNear;
+        OrthographicFar = CameraConfig.DefaultOrthographicFar;
     }
 
     /// <summary>

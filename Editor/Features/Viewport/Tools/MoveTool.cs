@@ -45,14 +45,14 @@ public class MoveTool : IEntityTargetTool, IEntityHoverTool
         }
     }
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // Only start dragging if we're hovering over the target entity
         if (_draggedEntity == null || HoveredEntity != _draggedEntity)
             return;
 
         IsActive = true;
-        _dragStartWorldPos = ViewportCoordinateConverter.ScreenToWorld(mousePos, viewportBounds, camera);
+        _dragStartWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
 
         if (_draggedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -60,7 +60,7 @@ public class MoveTool : IEntityTargetTool, IEntityHoverTool
         }
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         if (!IsActive || _draggedEntity == null)
             return;
@@ -68,7 +68,7 @@ public class MoveTool : IEntityTargetTool, IEntityHoverTool
         if (!_draggedEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
-        var currentWorldPos = ViewportCoordinateConverter.ScreenToWorld(mousePos, viewportBounds, camera);
+        var currentWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
         var delta = currentWorldPos - _dragStartWorldPos;
 
         // Update entity position
@@ -79,12 +79,12 @@ public class MoveTool : IEntityTargetTool, IEntityHoverTool
         );
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         IsActive = false;
     }
 
-    public void Render(Vector2[] viewportBounds, OrthographicCamera camera)
+    public void Render(Vector2[] viewportBounds, IViewCamera camera)
     {
         // TODO: add Gizmos here
     }

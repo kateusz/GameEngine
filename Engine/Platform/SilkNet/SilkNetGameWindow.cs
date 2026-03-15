@@ -16,6 +16,15 @@ internal sealed class SilkNetGameWindow(IWindow window, IInputSystemFactory inpu
 
     private IInputSystem? _inputSystem;
 
+    public float ContentScale
+    {
+        get
+        {
+            if (window.Size.X == 0) return 1.0f;
+            return (float)window.FramebufferSize.X / window.Size.X;
+        }
+    }
+
     public event Action<InputEvent> OnInputEvent;
     public event Action<double> OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;

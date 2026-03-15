@@ -5,7 +5,6 @@ using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using System.Numerics;
 using Engine.Math;
-using Engine.Platform;
 using Engine.Scene.Components;
 
 namespace Engine.Renderer;
@@ -55,17 +54,13 @@ internal sealed class Graphics2D(
         }
     }
 
-    public void Shutdown()
+    public void BeginScene(Camera camera, Matrix4x4 transform)
     {
-        // Deprecated: Use Dispose() instead
-        Dispose();
-    }
-
-    public void BeginScene(Camera camera)
-    {
-        // Calculate view-projection matrix using unified camera interface
-        var viewProj = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-
+        if (!Matrix4x4.Invert(transform, out var viewMatrix))
+        {
+            viewMatrix = Matrix4x4.Identity;
+        }
+        var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
 
@@ -75,27 +70,15 @@ internal sealed class Graphics2D(
         StartBatch();
     }
 
-    public void BeginScene(Camera camera, Matrix4x4 transform)
+    public void BeginScene(IViewCamera camera)
     {
-        _ = Matrix4x4.Invert(transform, out var transformInverted);
-        Matrix4x4? viewProj = null;
-
-        if (OSInfo.IsWindows)
-        {
-            viewProj = transformInverted * camera.GetProjectionMatrix();
-        }
-        else if (OSInfo.IsMacOS)
-        {
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
-        }
-        else
-            throw new InvalidOperationException("Unsupported OS version!");
+        var viewProj = camera.GetViewProjectionMatrix();
 
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
 
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
 
         StartBatch();
     }

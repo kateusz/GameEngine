@@ -24,7 +24,7 @@ public class SelectionTool : IEntityHoverTool
     {
     }
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         if (HoveredEntity != null)
         {
@@ -32,17 +32,17 @@ public class SelectionTool : IEntityHoverTool
         }
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // Selection tool doesn't need mouse move handling
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, OrthographicCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // No action needed on mouse up for selection tool
     }
 
-    public void Render(Vector2[] viewportBounds, OrthographicCamera camera)
+    public void Render(Vector2[] viewportBounds, IViewCamera camera)
     {
         // SelectionTool doesn't render any overlays
     }

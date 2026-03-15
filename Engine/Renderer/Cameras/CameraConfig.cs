@@ -110,11 +110,18 @@ public static class CameraConfig
     /// </summary>
     public const float MaxAspectRatio = 10.0f;
 
+    // Editor camera defaults
+    public const float DefaultEditorFOV = 45.0f;
+    public const float DefaultEditorDistance = 10.0f;
+    public const float DefaultEditorNearClip = 0.1f;
+    public const float DefaultEditorFarClip = 1000.0f;
+    public const float MinEditorDistance = 0.5f;
+    public const float MaxEditorDistance = 500.0f;
+    public const float EditorRotationSpeed = 0.8f;
+    public const float EditorZoomSensitivity = 0.1f;
+    public const float EditorMouseSensitivity = 0.003f;
+
     // Camera position defaults
-    /// <summary>
-    /// Default camera Z position for 3D perspective cameras.
-    /// Positioned 3 units back from origin to have a good view of the scene.
-    /// </summary>
     public const float DefaultCameraZPosition = 3.0f;
 
     // Physics simulation

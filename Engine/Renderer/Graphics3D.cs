@@ -1,5 +1,4 @@
 using System.Numerics;
-using Engine.Platform;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Scene.Components;
@@ -23,22 +22,14 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
     {
-        _ = Matrix4x4.Invert(transform, out var transformInverted);
-        Matrix4x4? viewProj = null;
-
-        if (OSInfo.IsWindows)
+        if (!Matrix4x4.Invert(transform, out var viewMatrix))
         {
-            viewProj = camera.GetProjectionMatrix() * transformInverted;
+            // Log warning or use fallback - singular transform matrix
+            viewMatrix = Matrix4x4.Identity;
         }
-        else if (OSInfo.IsMacOS)
-        {
-            viewProj = transformInverted * camera.GetProjectionMatrix();
-        }
-        else
-            throw new InvalidOperationException("Unsupported OS version!");
-
+        var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _phongShader.Bind();
-        _phongShader.SetMat4("u_ViewProjection", viewProj.Value);
+        _phongShader.SetMat4("u_ViewProjection", viewProj);
         _phongShader.SetFloat3("u_LightPosition", _lightPosition);
         _phongShader.SetFloat3("u_LightColor", _lightColor);
         _phongShader.SetFloat3("u_ViewPosition", new Vector3(transform.M41, transform.M42, transform.M43));

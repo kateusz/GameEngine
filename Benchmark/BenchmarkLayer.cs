@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
 using Engine.Core.Input;
-using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
@@ -33,7 +32,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     // Test scenes
     private IScene? _currentTestScene;
-    private IOrthographicCameraController? _cameraController;
+    private EditorCamera? _cameraController;
     private readonly Dictionary<string, Texture2D> _testTextures = new();
 
     // Benchmark configurations
@@ -52,7 +51,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     public void OnAttach(IInputSystem inputSystem)
     {
-        _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio, true);
+        _cameraController = new EditorCamera();
         LoadTestAssets();
 
         // Initialize process monitoring
@@ -83,8 +82,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             UpdateBenchmark(timeSpan);
         }
 
-        // Always update camera for viewport control
-        _cameraController?.OnUpdate(timeSpan);
+        // Camera is event-driven, no per-frame update needed
 
         // Render current test scene if active
         if (_currentTestScene != null && _isRunning)
@@ -103,11 +101,15 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         RenderPerformanceMonitor();
     }
 
-    public void HandleInputEvent(InputEvent windowEvent) => HandleEvent(windowEvent);
+    public void HandleInputEvent(InputEvent windowEvent)
+    {
+        if (windowEvent is MouseScrolledEvent scrollEvent)
+            _cameraController?.OnMouseScroll(scrollEvent.YOffset);
+    }
 
-    public void HandleWindowEvent(WindowEvent windowEvent) => HandleEvent(windowEvent);
-
-    private void HandleEvent(Event @event) => _cameraController?.OnEvent(@event);
+    public void HandleWindowEvent(WindowEvent windowEvent)
+    {
+    }
 
     private void LoadTestAssets()
     {
@@ -555,9 +557,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     private void RenderTestScene()
     {
-        if (_cameraController?.Camera == null) return;
+        if (_cameraController == null) return;
 
-        graphics2D.BeginScene(_cameraController.Camera);
+        graphics2D.BeginScene(_cameraController);
 
         // Render all entities in the test scene
         foreach (var entity in _currentTestScene.Entities)

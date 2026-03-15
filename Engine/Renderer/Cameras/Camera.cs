@@ -4,17 +4,11 @@ namespace Engine.Renderer.Cameras;
 
 /// <summary>
 /// Abstract base class for all camera types in the engine.
-/// Provides unified interface for projection and view matrices.
+/// Every camera has a projection matrix; view matrix source varies by camera type.
 /// </summary>
 public abstract class Camera
 {
-    /// <summary>
-    /// Gets the projection matrix for this camera.
-    /// </summary>
-    public abstract Matrix4x4 GetProjectionMatrix();
+    protected Matrix4x4 _projection = Matrix4x4.Identity;
 
-    /// <summary>
-    /// Gets the view matrix for this camera.
-    /// </summary>
-    public abstract Matrix4x4 GetViewMatrix();
+    public virtual Matrix4x4 GetProjectionMatrix() => _projection;
 }

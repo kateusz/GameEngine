@@ -55,9 +55,8 @@ public interface IScene : IDisposable
     /// Updates the scene in editor mode (without running physics or scripts).
     /// </summary>
     /// <param name="ts">Time elapsed since last update</param>
-    /// <param name="camera">The editor viewport camera (unified Camera interface)</param>
-    void OnUpdateEditor(TimeSpan ts, Camera camera);
-
+    /// <param name="camera">The editor viewport camera</param>
+    void OnUpdateEditor(TimeSpan ts, EditorCamera camera);
     /// <summary>
     /// Called when the viewport is resized.
     /// Updates camera aspect ratios.

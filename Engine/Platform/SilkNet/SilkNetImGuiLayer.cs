@@ -12,7 +12,6 @@ namespace Engine.Platform.SilkNet;
 internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 {
     private ImGuiController? _controller;
-    private bool _blockEvents;
     private bool _disposed;
     private IInputSystem? _inputSystem;
 
@@ -27,9 +26,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
     public void Draw()
     {
-        var viewportFocused = ImGui.IsWindowFocused();
-        var viewportHovered = ImGui.IsWindowHovered();
-        _blockEvents = !viewportFocused && !viewportHovered;
     }
 
     public void Begin(TimeSpan timeSpan)
@@ -75,11 +71,10 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
-        if (_blockEvents)
+        var io = ImGui.GetIO();
+        if (windowEvent.IsInCategory(EventCategory.EventCategoryKeyboard) && io.WantCaptureKeyboard)
         {
-            var io = ImGui.GetIO();
-            windowEvent.IsHandled |= windowEvent.IsInCategory(EventCategory.EventCategoryMouse) & io.WantCaptureMouse;
-            windowEvent.IsHandled |= windowEvent.IsInCategory(EventCategory.EventCategoryKeyboard) & io.WantCaptureKeyboard;
+            windowEvent.IsHandled = true;
         }
     }
 
