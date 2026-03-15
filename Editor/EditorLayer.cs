@@ -56,7 +56,7 @@ public class EditorLayer(
     ViewportRuler viewportRuler,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
-    IGameWindow gameWindow) : ILayer
+    IContentScaleProvider contentScaleProvider) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -64,6 +64,7 @@ public class EditorLayer(
 
     // TODO: check concurrency
     private readonly HashSet<KeyCodes> _pressedKeys = [];
+    private readonly HashSet<int> _pressedMouseButtons = [];
 
     private EditorCamera _editorCamera = null!;
     private IFrameBuffer _frameBuffer = null!;
@@ -98,7 +99,7 @@ public class EditorLayer(
 
         _editorCamera = new EditorCamera();
         _frameBuffer = frameBufferFactory.Create();
-        _contentScale = gameWindow.ContentScale;
+        _contentScale = contentScaleProvider.ContentScale;
 
         sceneManager.New();
 
@@ -219,10 +220,6 @@ public class EditorLayer(
         sceneToolbar.OnRestartScene -= _restartSceneHandler;
         viewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
 
-        // Shutdown editor systems
-        _editorSystems?.ShutdownAll();
-        _editorSystems?.Dispose();
-
         // Dispose current scene to cleanup resources
         sceneContext.ActiveScene?.Dispose();
 
@@ -307,6 +304,12 @@ public class EditorLayer(
             case KeyReleasedEvent kre:
                 _pressedKeys.Remove(kre.KeyCode);
                 break;
+            case MouseButtonPressedEvent mbpe:
+                _pressedMouseButtons.Add(mbpe.Button);
+                break;
+            case MouseButtonReleasedEvent mbre:
+                _pressedMouseButtons.Remove(mbre.Button);
+                break;
         }
 
         if (sceneContext.State == SceneState.Edit && _viewportHovered)
@@ -327,9 +330,9 @@ public class EditorLayer(
             else if (windowEvent is MouseMovedEvent moveEvent && alt)
             {
                 var currentPos = new Vector2(moveEvent.X, moveEvent.Y);
-                var leftDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
-                var middleDown = ImGui.IsMouseDown(ImGuiMouseButton.Middle);
-                var rightDown = ImGui.IsMouseDown(ImGuiMouseButton.Right);
+                var leftDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Left);
+                var middleDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Middle);
+                var rightDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Right);
 
                 _editorCamera.OnMouseMove(currentPos, pan: middleDown, orbit: leftDown, zoomDrag: rightDown);
             }
