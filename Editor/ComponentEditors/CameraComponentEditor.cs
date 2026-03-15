@@ -8,7 +8,7 @@ using Engine.Scene.Components;
 
 namespace Editor.ComponentEditors;
 
-public class CameraComponentEditor : IComponentEditor
+public class CameraComponentEditor(ISceneContext sceneContext) : IComponentEditor
 {
     private static readonly string[] ProjectionTypeStrings = ["Perspective", "Orthographic"];
 
@@ -20,7 +20,13 @@ public class CameraComponentEditor : IComponentEditor
             var camera = cameraComponent.Camera;
 
             UIPropertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,
-                newValue => cameraComponent.Primary = (bool)newValue);
+                newValue =>
+                {
+                    if ((bool)newValue)
+                        sceneContext.ActiveScene.SetPrimaryCamera(entity);
+                    else
+                        cameraComponent.Primary = false;
+                });
 
             LayoutDrawer.DrawComboBox("Projection", ProjectionTypeStrings[(int)camera.ProjectionType],
                 ProjectionTypeStrings,

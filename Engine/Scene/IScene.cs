@@ -72,6 +72,11 @@ public interface IScene : IDisposable
     Entity? GetPrimaryCameraEntity();
 
     /// <summary>
+    /// Sets the specified entity as the primary camera, clearing the primary flag on all other cameras.
+    /// </summary>
+    void SetPrimaryCamera(Entity cameraEntity);
+
+    /// <summary>
     /// Duplicates an entity by cloning all of its components.
     /// </summary>
     /// <param name="entity">The entity to duplicate</param>

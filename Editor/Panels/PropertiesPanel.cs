@@ -4,11 +4,12 @@ using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
+using Engine.Scene;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors)
+public class PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors, ISceneContext sceneContext)
     : IPropertiesPanel
 {
     private Entity? _selectedEntity;
@@ -38,7 +39,7 @@ public class PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegis
         ImGui.Spacing();
 
         // Add component button and popup
-        ComponentSelector.Draw(_selectedEntity);
+        ComponentSelector.Draw(_selectedEntity, sceneContext.ActiveScene);
         ImGui.SameLine();
 
         // Save as prefab button

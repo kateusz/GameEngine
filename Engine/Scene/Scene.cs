@@ -68,6 +68,10 @@ internal sealed class Scene(
 
         context.Register(entity);
         _entities.Add(entity);
+
+        // Normalize primary camera flags to ensure at most one primary camera
+        if (entity.HasComponent<CameraComponent>() && entity.GetComponent<CameraComponent>().Primary)
+            SetPrimaryCamera(entity);
     }
 
     public void DestroyEntity(Entity entity)
@@ -232,6 +236,21 @@ internal sealed class Scene(
         return null;
     }
 
+    public void SetPrimaryCamera(Entity cameraEntity)
+    {
+        if (!_entities.Contains(cameraEntity))
+            throw new ArgumentException("Entity does not belong to this scene", nameof(cameraEntity));
+
+        if (!cameraEntity.HasComponent<CameraComponent>())
+            throw new ArgumentException("Entity must have a CameraComponent", nameof(cameraEntity));
+
+        var view = context.View<CameraComponent>();
+        foreach (var (entity, component) in view)
+        {
+            component.Primary = entity.Id == cameraEntity.Id;
+        }
+    }
+
     private static BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
     {
         return componentBodyType switch
@@ -256,6 +275,10 @@ internal sealed class Scene(
         {
             newEntity.AddComponentDynamic(component.Clone());
         }
+
+        // Normalize primary camera flags to ensure at most one primary camera
+        if (newEntity.HasComponent<CameraComponent>() && newEntity.GetComponent<CameraComponent>().Primary)
+            SetPrimaryCamera(newEntity);
 
         return newEntity;
     }

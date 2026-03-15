@@ -14,7 +14,7 @@ public class CameraComponentTests
 
         // Assert
         component.Camera.ShouldNotBeNull();
-        component.Primary.ShouldBeTrue();
+        component.Primary.ShouldBeFalse();
         component.FixedAspectRatio.ShouldBeFalse();
     }
 
