@@ -1,8 +1,6 @@
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Renderer.Buffers;
-using Engine.Renderer.VertexArray;
 using Engine.Scene.Components;
 
 namespace Editor.UI.Elements;
@@ -21,11 +19,7 @@ public static class MeshDropTarget
     /// <param name="meshComponent">Mesh component to update when a mesh is dropped</param>
     /// <param name="assetsManager">Assets manager for resolving asset paths</param>
     /// <param name="meshFactory">Mesh factory for creating meshes</param>
-    /// <param name="vertexArrayFactory">Factory for creating vertex arrays</param>
-    /// <param name="vertexBufferFactory">Factory for creating vertex buffers</param>
-    /// <param name="indexBufferFactory">Factory for creating index buffers</param>
-    public static void Draw(MeshComponent meshComponent, IAssetsManager assetsManager, IMeshFactory meshFactory,
-        IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
+    public static void Draw(MeshComponent meshComponent, IAssetsManager assetsManager, IMeshFactory meshFactory)
     {
         DragDropDrawer.HandleFileDropTarget(
             DragDropDrawer.ContentBrowserItemPayload,
@@ -34,8 +28,7 @@ public static class MeshDropTarget
             {
                 var fullPath = Path.Combine(assetsManager.AssetsPath, path);
                 var mesh = meshFactory.Create(fullPath);
-                mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-                meshComponent.SetMesh(mesh);
+                meshComponent.SetMesh(mesh, path);
             });
     }
 }

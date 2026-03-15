@@ -4,8 +4,6 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Renderer.Buffers;
-using Engine.Renderer.VertexArray;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -13,10 +11,7 @@ namespace Editor.ComponentEditors;
 
 public class MeshComponentEditor(
     IAssetsManager assetsManager,
-    IMeshFactory meshFactory,
-    IVertexArrayFactory vertexArrayFactory,
-    IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory)
+    IMeshFactory meshFactory)
     : IComponentEditor
 {
     public void DrawComponent(Entity entity)
@@ -29,19 +24,29 @@ public class MeshComponentEditor(
             {
                 // TODO
                 const string objPath = "assets/objModels/person.model";
-                if (!File.Exists(objPath)) 
+                if (!File.Exists(objPath))
                     return;
-                
+
                 var mesh = meshFactory.Create(objPath);
-                mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-                meshComponent.SetMesh(mesh);
+                meshComponent.SetMesh(mesh, objPath);
             });
 
-            ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
-            ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
-            ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+            if (meshComponent.Mesh != null)
+            {
+                ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
+                ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
+                ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+            }
+            else if (!string.IsNullOrWhiteSpace(meshComponent.MeshPath))
+            {
+                ImGui.Text($"Mesh: {meshComponent.MeshPath} (not loaded)");
+            }
+            else
+            {
+                ImGui.Text("Mesh: None");
+            }
 
-            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory);
         });
     }
 }

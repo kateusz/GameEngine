@@ -103,7 +103,10 @@ public class AudioSourceComponentTests
     {
         // Arrange
         var mockClip = Substitute.For<IAudioClip>();
-        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true, 2.0f, 150.0f);
+        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true, 2.0f, 150.0f)
+        {
+            AudioClipPath = "audio/test-clip.wav"
+        };
 
         // Act
         var clone = (AudioSourceComponent)original.Clone();
@@ -118,6 +121,7 @@ public class AudioSourceComponentTests
         clone.Is3D.ShouldBeTrue();
         clone.MinDistance.ShouldBe(2.0f);
         clone.MaxDistance.ShouldBe(150.0f);
+        clone.AudioClipPath.ShouldBe("audio/test-clip.wav");
     }
 
     [Fact]
@@ -134,17 +138,18 @@ public class AudioSourceComponentTests
     }
 
     [Fact]
-    public void AudioSourceComponent_AudioClipPath_ShouldReturnPathWhenClipExists()
+    public void AudioSourceComponent_AudioClipPath_ShouldReturnPathWhenExplicitlySet()
     {
-        // Arrange
+        // AudioClipPath is now a stored property independent of AudioClip.
+        // Setting AudioClip alone does not update AudioClipPath; callers must set it explicitly.
         var mockClip = Substitute.For<IAudioClip>();
         mockClip.Path.Returns("audio/test.wav");
-        var component = new AudioSourceComponent { AudioClip = mockClip };
+        var component = new AudioSourceComponent
+        {
+            AudioClip = mockClip,
+            AudioClipPath = mockClip.Path
+        };
 
-        // Act
-        var path = component.AudioClipPath;
-
-        // Assert
-        path.ShouldBe("audio/test.wav");
+        component.AudioClipPath.ShouldBe("audio/test.wav");
     }
 }
