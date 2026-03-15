@@ -455,6 +455,41 @@ public class SceneTests : IDisposable
 
     #endregion
 
+    #region SetPrimaryCamera Tests
+
+    [Fact]
+    public void SetPrimaryCamera_ShouldSetPrimaryAndClearOthers()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+
+        var camera1 = scene.CreateEntity("camera1");
+        camera1.AddComponent(new CameraComponent { Primary = true });
+
+        var camera2 = scene.CreateEntity("camera2");
+        camera2.AddComponent(new CameraComponent());
+
+        // Act
+        scene.SetPrimaryCamera(camera2);
+
+        // Assert
+        camera1.GetComponent<CameraComponent>().Primary.ShouldBeFalse();
+        camera2.GetComponent<CameraComponent>().Primary.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetPrimaryCamera_WhenEntityHasNoCamera_ShouldThrow()
+    {
+        // Arrange
+        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _context);
+        var entity = scene.CreateEntity("no-camera");
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => scene.SetPrimaryCamera(entity));
+    }
+
+    #endregion
+
     #region OnViewportResize Tests
     [Fact]
     public void OnViewportResize_WhenNoCameras_ShouldNotThrow()

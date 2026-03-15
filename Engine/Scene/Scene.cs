@@ -239,6 +239,18 @@ internal sealed class Scene(
         return null;
     }
 
+    public void SetPrimaryCamera(Entity cameraEntity)
+    {
+        if (!cameraEntity.HasComponent<CameraComponent>())
+            throw new ArgumentException("Entity must have a CameraComponent", nameof(cameraEntity));
+
+        var view = context.View<CameraComponent>();
+        foreach (var (entity, component) in view)
+        {
+            component.Primary = entity.Id == cameraEntity.Id;
+        }
+    }
+
     private static BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
     {
         return componentBodyType switch
