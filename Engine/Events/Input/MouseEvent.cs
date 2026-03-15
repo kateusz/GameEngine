@@ -13,7 +13,7 @@ public abstract record MouseEvent : InputEvent
         EventCategory.EventCategoryMouse | EventCategory.EventCategoryInput;
 }
 
-public record MouseMovedEvent(uint X, uint Y) : MouseEvent(EventType.MouseMoved);
+public record MouseMovedEvent(float X, float Y) : MouseEvent(EventType.MouseMoved);
 
 public record MouseScrolledEvent(float XOffSet, float YOffset) : MouseEvent(EventType.MouseScrolled);
 

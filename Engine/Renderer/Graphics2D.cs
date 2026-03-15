@@ -58,7 +58,10 @@ internal sealed class Graphics2D(
     {
         if (!Matrix4x4.Invert(transform, out var viewMatrix))
         {
-            viewMatrix = Matrix4x4.Identity;
+            Serilog.Log.ForContext<Graphics2D>().Error(
+                "Failed to invert camera transform matrix (M11={M11}, M22={M22}, M33={M33}, M44={M44}). Skipping scene.",
+                transform.M11, transform.M22, transform.M33, transform.M44);
+            return;
         }
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _data.QuadShader.Bind();

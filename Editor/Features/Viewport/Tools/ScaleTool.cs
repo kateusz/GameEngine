@@ -56,8 +56,11 @@ public class ScaleTool : IEntityTargetTool, IEntityHoverTool
         if (_draggedEntity == null || HoveredEntity != _draggedEntity)
             return;
 
+        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (worldPos is null) return;
+
         _isDragging = true;
-        _dragStartWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        _dragStartWorldPos = worldPos.Value;
 
         if (_draggedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -74,7 +77,8 @@ public class ScaleTool : IEntityTargetTool, IEntityHoverTool
             return;
 
         var currentWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
-        var delta = currentWorldPos - _dragStartWorldPos;
+        if (currentWorldPos is null) return;
+        var delta = currentWorldPos.Value - _dragStartWorldPos;
 
         // Scale based on mouse movement (both axes)
         var scaleFactor = 1.0f + (delta.X + delta.Y) * 0.5f; // Sensitivity factor

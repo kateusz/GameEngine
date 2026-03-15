@@ -143,12 +143,6 @@ internal sealed class Scene(
     }
 
 
-    /// <summary>
-    /// Updates the scene in editor mode (without running physics or scripts).
-    /// </summary>
-    /// <remarks>
-    /// The EditorCamera provides view-projection matrices for rendering in editor mode.
-    /// </remarks>
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
         //TODO: temp disable 3D

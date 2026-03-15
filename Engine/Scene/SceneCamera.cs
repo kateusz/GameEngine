@@ -186,6 +186,8 @@ public class SceneCamera : Camera
 
     public SceneCamera()
     {
+        _orthographicSize = CameraConfig.DefaultOrthographicSize;
+        _aspectRatio = CameraConfig.DefaultAspectRatio;
         OrthographicNear = CameraConfig.DefaultOrthographicNear;
         OrthographicFar = CameraConfig.DefaultOrthographicFar;
     }

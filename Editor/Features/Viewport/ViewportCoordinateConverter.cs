@@ -15,14 +15,14 @@ public static class ViewportCoordinateConverter
     /// <param name="screenPos">Mouse position relative to viewport origin (logical pixels).</param>
     /// <param name="viewportBounds">Viewport [min, max] bounds in screen space.</param>
     /// <param name="viewProjectionMatrix">Camera's combined view-projection matrix.</param>
-    public static Vector3 ScreenToWorld(
+    public static Vector3? ScreenToWorld(
         Vector2 screenPos,
         Vector2[] viewportBounds,
         Matrix4x4 viewProjectionMatrix)
     {
         var viewportSize = viewportBounds[1] - viewportBounds[0];
         if (viewportSize.X <= 0 || viewportSize.Y <= 0)
-            return Vector3.Zero;
+            return null;
 
         var normalizedX = screenPos.X / viewportSize.X;
         var normalizedY = screenPos.Y / viewportSize.Y;
@@ -33,7 +33,7 @@ public static class ViewportCoordinateConverter
         var ndcY = normalizedY * 2.0f - 1.0f;
 
         if (!Matrix4x4.Invert(viewProjectionMatrix, out var invVP))
-            return Vector3.Zero;
+            return null;
 
         var nearPoint4 = Vector4.Transform(new Vector4(ndcX, ndcY, -1.0f, 1.0f), invVP);
         var farPoint4 = Vector4.Transform(new Vector4(ndcX, ndcY, 1.0f, 1.0f), invVP);
@@ -45,8 +45,9 @@ public static class ViewportCoordinateConverter
         var rayEnd = new Vector3(farPoint4.X, farPoint4.Y, farPoint4.Z);
         var rayDir = rayEnd - rayOrigin;
 
+        // Ray is parallel to Z=0 plane — no intersection
         if (MathF.Abs(rayDir.Z) < 0.0001f)
-            return rayOrigin;
+            return null;
 
         var t = -rayOrigin.Z / rayDir.Z;
         return rayOrigin + rayDir * t;
@@ -80,12 +81,13 @@ public static class ViewportCoordinateConverter
     /// <summary>
     /// 2D convenience overload — returns XY on the Z=0 plane.
     /// </summary>
-    public static Vector2 ScreenToWorld2D(
+    public static Vector2? ScreenToWorld2D(
         Vector2 screenPos,
         Vector2[] viewportBounds,
         Matrix4x4 viewProjectionMatrix)
     {
         var world3D = ScreenToWorld(screenPos, viewportBounds, viewProjectionMatrix);
-        return new Vector2(world3D.X, world3D.Y);
+        if (world3D is null) return null;
+        return new Vector2(world3D.Value.X, world3D.Value.Y);
     }
 }

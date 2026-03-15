@@ -51,7 +51,7 @@ public class PublishSettingsUI(
         if (!_showPublishModal)
             return;
 
-        ImGui.SetNextWindowSize(new Vector2(500, 400), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(EditorUIConstants.PublishSettingsModalSize, ImGuiCond.FirstUseEver);
 
         if (ModalDrawer.BeginCenteredModal("Publish Game Settings", ref _showPublishModal, ImGuiWindowFlags.NoResize))
         {
@@ -137,7 +137,7 @@ public class PublishSettingsUI(
         if (_publishProgress == null)
             return;
 
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(600, 400), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(EditorUIConstants.PublishProgressModalSize, ImGuiCond.FirstUseEver);
 
         var isOpen = true;
         if (ModalDrawer.BeginCenteredModal("Publishing Game...", ref isOpen, ImGuiWindowFlags.NoResize))

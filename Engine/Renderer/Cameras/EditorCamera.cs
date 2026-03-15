@@ -83,6 +83,7 @@ public class EditorCamera : Camera, IViewCamera
         if (width <= 0 || height <= 0) return;
         _viewportWidth = width;
         _viewportHeight = height;
+        _aspectRatio = _viewportWidth / _viewportHeight;
         _projectionDirty = true;
     }
 
@@ -164,7 +165,6 @@ public class EditorCamera : Camera, IViewCamera
 
     private void UpdateProjection()
     {
-        _aspectRatio = _viewportWidth / _viewportHeight;
         _projection = Matrix4x4.CreatePerspectiveFieldOfView(
             MathHelpers.DegreesToRadians(_fov),
             _aspectRatio,

@@ -85,7 +85,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
     {
         if (_disposed) return;
 
-        var inputEvent = new MouseMovedEvent((uint)position.X, (uint)position.Y);
+        var inputEvent = new MouseMovedEvent(position.X, position.Y);
         _inputQueue.Enqueue(inputEvent);
     }
 

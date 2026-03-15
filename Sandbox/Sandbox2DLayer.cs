@@ -118,6 +118,10 @@ public class Sandbox2DLayer : ILayer
 
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
+        if (windowEvent is WindowResizeEvent resizeEvent && resizeEvent.Width > 0 && resizeEvent.Height > 0)
+        {
+            _editorCamera.SetViewportSize(resizeEvent.Width, resizeEvent.Height);
+        }
     }
 
     public void Draw()

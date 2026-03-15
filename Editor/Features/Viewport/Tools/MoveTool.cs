@@ -51,8 +51,11 @@ public class MoveTool : IEntityTargetTool, IEntityHoverTool
         if (_draggedEntity == null || HoveredEntity != _draggedEntity)
             return;
 
+        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (worldPos is null) return;
+
         IsActive = true;
-        _dragStartWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        _dragStartWorldPos = worldPos.Value;
 
         if (_draggedEntity.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -69,7 +72,8 @@ public class MoveTool : IEntityTargetTool, IEntityHoverTool
             return;
 
         var currentWorldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
-        var delta = currentWorldPos - _dragStartWorldPos;
+        if (currentWorldPos is null) return;
+        var delta = currentWorldPos.Value - _dragStartWorldPos;
 
         // Update entity position
         transform.Translation = new Vector3(

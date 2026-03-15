@@ -27,7 +27,9 @@ public class RulerTool : IViewportTool
     public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         // Start new measurement
-        _startPoint = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (worldPos is null) return;
+        _startPoint = worldPos.Value;
         _endPoint = _startPoint;
         _hasStartPoint = true;
         _isMeasuring = true;
@@ -38,7 +40,8 @@ public class RulerTool : IViewportTool
         if (!_isMeasuring)
             return;
 
-        _endPoint = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        var endPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (endPos is not null) _endPoint = endPos.Value;
     }
 
     public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)

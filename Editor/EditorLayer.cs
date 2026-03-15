@@ -70,7 +70,6 @@ public class EditorLayer(
     private IFrameBuffer _frameBuffer = null!;
     private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
-    private bool _viewportFocused;
     private bool _viewportHovered;
     private Entity? _hoveredEntity;
     private Entity _selectedEntity;
@@ -536,7 +535,6 @@ public class EditorLayer(
 
             ImGui.Begin("Viewport");
             {
-                _viewportFocused = ImGui.IsWindowFocused();
                 _viewportHovered = ImGui.IsWindowHovered();
 
                 var viewportPanelSize = ImGui.GetContentRegionAvail();
