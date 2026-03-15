@@ -39,7 +39,9 @@
       "Bash(git worktree:*)",
       "Bash(git rev-parse:*)",
       "Bash(git remote:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(gh issue:*)",
+      "Bash(ls:*)"
     ]
   }
 }

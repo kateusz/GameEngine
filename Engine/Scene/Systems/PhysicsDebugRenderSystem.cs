@@ -13,7 +13,11 @@ namespace Engine.Scene.Systems;
 /// System responsible for rendering physics debug visualizations.
 /// Draws wireframe overlays for collision shapes to aid in debugging physics behavior.
 /// </summary>
-internal sealed class PhysicsDebugRenderSystem(IGraphics2D renderer, IContext context, DebugSettings debugSettings) : ISystem
+internal sealed class PhysicsDebugRenderSystem(
+    IGraphics2D renderer,
+    IContext context,
+    DebugSettings debugSettings,
+    IPrimaryCameraProvider cameraProvider) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
 
@@ -35,25 +39,18 @@ internal sealed class PhysicsDebugRenderSystem(IGraphics2D renderer, IContext co
     {
         if (!debugSettings.ShowColliderBounds)
             return;
-        
-        var cameraGroup = context.View<CameraComponent>();
 
-        foreach (var (entity, cameraComponent) in cameraGroup)
-        {
-            if (cameraComponent.Primary)
-            {
-                var transformComponent = entity.GetComponent<TransformComponent>();
-                var cameraTransform = transformComponent.GetTransform();
-                
-                renderer.BeginScene(cameraComponent.Camera, cameraTransform);
-                DrawPhysicsDebug();
-                renderer.EndScene();
-                break;
-            }
-        }
+        if (cameraProvider.Camera == null)
+            return;
+
+        renderer.BeginScene(cameraProvider.Camera, cameraProvider.Transform);
+        DrawPhysicsDebug();
+        renderer.EndScene();
     }
-    
-    public void OnShutdown() {}
+
+    public void OnShutdown()
+    {
+    }
 
     /// <summary>
     /// Renders debug wireframes for all entities with physics bodies.

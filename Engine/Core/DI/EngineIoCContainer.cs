@@ -20,6 +20,7 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
 [assembly: InternalsVisibleTo("Engine.Tests")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
 namespace Engine.Core.DI;
 
@@ -86,6 +87,9 @@ public static class EngineIoCContainer
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
         
+        container.Register<PrimaryCameraSystem>(Reuse.Singleton);
+        container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
+
         container.Register<IAnimationAssetManager, AnimationAssetManager>(Reuse.Singleton);
         container.Register<AnimationSystem>(Reuse.Singleton);
         
