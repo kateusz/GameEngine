@@ -103,7 +103,10 @@ public class AudioSourceComponentTests
     {
         // Arrange
         var mockClip = Substitute.For<IAudioClip>();
-        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true, 2.0f, 150.0f);
+        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true, 2.0f, 150.0f)
+        {
+            AudioClipPath = "audio/test-clip.wav"
+        };
 
         // Act
         var clone = (AudioSourceComponent)original.Clone();
@@ -118,6 +121,7 @@ public class AudioSourceComponentTests
         clone.Is3D.ShouldBeTrue();
         clone.MinDistance.ShouldBe(2.0f);
         clone.MaxDistance.ShouldBe(150.0f);
+        clone.AudioClipPath.ShouldBe("audio/test-clip.wav");
     }
 
     [Fact]

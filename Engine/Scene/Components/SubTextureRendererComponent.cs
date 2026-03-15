@@ -53,6 +53,7 @@ public class SubTextureRendererComponent : IComponent
     {
         return new SubTextureRendererComponent(Coords, Texture)
         {
+            TexturePath = TexturePath,
             CellSize = CellSize,
             SpriteSize = SpriteSize,
             TexCoords = TexCoords != null ? (Vector2[])TexCoords.Clone() : null

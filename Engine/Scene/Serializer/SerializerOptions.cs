@@ -5,19 +5,26 @@ namespace Engine.Scene.Serializer;
 
 /// <summary>
 /// Shared JSON serializer options for all scene/prefab/animation serializers.
+/// Registered as a singleton via DI.
 /// </summary>
-internal static class SerializerOptions
+internal sealed class SerializerOptions
 {
-    internal static readonly JsonSerializerOptions Default = new()
+    internal JsonSerializerOptions Options { get; }
+
+    public SerializerOptions()
     {
-        WriteIndented = true,
-        Converters =
+        Options = new JsonSerializerOptions
         {
-            new Vector2Converter(),
-            new Vector3Converter(),
-            new Vector4Converter(),
-            new RectangleConverter(),
-            new JsonStringEnumConverter()
-        }
-    };
+            WriteIndented = true,
+            Converters =
+            {
+                new Vector2Converter(),
+                new Vector3Converter(),
+                new Vector4Converter(),
+                new RectangleConverter(),
+                new JsonStringEnumConverter()
+            }
+        };
+        Options.MakeReadOnly(populateMissingResolver: true);
+    }
 }

@@ -91,6 +91,7 @@ public static class EngineIoCContainer
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
         
+        container.Register<SerializerOptions>(Reuse.Singleton);
         container.Register<IPrefabSerializer, PrefabSerializer>(Reuse.Singleton);
         container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
     }

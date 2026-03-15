@@ -4,8 +4,6 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Renderer.Buffers;
-using Engine.Renderer.VertexArray;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -13,10 +11,7 @@ namespace Editor.ComponentEditors;
 
 public class MeshComponentEditor(
     IAssetsManager assetsManager,
-    IMeshFactory meshFactory,
-    IVertexArrayFactory vertexArrayFactory,
-    IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory)
+    IMeshFactory meshFactory)
     : IComponentEditor
 {
     public void DrawComponent(Entity entity)
@@ -51,7 +46,7 @@ public class MeshComponentEditor(
                 ImGui.Text("Mesh: None");
             }
 
-            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory);
         });
     }
 }

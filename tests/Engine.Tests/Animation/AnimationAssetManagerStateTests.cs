@@ -1,6 +1,7 @@
 using Engine.Animation;
 using Engine.Core;
 using Engine.Renderer.Textures;
+using Engine.Scene.Serializer;
 using NSubstitute;
 
 namespace Engine.Tests.Animation;
@@ -24,7 +25,7 @@ public class AnimationAssetManagerStateTests
         _textureFactory = Substitute.For<ITextureFactory>();
     }
 
-    private AnimationAssetManager CreateManager() => new(new MockAssetsManager(), _textureFactory);
+    private AnimationAssetManager CreateManager() => new(new MockAssetsManager(), _textureFactory, new SerializerOptions());
 
     [Fact]
     public void Manager_StartsWithEmptyCache()

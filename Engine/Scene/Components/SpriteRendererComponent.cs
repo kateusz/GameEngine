@@ -37,6 +37,9 @@ public class SpriteRendererComponent : IComponent
 
     public IComponent Clone()
     {
-        return new SpriteRendererComponent(Color, Texture, TilingFactor);
+        return new SpriteRendererComponent(Color, Texture, TilingFactor)
+        {
+            TexturePath = TexturePath
+        };
     }
 }

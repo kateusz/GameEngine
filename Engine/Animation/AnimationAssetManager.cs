@@ -10,12 +10,12 @@ namespace Engine.Animation;
 /// Singleton manager for loading, caching, and lifecycle management of animation assets.
 /// Implements reference counting to automatically unload unused assets.
 /// </summary>
-internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextureFactory textureFactory)
+internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextureFactory textureFactory, SerializerOptions serializerOptions)
     : IAnimationAssetManager
 {
     private static readonly ILogger Logger = Log.ForContext<AnimationAssetManager>();
 
-    private static readonly JsonSerializerOptions DefaultSerializerOptions = SerializerOptions.Default;
+    private readonly JsonSerializerOptions _defaultSerializerOptions = serializerOptions.Options;
 
     private readonly Dictionary<string, CacheEntry> _cache = new();
 
@@ -44,7 +44,7 @@ internal sealed class AnimationAssetManager(IAssetsManager assetsManager, ITextu
             }
 
             var jsonText = File.ReadAllText(fullPath);
-            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, DefaultSerializerOptions);
+            var animationAsset = JsonSerializer.Deserialize<AnimationAsset>(jsonText, _defaultSerializerOptions);
             if (animationAsset == null)
             {
                 Logger.Error("Failed to deserialize animation asset: {Path}", path);
