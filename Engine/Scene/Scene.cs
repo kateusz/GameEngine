@@ -296,6 +296,7 @@ internal sealed class Scene(
         context.Clear();
 
         _disposed = true;
+        GC.SuppressFinalize(this);
         Logger.Debug("Scene '{Path}' disposed successfully", path);
     }
 }

@@ -189,5 +189,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
         _controller?.Dispose();
         _controller = null!;
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

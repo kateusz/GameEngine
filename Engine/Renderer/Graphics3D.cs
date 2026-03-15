@@ -135,7 +135,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         if (_disposed)
             return;
 
-        _phongShader?.Dispose();
+        // Factory owns shader lifetime; just release our reference
+        _phongShader = null!;
 
         _disposed = true;
     }

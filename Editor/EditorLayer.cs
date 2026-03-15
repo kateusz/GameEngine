@@ -73,14 +73,27 @@ public class EditorLayer(
     private EditorCameraSystem _editorCameraSystem;
     private Entity _selectedEntity;
 
+    // Named delegates kept so they can be unsubscribed in OnDetach
+    private Action<IScene> _sceneChangedHandler = null!;
+    private Action _playSceneHandler = null!;
+    private Action _stopSceneHandler = null!;
+    private Action _restartSceneHandler = null!;
+    private Action<Entity> _entitySelectionHandler = null!;
+
     public void OnAttach(IInputSystem inputSystem)
     {
         Logger.Debug("EditorLayer OnAttach.");
 
-        sceneContext.SceneChanged += newScene => sceneHierarchyPanel.SetScene(newScene);
-        sceneToolbar.OnPlayScene += () => sceneManager.Play();
-        sceneToolbar.OnStopScene += () => sceneManager.Stop();
-        sceneToolbar.OnRestartScene += () => sceneManager.Restart();
+        _sceneChangedHandler = newScene => sceneHierarchyPanel.SetScene(newScene);
+        _playSceneHandler = () => sceneManager.Play();
+        _stopSceneHandler = () => sceneManager.Stop();
+        _restartSceneHandler = () => sceneManager.Restart();
+        _entitySelectionHandler = entity => _selectedEntity = entity;
+
+        sceneContext.SceneChanged += _sceneChangedHandler;
+        sceneToolbar.OnPlayScene += _playSceneHandler;
+        sceneToolbar.OnStopScene += _stopSceneHandler;
+        sceneToolbar.OnRestartScene += _restartSceneHandler;
 
         // Initialize 2D camera controller with default aspect ratio for editor
         _cameraController = new OrthographicCameraController(DisplayConfig.DefaultAspectRatio);
@@ -90,7 +103,7 @@ public class EditorLayer(
 
         sceneHierarchyPanel.EntitySelected = EntitySelected;
         // Viewport selection only updates selection state - don't move camera since entity is already visible
-        viewportToolManager.SubscribeToEntitySelection(entity => _selectedEntity = entity);
+        viewportToolManager.SubscribeToEntitySelection(_entitySelectionHandler);
 
         contentBrowserPanel.Init();
         sceneToolbar.Init();
@@ -203,6 +216,13 @@ public class EditorLayer(
     public void OnDetach()
     {
         Logger.Debug("EditorLayer OnDetach.");
+
+        // Unsubscribe event handlers to allow GC of this layer
+        sceneContext.SceneChanged -= _sceneChangedHandler;
+        sceneToolbar.OnPlayScene -= _playSceneHandler;
+        sceneToolbar.OnStopScene -= _stopSceneHandler;
+        sceneToolbar.OnRestartScene -= _restartSceneHandler;
+        viewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
 
         // Shutdown editor systems
         _editorSystems?.ShutdownAll();

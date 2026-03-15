@@ -22,12 +22,12 @@ public class GameLayer(
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
 
+    // Named delegate so it can be unsubscribed in OnDetach
+    private readonly Action<IScene> _sceneChangedHandler = _ => Logger.Information("Active scene changed");
+
     public void OnAttach(IInputSystem inputSystem)
     {
-        sceneContext.SceneChanged += _ =>
-        {
-            Logger.Information("Active scene changed");
-        };
+        sceneContext.SceneChanged += _sceneChangedHandler;
 
         Logger.Information("Game layer attached.");
 
@@ -76,6 +76,8 @@ public class GameLayer(
 
     public void OnDetach()
     {
+        sceneContext.SceneChanged -= _sceneChangedHandler;
+
         Logger.Information("Game layer detached.");
 
         // Stop runtime and cleanup

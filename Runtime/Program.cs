@@ -42,6 +42,7 @@ public class Program
             var gameLayer = container.Resolve<ILayer>();
             app.PushLayer(gameLayer);
             app.Run();
+            container.Dispose();
         }
         catch (Exception ex)
         {
