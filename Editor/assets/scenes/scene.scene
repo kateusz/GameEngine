@@ -77,7 +77,7 @@
             0.115979984,
             1
           ],
-          "Texture": null,
+          "TexturePath": null,
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -133,7 +133,7 @@
             1,
             1
           ],
-          "Texture": null,
+          "TexturePath": null,
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -165,7 +165,7 @@
       "Name": "Audio Manager",
       "Components": [
         {
-          "AudioClipPath": "C:\\Users\\matku\\repos\\GameEngine\\Editor\\bin\\Debug\\net10.0\\test\\assets\\textures\\Example.ogg",
+          "AudioClipPath": "assets/audio/Example.ogg",
           "Volume": 1,
           "Pitch": 1,
           "Loop": false,
@@ -205,9 +205,7 @@
             0,
             0
           ],
-          "Texture": {
-            "Path": "C:\\Users\\matku\\repos\\GameEngine\\Editor\\bin\\Debug\\net10.0\\test\\assets\\textures\\hero-attack.png"
-          },
+          "TexturePath": "assets/textures/hero-attack.png",
           "CellSize": [
             16,
             16
@@ -274,9 +272,7 @@
             4,
             3
           ],
-          "Texture": {
-            "Path": "C:\\Users\\matku\\repos\\GameEngine\\Editor\\bin\\Debug\\net10.0\\test\\assets\\textures\\spritesheet.png"
-          },
+          "TexturePath": "assets/textures/spritesheet.png",
           "CellSize": [
             64,
             64
