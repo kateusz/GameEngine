@@ -2,7 +2,6 @@ using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
-using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using Serilog;
@@ -12,7 +11,7 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// System responsible for rendering 2D subtextures (sprite atlas/sprite sheet regions).
 /// </summary>
-internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext context) : ISystem
+internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext context, IPrimaryCameraProvider cameraProvider) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
 
@@ -30,25 +29,10 @@ internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext c
     /// <param name="deltaTime">Time elapsed since last frame.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        Camera? mainCamera = null;
-        var cameraGroup = context.View<CameraComponent>();
-        var cameraTransform = Matrix4x4.Identity;
-
-        foreach (var (entity, cameraComponent) in cameraGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            if (cameraComponent.Primary)
-            {
-                mainCamera = cameraComponent.Camera;
-                cameraTransform = transformComponent.GetTransform();
-                break;
-            }
-        }
-        
-        if (mainCamera == null)
+        if (cameraProvider.Camera == null)
             return;
-        
-        renderer.BeginScene(mainCamera, cameraTransform);
+
+        renderer.BeginScene(cameraProvider.Camera, cameraProvider.Transform);
         
         var subtextureGroup = context.View<SubTextureRendererComponent>();
         foreach (var (entity, subtextureComponent) in subtextureGroup)

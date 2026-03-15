@@ -5,6 +5,7 @@ using Serilog;
 namespace Engine.Scene;
 
 internal sealed class SceneSystemRegistry(
+    PrimaryCameraSystem primaryCameraSystem,
     SpriteRenderingSystem spriteRenderingSystem,
     ModelRenderingSystem modelRenderingSystem,
     ScriptUpdateSystem scriptUpdateSystem,
@@ -25,6 +26,7 @@ internal sealed class SceneSystemRegistry(
             var systems = new List<ISystem>
             {
                 scriptUpdateSystem,
+                primaryCameraSystem,
                 spriteRenderingSystem,
                 subTextureRenderingSystem,
                 modelRenderingSystem,

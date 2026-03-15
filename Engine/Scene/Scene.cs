@@ -18,6 +18,7 @@ internal sealed class Scene(
     string path,
     ISceneSystemRegistry systemRegistry,
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     IContext context) : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
@@ -145,29 +146,21 @@ internal sealed class Scene(
 
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
-        //TODO: temp disable 3D
-        /*
-        var baseCamera = camera;
-        Matrix4x4 cameraTransform = Matrix4x4.CreateTranslation(camera.Position);
+        graphics3D.BeginScene(camera);
 
-        Renderer3D.Instance.BeginScene(baseCamera, cameraTransform);
-
-        var modelGroup = context.GetGroup([
-            typeof(TransformComponent), typeof(MeshComponent), typeof(ModelRendererComponent)
-        ]);
-        foreach (var entity in modelGroup)
+        var modelGroup = context.View<ModelRendererComponent>();
+        
+        foreach (var (entity, modelRendererComponent) in modelGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
             var meshComponent = entity.GetComponent<MeshComponent>();
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
 
-            Renderer3D.Instance.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
+            graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
                 entity.Id);
         }
 
-        Renderer3D.Instance.EndScene();
-        */
-
+        graphics3D.EndScene();
+        
         graphics2D.BeginScene(camera);
 
         var spriteGroup = context.View<SpriteRendererComponent>();
