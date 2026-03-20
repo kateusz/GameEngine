@@ -31,4 +31,12 @@ public interface IAudioSource : IDisposable
     /// <param name="minDistance">Distance at which sound starts to attenuate (3D only)</param>
     /// <param name="maxDistance">Maximum distance for sound audibility (3D only)</param>
     void SetSpatialMode(bool is3D, float minDistance = 1.0f, float maxDistance = 100.0f);
+
+    // Audio effects
+    void AddEffect(IAudioEffect effect);
+    void RemoveEffect(AudioEffectType type);
+    void ClearEffects();
+    bool HasEffect(AudioEffectType type);
+    void UpdateEffect(AudioEffectType type, float amount);
+    IEnumerable<AudioEffectType> GetActiveEffectTypes();
 }
