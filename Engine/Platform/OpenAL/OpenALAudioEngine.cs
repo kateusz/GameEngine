@@ -251,5 +251,11 @@ internal sealed class NoOpAudioSource : IAudioSource
     public void Stop() { }
     public void SetPosition(Vector3 position) { }
     public void SetSpatialMode(bool is3D, float minDistance = 1.0f, float maxDistance = 100.0f) { }
+    public void AddEffect(IAudioEffect effect) { }
+    public void RemoveEffect(AudioEffectType type) { }
+    public void ClearEffects() { }
+    public bool HasEffect(AudioEffectType type) => false;
+    public void UpdateEffect(AudioEffectType type, float amount) { }
+    public IEnumerable<AudioEffectType> GetActiveEffectTypes() => [];
     public void Dispose() { }
 }
