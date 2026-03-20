@@ -13,7 +13,6 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
     private const int AlEffectTypeEcho = 0x0004;
     private const int AlEffectParamType = 0x8001;
     private const int AlEffectParamEchoDelay = 0x0001;
-    private const int AlEffectParamEchoLRDelay = 0x0002;
     private const int AlEffectParamEchoDamping = 0x0003;
     private const int AlEffectParamEchoFeedback = 0x0004;
     private const int AlEffectSlotParamEffect = 0x0001;
@@ -51,17 +50,25 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
         _deleteAuxSlots = GetProc<AlDeleteAuxiliaryEffectSlotsDelegate>(al, "alDeleteAuxiliaryEffectSlots");
         _auxSloti = GetProc<AlAuxiliaryEffectSlotiDelegate>(al, "alAuxiliaryEffectSloti");
 
-        fixed (uint* idPtr = &_effectId)
-            _genEffects(1, idPtr);
+        try
+        {
+            fixed (uint* idPtr = &_effectId)
+                _genEffects(1, idPtr);
 
-        _effecti(_effectId, AlEffectParamType, AlEffectTypeEcho);
+            _effecti(_effectId, AlEffectParamType, AlEffectTypeEcho);
 
-        fixed (uint* slotPtr = &_slotId)
-            _genAuxSlots(1, slotPtr);
+            fixed (uint* slotPtr = &_slotId)
+                _genAuxSlots(1, slotPtr);
 
-        _auxSloti(_slotId, AlEffectSlotParamEffect, (int)_effectId);
+            _auxSloti(_slotId, AlEffectSlotParamEffect, (int)_effectId);
 
-        Logger.Debug("Created echo effect {EffectId} with slot {SlotId}", _effectId, _slotId);
+            Logger.Debug("Created echo effect {EffectId} with slot {SlotId}", _effectId, _slotId);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     public void Apply(float amount)
@@ -96,11 +103,14 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
 
         _disposed = true;
         Logger.Debug("Disposed echo effect");
+        GC.SuppressFinalize(this);
     }
 
     private static T GetProc<T>(AL al, string name) where T : Delegate
     {
         var ptr = al.GetProcAddress(name);
+        if (ptr == IntPtr.Zero)
+            throw new InvalidOperationException($"OpenAL EFX function '{name}' not available.");
         return Marshal.GetDelegateForFunctionPointer<T>(ptr);
     }
 }
