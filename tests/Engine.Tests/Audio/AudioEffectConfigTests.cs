@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Engine.Audio;
+using Shouldly;
 
 namespace Engine.Tests.Audio;
 
@@ -18,10 +19,10 @@ public class AudioEffectConfigTests
         var json = JsonSerializer.Serialize(config);
         var deserialized = JsonSerializer.Deserialize<AudioEffectConfig>(json);
 
-        Assert.NotNull(deserialized);
-        Assert.Equal(AudioEffectType.Reverb, deserialized.Type);
-        Assert.True(deserialized.Enabled);
-        Assert.Equal(0.7f, deserialized.Amount);
+        deserialized.ShouldNotBeNull();
+        deserialized.Type.ShouldBe(AudioEffectType.Reverb);
+        deserialized.Enabled.ShouldBeTrue();
+        deserialized.Amount.ShouldBe(0.7f);
     }
 
     [Fact]
@@ -29,7 +30,8 @@ public class AudioEffectConfigTests
     {
         var config = new AudioEffectConfig();
 
-        Assert.True(config.Enabled);
-        Assert.Equal(0.5f, config.Amount);
+        config.Type.ShouldBe(AudioEffectType.Reverb);
+        config.Enabled.ShouldBeTrue();
+        config.Amount.ShouldBe(0.5f);
     }
 }
