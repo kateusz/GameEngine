@@ -25,6 +25,7 @@
         <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />
         <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenAL" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.EXT" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenAL.Extensions.Soft" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0" />
