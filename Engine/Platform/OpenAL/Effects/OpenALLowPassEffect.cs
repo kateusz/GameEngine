@@ -15,9 +15,6 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
     private const int AlFilterParamLowpassGain = 0x0001;
     private const int AlFilterParamLowpassGainHF = 0x0002;
 
-    // Auxiliary effect slot (needed for IAudioEffect.SlotId, even though low-pass is a direct filter)
-    private const int AlFilterNone = 0x0000;
-
     private delegate void AlGenFiltersDelegate(int n, uint* filters);
     private delegate void AlDeleteFiltersDelegate(int n, uint* filters);
     private delegate void AlFilteriDelegate(uint filter, int param, int value);
