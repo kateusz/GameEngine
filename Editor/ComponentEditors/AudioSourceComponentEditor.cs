@@ -15,7 +15,11 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
         ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", entity, () =>
         {
             var component = entity.GetComponent<AudioSourceComponent>();
-            audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip => { component.AudioClip = audioClip; });
+            audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>
+            {
+                component.AudioClip = audioClip;
+                component.AudioClipPath = audioClip.Path;
+            });
 
             UIPropertyRenderer.DrawPropertyField("Volume", component.Volume,
                 newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));

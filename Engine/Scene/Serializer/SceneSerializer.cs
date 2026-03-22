@@ -266,7 +266,8 @@ internal sealed class SceneSerializer(
         {
             try
             {
-                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath);
+                var absolutePath = Path.GetFullPath(component.AudioClipPath);
+                component.AudioClip = audioEngine.LoadAudioClip(absolutePath);
             }
             catch (Exception ex)
             {
@@ -391,7 +392,8 @@ internal sealed class SceneSerializer(
         SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
         SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
-        SerializeAudioSourceComponent(entity, entityObj);
+        SerializeComponent<AudioSourceComponent>(entity, entityObj, nameof(AudioSourceComponent));
+        //SerializeAudioSourceComponent(entity, entityObj);
         SerializeNativeScriptComponent(entity, entityObj);
 
         jsonEntities.Add(entityObj);
