@@ -18,11 +18,17 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
     private const int AlEffectSlotParamEffect = 0x0001;
 
     private delegate void AlGenEffectsDelegate(int n, uint* effects);
+
     private delegate void AlDeleteEffectsDelegate(int n, uint* effects);
+
     private delegate void AlEffectiDelegate(uint effect, int param, int value);
+
     private delegate void AlEffectfDelegate(uint effect, int param, float value);
+
     private delegate void AlGenAuxiliaryEffectSlotsDelegate(int n, uint* slots);
+
     private delegate void AlDeleteAuxiliaryEffectSlotsDelegate(int n, uint* slots);
+
     private delegate void AlAuxiliaryEffectSlotiDelegate(uint slot, int param, int value);
 
     private readonly AlGenEffectsDelegate _genEffects;
@@ -70,9 +76,12 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
             throw;
         }
     }
-
+    
     public void Apply(float amount)
     {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(OpenALReverbEffect));
+
         var decayTime = MathF.Max(0.1f, amount * 4.0f);  // 0.1s to 4.0s
         var density = amount;                              // 0 to 1
         var diffusion = 0.5f + (amount * 0.5f);           // 0.5 to 1.0

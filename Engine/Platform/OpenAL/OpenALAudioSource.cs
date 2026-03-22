@@ -170,6 +170,8 @@ internal sealed class OpenALAudioSource : IAudioSource
 
     public void AddEffect(IAudioEffect effect)
     {
+        ArgumentNullException.ThrowIfNull(effect);
+
         if (_effects.ContainsKey(effect.Type))
         {
             Logger.Warning("Effect {Type} already exists on source {SourceId}", effect.Type, _sourceId);

@@ -7,6 +7,8 @@ namespace Engine.Platform.OpenAL.Effects;
 
 internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 {
+    private const float MaxGainReduction = 0.9f; // Limits minimum gain to 0.1
+
     private static readonly ILogger Logger = Log.ForContext<OpenALLowPassEffect>();
 
     // EFX filter constants
@@ -16,8 +18,11 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
     private const int AlFilterParamLowpassGainHF = 0x0002;
 
     private delegate void AlGenFiltersDelegate(int n, uint* filters);
+
     private delegate void AlDeleteFiltersDelegate(int n, uint* filters);
+
     private delegate void AlFilteriDelegate(uint filter, int param, int value);
+
     private delegate void AlFilterfDelegate(uint filter, int param, float value);
 
     private readonly AlGenFiltersDelegate _genFilters;
@@ -29,6 +34,7 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
     private bool _disposed;
 
     public AudioEffectType Type => AudioEffectType.LowPass;
+
     // Low-pass uses direct source filter (AL_DIRECT_FILTER); no aux effect slot needed
     public uint SlotId => 0;
     public uint FilterId => _filterId;
@@ -58,9 +64,12 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 
     public void Apply(float amount)
     {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(OpenALLowPassEffect));
+
         // Map 0-1: 1.0 = no filtering, 0.0 = heavy filtering
-        var gain = 1.0f - (amount * 0.9f);   // 1.0 to 0.1
-        var gainHF = 1.0f - amount;           // 1.0 to 0.0
+        var gain = 1.0f - (amount * MaxGainReduction); // 1.0 to 0.1
+        var gainHF = 1.0f - amount; // 1.0 to 0.0
 
         _filterf(_filterId, AlFilterParamLowpassGain, gain);
         _filterf(_filterId, AlFilterParamLowpassGainHF, gainHF);

@@ -84,7 +84,6 @@ internal sealed class OpenALAudioClip : IAudioClip, IDisposable
 
     public void Unload()
     {
-        // Unload becomes an alias for Dispose for backward compatibility
         Dispose();
     }
 

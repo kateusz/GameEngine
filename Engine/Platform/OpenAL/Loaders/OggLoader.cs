@@ -11,12 +11,7 @@ namespace Engine.Platform.OpenAL.Loaders;
 internal sealed class OggLoader : IAudioLoader
 {
     private static readonly ILogger Logger = Log.ForContext<OggLoader>();
-
-    /// <summary>
-    /// Checks if this loader can handle the specified file.
-    /// </summary>
-    /// <param name="path">Path to the audio file.</param>
-    /// <returns>True if the file has a .ogg extension.</returns>
+    
     public bool CanLoad(string path)
     {
         return Path.GetExtension(path).Equals(".ogg", StringComparison.InvariantCultureIgnoreCase);
@@ -42,13 +37,11 @@ internal sealed class OggLoader : IAudioLoader
         {
             using var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
             using var vorbisReader = new VorbisReader(fileStream);
-
-            // Extract metadata
+            
             var sampleRate = vorbisReader.SampleRate;
             var channels = vorbisReader.Channels;
             var totalSamples = vorbisReader.TotalSamples;
-
-            // Validate channel count
+            
             if (channels > 2)
             {
                 Logger.Error("Unsupported channel count in OGG file: {Channels} (max 2)", channels);
@@ -70,10 +63,8 @@ internal sealed class OggLoader : IAudioLoader
             // Allocate buffer for float samples (interleaved: L, R, L, R, ...)
             var totalFloatSamples = (int)(totalSamples * channels);
             var floatBuffer = new float[totalFloatSamples];
-
-            // Decode all samples from the OGG file
+            
             var samplesRead = vorbisReader.ReadSamples(floatBuffer, 0, floatBuffer.Length);
-
             if (samplesRead == 0)
             {
                 Logger.Error("Failed to read any samples from OGG file: {Path}", path);
@@ -81,8 +72,7 @@ internal sealed class OggLoader : IAudioLoader
             }
 
             Logger.Debug("  - Samples Read: {SamplesRead}", samplesRead);
-
-            // Convert float32 samples to 16-bit PCM
+            
             var pcm16Data = ConvertFloatToPCM16(floatBuffer, samplesRead);
 
             var durationSeconds = (double)totalSamples / sampleRate;

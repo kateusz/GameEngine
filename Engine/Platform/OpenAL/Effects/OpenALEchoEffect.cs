@@ -9,7 +9,6 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALEchoEffect>();
 
-    // EFX constants
     private const int AlEffectTypeEcho = 0x0004;
     private const int AlEffectParamType = 0x8001;
     private const int AlEffectParamEchoDelay = 0x0001;
@@ -18,11 +17,17 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
     private const int AlEffectSlotParamEffect = 0x0001;
 
     private delegate void AlGenEffectsDelegate(int n, uint* effects);
+
     private delegate void AlDeleteEffectsDelegate(int n, uint* effects);
+
     private delegate void AlEffectiDelegate(uint effect, int param, int value);
+
     private delegate void AlEffectfDelegate(uint effect, int param, float value);
+
     private delegate void AlGenAuxiliaryEffectSlotsDelegate(int n, uint* slots);
+
     private delegate void AlDeleteAuxiliaryEffectSlotsDelegate(int n, uint* slots);
+
     private delegate void AlAuxiliaryEffectSlotiDelegate(uint slot, int param, int value);
 
     private readonly AlGenEffectsDelegate _genEffects;
@@ -73,9 +78,9 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
 
     public void Apply(float amount)
     {
-        var delay = 0.05f + (amount * 0.2f);   // 50ms to 250ms
-        var feedback = amount * 0.5f;           // 0 to 0.5
-        var damping = 0.5f;                     // Fixed middle value
+        var delay = 0.05f + (amount * 0.2f); // 50ms to 250ms
+        var feedback = amount * 0.5f; // 0 to 0.5
+        const float damping = 0.5f; // Fixed middle value
 
         _effectf(_effectId, AlEffectParamEchoDelay, delay);
         _effectf(_effectId, AlEffectParamEchoFeedback, feedback);

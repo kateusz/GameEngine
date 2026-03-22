@@ -21,7 +21,6 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
     {
         try
         {
-            // Open default audio device
             _device = alc.OpenDevice("");
             if (_device == null)
             {
@@ -29,8 +28,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
                 _isAvailable = false;
                 return;
             }
-
-            // Create audio context
+            
             _context = alc.CreateContext(_device, null);
             if (_context == null)
             {
@@ -52,8 +50,8 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
             var orientation = new[]
             {
                 0.0f, 0.0f, -1.0f, // Forward
-                0.0f, 1.0f, 0.0f
-            }; // Up
+                0.0f, 1.0f, 0.0f // Up
+            };
 
             fixed (float* ptr = orientation)
             {
@@ -77,15 +75,12 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
 
         try
         {
-            // Stop and remove all active sources
             foreach (var source in _activeSources.ToArray())
             {
                 source.Dispose();
             }
 
             _activeSources.Clear();
-
-            // Close context and device
             if (_context != null)
             {
                 alc.MakeContextCurrent(null);
@@ -98,9 +93,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
                 alc.CloseDevice(_device);
                 _device = null;
             }
-
-            // al and alc are owned by the DI container — do not dispose them here
-
+            
             Logger.Information("SilkNet AudioEngine shut down");
         }
         catch (Exception ex)
@@ -209,8 +202,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
         _disposed = true;
         GC.SuppressFinalize(this);
     }
-
-    // Protected helper methods for subclasses
+    
     private void ClearLoadedClips()
     {
         foreach (var clip in _loadedClips.Values)
@@ -220,30 +212,4 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
 
         _loadedClips.Clear();
     }
-}
-
-internal sealed class NoOpAudioSource : IAudioSource
-{
-    private static readonly NoOpAudioClip DummyClip = new();
-
-    public IAudioClip Clip { get; set; } = DummyClip;
-    public float Volume { get; set; }
-    public float Pitch { get; set; }
-    public bool Loop { get; set; }
-    public bool IsPlaying => false;
-    public bool IsPaused => false;
-    public float PlaybackPosition { get; set; }
-
-    public void Play() { }
-    public void Pause() { }
-    public void Stop() { }
-    public void SetPosition(Vector3 position) { }
-    public void SetSpatialMode(bool is3D, float minDistance = 1.0f, float maxDistance = 100.0f) { }
-    public void AddEffect(IAudioEffect effect) { }
-    public void RemoveEffect(AudioEffectType type) { }
-    public void ClearEffects() { }
-    public bool HasEffect(AudioEffectType type) => false;
-    public void UpdateEffect(AudioEffectType type, float amount) { }
-    public IEnumerable<AudioEffectType> GetActiveEffectTypes() => [];
-    public void Dispose() { }
 }

@@ -7,8 +7,7 @@ namespace Engine.Platform.OpenAL.Effects;
 internal sealed class OpenALAudioEffectFactory(AL al) : IAudioEffectFactory
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioEffectFactory>();
-
-    // Detect EFX by probing for a known EFX function
+    
     private readonly bool _efxAvailable = InitEfx(al);
 
     private static bool InitEfx(AL al)
