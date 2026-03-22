@@ -17,7 +17,8 @@ internal sealed class OpenALAudioSource : IAudioSource
     private const int AlAuxiliarySendFilter = 0x20006;
     private const int AlDirectFilter = 0x20005;
     private const int AlFilterNull = 0;
-
+    private const int MaxAuxiliarySends = 4;
+    
     private readonly AL _al;
     private readonly Action<OpenALAudioSource> _onDispose;
     private readonly AlSource3iDelegate? _source3i;
@@ -248,7 +249,7 @@ internal sealed class OpenALAudioSource : IAudioSource
         if (effect.SlotId != 0 && _source3i != null)
         {
             var sendIndex = _effects.Values.Count(e => e.SlotId != 0) - 1;
-            if (sendIndex < 4)
+            if (sendIndex < MaxAuxiliarySends)
             {
                 _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
                 var err = _al.GetError();
@@ -275,7 +276,7 @@ internal sealed class OpenALAudioSource : IAudioSource
         if (_source3i == null)
             return;
 
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < MaxAuxiliarySends; i++)
             _source3i(_sourceId, AlAuxiliarySendFilter, AlFilterNull, i, AlFilterNull);
     }
 
@@ -290,7 +291,7 @@ internal sealed class OpenALAudioSource : IAudioSource
             {
                 _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
             }
-            else if (effect.SlotId != 0 && sendIndex < 4 && _source3i != null)
+            else if (effect.SlotId != 0 && sendIndex < MaxAuxiliarySends && _source3i != null)
             {
                 _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
                 sendIndex++;
