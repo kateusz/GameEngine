@@ -13,6 +13,7 @@ internal sealed class OpenALAudioSource : IAudioSource
 
     // AL_AUXILIARY_SEND_FILTER requires alSource3i (slot, sendIndex, filter)
     private delegate void AlSource3iDelegate(uint source, int param, int v1, int v2, int v3);
+    private delegate void AlSourceiDelegate(uint source, int param, int value);
     private const int AlAuxiliarySendFilter = 0x20006;
     private const int AlDirectFilter = 0x20005;
     private const int AlFilterNull = 0;
@@ -20,6 +21,7 @@ internal sealed class OpenALAudioSource : IAudioSource
     private readonly AL _al;
     private readonly Action<OpenALAudioSource> _onDispose;
     private readonly AlSource3iDelegate? _source3i;
+    private readonly AlSourceiDelegate? _sourcei;
     private readonly Dictionary<AudioEffectType, IAudioEffect> _effects = new();
     private uint _sourceId;
     private IAudioClip _clip;
@@ -31,10 +33,14 @@ internal sealed class OpenALAudioSource : IAudioSource
         _onDispose = onDispose;
         _sourceId = _al.GenSource();
 
-        // Load alSource3i for auxiliary send filter routing (EFX)
+        // Load EFX source functions
         var source3iPtr = al.GetProcAddress("alSource3i");
         if (source3iPtr != IntPtr.Zero)
             _source3i = Marshal.GetDelegateForFunctionPointer<AlSource3iDelegate>(source3iPtr);
+
+        var sourceiPtr = al.GetProcAddress("alSourcei");
+        if (sourceiPtr != IntPtr.Zero)
+            _sourcei = Marshal.GetDelegateForFunctionPointer<AlSourceiDelegate>(sourceiPtr);
 
         // Set default properties
         _al.SetSourceProperty(_sourceId, SourceFloat.Gain, 1.0f);
@@ -215,7 +221,7 @@ internal sealed class OpenALAudioSource : IAudioSource
     {
         if (effect is OpenALLowPassEffect lowPass)
         {
-            _al.SetSourceProperty(_sourceId, (SourceInteger)AlDirectFilter, (int)lowPass.FilterId);
+            _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
             return;
         }
 
@@ -229,7 +235,7 @@ internal sealed class OpenALAudioSource : IAudioSource
 
     private void DisconnectAllEffectSlots()
     {
-        _al.SetSourceProperty(_sourceId, (SourceInteger)AlDirectFilter, AlFilterNull);
+        _sourcei?.Invoke(_sourceId, AlDirectFilter, AlFilterNull);
 
         if (_source3i == null)
             return;
@@ -247,7 +253,7 @@ internal sealed class OpenALAudioSource : IAudioSource
         {
             if (effect is OpenALLowPassEffect lowPass)
             {
-                _al.SetSourceProperty(_sourceId, (SourceInteger)AlDirectFilter, (int)lowPass.FilterId);
+                _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
             }
             else if (effect.SlotId != 0 && sendIndex < 4 && _source3i != null)
             {

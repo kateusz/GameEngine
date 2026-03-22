@@ -25,6 +25,7 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 
     private delegate void AlFilterfDelegate(uint filter, int param, float value);
 
+    private readonly AL _al;
     private readonly AlGenFiltersDelegate _genFilters;
     private readonly AlDeleteFiltersDelegate _deleteFilters;
     private readonly AlFilteriDelegate _filteri;
@@ -41,6 +42,7 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 
     public OpenALLowPassEffect(AL al)
     {
+        _al = al;
         _genFilters = GetProc<AlGenFiltersDelegate>(al, "alGenFilters");
         _deleteFilters = GetProc<AlDeleteFiltersDelegate>(al, "alDeleteFilters");
         _filteri = GetProc<AlFilteriDelegate>(al, "alFilteri");
@@ -52,6 +54,9 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
                 _genFilters(1, filterPtr);
 
             _filteri(_filterId, AlFilterParamType, AlFilterTypeLowpass);
+            var err = _al.GetError();
+            if (err != AudioError.NoError)
+                throw new InvalidOperationException($"AL_FILTER_LOWPASS not supported: {err}");
 
             Logger.Debug("Created low-pass filter {FilterId}", _filterId);
         }
