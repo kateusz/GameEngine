@@ -4,24 +4,21 @@ using Silk.NET.OpenAL;
 
 namespace Engine.Platform.OpenAL.Effects;
 
-internal sealed class OpenALAudioEffectFactory : IAudioEffectFactory
+internal sealed class OpenALAudioEffectFactory(AL al) : IAudioEffectFactory
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioEffectFactory>();
 
-    private readonly AL _al;
-    private readonly bool _efxAvailable;
+    // Detect EFX by probing for a known EFX function
+    private readonly bool _efxAvailable = InitEfx(al);
 
-    public OpenALAudioEffectFactory(AL al)
+    private static bool InitEfx(AL al)
     {
-        _al = al;
-
-        // Detect EFX by probing for a known EFX function
-        _efxAvailable = al.GetProcAddress("alGenEffects") != IntPtr.Zero;
-
-        if (_efxAvailable)
+        var available = al.GetProcAddress("alGenEffects") != IntPtr.Zero;
+        if (available)
             Logger.Information("OpenAL EFX extension available");
         else
             Logger.Warning("OpenAL EFX extension not available - audio effects disabled");
+        return available;
     }
 
     public IAudioEffect CreateEffect(AudioEffectType type)
@@ -36,9 +33,9 @@ internal sealed class OpenALAudioEffectFactory : IAudioEffectFactory
         {
             return type switch
             {
-                AudioEffectType.Reverb => new OpenALReverbEffect(_al),
-                AudioEffectType.LowPass => new OpenALLowPassEffect(_al),
-                AudioEffectType.Echo => new OpenALEchoEffect(_al),
+                AudioEffectType.Reverb => new OpenALReverbEffect(al),
+                AudioEffectType.LowPass => new OpenALLowPassEffect(al),
+                AudioEffectType.Echo => new OpenALEchoEffect(al),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown effect type")
             };
         }

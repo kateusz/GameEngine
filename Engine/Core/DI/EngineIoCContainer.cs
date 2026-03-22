@@ -7,6 +7,7 @@ using Engine.Events;
 using Engine.ImGuiNet;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
+using Silk.NET.OpenAL;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -74,6 +75,8 @@ public static class EngineIoCContainer
         
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+        container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
+        container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);
         container.Register<Engine.Audio.IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
 

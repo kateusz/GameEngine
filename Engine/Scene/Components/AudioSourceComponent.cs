@@ -56,6 +56,8 @@ public class AudioSourceComponent : IComponent
     /// </summary>
     public float MaxDistance { get; set; } = 100.0f;
 
+    public List<AudioEffectConfig> Effects { get; set; } = [];
+
     /// <summary>
     /// Whether the audio source is currently playing.
     /// </summary>
@@ -91,7 +93,13 @@ public class AudioSourceComponent : IComponent
     {
         return new AudioSourceComponent(AudioClip, Volume, Pitch, Loop, PlayOnAwake, Is3D, MinDistance, MaxDistance)
         {
-            AudioClipPath = AudioClipPath
+            AudioClipPath = AudioClipPath,
+            Effects = Effects.Select(e => new AudioEffectConfig
+            {
+                Type = e.Type,
+                Enabled = e.Enabled,
+                Amount = e.Amount
+            }).ToList()
         };
     }
 }
