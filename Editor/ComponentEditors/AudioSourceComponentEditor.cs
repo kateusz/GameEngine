@@ -15,10 +15,10 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
         ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", entity, () =>
         {
             var component = entity.GetComponent<AudioSourceComponent>();
-            audioDropTarget.Draw("Audio Clip", component.AudioClip, audioClip =>
+            audioDropTarget.Draw("Audio Clip", component.AudioClip, (audioClip, relativePath) =>
             {
                 component.AudioClip = audioClip;
-                component.AudioClipPath = audioClip.Path;
+                component.AudioClipPath = relativePath;
             });
 
             UIPropertyRenderer.DrawPropertyField("Volume", component.Volume,
@@ -66,8 +66,7 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
 
         if (!ImGui.CollapsingHeader("Effects"))
             return;
-
-        // Add effect button
+        
         if (ButtonDrawer.DrawButton("+ Add Effect"))
             ImGui.OpenPopup("AddEffectPopup");
 

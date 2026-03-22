@@ -20,7 +20,7 @@ public class AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsMana
     /// <param name="label">Label to display for the property</param>
     /// <param name="currentClip">Currently assigned audio clip (can be null)</param>
     /// <param name="onAudioChanged">Callback invoked when a new audio clip is dropped</param>
-    public void Draw(string label, IAudioClip? currentClip, Action<IAudioClip> onAudioChanged)
+    public void Draw(string label, IAudioClip? currentClip, Action<IAudioClip, string> onAudioChanged)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -49,7 +49,7 @@ public class AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsMana
                     try
                     {
                         var audioClip = _audioEngine.LoadAudioClip(audioPath);
-                        onAudioChanged(audioClip);
+                        onAudioChanged(audioClip, path);
                     }
                     catch (Exception ex)
                     {

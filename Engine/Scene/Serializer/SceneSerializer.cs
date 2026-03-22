@@ -266,8 +266,7 @@ internal sealed class SceneSerializer(
         {
             try
             {
-                var absolutePath = Path.GetFullPath(component.AudioClipPath);
-                component.AudioClip = audioEngine.LoadAudioClip(absolutePath);
+                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath!);
             }
             catch (Exception ex)
             {
