@@ -10,6 +10,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     private const uint MaxFramebufferSize = 8192;
 
     private uint _rendererId;
+    private readonly int[] _previousViewport = new int[4];
     private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
     private uint _depthAttachment;
@@ -114,13 +115,16 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     
     public override void Bind()
     {
+        SilkNetContext.GL.GetInteger(GLEnum.Viewport, _previousViewport);
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
+        SilkNetContext.GL.Viewport(0, 0, _specification.Width, _specification.Height);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
     }
 
     public override void Unbind()
     {
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        SilkNetContext.GL.Viewport(_previousViewport[0], _previousViewport[1], (uint)_previousViewport[2], (uint)_previousViewport[3]);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer (unbind)");
     }
 
