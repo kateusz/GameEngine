@@ -2,7 +2,7 @@ namespace Engine.Audio;
 
 public enum AudioEffectType
 {
-    Reverb,
-    LowPass,
-    Echo
+    Reverb = 0,
+    LowPass = 1,
+    Echo = 2
 }

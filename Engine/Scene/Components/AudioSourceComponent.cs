@@ -56,6 +56,7 @@ public class AudioSourceComponent : IComponent
     /// </summary>
     public float MaxDistance { get; set; } = 100.0f;
 
+    /// <summary>Audio effects applied to this source.</summary>
     public List<AudioEffectConfig> Effects { get; set; } = [];
 
     /// <summary>

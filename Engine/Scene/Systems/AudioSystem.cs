@@ -279,7 +279,8 @@ internal sealed class AudioSystem(
         var source = component.RuntimeAudioSource;
         var desiredEffects = component.Effects
             .Where(e => e.Enabled)
-            .ToDictionary(e => e.Type);
+            .GroupBy(e => e.Type)
+            .ToDictionary(g => g.Key, g => g.Last());
 
         // Remove effects no longer in config
         foreach (var type in source.GetActiveEffectTypes().ToList())
