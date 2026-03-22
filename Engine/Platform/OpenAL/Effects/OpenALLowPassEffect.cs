@@ -50,8 +50,15 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 
         try
         {
+            // Clear any stale OpenAL errors before EFX operations
+            _al.GetError();
+
             fixed (uint* filterPtr = &_filterId)
                 _genFilters(1, filterPtr);
+
+            var genErr = _al.GetError();
+            if (genErr != AudioError.NoError)
+                throw new InvalidOperationException($"alGenFilters failed: {genErr}");
 
             _filteri(_filterId, AlFilterParamType, AlFilterTypeLowpass);
             var err = _al.GetError();

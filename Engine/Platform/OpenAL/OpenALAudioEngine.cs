@@ -59,7 +59,11 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
             }
 
             _isAvailable = true;
-            Logger.Information("SilkNet AudioEngine initialized successfully");
+
+            var renderer = al.GetStateProperty(StateString.Renderer);
+            var version = al.GetStateProperty(StateString.Version);
+            var vendor = al.GetStateProperty(StateString.Vendor);
+            Logger.Information("OpenAL initialized - Vendor: {Vendor}, Renderer: {Renderer}, Version: {Version}", vendor, renderer, version);
         }
         catch (Exception ex)
         {

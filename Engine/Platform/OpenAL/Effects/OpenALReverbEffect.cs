@@ -11,9 +11,12 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
 
     // EFX constants
     private const int AlEffectTypeReverb = 0x0001;
+    private const int AlEffectTypeEaxReverb = 0x8000;
     private const int AlEffectParamReverbDensity = 0x0001;
     private const int AlEffectParamReverbDiffusion = 0x0002;
-    private const int AlEffectParamReverbDecayTime = 0x0007;
+    private const int AlEffectParamReverbGain = 0x0003;
+    private const int AlEffectParamReverbDecayTime = 0x0005;      // standard reverb
+    private const int AlEffectParamEaxReverbDecayTime = 0x0006;   // EAX reverb
     private const int AlEffectParamType = 0x8001;
     private const int AlEffectSlotParamEffect = 0x0001;
 
@@ -31,6 +34,7 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
 
     private delegate void AlAuxiliaryEffectSlotiDelegate(uint slot, int param, int value);
 
+    private readonly AL _al;
     private readonly AlGenEffectsDelegate _genEffects;
     private readonly AlDeleteEffectsDelegate _deleteEffects;
     private readonly AlEffectiDelegate _effecti;
@@ -42,12 +46,14 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
     private uint _effectId;
     private uint _slotId;
     private bool _disposed;
+    private int _decayTimeParam;
 
     public AudioEffectType Type => AudioEffectType.Reverb;
     public uint SlotId => _slotId;
 
     public OpenALReverbEffect(AL al)
     {
+        _al = al;
         _genEffects = GetProc<AlGenEffectsDelegate>(al, "alGenEffects");
         _deleteEffects = GetProc<AlDeleteEffectsDelegate>(al, "alDeleteEffects");
         _effecti = GetProc<AlEffectiDelegate>(al, "alEffecti");
@@ -58,10 +64,31 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
 
         try
         {
+            // Clear any stale OpenAL errors before EFX operations
+            _al.GetError();
+
             fixed (uint* idPtr = &_effectId)
                 _genEffects(1, idPtr);
 
+            var genErr = _al.GetError();
+            if (genErr != AudioError.NoError)
+                throw new InvalidOperationException($"alGenEffects failed: {genErr}");
+
+            // Try standard reverb first; fall back to EAX reverb (required on macOS Apple OpenAL)
             _effecti(_effectId, AlEffectParamType, AlEffectTypeReverb);
+            if (_al.GetError() != AudioError.NoError)
+            {
+                _effecti(_effectId, AlEffectParamType, AlEffectTypeEaxReverb);
+                var fallbackErr = _al.GetError();
+                if (fallbackErr != AudioError.NoError)
+                    throw new InvalidOperationException($"Neither AL_EFFECT_REVERB nor AL_EFFECT_EAXREVERB supported: {fallbackErr}");
+                _decayTimeParam = AlEffectParamEaxReverbDecayTime;
+                Logger.Debug("Using EAX reverb (standard reverb unsupported)");
+            }
+            else
+            {
+                _decayTimeParam = AlEffectParamReverbDecayTime;
+            }
 
             fixed (uint* slotPtr = &_slotId)
                 _genAuxSlots(1, slotPtr);
@@ -85,10 +112,12 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
         var decayTime = MathF.Max(0.1f, amount * 4.0f);  // 0.1s to 4.0s
         var density = amount;                              // 0 to 1
         var diffusion = 0.5f + (amount * 0.5f);           // 0.5 to 1.0
+        var gain = 0.32f + (amount * 0.68f);              // 0.32 to 1.0
 
-        _effectf(_effectId, AlEffectParamReverbDecayTime, decayTime);
+        _effectf(_effectId, _decayTimeParam, decayTime);
         _effectf(_effectId, AlEffectParamReverbDensity, density);
         _effectf(_effectId, AlEffectParamReverbDiffusion, diffusion);
+        _effectf(_effectId, AlEffectParamReverbGain, gain);
         _auxSloti(_slotId, AlEffectSlotParamEffect, (int)_effectId);
     }
 

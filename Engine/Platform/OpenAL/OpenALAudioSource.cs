@@ -211,17 +211,37 @@ internal sealed class OpenALAudioSource : IAudioSource
 
     public void UpdateEffect(AudioEffectType type, float amount)
     {
-        if (_effects.TryGetValue(type, out var effect))
-            effect.Apply(amount);
+        if (!_effects.TryGetValue(type, out var effect))
+            return;
+
+        effect.Apply(amount);
+
+        // Re-attach filter to source so OpenAL picks up the updated parameters
+        if (effect is OpenALLowPassEffect lowPass)
+            _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
     }
 
     public IEnumerable<AudioEffectType> GetActiveEffectTypes() => _effects.Keys;
 
     private void ConnectEffect(IAudioEffect effect)
     {
+        // Clear stale errors
+        _al.GetError();
+
         if (effect is OpenALLowPassEffect lowPass)
         {
-            _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+            if (_sourcei == null)
+            {
+                Logger.Warning("Cannot connect low-pass filter: alSourcei not available");
+                return;
+            }
+
+            _sourcei(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+            var err = _al.GetError();
+            if (err != AudioError.NoError)
+                Logger.Error("Failed to connect low-pass filter {FilterId} to source {SourceId}: {Error}", lowPass.FilterId, _sourceId, err);
+            else
+                Logger.Debug("Connected low-pass filter {FilterId} to source {SourceId}", lowPass.FilterId, _sourceId);
             return;
         }
 
@@ -229,7 +249,22 @@ internal sealed class OpenALAudioSource : IAudioSource
         {
             var sendIndex = _effects.Values.Count(e => e.SlotId != 0) - 1;
             if (sendIndex < 4)
+            {
                 _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
+                var err = _al.GetError();
+                if (err != AudioError.NoError)
+                    Logger.Error("Failed to connect effect slot {SlotId} to source {SourceId} send {SendIndex}: {Error}", effect.SlotId, _sourceId, sendIndex, err);
+                else
+                    Logger.Debug("Connected effect slot {SlotId} to source {SourceId} send {SendIndex}", effect.SlotId, _sourceId, sendIndex);
+            }
+        }
+        else if (effect.SlotId == 0)
+        {
+            Logger.Warning("Effect {Type} has SlotId=0, cannot connect to aux send", effect.Type);
+        }
+        else if (_source3i == null)
+        {
+            Logger.Warning("Cannot connect effect: alSource3i not available");
         }
     }
 
