@@ -100,11 +100,9 @@ internal sealed class PhysicsDebugRenderSystem(
                 var worldPos = new Vector3(bodyPosition.X + rotatedOffset.X,
                     bodyPosition.Y + rotatedOffset.Y, 0.0f);
 
-                // Build TRS (match engine’s order)
                 var trs = Matrix4x4.CreateTranslation(worldPos)
                           * Matrix4x4.CreateRotationZ(angle)
                           * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-
                 renderer.DrawRect(trs, color, entity.Id);
             }
         }
@@ -118,15 +116,15 @@ internal sealed class PhysicsDebugRenderSystem(
     private static Vector4 GetBodyDebugColor(Body body)
     {
         if (!body.IsEnabled())
-            return new Vector4(0.5f, 0.5f, 0.3f, 1.0f); // Inactive (tan)
+            return new Vector4(0.5f, 0.5f, 0.0f, 1.0f); // Dark yellow (inactive)
 
         return body.Type() switch
         {
-            BodyType.Static => new Vector4(0.5f, 0.9f, 0.5f, 1.0f), // Green
-            BodyType.Kinematic => new Vector4(0.5f, 0.5f, 0.9f, 1.0f), // Blue
+            BodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),    // Bright green
+            BodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f), // Orange
             _ => body.IsAwake()
-                ? new Vector4(0.9f, 0.7f, 0.7f, 1.0f) // Pink (active dynamic)
-                : new Vector4(0.6f, 0.6f, 0.6f, 1.0f) // Gray (sleeping dynamic)
+                ? new Vector4(1.0f, 0.0f, 0.3f, 1.0f) // Magenta (active dynamic)
+                : new Vector4(0.5f, 0.5f, 0.5f, 1.0f) // Gray (sleeping dynamic)
         };
     }
 }
