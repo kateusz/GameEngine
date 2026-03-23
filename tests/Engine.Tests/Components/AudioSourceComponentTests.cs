@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Engine.Audio;
 using Engine.Scene.Components;
 using NSubstitute;
@@ -151,5 +152,13 @@ public class AudioSourceComponentTests
         };
 
         component.AudioClipPath.ShouldBe("audio/test.wav");
+    }
+
+    [Fact]
+    public void IsPlaying_ShouldNotBeSerialized()
+    {
+        var component = new AudioSourceComponent { IsPlaying = true };
+        var json = JsonSerializer.Serialize(component);
+        json.ShouldNotContain("IsPlaying");
     }
 }

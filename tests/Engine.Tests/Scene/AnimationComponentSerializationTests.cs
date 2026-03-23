@@ -44,12 +44,12 @@ public class AnimationComponentSerializationTests : IDisposable
         // Assert - Check that JSON contains expected properties
         Assert.Contains("\"AssetPath\": \"Animations/player.json\"", json);
         Assert.Contains("\"CurrentClipName\": \"Idle\"", json);
-        Assert.Contains("\"IsPlaying\": true", json);
         Assert.Contains("\"Loop\": true", json);
         Assert.Contains("\"PlaybackSpeed\": 1.5", json);
         Assert.Contains("\"ShowDebugInfo\": true", json);
 
-        // Runtime state should NOT be in JSON (marked with [NonSerialized])
+        // Runtime state should NOT be in JSON (marked with [JsonIgnore])
+        Assert.DoesNotContain("IsPlaying", json);
         Assert.DoesNotContain("CurrentFrameIndex", json);
         Assert.DoesNotContain("FrameTimer", json);
         Assert.DoesNotContain("PreviousFrameIndex", json);
@@ -62,7 +62,6 @@ public class AnimationComponentSerializationTests : IDisposable
         var json = @"{
             ""AssetPath"": ""Animations/player.json"",
             ""CurrentClipName"": ""Idle"",
-            ""IsPlaying"": true,
             ""Loop"": true,
             ""PlaybackSpeed"": 1.5,
             ""ShowDebugInfo"": true
@@ -75,7 +74,7 @@ public class AnimationComponentSerializationTests : IDisposable
         Assert.NotNull(component);
         Assert.Equal("Animations/player.json", component.AssetPath);
         Assert.Equal("Idle", component.CurrentClipName);
-        Assert.True(component.IsPlaying);
+        Assert.False(component.IsPlaying);
         Assert.True(component.Loop);
         Assert.Equal(1.5f, component.PlaybackSpeed);
         Assert.True(component.ShowDebugInfo);
@@ -137,7 +136,7 @@ public class AnimationComponentSerializationTests : IDisposable
         Assert.NotNull(deserialized);
         Assert.Equal(original.AssetPath, deserialized.AssetPath);
         Assert.Equal(original.CurrentClipName, deserialized.CurrentClipName);
-        Assert.Equal(original.IsPlaying, deserialized.IsPlaying);
+        Assert.False(deserialized.IsPlaying);
         Assert.Equal(original.Loop, deserialized.Loop);
         Assert.Equal(original.PlaybackSpeed, deserialized.PlaybackSpeed);
         Assert.Equal(original.ShowDebugInfo, deserialized.ShowDebugInfo);

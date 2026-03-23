@@ -62,6 +62,7 @@ public class AudioSourceComponent : IComponent
     /// <summary>
     /// Whether the audio source is currently playing.
     /// </summary>
+    [JsonIgnore]
     public bool IsPlaying { get; set; } = false;
 
     /// <summary>

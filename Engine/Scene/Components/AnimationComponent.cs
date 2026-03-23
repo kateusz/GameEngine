@@ -32,6 +32,7 @@ public class AnimationComponent : IComponent
     /// <summary>
     /// Whether animation is currently playing.
     /// </summary>
+    [JsonIgnore]
     public bool IsPlaying { get; set; } = false;
 
     /// <summary>
