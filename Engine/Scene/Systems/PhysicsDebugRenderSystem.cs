@@ -80,7 +80,6 @@ internal sealed class PhysicsDebugRenderSystem(
                 var transform = entity.GetComponent<TransformComponent>();
                 var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
 
-                // Full size (Box2D uses half-extents)
                 var size = new Vector2(
                     boxCollider.Size.X * 2.0f * transform.Scale.X,
                     boxCollider.Size.Y * 2.0f * transform.Scale.Y

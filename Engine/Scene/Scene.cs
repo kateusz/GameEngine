@@ -116,7 +116,7 @@ internal sealed class Scene(
                 var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
 
                 var center = new Vector2(actualOffsetX, actualOffsetY);
-                shape.SetAsBox(actualSizeX / 2.0f, actualSizeY / 2.0f, center, 0.0f);
+                shape.SetAsBox(actualSizeX, actualSizeY, center, 0.0f);
 
                 var fixtureDef = new FixtureDef
                 {
