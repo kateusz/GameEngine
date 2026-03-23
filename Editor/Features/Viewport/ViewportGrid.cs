@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Renderer;
 using ImGuiNET;
 
 namespace Editor.Features.Viewport;
@@ -6,11 +7,8 @@ namespace Editor.Features.Viewport;
 /// <summary>
 /// Renders a thin-line 2D grid overlay in the editor viewport.
 /// </summary>
-public class ViewportGrid
+public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
 {
-    private const float MinorLineOpacity = 0.30f;
-    private const float MajorLineOpacity = 0.55f;
-
     /// <summary>
     /// Renders the grid. Must be called within an active ImGui window.
     /// </summary>
@@ -26,10 +24,10 @@ public class ViewportGrid
         var drawList = ImGui.GetWindowDrawList();
         var viewportSize = viewportMax - viewportMin;
 
-        var tickSpacing = ViewportScaleHelper.CalculateTickSpacing(zoom);
+        var tickSpacing = viewportScaleHelper.CalculateTickSpacing(zoom);
 
-        var minorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, MinorLineOpacity));
-        var majorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, MajorLineOpacity));
+        var minorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, RenderingConstants.GridMinorLineOpacity));
+        var majorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, RenderingConstants.GridMajorLineOpacity));
 
         DrawVerticalLines(drawList, viewportMin, viewportMax, viewportSize, cameraPosition, zoom,
             tickSpacing, minorColor, majorColor);
@@ -47,13 +45,13 @@ public class ViewportGrid
 
         for (var worldX = firstTick; worldX <= worldLeft + worldWidth; worldX += tickSpacing)
         {
-            var screenX = ViewportScaleHelper.WorldToScreenX(worldX, cameraPosition.X, zoom,
+            var screenX = viewportScaleHelper.WorldToScreenX(worldX, cameraPosition.X, zoom,
                 viewportMin.X, viewportSize.X);
 
             if (screenX < viewportMin.X || screenX > viewportMax.X)
                 continue;
 
-            var isMajor = (int)Math.Round(worldX / tickSpacing) % 10 == 0;
+            var isMajor = (int)Math.Round(worldX / tickSpacing) % RenderingConstants.GridMajorStep == 0;
             var color = isMajor ? majorColor : minorColor;
 
             drawList.AddLine(
@@ -73,13 +71,13 @@ public class ViewportGrid
 
         for (var worldY = firstTick; worldY <= worldTop; worldY += tickSpacing)
         {
-            var screenY = ViewportScaleHelper.WorldToScreenY(worldY, cameraPosition.Y, zoom,
+            var screenY = viewportScaleHelper.WorldToScreenY(worldY, cameraPosition.Y, zoom,
                 viewportMin.Y, viewportSize.Y);
 
             if (screenY < viewportMin.Y || screenY > viewportMax.Y)
                 continue;
 
-            var isMajor = (int)Math.Round(worldY / tickSpacing) % 10 == 0;
+            var isMajor = (int)Math.Round(worldY / tickSpacing) % RenderingConstants.GridMajorStep == 0;
             var color = isMajor ? majorColor : minorColor;
 
             drawList.AddLine(

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
 using Engine.Scene;
@@ -86,7 +87,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         // Use toggle button for ruler since we don't have an icon yet
         var isRulerMode = CurrentMode == EditorMode.Ruler;
-        if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: 25, height: 19))
+        if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
         {
             CurrentMode = EditorMode.Ruler;
         }
@@ -95,7 +96,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         // Grid toggle
         var showGrid = ShowGrid;
-        ButtonDrawer.DrawToggleButton("⊞", "⊞", ref showGrid, width: 25, height: 19);
+        ButtonDrawer.DrawToggleButton("⊞", "⊞", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
         ShowGrid = showGrid;
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;

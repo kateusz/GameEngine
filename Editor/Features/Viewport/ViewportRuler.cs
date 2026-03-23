@@ -6,7 +6,7 @@ namespace Editor.Features.Viewport;
 /// <summary>
 /// Renders horizontal and vertical rulers in the viewport, similar to Godot's 2D editor rulers.
 /// </summary>
-public class ViewportRuler
+public class ViewportRuler(IViewportScaleHelper viewportScaleHelper)
 {
     private const float RulerThickness = 20.0f;
     private const float MajorTickSize = 10.0f;
@@ -67,7 +67,7 @@ public class ViewportRuler
         var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
         
         // Determine tick spacing based on zoom
-        var tickSpacing = ViewportScaleHelper.CalculateTickSpacing(_zoom);
+        var tickSpacing = viewportScaleHelper.CalculateTickSpacing(_zoom);
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
@@ -76,7 +76,7 @@ public class ViewportRuler
         // Draw ticks
         for (var worldX = firstMajorTick; worldX < worldLeft + worldWidth; worldX += tickSpacing)
         {
-            var screenX = ViewportScaleHelper.WorldToScreenX(worldX, _cameraPosition.X, _zoom, viewportMin.X, viewportSize.X);
+            var screenX = viewportScaleHelper.WorldToScreenX(worldX, _cameraPosition.X, _zoom, viewportMin.X, viewportSize.X);
             
             if (screenX < viewportMin.X || screenX > viewportMin.X + viewportSize.X)
                 continue;
@@ -129,7 +129,7 @@ public class ViewportRuler
         var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
         
         // Determine tick spacing based on zoom
-        var tickSpacing = ViewportScaleHelper.CalculateTickSpacing(_zoom);
+        var tickSpacing = viewportScaleHelper.CalculateTickSpacing(_zoom);
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
@@ -138,7 +138,7 @@ public class ViewportRuler
         // Draw ticks
         for (var worldY = firstMajorTick; worldY < worldTop; worldY += tickSpacing)
         {
-            var screenY = ViewportScaleHelper.WorldToScreenY(worldY, _cameraPosition.Y, _zoom,
+            var screenY = viewportScaleHelper.WorldToScreenY(worldY, _cameraPosition.Y, _zoom,
                 viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
             
             if (screenY < viewportMin.Y + RulerThickness || screenY > viewportMin.Y + viewportSize.Y)

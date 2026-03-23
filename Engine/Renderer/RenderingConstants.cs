@@ -7,7 +7,7 @@ namespace Engine.Renderer;
 /// Defines all magic numbers used throughout the renderer to improve maintainability
 /// and prevent inconsistencies.
 /// </summary>
-internal static class RenderingConstants
+public static class RenderingConstants
 {
     // Batch configuration
     /// <summary>
@@ -84,8 +84,9 @@ internal static class RenderingConstants
     /// </summary>
     public const int MaxIndices = DefaultMaxQuads * QuadIndexCount;
 
-    public const float DefaultTilingFactor = 1.0f;
-    public const float DefaultTileScale = 1.0f;
-    public const float TileLayerZSpacing = 0.01f;
-    public static readonly Vector4? OpaqueWhiteTint = new Vector4(1, 1, 1, 1);
+    // Viewport grid / ruler
+    public const float GridMinorLineOpacity = 0.30f;
+    public const float GridMajorLineOpacity = 0.55f;
+    public const int GridMajorStep = 10;
+    public const float TargetPixelSpacing = 50.0f;
 }

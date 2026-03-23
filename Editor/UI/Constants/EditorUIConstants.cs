@@ -145,6 +145,16 @@ public static class EditorUIConstants
     public const int MaxVisibleListItems = 10;
 
     /// <summary>
+    /// Width for toolbar toggle buttons (grid, ruler, etc.)
+    /// </summary>
+    public const float ToolbarToggleWidth = 25f;
+
+    /// <summary>
+    /// Height for toolbar toggle buttons (grid, ruler, etc.)
+    /// </summary>
+    public const float ToolbarToggleHeight = 19f;
+
+    /// <summary>
     /// Default size for the publish settings modal window.
     /// </summary>
     public static readonly Vector2 PublishSettingsModalSize = new(500f, 400f);
