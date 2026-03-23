@@ -77,7 +77,7 @@ public class ViewportRuler
         var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
         
         // Determine tick spacing based on zoom
-        var tickSpacing = CalculateTickSpacing(_zoom);
+        var tickSpacing = ViewportScaleHelper.CalculateTickSpacing(_zoom);
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
@@ -86,7 +86,7 @@ public class ViewportRuler
         // Draw ticks
         for (var worldX = firstMajorTick; worldX < worldLeft + worldWidth; worldX += tickSpacing)
         {
-            var screenX = WorldToScreenX(worldX, viewportMin.X, viewportSize.X);
+            var screenX = ViewportScaleHelper.WorldToScreenX(worldX, _cameraPosition.X, _zoom, viewportMin.X, viewportSize.X);
             
             if (screenX < viewportMin.X || screenX > viewportMin.X + viewportSize.X)
                 continue;
@@ -139,7 +139,7 @@ public class ViewportRuler
         var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
         
         // Determine tick spacing based on zoom
-        var tickSpacing = CalculateTickSpacing(_zoom);
+        var tickSpacing = ViewportScaleHelper.CalculateTickSpacing(_zoom);
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
@@ -148,7 +148,8 @@ public class ViewportRuler
         // Draw ticks
         for (var worldY = firstMajorTick; worldY < worldTop; worldY += tickSpacing)
         {
-            var screenY = WorldToScreenY(worldY, viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
+            var screenY = ViewportScaleHelper.WorldToScreenY(worldY, _cameraPosition.Y, _zoom,
+                viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
             
             if (screenY < viewportMin.Y + RulerThickness || screenY > viewportMin.Y + viewportSize.Y)
                 continue;
@@ -200,44 +201,5 @@ public class ViewportRuler
             LineColor);
     }
 
-    private float WorldToScreenX(float worldX, float viewportMinX, float viewportWidth)
-    {
-        var worldWidth = viewportWidth / _zoom;
-        var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
-        var normalizedX = (worldX - worldLeft) / worldWidth;
-        return viewportMinX + normalizedX * viewportWidth;
-    }
-
-    private float WorldToScreenY(float worldY, float viewportMinY, float viewportHeight)
-    {
-        var worldHeight = viewportHeight / _zoom;
-        var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
-        var normalizedY = (worldTop - worldY) / worldHeight;
-        return viewportMinY + normalizedY * viewportHeight;
-    }
-
-    private float CalculateTickSpacing(float zoom)
-    {
-        // Calculate optimal tick spacing based on zoom level
-        // We want ticks to be roughly 50-100 pixels apart
-        var pixelsPerUnit = zoom;
-        var targetPixelSpacing = 50.0f;
-        
-        var rawSpacing = targetPixelSpacing / pixelsPerUnit;
-        
-        // Round to nice numbers (1, 2, 5, 10, 20, 50, 100, etc.)
-        var magnitude = (float)Math.Pow(10, Math.Floor(Math.Log10(rawSpacing)));
-        var normalizedSpacing = rawSpacing / magnitude;
-        
-        float niceSpacing;
-        if (normalizedSpacing < 2.0f)
-            niceSpacing = 1.0f;
-        else if (normalizedSpacing < 5.0f)
-            niceSpacing = 2.0f;
-        else
-            niceSpacing = 5.0f;
-        
-        return niceSpacing * magnitude;
-    }
 }
 
