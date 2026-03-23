@@ -608,7 +608,7 @@ public class EditorLayer(
                     }
                 }
 
-                // Render viewport rulers
+                // Viewport overlay rendering (grid, rulers, tools)
                 var focalPoint = _editorCamera.FocalPoint;
                 var cameraPos = new Vector2(focalPoint.X, focalPoint.Y);
                 var distance = _editorCamera.Distance;
