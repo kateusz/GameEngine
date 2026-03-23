@@ -200,6 +200,5 @@ public class ViewportRuler
             squareMax,
             LineColor);
     }
-
 }
 

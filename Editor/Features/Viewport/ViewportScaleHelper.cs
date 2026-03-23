@@ -13,6 +13,9 @@ public static class ViewportScaleHelper
     /// </summary>
     public static float CalculateTickSpacing(float zoom)
     {
+        if (zoom <= 0)
+            return TargetPixelSpacing;
+
         var rawSpacing = TargetPixelSpacing / zoom;
         var magnitude = (float)Math.Pow(10, Math.Floor(Math.Log10(rawSpacing)));
         var normalizedSpacing = rawSpacing / magnitude;
@@ -34,6 +37,9 @@ public static class ViewportScaleHelper
     public static float WorldToScreenX(float worldX, float cameraX, float zoom,
         float viewportMinX, float viewportWidth)
     {
+        if (zoom <= 0)
+            return viewportMinX + viewportWidth / 2.0f;
+
         var worldWidth = viewportWidth / zoom;
         var worldLeft = cameraX - worldWidth / 2.0f;
         var normalizedX = (worldX - worldLeft) / worldWidth;
@@ -46,6 +52,9 @@ public static class ViewportScaleHelper
     public static float WorldToScreenY(float worldY, float cameraY, float zoom,
         float viewportMinY, float viewportHeight)
     {
+        if (zoom <= 0)
+            return viewportMinY + viewportHeight / 2.0f;
+
         var worldHeight = viewportHeight / zoom;
         var worldTop = cameraY + worldHeight / 2.0f;
         var normalizedY = (worldTop - worldY) / worldHeight;
