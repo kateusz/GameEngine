@@ -59,25 +59,18 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _phongShader.Bind();
         _phongShader.SetMat4("u_Model", transform);
 
-        // Calculate normal matrix (inverse transpose of the model matrix)
-        var normalMatrix = transform;
-        var inverted = Matrix4x4.Invert(normalMatrix, out normalMatrix);
-        if (inverted)
-        {
-            normalMatrix = Matrix4x4.Transpose(normalMatrix);
-        }
+        // Normal matrix: inverse(M). SetMat4 transposes on upload (row-major → column-major),
+        // so the shader receives transpose(inverse(M)), correct for row-vector normal transform.
+        var inverted = Matrix4x4.Invert(transform, out var normalMatrix);
+        if (!inverted) normalMatrix = Matrix4x4.Identity;
         _phongShader.SetMat4("u_NormalMatrix", normalMatrix);
-
         _phongShader.SetFloat4("u_Color", color);
-
-        // Check if we're using a texture
+        
         var hasTexture = mesh.DiffuseTexture.Width > 1;
         _phongShader.SetInt("u_UseTexture", hasTexture ? 1 : 0);
-
-        // Bind the mesh (already initialized)
+        
         mesh.Bind();
-
-        // Draw
+        
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
     }
@@ -105,8 +98,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             mesh.DiffuseTexture = originalTexture;
         }
     }
-
-    // Set light properties
+    
     public void SetLightPosition(Vector3 position)
     {
         _lightPosition = position;

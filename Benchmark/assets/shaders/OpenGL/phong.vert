@@ -16,8 +16,8 @@ flat out int v_EntityID;
 
 void main()
 {
-    v_Position = vec3(u_Model * vec4(a_Position, 1.0));
-    v_Normal = normalize(mat3(u_NormalMatrix) * a_Normal);
+    v_Position = vec3(vec4(a_Position, 1.0) * u_Model);
+    v_Normal = normalize(a_Normal * mat3(u_NormalMatrix));
     v_TexCoord = a_TexCoord;
     v_EntityID = a_EntityID;
 
