@@ -54,6 +54,7 @@ public class EditorLayer(
     IAssetsManager assetsManager,
     ViewportToolManager viewportToolManager,
     ViewportRuler viewportRuler,
+    ViewportGrid viewportGrid,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider) : ILayer
@@ -484,6 +485,8 @@ public class EditorLayer(
 
                     if (ImGui.MenuItem("Show Rulers", null, viewportRuler.Enabled))
                         viewportRuler.Enabled = !viewportRuler.Enabled;
+                    if (ImGui.MenuItem("Show Grid", null, sceneToolbar.ShowGrid))
+                        sceneToolbar.ShowGrid = !sceneToolbar.ShowGrid;
                     if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
                         rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
 
@@ -612,6 +615,12 @@ public class EditorLayer(
                 var fovRad = MathHelpers.DegreesToRadians(_editorCamera.FOV);
                 var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
                 var zoom = _viewportSize.Y / worldHeight;
+
+                // Render viewport grid
+                viewportGrid.Enabled = sceneToolbar.ShowGrid;
+                viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+
+                // Render viewport rulers
                 viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
                 // Render active tool overlays (measurements, gizmos, etc.)
