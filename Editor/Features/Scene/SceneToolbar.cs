@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
 using Engine.Scene;
@@ -15,6 +16,8 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     private Texture2D _iconSelect;
     private Texture2D _iconMove;
     private Texture2D _iconScale;
+
+    public bool ShowGrid { get; set; } = true;
 
     public event Action OnPlayScene;
     public event Action OnStopScene;
@@ -84,11 +87,18 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         // Use toggle button for ruler since we don't have an icon yet
         var isRulerMode = CurrentMode == EditorMode.Ruler;
-        if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: 25, height: 19))
+        if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
         {
             CurrentMode = EditorMode.Ruler;
         }
-        
+
+        ImGui.SameLine();
+
+        // Grid toggle
+        var showGrid = ShowGrid;
+        ButtonDrawer.DrawToggleButton("⊞", "⊞", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        ShowGrid = showGrid;
+
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
@@ -109,7 +119,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 },
                 tooltip: sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene"))
         {
-            // Action handled in onClick
         }
 
         ImGui.SameLine();

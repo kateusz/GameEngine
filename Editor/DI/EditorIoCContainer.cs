@@ -61,7 +61,9 @@ public static class EditorIoCContainer
         container.Register<ScriptComponentEditor>(Reuse.Singleton);
     
         // Viewport infrastructure
+        container.Register<IViewportScaleHelper, ViewportScaleHelper>(Reuse.Singleton);
         container.Register<ViewportRuler>(Reuse.Singleton);
+        container.Register<ViewportGrid>(Reuse.Singleton);
 
         // Viewport tools
         container.Register<SelectionTool>(Reuse.Singleton);

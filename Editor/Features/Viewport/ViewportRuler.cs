@@ -6,7 +6,7 @@ namespace Editor.Features.Viewport;
 /// <summary>
 /// Renders horizontal and vertical rulers in the viewport, similar to Godot's 2D editor rulers.
 /// </summary>
-public class ViewportRuler
+public class ViewportRuler(IViewportScaleHelper viewportScaleHelper)
 {
     private const float RulerThickness = 20.0f;
     private const float MajorTickSize = 10.0f;
@@ -14,21 +14,16 @@ public class ViewportRuler
     private const float TextOffset = 2.0f;
     
     // Lazy initialization to avoid calling ImGui before it's ready
-    private uint BackgroundColor => ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 0.95f));
-    private uint LineColor => ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, 1.0f));
-    private uint TextColor => ImGui.GetColorU32(new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
-    private uint MajorTickColor => ImGui.GetColorU32(new Vector4(0.8f, 0.8f, 0.8f, 1.0f));
-    private uint MinorTickColor => ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
-    
-    private bool _enabled = true;
+    private static uint BackgroundColor => ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 0.95f));
+    private static uint LineColor => ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, 1.0f));
+    private static uint TextColor => ImGui.GetColorU32(new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
+    private static uint MajorTickColor => ImGui.GetColorU32(new Vector4(0.8f, 0.8f, 0.8f, 1.0f));
+    private static uint MinorTickColor => ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
+
     private float _zoom = 1.0f;
     private Vector2 _cameraPosition = Vector2.Zero;
 
-    public bool Enabled
-    {
-        get => _enabled;
-        set => _enabled = value;
-    }
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// Renders the rulers at the top and left edges of the viewport.
@@ -39,7 +34,7 @@ public class ViewportRuler
     /// <param name="zoom">Current zoom level (orthographic size)</param>
     public void Render(Vector2 viewportMin, Vector2 viewportMax, Vector2 cameraPosition, float zoom = 1.0f)
     {
-        if (!_enabled)
+        if (!Enabled)
             return;
 
         _zoom = zoom;
@@ -47,14 +42,9 @@ public class ViewportRuler
         
         var drawList = ImGui.GetWindowDrawList();
         var viewportSize = viewportMax - viewportMin;
-
-        // Draw horizontal ruler (top)
+        
         DrawHorizontalRuler(drawList, viewportMin, viewportSize);
-        
-        // Draw vertical ruler (left)
         DrawVerticalRuler(drawList, viewportMin, viewportSize);
-        
-        // Draw corner square
         DrawCornerSquare(drawList, viewportMin);
     }
 
@@ -77,7 +67,7 @@ public class ViewportRuler
         var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
         
         // Determine tick spacing based on zoom
-        var tickSpacing = CalculateTickSpacing(_zoom);
+        var tickSpacing = viewportScaleHelper.CalculateTickSpacing(_zoom);
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
@@ -86,7 +76,7 @@ public class ViewportRuler
         // Draw ticks
         for (var worldX = firstMajorTick; worldX < worldLeft + worldWidth; worldX += tickSpacing)
         {
-            var screenX = WorldToScreenX(worldX, viewportMin.X, viewportSize.X);
+            var screenX = viewportScaleHelper.WorldToScreenX(worldX, _cameraPosition.X, _zoom, viewportMin.X, viewportSize.X);
             
             if (screenX < viewportMin.X || screenX > viewportMin.X + viewportSize.X)
                 continue;
@@ -114,7 +104,7 @@ public class ViewportRuler
                 // Minor tick
                 drawList.AddLine(
                     new Vector2(screenX, rulerMax.Y - MinorTickSize),
-                    new Vector2(screenX, rulerMax.Y),
+                    rulerMax with { X = screenX },
                     MinorTickColor);
             }
         }
@@ -122,7 +112,7 @@ public class ViewportRuler
 
     private void DrawVerticalRuler(ImDrawListPtr drawList, Vector2 viewportMin, Vector2 viewportSize)
     {
-        var rulerMin = new Vector2(viewportMin.X, viewportMin.Y + RulerThickness);
+        var rulerMin = viewportMin with { Y = viewportMin.Y + RulerThickness };
         var rulerMax = new Vector2(viewportMin.X + RulerThickness, viewportMin.Y + viewportSize.Y);
         
         // Background
@@ -139,7 +129,7 @@ public class ViewportRuler
         var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
         
         // Determine tick spacing based on zoom
-        var tickSpacing = CalculateTickSpacing(_zoom);
+        var tickSpacing = viewportScaleHelper.CalculateTickSpacing(_zoom);
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
@@ -148,7 +138,8 @@ public class ViewportRuler
         // Draw ticks
         for (var worldY = firstMajorTick; worldY < worldTop; worldY += tickSpacing)
         {
-            var screenY = WorldToScreenY(worldY, viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
+            var screenY = viewportScaleHelper.WorldToScreenY(worldY, _cameraPosition.Y, _zoom,
+                viewportMin.Y + RulerThickness, viewportSize.Y - RulerThickness);
             
             if (screenY < viewportMin.Y + RulerThickness || screenY > viewportMin.Y + viewportSize.Y)
                 continue;
@@ -160,7 +151,7 @@ public class ViewportRuler
                 // Major tick
                 drawList.AddLine(
                     new Vector2(rulerMax.X - MajorTickSize, screenY),
-                    new Vector2(rulerMax.X, screenY),
+                    rulerMax with { Y = screenY },
                     MajorTickColor, 1.5f);
                 
                 // Label (rotated text would be nice but ImGui doesn't support it easily)
@@ -176,7 +167,7 @@ public class ViewportRuler
                 // Minor tick
                 drawList.AddLine(
                     new Vector2(rulerMax.X - MinorTickSize, screenY),
-                    new Vector2(rulerMax.X, screenY),
+                    rulerMax with { Y = screenY },
                     MinorTickColor);
             }
         }
@@ -198,46 +189,6 @@ public class ViewportRuler
             new Vector2(squareMin.X, squareMax.Y),
             squareMax,
             LineColor);
-    }
-
-    private float WorldToScreenX(float worldX, float viewportMinX, float viewportWidth)
-    {
-        var worldWidth = viewportWidth / _zoom;
-        var worldLeft = _cameraPosition.X - worldWidth / 2.0f;
-        var normalizedX = (worldX - worldLeft) / worldWidth;
-        return viewportMinX + normalizedX * viewportWidth;
-    }
-
-    private float WorldToScreenY(float worldY, float viewportMinY, float viewportHeight)
-    {
-        var worldHeight = viewportHeight / _zoom;
-        var worldTop = _cameraPosition.Y + worldHeight / 2.0f;
-        var normalizedY = (worldTop - worldY) / worldHeight;
-        return viewportMinY + normalizedY * viewportHeight;
-    }
-
-    private float CalculateTickSpacing(float zoom)
-    {
-        // Calculate optimal tick spacing based on zoom level
-        // We want ticks to be roughly 50-100 pixels apart
-        var pixelsPerUnit = zoom;
-        var targetPixelSpacing = 50.0f;
-        
-        var rawSpacing = targetPixelSpacing / pixelsPerUnit;
-        
-        // Round to nice numbers (1, 2, 5, 10, 20, 50, 100, etc.)
-        var magnitude = (float)Math.Pow(10, Math.Floor(Math.Log10(rawSpacing)));
-        var normalizedSpacing = rawSpacing / magnitude;
-        
-        float niceSpacing;
-        if (normalizedSpacing < 2.0f)
-            niceSpacing = 1.0f;
-        else if (normalizedSpacing < 5.0f)
-            niceSpacing = 2.0f;
-        else
-            niceSpacing = 5.0f;
-        
-        return niceSpacing * magnitude;
     }
 }
 

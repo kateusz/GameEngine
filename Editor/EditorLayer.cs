@@ -54,6 +54,7 @@ public class EditorLayer(
     IAssetsManager assetsManager,
     ViewportToolManager viewportToolManager,
     ViewportRuler viewportRuler,
+    ViewportGrid viewportGrid,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider) : ILayer
@@ -484,6 +485,8 @@ public class EditorLayer(
 
                     if (ImGui.MenuItem("Show Rulers", null, viewportRuler.Enabled))
                         viewportRuler.Enabled = !viewportRuler.Enabled;
+                    if (ImGui.MenuItem("Show Grid", null, sceneToolbar.ShowGrid))
+                        sceneToolbar.ShowGrid = !sceneToolbar.ShowGrid;
                     if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
                         rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
 
@@ -548,8 +551,7 @@ public class EditorLayer(
                 _viewportBounds[0] = ImGui.GetItemRectMin();
                 _viewportBounds[1] = ImGui.GetItemRectMax();
                 _viewportSize = _viewportBounds[1] - _viewportBounds[0];
-
-                // Handle scene file drops
+                
                 var sceneValidator = DragDropDrawer.CreateExtensionValidator(
                     [".scene"],
                     checkFileExists: false);
@@ -568,21 +570,16 @@ public class EditorLayer(
                     var globalMousePos = ImGui.GetMousePos();
                     var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X,
                         globalMousePos.Y - _viewportBounds[0].Y);
-
-                    // Update active tool based on toolbar mode
+                    
                     viewportToolManager.SetMode(currentMode);
-
-                    // Update hovered entity for selection tool
                     viewportToolManager.SetHoveredEntity(_hoveredEntity);
-
-                    // Update target entity for manipulation tools
+                    
                     var currentSelection = sceneHierarchyPanel.GetSelectedEntity();
                     if (currentSelection != null)
                     {
                         viewportToolManager.SetTargetEntity(currentSelection);
                     }
-
-                    // Handle mouse events through tool manager
+                    
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
                         viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
@@ -605,20 +602,21 @@ public class EditorLayer(
                     }
                 }
 
-                // Render viewport rulers
+                // Viewport overlay rendering (grid, rulers, tools)
                 var focalPoint = _editorCamera.FocalPoint;
                 var cameraPos = new Vector2(focalPoint.X, focalPoint.Y);
                 var distance = _editorCamera.Distance;
                 var fovRad = MathHelpers.DegreesToRadians(_editorCamera.FOV);
                 var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
                 var zoom = _viewportSize.Y / worldHeight;
+                
+                if (sceneToolbar.ShowGrid)
+                    viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+                
                 viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-
-                // Render active tool overlays (measurements, gizmos, etc.)
                 viewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
             }
-
-            // Render windows that should dock to Viewport
+            
             var viewportDockId = ImGui.GetWindowDockID();
             animationTimeline.OnImGuiRender(viewportDockId);
 
