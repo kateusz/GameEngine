@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Engine.Scene;
 using Shouldly;
 
@@ -303,5 +304,14 @@ public class SceneCameraTests
         // Assert - All changes should be reflected
         projection.M44.ShouldBe(1f);
         float.IsNaN(projection.M11).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AspectRatio_ShouldNotBeSerialized()
+    {
+        var camera = new SceneCamera();
+        camera.AspectRatio = 1.777f;
+        var json = JsonSerializer.Serialize(camera);
+        json.ShouldNotContain("AspectRatio");
     }
 }

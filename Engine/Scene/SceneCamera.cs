@@ -120,6 +120,7 @@ public class SceneCamera : Camera
     /// Gets or sets the aspect ratio (width / height).
     /// Marks the projection matrix as needing recalculation when changed.
     /// </summary>
+    [JsonIgnore]
     public float AspectRatio
     {
         get => _aspectRatio;
