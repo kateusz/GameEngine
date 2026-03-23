@@ -14,21 +14,16 @@ public class ViewportRuler
     private const float TextOffset = 2.0f;
     
     // Lazy initialization to avoid calling ImGui before it's ready
-    private uint BackgroundColor => ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 0.95f));
-    private uint LineColor => ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, 1.0f));
-    private uint TextColor => ImGui.GetColorU32(new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
-    private uint MajorTickColor => ImGui.GetColorU32(new Vector4(0.8f, 0.8f, 0.8f, 1.0f));
-    private uint MinorTickColor => ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
-    
-    private bool _enabled = true;
+    private static uint BackgroundColor => ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 0.95f));
+    private static uint LineColor => ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, 1.0f));
+    private static uint TextColor => ImGui.GetColorU32(new Vector4(0.9f, 0.9f, 0.9f, 1.0f));
+    private static uint MajorTickColor => ImGui.GetColorU32(new Vector4(0.8f, 0.8f, 0.8f, 1.0f));
+    private static uint MinorTickColor => ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
+
     private float _zoom = 1.0f;
     private Vector2 _cameraPosition = Vector2.Zero;
 
-    public bool Enabled
-    {
-        get => _enabled;
-        set => _enabled = value;
-    }
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// Renders the rulers at the top and left edges of the viewport.
@@ -39,7 +34,7 @@ public class ViewportRuler
     /// <param name="zoom">Current zoom level (orthographic size)</param>
     public void Render(Vector2 viewportMin, Vector2 viewportMax, Vector2 cameraPosition, float zoom = 1.0f)
     {
-        if (!_enabled)
+        if (!Enabled)
             return;
 
         _zoom = zoom;
@@ -47,14 +42,9 @@ public class ViewportRuler
         
         var drawList = ImGui.GetWindowDrawList();
         var viewportSize = viewportMax - viewportMin;
-
-        // Draw horizontal ruler (top)
+        
         DrawHorizontalRuler(drawList, viewportMin, viewportSize);
-        
-        // Draw vertical ruler (left)
         DrawVerticalRuler(drawList, viewportMin, viewportSize);
-        
-        // Draw corner square
         DrawCornerSquare(drawList, viewportMin);
     }
 
@@ -114,7 +104,7 @@ public class ViewportRuler
                 // Minor tick
                 drawList.AddLine(
                     new Vector2(screenX, rulerMax.Y - MinorTickSize),
-                    new Vector2(screenX, rulerMax.Y),
+                    rulerMax with { X = screenX },
                     MinorTickColor);
             }
         }
@@ -122,7 +112,7 @@ public class ViewportRuler
 
     private void DrawVerticalRuler(ImDrawListPtr drawList, Vector2 viewportMin, Vector2 viewportSize)
     {
-        var rulerMin = new Vector2(viewportMin.X, viewportMin.Y + RulerThickness);
+        var rulerMin = viewportMin with { Y = viewportMin.Y + RulerThickness };
         var rulerMax = new Vector2(viewportMin.X + RulerThickness, viewportMin.Y + viewportSize.Y);
         
         // Background
@@ -161,7 +151,7 @@ public class ViewportRuler
                 // Major tick
                 drawList.AddLine(
                     new Vector2(rulerMax.X - MajorTickSize, screenY),
-                    new Vector2(rulerMax.X, screenY),
+                    rulerMax with { Y = screenY },
                     MajorTickColor, 1.5f);
                 
                 // Label (rotated text would be nice but ImGui doesn't support it easily)
@@ -177,7 +167,7 @@ public class ViewportRuler
                 // Minor tick
                 drawList.AddLine(
                     new Vector2(rulerMax.X - MinorTickSize, screenY),
-                    new Vector2(rulerMax.X, screenY),
+                    rulerMax with { Y = screenY },
                     MinorTickColor);
             }
         }

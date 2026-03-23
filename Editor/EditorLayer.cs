@@ -551,8 +551,7 @@ public class EditorLayer(
                 _viewportBounds[0] = ImGui.GetItemRectMin();
                 _viewportBounds[1] = ImGui.GetItemRectMax();
                 _viewportSize = _viewportBounds[1] - _viewportBounds[0];
-
-                // Handle scene file drops
+                
                 var sceneValidator = DragDropDrawer.CreateExtensionValidator(
                     [".scene"],
                     checkFileExists: false);
@@ -571,21 +570,16 @@ public class EditorLayer(
                     var globalMousePos = ImGui.GetMousePos();
                     var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X,
                         globalMousePos.Y - _viewportBounds[0].Y);
-
-                    // Update active tool based on toolbar mode
+                    
                     viewportToolManager.SetMode(currentMode);
-
-                    // Update hovered entity for selection tool
                     viewportToolManager.SetHoveredEntity(_hoveredEntity);
-
-                    // Update target entity for manipulation tools
+                    
                     var currentSelection = sceneHierarchyPanel.GetSelectedEntity();
                     if (currentSelection != null)
                     {
                         viewportToolManager.SetTargetEntity(currentSelection);
                     }
-
-                    // Handle mouse events through tool manager
+                    
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
                         viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
@@ -615,19 +609,14 @@ public class EditorLayer(
                 var fovRad = MathHelpers.DegreesToRadians(_editorCamera.FOV);
                 var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
                 var zoom = _viewportSize.Y / worldHeight;
-
-                // Render viewport grid
+                
                 if (sceneToolbar.ShowGrid)
                     viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-
-                // Render viewport rulers
+                
                 viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-
-                // Render active tool overlays (measurements, gizmos, etc.)
                 viewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
             }
-
-            // Render windows that should dock to Viewport
+            
             var viewportDockId = ImGui.GetWindowDockID();
             animationTimeline.OnImGuiRender(viewportDockId);
 

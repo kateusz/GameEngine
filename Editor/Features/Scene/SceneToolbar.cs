@@ -118,7 +118,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 },
                 tooltip: sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene"))
         {
-            // Action handled in onClick
         }
 
         ImGui.SameLine();
