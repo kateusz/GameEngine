@@ -29,7 +29,6 @@ public class EntityContextMenu
     {
         var entity = context.CreateEntity("Empty Entity");
         entity.AddComponent<TransformComponent>();
-        entity.AddComponent<IdComponent>();
     }
 
     private static void Create3DEntity(IScene context)
