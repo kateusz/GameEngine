@@ -8,15 +8,16 @@ internal sealed class Vector3Converter : JsonConverter<Vector3>
 {
     public override Vector3 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        reader.Read(); // StartArray
-            
-        // Read each component (X, Y, Z) from the array
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Expected start of array for Vector3 deserialization.");
+
+        reader.Read();
         var x = reader.GetSingle();
         reader.Read();
         var y = reader.GetSingle();
         reader.Read();
         var z = reader.GetSingle();
-        reader.Read(); // EndArray
+        reader.Read();
 
         return new Vector3(x, y, z);
     }

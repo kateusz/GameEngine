@@ -8,9 +8,10 @@ public sealed class Vector4Converter : JsonConverter<Vector4>
 {
     public override Vector4 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        reader.Read(); // StartArray
-            
-        // Read each component (X, Y, Z, W) from the array
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Expected start of array for Vector4 deserialization.");
+
+        reader.Read();
         var x = reader.GetSingle();
         reader.Read();
         var y = reader.GetSingle();
@@ -18,7 +19,7 @@ public sealed class Vector4Converter : JsonConverter<Vector4>
         var z = reader.GetSingle();
         reader.Read();
         var w = reader.GetSingle();
-        reader.Read(); // EndArray
+        reader.Read();
 
         return new Vector4(x, y, z, w);
     }

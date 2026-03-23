@@ -8,9 +8,10 @@ internal sealed class Vector2Converter : JsonConverter<Vector2>
 {
     public override Vector2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        reader.Read(); // StartArray
-            
-        // Read each component (X, Y) from the array
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Expected start of array for Vector2 deserialization.");
+
+        reader.Read();
         var x = reader.GetSingle();
         reader.Read();
         var y = reader.GetSingle();

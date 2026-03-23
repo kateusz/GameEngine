@@ -527,4 +527,32 @@ public class SerializationTests
     }
 
     #endregion
+
+    #region Token Guard Tests
+
+    [Fact]
+    public void Vector2Converter_Deserialize_NonArray_ThrowsDescriptiveJsonException()
+    {
+        var json = "{\"X\":1,\"Y\":2}";
+        var ex = Should.Throw<JsonException>(() => JsonSerializer.Deserialize<Vector2>(json, _options));
+        ex.Message.ShouldContain("array");
+    }
+
+    [Fact]
+    public void Vector3Converter_Deserialize_NonArray_ThrowsDescriptiveJsonException()
+    {
+        var json = "{\"X\":1,\"Y\":2,\"Z\":3}";
+        var ex = Should.Throw<JsonException>(() => JsonSerializer.Deserialize<Vector3>(json, _options));
+        ex.Message.ShouldContain("array");
+    }
+
+    [Fact]
+    public void Vector4Converter_Deserialize_NonArray_ThrowsDescriptiveJsonException()
+    {
+        var json = "{\"X\":1,\"Y\":2,\"Z\":3,\"W\":4}";
+        var ex = Should.Throw<JsonException>(() => JsonSerializer.Deserialize<Vector4>(json, _options));
+        ex.Message.ShouldContain("array");
+    }
+
+    #endregion
 }
