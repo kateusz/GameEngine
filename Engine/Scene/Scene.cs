@@ -5,6 +5,7 @@ using Box2D.NetStandard.Dynamics.Fixtures;
 using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using ECS.Systems;
+using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -19,7 +20,8 @@ internal sealed class Scene(
     ISceneSystemRegistry systemRegistry,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
-    IContext context) : IScene
+    IContext context,
+    DebugSettings debugSettings) : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
@@ -114,7 +116,7 @@ internal sealed class Scene(
                 var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
 
                 var center = new Vector2(actualOffsetX, actualOffsetY);
-                shape.SetAsBox(actualSizeX / 2.0f, actualSizeY / 2.0f, center, 0.0f);
+                shape.SetAsBox(actualSizeX, actualSizeY, center, 0.0f);
 
                 var fixtureDef = new FixtureDef
                 {
@@ -205,6 +207,40 @@ internal sealed class Scene(
             graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
 
+        if (debugSettings.ShowColliderBounds)
+        {
+            foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
+            {
+                var transform = entity.GetComponent<TransformComponent>();
+                var size = new Vector2(
+                    boxCollider.Size.X * 2.0f * transform.Scale.X,
+                    boxCollider.Size.Y * 2.0f * transform.Scale.Y
+                );
+                var color = GetEditorColliderColor(entity);
+                var rotation = transform.Rotation.Z;
+                var cos = MathF.Cos(rotation);
+                var sin = MathF.Sin(rotation);
+                var scaledOffset = new Vector2(
+                    boxCollider.Offset.X * transform.Scale.X,
+                    boxCollider.Offset.Y * transform.Scale.Y
+                );
+                var rotatedOffset = new Vector2(
+                    scaledOffset.X * cos - scaledOffset.Y * sin,
+                    scaledOffset.X * sin + scaledOffset.Y * cos
+                );
+                var worldPos = new Vector3(
+                    transform.Translation.X + rotatedOffset.X,
+                    transform.Translation.Y + rotatedOffset.Y,
+                    0.0f
+                );
+
+                var trs = Matrix4x4.CreateTranslation(worldPos)
+                          * Matrix4x4.CreateRotationZ(rotation)
+                          * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+                graphics2D.DrawRect(trs, color, entity.Id);
+            }
+        }
+
         graphics2D.EndScene();
     }
 
@@ -249,6 +285,19 @@ internal sealed class Scene(
         {
             component.Primary = entity.Id == cameraEntity.Id;
         }
+    }
+
+    private static Vector4 GetEditorColliderColor(Entity entity)
+    {
+        if (!entity.TryGetComponent<RigidBody2DComponent>(out var rb))
+            return new Vector4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan (no rigid body)
+
+        return rb.BodyType switch
+        {
+            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),    // Bright green
+            RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f), // Orange
+            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f)                        // Magenta
+        };
     }
 
     private static BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
