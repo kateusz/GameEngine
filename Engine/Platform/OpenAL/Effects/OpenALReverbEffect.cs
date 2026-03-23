@@ -93,6 +93,10 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
             fixed (uint* slotPtr = &_slotId)
                 _genAuxSlots(1, slotPtr);
 
+            var slotErr = _al.GetError();
+            if (slotErr != AudioError.NoError)
+                throw new InvalidOperationException($"alGenAuxiliaryEffectSlots failed: {slotErr}");
+
             _auxSloti(_slotId, AlEffectSlotParamEffect, (int)_effectId);
 
             Logger.Debug("Created reverb effect {EffectId} with slot {SlotId}", _effectId, _slotId);
@@ -109,10 +113,10 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
         if (_disposed)
             throw new ObjectDisposedException(nameof(OpenALReverbEffect));
 
-        var decayTime = MathF.Max(0.1f, amount * 4.0f);  // 0.1s to 4.0s
+        var decayTime = MathF.Max(AudioEffectConstants.ReverbMinDecayTime, amount * AudioEffectConstants.ReverbMaxDecayTime);
         var density = amount;                              // 0 to 1
-        var diffusion = 0.5f + (amount * 0.5f);           // 0.5 to 1.0
-        var gain = 0.32f + (amount * 0.68f);              // 0.32 to 1.0
+        var diffusion = AudioEffectConstants.ReverbBaseDiffusion + (amount * AudioEffectConstants.ReverbDiffusionRange);
+        var gain = AudioEffectConstants.ReverbBaseGain + (amount * AudioEffectConstants.ReverbGainRange);
 
         _effectf(_effectId, _decayTimeParam, decayTime);
         _effectf(_effectId, AlEffectParamReverbDensity, density);

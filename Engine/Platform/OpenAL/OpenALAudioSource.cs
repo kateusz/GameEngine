@@ -179,13 +179,12 @@ internal sealed class OpenALAudioSource : IAudioSource
     {
         ArgumentNullException.ThrowIfNull(effect);
 
-        if (_effects.ContainsKey(effect.Type))
+        if (!_effects.TryAdd(effect.Type, effect))
         {
             Logger.Warning("Effect {Type} already exists on source {SourceId}", effect.Type, _sourceId);
             return;
         }
 
-        _effects[effect.Type] = effect;
         ConnectEffect(effect);
         Logger.Debug("Added {Type} effect to source {SourceId}", effect.Type, _sourceId);
     }
@@ -217,9 +216,21 @@ internal sealed class OpenALAudioSource : IAudioSource
 
         effect.Apply(amount);
 
-        // Re-attach filter to source so OpenAL picks up the updated parameters
+        // Re-attach to source so OpenAL picks up the updated parameters
         if (effect is OpenALLowPassEffect lowPass)
+        {
             _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+        }
+        else if (effect.SlotId != 0 && _source3i != null)
+        {
+            var sendIndex = 0;
+            foreach (var e in _effects.Values)
+            {
+                if (e == effect) break;
+                if (e.SlotId != 0) sendIndex++;
+            }
+            _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
+        }
     }
 
     public IEnumerable<AudioEffectType> GetActiveEffectTypes() => _effects.Keys;
@@ -229,23 +240,31 @@ internal sealed class OpenALAudioSource : IAudioSource
         // Clear stale errors
         _al.GetError();
 
-        if (effect is OpenALLowPassEffect lowPass)
-        {
-            if (_sourcei == null)
-            {
-                Logger.Warning("Cannot connect low-pass filter: alSourcei not available");
-                return;
-            }
+        if (effect is OpenALLowPassEffect)
+            ConnectLowPassEffect(effect);
+        else
+            ConnectAuxiliarySendEffect(effect);
+    }
 
-            _sourcei(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
-            var err = _al.GetError();
-            if (err != AudioError.NoError)
-                Logger.Error("Failed to connect low-pass filter {FilterId} to source {SourceId}: {Error}", lowPass.FilterId, _sourceId, err);
-            else
-                Logger.Debug("Connected low-pass filter {FilterId} to source {SourceId}", lowPass.FilterId, _sourceId);
+    private void ConnectLowPassEffect(IAudioEffect effect)
+    {
+        var lowPass = (OpenALLowPassEffect)effect;
+        if (_sourcei == null)
+        {
+            Logger.Warning("Cannot connect low-pass filter: alSourcei not available");
             return;
         }
 
+        _sourcei(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+        var err = _al.GetError();
+        if (err != AudioError.NoError)
+            Logger.Error("Failed to connect low-pass filter {FilterId} to source {SourceId}: {Error}", lowPass.FilterId, _sourceId, err);
+        else
+            Logger.Debug("Connected low-pass filter {FilterId} to source {SourceId}", lowPass.FilterId, _sourceId);
+    }
+
+    private void ConnectAuxiliarySendEffect(IAudioEffect effect)
+    {
         if (effect.SlotId != 0 && _source3i != null)
         {
             var sendIndex = _effects.Values.Count(e => e.SlotId != 0) - 1;

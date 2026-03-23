@@ -78,6 +78,9 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
 
     public void Apply(float amount)
     {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(OpenALEchoEffect));
+
         var delay = 0.05f + (amount * 0.2f); // 50ms to 250ms
         var feedback = amount * 0.5f; // 0 to 0.5
         const float damping = 0.5f; // Fixed middle value

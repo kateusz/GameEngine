@@ -281,9 +281,9 @@ internal sealed class AudioSystem(
             .Where(e => e.Enabled)
             .GroupBy(e => e.Type)
             .ToDictionary(g => g.Key, g => g.Last());
-
-        // Remove effects no longer in config
-        foreach (var type in source.GetActiveEffectTypes().ToList())
+        
+        var typesToRemove = source.GetActiveEffectTypes().ToList();
+        foreach (var type in typesToRemove)
         {
             if (!desiredEffects.ContainsKey(type))
                 source.RemoveEffect(type);

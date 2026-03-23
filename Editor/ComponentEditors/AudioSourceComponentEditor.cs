@@ -5,6 +5,7 @@ using Editor.UI.Elements;
 using Engine.Audio;
 using Engine.Scene.Components;
 using ImGuiNET;
+using ZLinq;
 
 namespace Editor.ComponentEditors;
 
@@ -114,7 +115,7 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
         foreach (var type in Enum.GetValues<AudioEffectType>())
         {
             // Skip if already has this effect type
-            if (component.Effects.Any(e => e.Type == type))
+            if (component.Effects.AsValueEnumerable().Any(e => e.Type == type))
                 continue;
 
             if (ImGui.Selectable(type.ToString()))
