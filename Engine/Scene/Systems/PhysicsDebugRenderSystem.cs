@@ -56,7 +56,7 @@ internal sealed class PhysicsDebugRenderSystem(
     /// Renders debug wireframes for all entities with physics bodies.
     /// Color coding is based on body type and state:
     /// - Static bodies: Green
-    /// - Kinematic bodies: Blue
+    /// - Kinematic bodies: Orange
     /// - Dynamic bodies (awake): Pink/Red
     /// - Dynamic bodies (sleeping): Gray
     /// - Disabled bodies: Tan

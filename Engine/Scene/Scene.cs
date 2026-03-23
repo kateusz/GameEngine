@@ -216,13 +216,23 @@ internal sealed class Scene(
                     boxCollider.Size.X * 2.0f * transform.Scale.X,
                     boxCollider.Size.Y * 2.0f * transform.Scale.Y
                 );
-                var worldPos = new Vector3(
-                    transform.Translation.X + boxCollider.Offset.X * transform.Scale.X,
-                    transform.Translation.Y + boxCollider.Offset.Y * transform.Scale.Y,
-                    0.0f
-                );
                 var color = GetEditorColliderColor(entity);
                 var rotation = transform.Rotation.Z;
+                var cos = MathF.Cos(rotation);
+                var sin = MathF.Sin(rotation);
+                var scaledOffset = new Vector2(
+                    boxCollider.Offset.X * transform.Scale.X,
+                    boxCollider.Offset.Y * transform.Scale.Y
+                );
+                var rotatedOffset = new Vector2(
+                    scaledOffset.X * cos - scaledOffset.Y * sin,
+                    scaledOffset.X * sin + scaledOffset.Y * cos
+                );
+                var worldPos = new Vector3(
+                    transform.Translation.X + rotatedOffset.X,
+                    transform.Translation.Y + rotatedOffset.Y,
+                    0.0f
+                );
 
                 var trs = Matrix4x4.CreateTranslation(worldPos)
                           * Matrix4x4.CreateRotationZ(rotation)
