@@ -16,6 +16,13 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     private Texture2D _iconMove;
     private Texture2D _iconScale;
 
+    private bool _showGrid = true;
+    public bool ShowGrid
+    {
+        get => _showGrid;
+        set => _showGrid = value;
+    }
+
     public event Action OnPlayScene;
     public event Action OnStopScene;
     public event Action OnRestartScene;
@@ -88,7 +95,12 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         {
             CurrentMode = EditorMode.Ruler;
         }
-        
+
+        ImGui.SameLine();
+
+        // Grid toggle
+        ButtonDrawer.DrawToggleButton("⊞", "⊞", ref _showGrid, width: 25, height: 19);
+
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
