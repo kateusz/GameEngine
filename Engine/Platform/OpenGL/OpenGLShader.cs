@@ -8,7 +8,7 @@ namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLShader : IShader
 {
-    private readonly uint _handle;
+    private uint _handle;
     private readonly Dictionary<string, int> _uniformLocations;
     private bool _disposed;
 
@@ -209,6 +209,7 @@ internal sealed class OpenGLShader : IShader
             if (_handle != 0)
             {
                 SilkNetContext.GL.DeleteProgram(_handle);
+                _handle = 0;
             }
         }
         catch (Exception e)

@@ -482,10 +482,9 @@ internal sealed class Graphics2D(
         // Factory owns shader lifetime; just release our references
         _data.QuadShader = null!;
         _data.LineShader = null!;
+        // VertexArray owns and disposes its vertex buffers and index buffer
         _data.QuadVertexArray?.Dispose();
         _data.LineVertexArray?.Dispose();
-        _data.QuadVertexBuffer?.Dispose();
-        _data.LineVertexBuffer?.Dispose();
 
         // textures are disposed at factory
         Array.Clear(_data.TextureSlots, 0, _data.TextureSlots.Length);

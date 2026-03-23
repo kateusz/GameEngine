@@ -214,6 +214,8 @@ public class Model : IModel
         // Factory owns texture lifetime; just release our references
         _texturesLoaded.Clear();
 
+        _assimp.Dispose();
+
         _disposed = true;
         GC.SuppressFinalize(this);
     }

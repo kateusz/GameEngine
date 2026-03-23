@@ -52,12 +52,14 @@ internal sealed class MeshFactory(
 
     /// <summary>
     /// Creates a procedural cube mesh.
+    /// Unlike <see cref="Create"/>, this mesh is NOT cached by the factory and will NOT be
+    /// disposed when the factory is disposed. The caller owns and must dispose the returned mesh.
     /// </summary>
     /// <param name="textureFactory">Factory for creating textures</param>
     /// <param name="vertexArrayFactory">Factory for creating vertex arrays</param>
     /// <param name="vertexBufferFactory">Factory for creating vertex buffers</param>
     /// <param name="indexBufferFactory">Factory for creating index buffers</param>
-    /// <returns>A new cube mesh.</returns>
+    /// <returns>A new cube mesh. Caller is responsible for disposing it.</returns>
     public Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
     {

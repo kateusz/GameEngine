@@ -8,7 +8,7 @@ namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLVertexArray : IVertexArray
 {
-    private readonly uint _vertexArrayObject;
+    private uint _vertexArrayObject;
     private bool _disposed;
 
     public OpenGLVertexArray()
@@ -106,7 +106,10 @@ internal sealed class OpenGLVertexArray : IVertexArray
         try
         {
             if (_vertexArrayObject != 0)
+            {
                 SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
+                _vertexArrayObject = 0;
+            }
 
             foreach (var vertexBuffer in VertexBuffers)
                 vertexBuffer?.Dispose();

@@ -138,5 +138,6 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _phongShader = null!;
 
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

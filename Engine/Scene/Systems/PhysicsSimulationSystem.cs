@@ -137,6 +137,7 @@ internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext conte
         // The World will be garbage collected
 
         _disposed = true;
+        GC.SuppressFinalize(this);
         Logger.Debug("PhysicsSimulationSystem disposed");
     }
 }
