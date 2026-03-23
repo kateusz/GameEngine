@@ -62,6 +62,7 @@ public static class EditorIoCContainer
     
         // Viewport infrastructure
         container.Register<ViewportRuler>(Reuse.Singleton);
+        container.Register<ViewportGrid>(Reuse.Singleton);
 
         // Viewport tools
         container.Register<SelectionTool>(Reuse.Singleton);
