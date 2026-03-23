@@ -11,9 +11,6 @@ public class ViewportGrid
     private const float MinorLineOpacity = 0.30f;
     private const float MajorLineOpacity = 0.55f;
 
-    private uint MinorLineColor => ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, MinorLineOpacity));
-    private uint MajorLineColor => ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, MajorLineOpacity));
-
     public bool Enabled { get; set; } = true;
 
     /// <summary>
@@ -28,20 +25,27 @@ public class ViewportGrid
         if (!Enabled)
             return;
 
+        if (zoom <= 0)
+            return;
+
         var drawList = ImGui.GetWindowDrawList();
         var viewportSize = viewportMax - viewportMin;
 
         var tickSpacing = ViewportScaleHelper.CalculateTickSpacing(zoom);
         var majorTickInterval = tickSpacing * 10.0f;
 
+        var minorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, MinorLineOpacity));
+        var majorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, MajorLineOpacity));
+
         DrawVerticalLines(drawList, viewportMin, viewportMax, viewportSize, cameraPosition, zoom,
-            tickSpacing, majorTickInterval);
+            tickSpacing, majorTickInterval, minorColor, majorColor);
         DrawHorizontalLines(drawList, viewportMin, viewportMax, viewportSize, cameraPosition, zoom,
-            tickSpacing, majorTickInterval);
+            tickSpacing, majorTickInterval, minorColor, majorColor);
     }
 
     private void DrawVerticalLines(ImDrawListPtr drawList, Vector2 viewportMin, Vector2 viewportMax,
-        Vector2 viewportSize, Vector2 cameraPosition, float zoom, float tickSpacing, float majorTickInterval)
+        Vector2 viewportSize, Vector2 cameraPosition, float zoom, float tickSpacing, float majorTickInterval,
+        uint minorColor, uint majorColor)
     {
         var worldWidth = viewportSize.X / zoom;
         var worldLeft = cameraPosition.X - worldWidth / 2.0f;
@@ -55,8 +59,8 @@ public class ViewportGrid
             if (screenX < viewportMin.X || screenX > viewportMax.X)
                 continue;
 
-            var isMajor = Math.Abs(worldX % majorTickInterval) < tickSpacing * 0.01f;
-            var color = isMajor ? MajorLineColor : MinorLineColor;
+            var isMajor = (int)Math.Round(worldX / tickSpacing) % 10 == 0;
+            var color = isMajor ? majorColor : minorColor;
 
             drawList.AddLine(
                 new Vector2(screenX, viewportMin.Y),
@@ -66,7 +70,8 @@ public class ViewportGrid
     }
 
     private void DrawHorizontalLines(ImDrawListPtr drawList, Vector2 viewportMin, Vector2 viewportMax,
-        Vector2 viewportSize, Vector2 cameraPosition, float zoom, float tickSpacing, float majorTickInterval)
+        Vector2 viewportSize, Vector2 cameraPosition, float zoom, float tickSpacing, float majorTickInterval,
+        uint minorColor, uint majorColor)
     {
         var worldHeight = viewportSize.Y / zoom;
         var worldTop = cameraPosition.Y + worldHeight / 2.0f;
@@ -80,8 +85,8 @@ public class ViewportGrid
             if (screenY < viewportMin.Y || screenY > viewportMax.Y)
                 continue;
 
-            var isMajor = Math.Abs(worldY % majorTickInterval) < tickSpacing * 0.01f;
-            var color = isMajor ? MajorLineColor : MinorLineColor;
+            var isMajor = (int)Math.Round(worldY / tickSpacing) % 10 == 0;
+            var color = isMajor ? majorColor : minorColor;
 
             drawList.AddLine(
                 new Vector2(viewportMin.X, screenY),
