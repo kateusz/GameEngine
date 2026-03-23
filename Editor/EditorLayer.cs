@@ -617,8 +617,8 @@ public class EditorLayer(
                 var zoom = _viewportSize.Y / worldHeight;
 
                 // Render viewport grid
-                viewportGrid.Enabled = sceneToolbar.ShowGrid;
-                viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+                if (sceneToolbar.ShowGrid)
+                    viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
                 // Render viewport rulers
                 viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);

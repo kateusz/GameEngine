@@ -11,8 +11,6 @@ public class ViewportGrid
     private const float MinorLineOpacity = 0.30f;
     private const float MajorLineOpacity = 0.55f;
 
-    public bool Enabled { get; set; } = true;
-
     /// <summary>
     /// Renders the grid. Must be called within an active ImGui window.
     /// </summary>
@@ -22,9 +20,6 @@ public class ViewportGrid
     /// <param name="zoom">Pixels per world unit (viewport height / visible world height).</param>
     public void Render(Vector2 viewportMin, Vector2 viewportMax, Vector2 cameraPosition, float zoom)
     {
-        if (!Enabled)
-            return;
-
         if (zoom <= 0)
             return;
 
