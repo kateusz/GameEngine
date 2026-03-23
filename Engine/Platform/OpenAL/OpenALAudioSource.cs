@@ -1,5 +1,7 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Audio;
+using Engine.Platform.OpenAL.Effects;
 using Serilog;
 using Silk.NET.OpenAL;
 
@@ -9,8 +11,19 @@ internal sealed class OpenALAudioSource : IAudioSource
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioSource>();
 
+    // AL_AUXILIARY_SEND_FILTER requires alSource3i (slot, sendIndex, filter)
+    private delegate void AlSource3iDelegate(uint source, int param, int v1, int v2, int v3);
+    private delegate void AlSourceiDelegate(uint source, int param, int value);
+    private const int AlAuxiliarySendFilter = 0x20006;
+    private const int AlDirectFilter = 0x20005;
+    private const int AlFilterNull = 0;
+    private const int MaxAuxiliarySends = 4;
+    
     private readonly AL _al;
     private readonly Action<OpenALAudioSource> _onDispose;
+    private readonly AlSource3iDelegate? _source3i;
+    private readonly AlSourceiDelegate? _sourcei;
+    private readonly Dictionary<AudioEffectType, IAudioEffect> _effects = new();
     private uint _sourceId;
     private IAudioClip _clip;
     private bool _disposed = false;
@@ -20,6 +33,15 @@ internal sealed class OpenALAudioSource : IAudioSource
         _al = al;
         _onDispose = onDispose;
         _sourceId = _al.GenSource();
+
+        // Load EFX source functions
+        var source3iPtr = al.GetProcAddress("alSource3i");
+        if (source3iPtr != IntPtr.Zero)
+            _source3i = Marshal.GetDelegateForFunctionPointer<AlSource3iDelegate>(source3iPtr);
+
+        var sourceiPtr = al.GetProcAddress("alSourcei");
+        if (sourceiPtr != IntPtr.Zero)
+            _sourcei = Marshal.GetDelegateForFunctionPointer<AlSourceiDelegate>(sourceiPtr);
 
         // Set default properties
         _al.SetSourceProperty(_sourceId, SourceFloat.Gain, 1.0f);
@@ -153,6 +175,149 @@ internal sealed class OpenALAudioSource : IAudioSource
         }
     }
 
+    public void AddEffect(IAudioEffect effect)
+    {
+        ArgumentNullException.ThrowIfNull(effect);
+
+        if (!_effects.TryAdd(effect.Type, effect))
+        {
+            Logger.Warning("Effect {Type} already exists on source {SourceId}", effect.Type, _sourceId);
+            return;
+        }
+
+        ConnectEffect(effect);
+        Logger.Debug("Added {Type} effect to source {SourceId}", effect.Type, _sourceId);
+    }
+
+    public void RemoveEffect(AudioEffectType type)
+    {
+        if (!_effects.Remove(type, out var effect))
+            return;
+
+        effect.Dispose();
+        ReconnectEffectSlots();
+        Logger.Debug("Removed {Type} effect from source {SourceId}", type, _sourceId);
+    }
+
+    public void ClearEffects()
+    {
+        foreach (var effect in _effects.Values)
+            effect.Dispose();
+        _effects.Clear();
+        DisconnectAllEffectSlots();
+    }
+
+    public bool HasEffect(AudioEffectType type) => _effects.ContainsKey(type);
+
+    public void UpdateEffect(AudioEffectType type, float amount)
+    {
+        if (!_effects.TryGetValue(type, out var effect))
+            return;
+
+        effect.Apply(amount);
+
+        // Re-attach to source so OpenAL picks up the updated parameters
+        if (effect is OpenALLowPassEffect lowPass)
+        {
+            _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+        }
+        else if (effect.SlotId != 0 && _source3i != null)
+        {
+            var sendIndex = 0;
+            foreach (var e in _effects.Values)
+            {
+                if (e == effect) break;
+                if (e.SlotId != 0) sendIndex++;
+            }
+            _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
+        }
+    }
+
+    public IEnumerable<AudioEffectType> GetActiveEffectTypes() => _effects.Keys;
+
+    private void ConnectEffect(IAudioEffect effect)
+    {
+        // Clear stale errors
+        _al.GetError();
+
+        if (effect is OpenALLowPassEffect)
+            ConnectLowPassEffect(effect);
+        else
+            ConnectAuxiliarySendEffect(effect);
+    }
+
+    private void ConnectLowPassEffect(IAudioEffect effect)
+    {
+        var lowPass = (OpenALLowPassEffect)effect;
+        if (_sourcei == null)
+        {
+            Logger.Warning("Cannot connect low-pass filter: alSourcei not available");
+            return;
+        }
+
+        _sourcei(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+        var err = _al.GetError();
+        if (err != AudioError.NoError)
+            Logger.Error("Failed to connect low-pass filter {FilterId} to source {SourceId}: {Error}", lowPass.FilterId, _sourceId, err);
+        else
+            Logger.Debug("Connected low-pass filter {FilterId} to source {SourceId}", lowPass.FilterId, _sourceId);
+    }
+
+    private void ConnectAuxiliarySendEffect(IAudioEffect effect)
+    {
+        if (effect.SlotId != 0 && _source3i != null)
+        {
+            var sendIndex = _effects.Values.Count(e => e.SlotId != 0) - 1;
+            if (sendIndex < MaxAuxiliarySends)
+            {
+                _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
+                var err = _al.GetError();
+                if (err != AudioError.NoError)
+                    Logger.Error("Failed to connect effect slot {SlotId} to source {SourceId} send {SendIndex}: {Error}", effect.SlotId, _sourceId, sendIndex, err);
+                else
+                    Logger.Debug("Connected effect slot {SlotId} to source {SourceId} send {SendIndex}", effect.SlotId, _sourceId, sendIndex);
+            }
+        }
+        else if (effect.SlotId == 0)
+        {
+            Logger.Warning("Effect {Type} has SlotId=0, cannot connect to aux send", effect.Type);
+        }
+        else if (_source3i == null)
+        {
+            Logger.Warning("Cannot connect effect: alSource3i not available");
+        }
+    }
+
+    private void DisconnectAllEffectSlots()
+    {
+        _sourcei?.Invoke(_sourceId, AlDirectFilter, AlFilterNull);
+
+        if (_source3i == null)
+            return;
+
+        for (var i = 0; i < MaxAuxiliarySends; i++)
+            _source3i(_sourceId, AlAuxiliarySendFilter, AlFilterNull, i, AlFilterNull);
+    }
+
+    private void ReconnectEffectSlots()
+    {
+        DisconnectAllEffectSlots();
+
+        var sendIndex = 0;
+        foreach (var effect in _effects.Values)
+        {
+            if (effect is OpenALLowPassEffect lowPass)
+            {
+                _sourcei?.Invoke(_sourceId, AlDirectFilter, (int)lowPass.FilterId);
+            }
+            else if (effect.SlotId != 0 && sendIndex < MaxAuxiliarySends && _source3i != null)
+            {
+                _source3i(_sourceId, AlAuxiliarySendFilter, (int)effect.SlotId, sendIndex, AlFilterNull);
+                sendIndex++;
+            }
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -160,6 +325,7 @@ internal sealed class OpenALAudioSource : IAudioSource
 
         try
         {
+            ClearEffects();
             Stop();
 
             if (_sourceId != 0)

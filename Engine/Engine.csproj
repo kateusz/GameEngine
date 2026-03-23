@@ -25,6 +25,7 @@
         <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />
         <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenAL" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.EXT" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenAL.Extensions.Soft" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0" />
@@ -44,11 +45,31 @@
     <!-- No asset directories needed for Engine project -->
 
     <!-- Copy OpenAL native DLL to output directory -->
-    <Target Name="CopyOpenALNative" AfterTargets="Build">
+    <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
         <PropertyGroup>
             <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.redist\2.0.7\build\native\bin\x64\OpenAL32.dll</OpenALNativePath>
         </PropertyGroup>
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
+    </Target>
+
+    <!-- Copy OpenAL Soft dylib on macOS (requires: brew install openal-soft) -->
+    <Target Name="CopyOpenALSoftMacOS" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <PropertyGroup>
+            <OpenALSoftPathARM>/opt/homebrew/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathARM>
+            <OpenALSoftPathARMLib>/opt/homebrew/lib/libopenal.1.dylib</OpenALSoftPathARMLib>
+            <OpenALSoftPathX86>/usr/local/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathX86>
+            <OpenALSoftPathX86Lib>/usr/local/lib/libopenal.1.dylib</OpenALSoftPathX86Lib>
+            <OpenALSoftPath Condition="Exists('$(OpenALSoftPathARM)')">$(OpenALSoftPathARM)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathARMLib)')">$(OpenALSoftPathARMLib)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86)')">$(OpenALSoftPathX86)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86Lib)')">$(OpenALSoftPathX86Lib)</OpenALSoftPath>
+        </PropertyGroup>
+        <Warning Text="OpenAL Soft not found - audio effects will be disabled. Run: brew install openal-soft"
+                 Condition="'$(OpenALSoftPath)' == ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFolder="$(OutputPath)"
+              Condition="'$(OpenALSoftPath)' != ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFiles="$(OutputPath)libopenal.dylib"
+              Condition="'$(OpenALSoftPath)' != ''" />
     </Target>
 
 </Project>

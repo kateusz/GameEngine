@@ -5,14 +5,12 @@ using Silk.NET.OpenAL;
 
 namespace Engine.Platform.OpenAL;
 
-internal sealed unsafe class OpenALAudioEngine : IAudioEngine
+internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEngine
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioEngine>();
 
     private readonly Dictionary<string, IAudioClip> _loadedClips = new();
 
-    private AL? _al;
-    private ALContext? _alc;
     private Device* _device;
     private Context* _context;
     private readonly List<OpenALAudioSource> _activeSources = [];
@@ -23,53 +21,49 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
     {
         try
         {
-            _alc = ALContext.GetApi(true);
-            _al = AL.GetApi(true);
-
-            // Open default audio device
-            _device = _alc.OpenDevice("");
+            _device = alc.OpenDevice("");
             if (_device == null)
             {
                 Logger.Warning("Cannot open audio device - audio will be disabled. This is normal if no audio hardware is available.");
                 _isAvailable = false;
                 return;
             }
-
-            // Create audio context
-            _context = _alc.CreateContext(_device, null);
+            
+            _context = alc.CreateContext(_device, null);
             if (_context == null)
             {
                 Logger.Warning("Cannot create audio context - audio will be disabled");
-                _alc.CloseDevice(_device);
+                alc.CloseDevice(_device);
                 _device = null;
                 _isAvailable = false;
                 return;
             }
 
-            _alc.MakeContextCurrent(_context);
+            alc.MakeContextCurrent(_context);
 
             // Set basic parameters
-            _al.SetListenerProperty(ListenerFloat.Gain, 1.0f);
-            _al.SetListenerProperty(ListenerVector3.Position, 0.0f, 0.0f, 0.0f);
-            _al.SetListenerProperty(ListenerVector3.Velocity, 0.0f, 0.0f, 0.0f);
+            al.SetListenerProperty(ListenerFloat.Gain, 1.0f);
+            al.SetListenerProperty(ListenerVector3.Position, 0.0f, 0.0f, 0.0f);
+            al.SetListenerProperty(ListenerVector3.Velocity, 0.0f, 0.0f, 0.0f);
 
             // Set listener orientation (forward vector and up vector)
             var orientation = new[]
             {
                 0.0f, 0.0f, -1.0f, // Forward
-                0.0f, 1.0f, 0.0f
-            }; // Up
+                0.0f, 1.0f, 0.0f // Up
+            };
 
-            unsafe
+            fixed (float* ptr = orientation)
             {
-                fixed (float* ptr = orientation)
-                {
-                    _al.SetListenerProperty(ListenerFloatArray.Orientation, ptr);
-                }
+                al.SetListenerProperty(ListenerFloatArray.Orientation, ptr);
             }
 
             _isAvailable = true;
-            Logger.Information("SilkNet AudioEngine initialized successfully");
+
+            var renderer = al.GetStateProperty(StateString.Renderer);
+            var version = al.GetStateProperty(StateString.Version);
+            var vendor = al.GetStateProperty(StateString.Vendor);
+            Logger.Information("OpenAL initialized - Vendor: {Vendor}, Renderer: {Renderer}, Version: {Version}", vendor, renderer, version);
         }
         catch (Exception ex)
         {
@@ -85,31 +79,25 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
 
         try
         {
-            // Stop and remove all active sources
             foreach (var source in _activeSources.ToArray())
             {
                 source.Dispose();
             }
 
             _activeSources.Clear();
-
-            // Close context and device
-            if (_context != null && _alc != null)
+            if (_context != null)
             {
-                _alc.MakeContextCurrent(null);
-                _alc.DestroyContext(_context);
+                alc.MakeContextCurrent(null);
+                alc.DestroyContext(_context);
                 _context = null;
             }
 
-            if (_device != null && _alc != null)
+            if (_device != null)
             {
-                _alc.CloseDevice(_device);
+                alc.CloseDevice(_device);
                 _device = null;
             }
-
-            _al?.Dispose();
-            _alc?.Dispose();
-
+            
             Logger.Information("SilkNet AudioEngine shut down");
         }
         catch (Exception ex)
@@ -120,20 +108,20 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
 
     public IAudioSource CreateAudioSource()
     {
-        if (!_isAvailable || _al == null)
+        if (!_isAvailable)
             return new NoOpAudioSource();
 
-        var source = new OpenALAudioSource(_al, UnregisterSource);
+        var source = new OpenALAudioSource(al, UnregisterSource);
         _activeSources.Add(source);
         return source;
     }
 
     private IAudioClip CreateAudioClip(string path)
     {
-        if (!_isAvailable || _al == null)
+        if (!_isAvailable)
             return new NoOpAudioClip();
 
-        return new OpenALAudioClip(path, _al);
+        return new OpenALAudioClip(path, al);
     }
 
     private void UnregisterSource(OpenALAudioSource source) => _activeSources.Remove(source);
@@ -185,29 +173,26 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
 
     public void SetListenerPosition(Vector3 position)
     {
-        if (!_isAvailable || _al == null)
+        if (!_isAvailable)
             return;
 
-        _al.SetListenerProperty(ListenerVector3.Position, position.X, position.Y, position.Z);
+        al.SetListenerProperty(ListenerVector3.Position, position.X, position.Y, position.Z);
     }
 
     public void SetListenerOrientation(Vector3 forward, System.Numerics.Vector3 up)
     {
-        if (!_isAvailable || _al == null)
+        if (!_isAvailable)
             return;
 
-        unsafe
-        {
-            var orientation = stackalloc float[6];
-            orientation[0] = forward.X;
-            orientation[1] = forward.Y;
-            orientation[2] = forward.Z;
-            orientation[3] = up.X;
-            orientation[4] = up.Y;
-            orientation[5] = up.Z;
+        var orientation = stackalloc float[6];
+        orientation[0] = forward.X;
+        orientation[1] = forward.Y;
+        orientation[2] = forward.Z;
+        orientation[3] = up.X;
+        orientation[4] = up.Y;
+        orientation[5] = up.Z;
 
-            _al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
-        }
+        al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
     }
     
     public void Dispose()
@@ -221,8 +206,7 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
         _disposed = true;
         GC.SuppressFinalize(this);
     }
-
-    // Protected helper methods for subclasses
+    
     private void ClearLoadedClips()
     {
         foreach (var clip in _loadedClips.Values)
@@ -232,24 +216,4 @@ internal sealed unsafe class OpenALAudioEngine : IAudioEngine
 
         _loadedClips.Clear();
     }
-}
-
-internal sealed class NoOpAudioSource : IAudioSource
-{
-    private static readonly NoOpAudioClip DummyClip = new();
-
-    public IAudioClip Clip { get; set; } = DummyClip;
-    public float Volume { get; set; }
-    public float Pitch { get; set; }
-    public bool Loop { get; set; }
-    public bool IsPlaying => false;
-    public bool IsPaused => false;
-    public float PlaybackPosition { get; set; }
-
-    public void Play() { }
-    public void Pause() { }
-    public void Stop() { }
-    public void SetPosition(Vector3 position) { }
-    public void SetSpatialMode(bool is3D, float minDistance = 1.0f, float maxDistance = 100.0f) { }
-    public void Dispose() { }
 }

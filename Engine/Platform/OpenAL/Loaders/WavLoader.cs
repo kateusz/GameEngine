@@ -20,8 +20,7 @@ public class WavLoader : IAudioLoader
 
         using var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
         using var reader = new BinaryReader(fileStream);
-
-        // Check RIFF header
+        
         var riffHeader = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (riffHeader != "RIFF")
             throw new InvalidDataException("Invalid RIFF header");
@@ -31,8 +30,7 @@ public class WavLoader : IAudioLoader
         var waveHeader = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (waveHeader != "WAVE")
             throw new InvalidDataException("Invalid WAVE header");
-
-        // Find fmt chunk
+        
         var fmtHeader = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (fmtHeader != "fmt ")
             throw new InvalidDataException("Missing fmt chunk");
@@ -44,8 +42,7 @@ public class WavLoader : IAudioLoader
         var byteRate = reader.ReadUInt32();
         var blockAlign = reader.ReadUInt16();
         var bitsPerSample = reader.ReadUInt16();
-
-        // Check if format is supported
+        
         if (audioFormat != 1) // PCM
             throw new NotSupportedException($"Unsupported WAV audio format: {audioFormat}");
 
@@ -76,8 +73,7 @@ public class WavLoader : IAudioLoader
 
         if (dataHeader != "data")
             throw new InvalidDataException("Missing data chunk");
-
-        // Read audio data
+        
         var audioData = reader.ReadBytes((int)dataSize);
         var originalBitsPerSample = bitsPerSample; // Save original bit depth
 
@@ -136,7 +132,7 @@ public class WavLoader : IAudioLoader
             // Convert from unsigned to signed (24-bit)
             if (sample24 > 0x7FFFFF) // if sign bit is set
             {
-                sample24 = sample24 - 0x1000000; // subtract 2^24 to get negative value
+                sample24 -= 0x1000000; // subtract 2^24 to get negative value
             }
 
             // Convert 24-bit (-8,388,608 to 8,388,607) to 16-bit (-32,768 to 32,767)

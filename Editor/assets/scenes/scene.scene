@@ -29,7 +29,7 @@
             "OrthographicSize": 20,
             "OrthographicNear": -1,
             "OrthographicFar": 1,
-            "AspectRatio": 3.047619,
+            "AspectRatio": 1.94929,
             "PerspectiveFOV": 0.7853982,
             "PerspectiveNear": 0.01,
             "PerspectiveFar": 1000
@@ -111,7 +111,7 @@
         {
           "Translation": [
             -5.9,
-            -4422.3003,
+            -2,
             0
           ],
           "Rotation": [
@@ -173,6 +173,23 @@
           "Is3D": false,
           "MinDistance": 1,
           "MaxDistance": 100,
+          "Effects": [
+            {
+              "Type": "Reverb",
+              "Enabled": true,
+              "Amount": 1
+            },
+            {
+              "Type": "Echo",
+              "Enabled": false,
+              "Amount": 0
+            },
+            {
+              "Type": "LowPass",
+              "Enabled": false,
+              "Amount": 0.5
+            }
+          ],
           "IsPlaying": false,
           "Name": "AudioSourceComponent"
         }
@@ -184,8 +201,8 @@
       "Components": [
         {
           "Translation": [
-            -4,
-            -0.3,
+            -4.488079,
+            -5.8954477,
             0
           ],
           "Rotation": [

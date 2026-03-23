@@ -6,6 +6,7 @@ using Engine.Scripting;
 using Serilog;
 using Editor.Logging;
 using Engine.Core.DI;
+using Serilog.Sinks.SystemConsole.Themes;
 
 static void ConfigureContainer(Container container)
 {
@@ -27,7 +28,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithProperty("Application", "GameEngine")
     .Enrich.WithThreadId()
     .WriteTo.Async(a => a.ConsolePanel(consolePanel))
-    .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
+    .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}", theme: ConsoleTheme.None))
     .WriteTo.Async(a => a.File("logs/engine-.log",
         rollingInterval: RollingInterval.Day,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"))

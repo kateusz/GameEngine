@@ -287,7 +287,7 @@ internal sealed class PrefabSerializer(
         {
             try
             {
-                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath);
+                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath!);
             }
             catch (Exception ex)
             {

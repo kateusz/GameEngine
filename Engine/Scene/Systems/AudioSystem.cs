@@ -12,7 +12,10 @@ namespace Engine.Scene.Systems;
 /// System responsible for managing audio playback and 3D spatial audio.
 /// Handles audio source lifecycle, updates 3D positions, and manages the audio listener.
 /// </summary>
-internal sealed class AudioSystem(IAudioEngine audioEngine, IContext context) : ISystem
+internal sealed class AudioSystem(
+    IAudioEngine audioEngine,
+    IAudioEffectFactory effectFactory,
+    IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
 
@@ -258,11 +261,43 @@ internal sealed class AudioSystem(IAudioEngine audioEngine, IContext context) : 
 
                 // Sync playing state
                 component.IsPlaying = component.RuntimeAudioSource.IsPlaying;
+
+                SyncEffects(component);
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, $"Error updating audio source for entity '{entity.Name}' (ID: {entity.Id})");
             }
+        }
+    }
+
+    private void SyncEffects(AudioSourceComponent component)
+    {
+        if (component.RuntimeAudioSource == null)
+            return;
+
+        var source = component.RuntimeAudioSource;
+        var desiredEffects = component.Effects
+            .Where(e => e.Enabled)
+            .GroupBy(e => e.Type)
+            .ToDictionary(g => g.Key, g => g.Last());
+        
+        var typesToRemove = source.GetActiveEffectTypes().ToList();
+        foreach (var type in typesToRemove)
+        {
+            if (!desiredEffects.ContainsKey(type))
+                source.RemoveEffect(type);
+        }
+
+        // Add/update effects from config
+        foreach (var config in desiredEffects.Values)
+        {
+            if (!source.HasEffect(config.Type))
+            {
+                var effect = effectFactory.CreateEffect(config.Type);
+                source.AddEffect(effect);
+            }
+            source.UpdateEffect(config.Type, config.Amount);
         }
     }
 }

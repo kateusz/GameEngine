@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using ECS;
 using Engine.Audio;
 using Engine.Renderer;
@@ -266,7 +265,7 @@ internal sealed class SceneSerializer(
         {
             try
             {
-                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath);
+                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath!);
             }
             catch (Exception ex)
             {
@@ -391,25 +390,10 @@ internal sealed class SceneSerializer(
         SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
         SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
-        SerializeAudioSourceComponent(entity, entityObj);
+        SerializeComponent<AudioSourceComponent>(entity, entityObj, nameof(AudioSourceComponent));
         SerializeNativeScriptComponent(entity, entityObj);
 
         jsonEntities.Add(entityObj);
-    }
-
-    private void SerializeAudioSourceComponent(Entity entity, JsonObject entityObj)
-    {
-        if (!entity.HasComponent<AudioSourceComponent>())
-            return;
-
-        var component = entity.GetComponent<AudioSourceComponent>();
-        var element = JsonSerializer.SerializeToNode(component, _defaultSerializerOptions);
-        if (element != null)
-        {
-            element[NameKey] = nameof(AudioSourceComponent);
-            var components = GetJsonArray(entityObj, ComponentsKey);
-            components.Add(element);
-        }
     }
 
     private void SerializeNativeScriptComponent(Entity entity, JsonObject entityObj)
