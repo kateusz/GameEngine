@@ -65,4 +65,37 @@ internal sealed class OpenGLRendererApi : IRendererAPI
     {
         return (int)SilkNetContext.GL.GetError();
     }
+
+    public uint CreateTimerQuery()
+    {
+        SilkNetContext.GL.GenQueries(1, out uint queryId);
+        return queryId;
+    }
+
+    public void BeginTimerQuery(uint queryId)
+    {
+        SilkNetContext.GL.BeginQuery(QueryTarget.TimeElapsed, queryId);
+    }
+
+    public void EndTimerQuery()
+    {
+        SilkNetContext.GL.EndQuery(QueryTarget.TimeElapsed);
+    }
+
+    public bool IsTimerQueryResultAvailable(uint queryId)
+    {
+        SilkNetContext.GL.GetQueryObject(queryId, QueryObjectParameterName.QueryResultAvailable, out int available);
+        return available != 0;
+    }
+
+    public long GetTimerQueryResult(uint queryId)
+    {
+        SilkNetContext.GL.GetQueryObject(queryId, QueryObjectParameterName.QueryResult, out ulong result);
+        return (long)result; // nanoseconds
+    }
+
+    public void DeleteTimerQuery(uint queryId)
+    {
+        SilkNetContext.GL.DeleteQueries(1, in queryId);
+    }
 }

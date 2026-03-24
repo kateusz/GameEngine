@@ -12,4 +12,12 @@ public interface IRendererAPI
     void SetLineWidth(float width);
     void Init();
     int GetError();
+
+    // Timer query support for GPU profiling
+    uint CreateTimerQuery();
+    void BeginTimerQuery(uint queryId);
+    void EndTimerQuery();
+    bool IsTimerQueryResultAvailable(uint queryId);
+    long GetTimerQueryResult(uint queryId);
+    void DeleteTimerQuery(uint queryId);
 }
