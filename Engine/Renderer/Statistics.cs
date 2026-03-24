@@ -1,5 +1,6 @@
 namespace Engine.Renderer;
 
+[Obsolete("Use IPerformanceProfiler.GetData() for comprehensive metrics")]
 public class Statistics
 {
     public uint DrawCalls { get; set; } = 0;
