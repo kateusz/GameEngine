@@ -75,6 +75,7 @@ public static class EngineIoCContainer
         container.RegisterMapping<IPerformanceProfiler, PerformanceProfiler>();
         container.Register<GpuTimerQueryPool>(Reuse.Singleton);
         container.Register<ISystemProfiler, SystemProfilerAdapter>(Reuse.Singleton);
+        container.Register<PerformanceOverlayPanel>(Reuse.Singleton);
         container.Register<IAssetsManager, AssetsManager>(Reuse.Singleton);
         
         RegisterFactories(container);

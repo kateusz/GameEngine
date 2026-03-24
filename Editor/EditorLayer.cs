@@ -60,7 +60,8 @@ public class EditorLayer(
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider,
     IPerformanceProfiler profiler,
-    GpuTimerQueryPool gpuPool) : ILayer
+    GpuTimerQueryPool gpuPool,
+    PerformanceOverlayPanel performanceOverlay) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -393,6 +394,7 @@ public class EditorLayer(
         {
             SubmitUI();
         }
+        performanceOverlay.Draw();
     }
 
     private void SubmitUI()

@@ -19,7 +19,8 @@ public class GameLayer(
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
     GameConfiguration gameConfig,
-    IPerformanceProfiler profiler)
+    IPerformanceProfiler profiler,
+    PerformanceOverlayPanel performanceOverlay)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
@@ -128,6 +129,6 @@ public class GameLayer(
 
     public void Draw()
     {
-        // Drawing is handled by OnUpdate through the scene's rendering systems
+        performanceOverlay.Draw();
     }
 }
