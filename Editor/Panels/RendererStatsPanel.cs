@@ -1,10 +1,12 @@
 using System.Numerics;
+using Editor.UI.Constants;
 using Engine.Renderer;
+using Engine.Renderer.Profiling;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
+public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D, IPerformanceProfiler profiler)
 {
     public bool IsVisible { get; set; } = true;
 
@@ -42,6 +44,39 @@ public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
         var stats3D = graphics3D.GetStats();
         ImGui.Text("Renderer3D Stats:");
         ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
+
+        var data = profiler.GetData();
+        if (profiler.Enabled && data.RegisteredScopes.Count > 0)
+        {
+            ImGui.SeparatorText("Per-System Timing");
+            foreach (var scope in data.RegisteredScopes)
+            {
+                var cpuMs = data.GetScopeTimingMs(scope);
+                var gpuMs = data.GetGpuTimingMs(scope);
+                ImGui.Text($"{scope}: CPU {cpuMs:F2}ms | GPU {gpuMs:F2}ms");
+            }
+
+            ImGui.SeparatorText("State Changes");
+            ImGui.Text($"Texture Binds: {data.GetCounterValue("TextureBinds")}");
+            ImGui.Text($"Shader Binds: {data.GetCounterValue("ShaderBinds")}");
+            ImGui.Text($"Buffer Uploads: {data.GetCounterValue("BufferUploads")}");
+            ImGui.Text($"Framebuffer Binds: {data.GetCounterValue("FramebufferBinds")}");
+            ImGui.Text($"Batch Flushes: {data.GetCounterValue("BatchFlushes")}");
+            ImGui.Text($"Batch Efficiency: {data.GetGaugeValue("BatchEfficiency"):P1}");
+
+            ImGui.SeparatorText("Allocations");
+            foreach (var scope in data.RegisteredScopes)
+            {
+                var alloc = data.GetAllocation(scope);
+                if (alloc > 0)
+                {
+                    var color = alloc > 1024
+                        ? EditorUIConstants.ErrorColor
+                        : EditorUIConstants.SuccessColor;
+                    ImGui.TextColored(color, $"{scope}: {alloc:N0} bytes");
+                }
+            }
+        }
 
         ImGui.End();
     }
