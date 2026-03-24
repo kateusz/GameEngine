@@ -1,12 +1,14 @@
 using System.Numerics;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Renderer.Profiling;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
 public class PerformanceMonitorPanel(
     DebugSettings debugSettings,
+    IPerformanceProfiler profiler,
     int maxFrameSamples = 60,
     float fpsUpdateInterval = 0.1f)
 {
@@ -17,6 +19,7 @@ public class PerformanceMonitorPanel(
     private float _minFrameTime = float.MaxValue;
     private float _maxFrameTime;
     private float _lastFrameTime;
+    private float[] _plotBuffer = new float[300];
 
     public int MaxFrameSamples { get; } = maxFrameSamples;
     public float FpsUpdateInterval { get; } = fpsUpdateInterval;
@@ -82,6 +85,24 @@ public class PerformanceMonitorPanel(
             var minTime = _minFrameTime * 1000;
             var maxTime = _maxFrameTime * 1000;
             ImGui.Text($"Min/Max Frame Time: {minTime:F2}/{maxTime:F2} ms");
+        }
+
+        if (profiler.Enabled)
+        {
+            var data = profiler.GetData();
+            var history = data.GetHistory(System.Math.Min(MaxFrameSamples, 300));
+
+            if (history.Length > 0)
+            {
+                if (_plotBuffer.Length < history.Length)
+                    _plotBuffer = new float[history.Length];
+
+                for (var i = 0; i < history.Length; i++)
+                    _plotBuffer[i] = (float)history[i].TotalFrameTimeMs;
+
+                ImGui.PlotLines("Frame Time (ms)", ref _plotBuffer[0], history.Length,
+                    0, null, 0, 33.3f, new Vector2(0, 80));
+            }
         }
     }
 }
