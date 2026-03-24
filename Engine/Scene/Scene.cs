@@ -5,6 +5,7 @@ using Box2D.NetStandard.Dynamics.Fixtures;
 using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using ECS.Systems;
+using Engine.Renderer.Profiling;
 using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
@@ -21,17 +22,19 @@ internal sealed class Scene(
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     IContext context,
-    DebugSettings debugSettings) : IScene
+    DebugSettings debugSettings,
+    ISystemProfiler? systemProfiler = null) : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
-    private readonly (ISystemManager SystemManager, World PhysicsWorld) _init = Initialize(systemRegistry, context);
+    private readonly (ISystemManager SystemManager, World PhysicsWorld) _init = Initialize(systemRegistry, context, systemProfiler);
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
-    private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
+    private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context, ISystemProfiler? systemProfiler)
     {
         var systemManager = new SystemManager();
+        systemManager.Profiler = systemProfiler;
 
         // Populate system manager from registry (singleton systems shared across scenes)
         systemRegistry.PopulateSystemManager(systemManager);

@@ -1,4 +1,5 @@
 using ECS;
+using ECS.Systems;
 using Engine.Core;
 using Engine.Renderer;
 
@@ -9,7 +10,8 @@ public sealed class SceneFactory(
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     IContext context,
-    DebugSettings debugSettings)
+    DebugSettings debugSettings,
+    ISystemProfiler? systemProfiler = null)
 {
-    public IScene Create(string path) => new Scene(path, sceneSystemRegistry, graphics2D, graphics3D, context, debugSettings);
+    public IScene Create(string path) => new Scene(path, sceneSystemRegistry, graphics2D, graphics3D, context, debugSettings, systemProfiler);
 }

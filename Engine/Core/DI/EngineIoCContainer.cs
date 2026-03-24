@@ -19,6 +19,7 @@ using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using Engine.Renderer.Profiling;
 using Engine.Scripting;
+using ECS.Systems;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -73,6 +74,7 @@ public static class EngineIoCContainer
         container.Register<PerformanceProfiler>(Reuse.Singleton);
         container.RegisterMapping<IPerformanceProfiler, PerformanceProfiler>();
         container.Register<GpuTimerQueryPool>(Reuse.Singleton);
+        container.Register<ISystemProfiler, SystemProfilerAdapter>(Reuse.Singleton);
         container.Register<IAssetsManager, AssetsManager>(Reuse.Singleton);
         
         RegisterFactories(container);

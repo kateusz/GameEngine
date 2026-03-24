@@ -50,7 +50,15 @@ public class SystemManager : ISystemManager
 
         foreach (var system in _systems)
         {
-            system.OnUpdate(deltaTime);
+            if (Profiler is not null)
+            {
+                using var scope = Profiler.BeginSystemScope(system.GetType().Name);
+                system.OnUpdate(deltaTime);
+            }
+            else
+            {
+                system.OnUpdate(deltaTime);
+            }
         }
     }
 
@@ -89,6 +97,8 @@ public class SystemManager : ISystemManager
     public int SystemCount => _systems.Count;
 
     public bool IsInitialized { get; private set; }
+
+    public ISystemProfiler? Profiler { get; set; }
 
     /// <summary>
     /// Disposes the SystemManager and cleans up per-scene systems.
