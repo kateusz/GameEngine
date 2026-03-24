@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Profiling;
 using Serilog;
 using Silk.NET.OpenGL;
 
@@ -11,6 +12,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<OpenGLVertexBuffer>();
     private uint _rendererId;
+    private readonly IPerformanceProfiler _profiler;
     private bool _disposed;
 
     // Maximum buffer size limit: 256 MB
@@ -20,8 +22,9 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
     // - Difficult debugging of size calculation errors
     private const uint MaxBufferSize = 256 * 1024 * 1024;
 
-    public OpenGLVertexBuffer(uint size)
+    public OpenGLVertexBuffer(uint size, IPerformanceProfiler profiler)
     {
+        _profiler = profiler;
         switch (size)
         {
             // Validate buffer size to prevent memory allocation issues
@@ -111,6 +114,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
                 OpenGLDebug.CheckError(SilkNetContext.GL, "BufferSubData(QuadVertex)");
             }
         }
+        _profiler.IncrementCounter("BufferUploads");
     }
 
     public void SetData(Span<LineVertex> vertices, int dataSize)
@@ -133,6 +137,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
                 OpenGLDebug.CheckError(SilkNetContext.GL, "BufferSubData(LineVertex)");
             }
         }
+        _profiler.IncrementCounter("BufferUploads");
     }
 
     // In OpenGLVertexBuffer.cs, modify SetMeshData to handle large data in chunks

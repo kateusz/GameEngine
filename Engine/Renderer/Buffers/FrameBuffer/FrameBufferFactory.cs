@@ -1,9 +1,10 @@
 using Engine.Core;
 using Engine.Platform.OpenGL.Buffers;
+using Engine.Renderer.Profiling;
 
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
-internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameBufferFactory
+internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig, IPerformanceProfiler profiler) : IFrameBufferFactory
 {
     public IFrameBuffer Create()
     {
@@ -17,10 +18,10 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
                 new FramebufferTextureSpecification(FramebufferTextureFormat.Depth),
             ])
         };
-        
+
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLFrameBuffer(frameBufferSpec),
+            ApiType.SilkNet => new OpenGLFrameBuffer(frameBufferSpec, profiler),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

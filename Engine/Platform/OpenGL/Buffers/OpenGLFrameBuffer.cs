@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Buffers.FrameBuffer;
+using Engine.Renderer.Profiling;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.OpenGL.Buffers;
@@ -16,11 +17,13 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     private uint _depthAttachment;
     private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
+    private readonly IPerformanceProfiler _profiler;
     private bool _disposed;
 
-    public OpenGLFrameBuffer(FrameBufferSpecification spec)
+    public OpenGLFrameBuffer(FrameBufferSpecification spec, IPerformanceProfiler profiler)
     {
         _specification = spec;
+        _profiler = profiler;
 
         foreach (var specificationAttachment in _specification.AttachmentsSpec.Attachments)
         {
@@ -119,6 +122,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
         SilkNetContext.GL.Viewport(0, 0, _specification.Width, _specification.Height);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
+        _profiler.IncrementCounter("FramebufferBinds");
     }
 
     public override void Unbind()
@@ -126,6 +130,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         SilkNetContext.GL.Viewport(_previousViewport[0], _previousViewport[1], (uint)_previousViewport[2], (uint)_previousViewport[3]);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer (unbind)");
+        _profiler.IncrementCounter("FramebufferBinds");
     }
 
     private void Invalidate()

@@ -1,11 +1,12 @@
 using System.Numerics;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Profiling;
 using Engine.Renderer.Shaders;
 using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory) : IGraphics3D
+internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory, IPerformanceProfiler profiler) : IGraphics3D
 {
     private IShader _phongShader = null!;
     private Vector3 _lightPosition = new(0.0f, 3.0f, 3.0f);
@@ -15,9 +16,14 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     private readonly Statistics _stats = new();
     private bool _disposed;
 
+    private int _drawCalls3dCounterId;
+    private int _flush3dScopeId;
+
     public void Init()
     {
         _phongShader = shaderFactory.Create("assets/shaders/opengl/phong.vert", "assets/shaders/opengl/phong.frag");
+        _drawCalls3dCounterId = profiler.RegisterCounter("DrawCalls3D");
+        _flush3dScopeId = profiler.RegisterScope("3DFlush");
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -73,6 +79,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
+        profiler.IncrementCounter(_drawCalls3dCounterId);
     }
 
     public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, int entityId = -1)
@@ -80,6 +87,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         var mesh = meshComponent.Mesh;
         if (mesh == null)
             return;
+
+        using var scope = profiler.BeginScope(_flush3dScopeId);
 
         var color = modelRenderer.Color;
 

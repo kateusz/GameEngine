@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using Engine.Platform.SilkNet;
+using Engine.Renderer.Profiling;
 using Engine.Renderer.Shaders;
 using Silk.NET.OpenGL;
 
@@ -10,10 +11,12 @@ internal sealed class OpenGLShader : IShader
 {
     private uint _handle;
     private readonly Dictionary<string, int> _uniformLocations;
+    private readonly IPerformanceProfiler _profiler;
     private bool _disposed;
 
-    public OpenGLShader(string vertPath, string fragPath)
+    public OpenGLShader(string vertPath, string fragPath, IPerformanceProfiler profiler)
     {
+        _profiler = profiler;
         var vertex = LoadShader(ShaderType.VertexShader, vertPath);
         var fragment = LoadShader(ShaderType.FragmentShader, fragPath);
 
@@ -60,6 +63,7 @@ internal sealed class OpenGLShader : IShader
     {
         SilkNetContext.GL.UseProgram(_handle);
         OpenGLDebug.CheckError(SilkNetContext.GL, "UseProgram");
+        _profiler.IncrementCounter("ShaderBinds");
     }
 
     public void Unbind()
