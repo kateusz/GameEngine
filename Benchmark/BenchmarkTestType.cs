@@ -6,4 +6,10 @@ public enum BenchmarkTestType
     Renderer2DStress,
     TextureSwitching,
     DrawCallOptimization,
+    BatchSaturation,
+    TextureAtlasPressure,
+    ShaderSwitchCost,
+    SystemIsolation,
+    FramebufferStress,
+    AllocationHunt,
 }

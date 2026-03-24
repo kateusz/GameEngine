@@ -6,6 +6,7 @@ using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Profiling;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
@@ -13,7 +14,13 @@ using ImGuiNET;
 
 namespace Benchmark;
 
-public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, ITextureFactory textureFactory)
+public class BenchmarkLayer(
+    IGraphics2D graphics2D,
+    SceneFactory sceneFactory,
+    ITextureFactory textureFactory,
+    IPerformanceProfiler profiler,
+    ProfileExporter profileExporter,
+    BenchmarkStorage benchmarkStorage)
     : ILayer
 {
     private readonly List<BenchmarkResult> _results = [];
@@ -156,6 +163,18 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
             if (ImGui.Button("Draw Call Test"))
                 StartBenchmark(BenchmarkTestType.DrawCallOptimization);
+
+            ImGui.Separator();
+            ImGui.Text("Profiler Scenarios:");
+
+            if (ImGui.Button("Batch Saturation"))
+                StartBenchmark(BenchmarkTestType.BatchSaturation);
+
+            if (ImGui.Button("Texture Atlas Pressure"))
+                StartBenchmark(BenchmarkTestType.TextureAtlasPressure);
+
+            if (ImGui.Button("Allocation Hunt"))
+                StartBenchmark(BenchmarkTestType.AllocationHunt);
         }
         else
         {
@@ -181,12 +200,12 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
                 _results.Clear();
 
             if (ImGui.Button("Save as Baseline"))
-                BenchmarkStorage.SaveBaseline(_results);
+                benchmarkStorage.SaveBaseline(_results);
 
             ImGui.SameLine();
 
             if (ImGui.Button("Load Baseline"))
-                _baselineResults = BenchmarkStorage.LoadBaseline();
+                _baselineResults = benchmarkStorage.LoadBaseline();
 
             ImGui.SameLine();
 
@@ -451,6 +470,15 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             case BenchmarkTestType.DrawCallOptimization:
                 SetupDrawCallTest();
                 break;
+            case BenchmarkTestType.BatchSaturation:
+                SetupBatchSaturation();
+                break;
+            case BenchmarkTestType.TextureAtlasPressure:
+                SetupTextureAtlasPressure();
+                break;
+            case BenchmarkTestType.AllocationHunt:
+                SetupRenderer2DStressTest(); // reuse standard scene
+                break;
         }
     }
 
@@ -552,6 +580,45 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             {
                 sprite.Texture = textureValues[random.Next(textureValues.Length)];
             }
+        }
+    }
+
+    private void SetupBatchSaturation()
+    {
+        // Increasing quad counts to find batch flush breakpoints
+        var random = new Random();
+        var quadCount = System.Math.Min(_entityCount, 20000);
+        for (var i = 0; i < quadCount; i++)
+        {
+            var entity = _currentTestScene!.CreateEntity($"Quad_{i}");
+            entity.AddComponent<TransformComponent>();
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                (float)(random.NextDouble() * 20 - 10),
+                (float)(random.NextDouble() * 20 - 10), 0);
+            transform.Scale = new Vector3(0.3f, 0.3f, 1.0f);
+            entity.AddComponent<SpriteRendererComponent>(new SpriteRendererComponent
+            {
+                Color = new Vector4(1, 1, 1, 1)
+            });
+        }
+    }
+
+    private void SetupTextureAtlasPressure()
+    {
+        // Use all available test textures to stress texture binding
+        var textureValues = _testTextures.Values.ToArray();
+        var random = new Random();
+        for (var i = 0; i < _entityCount; i++)
+        {
+            var entity = _currentTestScene!.CreateEntity($"TexSprite_{i}");
+            entity.AddComponent<TransformComponent>();
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                (float)(random.NextDouble() * 20 - 10),
+                (float)(random.NextDouble() * 20 - 10), 0);
+            var sprite = entity.AddComponent<SpriteRendererComponent>();
+            sprite.Texture = textureValues[i % textureValues.Length];
         }
     }
 
@@ -682,6 +749,24 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
                 result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
                 result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
                 break;
+        }
+
+        // Populate profiler metrics
+        if (profiler.Enabled)
+        {
+            var data = profiler.GetData();
+            foreach (var scope in data.RegisteredScopes)
+                result.ScopeTimingsMs[scope] = data.GetScopeTimingMs(scope);
+            foreach (var counter in data.RegisteredCounters)
+                result.CounterValues[counter] = data.GetCounterValue(counter);
+            foreach (var gauge in data.RegisteredGauges)
+                result.GaugeValues[gauge] = data.GetGaugeValue(gauge);
+
+            // Auto-export profiling data
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var scenario = _currentTestType.ToString();
+            profileExporter.ExportToFile($"profiling/{timestamp}-{scenario}.csv", 300);
+            profileExporter.ExportToFile($"profiling/{timestamp}-{scenario}.json", 300, json: true);
         }
 
         _results.Add(result);

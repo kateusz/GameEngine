@@ -11,6 +11,7 @@ public class Program
 
         EngineIoCContainer.Register(container);
         container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
+        container.Register<BenchmarkStorage>(Reuse.Singleton);
         container.Register<BenchmarkLayer>(Reuse.Singleton);
         container.Register<BenchmarkApplication>(Reuse.Singleton);
         container.ValidateAndThrow();

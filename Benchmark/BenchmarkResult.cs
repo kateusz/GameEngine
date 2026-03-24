@@ -18,4 +18,7 @@ public record BenchmarkResult
     public long MinMemoryUsageMB { get; init; }
 
     public Dictionary<string, string> CustomMetrics { get; } = new();
+    public Dictionary<string, double> ScopeTimingsMs { get; init; } = new();
+    public Dictionary<string, uint> CounterValues { get; init; } = new();
+    public Dictionary<string, double> GaugeValues { get; init; } = new();
 }
