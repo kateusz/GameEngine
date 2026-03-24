@@ -4,6 +4,7 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
+using Engine.Renderer.Profiling;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
@@ -17,7 +18,8 @@ public class GameLayer(
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
-    GameConfiguration gameConfig)
+    GameConfiguration gameConfig,
+    IPerformanceProfiler profiler)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
@@ -87,9 +89,11 @@ public class GameLayer(
 
     public void OnUpdate(TimeSpan timeSpan)
     {
+        profiler.BeginFrame();
+
         if (sceneContext.ActiveScene == null)
         {
-            // No scene loaded
+            profiler.EndFrame();
             return;
         }
 
@@ -97,8 +101,13 @@ public class GameLayer(
         graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         graphics2D.Clear();
 
-        // Update scene systems (this runs all ECS systems including rendering, physics, scripting, etc.)
-        sceneContext.ActiveScene.OnUpdateRuntime(timeSpan);
+        using (profiler.BeginScope("SceneUpdate"))
+        {
+            // Update scene systems (this runs all ECS systems including rendering, physics, scripting, etc.)
+            sceneContext.ActiveScene.OnUpdateRuntime(timeSpan);
+        }
+
+        profiler.EndFrame();
     }
 
     public void HandleInputEvent(InputEvent inputEvent)

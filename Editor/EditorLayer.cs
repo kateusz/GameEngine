@@ -19,6 +19,7 @@ using Engine.Math;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Profiling;
 using Engine.Scene;
 using Engine.Scene.Components;
 using Engine.Scripting;
@@ -57,7 +58,9 @@ public class EditorLayer(
     ViewportGrid viewportGrid,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
-    IContentScaleProvider contentScaleProvider) : ILayer
+    IContentScaleProvider contentScaleProvider,
+    IPerformanceProfiler profiler,
+    GpuTimerQueryPool gpuPool) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -230,6 +233,9 @@ public class EditorLayer(
 
     public void OnUpdate(TimeSpan timeSpan)
     {
+        profiler.BeginFrame();
+        gpuPool.BeginFrame(profiler.GetData().Latest.FrameNumber + 1);
+
         performanceMonitor.Update(timeSpan);
         animationTimeline.Update((float)timeSpan.TotalSeconds);
 
@@ -253,17 +259,20 @@ public class EditorLayer(
 
         _frameBuffer.ClearAttachment(1, -1);
 
-        switch (sceneContext.State)
+        using (profiler.BeginScope("SceneUpdate"))
         {
-            case SceneState.Edit:
+            switch (sceneContext.State)
             {
-                sceneContext.ActiveScene?.OnUpdateEditor(timeSpan, _editorCamera);
-                break;
-            }
-            case SceneState.Play:
-            {
-                sceneContext.ActiveScene?.OnUpdateRuntime(timeSpan);
-                break;
+                case SceneState.Edit:
+                {
+                    sceneContext.ActiveScene?.OnUpdateEditor(timeSpan, _editorCamera);
+                    break;
+                }
+                case SceneState.Play:
+                {
+                    sceneContext.ActiveScene?.OnUpdateRuntime(timeSpan);
+                    break;
+                }
             }
         }
 
@@ -286,6 +295,9 @@ public class EditorLayer(
         }
 
         _frameBuffer.Unbind();
+
+        gpuPool.EndFrame();
+        profiler.EndFrame();
     }
 
     public void HandleWindowEvent(WindowEvent @event)
@@ -377,7 +389,10 @@ public class EditorLayer(
 
     public void Draw()
     {
-        SubmitUI();
+        using (profiler.BeginScope("EditorUI"))
+        {
+            SubmitUI();
+        }
     }
 
     private void SubmitUI()
