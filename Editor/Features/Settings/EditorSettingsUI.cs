@@ -1,11 +1,12 @@
 using System.Numerics;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Renderer.Profiling;
 using ImGuiNET;
 
 namespace Editor.Features.Settings;
 
-public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings)
+public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings, IPerformanceProfiler profiler)
 {
     private bool _open;
 
@@ -40,6 +41,22 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         {
             editorPreferences.ShowFPS = showFps;
             debugSettings.ShowFPS = showFps;
+            editorPreferences.Save();
+        }
+
+        var showOverlay = editorPreferences.ShowPerformanceOverlay;
+        if (ImGui.Checkbox("Show Performance Overlay", ref showOverlay))
+        {
+            editorPreferences.ShowPerformanceOverlay = showOverlay;
+            debugSettings.ShowPerformanceOverlay = showOverlay;
+            editorPreferences.Save();
+        }
+
+        var profilerEnabled = editorPreferences.ProfilerEnabled;
+        if (ImGui.Checkbox("Enable Performance Profiler", ref profilerEnabled))
+        {
+            editorPreferences.ProfilerEnabled = profilerEnabled;
+            profiler.Enabled = profilerEnabled;
             editorPreferences.Save();
         }
 

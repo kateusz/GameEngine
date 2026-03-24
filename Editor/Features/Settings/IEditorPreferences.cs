@@ -28,6 +28,10 @@ public interface IEditorPreferences : IDisposable
     /// </summary>
     bool ShowFPS { get; set; }
 
+    bool ShowPerformanceOverlay { get; set; }
+
+    bool ProfilerEnabled { get; set; }
+
     /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.

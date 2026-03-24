@@ -23,6 +23,8 @@ public class EditorPreferences : IEditorPreferences
     // Debug Settings
     public bool ShowColliderBounds { get; set; }
     public bool ShowFPS { get; set; } = true;
+    public bool ShowPerformanceOverlay { get; set; }
+    public bool ProfilerEnabled { get; set; }
     
 
     private static readonly string PreferencesPath =

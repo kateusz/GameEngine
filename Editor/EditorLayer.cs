@@ -60,8 +60,7 @@ public class EditorLayer(
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider,
     IPerformanceProfiler profiler,
-    GpuTimerQueryPool gpuPool,
-    PerformanceOverlayPanel performanceOverlay) : ILayer
+    GpuTimerQueryPool gpuPool) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -136,6 +135,8 @@ public class EditorLayer(
         // Apply debug settings
         debugSettings.ShowColliderBounds = editorPreferences.ShowColliderBounds;
         debugSettings.ShowFPS = editorPreferences.ShowFPS;
+        debugSettings.ShowPerformanceOverlay = editorPreferences.ShowPerformanceOverlay;
+        profiler.Enabled = editorPreferences.ProfilerEnabled;
 
         Logger.Debug("Applied editor settings from preferences");
     }
@@ -394,7 +395,6 @@ public class EditorLayer(
         {
             SubmitUI();
         }
-        performanceOverlay.Draw();
     }
 
     private void SubmitUI()
