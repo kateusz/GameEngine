@@ -1,12 +1,13 @@
 using System.Numerics;
 using Editor.UI.Constants;
+using Editor.UI.Drawers;
 using Engine.Renderer;
 using Engine.Renderer.Profiling;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D, IPerformanceProfiler profiler)
+public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D, IPerformanceProfiler profiler, ProfileExporter profileExporter)
 {
     public bool IsVisible { get; set; } = true;
 
@@ -75,6 +76,22 @@ public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D, 
                         : EditorUIConstants.SuccessColor;
                     ImGui.TextColored(color, $"{scope}: {alloc:N0} bytes");
                 }
+            }
+        }
+
+        if (profiler.Enabled)
+        {
+            ImGui.Separator();
+            if (ButtonDrawer.DrawButton("Export CSV"))
+            {
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                profileExporter.ExportToFile($"profiling/{timestamp}-editor.csv", 300);
+            }
+            ImGui.SameLine();
+            if (ButtonDrawer.DrawButton("Export JSON"))
+            {
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                profileExporter.ExportToFile($"profiling/{timestamp}-editor.json", 300, json: true);
             }
         }
 
