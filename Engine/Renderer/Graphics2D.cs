@@ -306,13 +306,11 @@ internal sealed class Graphics2D(
 
     private void StartBatch()
     {
-        Array.Clear(_data.QuadVertexBufferBase, 0, _data.QuadVertexBufferBase.Length);
         _data.QuadIndexBufferCount = 0;
         _data.CurrentVertexBufferIndex = 0;
         _data.TextureSlotIndex = 1;
         _data.TextureSlotCache.Clear();
 
-        Array.Clear(_data.LineVertexBufferBase, 0, _data.LineVertexBufferBase.Length);
         _data.LineVertexCount = 0;
         _data.CurrentLineVertexBufferIndex = 0;
     }

@@ -13,6 +13,10 @@ public class PerformanceMonitorPanel(
     private readonly Queue<float> _frameTimes = new();
     private float _fpsUpdateTimer = 0.0f;
     private float _currentFps = 0.0f;
+    private float _runningSum;
+    private float _minFrameTime = float.MaxValue;
+    private float _maxFrameTime;
+    private float _lastFrameTime;
 
     public int MaxFrameSamples { get; } = maxFrameSamples;
     public float FpsUpdateInterval { get; } = fpsUpdateInterval;
@@ -22,10 +26,22 @@ public class PerformanceMonitorPanel(
         var dt = (float)deltaTime.TotalSeconds;
         if (dt <= 0) return;
 
+        _lastFrameTime = dt;
+        _runningSum += dt;
         _frameTimes.Enqueue(dt);
+        if (_frameTimes.Count > MaxFrameSamples)
+        {
+            var removed = _frameTimes.Dequeue();
+            _runningSum -= removed;
+        }
 
-        while (_frameTimes.Count > MaxFrameSamples)
-            _frameTimes.Dequeue();
+        _minFrameTime = float.MaxValue;
+        _maxFrameTime = 0;
+        foreach (var ft in _frameTimes)
+        {
+            if (ft < _minFrameTime) _minFrameTime = ft;
+            if (ft > _maxFrameTime) _maxFrameTime = ft;
+        }
 
         _fpsUpdateTimer += dt;
         if (_fpsUpdateTimer >= FpsUpdateInterval)
@@ -38,7 +54,7 @@ public class PerformanceMonitorPanel(
     private void CalculateFps()
     {
         if (_frameTimes.Count == 0) return;
-        var avg = _frameTimes.Average();
+        var avg = _frameTimes.Count > 0 ? _runningSum / _frameTimes.Count : 0f;
         _currentFps = 1.0f / avg;
     }
 
@@ -57,14 +73,14 @@ public class PerformanceMonitorPanel(
 
         TextDrawer.DrawColoredText($"FPS: {_currentFps:F1}", fpsColor);
 
-        var currentFrameTime = _frameTimes.Count > 0 ? _frameTimes.Last() * 1000 : 0;
+        var currentFrameTime = _frameTimes.Count > 0 ? _lastFrameTime * 1000 : 0;
         ImGui.Text($"Frame Time: {currentFrameTime:F2} ms");
         ImGui.Text($"Frame Samples: {_frameTimes.Count}/{MaxFrameSamples}");
 
         if (_frameTimes.Count > 1)
         {
-            var minTime = _frameTimes.Min() * 1000;
-            var maxTime = _frameTimes.Max() * 1000;
+            var minTime = _minFrameTime * 1000;
+            var maxTime = _maxFrameTime * 1000;
             ImGui.Text($"Min/Max Frame Time: {minTime:F2}/{maxTime:F2} ms");
         }
     }
