@@ -1,5 +1,6 @@
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Profiling;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
@@ -15,11 +16,19 @@ internal sealed class Graphics2D(
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory,
     ITextureFactory textureFactory,
-    IShaderFactory shaderFactory) : IGraphics2D
+    IShaderFactory shaderFactory,
+    IPerformanceProfiler profiler) : IGraphics2D
 {
     private Renderer2DData _data = new();
     private static readonly Vector2[] DefaultTextureCoords;
     private bool _disposed;
+
+    private int _drawCallsCounterId;
+    private int _batchFlushesCounterId;
+    private int _textureBindsCounterId;
+    private int _bufferUploadBytesCounterId;
+    private int _batchEfficiencyGaugeId;
+    private int _flush2dScopeId;
 
     static Graphics2D()
     {
@@ -47,6 +56,13 @@ internal sealed class Graphics2D(
             InitWhiteTexture();
             InitShaders();
             InitQuadVertexPositions();
+
+            _drawCallsCounterId = profiler.RegisterCounter("DrawCalls");
+            _batchFlushesCounterId = profiler.RegisterCounter("BatchFlushes");
+            _textureBindsCounterId = profiler.RegisterCounter("TextureBinds");
+            _bufferUploadBytesCounterId = profiler.RegisterCounter("BufferUploadBytes");
+            _batchEfficiencyGaugeId = profiler.RegisterGauge("BatchEfficiency");
+            _flush2dScopeId = profiler.RegisterScope("2DFlush");
         }
         catch (Exception ex)
         {
@@ -309,6 +325,8 @@ internal sealed class Graphics2D(
 
     private void Flush()
     {
+        using var scope = profiler.BeginScope(_flush2dScopeId);
+
         if (_data.QuadIndexBufferCount > 0)
         {
             // Calculate actual data size (already known from index)
@@ -324,13 +342,17 @@ internal sealed class Graphics2D(
             // Upload only used portion to GPU
             var usedVertices = _data.QuadVertexBufferBase.AsSpan(0, vertexCount);
             _data.QuadVertexBuffer.SetData(usedVertices, dataSize);
+            profiler.IncrementCounter(_bufferUploadBytesCounterId, (uint)(vertexCount * QuadVertex.GetSize()));
 
             // Bind textures
             for (var i = 0; i < _data.TextureSlotIndex; i++)
                 _data.TextureSlots[i].Bind(i);
+            profiler.IncrementCounter(_textureBindsCounterId, (uint)_data.TextureSlotIndex);
 
             rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
             _data.Stats.DrawCalls++;
+            profiler.IncrementCounter(_drawCallsCounterId);
+            profiler.SetGauge(_batchEfficiencyGaugeId, (double)_data.QuadIndexBufferCount / RenderingConstants.MaxIndices);
         }
 
         if (_data.LineVertexCount > 0)
@@ -352,7 +374,10 @@ internal sealed class Graphics2D(
             rendererApi.SetLineWidth(Renderer2DData.LineWidth);
             rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
             _data.Stats.DrawCalls++;
+            profiler.IncrementCounter(_drawCallsCounterId);
         }
+
+        profiler.IncrementCounter(_batchFlushesCounterId);
     }
 
     private void InitBuffers()
