@@ -76,4 +76,24 @@ public class RingBufferTests
         buffer.Clear();
         buffer.Count.ShouldBe(0);
     }
+
+    [Fact]
+    public void Clear_ThenPush_WorksCorrectly()
+    {
+        var buffer = new RingBuffer<int>(3);
+        buffer.Push(1);
+        buffer.Push(2);
+        buffer.Clear();
+        buffer.Push(10);
+        buffer.Count.ShouldBe(1);
+        buffer[0].ShouldBe(10);
+    }
+
+    [Fact]
+    public void AsSpan_EmptyBuffer_ReturnsEmpty()
+    {
+        var buffer = new RingBuffer<int>(5);
+        var span = buffer.AsSpan();
+        span.Length.ShouldBe(0);
+    }
 }

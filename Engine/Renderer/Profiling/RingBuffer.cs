@@ -23,6 +23,7 @@ public class RingBuffer<T>(int capacity)
     {
         get
         {
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
             // _head points to next write position, so newest is at _head - 1
             var actualIndex = ((_head - 1 - index) % capacity + capacity) % capacity;
@@ -48,6 +49,8 @@ public class RingBuffer<T>(int capacity)
 
     public void Clear()
     {
+        if (System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            Array.Clear(_buffer, 0, _buffer.Length);
         _head = 0;
         Count = 0;
     }
