@@ -17,6 +17,7 @@ using Engine.Renderer.VertexArray;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
+using Engine.Renderer.Profiling;
 using Engine.Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -69,6 +70,9 @@ public static class EngineIoCContainer
         container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
+        container.Register<PerformanceProfiler>(Reuse.Singleton);
+        container.RegisterMapping<IPerformanceProfiler, PerformanceProfiler>();
+        container.Register<GpuTimerQueryPool>(Reuse.Singleton);
         container.Register<IAssetsManager, AssetsManager>(Reuse.Singleton);
         
         RegisterFactories(container);

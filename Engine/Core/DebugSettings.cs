@@ -18,4 +18,6 @@ public class DebugSettings
     /// When changed in editor, this is automatically synchronized with EditorPreferences.
     /// </summary>
     public bool ShowFPS { get; set; } = true;
+    public bool ShowPerformanceProfiler { get; set; } = false;
+    public bool ShowPerformanceOverlay { get; set; } = false;
 }
