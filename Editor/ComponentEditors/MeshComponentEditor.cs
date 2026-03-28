@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
@@ -20,7 +21,7 @@ public class MeshComponentEditor(
         {
             var meshComponent = entity.GetComponent<MeshComponent>();
             
-            ButtonDrawer.DrawButton("Load Cube", 100, 0, () =>
+            ButtonDrawer.DrawButton("Load Cube", EditorUIConstants.DefaultButtonWidth, 0, () =>
             {
                 var cube = meshFactory.CreateCube();
                 meshComponent.SetMesh(cube);
