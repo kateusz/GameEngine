@@ -34,10 +34,12 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             return;
         }
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
+        var cameraPos = new Vector3(transform.M41, transform.M42, transform.M43);
         _meshShader.Bind();
         _meshShader.SetMat4("u_ViewProjection", viewProj);
         _meshShader.SetFloat3("u_LightPosition", _lightPosition);
         _meshShader.SetFloat3("u_LightColor", _lightColor);
+        _meshShader.SetFloat3("u_ViewPosition", cameraPos);
     }
 
     public void BeginScene(IViewCamera camera)
@@ -46,6 +48,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _meshShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
         _meshShader.SetFloat3("u_LightPosition", _lightPosition);
         _meshShader.SetFloat3("u_LightColor", _lightColor);
+        _meshShader.SetFloat3("u_ViewPosition", camera.GetPosition());
     }
 
     public void EndScene()
