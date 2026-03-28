@@ -71,6 +71,7 @@ public static class EditorIoCContainer
         container.Register<SelectionTool>(Reuse.Singleton);
         container.Register<MoveTool>(Reuse.Singleton);
         container.Register<ScaleTool>(Reuse.Singleton);
+        container.Register<RotateTool>(Reuse.Singleton);
         container.Register<RulerTool>(Reuse.Singleton);
         container.Register<ViewportToolManager>(Reuse.Singleton);
         

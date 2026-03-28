@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Renderer.Cameras;
@@ -10,12 +9,11 @@ namespace Editor.assets.scripts;
 // TODO: this must be removed from the engine and implemented in the user project
 public class CameraController : ScriptableEntity
 {
-    public float MoveSpeed = 5.0f;
-    public float PanSpeed = 0.15f;
+    private const float MoveSpeed = 5.0f;
+    private const float PanSpeed = 0.15f;
 
     private bool _isPerspective;
-
-    // Perspective orbital state — mirrors EditorCamera fields exactly
+    
     private Vector3 _focalPoint = Vector3.Zero;
     private float _distance = CameraConfig.DefaultEditorDistance;
     private float _pitch;
@@ -57,8 +55,7 @@ public class CameraController : ScriptableEntity
 
         var orientation = GetOrientation();
         var position = _focalPoint - GetForwardDir(orientation) * _distance;
-
-        // Exact same matrix construction as EditorCamera.UpdateView
+        
         GetComponent<CameraComponent>().CameraViewTransform =
             Matrix4x4.CreateFromQuaternion(orientation) * Matrix4x4.CreateTranslation(position);
     }
@@ -68,9 +65,7 @@ public class CameraController : ScriptableEntity
         if (_isPerspective && HasComponent<CameraComponent>())
             GetComponent<CameraComponent>().CameraViewTransform = null;
     }
-
-    // --- EditorCamera math (verbatim) ---
-
+    
     private Quaternion GetOrientation() =>
         Quaternion.CreateFromYawPitchRoll(-_yaw, -_pitch, 0f);
 
@@ -121,9 +116,7 @@ public class CameraController : ScriptableEntity
             return;
         GetComponent<TransformComponent>().Translation += _orthoInput * MoveSpeed * dt;
     }
-
-    // --- Input callbacks ---
-
+    
     public override void OnMouseMoved(float x, float y)
     {
         if (!_isPerspective)

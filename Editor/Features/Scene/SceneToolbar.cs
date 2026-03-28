@@ -85,6 +85,14 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
+        var isRotateMode = CurrentMode == EditorMode.Rotate;
+        if (ButtonDrawer.DrawToggleButton("↻", "↻", ref isRotateMode, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
+        {
+            CurrentMode = EditorMode.Rotate;
+        }
+
+        ImGui.SameLine();
+
         // Use toggle button for ruler since we don't have an icon yet
         var isRulerMode = CurrentMode == EditorMode.Ruler;
         if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))

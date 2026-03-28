@@ -21,6 +21,11 @@ public enum EditorMode
     Scale,
 
     /// <summary>
+    /// Rotate mode - rotate entities around the Z axis
+    /// </summary>
+    Rotate,
+
+    /// <summary>
     /// Ruler mode - measure distances between points in the viewport
     /// </summary>
     Ruler,

@@ -13,6 +13,7 @@ public class ViewportToolManager(
     SelectionTool selectionTool,
     MoveTool moveTool,
     ScaleTool scaleTool,
+    RotateTool rotateTool,
     RulerTool rulerTool)
 {
     private readonly Dictionary<EditorMode, IViewportTool> _tools = new()
@@ -20,6 +21,7 @@ public class ViewportToolManager(
         { EditorMode.Select, selectionTool },
         { EditorMode.Move, moveTool },
         { EditorMode.Scale, scaleTool },
+        { EditorMode.Rotate, rotateTool },
         { EditorMode.Ruler, rulerTool }
     };
 
