@@ -271,7 +271,7 @@ public class EditorLayer(
         if (sceneContext.State == SceneState.Edit && sceneToolbar.ShowGrid3D)
         {
             graphics2D.BeginScene(_editorCamera);
-            ViewportGrid3D.Render(graphics2D, _editorCamera);
+            viewportGrid3D.Render(graphics2D, _editorCamera);
             graphics2D.EndScene();
         }
 

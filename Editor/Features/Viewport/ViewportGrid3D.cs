@@ -15,7 +15,7 @@ public class ViewportGrid3D
     private const int MajorEvery = 10;
     private const int HalfCount  = 10;
 
-    public static void Render(IGraphics2D graphics2D, EditorCamera camera)
+    public void Render(IGraphics2D graphics2D, EditorCamera camera)
     {
         var spacing = CalculateSpacing(camera.Distance);
         var majorSpacing = spacing * MajorEvery;
