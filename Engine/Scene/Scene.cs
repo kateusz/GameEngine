@@ -170,12 +170,13 @@ internal sealed class Scene(
         var lightGroup = context.View<LightingComponent>().ToList();
         if (lightGroup.Count > 0)
         {
+            var (_, firstLight) = lightGroup[0];
+            graphics3D.SetLightPosition(firstLight.Position);
+            graphics3D.SetLightColor(firstLight.Color);
+
             graphics3D.BeginLightVisualization(camera);
-            foreach (var (entity, lightingComponent) in lightGroup)
-            {
-                var worldPos = lightingComponent.Position;
-                graphics3D.DrawLightVisualization(worldPos);
-            }
+            foreach (var (_, lightingComponent) in lightGroup)
+                graphics3D.DrawLightVisualization(lightingComponent.Position);
             graphics3D.EndLightVisualization();
         }
 

@@ -11,6 +11,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     private IShader _lightShader = null!;
     private Mesh _cubeMesh = null!;
 
+    private Vector3 _lightPosition = Vector3.Zero;
     private Vector3 _lightColor = Vector3.One;
 
     private readonly Statistics _stats = new();
@@ -18,8 +19,8 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
 
     public void Init()
     {
-        _meshShader = shaderFactory.Create("assets/shaders/opengl/lighting-colors.vert", "assets/shaders/opengl/lighting-colors.frag");
-        _lightShader = shaderFactory.Create("assets/shaders/opengl/light-cube.vert", "assets/shaders/opengl/light-cube.frag");
+        _meshShader = shaderFactory.Create("assets/shaders/opengl/lightingShader.vert", "assets/shaders/opengl/lightingShader.frag");
+        _lightShader = shaderFactory.Create("assets/shaders/opengl/lightCubeShader.vert", "assets/shaders/opengl/lightCubeShader.frag");
         _cubeMesh = meshFactory.CreateCube();
     }
 
@@ -35,14 +36,16 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _meshShader.Bind();
         _meshShader.SetMat4("u_ViewProjection", viewProj);
-        _meshShader.SetFloat3("lightColor", _lightColor);
+        _meshShader.SetFloat3("u_LightPosition", _lightPosition);
+        _meshShader.SetFloat3("u_LightColor", _lightColor);
     }
 
     public void BeginScene(IViewCamera camera)
     {
         _meshShader.Bind();
         _meshShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
-        _meshShader.SetFloat3("lightColor", _lightColor);
+        _meshShader.SetFloat3("u_LightPosition", _lightPosition);
+        _meshShader.SetFloat3("u_LightColor", _lightColor);
     }
 
     public void EndScene()
@@ -54,7 +57,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
     {
         _meshShader.Bind();
         _meshShader.SetMat4("u_Model", transform);
-        _meshShader.SetFloat3("objectColor", new Vector3(color.X, color.Y, color.Z));
+        _meshShader.SetFloat3("u_Color", new Vector3(color.X, color.Y, color.Z));
         _meshShader.SetInt("u_EntityID", entityId);
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
@@ -70,7 +73,10 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         DrawMesh(transform, mesh, modelRenderer.Color, entityId);
     }
 
-    public void SetLightPosition(Vector3 position) { }
+    public void SetLightPosition(Vector3 position)
+    {
+        _lightPosition = position;
+    }
 
     public void SetLightColor(Vector3 color)
     {
@@ -96,7 +102,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _lightShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
     }
 
-    public void DrawLightVisualization(Vector3 position, float scale = 0.5f)
+    public void DrawLightVisualization(Vector3 position, float scale = 0.2f)
     {
         var model = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateTranslation(position);
         _lightShader.SetMat4("u_Model", model);
