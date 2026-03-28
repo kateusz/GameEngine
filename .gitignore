@@ -6,7 +6,6 @@
 .claude/worktrees/*
 
 docs/superpowers
-docs/specs
 docs/audits
 
 # User-specific files
