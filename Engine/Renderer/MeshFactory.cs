@@ -17,38 +17,7 @@ internal sealed class MeshFactory(
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private readonly Dictionary<string, Mesh> _loadedMeshes = new();
-    private readonly Dictionary<string, Model> _loadedModels = new();
     private bool _disposed;
-
-    /// <summary>
-    /// Creates or retrieves a cached mesh from an OBJ file.
-    /// </summary>
-    /// <param name="objFilePath">Path to the OBJ file.</param>
-    /// <returns>A mesh instance from the model file.</returns>
-    public Mesh Create(string objFilePath)
-    {
-        // Check if we've already loaded this mesh
-        if (_loadedMeshes.TryGetValue(objFilePath, out var existingMesh))
-        {
-            return existingMesh;
-        }
-
-        // Load the model and keep it alive to prevent disposal of shared textures
-        var model = new Model(objFilePath, textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-        var mesh = model.Meshes.First();
-
-        // Log information about mesh size
-        if (mesh.Vertices.Count > 50000 || mesh.Indices.Count > 100000)
-        {
-            _logger.Warning("Large mesh loaded from {ObjFilePath}: {VertexCount} vertices, {IndexCount} indices",
-                objFilePath, mesh.Vertices.Count, mesh.Indices.Count);
-        }
-
-        // Cache both the mesh and the model to prevent resource disposal
-        _loadedMeshes[objFilePath] = mesh;
-        _loadedModels[objFilePath] = model;
-        return mesh;
-    }
 
     /// <summary>
     /// Creates a procedural cube mesh.
@@ -138,13 +107,6 @@ internal sealed class MeshFactory(
     /// </summary>
     public void Clear()
     {
-        // Dispose all loaded models (which will dispose their meshes and textures)
-        foreach (var model in _loadedModels.Values)
-        {
-            model?.Dispose();
-        }
-
-        _loadedModels.Clear();
         _loadedMeshes.Clear();
 
         _logger.Information("MeshFactory cache cleared and resources disposed");
@@ -170,7 +132,7 @@ internal sealed class MeshFactory(
         {
             System.Diagnostics.Debug.WriteLine(
                 $"FACTORY LEAK: MeshFactory not disposed! " +
-                $"Cached meshes: {_loadedMeshes.Count}, models: {_loadedModels.Count}"
+                $"Cached meshes: {_loadedMeshes.Count}"
             );
         }
     }

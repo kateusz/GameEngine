@@ -10,13 +10,6 @@ namespace Engine.Renderer;
 public interface IMeshFactory : IDisposable
 {
     /// <summary>
-    /// Creates or retrieves a cached mesh from an OBJ file.
-    /// </summary>
-    /// <param name="objFilePath">Path to the OBJ file.</param>
-    /// <returns>A mesh instance from the model file.</returns>
-    Mesh Create(string objFilePath);
-
-    /// <summary>
     /// Creates a procedural cube mesh.
     /// </summary>
     /// <param name="textureFactory">Factory for creating textures</param>

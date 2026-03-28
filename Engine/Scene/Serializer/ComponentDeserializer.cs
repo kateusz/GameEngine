@@ -254,7 +254,7 @@ internal sealed class ComponentDeserializer(
         {
             try
             {
-                component.Mesh = meshFactory.Create(component.MeshPath);
+                // TODO: support for 3d models
             }
             catch (Exception ex)
             {

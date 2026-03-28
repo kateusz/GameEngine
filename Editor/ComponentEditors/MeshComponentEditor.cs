@@ -19,17 +19,6 @@ public class MeshComponentEditor(
         ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", entity, () =>
         {
             var meshComponent = entity.GetComponent<MeshComponent>();
-
-            ButtonDrawer.DrawButton("Load OBJ", 100, 0, () =>
-            {
-                // TODO
-                const string objPath = "assets/objModels/person.model";
-                if (!File.Exists(objPath))
-                    return;
-
-                var mesh = meshFactory.Create(objPath);
-                meshComponent.SetMesh(mesh, objPath);
-            });
             
             ButtonDrawer.DrawButton("Load Cube", 100, 0, () =>
             {
