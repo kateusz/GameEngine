@@ -55,6 +55,7 @@ public class EditorLayer(
     ViewportToolManager viewportToolManager,
     ViewportRuler viewportRuler,
     ViewportGrid viewportGrid,
+    ViewportGrid3D viewportGrid3D,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider) : ILayer
@@ -265,6 +266,13 @@ public class EditorLayer(
                 sceneContext.ActiveScene?.OnUpdateRuntime(timeSpan);
                 break;
             }
+        }
+
+        if (sceneContext.State == SceneState.Edit && sceneToolbar.ShowGrid3D)
+        {
+            graphics2D.BeginScene(_editorCamera);
+            viewportGrid3D.Render(graphics2D, _editorCamera);
+            graphics2D.EndScene();
         }
 
         // Mouse picking (logical mouse position → physical framebuffer coordinates)
@@ -485,8 +493,10 @@ public class EditorLayer(
 
                     if (ImGui.MenuItem("Show Rulers", null, viewportRuler.Enabled))
                         viewportRuler.Enabled = !viewportRuler.Enabled;
-                    if (ImGui.MenuItem("Show Grid", null, sceneToolbar.ShowGrid))
+                    if (ImGui.MenuItem("Show 2D Grid", null, sceneToolbar.ShowGrid))
                         sceneToolbar.ShowGrid = !sceneToolbar.ShowGrid;
+                    if (ImGui.MenuItem("Show 3D Grid", null, sceneToolbar.ShowGrid3D))
+                        sceneToolbar.ShowGrid3D = !sceneToolbar.ShowGrid3D;
                     if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
                         rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
 

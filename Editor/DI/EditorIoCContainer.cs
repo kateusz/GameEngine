@@ -66,6 +66,7 @@ public static class EditorIoCContainer
         container.Register<IViewportScaleHelper, ViewportScaleHelper>(Reuse.Singleton);
         container.Register<ViewportRuler>(Reuse.Singleton);
         container.Register<ViewportGrid>(Reuse.Singleton);
+        container.Register<ViewportGrid3D>(Reuse.Singleton);
 
         // Viewport tools
         container.Register<SelectionTool>(Reuse.Singleton);
