@@ -10,6 +10,7 @@ public interface IRendererAPI
     void DrawIndexed(IVertexArray vertexArray, uint count);
     void DrawLines(IVertexArray vertexArray, uint vertexCount);
     void SetLineWidth(float width);
+    void SetDepthTest(bool enabled);
     void Init();
     int GetError();
 }

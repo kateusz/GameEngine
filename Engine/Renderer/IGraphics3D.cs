@@ -15,6 +15,12 @@ public interface IGraphics3D : IGraphics
     void SetLightPosition(Vector3 position);
     void SetLightColor(Vector3 color);
     void SetShininess(float shininess);
+    
+    void BeginLightVisualization(Camera camera, Matrix4x4 transform);
+    void BeginLightVisualization(IViewCamera camera);
+    void DrawLightVisualization(Vector3 position, float scale = 0.5f);
+    void EndLightVisualization();
+    
     void ResetStats();
     Statistics GetStats();
 }

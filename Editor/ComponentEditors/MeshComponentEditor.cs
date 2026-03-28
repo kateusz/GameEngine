@@ -30,6 +30,12 @@ public class MeshComponentEditor(
                 var mesh = meshFactory.Create(objPath);
                 meshComponent.SetMesh(mesh, objPath);
             });
+            
+            ButtonDrawer.DrawButton("Load Cube", 100, 0, () =>
+            {
+                var cube = meshFactory.CreateCube();
+                meshComponent.SetMesh(cube);
+            });
 
             if (meshComponent.Mesh != null)
             {

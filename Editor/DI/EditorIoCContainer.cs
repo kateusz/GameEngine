@@ -41,6 +41,8 @@ public static class EditorIoCContainer
         container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
         container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
         container.Register<AnimationComponentEditor>(Reuse.Singleton);
+        container.Register<LightingComponentEditor>(Reuse.Singleton);
+        
         container.Register<IAnimationTimelinePanel, AnimationTimelinePanel>(Reuse.Singleton);
         container.Register<RecentProjectsPanel>(Reuse.Singleton);
     

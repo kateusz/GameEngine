@@ -22,7 +22,8 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
     {
         if (_cachedEntity != null && _cachedCameraComponent?.Primary == true)
         {
-            Transform = _cachedEntity.GetComponent<TransformComponent>().GetTransform();
+            Transform = _cachedCameraComponent.CameraViewTransform
+                ?? _cachedEntity.GetComponent<TransformComponent>().GetTransform();
             return;
         }
         
@@ -39,7 +40,8 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
             _cachedEntity = entity;
             _cachedCameraComponent = cameraComponent;
             Camera = cameraComponent.Camera;
-            Transform = entity.GetComponent<TransformComponent>().GetTransform();
+            Transform = cameraComponent.CameraViewTransform
+                ?? entity.GetComponent<TransformComponent>().GetTransform();
             break;
         }
     }

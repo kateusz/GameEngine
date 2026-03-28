@@ -27,6 +27,8 @@ public interface IMeshFactory : IDisposable
     Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory);
 
+    Mesh CreateCube();
+    
     /// <summary>
     /// Clears all cached meshes and disposes loaded models to free GPU resources.
     /// Should be called when shutting down or when clearing the asset cache.

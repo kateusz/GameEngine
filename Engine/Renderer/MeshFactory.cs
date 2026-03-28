@@ -127,6 +127,11 @@ internal sealed class MeshFactory(
         return mesh;
     }
 
+    public Mesh CreateCube()
+    {
+        return CreateCube(textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+    }
+
     /// <summary>
     /// Clears all cached meshes and disposes loaded models to free GPU resources.
     /// Should be called when shutting down or when clearing the asset cache.

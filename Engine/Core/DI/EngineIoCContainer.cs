@@ -86,6 +86,7 @@ public static class EngineIoCContainer
 
         // Register ECS systems (all now use dependency injection)
         container.Register<SpriteRenderingSystem>(Reuse.Singleton);
+        container.Register<LightingSystem>(Reuse.Singleton);
         container.Register<ModelRenderingSystem>(Reuse.Singleton);
         container.Register<ScriptUpdateSystem>(Reuse.Singleton);
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);

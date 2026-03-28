@@ -19,7 +19,8 @@ public class ComponentEditorRegistry(
     AudioSourceComponentEditor audioSourceComponentEditor,
     AudioListenerComponentEditor audioListenerComponentEditor,
     AnimationComponentEditor animationComponentEditor,
-    ScriptComponentEditor scriptComponentEditor)
+    ScriptComponentEditor scriptComponentEditor,
+    LightingComponentEditor lightingComponentEditor)
     : IComponentEditorRegistry
 {
     private readonly Dictionary<Type, IComponentEditor> _editors = new()
@@ -34,7 +35,8 @@ public class ComponentEditorRegistry(
         { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
         { typeof(AudioSourceComponent), audioSourceComponentEditor },
         { typeof(AudioListenerComponent), audioListenerComponentEditor },
-        { typeof(AnimationComponent), animationComponentEditor }
+        { typeof(AnimationComponent), animationComponentEditor },
+        { typeof(LightingComponent), lightingComponentEditor }
     };
 
     public void DrawAllComponents(Entity entity)

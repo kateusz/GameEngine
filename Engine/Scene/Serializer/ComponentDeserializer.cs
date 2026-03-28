@@ -11,8 +11,10 @@ using Serilog;
 
 namespace Engine.Scene.Serializer;
 
-[SuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.")]
-[SuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+[SuppressMessage("AOT",
+    "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.")]
+[SuppressMessage("Trimming",
+    "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
 internal sealed class ComponentDeserializer(
     IAudioEngine audioEngine,
     ITextureFactory textureFactory,
@@ -75,6 +77,9 @@ internal sealed class ComponentDeserializer(
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
+            case nameof(LightingComponent):
+                AddComponent<LightingComponent>(entity, componentObj);
+                break;
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
         }
@@ -128,6 +133,9 @@ internal sealed class ComponentDeserializer(
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
+            case nameof(LightingComponent):
+                AddComponent<LightingComponent>(entity, componentObj);
+                break;
             // Unknown types silently skipped (version tolerance)
         }
     }
@@ -142,7 +150,7 @@ internal sealed class ComponentDeserializer(
         var scriptComponentObj = BuildNativeScriptJson(component);
 
         var components = targetObj[componentsKey] as JsonArray
-            ?? throw new InvalidSceneJsonException($"'{componentsKey}' must be a JSON array");
+                         ?? throw new InvalidSceneJsonException($"'{componentsKey}' must be a JSON array");
         components.Add(scriptComponentObj);
     }
 
@@ -251,6 +259,18 @@ internal sealed class ComponentDeserializer(
             catch (Exception ex)
             {
                 Logger.Warning(ex,
+                    "Failed to create cube for entity '{EntityName}'.", entity.Name);
+            }
+        }
+        else
+        {
+            try
+            {
+                component.Mesh = meshFactory.CreateCube();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex,
                     "Failed to load mesh '{MeshPath}' for entity '{EntityName}'. Mesh component will be created without mesh.",
                     component.MeshPath, entity.Name);
             }
@@ -297,6 +317,7 @@ internal sealed class ComponentDeserializer(
                         }
                     }
                 }
+
                 component.ScriptableEntity = scriptInstance;
             }
             else

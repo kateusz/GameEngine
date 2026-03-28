@@ -92,6 +92,7 @@ internal sealed class PrefabSerializer(
         SerializeComponent<AudioListenerComponent>(entity, componentsArray, nameof(AudioListenerComponent));
         SerializeComponent<AnimationComponent>(entity, componentsArray, nameof(AnimationComponent));
         SerializeComponent<AudioSourceComponent>(entity, componentsArray, nameof(AudioSourceComponent));
+        SerializeComponent<LightingComponent>(entity, componentsArray, nameof(LightingComponent));
         componentDeserializer.SerializeNativeScriptComponentToArray(entity, componentsArray);
     }
 
@@ -124,6 +125,7 @@ internal sealed class PrefabSerializer(
         if (entity.HasComponent<AudioSourceComponent>()) entity.RemoveComponent<AudioSourceComponent>();
         if (entity.HasComponent<AnimationComponent>()) entity.RemoveComponent<AnimationComponent>();
         if (entity.HasComponent<NativeScriptComponent>()) entity.RemoveComponent<NativeScriptComponent>();
+        if (entity.HasComponent<LightingComponent>()) entity.RemoveComponent<LightingComponent>();
     }
 
     private static JsonArray GetJsonArray(JsonObject jsonObject, string key)

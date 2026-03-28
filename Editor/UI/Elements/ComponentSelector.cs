@@ -38,6 +38,7 @@ public static class ComponentSelector
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
             DrawComponentMenuItem<AnimationComponent>("Animation Component", entity);
+            DrawComponentMenuItem<LightingComponent>("Lighting Component", entity);
 
             ImGui.EndPopup();
         }

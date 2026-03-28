@@ -5,19 +5,22 @@ using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory) : IGraphics3D
+internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory, IMeshFactory meshFactory) : IGraphics3D
 {
-    private IShader _phongShader = null!;
-    private Vector3 _lightPosition = new(0.0f, 3.0f, 3.0f);
-    private Vector3 _lightColor = new(1.0f, 1.0f, 1.0f);
-    private float _shininess = 32.0f;
+    private IShader _meshShader = null!;
+    private IShader _lightShader = null!;
+    private Mesh _cubeMesh = null!;
+
+    private Vector3 _lightColor = Vector3.One;
 
     private readonly Statistics _stats = new();
     private bool _disposed;
 
     public void Init()
     {
-        _phongShader = shaderFactory.Create("assets/shaders/opengl/phong.vert", "assets/shaders/opengl/phong.frag");
+        _meshShader = shaderFactory.Create("assets/shaders/opengl/lighting-colors.vert", "assets/shaders/opengl/lighting-colors.frag");
+        _lightShader = shaderFactory.Create("assets/shaders/opengl/light-cube.vert", "assets/shaders/opengl/light-cube.frag");
+        _cubeMesh = meshFactory.CreateCube();
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -30,47 +33,30 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
             return;
         }
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
-        _phongShader.Bind();
-        _phongShader.SetMat4("u_ViewProjection", viewProj);
-        _phongShader.SetFloat3("u_LightPosition", _lightPosition);
-        _phongShader.SetFloat3("u_LightColor", _lightColor);
-        _phongShader.SetFloat3("u_ViewPosition", new Vector3(transform.M41, transform.M42, transform.M43));
-        _phongShader.SetFloat("u_Shininess", _shininess);
+        _meshShader.Bind();
+        _meshShader.SetMat4("u_ViewProjection", viewProj);
+        _meshShader.SetFloat3("lightColor", _lightColor);
     }
 
     public void BeginScene(IViewCamera camera)
     {
-        var viewProj = camera.GetViewProjectionMatrix();
-        _phongShader.Bind();
-        _phongShader.SetMat4("u_ViewProjection", viewProj);
-        _phongShader.SetFloat3("u_LightPosition", _lightPosition);
-        _phongShader.SetFloat3("u_LightColor", _lightColor);
-        _phongShader.SetFloat3("u_ViewPosition", camera.GetPosition());
-        _phongShader.SetFloat("u_Shininess", _shininess);
+        _meshShader.Bind();
+        _meshShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+        _meshShader.SetFloat3("lightColor", _lightColor);
     }
 
     public void EndScene()
     {
-        _phongShader.Unbind();
+        _meshShader.Unbind();
     }
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 color, int entityId = -1)
     {
-        _phongShader.Bind();
-        _phongShader.SetMat4("u_Model", transform);
-
-        // Normal matrix: inverse(M). SetMat4 transposes on upload (row-major → column-major),
-        // so the shader receives transpose(inverse(M)), correct for row-vector normal transform.
-        var inverted = Matrix4x4.Invert(transform, out var normalMatrix);
-        if (!inverted) normalMatrix = Matrix4x4.Identity;
-        _phongShader.SetMat4("u_NormalMatrix", normalMatrix);
-        _phongShader.SetFloat4("u_Color", color);
-        
-        var hasTexture = mesh.DiffuseTexture.Width > 1;
-        _phongShader.SetInt("u_UseTexture", hasTexture ? 1 : 0);
-        
+        _meshShader.Bind();
+        _meshShader.SetMat4("u_Model", transform);
+        _meshShader.SetFloat3("objectColor", new Vector3(color.X, color.Y, color.Z));
+        _meshShader.SetInt("u_EntityID", entityId);
         mesh.Bind();
-        
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
     }
@@ -81,49 +67,56 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         if (mesh == null)
             return;
 
-        var color = modelRenderer.Color;
-
-        // If an override texture is specified, temporarily replace the mesh's texture
-        var originalTexture = mesh.DiffuseTexture;
-        if (modelRenderer.OverrideTexture != null)
-        {
-            mesh.DiffuseTexture = modelRenderer.OverrideTexture;
-        }
-
-        DrawMesh(transform, mesh, color, entityId);
-
-        // Restore the original texture
-        if (modelRenderer.OverrideTexture != null)
-        {
-            mesh.DiffuseTexture = originalTexture;
-        }
+        DrawMesh(transform, mesh, modelRenderer.Color, entityId);
     }
-    
-    public void SetLightPosition(Vector3 position)
-    {
-        _lightPosition = position;
-    }
+
+    public void SetLightPosition(Vector3 position) { }
 
     public void SetLightColor(Vector3 color)
     {
         _lightColor = color;
     }
 
-    public void SetShininess(float shininess)
+    public void SetShininess(float shininess) { }
+
+    public void BeginLightVisualization(Camera camera, Matrix4x4 transform)
     {
-        _shininess = shininess;
+        if (!Matrix4x4.Invert(transform, out var viewMatrix))
+            return;
+        var viewProj = viewMatrix * camera.GetProjectionMatrix();
+        rendererApi.SetDepthTest(false);
+        _lightShader.Bind();
+        _lightShader.SetMat4("u_ViewProjection", viewProj);
     }
 
-    // Stats
+    public void BeginLightVisualization(IViewCamera camera)
+    {
+        rendererApi.SetDepthTest(false);
+        _lightShader.Bind();
+        _lightShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+    }
+
+    public void DrawLightVisualization(Vector3 position, float scale = 0.5f)
+    {
+        var model = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateTranslation(position);
+        _lightShader.SetMat4("u_Model", model);
+        _cubeMesh.Bind();
+        rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
+        _stats.DrawCalls++;
+    }
+
+    public void EndLightVisualization()
+    {
+        _lightShader.Unbind();
+        rendererApi.SetDepthTest(true);
+    }
+
     public void ResetStats()
     {
         _stats.DrawCalls = 0;
     }
 
-    public Statistics GetStats()
-    {
-        return _stats;
-    }
+    public Statistics GetStats() => _stats;
 
     public void SetClearColor(Vector4 color) => rendererApi.SetClearColor(color);
 
@@ -134,8 +127,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         if (_disposed)
             return;
 
-        // Factory owns shader lifetime; just release our reference
-        _phongShader = null!;
+        _meshShader = null!;
+        _lightShader = null!;
+        _cubeMesh?.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

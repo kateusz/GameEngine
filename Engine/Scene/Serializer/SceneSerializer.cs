@@ -145,6 +145,7 @@ internal sealed class SceneSerializer(
         SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
         SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
         SerializeComponent<AudioSourceComponent>(entity, entityObj, nameof(AudioSourceComponent));
+        SerializeComponent<LightingComponent>(entity, entityObj, nameof(LightingComponent));
         componentDeserializer.SerializeNativeScriptComponent(entity, entityObj, ComponentsKey);
 
         jsonEntities.Add(entityObj);
