@@ -16,7 +16,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
         <PackageReference Include="NVorbis" Version="0.10.5" />
-        <PackageReference Include="openal.redist" Version="2.0.7" />
+        <PackageReference Include="OpenAL.Soft" Version="1.23.1" />
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
@@ -44,11 +44,13 @@
 
     <!-- No asset directories needed for Engine project -->
 
-    <!-- Copy OpenAL native DLL to output directory -->
+    <!-- Copy OpenAL Soft on Windows from NuGet runtimes folder to output root -->
     <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
         <PropertyGroup>
-            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.redist\2.0.7\build\native\bin\x64\OpenAL32.dll</OpenALNativePath>
+            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
         </PropertyGroup>
+        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled."
+                 Condition="!Exists('$(OpenALNativePath)')" />
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 

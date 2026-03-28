@@ -27,11 +27,13 @@
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/fonts;$(OutputPath)assets/fonts/opensans;$(OutputPath)assets/game;$(OutputPath)assets/game/textures;$(OutputPath)assets/objModels;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures;$(OutputPath)assets/textures/skybox;$(OutputPath)Resources;$(OutputPath)libs" />
     </Target>
 
-    <!-- Copy OpenAL native DLL to output directory -->
+    <!-- Copy OpenAL Soft on Windows from NuGet runtimes folder to output root -->
     <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
         <PropertyGroup>
-            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.redist\2.0.7\build\native\bin\x64\OpenAL32.dll</OpenALNativePath>
+            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
         </PropertyGroup>
+        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled."
+                 Condition="!Exists('$(OpenALNativePath)')" />
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 

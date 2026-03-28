@@ -21,7 +21,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
     {
         try
         {
-            _device = alc.OpenDevice("");
+            _device = alc.OpenDevice(null);
             if (_device == null)
             {
                 Logger.Warning("Cannot open audio device - audio will be disabled. This is normal if no audio hardware is available.");
