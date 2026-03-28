@@ -7,6 +7,7 @@ namespace Engine.Scene;
 internal sealed class SceneSystemRegistry(
     PrimaryCameraSystem primaryCameraSystem,
     SpriteRenderingSystem spriteRenderingSystem,
+    LightingSystem lightingSystem,
     ModelRenderingSystem modelRenderingSystem,
     ScriptUpdateSystem scriptUpdateSystem,
     SubTextureRenderingSystem subTextureRenderingSystem,
@@ -29,6 +30,7 @@ internal sealed class SceneSystemRegistry(
                 primaryCameraSystem,
                 spriteRenderingSystem,
                 subTextureRenderingSystem,
+                lightingSystem,
                 modelRenderingSystem,
                 physicsDebugRenderSystem,
                 audioSystem,

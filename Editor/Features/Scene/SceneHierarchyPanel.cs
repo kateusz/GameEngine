@@ -116,14 +116,14 @@ public class SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget
                 return;
             }
 
-            foreach (var entity in _filteredEntities)
+            foreach (var entity in _filteredEntities.ToList())
             {
                 DrawEntityNodeFiltered(entity);
             }
         }
         else
         {
-            foreach (var entity in _scene?.Entities ?? [])
+            foreach (var entity in _scene?.Entities.ToList() ?? [])
             {
                 DrawEntityNode(entity);
             }
@@ -188,6 +188,7 @@ public class SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget
         if (entityDeleted)
         {
             _scene.DestroyEntity(entity);
+            _filteredEntities.Remove(entity);
             if (Equals(_selectionContext, entity))
                 _selectionContext = null;
         }

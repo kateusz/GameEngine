@@ -1,3 +1,5 @@
+using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 
 namespace Engine.Scene.Components;
@@ -7,6 +9,9 @@ public class CameraComponent : IComponent
     public SceneCamera Camera { get; set; } = new();
     public bool Primary { get; set; }
     public bool FixedAspectRatio { get; set; } = false;
+
+    [JsonIgnore]
+    public Matrix4x4? CameraViewTransform { get; set; }
 
     public IComponent Clone()
     {

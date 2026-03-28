@@ -166,7 +166,20 @@ internal sealed class Scene(
         }
 
         graphics3D.EndScene();
-        
+
+        var lightGroup = context.View<LightingComponent>().ToList();
+        if (lightGroup.Count > 0)
+        {
+            var (_, firstLight) = lightGroup[0];
+            graphics3D.SetLightPosition(firstLight.Position);
+            graphics3D.SetLightColor(firstLight.Color);
+
+            graphics3D.BeginLightVisualization(camera);
+            foreach (var (_, lightingComponent) in lightGroup)
+                graphics3D.DrawLightVisualization(lightingComponent.Position);
+            graphics3D.EndLightVisualization();
+        }
+
         graphics2D.BeginScene(camera);
 
         var spriteGroup = context.View<SpriteRendererComponent>();

@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
@@ -19,16 +20,11 @@ public class MeshComponentEditor(
         ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", entity, () =>
         {
             var meshComponent = entity.GetComponent<MeshComponent>();
-
-            ButtonDrawer.DrawButton("Load OBJ", 100, 0, () =>
+            
+            ButtonDrawer.DrawButton("Load Cube", EditorUIConstants.DefaultButtonWidth, 0, () =>
             {
-                // TODO
-                const string objPath = "assets/objModels/person.model";
-                if (!File.Exists(objPath))
-                    return;
-
-                var mesh = meshFactory.Create(objPath);
-                meshComponent.SetMesh(mesh, objPath);
+                var cube = meshFactory.CreateCube();
+                meshComponent.SetMesh(cube);
             });
 
             if (meshComponent.Mesh != null)

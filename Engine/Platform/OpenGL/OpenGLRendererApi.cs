@@ -46,6 +46,15 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "LineWidth");
     }
 
+    public void SetDepthTest(bool enabled)
+    {
+        if (enabled)
+            SilkNetContext.GL.Enable(EnableCap.DepthTest);
+        else
+            SilkNetContext.GL.Disable(EnableCap.DepthTest);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthTest");
+    }
+
     public void Init()
     {
         SilkNetContext.GL.Enable(EnableCap.Blend);

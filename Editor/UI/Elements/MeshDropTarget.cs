@@ -7,7 +7,7 @@ namespace Editor.UI.Elements;
 
 /// <summary>
 /// UI element that provides drag-and-drop functionality for mesh files.
-/// Allows users to drag mesh files (.obj) from the content browser onto mesh properties.
+/// Allows users to drag 3d models from the content browser onto mesh properties.
 /// </summary>
 public static class MeshDropTarget
 {
@@ -27,8 +27,7 @@ public static class MeshDropTarget
             path =>
             {
                 var fullPath = Path.Combine(assetsManager.AssetsPath, path);
-                var mesh = meshFactory.Create(fullPath);
-                meshComponent.SetMesh(mesh, path);
+                // TODO: laod model and set Mesh
             });
     }
 }

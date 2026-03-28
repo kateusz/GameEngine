@@ -147,6 +147,15 @@ internal sealed class ScriptEngine : IScriptEngine
                     case MouseButtonPressedEvent mbpe:
                         scriptComponent.ScriptableEntity.OnMouseButtonPressed(mbpe.Button);
                         break;
+                    case MouseMovedEvent mme:
+                        scriptComponent.ScriptableEntity.OnMouseMoved(mme.X, mme.Y);
+                        break;
+                    case MouseButtonReleasedEvent mbre:
+                        scriptComponent.ScriptableEntity.OnMouseButtonReleased(mbre.Button);
+                        break;
+                    case MouseScrolledEvent mse:
+                        scriptComponent.ScriptableEntity.OnMouseScrolled(mse.XOffSet, mse.YOffset);
+                        break;
                 }
             }
             catch (Exception ex)

@@ -80,6 +80,18 @@ public abstract class ScriptableEntity
     {
     }
 
+    public virtual void OnMouseMoved(float x, float y)
+    {
+    }
+
+    public virtual void OnMouseButtonReleased(int button)
+    {
+    }
+
+    public virtual void OnMouseScrolled(float xOffset, float yOffset)
+    {
+    }
+
     #endregion
 
     #region Physics Event Methods
