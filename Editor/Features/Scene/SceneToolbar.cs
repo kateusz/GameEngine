@@ -17,7 +17,8 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     private Texture2D _iconMove;
     private Texture2D _iconScale;
 
-    public bool ShowGrid { get; set; } = true;
+    public bool ShowGrid { get; set; } = false;
+    public bool ShowGrid3D { get; set; } = true;
 
     public event Action OnPlayScene;
     public event Action OnStopScene;
@@ -102,10 +103,18 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        // Grid toggle
+        // Grid toggles
         var showGrid = ShowGrid;
         ButtonDrawer.DrawToggleButton("⊞", "⊞", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        LayoutDrawer.DrawTooltip("Show 2D Grid");
         ShowGrid = showGrid;
+
+        ImGui.SameLine();
+
+        var showGrid3D = ShowGrid3D;
+        ButtonDrawer.DrawToggleButton("⊟", "⊟", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        LayoutDrawer.DrawTooltip("Show 3D Grid");
+        ShowGrid3D = showGrid3D;
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
