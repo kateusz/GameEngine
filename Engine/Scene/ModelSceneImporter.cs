@@ -49,11 +49,11 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
         if (addDefaultLighting)
         {
             var lightEntity = scene.CreateEntity("Sun_Light");
-            lightEntity.AddComponent<TransformComponent>();
             var light = lightEntity.AddComponent<LightingComponent>();
             light.Type = LightType.Directional;
             light.Direction = new Vector3(-0.3f, -1.0f, -0.5f);
             light.Color = new Vector3(1.0f, 0.95f, 0.9f);
+            light.Position = new Vector3(-1.39f, 73, 35);
             result.LightEntity = lightEntity;
 
             Logger.Information("Added default lighting at {Position}", light.Position);

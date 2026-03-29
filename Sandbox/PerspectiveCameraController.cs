@@ -23,7 +23,7 @@ public class PerspectiveCameraController
     private const float MoveSpeed = 10.0f;
     private const float MouseSensitivity = 0.003f;
     private const float ScrollSpeedMultiplier = 2.0f;
-    private float _speedMultiplier = 10.0f;
+    private float _speedMultiplier = 2.0f;
 
     public Vector3 Position => _position;
     public float Pitch => _pitch;

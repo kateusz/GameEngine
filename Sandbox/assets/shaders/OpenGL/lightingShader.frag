@@ -47,7 +47,7 @@ void main()
     ? texture(u_SpecularMap, v_TexCoord).rgb
     : vec3(0.5);
 
-    float ambientStrength = 0.1;
+    float ambientStrength = 0.35;
     vec3 ambient = ambientStrength * u_LightColor * diffuseColor;
 
     vec3 lightDir = (u_LightType == 1)

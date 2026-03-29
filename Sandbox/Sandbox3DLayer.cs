@@ -45,7 +45,7 @@ public class Sandbox3DLayer(
 
         _cameraEntity = result.CameraEntity;
 
-        var startPos = new Vector3(-8.93f, 3.39f, 12.91f);
+        var startPos = new Vector3(-4.72f, 3.39f, 22.50f);
         var initialYaw = 0f;
         if (_cameraEntity != null)
         {
