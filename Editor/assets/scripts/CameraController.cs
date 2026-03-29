@@ -5,6 +5,7 @@ using Engine.Math;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
+using System.Collections.Generic;
 
 namespace Editor.assets.scripts;
 
@@ -12,7 +13,7 @@ namespace Editor.assets.scripts;
 public class CameraController : ScriptableEntity
 {
     private const float MoveSpeed = 10.0f;
-    private const float ScrollSpeedMultiplier = 2.0f;
+    private const float ScrollSpeedMultiplier = 1.0f;
 
     private bool _isPerspective;
 
@@ -107,7 +108,7 @@ public class CameraController : ScriptableEntity
         _lastMouseX = x;
         _lastMouseY = y;
 
-        _yaw += deltaX * CameraConfig.EditorMouseSensitivity;
+        _yaw -= deltaX * CameraConfig.EditorMouseSensitivity;
         _pitch += deltaY * CameraConfig.EditorMouseSensitivity;
         _pitch = System.Math.Clamp(_pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);
     }

@@ -104,7 +104,7 @@ public class PerspectiveCameraController
         _lastMouseX = x;
         _lastMouseY = y;
 
-        _yaw += deltaX * MouseSensitivity;
+        _yaw -= deltaX * MouseSensitivity;
         _pitch += deltaY * MouseSensitivity;
 
         _pitch = System.Math.Clamp(_pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);

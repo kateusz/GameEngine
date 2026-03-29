@@ -204,9 +204,12 @@ internal sealed class Graphics3D(
         if (_disposed)
             return;
 
+        _meshShader?.Dispose();
         _meshShader = null!;
+        _lightShader?.Dispose();
         _lightShader = null!;
         _cubeMesh?.Dispose();
+        _cubeMesh = null!;
 
         _disposed = true;
         GC.SuppressFinalize(this);
