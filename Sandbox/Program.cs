@@ -31,6 +31,7 @@ public class Program
             app.PushLayer(sandboxLayer);
             app.Run();
 
+            Log.CloseAndFlush();
             container.Dispose();
         }
         catch (Exception ex)

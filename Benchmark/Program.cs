@@ -1,5 +1,6 @@
 ﻿using DryIoc;
 using Engine.Core.DI;
+using Serilog;
 
 namespace Benchmark;
 
@@ -20,6 +21,7 @@ public class Program
         app.PushLayer(layer);
         app.Run();
         
+        Log.CloseAndFlush();
         container.Dispose();
     }
 }

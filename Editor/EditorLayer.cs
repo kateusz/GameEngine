@@ -575,13 +575,6 @@ public class EditorLayer(
                         sceneManager.Open(PathBuilder.Build(path));
                     });
 
-                // var fbxImportResult = FbxDropTarget.Draw();
-                // if (fbxImportResult is { SceneRadius: > 0 })
-                // {
-                //     _editorCamera.SetFocalPoint(fbxImportResult.SceneCenter);
-                //     _editorCamera.SetDistance(fbxImportResult.SceneRadius * 1.5f);
-                // }
-
                 // Handle viewport interactions via ViewportToolManager
                 if (ImGui.IsWindowHovered())
                 {
