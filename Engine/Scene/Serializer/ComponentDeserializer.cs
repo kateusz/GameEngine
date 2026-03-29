@@ -255,7 +255,14 @@ internal sealed class ComponentDeserializer(
             try
             {
                 var result = meshFactory.LoadModel(component.ModelPath);
-                component.SetModel(result.Meshes, component.ModelPath);
+                if (component.MeshIndex.HasValue && component.MeshIndex.Value < result.Meshes.Count)
+                {
+                    component.Meshes = [result.Meshes[component.MeshIndex.Value]];
+                }
+                else
+                {
+                    component.SetModel(result.Meshes, component.ModelPath);
+                }
             }
             catch (Exception ex)
             {
@@ -284,6 +291,16 @@ internal sealed class ComponentDeserializer(
     {
         var component = componentObj.Deserialize<ModelRendererComponent>(_options);
         if (component == null) return;
+
+        foreach (var material in component.Materials)
+        {
+            if (!string.IsNullOrWhiteSpace(material.DiffuseTexturePath))
+                material.DiffuseTexture = textureFactory.Create(material.DiffuseTexturePath);
+            if (!string.IsNullOrWhiteSpace(material.SpecularTexturePath))
+                material.SpecularTexture = textureFactory.Create(material.SpecularTexturePath);
+            if (!string.IsNullOrWhiteSpace(material.NormalTexturePath))
+                material.NormalTexture = textureFactory.Create(material.NormalTexturePath);
+        }
 
         entity.AddComponent<ModelRendererComponent>(component);
     }

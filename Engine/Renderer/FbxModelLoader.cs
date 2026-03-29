@@ -150,19 +150,21 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
     private unsafe MeshMaterial ExtractMaterial(Silk.NET.Assimp.Scene* scene, uint materialIndex, string directory)
     {
         var aiMaterial = scene->MMaterials[materialIndex];
-        var material = new MeshMaterial();
-
-        material.DiffuseTexture = LoadMaterialTexture(aiMaterial, TextureType.Diffuse, directory, out var diffusePath)
-                                  ?? textureFactory.GetWhiteTexture();
-        material.DiffuseTexturePath = diffusePath;
-
-        material.SpecularTexture = LoadMaterialTexture(aiMaterial, TextureType.Specular, directory, out var specularPath)
-                                   ?? textureFactory.GetBlackTexture();
-        material.SpecularTexturePath = specularPath;
+        var material = new MeshMaterial
+        {
+            DiffuseTexture = LoadMaterialTexture(aiMaterial, TextureType.Diffuse, directory, out var diffusePath)
+                             ?? textureFactory.GetWhiteTexture(),
+            DiffuseTexturePath = diffusePath,
+            SpecularTexture = LoadMaterialTexture(aiMaterial, TextureType.Specular, directory, out var specularPath)
+                              ?? textureFactory.GetBlackTexture(),
+            SpecularTexturePath = specularPath
+        };
 
         var normalTexture = LoadMaterialTexture(aiMaterial, TextureType.Normals, directory, out var normalPath);
+        
         if (normalTexture == null)
             normalTexture = LoadMaterialTexture(aiMaterial, TextureType.Height, directory, out normalPath);
+        
         material.NormalTexture = normalTexture ?? textureFactory.GetFlatNormalTexture();
         material.NormalTexturePath = normalPath;
 

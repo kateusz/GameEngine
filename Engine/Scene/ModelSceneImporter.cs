@@ -8,7 +8,7 @@ namespace Engine.Scene;
 public class ModelSceneImporter(IMeshFactory meshFactory)
 {
     private static readonly ILogger Logger = Log.ForContext<ModelSceneImporter>();
-
+    
     public ImportResult Import(IScene scene, string modelPath, bool addDefaultLighting = true, bool addCamera = true)
     {
         Logger.Information("Importing model from {ModelPath}", modelPath);
@@ -30,6 +30,8 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
             // Decomposing to Euler angles is lossy and corrupts the transform.
             var meshComponent = entity.AddComponent<MeshComponent>();
             meshComponent.SetMesh(mesh);
+            meshComponent.ModelPath = modelPath;
+            meshComponent.MeshIndex = i;
 
             var modelRenderer = entity.AddComponent<ModelRendererComponent>();
             modelRenderer.CastShadows = true;

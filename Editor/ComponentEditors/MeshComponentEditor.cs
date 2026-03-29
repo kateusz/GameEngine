@@ -27,13 +27,19 @@ public class MeshComponentEditor(
                 meshComponent.SetModel([cube]);
             });
 
+            ImGui.SameLine();
+            ButtonDrawer.DrawButton("Drop FBX", EditorUIConstants.DefaultButtonWidth, 0);
+            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory);
+
             if (meshComponent.MeshCount > 0)
             {
                 ImGui.Text($"Meshes: {meshComponent.MeshCount}");
+                ImGui.BeginChild("MeshList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border, ImGuiWindowFlags.None);
                 foreach (var mesh in meshComponent.Meshes)
                 {
                     ImGui.Text($"  {mesh.Name}: {mesh.Vertices.Count} verts, {mesh.Indices.Count} indices");
                 }
+                ImGui.EndChild();
             }
             else if (!string.IsNullOrWhiteSpace(meshComponent.ModelPath))
             {
@@ -43,8 +49,6 @@ public class MeshComponentEditor(
             {
                 ImGui.Text("Mesh: None");
             }
-
-            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory);
         });
     }
 }

@@ -7,6 +7,7 @@ namespace Engine.Scene.Components;
 public class MeshComponent : IComponent
 {
     public string? ModelPath { get; set; }
+    public int? MeshIndex { get; set; }
 
     [JsonIgnore]
     public List<Mesh> Meshes { get; set; } = [];
@@ -38,7 +39,8 @@ public class MeshComponent : IComponent
         return new MeshComponent
         {
             Meshes = Meshes,
-            ModelPath = ModelPath
+            ModelPath = ModelPath,
+            MeshIndex = MeshIndex
         };
     }
 }

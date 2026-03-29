@@ -7,6 +7,7 @@ using Editor.Features.Settings;
 using Editor.Input;
 using Editor.Panels;
 using Editor.UI.Drawers;
+using Editor.UI.Elements;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Editor.Publisher;
@@ -58,7 +59,8 @@ public class EditorLayer(
     ViewportGrid3D viewportGrid3D,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
-    IContentScaleProvider contentScaleProvider) : ILayer
+    IContentScaleProvider contentScaleProvider,
+    FbxDropTarget fbxDropTarget) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -570,6 +572,13 @@ public class EditorLayer(
                     DragDropDrawer.ContentBrowserItemPayload,
                     sceneValidator,
                     onDropped: path => { sceneManager.Open(Path.Combine(assetsManager.AssetsPath, path)); });
+
+                var fbxImportResult = fbxDropTarget.HandleViewportDrop();
+                if (fbxImportResult is { SceneRadius: > 0 })
+                {
+                    _editorCamera.SetFocalPoint(fbxImportResult.SceneCenter);
+                    _editorCamera.SetDistance(fbxImportResult.SceneRadius * 1.5f);
+                }
 
                 // Handle viewport interactions via ViewportToolManager
                 if (ImGui.IsWindowHovered())

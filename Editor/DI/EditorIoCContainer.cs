@@ -11,6 +11,7 @@ using Editor.UI.Elements;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
+using Engine.Scene;
 
 namespace Editor.DI;
 
@@ -28,6 +29,8 @@ public static class EditorIoCContainer
         );
         container.Register<EditorSettingsUI>(Reuse.Singleton);
         container.Register<AudioDropTarget>(Reuse.Singleton);
+        container.Register<FbxDropTarget>(Reuse.Singleton);
+        container.Register<ModelSceneImporter>(Reuse.Singleton);
         container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
     
         container.Register<TransformComponentEditor>(Reuse.Singleton);
