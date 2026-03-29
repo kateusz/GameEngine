@@ -1,14 +1,11 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
-using Engine.Core;
-using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 
 namespace Editor.ComponentEditors;
 
-public class ModelRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
-    : IComponentEditor
+public class ModelRendererComponentEditor : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -18,11 +15,6 @@ public class ModelRendererComponentEditor(IAssetsManager assetsManager, ITexture
 
             UIPropertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
                 newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);
-            ModelTextureDropTarget.Draw("Texture", texture =>
-            {
-                modelRendererComponent.OverrideTexture = texture;
-                modelRendererComponent.OverrideTexturePath = texture.Path;
-            }, assetsManager, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Cast Shadows", modelRendererComponent.CastShadows,
                 newValue => modelRendererComponent.CastShadows = (bool)newValue);
             UIPropertyRenderer.DrawPropertyField("Receive Shadows", modelRendererComponent.ReceiveShadows,

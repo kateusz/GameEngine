@@ -6,6 +6,10 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
 {
     private Texture2D? _whiteTexture;
     private readonly Lock _whiteLock = new();
+    private Texture2D? _blackTexture;
+    private readonly Lock _blackLock = new();
+    private Texture2D? _flatNormalTexture;
+    private readonly Lock _flatNormalLock = new();
     private readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
@@ -24,16 +28,45 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
             _whiteTexture = Create(1, 1);
 
             // Set white pixel data (0xFFFFFFFF = white in RGBA format)
-            unsafe
-            {
-                var white = 0xFFFFFFFF;
-                _whiteTexture.SetData(white, 4);
-            }
+            var white = 0xFFFFFFFF;
+            _whiteTexture.SetData(white, 4);
 
             return _whiteTexture;
         }
     }
     
+    public Texture2D GetBlackTexture()
+    {
+        if (_blackTexture != null)
+            return _blackTexture;
+
+        lock (_blackLock)
+        {
+            if (_blackTexture != null)
+                return _blackTexture;
+
+            _blackTexture = Create(1, 1);
+            _blackTexture.SetData(0xFF000000u, 4);
+            return _blackTexture;
+        }
+    }
+
+    public Texture2D GetFlatNormalTexture()
+    {
+        if (_flatNormalTexture != null)
+            return _flatNormalTexture;
+
+        lock (_flatNormalLock)
+        {
+            if (_flatNormalTexture != null)
+                return _flatNormalTexture;
+
+            _flatNormalTexture = Create(1, 1);
+            _flatNormalTexture.SetData(0xFFFF8080u, 4);
+            return _flatNormalTexture;
+        }
+    }
+
     public Texture2D Create(string path)
     {
         // Normalize the path to ensure cache consistency across different path representations
@@ -108,6 +141,18 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
         {
             _whiteTexture?.Dispose();
             _whiteTexture = null;
+        }
+
+        lock (_blackLock)
+        {
+            _blackTexture?.Dispose();
+            _blackTexture = null;
+        }
+
+        lock (_flatNormalLock)
+        {
+            _flatNormalTexture?.Dispose();
+            _flatNormalTexture = null;
         }
 
         ClearCache();

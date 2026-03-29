@@ -8,16 +8,24 @@ namespace Engine.Renderer;
 
 public class Mesh : IDisposable
 {
-    public record struct Vertex(Vector3 Position, Vector3 Normal, Vector2 TexCoord, int EntityId = -1)
+    public record struct Vertex(
+        Vector3 Position,
+        Vector3 Normal,
+        Vector2 TexCoord,
+        Vector3 Tangent,
+        Vector3 Bitangent,
+        int EntityId = -1)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2) + sizeof(int);
+        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3) + sizeof(int); // 60 bytes
     }
+    
 
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
     public Texture2D DiffuseTexture { get; set; }
     public List<Texture2D> Textures { get; set; }
+    public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
     
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
@@ -59,13 +67,14 @@ public class Mesh : IDisposable
         // Create vertex buffer
         _vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
 
-        var layout = new BufferLayout(new []
-        {
+        var layout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float3, "a_Normal"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
+            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
             new BufferElement(ShaderDataType.Int, "a_EntityID")
-        });
+        ]);
 
         _vertexBuffer.SetLayout(layout);
         _vertexArray.AddVertexBuffer(_vertexBuffer);
@@ -92,7 +101,6 @@ public class Mesh : IDisposable
             throw new InvalidOperationException($"Mesh '{Name}' not initialized. Call Initialize() before binding.");
 
         _vertexArray.Bind();
-        DiffuseTexture.Bind();
     }
 
     public void Unbind()

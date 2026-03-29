@@ -1,6 +1,8 @@
 ﻿using DryIoc;
 using Engine.Core;
 using Engine.Core.DI;
+using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace Sandbox;
 
@@ -12,12 +14,23 @@ public class Program
         {
             var container = new Container();
             ConfigureContainer(container);
+            
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .Enrich.WithProperty("Application", "Sandbox")
+                .Enrich.WithThreadId()
+                .WriteTo.Async(a =>
+                    a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                        theme: ConsoleTheme.None))
+                .CreateLogger();
+
+            Log.Information("Sandbox has started.");
 
             var app = container.Resolve<SandboxApplication>();
             var sandboxLayer = container.Resolve<ILayer>();
             app.PushLayer(sandboxLayer);
             app.Run();
-            
+
             container.Dispose();
         }
         catch (Exception ex)
@@ -43,11 +56,12 @@ public class Program
     private static void ConfigureContainer(Container container)
     {
         EngineIoCContainer.Register(container);
-        
+
         container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
-        container.Register<ILayer, Sandbox2DLayer>(Reuse.Singleton);
+        container.Register<Engine.Scene.ModelSceneImporter>(Reuse.Singleton);
+        container.Register<ILayer, Sandbox3DLayer>(Reuse.Singleton);
         container.Register<SandboxApplication>(Reuse.Singleton);
-        
+
         container.ValidateAndThrow();
     }
 }

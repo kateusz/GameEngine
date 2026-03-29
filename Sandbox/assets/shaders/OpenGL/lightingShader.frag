@@ -1,13 +1,11 @@
 #version 330 core
 
-layout(location = 0) out vec4 o_Color;
-layout(location = 1) out int  o_EntityID;
+out vec4 o_Color;
 
 in vec3 v_FragPos;
 in vec3 v_Normal;
 in vec2 v_TexCoord;
 in mat3 v_TBN;
-flat in int v_EntityID;
 
 uniform vec3  u_LightPosition;
 uniform vec3  u_ViewPosition;
@@ -57,6 +55,5 @@ void main()
     float spec      = pow(max(dot(viewDir, reflectDir), 0.0), u_Shininess);
     vec3 specular   = spec * u_LightColor * specularColor;
 
-    o_Color    = vec4(ambient + diffuse + specular, u_Color.a);
-    o_EntityID = u_EntityID;
+    o_Color = vec4(ambient + diffuse + specular, u_Color.a);
 }

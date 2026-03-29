@@ -11,7 +11,7 @@ namespace Editor.UI.Elements;
 /// </summary>
 public static class MeshDropTarget
 {
-    private static readonly string[] SupportedExtensions = [".obj"];
+    private static readonly string[] SupportedExtensions = [".obj", ".fbx", ".gltf", ".glb"];
 
     /// <summary>
     /// Draws a drag-and-drop target for mesh files.
@@ -27,7 +27,8 @@ public static class MeshDropTarget
             path =>
             {
                 var fullPath = Path.Combine(assetsManager.AssetsPath, path);
-                // TODO: laod model and set Mesh
+                var result = meshFactory.LoadModel(fullPath);
+                meshComponent.SetModel(result.Meshes, fullPath);
             });
     }
 }

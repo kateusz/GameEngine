@@ -13,6 +13,20 @@ public interface ITextureFactory
     Texture2D GetWhiteTexture();
 
     /// <summary>
+    /// Gets a shared singleton 1x1 black texture (RGBA 0,0,0,255).
+    /// This method is thread-safe and ensures only one black texture is created.
+    /// </summary>
+    /// <returns>A shared black texture instance.</returns>
+    Texture2D GetBlackTexture();
+
+    /// <summary>
+    /// Gets a shared singleton 1x1 flat normal map texture (RGBA 128,128,255,255).
+    /// This method is thread-safe and ensures only one flat normal texture is created.
+    /// </summary>
+    /// <returns>A shared flat normal texture instance.</returns>
+    Texture2D GetFlatNormalTexture();
+
+    /// <summary>
     /// Creates or retrieves a cached texture from the specified file path.
     /// Uses weak-reference-based caching to prevent duplicate GPU resource allocations
     /// while allowing the garbage collector to reclaim unused textures.

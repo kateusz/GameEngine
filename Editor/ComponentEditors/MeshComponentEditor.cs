@@ -20,22 +20,24 @@ public class MeshComponentEditor(
         ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", entity, () =>
         {
             var meshComponent = entity.GetComponent<MeshComponent>();
-            
+
             ButtonDrawer.DrawButton("Load Cube", EditorUIConstants.DefaultButtonWidth, 0, () =>
             {
                 var cube = meshFactory.CreateCube();
-                meshComponent.SetMesh(cube);
+                meshComponent.SetModel([cube]);
             });
 
-            if (meshComponent.Mesh != null)
+            if (meshComponent.MeshCount > 0)
             {
-                ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
-                ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
-                ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+                ImGui.Text($"Meshes: {meshComponent.MeshCount}");
+                foreach (var mesh in meshComponent.Meshes)
+                {
+                    ImGui.Text($"  {mesh.Name}: {mesh.Vertices.Count} verts, {mesh.Indices.Count} indices");
+                }
             }
-            else if (!string.IsNullOrWhiteSpace(meshComponent.MeshPath))
+            else if (!string.IsNullOrWhiteSpace(meshComponent.ModelPath))
             {
-                ImGui.Text($"Mesh: {meshComponent.MeshPath} (not loaded)");
+                ImGui.Text($"Model: {meshComponent.ModelPath} (not loaded)");
             }
             else
             {

@@ -250,29 +250,30 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<MeshComponent>(_options);
         if (component == null) return;
 
-        if (!string.IsNullOrWhiteSpace(component.MeshPath))
+        if (!string.IsNullOrWhiteSpace(component.ModelPath))
         {
             try
             {
-                // TODO: support for 3d models
+                var result = meshFactory.LoadModel(component.ModelPath);
+                component.SetModel(result.Meshes, component.ModelPath);
             }
             catch (Exception ex)
             {
                 Logger.Warning(ex,
-                    "Failed to create cube for entity '{EntityName}'.", entity.Name);
+                    "Failed to load model '{ModelPath}' for entity '{EntityName}'. Mesh component will be created without meshes.",
+                    component.ModelPath, entity.Name);
             }
         }
         else
         {
             try
             {
-                component.Mesh = meshFactory.CreateCube();
+                component.SetModel([meshFactory.CreateCube()]);
             }
             catch (Exception ex)
             {
                 Logger.Warning(ex,
-                    "Failed to load mesh '{MeshPath}' for entity '{EntityName}'. Mesh component will be created without mesh.",
-                    component.MeshPath, entity.Name);
+                    "Failed to create cube for entity '{EntityName}'.", entity.Name);
             }
         }
 
@@ -283,9 +284,6 @@ internal sealed class ComponentDeserializer(
     {
         var component = componentObj.Deserialize<ModelRendererComponent>(_options);
         if (component == null) return;
-
-        if (!string.IsNullOrWhiteSpace(component.OverrideTexturePath))
-            component.OverrideTexture = textureFactory.Create(component.OverrideTexturePath);
 
         entity.AddComponent<ModelRendererComponent>(component);
     }

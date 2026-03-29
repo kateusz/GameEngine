@@ -17,19 +17,20 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
         <PackageReference Include="NVorbis" Version="0.10.5" />
         <PackageReference Include="OpenAL.Soft" Version="1.23.1" />
+        <PackageReference Include="Pfim" Version="0.11.3" />
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
-        <PackageReference Include="Silk.NET.Assimp" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.OpenAL" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.OpenAL.Extensions.EXT" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.OpenAL.Extensions.Soft" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0" />
-        <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Assimp" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.Input" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenAL" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.EXT" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenAL.Extensions.Soft" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
         <PackageReference Include="StbImageSharp" Version="2.30.15" />
         <PackageReference Include="ZLinq" Version="1.5.4" />
     </ItemGroup>
@@ -49,8 +50,7 @@
         <PropertyGroup>
             <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
         </PropertyGroup>
-        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled."
-                 Condition="!Exists('$(OpenALNativePath)')" />
+        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled." Condition="!Exists('$(OpenALNativePath)')" />
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 
@@ -66,12 +66,9 @@
             <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86)')">$(OpenALSoftPathX86)</OpenALSoftPath>
             <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86Lib)')">$(OpenALSoftPathX86Lib)</OpenALSoftPath>
         </PropertyGroup>
-        <Warning Text="OpenAL Soft not found - audio effects will be disabled. Run: brew install openal-soft"
-                 Condition="'$(OpenALSoftPath)' == ''" />
-        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFolder="$(OutputPath)"
-              Condition="'$(OpenALSoftPath)' != ''" />
-        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFiles="$(OutputPath)libopenal.dylib"
-              Condition="'$(OpenALSoftPath)' != ''" />
+        <Warning Text="OpenAL Soft not found - audio effects will be disabled. Run: brew install openal-soft" Condition="'$(OpenALSoftPath)' == ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFolder="$(OutputPath)" Condition="'$(OpenALSoftPath)' != ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFiles="$(OutputPath)libopenal.dylib" Condition="'$(OpenALSoftPath)' != ''" />
     </Target>
 
 </Project>

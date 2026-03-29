@@ -34,7 +34,7 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"))
     .CreateLogger();
 
-Log.Information("Program has started.");
+Log.Information("Editor has started.");
 
 #if DEBUG
 // Enable script debugging in debug builds

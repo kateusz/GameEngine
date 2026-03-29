@@ -15,7 +15,6 @@ out vec3 v_FragPos;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
 out mat3 v_TBN;
-flat out int v_EntityID;
 
 void main()
 {
@@ -23,7 +22,6 @@ void main()
     v_FragPos  = worldPos.xyz;
     v_Normal   = normalize(a_Normal * mat3(u_NormalMatrix));
     v_TexCoord = a_TexCoord;
-    v_EntityID = a_EntityID;
 
     vec3 T = normalize(a_Tangent * mat3(u_NormalMatrix));
     vec3 N = v_Normal;

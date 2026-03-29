@@ -1,11 +1,16 @@
 using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 
 namespace Engine.Renderer;
 
-internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shaderFactory, IMeshFactory meshFactory) : IGraphics3D
+internal sealed class Graphics3D(
+    IRendererAPI rendererApi,
+    IShaderFactory shaderFactory,
+    IMeshFactory meshFactory,
+    ITextureFactory textureFactory) : IGraphics3D
 {
     private IShader _meshShader = null!;
     private IShader _lightShader = null!;
@@ -19,9 +24,17 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
 
     public void Init()
     {
-        _meshShader = shaderFactory.Create("assets/shaders/opengl/lightingShader.vert", "assets/shaders/opengl/lightingShader.frag");
-        _lightShader = shaderFactory.Create("assets/shaders/opengl/lightCubeShader.vert", "assets/shaders/opengl/lightCubeShader.frag");
+        _meshShader = shaderFactory.Create("assets/shaders/opengl/lightingShader.vert",
+            "assets/shaders/opengl/lightingShader.frag");
+        _lightShader = shaderFactory.Create("assets/shaders/opengl/lightCubeShader.vert",
+            "assets/shaders/opengl/lightCubeShader.frag");
         _cubeMesh = meshFactory.CreateCube();
+
+        _meshShader.Bind();
+        _meshShader.SetInt("u_DiffuseMap", 0);
+        _meshShader.SetInt("u_SpecularMap", 1);
+        _meshShader.SetInt("u_NormalMap", 2);
+        _meshShader.Unbind();
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -33,6 +46,7 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
                 transform.M11, transform.M22, transform.M33, transform.M44);
             return;
         }
+
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         var cameraPos = new Vector3(transform.M41, transform.M42, transform.M43);
         _meshShader.Bind();
@@ -56,24 +70,75 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _meshShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 color, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, int entityId = -1)
     {
+        Matrix4x4.Invert(transform, out var invTransform);
+        var normalMatrix = Matrix4x4.Transpose(invTransform);
+
         _meshShader.Bind();
         _meshShader.SetMat4("u_Model", transform);
-        _meshShader.SetFloat3("u_Color", new Vector3(color.X, color.Y, color.Z));
+        _meshShader.SetMat4("u_NormalMatrix", normalMatrix);
+        _meshShader.SetFloat4("u_Color", Vector4.One);
         _meshShader.SetInt("u_EntityID", entityId);
+
+        _meshShader.SetFloat("u_Shininess", material.Shininess);
+        _meshShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
+        _meshShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
+        _meshShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
+
+        var diffuse = material.DiffuseTexture ?? textureFactory.GetWhiteTexture();
+        var specular = material.SpecularTexture ?? textureFactory.GetBlackTexture();
+        var normal = material.NormalTexture ?? textureFactory.GetFlatNormalTexture();
+
+        diffuse.Bind(0);
+        specular.Bind(1);
+        normal.Bind(2);
+
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
     }
 
-    public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, int entityId = -1)
+    public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer,
+        int entityId = -1)
     {
-        var mesh = meshComponent.Mesh;
-        if (mesh == null)
+        if (meshComponent.Meshes.Count == 0)
             return;
 
-        DrawMesh(transform, mesh, modelRenderer.Color, entityId);
+        _meshShader.Bind();
+        _meshShader.SetFloat4("u_Color", modelRenderer.Color);
+        _meshShader.SetInt("u_EntityID", entityId);
+
+        for (var i = 0; i < meshComponent.Meshes.Count; i++)
+        {
+            var mesh = meshComponent.Meshes[i];
+            var meshTransform = mesh.NodeTransform * transform;
+
+            Matrix4x4.Invert(meshTransform, out var invTransform);
+            var normalMatrix = Matrix4x4.Transpose(invTransform);
+
+            _meshShader.SetMat4("u_Model", meshTransform);
+            _meshShader.SetMat4("u_NormalMatrix", normalMatrix);
+
+            var material = i < modelRenderer.Materials.Count ? modelRenderer.Materials[i] : new MeshMaterial();
+
+            _meshShader.SetFloat("u_Shininess", material.Shininess);
+            _meshShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
+            _meshShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
+            _meshShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
+
+            var diffuse = material.DiffuseTexture ?? textureFactory.GetWhiteTexture();
+            var specular = material.SpecularTexture ?? textureFactory.GetBlackTexture();
+            var normalTex = material.NormalTexture ?? textureFactory.GetFlatNormalTexture();
+
+            diffuse.Bind(0);
+            specular.Bind(1);
+            normalTex.Bind(2);
+
+            mesh.Bind();
+            rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+            _stats.DrawCalls++;
+        }
     }
 
     public void SetLightPosition(Vector3 position)
@@ -86,7 +151,9 @@ internal sealed class Graphics3D(IRendererAPI rendererApi, IShaderFactory shader
         _lightColor = color;
     }
 
-    public void SetShininess(float shininess) { }
+    public void SetShininess(float shininess)
+    {
+    }
 
     public void BeginLightVisualization(Camera camera, Matrix4x4 transform)
     {
