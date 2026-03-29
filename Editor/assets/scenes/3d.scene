@@ -1,0 +1,113 @@
+{
+  "Scene": "3d",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Camera": {
+            "ProjectionType": "Perspective",
+            "OrthographicSize": 10,
+            "OrthographicNear": -100,
+            "OrthographicFar": 100,
+            "PerspectiveFOV": 0.7853982,
+            "PerspectiveNear": 0.01,
+            "PerspectiveFar": 1000
+          },
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        },
+        {
+          "Name": "NativeScriptComponent",
+          "ScriptType": "CameraController"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Lighting",
+      "Components": [
+        {
+          "Type": "Directional",
+          "Position": [
+            -13.5,
+            11.8,
+            0
+          ],
+          "Direction": [
+            0.3,
+            2,
+            0.8
+          ],
+          "Color": [
+            0.90369016,
+            0.9068736,
+            0.8224197
+          ],
+          "Name": "LightingComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Name": "MeshComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "Materials": [],
+          "CastShadows": true,
+          "ReceiveShadows": true,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    }
+  ]
+}

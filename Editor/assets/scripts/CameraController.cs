@@ -1,32 +1,32 @@
+using System;
 using System.Numerics;
 using Engine.Core.Input;
+using Engine.Math;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
+using System.Collections.Generic;
 
 namespace Editor.assets.scripts;
 
 // TODO: this must be removed from the engine and implemented in the user project
 public class CameraController : ScriptableEntity
 {
-    private const float MoveSpeed = 5.0f;
-    private const float PanSpeed = 0.15f;
+    private const float MoveSpeed = 10.0f;
+    private const float ScrollSpeedMultiplier = 1.0f;
 
     private bool _isPerspective;
-    
-    private Vector3 _focalPoint = Vector3.Zero;
-    private float _distance = CameraConfig.DefaultEditorDistance;
-    private float _pitch;
-    private float _yaw;
 
-    // Mouse / key tracking
+    // Perspective (FPS-style)
+    private Vector3 _position;
+    private float _yaw;
+    private float _pitch;
+    private float _speedMultiplier = 10.0f;
+    private bool _mouseLookActive;
     private float _lastMouseX;
     private float _lastMouseY;
     private bool _firstMouseSample = true;
-    private bool _altDown;
-    private bool _leftMouseDown;
-    private bool _middleMouseDown;
-    private bool _rightMouseDown;
+    private readonly HashSet<KeyCodes> _pressedKeys = new();
 
     // Orthographic movement accumulator
     private Vector3 _orthoInput = Vector3.Zero;
@@ -39,7 +39,7 @@ public class CameraController : ScriptableEntity
         _isPerspective = GetComponent<CameraComponent>().Camera.ProjectionType == ProjectionType.Perspective;
 
         if (_isPerspective && HasComponent<TransformComponent>())
-            _focalPoint = GetComponent<TransformComponent>().Translation;
+            _position = GetComponent<TransformComponent>().Translation;
     }
 
     public override void OnUpdate(TimeSpan ts)
@@ -53,61 +53,34 @@ public class CameraController : ScriptableEntity
         if (!HasComponent<CameraComponent>())
             return;
 
-        var orientation = GetOrientation();
-        var position = _focalPoint - GetForwardDir(orientation) * _distance;
-        
+        var dt = (float)ts.TotalSeconds;
+        var speed = MoveSpeed * _speedMultiplier * dt;
+
+        var euler = new Vector3(_pitch, _yaw, 0);
+        var q = MathHelpers.QuaternionFromEuler(euler);
+        var rotationMatrix = MathHelpers.MatrixFromQuaternion(q);
+
+        var forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitZ, rotationMatrix));
+        var right = Vector3.Normalize(Vector3.TransformNormal(Vector3.UnitX, rotationMatrix));
+
+        if (_pressedKeys.Contains(KeyCodes.W)) _position += forward * speed;
+        if (_pressedKeys.Contains(KeyCodes.S)) _position -= forward * speed;
+        if (_pressedKeys.Contains(KeyCodes.A)) _position -= right * speed;
+        if (_pressedKeys.Contains(KeyCodes.D)) _position += right * speed;
+        if (_pressedKeys.Contains(KeyCodes.E) || _pressedKeys.Contains(KeyCodes.Space))
+            _position += Vector3.UnitY * speed;
+        if (_pressedKeys.Contains(KeyCodes.Q) || _pressedKeys.Contains(KeyCodes.LeftShift))
+            _position -= Vector3.UnitY * speed;
+
+        var orientation = Quaternion.CreateFromYawPitchRoll(-_yaw, -_pitch, 0f);
         GetComponent<CameraComponent>().CameraViewTransform =
-            Matrix4x4.CreateFromQuaternion(orientation) * Matrix4x4.CreateTranslation(position);
+            Matrix4x4.CreateTranslation(-_position) * Matrix4x4.CreateFromQuaternion(orientation);
     }
 
     public override void OnDestroy()
     {
         if (_isPerspective && HasComponent<CameraComponent>())
             GetComponent<CameraComponent>().CameraViewTransform = null;
-    }
-    
-    private Quaternion GetOrientation() =>
-        Quaternion.CreateFromYawPitchRoll(-_yaw, -_pitch, 0f);
-
-    private static Vector3 GetForwardDir(Quaternion q) =>
-        Vector3.Transform(-Vector3.UnitZ, q);
-
-    private static Vector3 GetRightDir(Quaternion q) =>
-        Vector3.Transform(Vector3.UnitX, q);
-
-    private static Vector3 GetUpDir(Quaternion q) =>
-        Vector3.Transform(Vector3.UnitY, q);
-
-    private void Orbit(Vector2 delta)
-    {
-        var q = GetOrientation();
-        var yawSign = GetUpDir(q).Y < 0 ? -1f : 1f;
-        _yaw += yawSign * delta.X * CameraConfig.EditorRotationSpeed;
-        _pitch += delta.Y * CameraConfig.EditorRotationSpeed;
-    }
-
-    private void Pan(Vector2 delta)
-    {
-        var q = GetOrientation();
-        _focalPoint += -GetRightDir(q) * delta.X * PanSpeed * _distance;
-        _focalPoint += GetUpDir(q) * delta.Y * PanSpeed * _distance;
-    }
-
-    private void Zoom(float delta)
-    {
-        _distance -= delta * CalculateZoomSpeed();
-        if (_distance < CameraConfig.MinEditorDistance)
-        {
-            _focalPoint += GetForwardDir(GetOrientation());
-            _distance = CameraConfig.MinEditorDistance;
-        }
-        _distance = MathF.Min(_distance, CameraConfig.MaxEditorDistance);
-    }
-
-    private float CalculateZoomSpeed()
-    {
-        float d = MathF.Max(_distance * 0.2f, 0f);
-        return MathF.Min(d * d, 100f);
     }
 
     private void UpdateOrthographic(float dt)
@@ -116,10 +89,10 @@ public class CameraController : ScriptableEntity
             return;
         GetComponent<TransformComponent>().Translation += _orthoInput * MoveSpeed * dt;
     }
-    
+
     public override void OnMouseMoved(float x, float y)
     {
-        if (!_isPerspective)
+        if (!_isPerspective || !_mouseLookActive)
             return;
 
         if (_firstMouseSample)
@@ -130,50 +103,43 @@ public class CameraController : ScriptableEntity
             return;
         }
 
-        var delta = new Vector2(x - _lastMouseX, y - _lastMouseY) * CameraConfig.EditorMouseSensitivity;
+        var deltaX = x - _lastMouseX;
+        var deltaY = _lastMouseY - y;
         _lastMouseX = x;
         _lastMouseY = y;
 
-        if (!_altDown)
-            return;
-
-        if (_leftMouseDown) Orbit(delta);
-        else if (_middleMouseDown) Pan(delta);
-        else if (_rightMouseDown) Zoom(delta.Y);
+        _yaw -= deltaX * CameraConfig.EditorMouseSensitivity;
+        _pitch += deltaY * CameraConfig.EditorMouseSensitivity;
+        _pitch = System.Math.Clamp(_pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);
     }
 
     public override void OnMouseScrolled(float xOffset, float yOffset)
     {
-        if (_isPerspective)
-            Zoom(yOffset * CameraConfig.EditorZoomSensitivity);
+        if (!_isPerspective)
+            return;
+        _speedMultiplier = System.Math.Clamp(_speedMultiplier + yOffset * ScrollSpeedMultiplier, 0.1f, 50.0f);
     }
 
     public override void OnMouseButtonPressed(int button)
     {
-        switch (button)
+        if (button == 1 && _isPerspective)
         {
-            case 0: _leftMouseDown = true; break;
-            case 1: _rightMouseDown = true; break;
-            case 2: _middleMouseDown = true; break;
+            _mouseLookActive = true;
+            _firstMouseSample = true;
         }
     }
 
     public override void OnMouseButtonReleased(int button)
     {
-        switch (button)
-        {
-            case 0: _leftMouseDown = false; break;
-            case 1: _rightMouseDown = false; break;
-            case 2: _middleMouseDown = false; break;
-        }
+        if (button == 1)
+            _mouseLookActive = false;
     }
 
     public override void OnKeyPressed(KeyCodes key)
     {
         if (_isPerspective)
         {
-            if (key is KeyCodes.LeftAlt or KeyCodes.RightAlt)
-                _altDown = true;
+            _pressedKeys.Add(key);
         }
         else
         {
@@ -191,8 +157,7 @@ public class CameraController : ScriptableEntity
     {
         if (_isPerspective)
         {
-            if (key is KeyCodes.LeftAlt or KeyCodes.RightAlt)
-                _altDown = false;
+            _pressedKeys.Remove(key);
         }
         else
         {

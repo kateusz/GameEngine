@@ -11,7 +11,8 @@ public interface ISceneManager
     /// <summary>
     /// Creates a new empty scene.
     /// </summary>
-    void New();
+    /// <param name="sceneName"></param>
+    void New(string sceneName);
 
     /// <summary>
     /// Opens an existing scene from the specified path.
@@ -22,8 +23,7 @@ public interface ISceneManager
     /// <summary>
     /// Saves the current scene to disk.
     /// </summary>
-    /// <param name="scenesDir">Optional directory to save the scene in. If null, uses default assets/scenes directory.</param>
-    void Save(string? scenesDir);
+    void Save();
 
     /// <summary>
     /// Enters play mode, initializing runtime systems and physics.

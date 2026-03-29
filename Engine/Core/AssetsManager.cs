@@ -1,8 +1,8 @@
 namespace Engine.Core;
 
-internal sealed class AssetsManager : IAssetsManager
+public static class AssetsManager
 {
-    public string AssetsPath { get; private set; } = Path.Combine(Environment.CurrentDirectory, "assets");
+    public static string AssetsPath { get; private set; } = Path.Combine(Environment.CurrentDirectory, "assets");
     
-    public void SetAssetsPath(string path) => AssetsPath = path;
+    public static void SetAssetsPath(string path) => AssetsPath = path;
 }

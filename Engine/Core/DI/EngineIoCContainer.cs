@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
+using Silk.NET.Assimp;
 using Engine.Animation;
 using Engine.Core.Input;
 using Engine.Core.Window;
@@ -69,7 +70,6 @@ public static class EngineIoCContainer
         container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
-        container.Register<IAssetsManager, AssetsManager>(Reuse.Singleton);
         
         RegisterFactories(container);
         
@@ -112,6 +112,8 @@ public static class EngineIoCContainer
         container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
+        container.RegisterDelegate<Assimp>(_ => Assimp.GetApi(), Reuse.Singleton);
+        container.Register<FbxModelLoader>(Reuse.Singleton);
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);

@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Editor.UI.Elements;
 
-public class PrefabDropTarget(IPrefabSerializer prefabSerializer, IAssetsManager assetsManager)
+public class PrefabDropTarget(IPrefabSerializer prefabSerializer)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(PrefabDropTarget));
 
@@ -23,7 +23,7 @@ public class PrefabDropTarget(IPrefabSerializer prefabSerializer, IAssetsManager
             {
                 try
                 {
-                    var fullPath = Path.Combine(assetsManager.AssetsPath, path);
+                    var fullPath = PathBuilder.Build(path);
                     prefabSerializer.ApplyPrefabToEntity(entity, fullPath);
                     Logger.Information("Applied prefab {Path} to entity {EntityName}", path, entity.Name);
                 }

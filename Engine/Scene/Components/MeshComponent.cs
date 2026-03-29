@@ -6,41 +6,41 @@ namespace Engine.Scene.Components;
 
 public class MeshComponent : IComponent
 {
-    /// <summary>
-    /// Relative path to the mesh asset file (e.g. "assets/objModels/person.model").
-    /// Persisted to JSON; used by the runtime to load the mesh via IMeshFactory.
-    /// Null indicates a procedurally generated mesh or one with no known asset path.
-    /// </summary>
-    public string? MeshPath { get; set; }
+    public string? ModelPath { get; set; }
+    public int? MeshIndex { get; set; }
 
-    /// <summary>
-    /// Loaded GPU mesh resource. Not serialized — set at runtime by the mesh loading system.
-    /// </summary>
     [JsonIgnore]
-    public Mesh? Mesh { get; set; }
+    public List<Mesh> Meshes { get; set; } = [];
 
-    public MeshComponent()
+    [JsonIgnore]
+    public int MeshCount => Meshes.Count;
+
+    public MeshComponent() { }
+
+    public MeshComponent(List<Mesh> meshes, string? modelPath = null)
     {
+        Meshes = meshes;
+        ModelPath = modelPath;
     }
 
-    public MeshComponent(Mesh mesh, string? meshPath = null)
+    public void SetModel(List<Mesh> meshes, string? modelPath = null)
     {
-        Mesh = mesh;
-        MeshPath = meshPath;
+        Meshes = meshes;
+        ModelPath = modelPath;
     }
 
-    public void SetMesh(Mesh mesh, string? meshPath = null)
+    public void SetMesh(Mesh mesh)
     {
-        Mesh = mesh;
-        MeshPath = meshPath;
+        Meshes = [mesh];
     }
 
     public IComponent Clone()
     {
         return new MeshComponent
         {
-            Mesh = Mesh,
-            MeshPath = MeshPath
+            Meshes = [..Meshes],
+            ModelPath = ModelPath,
+            MeshIndex = MeshIndex
         };
     }
 }

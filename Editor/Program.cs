@@ -19,10 +19,7 @@ static void ConfigureContainer(Container container)
 var container = new Container();
 ConfigureContainer(container);
 
-// Create ConsolePanel early so we can configure logging with it
 var consolePanel = container.Resolve<IConsolePanel>();
-
-// Configure Serilog with all sinks in one place
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.WithProperty("Application", "GameEngine")
@@ -34,7 +31,7 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"))
     .CreateLogger();
 
-Log.Information("Program has started.");
+Log.Information("Editor has started.");
 
 #if DEBUG
 // Enable script debugging in debug builds

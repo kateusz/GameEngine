@@ -11,5 +11,5 @@ public sealed class SceneFactory(
     IContext context,
     DebugSettings debugSettings)
 {
-    public IScene Create(string path) => new Scene(path, sceneSystemRegistry, graphics2D, graphics3D, context, debugSettings);
+    public IScene Create(string path, string newSceneName) => new Scene(path, newSceneName, sceneSystemRegistry, graphics2D, graphics3D, context, debugSettings);
 }

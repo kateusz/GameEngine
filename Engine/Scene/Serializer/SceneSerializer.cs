@@ -13,8 +13,6 @@ internal sealed class SceneSerializer(
     ComponentDeserializer componentDeserializer,
     SerializerOptions serializerOptions) : ISceneSerializer
 {
-    private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
-
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string ComponentsKey = "Components";

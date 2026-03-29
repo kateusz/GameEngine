@@ -1,14 +1,13 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
-using Engine.Core;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
-public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
+public class SubTextureRendererComponentEditor(ITextureFactory textureFactory)
     : IComponentEditor
 {
     public void DrawComponent(Entity entity)
@@ -25,7 +24,7 @@ public class SubTextureRendererComponentEditor(IAssetsManager assetsManager, ITe
             {
                 component.Texture = texture;
                 component.TexturePath = texture.Path;
-            }, assetsManager, textureFactory);
+            }, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);
 

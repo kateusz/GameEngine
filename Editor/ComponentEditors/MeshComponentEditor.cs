@@ -5,44 +5,55 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.ComponentEditors;
 
 public class MeshComponentEditor(
-    IAssetsManager assetsManager,
-    IMeshFactory meshFactory)
+    IMeshFactory meshFactory,
+    ModelSceneImporter modelSceneImporter,
+    ISceneContext sceneContext)
     : IComponentEditor
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(MeshComponentEditor));
+    
     public void DrawComponent(Entity entity)
     {
         ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", entity, () =>
         {
             var meshComponent = entity.GetComponent<MeshComponent>();
-            
+
             ButtonDrawer.DrawButton("Load Cube", EditorUIConstants.DefaultButtonWidth, 0, () =>
             {
                 var cube = meshFactory.CreateCube();
-                meshComponent.SetMesh(cube);
+                meshComponent.SetModel([cube]);
             });
 
-            if (meshComponent.Mesh != null)
+            ImGui.SameLine();
+            ButtonDrawer.DrawButton("Drop Mesh", EditorUIConstants.DefaultButtonWidth, 0);
+            var result = MeshDropTarget.Draw(modelSceneImporter, sceneContext, Logger);
+
+            if (meshComponent.MeshCount > 0)
             {
-                ImGui.Text($"Mesh: {meshComponent.Mesh.Name}");
-                ImGui.Text($"Vertices: {meshComponent.Mesh.Vertices.Count}");
-                ImGui.Text($"Indices: {meshComponent.Mesh.Indices.Count}");
+                ImGui.Text($"Meshes: {meshComponent.MeshCount}");
+                ImGui.BeginChild("MeshList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border, ImGuiWindowFlags.None);
+                foreach (var mesh in meshComponent.Meshes)
+                {
+                    ImGui.Text($"  {mesh.Name}: {mesh.Vertices.Count} verts, {mesh.Indices.Count} indices");
+                }
+                ImGui.EndChild();
             }
-            else if (!string.IsNullOrWhiteSpace(meshComponent.MeshPath))
+            else if (!string.IsNullOrWhiteSpace(meshComponent.ModelPath))
             {
-                ImGui.Text($"Mesh: {meshComponent.MeshPath} (not loaded)");
+                ImGui.Text($"Model: {meshComponent.ModelPath} (not loaded)");
             }
             else
             {
                 ImGui.Text("Mesh: None");
             }
-
-            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory);
         });
     }
 }

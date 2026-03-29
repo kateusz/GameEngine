@@ -43,7 +43,7 @@ public class SceneTests : IDisposable
     public void Constructor_ShouldInitializeWithEmptyEntityCollection()
     {
         // Act
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Assert
         scene.Entities.ShouldBeEmpty();
@@ -57,7 +57,7 @@ public class SceneTests : IDisposable
         _context.Register(existingEntity);
 
         // Act
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Assert - Context should be cleared
         scene.Entities.ShouldBeEmpty();
@@ -72,7 +72,7 @@ public class SceneTests : IDisposable
             .Returns(new List<ISystem> { mockSystem });
 
         // Act
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Assert
         _mockSystemRegistry.Received(1).PopulateSystemManager(Arg.Any<ISystemManager>());
@@ -86,7 +86,7 @@ public class SceneTests : IDisposable
     public void CreateEntity_ShouldCreateEntityWithGivenName()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entityName = _faker.Random.Word();
 
         // Act
@@ -100,7 +100,7 @@ public class SceneTests : IDisposable
     public void CreateEntity_ShouldAssignPositiveId()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Act
         var entity = scene.CreateEntity("test");
@@ -113,7 +113,7 @@ public class SceneTests : IDisposable
     public void CreateEntity_ShouldAssignIncrementingIds()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Act
         var entity1 = scene.CreateEntity("first");
@@ -129,7 +129,7 @@ public class SceneTests : IDisposable
     public void CreateEntity_ShouldRegisterEntityInContext()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Act
         var entity = scene.CreateEntity("test");
@@ -143,7 +143,7 @@ public class SceneTests : IDisposable
     public void CreateEntity_MultipleTimes_ShouldCreateMultipleEntities()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene","test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Act
         var entities = new List<Entity>();
@@ -165,7 +165,7 @@ public class SceneTests : IDisposable
     public void AddEntity_ShouldAddEntityToScene()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene","test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity = Entity.Create(100, "imported");
 
         // Act
@@ -179,7 +179,7 @@ public class SceneTests : IDisposable
     public void AddEntity_WithHigherId_ShouldUpdateNextEntityId()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene","test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var highIdEntity = Entity.Create(500, "high-id");
 
         // Act
@@ -194,7 +194,7 @@ public class SceneTests : IDisposable
     public void AddEntity_WithLowerId_ShouldNotAffectNextEntityId()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         scene.CreateEntity("first"); // Gets ID 1
         var lowIdEntity = Entity.Create(50, "low-id"); // Use ID 50 instead of 1
 
@@ -210,7 +210,7 @@ public class SceneTests : IDisposable
     public void AddEntity_WithZeroOrNegativeId_ShouldThrowException()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var invalidEntity = Entity.Create(0, "invalid");
 
         // Act & Assert
@@ -221,7 +221,7 @@ public class SceneTests : IDisposable
     public void AddEntity_WithNegativeId_ShouldThrowException()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var invalidEntity = Entity.Create(-5, "invalid");
 
         // Act & Assert
@@ -236,7 +236,7 @@ public class SceneTests : IDisposable
     public void DestroyEntity_ShouldRemoveEntityFromScene()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity = scene.CreateEntity("to-destroy");
 
         // Act
@@ -250,7 +250,7 @@ public class SceneTests : IDisposable
     public void DestroyEntity_ShouldRemoveEntityFromContext()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity = scene.CreateEntity("to-destroy");
 
         // Act
@@ -265,7 +265,7 @@ public class SceneTests : IDisposable
     public void DestroyEntity_ShouldAllowCreatingNewEntityWithSameId()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity = scene.CreateEntity("original");
         var entityId = entity.Id;
 
@@ -287,7 +287,7 @@ public class SceneTests : IDisposable
     public void DestroyEntity_Multiple_ShouldRemoveAllDestroyedEntities()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entities = Enumerable.Range(0, 5)
             .Select(i => scene.CreateEntity($"entity-{i}"))
             .ToList();
@@ -311,7 +311,7 @@ public class SceneTests : IDisposable
     public void DuplicateEntity_ShouldCreateNewEntityWithDifferentId()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var original = scene.CreateEntity("original");
 
         // Act
@@ -326,7 +326,7 @@ public class SceneTests : IDisposable
     public void DuplicateEntity_ShouldCloneAllComponents()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var original = scene.CreateEntity("original");
         original.AddComponent(new TagComponent { Tag = "test-tag" });
         original.AddComponent(new TransformComponent(
@@ -353,7 +353,7 @@ public class SceneTests : IDisposable
     public void DuplicateEntity_ModifyingDuplicate_ShouldNotAffectOriginal()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var original = scene.CreateEntity("original");
         var originalTag = new TagComponent { Tag = "original" };
         original.AddComponent(originalTag);
@@ -372,7 +372,7 @@ public class SceneTests : IDisposable
     public void DuplicateEntity_ShouldRegisterInScene()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene",_mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var original = scene.CreateEntity("original");
 
         // Act
@@ -391,7 +391,7 @@ public class SceneTests : IDisposable
     public void GetPrimaryCameraEntity_WhenNoCameraExists_ShouldReturnNull()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         scene.CreateEntity("no-camera");
 
         // Act
@@ -405,7 +405,7 @@ public class SceneTests : IDisposable
     public void GetPrimaryCameraEntity_WhenPrimaryCameraExists_ShouldReturnIt()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var cameraEntity = scene.CreateEntity("camera");
         var cameraComponent = new CameraComponent { Primary = true };
         cameraEntity.AddComponent(cameraComponent);
@@ -421,7 +421,7 @@ public class SceneTests : IDisposable
     public void GetPrimaryCameraEntity_WhenNonPrimaryCameraExists_ShouldReturnNull()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var cameraEntity = scene.CreateEntity("camera");
         var cameraComponent = new CameraComponent { Primary = false };
         cameraEntity.AddComponent(cameraComponent);
@@ -437,7 +437,7 @@ public class SceneTests : IDisposable
     public void GetPrimaryCameraEntity_WhenMultipleCamerasExist_ShouldReturnPrimaryOne()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = false });
@@ -463,7 +463,7 @@ public class SceneTests : IDisposable
     public void SetPrimaryCamera_ShouldSetPrimaryAndClearOthers()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = true });
@@ -483,7 +483,7 @@ public class SceneTests : IDisposable
     public void SetPrimaryCamera_WhenEntityHasNoCamera_ShouldThrow()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity = scene.CreateEntity("no-camera");
 
         // Act & Assert
@@ -494,7 +494,7 @@ public class SceneTests : IDisposable
     public void SetPrimaryCamera_WhenEntityNotInScene_ShouldThrow()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var foreignEntity = Entity.Create(999, "foreign");
         foreignEntity.AddComponent(new CameraComponent { Primary = true });
 
@@ -506,7 +506,7 @@ public class SceneTests : IDisposable
     public void AddEntity_WithPrimaryCamera_ShouldClearOtherPrimaries()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = true });
 
@@ -525,7 +525,7 @@ public class SceneTests : IDisposable
     public void DuplicateEntity_WithPrimaryCamera_ShouldTransferPrimaryToClone()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var original = scene.CreateEntity("camera");
         original.AddComponent(new CameraComponent { Primary = true });
 
@@ -544,7 +544,7 @@ public class SceneTests : IDisposable
     public void OnViewportResize_WhenNoCameras_ShouldNotThrow()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         scene.CreateEntity("no-camera");
 
         // Act & Assert
@@ -559,7 +559,7 @@ public class SceneTests : IDisposable
     public void Entities_ShouldReturnAllCreatedEntities()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity1 = scene.CreateEntity("first");
         var entity2 = scene.CreateEntity("second");
         var entity3 = scene.CreateEntity("third");
@@ -578,7 +578,7 @@ public class SceneTests : IDisposable
     public void Entities_AfterDestroy_ShouldNotIncludeDestroyedEntity()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
         var entity1 = scene.CreateEntity("first");
         var entity2 = scene.CreateEntity("second");
         scene.DestroyEntity(entity1);
@@ -600,7 +600,7 @@ public class SceneTests : IDisposable
     public void Scene_CreateAndDestroyManyEntities_ShouldHandleCorrectly()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Act - Create 1000 entities
         var entities = new List<Entity>();
@@ -623,7 +623,7 @@ public class SceneTests : IDisposable
     public void Scene_CreateEntitiesWithComponents_ShouldMaintainIntegrity()
     {
         // Arrange
-        using var scene = new EngineScene("test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
+        using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D, _mockGraphics3D, _context, new Engine.Core.DebugSettings());
 
         // Act - Create entities with various components
         var entities = new List<Entity>();

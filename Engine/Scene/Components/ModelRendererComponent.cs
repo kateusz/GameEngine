@@ -1,22 +1,17 @@
 using System.Numerics;
-using System.Text.Json.Serialization;
 using ECS;
-using Engine.Renderer.Textures;
+using Engine.Renderer;
 
 namespace Engine.Scene.Components;
 
 public class ModelRendererComponent : IComponent
 {
     public Vector4 Color { get; set; } = Vector4.One;
-    [JsonIgnore]
-    public Texture2D? OverrideTexture { get; set; } = null;
-    public string? OverrideTexturePath { get; set; }
+    public List<MeshMaterial> Materials { get; set; } = [];
     public bool CastShadows { get; set; } = true;
     public bool ReceiveShadows { get; set; } = true;
 
-    public ModelRendererComponent()
-    {
-    }
+    public ModelRendererComponent() { }
 
     public ModelRendererComponent(Vector4 color)
     {
@@ -28,8 +23,7 @@ public class ModelRendererComponent : IComponent
         return new ModelRendererComponent
         {
             Color = Color,
-            OverrideTexture = OverrideTexture,
-            OverrideTexturePath = OverrideTexturePath,
+            Materials = [..Materials],
             CastShadows = CastShadows,
             ReceiveShadows = ReceiveShadows
         };

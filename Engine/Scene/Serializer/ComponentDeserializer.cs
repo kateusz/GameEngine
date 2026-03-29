@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
 using Engine.Audio;
+using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
@@ -192,35 +193,22 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<SpriteRendererComponent>(_options);
         if (component == null) return;
 
-        if (string.IsNullOrWhiteSpace(component.TexturePath)
-            && componentObj["Texture"] is JsonObject textureObj
-            && textureObj["Path"] is JsonValue pathValue)
-        {
-            component.TexturePath = pathValue.GetValue<string>();
-        }
-
         if (!string.IsNullOrWhiteSpace(component.TexturePath))
-            component.Texture = textureFactory.Create(component.TexturePath);
+            component.Texture = textureFactory.Create(PathBuilder.Build(component.TexturePath));
 
-        entity.AddComponent<SpriteRendererComponent>(component);
+        entity.AddComponent(component);
     }
 
     private void DeserializeSubTextureRendererComponent(Entity entity, JsonObject componentObj)
     {
         var component = componentObj.Deserialize<SubTextureRendererComponent>(_options);
-        if (component == null) return;
-
-        if (string.IsNullOrWhiteSpace(component.TexturePath)
-            && componentObj["Texture"] is JsonObject textureObj
-            && textureObj["Path"] is JsonValue pathValue)
-        {
-            component.TexturePath = pathValue.GetValue<string>();
-        }
-
+        if (component == null) 
+            return;
+        
         if (!string.IsNullOrWhiteSpace(component.TexturePath))
-            component.Texture = textureFactory.Create(component.TexturePath);
+            component.Texture = textureFactory.Create(PathBuilder.Build(component.TexturePath));
 
-        entity.AddComponent<SubTextureRendererComponent>(component);
+        entity.AddComponent(component);
     }
 
     private void DeserializeAudioSourceComponent(Entity entity, JsonObject componentObj)
@@ -232,7 +220,8 @@ internal sealed class ComponentDeserializer(
         {
             try
             {
-                component.AudioClip = audioEngine.LoadAudioClip(component.AudioClipPath!);
+                var fullPath = Path.Combine(PathBuilder.Build(component.AudioClipPath!));
+                component.AudioClip = audioEngine.LoadAudioClip(fullPath);
             }
             catch (Exception ex)
             {
@@ -242,7 +231,7 @@ internal sealed class ComponentDeserializer(
             }
         }
 
-        entity.AddComponent<AudioSourceComponent>(component);
+        entity.AddComponent(component);
     }
 
     private void DeserializeMeshComponent(Entity entity, JsonObject componentObj)
@@ -250,11 +239,33 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<MeshComponent>(_options);
         if (component == null) return;
 
-        if (!string.IsNullOrWhiteSpace(component.MeshPath))
+        if (!string.IsNullOrWhiteSpace(component.ModelPath))
+        {
+            var fullPath = PathBuilder.Build(component.ModelPath!);
+            try
+            {
+                var result = meshFactory.LoadModel(fullPath);
+                if (component.MeshIndex.HasValue && component.MeshIndex.Value < result.Meshes.Count)
+                {
+                    component.Meshes = [result.Meshes[component.MeshIndex.Value]];
+                }
+                else
+                {
+                    component.SetModel(result.Meshes, fullPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex,
+                    "Failed to load model '{ModelPath}' for entity '{EntityName}'. Mesh component will be created without meshes.",
+                    component.ModelPath, entity.Name);
+            }
+        }
+        else
         {
             try
             {
-                // TODO: support for 3d models
+                component.SetModel([meshFactory.CreateCube()]);
             }
             catch (Exception ex)
             {
@@ -262,21 +273,8 @@ internal sealed class ComponentDeserializer(
                     "Failed to create cube for entity '{EntityName}'.", entity.Name);
             }
         }
-        else
-        {
-            try
-            {
-                component.Mesh = meshFactory.CreateCube();
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex,
-                    "Failed to load mesh '{MeshPath}' for entity '{EntityName}'. Mesh component will be created without mesh.",
-                    component.MeshPath, entity.Name);
-            }
-        }
 
-        entity.AddComponent<MeshComponent>(component);
+        entity.AddComponent(component);
     }
 
     private void DeserializeModelRendererComponent(Entity entity, JsonObject componentObj)
@@ -284,10 +282,17 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<ModelRendererComponent>(_options);
         if (component == null) return;
 
-        if (!string.IsNullOrWhiteSpace(component.OverrideTexturePath))
-            component.OverrideTexture = textureFactory.Create(component.OverrideTexturePath);
+        foreach (var material in component.Materials)
+        {
+            if (!string.IsNullOrWhiteSpace(material.DiffuseTexturePath))
+                material.DiffuseTexture = textureFactory.Create(PathBuilder.Build(material.DiffuseTexturePath));
+            if (!string.IsNullOrWhiteSpace(material.SpecularTexturePath))
+                material.SpecularTexture = textureFactory.Create(PathBuilder.Build(material.SpecularTexturePath));
+            if (!string.IsNullOrWhiteSpace(material.NormalTexturePath))
+                material.NormalTexture = textureFactory.Create(PathBuilder.Build(material.NormalTexturePath));
+        }
 
-        entity.AddComponent<ModelRendererComponent>(component);
+        entity.AddComponent(component);
     }
 
     private void DeserializeNativeScriptComponent(Entity entity, JsonObject componentObj)
@@ -328,13 +333,13 @@ internal sealed class ComponentDeserializer(
             }
         }
 
-        entity.AddComponent<NativeScriptComponent>(component);
+        entity.AddComponent(component);
     }
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent
     {
         var component = componentObj.Deserialize<T>(_options);
         if (component != null)
-            entity.AddComponent<T>(component);
+            entity.AddComponent(component);
     }
 }

@@ -135,7 +135,6 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         }
     }
 
-    // In OpenGLVertexBuffer.cs, modify SetMeshData to handle large data in chunks
     public void SetMeshData(List<Mesh.Vertex> vertices, int dataSize)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

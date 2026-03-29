@@ -21,7 +21,9 @@ public interface IMeshFactory : IDisposable
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory);
 
     Mesh CreateCube();
-    
+
+    (List<Mesh> Meshes, List<MeshMaterial> Materials) LoadModel(string path);
+
     /// <summary>
     /// Clears all cached meshes and disposes loaded models to free GPU resources.
     /// Should be called when shutting down or when clearing the asset cache.

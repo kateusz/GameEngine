@@ -433,7 +433,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     private void SetupTestScene(BenchmarkTestType testType)
     {
-        _currentTestScene = sceneFactory.Create("Benchmark");
+        _currentTestScene = sceneFactory.Create("Benchmark", "Benchmark");
 
         // Add camera entity
         var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");

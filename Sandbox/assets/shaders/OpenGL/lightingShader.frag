@@ -39,20 +39,20 @@ void main()
     }
 
     vec3 diffuseColor = u_HasDiffuseMap != 0
-        ? texture(u_DiffuseMap, v_TexCoord).rgb
-        : vec3(1.0);
+    ? texture(u_DiffuseMap, v_TexCoord).rgb
+    : vec3(1.0);
     diffuseColor *= u_Color.rgb;
 
     vec3 specularColor = u_HasSpecularMap != 0
-        ? texture(u_SpecularMap, v_TexCoord).rgb
-        : vec3(0.5);
+    ? texture(u_SpecularMap, v_TexCoord).rgb
+    : vec3(0.5);
 
-    float ambientStrength = 0.1;
+    float ambientStrength = 0.35;
     vec3 ambient = ambientStrength * u_LightColor * diffuseColor;
 
     vec3 lightDir = (u_LightType == 1)
-        ? normalize(-u_LightDirection)
-        : normalize(u_LightPosition - v_FragPos);
+    ? normalize(-u_LightDirection)
+    : normalize(u_LightPosition - v_FragPos);
     float diff    = max(dot(norm, lightDir), 0.0);
     vec3 diffuse  = diff * u_LightColor * diffuseColor;
 

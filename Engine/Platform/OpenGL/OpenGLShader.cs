@@ -79,66 +79,52 @@ internal sealed class OpenGLShader : IShader
     /// <param name="data">The data to set</param>
     public void SetInt(string name, int data)
     {
+        if (!_uniformLocations.TryGetValue(name, out var location)) return;
         SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
+        SilkNetContext.GL.Uniform1(location, data);
     }
 
     public void SetIntArray(string name, int[] values, uint count)
     {
+        if (!_uniformLocations.TryGetValue(name, out _)) return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
     }
 
     public void UploadUniformIntArray(string name, int[] values, uint count)
     {
+        if (!_uniformLocations.TryGetValue(name, out _)) return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
     }
 
-    /// <summary>
-    /// Set a uniform float on this shader.
-    /// </summary>
-    /// <param name="name">The name of the uniform</param>
-    /// <param name="data">The data to set</param>
     public void SetFloat(string name, float data)
     {
+        if (!_uniformLocations.TryGetValue(name, out var location)) return;
         SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(_uniformLocations[name], data);
+        SilkNetContext.GL.Uniform1(location, data);
     }
 
-    /// <summary>
-    /// Set a uniform Matrix4 on this shader
-    /// </summary>
-    /// <param name="name">The name of the uniform</param>
-    /// <param name="data">The data to set</param>
     public void SetMat4(string name, Matrix4x4 data)
     {
+        if (!_uniformLocations.TryGetValue(name, out var location)) return;
         var matrix = Matrix4x4ToReadOnlySpan(data);
-
         SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.UniformMatrix4(_uniformLocations[name], true, matrix);
+        SilkNetContext.GL.UniformMatrix4(location, true, matrix);
     }
 
-    /// <summary>
-    /// Set a uniform Vector3 on this shader.
-    /// </summary>
-    /// <param name="name">The name of the uniform</param>
-    /// <param name="data">The data to set</param>
     public void SetFloat3(string name, Vector3 data)
     {
+        if (!_uniformLocations.TryGetValue(name, out var location)) return;
         SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform3(_uniformLocations[name], data);
+        SilkNetContext.GL.Uniform3(location, data);
     }
 
-    /// <summary>
-    /// Set a uniform Vector3 on this shader.
-    /// </summary>
-    /// <param name="name">The name of the uniform</param>
-    /// <param name="data">The data to set</param>
     public void SetFloat4(string name, Vector4 data)
     {
+        if (!_uniformLocations.TryGetValue(name, out var location)) return;
         SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform4(_uniformLocations[name], data);
+        SilkNetContext.GL.Uniform4(location, data);
     }
 
     private static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)

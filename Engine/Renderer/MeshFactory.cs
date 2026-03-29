@@ -6,90 +6,71 @@ using Serilog;
 
 namespace Engine.Renderer;
 
-/// <summary>
-/// Factory for creating and caching mesh resources.
-/// </summary>
 internal sealed class MeshFactory(
     ITextureFactory textureFactory,
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory) : IMeshFactory
+    IIndexBufferFactory indexBufferFactory,
+    FbxModelLoader fbxModelLoader) : IMeshFactory
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private readonly Dictionary<string, Mesh> _loadedMeshes = new();
+    private readonly Dictionary<string, (List<Mesh> Meshes, List<MeshMaterial> Materials)> _loadedModels = new();
     private bool _disposed;
 
-    /// <summary>
-    /// Creates a procedural cube mesh.
-    /// Unlike <see cref="Create"/>, this mesh is NOT cached by the factory and will NOT be
-    /// disposed when the factory is disposed. The caller owns and must dispose the returned mesh.
-    /// </summary>
-    /// <param name="textureFactory">Factory for creating textures</param>
-    /// <param name="vertexArrayFactory">Factory for creating vertex arrays</param>
-    /// <param name="vertexBufferFactory">Factory for creating vertex buffers</param>
-    /// <param name="indexBufferFactory">Factory for creating index buffers</param>
-    /// <returns>A new cube mesh. Caller is responsible for disposing it.</returns>
     public Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
     {
         var mesh = new Mesh("Cube", textureFactory);
-
-        // Define vertices
         var size = 0.5f;
 
-        // Front face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), Vector3.UnitZ, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitZ, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitZ, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitZ, new Vector2(0.0f, 1.0f)));
+        var tangentX = Vector3.UnitX;
+        var tangentNegX = -Vector3.UnitX;
+        var bitangentY = Vector3.UnitY;
+        var bitangentNegZ = -Vector3.UnitZ;
+        var bitangentZ = Vector3.UnitZ;
 
-        // Back face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitZ, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitZ, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), -Vector3.UnitZ, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitZ, new Vector2(0.0f, 0.0f)));
+        // Front face (+Z): Normal=(0,0,1), Tangent=(1,0,0), Bitangent=(0,1,0)
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), Vector3.UnitZ, new Vector2(0.0f, 0.0f), tangentX, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitZ, new Vector2(1.0f, 0.0f), tangentX, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitZ, new Vector2(1.0f, 1.0f), tangentX, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitZ, new Vector2(0.0f, 1.0f), tangentX, bitangentY));
 
-        // Top face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), Vector3.UnitY, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitY, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitY, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitY, new Vector2(1.0f, 0.0f)));
+        // Back face (-Z): Normal=(0,0,-1), Tangent=(-1,0,0), Bitangent=(0,1,0)
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitZ, new Vector2(1.0f, 0.0f), tangentNegX, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitZ, new Vector2(1.0f, 1.0f), tangentNegX, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), -Vector3.UnitZ, new Vector2(0.0f, 1.0f), tangentNegX, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitZ, new Vector2(0.0f, 0.0f), tangentNegX, bitangentY));
 
-        // Bottom face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitY, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitY, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), -Vector3.UnitY, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitY, new Vector2(0.0f, 0.0f)));
+        // Top face (+Y): Normal=(0,1,0), Tangent=(1,0,0), Bitangent=(0,0,-1)
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), Vector3.UnitY, new Vector2(0.0f, 0.0f), tangentX, bitangentNegZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitY, new Vector2(0.0f, 1.0f), tangentX, bitangentNegZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitY, new Vector2(1.0f, 1.0f), tangentX, bitangentNegZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitY, new Vector2(1.0f, 0.0f), tangentX, bitangentNegZ));
 
-        // Right face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), Vector3.UnitX, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitX, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitX, new Vector2(1.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitX, new Vector2(1.0f, 0.0f)));
+        // Bottom face (-Y): Normal=(0,-1,0), Tangent=(1,0,0), Bitangent=(0,0,1)
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitY, new Vector2(0.0f, 1.0f), tangentX, bitangentZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitY, new Vector2(1.0f, 1.0f), tangentX, bitangentZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), -Vector3.UnitY, new Vector2(1.0f, 0.0f), tangentX, bitangentZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitY, new Vector2(0.0f, 0.0f), tangentX, bitangentZ));
 
-        // Left face
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitX, new Vector2(1.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitX, new Vector2(0.0f, 0.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), -Vector3.UnitX, new Vector2(0.0f, 1.0f)));
-        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitX, new Vector2(1.0f, 1.0f)));
+        // Right face (+X): Normal=(1,0,0), Tangent=(0,0,-1), Bitangent=(0,1,0)
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), Vector3.UnitX, new Vector2(0.0f, 0.0f), -Vector3.UnitZ, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitX, new Vector2(0.0f, 1.0f), -Vector3.UnitZ, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitX, new Vector2(1.0f, 1.0f), -Vector3.UnitZ, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitX, new Vector2(1.0f, 0.0f), -Vector3.UnitZ, bitangentY));
 
-        // Define indices (6 faces, 2 triangles per face, 3 indices per triangle)
-        // Front face
+        // Left face (-X): Normal=(-1,0,0), Tangent=(0,0,1), Bitangent=(0,1,0)
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitX, new Vector2(1.0f, 0.0f), Vector3.UnitZ, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitX, new Vector2(0.0f, 0.0f), Vector3.UnitZ, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), -Vector3.UnitX, new Vector2(0.0f, 1.0f), Vector3.UnitZ, bitangentY));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitX, new Vector2(1.0f, 1.0f), Vector3.UnitZ, bitangentY));
+
         mesh.Indices.AddRange([0, 1, 2, 2, 3, 0]);
-
-        // Back face
         mesh.Indices.AddRange([4, 5, 6, 6, 7, 4]);
-
-        // Top face
         mesh.Indices.AddRange([8, 9, 10, 10, 11, 8]);
-
-        // Bottom face
         mesh.Indices.AddRange([12, 13, 14, 14, 15, 12]);
-
-        // Right face
         mesh.Indices.AddRange([16, 17, 18, 18, 19, 16]);
-
-        // Left face
         mesh.Indices.AddRange([20, 21, 22, 22, 23, 20]);
 
         mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
@@ -101,12 +82,49 @@ internal sealed class MeshFactory(
         return CreateCube(textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
     }
 
-    /// <summary>
-    /// Clears all cached meshes and disposes loaded models to free GPU resources.
-    /// Should be called when shutting down or when clearing the asset cache.
-    /// </summary>
+    public (List<Mesh> Meshes, List<MeshMaterial> Materials) LoadModel(string path)
+    {
+        if (_loadedModels.TryGetValue(path, out var cached))
+            return cached;
+
+        var result = fbxModelLoader.Load(path);
+
+        // Filter out empty meshes that have no geometry (helper/dummy nodes in FBX)
+        var validMeshes = new List<Mesh>();
+        var validMaterials = new List<MeshMaterial>();
+
+        for (var i = 0; i < result.Meshes.Count; i++)
+        {
+            var mesh = result.Meshes[i];
+            if (mesh.Vertices.Count == 0 || mesh.Indices.Count == 0)
+            {
+                _logger.Debug("Skipping empty mesh '{Name}' (vertices: {V}, indices: {I})",
+                    mesh.Name, mesh.Vertices.Count, mesh.Indices.Count);
+                continue;
+            }
+
+            mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+            validMeshes.Add(mesh);
+            validMaterials.Add(result.Materials[i]);
+        }
+
+        _logger.Information("Initialized {Count}/{Total} meshes from {Path}",
+            validMeshes.Count, result.Meshes.Count, path);
+
+        var entry = (validMeshes, validMaterials);
+        _loadedModels[path] = entry;
+        return entry;
+    }
+
     public void Clear()
     {
+        foreach (var (meshes, _) in _loadedModels.Values)
+        {
+            foreach (var mesh in meshes)
+                mesh.Dispose();
+        }
+
+        _loadedModels.Clear();
         _loadedMeshes.Clear();
 
         _logger.Information("MeshFactory cache cleared and resources disposed");

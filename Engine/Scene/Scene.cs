@@ -17,6 +17,7 @@ namespace Engine.Scene;
 
 internal sealed class Scene(
     string path,
+    string sceneName,
     ISceneSystemRegistry systemRegistry,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
@@ -48,6 +49,7 @@ internal sealed class Scene(
         return (systemManager, physicsWorld);
     }
 
+    public string Name => sceneName;
     public IEnumerable<Entity> Entities => _entities;
 
     public Entity CreateEntity(string name)
@@ -172,6 +174,8 @@ internal sealed class Scene(
         {
             var (_, firstLight) = lightGroup[0];
             graphics3D.SetLightPosition(firstLight.Position);
+            graphics3D.SetLightDirection(firstLight.Direction);
+            graphics3D.SetLightType((int)firstLight.Type);
             graphics3D.SetLightColor(firstLight.Color);
 
             graphics3D.BeginLightVisualization(camera);

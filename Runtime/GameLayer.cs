@@ -45,7 +45,7 @@ public class GameLayer(
             Logger.Warning("Creating empty scene as fallback...");
 
             // Create empty scene as fallback
-            var emptyScene = sceneFactory.Create("");
+            var emptyScene = sceneFactory.Create("", "");
             sceneContext.SetScene(emptyScene);
         }
         else
@@ -55,7 +55,7 @@ public class GameLayer(
                 Logger.Information("Loading startup scene from: {Path}", startupScenePath);
 
                 // Create and load scene
-                var scene = sceneFactory.Create(startupScenePath);
+                var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
                 sceneSerializer.Deserialize(scene, startupScenePath);
                 sceneContext.SetScene(scene);
 
@@ -68,7 +68,7 @@ public class GameLayer(
                 Logger.Error(ex, "Failed to load startup scene: {Path}", startupScenePath);
 
                 // Create empty scene as fallback
-                var emptyScene = sceneFactory.Create("");
+                var emptyScene = sceneFactory.Create("", "");
                 sceneContext.SetScene(emptyScene);
             }
         }

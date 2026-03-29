@@ -98,6 +98,9 @@ public class ContentBrowserPanel : IContentBrowserPanel
                 icon = _prefabIcon;
             }
             else if (info.Name.EndsWith(".obj", StringComparison.OrdinalIgnoreCase) ||
+                     info.Name.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase) ||
+                     info.Name.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase) ||
+                     info.Name.EndsWith(".glb", StringComparison.OrdinalIgnoreCase) ||
                      info.Name.EndsWith(".scene", StringComparison.OrdinalIgnoreCase))
             {
                 icon = _fileIcon;

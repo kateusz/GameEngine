@@ -1,5 +1,5 @@
 {
-  "Scene": "default",
+  "Scene": "2d",
   "Entities": [
     {
       "Id": 3,
@@ -29,7 +29,6 @@
             "OrthographicSize": 20,
             "OrthographicNear": -1,
             "OrthographicFar": 1,
-            "AspectRatio": 1.94929,
             "PerspectiveFOV": 0.7853982,
             "PerspectiveNear": 0.01,
             "PerspectiveFar": 1000
@@ -165,7 +164,7 @@
       "Name": "Audio Manager",
       "Components": [
         {
-          "AudioClipPath": "assets/audio/Example.ogg",
+          "AudioClipPath": "audio/Example.ogg",
           "Volume": 1,
           "Pitch": 1,
           "Loop": false,
@@ -190,7 +189,6 @@
               "Amount": 0.5
             }
           ],
-          "IsPlaying": false,
           "Name": "AudioSourceComponent"
         }
       ]
@@ -222,7 +220,7 @@
             0,
             0
           ],
-          "TexturePath": "assets/textures/hero-attack.png",
+          "TexturePath": "textures/hero-attack.png",
           "CellSize": [
             16,
             16
@@ -254,7 +252,6 @@
         {
           "AssetPath": "animations/hero-attack.anim",
           "CurrentClipName": "Attack",
-          "IsPlaying": true,
           "Loop": true,
           "PlaybackSpeed": 1,
           "ShowDebugInfo": false,
@@ -289,7 +286,7 @@
             4,
             3
           ],
-          "TexturePath": "assets/textures/spritesheet.png",
+          "TexturePath": "textures/spritesheet.png",
           "CellSize": [
             64,
             64

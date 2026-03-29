@@ -7,8 +7,7 @@ namespace Editor.Features.Project;
 
 public class ProjectManager(
     IEditorPreferences editorPreferences,
-    IScriptEngine scriptEngine,
-    IAssetsManager assetsManager)
+    IScriptEngine scriptEngine)
     : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
@@ -127,7 +126,7 @@ public class ProjectManager(
             ? Path.Combine(projectDir, "assets")
             : projectDir;
 
-        assetsManager.SetAssetsPath(assetsDir);
+        AssetsManager.SetAssetsPath(assetsDir);
 
         // Point the scripting engine to /assets/scripts if that exists
         var scriptsDir = Path.Combine(projectDir, "assets", "scripts");
