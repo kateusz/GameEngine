@@ -7,7 +7,7 @@ using Engine.Scene.Components;
 
 namespace Editor.ComponentEditors;
 
-public class SpriteRendererComponentEditor(IAssetsManager assetsManager, ITextureFactory textureFactory)
+public class SpriteRendererComponentEditor(ITextureFactory textureFactory)
     : IComponentEditor
 {
     public void DrawComponent(Entity entity)
@@ -22,7 +22,7 @@ public class SpriteRendererComponentEditor(IAssetsManager assetsManager, ITextur
             {
                 component.Texture = texture;
                 component.TexturePath = texture.Path;
-            }, assetsManager, textureFactory);
+            }, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
                 newValue => component.TilingFactor = (float)newValue);
         });

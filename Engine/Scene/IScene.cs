@@ -9,6 +9,8 @@ namespace Engine.Scene;
 /// </summary>
 public interface IScene : IDisposable
 {
+    public string Name { get; }
+    
     /// <summary>
     /// Gets all entities in the scene.
     /// </summary>

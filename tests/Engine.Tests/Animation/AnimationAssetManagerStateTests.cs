@@ -12,12 +12,6 @@ namespace Engine.Tests.Animation;
 /// </summary>
 public class AnimationAssetManagerStateTests
 {
-    private class MockAssetsManager : IAssetsManager
-    {
-        public string AssetsPath => Path.Combine(Environment.CurrentDirectory, "assets");
-        public void SetAssetsPath(string path) { }
-    }
-    
     private readonly ITextureFactory _textureFactory;
 
     public AnimationAssetManagerStateTests()
@@ -25,7 +19,7 @@ public class AnimationAssetManagerStateTests
         _textureFactory = Substitute.For<ITextureFactory>();
     }
 
-    private AnimationAssetManager CreateManager() => new(new MockAssetsManager(), _textureFactory, new SerializerOptions());
+    private AnimationAssetManager CreateManager() => new(_textureFactory, new SerializerOptions());
 
     [Fact]
     public void Manager_StartsWithEmptyCache()

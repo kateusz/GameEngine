@@ -17,6 +17,7 @@ namespace Engine.Scene;
 
 internal sealed class Scene(
     string path,
+    string sceneName,
     ISceneSystemRegistry systemRegistry,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
@@ -48,6 +49,7 @@ internal sealed class Scene(
         return (systemManager, physicsWorld);
     }
 
+    public string Name => sceneName;
     public IEnumerable<Entity> Entities => _entities;
 
     public Entity CreateEntity(string name)

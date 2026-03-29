@@ -165,7 +165,7 @@
       "Name": "Audio Manager",
       "Components": [
         {
-          "AudioClipPath": "assets/audio/Example.ogg",
+          "AudioClipPath": "audio/Example.ogg",
           "Volume": 1,
           "Pitch": 1,
           "Loop": false,
@@ -222,7 +222,7 @@
             0,
             0
           ],
-          "TexturePath": "assets/textures/hero-attack.png",
+          "TexturePath": "textures/hero-attack.png",
           "CellSize": [
             16,
             16
@@ -289,7 +289,7 @@
             4,
             3
           ],
-          "TexturePath": "assets/textures/spritesheet.png",
+          "TexturePath": "textures/spritesheet.png",
           "CellSize": [
             64,
             64

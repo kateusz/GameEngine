@@ -12,11 +12,11 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
 
     public string? EditorScenePath { get; private set; }
 
-    public void New()
+    public void New(string newSceneName)
     {
         sceneContext.ActiveScene?.Dispose();
 
-        sceneContext.SetScene(sceneFactory.Create(""));
+        sceneContext.SetScene(sceneFactory.Create(path: "", newSceneName));
         Logger.Information("📄 New scene created");
     }
 
@@ -27,19 +27,20 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
 
         sceneContext.ActiveScene?.Dispose();
 
+        
         EditorScenePath = path;
-        sceneContext.SetScene(sceneFactory.Create(path));
+        sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));
         sceneSerializer.Deserialize(sceneContext.ActiveScene!, path);
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
-    public void Save(string? scenesDir)
+    public void Save()
     {
-        var sceneDir = scenesDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scenes");
+        var sceneDir = PathBuilder.Build("scenes");
         if (!Directory.Exists(sceneDir))
             Directory.CreateDirectory(sceneDir);
 
-        EditorScenePath = Path.Combine(sceneDir, "scene.scene");
+        EditorScenePath = Path.Combine(sceneDir, $"{sceneContext.ActiveScene.Name}.scene");
         sceneSerializer.Serialize(sceneContext.ActiveScene, EditorScenePath);
         Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }

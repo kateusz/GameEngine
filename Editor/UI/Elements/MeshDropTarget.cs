@@ -1,6 +1,6 @@
 using Editor.UI.Drawers;
-using Engine.Core;
 using Engine.Scene;
+using Engine.Scene.Serializer;
 using Serilog;
 
 namespace Editor.UI.Elements;
@@ -10,7 +10,6 @@ public static class MeshDropTarget
     private static readonly string[] SupportedExtensions = [".obj", ".fbx", ".gltf", ".glb"];
 
     public static ModelSceneImporter.ImportResult? Draw(ModelSceneImporter modelSceneImporter,
-        IAssetsManager assetsManager,
         ISceneContext sceneContext, ILogger logger)
     {
         ModelSceneImporter.ImportResult? importResult = null;
@@ -22,11 +21,12 @@ public static class MeshDropTarget
             {
                 try
                 {
-                    var fullPath = Path.Combine(assetsManager.AssetsPath, path);
+                    var fullPath = PathBuilder.Build(path);
                     var scene = sceneContext.ActiveScene;
 
                     importResult = modelSceneImporter.Import(
-                        scene, fullPath,
+                        scene, 
+                        fullPath,
                         addDefaultLighting: true,
                         addCamera: false);
 

@@ -1,6 +1,7 @@
 using Editor.UI.Drawers;
 using Engine.Audio;
 using Engine.Core;
+using Engine.Scene.Serializer;
 using Serilog;
 
 namespace Editor.UI.Elements;
@@ -9,11 +10,8 @@ namespace Editor.UI.Elements;
 /// UI element that provides drag-and-drop functionality for audio files.
 /// Allows users to drag audio files (.wav, .ogg) from the content browser onto audio properties.
 /// </summary>
-public class AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsManager)
+public class AudioDropTarget(IAudioEngine audioEngine)
 {
-    private readonly IAudioEngine _audioEngine = audioEngine;
-    private readonly IAssetsManager _assetsManager = assetsManager;
-
     /// <summary>
     /// Draws a drag-and-drop target button for audio clips.
     /// </summary>
@@ -40,15 +38,15 @@ public class AudioDropTarget(IAudioEngine audioEngine, IAssetsManager assetsMana
                 DragDropDrawer.ContentBrowserItemPayload,
                 path =>
                 {
-                    var audioPath = Path.Combine(_assetsManager.AssetsPath, path);
+                    var audioPath = PathBuilder.Build(path);
                     return File.Exists(audioPath) && AudioClipFactory.IsSupportedFormat(audioPath);
                 },
                 path =>
                 {
-                    var audioPath = Path.Combine(_assetsManager.AssetsPath, path);
+                    var audioPath = PathBuilder.Build(path);
                     try
                     {
-                        var audioClip = _audioEngine.LoadAudioClip(audioPath);
+                        var audioClip = audioEngine.LoadAudioClip(audioPath);
                         onAudioChanged(audioClip, path);
                     }
                     catch (Exception ex)

@@ -70,7 +70,6 @@ public static class EngineIoCContainer
         container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
-        container.Register<IAssetsManager, AssetsManager>(Reuse.Singleton);
         
         RegisterFactories(container);
         

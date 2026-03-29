@@ -8,6 +8,7 @@ namespace Engine.Scene.Components;
 public class SubTextureRendererComponent : IComponent
 {
     public Vector2 Coords { get; set; }
+    
     [JsonIgnore]
     public Texture2D? Texture { get; set; }
     public string? TexturePath { get; set; }

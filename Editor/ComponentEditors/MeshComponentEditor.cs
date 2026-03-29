@@ -13,7 +13,6 @@ using Serilog;
 namespace Editor.ComponentEditors;
 
 public class MeshComponentEditor(
-    IAssetsManager assetsManager,
     IMeshFactory meshFactory,
     ModelSceneImporter modelSceneImporter,
     ISceneContext sceneContext)
@@ -35,7 +34,7 @@ public class MeshComponentEditor(
 
             ImGui.SameLine();
             ButtonDrawer.DrawButton("Drop Mesh", EditorUIConstants.DefaultButtonWidth, 0);
-            var test = MeshDropTarget.Draw(modelSceneImporter, assetsManager, sceneContext, Logger);
+            _ = MeshDropTarget.Draw(modelSceneImporter, sceneContext, Logger);
 
             if (meshComponent.MeshCount > 0)
             {

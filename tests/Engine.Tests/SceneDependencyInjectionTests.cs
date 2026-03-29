@@ -15,7 +15,6 @@ namespace Engine.Tests;
 /// </summary>
 public class SceneDependencyInjectionTests
 {
-    
     [Fact]
     public void Scene_CanBeCreated_WithMockedDependencies()
     {
@@ -26,7 +25,8 @@ public class SceneDependencyInjectionTests
         var mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
 
         // Act - Create scene with injected dependencies (previously impossible with singletons)
-        var scene = new EngineScene("test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D, mockContext, new Engine.Core.DebugSettings());
+        var scene = new EngineScene("test-scene", "test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D,
+            mockContext, new Engine.Core.DebugSettings());
 
         // Assert - Scene was created successfully
         scene.ShouldNotBeNull();
@@ -41,7 +41,8 @@ public class SceneDependencyInjectionTests
         var mockGraphics3D = Substitute.For<IGraphics3D>();
         var mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
 
-        var scene = new EngineScene("test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D, mockContext, new Engine.Core.DebugSettings());
+        var scene = new EngineScene("test-scene", "test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D,
+            mockContext, new Engine.Core.DebugSettings());
 
         // Act
         var entity = scene.CreateEntity("TestEntity");
@@ -59,7 +60,8 @@ public class SceneDependencyInjectionTests
         var mockGraphics3D = Substitute.For<IGraphics3D>();
         var mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
 
-        var scene = new EngineScene("test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D, mockContext, new Engine.Core.DebugSettings());
+        var scene = new EngineScene("test-scene", "test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D,
+            mockContext, new Engine.Core.DebugSettings());
         var entity = scene.CreateEntity("TestEntity");
 
         // Act

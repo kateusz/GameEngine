@@ -7,8 +7,7 @@ namespace Editor.Features.Project;
 
 public class NewProjectPopup(
     IProjectManager projectManager,
-    IContentBrowserPanel contentBrowserPanel,
-    IAssetsManager assetsManager)
+    IContentBrowserPanel contentBrowserPanel)
 {
     private bool _showNewProjectPopup;
     private bool _showOpenProjectPopup;
@@ -49,7 +48,7 @@ public class NewProjectPopup(
                 {
                     _newProjectName = string.Empty;
                     _newProjectError = string.Empty;
-                    contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
+                    contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                 }
                 else
                 {
@@ -84,7 +83,7 @@ public class NewProjectPopup(
                 {
                     _openProjectPath = string.Empty;
                     _openProjectError = string.Empty;
-                    contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
+                    contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                 }
                 else
                 {

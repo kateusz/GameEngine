@@ -32,7 +32,7 @@ public class Sandbox3DLayer(
     {
         Logger.Information("Sandbox3DLayer OnAttach - loading scene");
 
-        _scene = sceneFactory.Create("Sandbox3D");
+        _scene = sceneFactory.Create("Sandbox3D", "Sandbox3D");
 
         if (!File.Exists(ModelPath))
         {

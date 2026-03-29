@@ -47,11 +47,7 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
                 try
                 {
                     // Create new scene
-                    sceneManager.New();
-
-                    // TODO: Set scene path when saving is implemented
-                    // Scene will be saved when the user explicitly saves
-
+                    sceneManager.New(_newSceneName);
                     _newSceneName = string.Empty;
                     _newSceneError = string.Empty;
                 }

@@ -16,8 +16,7 @@ public class RecentProjectsPanel(
     IEditorPreferences editorPreferences,
     IProjectManager projectManager,
     IContentBrowserPanel contentBrowserPanel,
-    NewProjectPopup newProjectPopup,
-    IAssetsManager assetsManager)
+    NewProjectPopup newProjectPopup)
 {
     private static readonly ILogger Logger = Log.ForContext<RecentProjectsPanel>();
         
@@ -188,7 +187,7 @@ public class RecentProjectsPanel(
             {
                 if (projectManager.TryOpenProject(project.Path, out var error))
                 {
-                    contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
+                    contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                     Logger.Information("Opened project: {Name}", project.Name);
                     
                     // Close window on next frame

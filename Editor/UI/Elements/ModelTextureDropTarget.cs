@@ -1,6 +1,7 @@
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Renderer.Textures;
+using Engine.Scene.Serializer;
 
 namespace Editor.UI.Elements;
 
@@ -17,9 +18,8 @@ public static class ModelTextureDropTarget
     /// </summary>
     /// <param name="label">Label for the button</param>
     /// <param name="onTextureChanged">Callback invoked when a texture is dropped</param>
-    /// <param name="assetsManager">Assets manager for resolving asset paths</param>
     /// <param name="textureFactory">Texture factory for creating textures</param>
-    public static void Draw(string label, Action<Texture2D> onTextureChanged, IAssetsManager assetsManager, ITextureFactory textureFactory)
+    public static void Draw(string label, Action<Texture2D> onTextureChanged, ITextureFactory textureFactory)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -32,12 +32,12 @@ public static class ModelTextureDropTarget
                 DragDropDrawer.ContentBrowserItemPayload,
                 path =>
                 {
-                    var texturePath = Path.Combine(assetsManager.AssetsPath, path);
+                    var texturePath = PathBuilder.Build(path);
                     return DragDropDrawer.IsValidFile(texturePath, SupportedExtensions);
                 },
                 path =>
                 {
-                    var texturePath = Path.Combine(assetsManager.AssetsPath, path);
+                    var texturePath = PathBuilder.Build(path);
                     onTextureChanged(textureFactory.Create(texturePath));
                 });
         });

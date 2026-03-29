@@ -22,6 +22,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
 using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scene.Serializer;
 using Engine.Scripting;
 using ImGuiNET;
 using Serilog;
@@ -52,7 +53,6 @@ public class EditorLayer(
     ScriptComponentEditor scriptComponentEditor,
     DebugSettings debugSettings,
     PerformanceMonitorPanel performanceMonitor,
-    IAssetsManager assetsManager,
     ViewportToolManager viewportToolManager,
     ViewportRuler viewportRuler,
     ViewportGrid viewportGrid,
@@ -103,7 +103,7 @@ public class EditorLayer(
         _frameBuffer = frameBufferFactory.Create();
         _contentScale = contentScaleProvider.ContentScale;
 
-        sceneManager.New();
+        sceneManager.New("");
 
         sceneHierarchyPanel.EntitySelected = EntitySelected;
         // Viewport selection only updates selection state - don't move camera since entity is already visible
@@ -184,7 +184,7 @@ public class EditorLayer(
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.S, KeyModifiers.CtrlOnly,
-            () => sceneManager.Save(projectManager.ScenesDir),
+            () => sceneManager.Save(),
             "Save scene", "File"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
@@ -441,7 +441,7 @@ public class EditorLayer(
                                 {
                                     if (projectManager.TryOpenProject(recent.Path, out var error))
                                     {
-                                        contentBrowserPanel.SetRootDirectory(assetsManager.AssetsPath);
+                                        contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                                     }
                                     else
                                     {
@@ -481,7 +481,7 @@ public class EditorLayer(
                     if (ImGui.MenuItem("New", "Ctrl+N"))
                         sceneSettingsPopup.ShowNewScenePopup();
                     if (ImGui.MenuItem("Save", "Ctrl+S"))
-                        sceneManager.Save(projectManager.ScenesDir);
+                        sceneManager.Save();
                     ImGui.EndMenu();
                 }
 
@@ -570,7 +570,10 @@ public class EditorLayer(
                 DragDropDrawer.HandleFileDropTarget(
                     DragDropDrawer.ContentBrowserItemPayload,
                     sceneValidator,
-                    onDropped: path => { sceneManager.Open(Path.Combine(assetsManager.AssetsPath, path)); });
+                    onDropped: path =>
+                    {
+                        sceneManager.Open(PathBuilder.Build(path));
+                    });
 
                 // var fbxImportResult = FbxDropTarget.Draw();
                 // if (fbxImportResult is { SceneRadius: > 0 })
