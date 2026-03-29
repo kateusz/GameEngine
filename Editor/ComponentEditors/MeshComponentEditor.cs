@@ -34,8 +34,8 @@ public class MeshComponentEditor(
             });
 
             ImGui.SameLine();
-            ButtonDrawer.DrawButton("Drop FBX", EditorUIConstants.DefaultButtonWidth, 0);
-            var test = FbxDropTarget.Draw(modelSceneImporter, assetsManager, sceneContext, Logger);
+            ButtonDrawer.DrawButton("Drop Mesh", EditorUIConstants.DefaultButtonWidth, 0);
+            var test = MeshDropTarget.Draw(modelSceneImporter, assetsManager, sceneContext, Logger);
 
             if (meshComponent.MeshCount > 0)
             {
