@@ -34,7 +34,7 @@ public class MeshComponentEditor(
 
             ImGui.SameLine();
             ButtonDrawer.DrawButton("Drop Mesh", EditorUIConstants.DefaultButtonWidth, 0);
-            _ = MeshDropTarget.Draw(modelSceneImporter, sceneContext, Logger);
+            var result = MeshDropTarget.Draw(modelSceneImporter, sceneContext, Logger);
 
             if (meshComponent.MeshCount > 0)
             {

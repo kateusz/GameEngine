@@ -22,7 +22,8 @@ public static class ComponentSelector
                 if (scene.GetPrimaryCameraEntity() is null)
                     c.Primary = true;
                 c.Camera.SetViewportSize(DisplayConfig.DefaultWindowWidth, DisplayConfig.DefaultWindowHeight);
-                entity.AddComponent<TransformComponent>();
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
                 entity.AddComponent<CameraComponent>(c);
                 entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                 {
@@ -30,7 +31,7 @@ public static class ComponentSelector
                 });
             });
 
-            DrawComponentMenuItem<SpriteRendererComponent>("Transform", entity);
+            DrawComponentMenuItem<TransformComponent>("Transform", entity);
             DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity);
             DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity);
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);

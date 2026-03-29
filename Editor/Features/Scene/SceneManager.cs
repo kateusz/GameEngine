@@ -12,11 +12,11 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
 
     public string? EditorScenePath { get; private set; }
 
-    public void New(string newSceneName)
+    public void New(string sceneName)
     {
         sceneContext.ActiveScene?.Dispose();
 
-        sceneContext.SetScene(sceneFactory.Create(path: "", newSceneName));
+        sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
         Logger.Information("📄 New scene created");
     }
 
@@ -26,7 +26,7 @@ public class SceneManager(ISceneContext sceneContext, ISceneSerializer sceneSeri
             Stop();
 
         sceneContext.ActiveScene?.Dispose();
-
+        EditorScenePath = null;
         
         EditorScenePath = path;
         sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));

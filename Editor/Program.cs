@@ -19,10 +19,7 @@ static void ConfigureContainer(Container container)
 var container = new Container();
 ConfigureContainer(container);
 
-// Create ConsolePanel early so we can configure logging with it
 var consolePanel = container.Resolve<IConsolePanel>();
-
-// Configure Serilog with all sinks in one place
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.WithProperty("Application", "GameEngine")

@@ -11,8 +11,8 @@ public interface ISceneManager
     /// <summary>
     /// Creates a new empty scene.
     /// </summary>
-    /// <param name="newSceneName"></param>
-    void New(string newSceneName);
+    /// <param name="sceneName"></param>
+    void New(string sceneName);
 
     /// <summary>
     /// Opens an existing scene from the specified path.

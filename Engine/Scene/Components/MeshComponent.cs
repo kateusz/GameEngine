@@ -38,7 +38,7 @@ public class MeshComponent : IComponent
     {
         return new MeshComponent
         {
-            Meshes = Meshes,
+            Meshes = [..Meshes],
             ModelPath = ModelPath,
             MeshIndex = MeshIndex
         };

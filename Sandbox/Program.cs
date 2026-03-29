@@ -8,11 +8,11 @@ namespace Sandbox;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
+        var container = new Container();
         try
         {
-            var container = new Container();
             ConfigureContainer(container);
             
             Log.Logger = new LoggerConfiguration()
@@ -30,17 +30,15 @@ public class Program
             var sandboxLayer = container.Resolve<ILayer>();
             app.PushLayer(sandboxLayer);
             app.Run();
-
-            Log.CloseAndFlush();
-            container.Dispose();
+            
+            return 0;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Fatal application error: {ex.GetType().Name}");
             Console.Error.WriteLine($"Message: {ex.Message}");
             Console.Error.WriteLine($"Stack trace:\n{ex.StackTrace}");
-
-            // Log inner exceptions if present
+            
             var innerEx = ex.InnerException;
             while (innerEx != null)
             {
@@ -50,7 +48,12 @@ public class Program
                 innerEx = innerEx.InnerException;
             }
 
-            Environment.Exit(1);
+            return 1;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+            container.Dispose();
         }
     }
 

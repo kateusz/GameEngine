@@ -18,9 +18,9 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
 
         const uint flags = (uint)(PostProcessSteps.Triangulate |
-                                   PostProcessSteps.GenerateNormals |
-                                   PostProcessSteps.CalculateTangentSpace |
-                                   PostProcessSteps.FlipUVs);
+                                  PostProcessSteps.GenerateNormals |
+                                  PostProcessSteps.CalculateTangentSpace |
+                                  PostProcessSteps.FlipUVs);
 
         unsafe
         {
@@ -115,9 +115,10 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
 
         for (uint i = 0; i < aiMesh->MNumVertices; i++)
         {
-            var vertex = new Mesh.Vertex();
-
-            vertex.Position = aiMesh->MVertices[i];
+            var vertex = new Mesh.Vertex
+            {
+                Position = aiMesh->MVertices[i]
+            };
 
             if (aiMesh->MNormals != null)
                 vertex.Normal = aiMesh->MNormals[i];
@@ -161,10 +162,10 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
         };
 
         var normalTexture = LoadMaterialTexture(aiMaterial, TextureType.Normals, directory, out var normalPath);
-        
+
         if (normalTexture == null)
             normalTexture = LoadMaterialTexture(aiMaterial, TextureType.Height, directory, out normalPath);
-        
+
         material.NormalTexture = normalTexture ?? textureFactory.GetFlatNormalTexture();
         material.NormalTexturePath = normalPath;
 
@@ -191,8 +192,7 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
         var texturePath = aiPath.AsString;
         if (string.IsNullOrEmpty(texturePath))
             return null;
-
-        // Keep the full relative path from Assimp and combine with model directory
+        
         if (!Path.IsPathRooted(texturePath))
             texturePath = Path.Combine(directory, texturePath);
 

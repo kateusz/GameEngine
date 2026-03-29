@@ -15,7 +15,7 @@ public class Program
 {
     private static readonly ILogger Logger = Log.ForContext<Program>();
     
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
@@ -28,31 +28,29 @@ public class Program
             .CreateLogger();
         
         Logger.Information("Starting game runtime...");
-        
+
+        var container = new Container();
         try
         {
             var gameConfig = LoadGameConfiguration();
             Logger.Information("Game: {Title}", gameConfig.GameTitle);
             Logger.Information("Startup Scene: {Scene}", gameConfig.StartupScenePath);
-
-            var container = new Container();
+            
             ConfigureContainer(container, gameConfig);
 
             var app = container.Resolve<RuntimeApplication>();
             var gameLayer = container.Resolve<ILayer>();
             app.PushLayer(gameLayer);
             app.Run();
-            
-            Log.CloseAndFlush();
-            container.Dispose();
+
+            return 0;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Fatal application error: {ex.GetType().Name}");
             Console.Error.WriteLine($"Message: {ex.Message}");
             Console.Error.WriteLine($"Stack trace:\n{ex.StackTrace}");
-
-            // Log inner exceptions if present
+            
             var innerEx = ex.InnerException;
             while (innerEx != null)
             {
@@ -62,7 +60,12 @@ public class Program
                 innerEx = innerEx.InnerException;
             }
 
-            Environment.Exit(1);
+            return 1;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+            container.Dispose();
         }
     }
 

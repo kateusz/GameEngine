@@ -26,7 +26,6 @@ internal sealed class MeshFactory(
 
         var tangentX = Vector3.UnitX;
         var tangentNegX = -Vector3.UnitX;
-        var tangentY = Vector3.UnitY;
         var bitangentY = Vector3.UnitY;
         var bitangentNegZ = -Vector3.UnitZ;
         var bitangentZ = Vector3.UnitZ;
