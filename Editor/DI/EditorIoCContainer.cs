@@ -29,7 +29,6 @@ public static class EditorIoCContainer
         );
         container.Register<EditorSettingsUI>(Reuse.Singleton);
         container.Register<AudioDropTarget>(Reuse.Singleton);
-        container.Register<FbxDropTarget>(Reuse.Singleton);
         container.Register<ModelSceneImporter>(Reuse.Singleton);
         container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
     

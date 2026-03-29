@@ -5,16 +5,22 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.ComponentEditors;
 
 public class MeshComponentEditor(
     IAssetsManager assetsManager,
-    IMeshFactory meshFactory)
+    IMeshFactory meshFactory,
+    ModelSceneImporter modelSceneImporter,
+    ISceneContext sceneContext)
     : IComponentEditor
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(MeshComponentEditor));
+    
     public void DrawComponent(Entity entity)
     {
         ComponentEditorRegistry.DrawComponent<MeshComponent>("Mesh", entity, () =>
@@ -29,7 +35,7 @@ public class MeshComponentEditor(
 
             ImGui.SameLine();
             ButtonDrawer.DrawButton("Drop FBX", EditorUIConstants.DefaultButtonWidth, 0);
-            MeshDropTarget.Draw(meshComponent, assetsManager, meshFactory);
+            var test = FbxDropTarget.Draw(modelSceneImporter, assetsManager, sceneContext, Logger);
 
             if (meshComponent.MeshCount > 0)
             {

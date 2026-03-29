@@ -5,16 +5,13 @@ using Serilog;
 
 namespace Editor.UI.Elements;
 
-public class FbxDropTarget(
-    ModelSceneImporter modelSceneImporter,
-    ISceneContext sceneContext,
-    IAssetsManager assetsManager)
+public static class FbxDropTarget
 {
-    private static readonly ILogger Logger = Log.ForContext<FbxDropTarget>();
-
     private static readonly string[] SupportedExtensions = [".obj", ".fbx", ".gltf", ".glb"];
 
-    public ModelSceneImporter.ImportResult? HandleViewportDrop()
+    public static ModelSceneImporter.ImportResult? Draw(ModelSceneImporter modelSceneImporter,
+        IAssetsManager assetsManager,
+        ISceneContext sceneContext, ILogger logger)
     {
         ModelSceneImporter.ImportResult? importResult = null;
 
@@ -33,13 +30,13 @@ public class FbxDropTarget(
                         addDefaultLighting: true,
                         addCamera: false);
 
-                    Logger.Information(
+                    logger.Information(
                         "Imported model {Path}: {Count} mesh entities, radius {Radius:F1}",
                         path, importResult.MeshEntities.Count, importResult.SceneRadius);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "Failed to import model {Path}", path);
+                    logger.Error(ex, "Failed to import model {Path}", path);
                 }
             });
 

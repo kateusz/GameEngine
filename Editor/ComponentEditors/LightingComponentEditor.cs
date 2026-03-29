@@ -21,20 +21,20 @@ public class LightingComponentEditor : IComponentEditor
             if (ImGui.Combo("Type", ref typeIndex, LightTypeNames, LightTypeNames.Length))
                 lc.Type = (LightType)typeIndex;
 
-            if (lc.Type == LightType.Point)
-            {
+            //if (lc.Type == LightType.Point)
+            //{
                 var newPosition = lc.Position;
                 VectorPanel.DrawVec3Control("Position", ref newPosition);
                 if (newPosition != lc.Position)
                     lc.Position = newPosition;
-            }
-            else
-            {
+            //}
+            //else
+            //{
                 var newDirection = lc.Direction;
                 VectorPanel.DrawVec3Control("Direction", ref newDirection);
                 if (newDirection != lc.Direction)
                     lc.Direction = newDirection;
-            }
+           // }
 
             var newColor = lc.Color;
             ImGui.ColorEdit3("Color", ref newColor);
