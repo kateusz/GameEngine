@@ -74,7 +74,7 @@ public class CameraController : ScriptableEntity
 
         var orientation = Quaternion.CreateFromYawPitchRoll(-_yaw, -_pitch, 0f);
         GetComponent<CameraComponent>().CameraViewTransform =
-            Matrix4x4.CreateFromQuaternion(orientation) * Matrix4x4.CreateTranslation(_position);
+            Matrix4x4.CreateTranslation(-_position) * Matrix4x4.CreateFromQuaternion(orientation);
     }
 
     public override void OnDestroy()

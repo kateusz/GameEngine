@@ -24,6 +24,7 @@ public class Sandbox3DLayer(
     private Entity? _cameraEntity;
     private float _fps;
     private float _fpsTimer;
+    private int _fpsFrames;
 
     private const string ModelPath = "assets/models/BistroExterior.fbx";
     //private const string ModelPath = "assets/models/New_Sponza_001.fbx";
@@ -84,10 +85,12 @@ public class Sandbox3DLayer(
         }
 
         _fpsTimer += (float)deltaTime.TotalSeconds;
+        _fpsFrames++;
         if (_fpsTimer >= 0.5f)
         {
-            _fps = 1f / (float)deltaTime.TotalSeconds;
+            _fps = _fpsFrames / _fpsTimer;
             _fpsTimer = 0f;
+            _fpsFrames = 0;
         }
 
         graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
