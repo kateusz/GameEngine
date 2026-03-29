@@ -15,6 +15,7 @@ out vec3 v_FragPos;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
 out mat3 v_TBN;
+flat out int v_EntityID;
 
 void main()
 {
@@ -29,5 +30,6 @@ void main()
     vec3 B = cross(N, T);
     v_TBN = mat3(T, B, N);
 
+    v_EntityID  = a_EntityID;
     gl_Position = worldPos * u_ViewProjection;
 }

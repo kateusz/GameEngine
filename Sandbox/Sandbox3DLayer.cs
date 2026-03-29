@@ -7,6 +7,7 @@ using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Components;
+using ImGuiNET;
 using Serilog;
 
 namespace Sandbox;
@@ -21,6 +22,8 @@ public class Sandbox3DLayer(
     private IScene? _scene;
     private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
+    private float _fps;
+    private float _fpsTimer;
 
     private const string ModelPath = "assets/models/BistroExterior.fbx";
 
@@ -42,12 +45,14 @@ public class Sandbox3DLayer(
 
         _cameraEntity = result.CameraEntity;
 
-        var startPos = new Vector3(0, 5, 15);
+        var startPos = new Vector3(-8.93f, 3.39f, 12.91f);
         var initialYaw = 0f;
         if (_cameraEntity != null)
         {
             var t = _cameraEntity.GetComponent<TransformComponent>();
-            startPos = t.Translation;
+            
+            // todo: hardcoded
+            t.Translation = startPos;
 
             // Compute yaw to look toward scene center
             var toCenter = result.SceneCenter - startPos;
@@ -77,6 +82,13 @@ public class Sandbox3DLayer(
             transform.Rotation = new Vector3(_cameraController.Pitch, _cameraController.Yaw, 0);
         }
 
+        _fpsTimer += (float)deltaTime.TotalSeconds;
+        if (_fpsTimer >= 0.5f)
+        {
+            _fps = 1f / (float)deltaTime.TotalSeconds;
+            _fpsTimer = 0f;
+        }
+
         graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
         graphics3D.Clear();
 
@@ -94,5 +106,25 @@ public class Sandbox3DLayer(
             _scene.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
     }
 
-    public void Draw() { }
+    public void Draw()
+    {
+        const float padding = 10f;
+        var io = ImGui.GetIO();
+        var drawList = ImGui.GetForegroundDrawList();
+        var white = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 1f));
+
+        var fpsText = $"FPS: {_fps:F0}";
+        var fpsSize = ImGui.CalcTextSize(fpsText);
+        var fpsPos = new Vector2(io.DisplaySize.X - fpsSize.X - padding, padding);
+        drawList.AddText(fpsPos, white, fpsText);
+
+        if (_cameraController != null)
+        {
+            var p = _cameraController.Position;
+            var posText = $"X: {p.X:F2}  Y: {p.Y:F2}  Z: {p.Z:F2}";
+            var posSize = ImGui.CalcTextSize(posText);
+            var posPos = new Vector2(io.DisplaySize.X - posSize.X - padding, fpsPos.Y + fpsSize.Y + 2f);
+            drawList.AddText(posPos, white, posText);
+        }
+    }
 }

@@ -9,16 +9,32 @@ namespace Editor.ComponentEditors;
 
 public class LightingComponentEditor : IComponentEditor
 {
+    private static readonly string[] LightTypeNames = ["Point", "Directional"];
+
     public void DrawComponent(Entity entity)
     {
         ComponentEditorRegistry.DrawComponent<LightingComponent>("Lighting", entity, () =>
         {
             var lc = entity.GetComponent<LightingComponent>();
 
-            var newPosition = lc.Position;
-            VectorPanel.DrawVec3Control("Position", ref newPosition);
-            if (newPosition != lc.Position)
-                lc.Position = newPosition;
+            var typeIndex = (int)lc.Type;
+            if (ImGui.Combo("Type", ref typeIndex, LightTypeNames, LightTypeNames.Length))
+                lc.Type = (LightType)typeIndex;
+
+            if (lc.Type == LightType.Point)
+            {
+                var newPosition = lc.Position;
+                VectorPanel.DrawVec3Control("Position", ref newPosition);
+                if (newPosition != lc.Position)
+                    lc.Position = newPosition;
+            }
+            else
+            {
+                var newDirection = lc.Direction;
+                VectorPanel.DrawVec3Control("Direction", ref newDirection);
+                if (newDirection != lc.Direction)
+                    lc.Direction = newDirection;
+            }
 
             var newColor = lc.Color;
             ImGui.ColorEdit3("Color", ref newColor);

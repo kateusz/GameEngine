@@ -172,6 +172,8 @@ internal sealed class Scene(
         {
             var (_, firstLight) = lightGroup[0];
             graphics3D.SetLightPosition(firstLight.Position);
+            graphics3D.SetLightDirection(firstLight.Direction);
+            graphics3D.SetLightType((int)firstLight.Type);
             graphics3D.SetLightColor(firstLight.Color);
 
             graphics3D.BeginLightVisualization(camera);

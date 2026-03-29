@@ -21,8 +21,9 @@ internal sealed class LightingSystem(
             return;
 
         var (_, firstLight) = lights[0];
-        var firstWorldPos = firstLight.Position;
-        graphics3D.SetLightPosition(firstWorldPos);
+        graphics3D.SetLightPosition(firstLight.Position);
+        graphics3D.SetLightDirection(firstLight.Direction);
+        graphics3D.SetLightType((int)firstLight.Type);
         graphics3D.SetLightColor(firstLight.Color);
 
         if (cameraProvider.Camera == null)

@@ -13,6 +13,8 @@ public interface IGraphics3D : IGraphics
     void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, int entityId = -1);
     void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer, int entityId = -1);
     void SetLightPosition(Vector3 position);
+    void SetLightDirection(Vector3 direction);
+    void SetLightType(int type);
     void SetLightColor(Vector3 color);
     void SetShininess(float shininess);
 

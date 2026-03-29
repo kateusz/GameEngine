@@ -10,6 +10,8 @@ in mat3 v_TBN;
 flat in int v_EntityID;
 
 uniform vec3  u_LightPosition;
+uniform vec3  u_LightDirection;
+uniform int   u_LightType;
 uniform vec3  u_ViewPosition;
 uniform vec3  u_LightColor;
 uniform vec4  u_Color;
@@ -48,7 +50,9 @@ void main()
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * u_LightColor * diffuseColor;
 
-    vec3 lightDir = normalize(u_LightPosition - v_FragPos);
+    vec3 lightDir = (u_LightType == 1)
+        ? normalize(-u_LightDirection)
+        : normalize(u_LightPosition - v_FragPos);
     float diff    = max(dot(norm, lightDir), 0.0);
     vec3 diffuse  = diff * u_LightColor * diffuseColor;
 

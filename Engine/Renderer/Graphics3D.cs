@@ -17,6 +17,8 @@ internal sealed class Graphics3D(
     private Mesh _cubeMesh = null!;
 
     private Vector3 _lightPosition = Vector3.Zero;
+    private Vector3 _lightDirection = -Vector3.UnitY;
+    private int _lightType = 0;
     private Vector3 _lightColor = Vector3.One;
 
     private readonly Statistics _stats = new();
@@ -52,6 +54,8 @@ internal sealed class Graphics3D(
         _meshShader.Bind();
         _meshShader.SetMat4("u_ViewProjection", viewProj);
         _meshShader.SetFloat3("u_LightPosition", _lightPosition);
+        _meshShader.SetFloat3("u_LightDirection", _lightDirection);
+        _meshShader.SetInt("u_LightType", _lightType);
         _meshShader.SetFloat3("u_LightColor", _lightColor);
         _meshShader.SetFloat3("u_ViewPosition", cameraPos);
     }
@@ -61,6 +65,8 @@ internal sealed class Graphics3D(
         _meshShader.Bind();
         _meshShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
         _meshShader.SetFloat3("u_LightPosition", _lightPosition);
+        _meshShader.SetFloat3("u_LightDirection", _lightDirection);
+        _meshShader.SetInt("u_LightType", _lightType);
         _meshShader.SetFloat3("u_LightColor", _lightColor);
         _meshShader.SetFloat3("u_ViewPosition", camera.GetPosition());
     }
@@ -141,15 +147,10 @@ internal sealed class Graphics3D(
         }
     }
 
-    public void SetLightPosition(Vector3 position)
-    {
-        _lightPosition = position;
-    }
-
-    public void SetLightColor(Vector3 color)
-    {
-        _lightColor = color;
-    }
+    public void SetLightPosition(Vector3 position) => _lightPosition = position;
+    public void SetLightDirection(Vector3 direction) => _lightDirection = direction;
+    public void SetLightType(int type) => _lightType = type;
+    public void SetLightColor(Vector3 color) => _lightColor = color;
 
     public void SetShininess(float shininess)
     {
