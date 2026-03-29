@@ -51,7 +51,8 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
             var lightEntity = scene.CreateEntity("Sun_Light");
             lightEntity.AddComponent<TransformComponent>();
             var light = lightEntity.AddComponent<LightingComponent>();
-            light.Position = result.SceneCenter + new Vector3(result.SceneRadius * 0.5f, result.SceneRadius, result.SceneRadius * 0.5f);
+            // Direction toward the sun (used as directional light in Sandbox shader)
+            light.Position = new Vector3(0.3f, 1.0f, 0.5f);
             light.Color = new Vector3(1.0f, 0.95f, 0.9f);
             result.LightEntity = lightEntity;
 
