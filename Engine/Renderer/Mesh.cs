@@ -112,18 +112,23 @@ public class Mesh : IDisposable
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
         if (_disposed)
             return;
 
-        _vertexArray?.Dispose();
-        _vertexBuffer?.Dispose();
-        _indexBuffer?.Dispose();
-
-        // Note: Textures are owned by Model and should be disposed there
-        // DiffuseTexture is often a shared white texture, so we don't dispose it
+        if (disposing)
+        {
+            _vertexArray?.Dispose();
+            _vertexBuffer?.Dispose();
+            _indexBuffer?.Dispose();
+        }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
 #if DEBUG
@@ -136,6 +141,7 @@ public class Mesh : IDisposable
                 $"Vertices: {Vertices.Count}, Indices: {Indices.Count}"
             );
         }
+        Dispose(false);
     }
 #endif
 }

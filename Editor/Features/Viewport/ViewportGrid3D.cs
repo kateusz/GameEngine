@@ -38,7 +38,10 @@ public class ViewportGrid3D
             var z       = centerZ + i * spacing;
             var isZAxis = MathF.Abs(z) < spacing * 0.01f;
             var isMajor = i % MajorEvery == 0;
-            var color   = isZAxis ? AxisXColor : isMajor ? MajorColor : MinorColor;
+            Vector4 color;
+            if (isZAxis) color = AxisXColor;
+            else if (isMajor) color = MajorColor;
+            else color = MinorColor;
             graphics2D.DrawLine(new Vector3(minX, 0f, z), new Vector3(maxX, 0f, z), color, -1);
         }
 
@@ -47,7 +50,10 @@ public class ViewportGrid3D
             var x       = centerX + i * spacing;
             var isXAxis = MathF.Abs(x) < spacing * 0.01f;
             var isMajor = i % MajorEvery == 0;
-            var color   = isXAxis ? AxisZColor : isMajor ? MajorColor : MinorColor;
+            Vector4 color;
+            if (isXAxis) color = AxisZColor;
+            else if (isMajor) color = MajorColor;
+            else color = MinorColor;
             graphics2D.DrawLine(new Vector3(x, 0f, minZ), new Vector3(x, 0f, maxZ), color, -1);
         }
     }

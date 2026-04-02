@@ -39,8 +39,6 @@ public class AnimationTimelinePanel : IAnimationTimelinePanel
         if (!_isOpen)
             return;
 
-        var wasOpen = _isOpen;
-
         // Dock to Viewport on first open
         if (!_hasBeenDockedOnce && viewportDockId != 0)
         {
@@ -94,7 +92,7 @@ public class AnimationTimelinePanel : IAnimationTimelinePanel
         ImGui.End();
 
         // If window was just closed via X button, reset state
-        if (wasOpen && !_isOpen)
+        if (!_isOpen)
         {
             ResetState();
         }

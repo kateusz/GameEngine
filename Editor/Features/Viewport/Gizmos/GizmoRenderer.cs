@@ -54,21 +54,7 @@ public static class GizmoRenderer
     
     public static GizmoAxis GetScaleHover(
         Vector3 worldPos, Vector2[] viewportBounds, Matrix4x4 vp, Vector2 localMouse)
-    {
-        var origin = WorldToGlobal(worldPos, viewportBounds, vp);
-        var mouse = ToGlobal(localMouse, viewportBounds);
-
-        var xEnd = AxisEnd(worldPos, Vector3.UnitX, viewportBounds, vp, origin);
-        var yEnd = AxisEnd(worldPos, Vector3.UnitY, viewportBounds, vp, origin);
-
-        if (IsNearPoint(mouse, origin, FreeHandleHalf + 3f)) return GizmoAxis.Free;
-        if (IsNearPoint(mouse, xEnd, CubeHandleHalf + 4f)) return GizmoAxis.X;
-        if (IsNearPoint(mouse, yEnd, CubeHandleHalf + 4f)) return GizmoAxis.Y;
-        if (IsNearSegment(mouse, origin, xEnd, HoverThreshold)) return GizmoAxis.X;
-        if (IsNearSegment(mouse, origin, yEnd, HoverThreshold)) return GizmoAxis.Y;
-
-        return GizmoAxis.None;
-    }
+        => GetTranslationHover(worldPos, viewportBounds, vp, localMouse);
 
     public static void DrawScale(
         Vector3 worldPos, Vector2[] viewportBounds, Matrix4x4 vp, GizmoAxis hover)
@@ -120,9 +106,8 @@ public static class GizmoRenderer
     {
         var axisTip = WorldToGlobal(worldPos + axis, viewportBounds, vp);
         var delta = axisTip - screenOrigin;
-        var dir = delta.LengthSquared() > 0.01f
-            ? Vector2.Normalize(delta)
-            : axis.X != 0 ? Vector2.UnitX : -Vector2.UnitY;
+        Vector2 fallback = axis.X != 0 ? Vector2.UnitX : -Vector2.UnitY;
+        var dir = delta.LengthSquared() > 0.01f ? Vector2.Normalize(delta) : fallback;
         return screenOrigin + dir * ArrowLength;
     }
 

@@ -67,13 +67,10 @@ public static class DragDropDrawer
         if (payload.NativePtr != null)
         {
             var path = ExtractStringFromPayload(payload.Data);
-            if (path != null)
+            if (path != null && (validator == null || validator(path)))
             {
-                if (validator == null || validator(path))
-                {
-                    onDropped(path);
-                    itemDropped = true;
-                }
+                onDropped(path);
+                itemDropped = true;
             }
         }
 

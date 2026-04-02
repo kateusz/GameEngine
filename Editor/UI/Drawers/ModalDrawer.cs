@@ -4,6 +4,20 @@ using ImGuiNET;
 
 namespace Editor.UI.Drawers;
 
+public readonly struct InputModalOptions(
+    string? validationMessage = null,
+    string? errorMessage = null,
+    bool isValid = true,
+    string okLabel = "OK",
+    string cancelLabel = "Cancel")
+{
+    public string? ValidationMessage { get; } = validationMessage;
+    public string? ErrorMessage { get; } = errorMessage;
+    public bool IsValid { get; } = isValid;
+    public string OkLabel { get; } = okLabel;
+    public string CancelLabel { get; } = cancelLabel;
+}
+
 /// <summary>
 /// Utility class for common ImGui modal and popup patterns.
 /// </summary>
@@ -42,22 +56,6 @@ public static class ModalDrawer
     /// </summary>
     public static void EndModal() => ImGui.EndPopup();
 
-    /// <summary>
-    /// Renders a complete input modal with label, input field, validation, and buttons.
-    /// Handles Enter key for confirmation and Escape key for cancellation.
-    /// </summary>
-    /// <param name="title">Modal title</param>
-    /// <param name="showModal">Reference to bool controlling modal visibility (set to true to show)</param>
-    /// <param name="promptText">Text prompt above the input field</param>
-    /// <param name="inputValue">Reference to the input value</param>
-    /// <param name="maxLength">Maximum input length</param>
-    /// <param name="validationMessage">Optional validation error message</param>
-    /// <param name="errorMessage">Optional general error message</param>
-    /// <param name="isValid">Whether the current input is valid</param>
-    /// <param name="onOk">Callback when OK is clicked or Enter is pressed</param>
-    /// <param name="onCancel">Callback when Cancel is clicked or Escape is pressed</param>
-    /// <param name="okLabel">Label for OK button (default: "OK")</param>
-    /// <param name="cancelLabel">Label for Cancel button (default: "Cancel")</param>
     public static void RenderInputModal(
         string title,
         ref bool showModal,
@@ -71,6 +69,20 @@ public static class ModalDrawer
         Action onCancel,
         string okLabel = "OK",
         string cancelLabel = "Cancel")
+    {
+        var options = new InputModalOptions(validationMessage, errorMessage, isValid, okLabel, cancelLabel);
+        RenderInputModal(title, ref showModal, promptText, ref inputValue, maxLength, onOk, onCancel, options);
+    }
+
+    public static void RenderInputModal(
+        string title,
+        ref bool showModal,
+        string promptText,
+        ref string inputValue,
+        uint maxLength,
+        Action onOk,
+        Action onCancel,
+        InputModalOptions options = default)
     {
         if (showModal)
             ImGui.OpenPopup(title);
@@ -93,19 +105,18 @@ public static class ModalDrawer
 
             ImGui.Separator();
 
-            if (!string.IsNullOrEmpty(validationMessage))
-                DrawErrorMessage(validationMessage);
+            if (!string.IsNullOrEmpty(options.ValidationMessage))
+                DrawErrorMessage(options.ValidationMessage);
 
-            if (!string.IsNullOrEmpty(errorMessage))
-                DrawErrorMessage(errorMessage);
+            if (!string.IsNullOrEmpty(options.ErrorMessage))
+                DrawErrorMessage(options.ErrorMessage);
 
-            // Handle Enter key for OK action
             HandleInputModalActions(
                 ref showModal,
-                enterPressed && isValid,
-                isValid,
-                okLabel,
-                cancelLabel,
+                enterPressed && options.IsValid,
+                options.IsValid,
+                options.OkLabel,
+                options.CancelLabel,
                 onOk,
                 onCancel);
 

@@ -216,7 +216,7 @@ public static class AnimationController
             return [];
         
         var anim = entity.GetComponent<AnimationComponent>();
-        return anim.Asset?.Clips.Select(c => c.Name)?.ToArray() ?? [];
+        return anim.Asset?.Clips.Select(c => c.Name).ToArray() ?? [];
     }
 
     /// <summary>

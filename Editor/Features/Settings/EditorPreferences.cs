@@ -216,5 +216,6 @@ public class EditorPreferences : IEditorPreferences
         _pendingSaveCts?.Cancel();
         _pendingSaveCts?.Dispose();
         _saveSemaphore?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

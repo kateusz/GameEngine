@@ -82,6 +82,7 @@ public static class EngineIoCContainer
 
         // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);
+        container.Register<RenderingSystemsGroup>(Reuse.Singleton);
         container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
 
         // Register ECS systems (all now use dependency injection)

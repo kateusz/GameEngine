@@ -120,12 +120,12 @@ internal sealed class OpenGLTexture2D : Texture2D
             data = pfimImage.Data;
         }
 
-        FlipVertically(data, pfimImage.Width, pfimImage.Height, tightStride);
+        FlipVertically(data, pfimImage.Height, tightStride);
 
         return UploadTexture(path, data, pfimImage.Width, pfimImage.Height, internalFormat, dataFormat);
     }
 
-    private static void FlipVertically(byte[] data, int width, int height, int stride)
+    private static void FlipVertically(byte[] data, int height, int stride)
     {
         var tempRow = new byte[stride];
         for (var y = 0; y < height / 2; y++)
@@ -212,7 +212,7 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         if (size != Width * Height * bpp)
         {
-            throw new Exception("Data must be entire texture!");
+            throw new ArgumentException("Data must be entire texture!", nameof(data));
         }
 
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
@@ -266,7 +266,7 @@ internal sealed class OpenGLTexture2D : Texture2D
         return _hashCode;
     }
 
-    public override void Dispose()
+    protected override void Dispose(bool disposing)
     {
         if (_disposed)
             return;
@@ -285,7 +285,6 @@ internal sealed class OpenGLTexture2D : Texture2D
         }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
 #if DEBUG
@@ -297,6 +296,7 @@ internal sealed class OpenGLTexture2D : Texture2D
                 $"GPU LEAK: Texture {_rendererId} (path: '{Path}') not disposed!"
             );
         }
+        Dispose(false);
     }
 #endif
 }

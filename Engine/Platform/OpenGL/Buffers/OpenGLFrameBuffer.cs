@@ -16,7 +16,6 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     private uint _depthAttachment;
     private readonly FramebufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
-    private bool _disposed;
 
     public OpenGLFrameBuffer(FrameBufferSpecification spec)
     {
@@ -244,8 +243,8 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _colorAttachments[attachmentIndex]);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"BindTexture (color attachment {attachmentIndex})");
 
-        var internalFormat = InternalFormat.Rgba8;
-        var format = PixelFormat.Rgba;
+        InternalFormat internalFormat;
+        PixelFormat format;
         PixelType pixelType;
         switch (_colorAttachmentSpecs[attachmentIndex].TextureFormat)
         {
@@ -340,11 +339,8 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         OpenGLDebug.CheckError(SilkNetContext.GL, "FramebufferTexture2D (depth)");
     }
     
-    public override void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        if (_disposed)
-            return;
-
         _colorAttachmentSpecs?.Clear();
 
         try
@@ -379,15 +375,12 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
                 $"Error disposing FrameBuffer {_rendererId}: {ex.Message}"
             );
         }
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
 #if DEBUG
     ~OpenGLFrameBuffer()
     {
-        if (!_disposed && _rendererId != 0)
+        if (_rendererId != 0)
         {
             Debug.WriteLine(
                 $"GPU LEAK: FrameBuffer {_rendererId} not disposed! " +

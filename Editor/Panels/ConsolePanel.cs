@@ -168,6 +168,7 @@ public class ConsolePanel : IConsolePanel
         Console.SetOut(_originalOut);
         Console.SetError(_originalError);
         _consoleWriter?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private class LogMessage

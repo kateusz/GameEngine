@@ -33,33 +33,21 @@ namespace Editor;
 public class EditorLayer(
     IProjectManager projectManager,
     IEditorPreferences editorPreferences,
-    IConsolePanel consolePanel,
     EditorSettingsUI editorSettingsUI,
-    IPropertiesPanel propertiesPanel,
-    ISceneHierarchyPanel sceneHierarchyPanel,
     ISceneContext sceneContext,
     ISceneManager sceneManager,
-    IContentBrowserPanel contentBrowserPanel,
-    SceneToolbar sceneToolbar,
     NewProjectPopup newProjectPopup,
     SceneSettingsPopup sceneSettingsPopup,
     IGraphics2D graphics2D,
-    RendererStatsPanel rendererStatsPanel,
-    IAnimationTimelinePanel animationTimeline,
-    RecentProjectsPanel recentProjectsPanel,
     ShortcutManager shortcutManager,
-    KeyboardShortcutsPanel keyboardShortcutsPanel,
     IScriptEngine scriptEngine,
     ScriptComponentEditor scriptComponentEditor,
     DebugSettings debugSettings,
-    PerformanceMonitorPanel performanceMonitor,
-    ViewportToolManager viewportToolManager,
-    ViewportRuler viewportRuler,
-    ViewportGrid viewportGrid,
-    ViewportGrid3D viewportGrid3D,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
-    IContentScaleProvider contentScaleProvider) : ILayer
+    IContentScaleProvider contentScaleProvider,
+    EditorPanels panels,
+    ViewportComponents viewport) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -88,16 +76,16 @@ public class EditorLayer(
     {
         Logger.Debug("EditorLayer OnAttach.");
 
-        _sceneChangedHandler = newScene => sceneHierarchyPanel.SetScene(newScene);
+        _sceneChangedHandler = newScene => panels.SceneHierarchyPanel.SetScene(newScene);
         _playSceneHandler = () => sceneManager.Play();
         _stopSceneHandler = () => sceneManager.Stop();
         _restartSceneHandler = () => sceneManager.Restart();
         _entitySelectionHandler = entity => _selectedEntity = entity;
 
         sceneContext.SceneChanged += _sceneChangedHandler;
-        sceneToolbar.OnPlayScene += _playSceneHandler;
-        sceneToolbar.OnStopScene += _stopSceneHandler;
-        sceneToolbar.OnRestartScene += _restartSceneHandler;
+        viewport.SceneToolbar.OnPlayScene += _playSceneHandler;
+        viewport.SceneToolbar.OnStopScene += _stopSceneHandler;
+        viewport.SceneToolbar.OnRestartScene += _restartSceneHandler;
 
         _editorCamera = new EditorCamera();
         _frameBuffer = frameBufferFactory.Create();
@@ -105,12 +93,12 @@ public class EditorLayer(
 
         sceneManager.New("");
 
-        sceneHierarchyPanel.EntitySelected = EntitySelected;
+        panels.SceneHierarchyPanel.EntitySelected = EntitySelected;
         // Viewport selection only updates selection state - don't move camera since entity is already visible
-        viewportToolManager.SubscribeToEntitySelection(_entitySelectionHandler);
+        viewport.ViewportToolManager.SubscribeToEntitySelection(_entitySelectionHandler);
 
-        contentBrowserPanel.Init();
-        sceneToolbar.Init();
+        panels.ContentBrowserPanel.Init();
+        viewport.SceneToolbar.Init();
 
         // Apply settings from preferences
         ApplyEditorSettings();
@@ -146,31 +134,31 @@ public class EditorLayer(
         // Editor mode shortcuts (Godot-style)
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Q, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Select,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Select,
             "Select tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.W, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Move,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Move,
             "Move tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.R, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Scale,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Scale,
             "Scale tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.E, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Ruler,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Ruler,
             "Ruler tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Escape, KeyModifiers.None,
             () =>
             {
-                if (sceneToolbar.CurrentMode == EditorMode.Ruler)
+                if (viewport.SceneToolbar.CurrentMode == EditorMode.Ruler)
                 {
-                    var rulerTool = viewportToolManager.GetTool<RulerTool>();
+                    var rulerTool = viewport.ViewportToolManager.GetTool<RulerTool>();
                     rulerTool?.ClearMeasurement();
                 }
             },
@@ -217,23 +205,23 @@ public class EditorLayer(
 
         // Unsubscribe event handlers to allow GC of this layer
         sceneContext.SceneChanged -= _sceneChangedHandler;
-        sceneToolbar.OnPlayScene -= _playSceneHandler;
-        sceneToolbar.OnStopScene -= _stopSceneHandler;
-        sceneToolbar.OnRestartScene -= _restartSceneHandler;
-        viewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
+        viewport.SceneToolbar.OnPlayScene -= _playSceneHandler;
+        viewport.SceneToolbar.OnStopScene -= _stopSceneHandler;
+        viewport.SceneToolbar.OnRestartScene -= _restartSceneHandler;
+        viewport.ViewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
 
         // Dispose current scene to cleanup resources
         sceneContext.ActiveScene?.Dispose();
 
         _frameBuffer?.Dispose();
-        consolePanel?.Dispose();
+        panels.ConsolePanel?.Dispose();
         Log.CloseAndFlush();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
     {
-        performanceMonitor.Update(timeSpan);
-        animationTimeline.Update((float)timeSpan.TotalSeconds);
+        panels.PerformanceMonitor.Update(timeSpan);
+        panels.AnimationTimeline.Update((float)timeSpan.TotalSeconds);
 
         // Resize (logical viewport → physical framebuffer)
         var spec = _frameBuffer.GetSpecification();
@@ -269,10 +257,10 @@ public class EditorLayer(
             }
         }
 
-        if (sceneContext.State == SceneState.Edit && sceneToolbar.ShowGrid3D)
+        if (sceneContext.State == SceneState.Edit && viewport.SceneToolbar.ShowGrid3D)
         {
             graphics2D.BeginScene(_editorCamera);
-            viewportGrid3D.Render(graphics2D, _editorCamera);
+            viewport.ViewportGrid3D.Render(graphics2D, _editorCamera);
             graphics2D.EndScene();
         }
 
@@ -412,7 +400,7 @@ public class EditorLayer(
             ImGui.End();
             ImGui.PopStyleVar();
 
-            sceneToolbar.Render();
+            viewport.SceneToolbar.Render();
             ImGui.End();
         }
 
@@ -436,7 +424,7 @@ public class EditorLayer(
             ImGui.Separator();
 
             if (ImGui.MenuItem("Show Recent Projects"))
-                recentProjectsPanel.Show();
+                panels.RecentProjectsPanel.Show();
 
             if (ImGui.BeginMenu("Recent Projects"))
             {
@@ -452,7 +440,7 @@ public class EditorLayer(
                         if (ImGui.MenuItem($"{recent.Name}"))
                         {
                             if (projectManager.TryOpenProject(recent.Path, out var error))
-                                contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                                panels.ContentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
                             else
                                 Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
                         }
@@ -493,14 +481,14 @@ public class EditorLayer(
             if (ImGui.MenuItem("Reset Camera"))
                 ResetCamera();
             ImGui.Separator();
-            if (ImGui.MenuItem("Show Rulers", null, viewportRuler.Enabled))
-                viewportRuler.Enabled = !viewportRuler.Enabled;
-            if (ImGui.MenuItem("Show 2D Grid", null, sceneToolbar.ShowGrid))
-                sceneToolbar.ShowGrid = !sceneToolbar.ShowGrid;
-            if (ImGui.MenuItem("Show 3D Grid", null, sceneToolbar.ShowGrid3D))
-                sceneToolbar.ShowGrid3D = !sceneToolbar.ShowGrid3D;
-            if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
-                rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
+            if (ImGui.MenuItem("Show Rulers", null, viewport.ViewportRuler.Enabled))
+                viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled;
+            if (ImGui.MenuItem("Show 2D Grid", null, viewport.SceneToolbar.ShowGrid))
+                viewport.SceneToolbar.ShowGrid = !viewport.SceneToolbar.ShowGrid;
+            if (ImGui.MenuItem("Show 3D Grid", null, viewport.SceneToolbar.ShowGrid3D))
+                viewport.SceneToolbar.ShowGrid3D = !viewport.SceneToolbar.ShowGrid3D;
+            if (ImGui.MenuItem("Show Stats", null, panels.RendererStatsPanel.IsVisible))
+                panels.RendererStatsPanel.IsVisible = !panels.RendererStatsPanel.IsVisible;
             ImGui.EndMenu();
         }
 
@@ -514,7 +502,7 @@ public class EditorLayer(
         if (ImGui.BeginMenu("Help"))
         {
             if (ImGui.MenuItem("Keyboard Shortcuts"))
-                keyboardShortcutsPanel.Show();
+                panels.KeyboardShortcutsPanel.Show();
             ImGui.EndMenu();
         }
 
@@ -530,21 +518,21 @@ public class EditorLayer(
 
     private void RenderPanels()
     {
-        sceneHierarchyPanel.Draw();
-        propertiesPanel.Draw();
-        contentBrowserPanel.Draw();
-        consolePanel.Draw();
+        panels.SceneHierarchyPanel.Draw();
+        panels.PropertiesPanel.Draw();
+        panels.ContentBrowserPanel.Draw();
+        panels.ConsolePanel.Draw();
 
         scriptComponentEditor.Draw();
-        recentProjectsPanel.Draw();
-        keyboardShortcutsPanel.Draw();
+        panels.RecentProjectsPanel.Draw();
+        panels.KeyboardShortcutsPanel.Draw();
 
-        var selectedEntity = sceneHierarchyPanel.GetSelectedEntity();
-        propertiesPanel.SetSelectedEntity(selectedEntity);
+        var selectedEntity = panels.SceneHierarchyPanel.GetSelectedEntity();
+        panels.PropertiesPanel.SetSelectedEntity(selectedEntity);
 
         var hoveredEntityName = _hoveredEntity?.Name ?? "None";
         var camPos = _editorCamera.GetPosition();
-        rendererStatsPanel.Draw(hoveredEntityName, camPos, _editorCamera.Yaw, () => performanceMonitor.RenderUI());
+        panels.RendererStatsPanel.Draw(hoveredEntityName, camPos, _editorCamera.Yaw, () => panels.PerformanceMonitor.RenderUI());
     }
 
     private void RenderViewport()
@@ -567,29 +555,29 @@ public class EditorLayer(
 
         if (ImGui.IsWindowHovered())
         {
-            var currentMode = sceneToolbar.CurrentMode;
+            var currentMode = viewport.SceneToolbar.CurrentMode;
             var globalMousePos = ImGui.GetMousePos();
             var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X, globalMousePos.Y - _viewportBounds[0].Y);
 
-            viewportToolManager.SetMode(currentMode);
-            viewportToolManager.SetHoveredEntity(_hoveredEntity);
+            viewport.ViewportToolManager.SetMode(currentMode);
+            viewport.ViewportToolManager.SetHoveredEntity(_hoveredEntity);
 
-            var currentSelection = sceneHierarchyPanel.GetSelectedEntity();
+            var currentSelection = panels.SceneHierarchyPanel.GetSelectedEntity();
             if (currentSelection != null)
-                viewportToolManager.SetTargetEntity(currentSelection);
+                viewport.ViewportToolManager.SetTargetEntity(currentSelection);
 
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
-                viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
+                viewport.ViewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
                 if (_hoveredEntity != null && currentMode != EditorMode.Ruler)
-                    sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+                    panels.SceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
             }
 
             if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
-                viewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _editorCamera);
+                viewport.ViewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _editorCamera);
 
             if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
-                viewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _editorCamera);
+                viewport.ViewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _editorCamera);
         }
 
         var focalPoint = _editorCamera.FocalPoint;
@@ -599,14 +587,14 @@ public class EditorLayer(
         var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
         var zoom = _viewportSize.Y / worldHeight;
 
-        if (sceneToolbar.ShowGrid)
-            viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+        if (viewport.SceneToolbar.ShowGrid)
+            viewport.ViewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
-        viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-        viewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
+        viewport.ViewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+        viewport.ViewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
 
         var viewportDockId = ImGui.GetWindowDockID();
-        animationTimeline.OnImGuiRender(viewportDockId);
+        panels.AnimationTimeline.OnImGuiRender(viewportDockId);
         ImGui.End();
     }
 

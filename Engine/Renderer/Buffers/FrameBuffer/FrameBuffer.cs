@@ -1,7 +1,8 @@
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
-internal abstract class FrameBuffer : IFrameBuffer
+internal abstract class FrameBuffer : IFrameBuffer, IDisposable
 {
+
     public abstract void Bind();
 
     public abstract void Unbind();
@@ -13,5 +14,12 @@ internal abstract class FrameBuffer : IFrameBuffer
     public abstract void Resize(uint width, uint height);
     public abstract int ReadPixel(int attachmentIndex, int x, int y);
     public abstract void ClearAttachment(int attachmentIndex, int value);
-    public abstract void Dispose();
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected abstract void Dispose(bool disposing);
 }

@@ -17,7 +17,7 @@ public static class MatrixExtensions
             case 3:
                 return new Vector4(matrix.M14, matrix.M24, matrix.M34, matrix.M44);
             default:
-                throw new ArgumentOutOfRangeException("Index must be between 0 and 3.");
+                throw new ArgumentOutOfRangeException(nameof(index), "Index must be between 0 and 3.");
         }
     }
     

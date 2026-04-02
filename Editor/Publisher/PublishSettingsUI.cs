@@ -117,7 +117,7 @@ public class PublishSettingsUI(
 
             if (ButtonDrawer.DrawColoredButton("Publish", MessageType.Success, width: buttonWidth))
             {
-                StartPublish();
+                _ = StartPublish();
             }
 
             ImGui.SameLine();
@@ -202,7 +202,7 @@ public class PublishSettingsUI(
         }
     }
 
-    private async void StartPublish()
+    private async Task StartPublish()
     {
         if (projectManager.CurrentProjectDirectory == null)
         {
@@ -224,11 +224,7 @@ public class PublishSettingsUI(
         // Create publish settings
         var settings = new PublishSettings
         {
-            OutputPath = string.IsNullOrWhiteSpace(_outputPath)
-                ? Path.Combine(projectManager.CurrentProjectDirectory, "Builds")
-                : Path.IsPathRooted(_outputPath)
-                    ? _outputPath
-                    : Path.Combine(projectManager.CurrentProjectDirectory, _outputPath),
+            OutputPath = ResolveOutputPath(projectManager.CurrentProjectDirectory),
             RuntimeIdentifier = _selectedPlatform,
             SelfContained = _selfContained,
             SingleFile = _singleFile,
@@ -277,5 +273,14 @@ public class PublishSettingsUI(
             _publishProgress.HasError = true;
             _publishProgress.IsComplete = true;
         }
+    }
+
+    private string ResolveOutputPath(string projectDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(_outputPath))
+            return Path.Combine(projectDirectory, "Builds");
+        if (Path.IsPathRooted(_outputPath))
+            return _outputPath;
+        return Path.Combine(projectDirectory, _outputPath);
     }
 }

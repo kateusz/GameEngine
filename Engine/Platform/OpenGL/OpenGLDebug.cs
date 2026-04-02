@@ -15,16 +15,7 @@ internal static class OpenGLDebug
     /// <param name="gl">The OpenGL context.</param>
     /// <param name="operation">Description of the operation that was performed.</param>
     [Conditional("DEBUG")]
-    public static void CheckError(GL gl, string operation)
-    {
-        var error = gl.GetError();
-        if (error != GLEnum.NoError)
-        {
-            var errorMessage = GetErrorDescription(error);
-            Debug.WriteLine($"OpenGL Error after {operation}: {error} (0x{(int)error:X}) - {errorMessage}");
-            throw new InvalidOperationException($"OpenGL Error after {operation}: {error} (0x{(int)error:X}) - {errorMessage}");
-        }
-    }
+    public static void CheckError(GL gl, string operation) => ThrowOnError(gl, operation);
 
     /// <summary>
     /// Checks for OpenGL errors in both DEBUG and RELEASE builds.
@@ -32,7 +23,9 @@ internal static class OpenGLDebug
     /// </summary>
     /// <param name="gl">The OpenGL context.</param>
     /// <param name="operation">Description of the operation that was performed.</param>
-    public static void CheckErrorAlways(GL gl, string operation)
+    public static void CheckErrorAlways(GL gl, string operation) => ThrowOnError(gl, operation);
+
+    private static void ThrowOnError(GL gl, string operation)
     {
         var error = gl.GetError();
         if (error != GLEnum.NoError)

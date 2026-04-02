@@ -5,7 +5,7 @@ namespace Editor.Input;
 /// <summary>
 /// Represents a keyboard shortcut consisting of a key and optional modifiers.
 /// </summary>
-public class KeyboardShortcut : IEquatable<KeyboardShortcut>
+public sealed class KeyboardShortcut : IEquatable<KeyboardShortcut>
 {
     /// <summary>
     /// The primary key for this shortcut.

@@ -30,14 +30,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
     public void Begin(TimeSpan timeSpan)
     {
         _controller?.Update((float)timeSpan.TotalSeconds);
-
-        // ImGui_ImplOpenGL3_NewFrame();
-        // ImGui_ImplGlfw_NewFrame();
-        //ImGui.NewFrame();
-
-        // TODO: ImGuizmo CRASH
-        //ImGuizmoWrapper.SetOrthographic(false);
-        //ImGuizmoWrapper.BeginFrame();
     }
 
     public void End()
@@ -52,10 +44,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
         var gl = SilkNetContext.GL;
 
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
-
-        // TODO: ImGuizmo
-        //var ctx = ImGui.GetCurrentContext();
-        //ImGuizmoWrapper.SetImGuiContext(ctx);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
@@ -84,7 +72,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
         var fontSize = 15.0f;
         io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", fontSize);
-        //io.FontDefault = io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", fontSize);
 
         ImGui.StyleColorsDark();
 

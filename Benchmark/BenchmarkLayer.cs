@@ -413,12 +413,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             transform.Rotation = transform.Rotation with { Z = transform.Rotation.Z + 0.01f };
 
             // Optionally, cycle textures to break batching and increase draw calls
-            if (_testTextures.Count > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+            if (_testTextures.Count > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite) && random.NextDouble() < 0.05) // 5% chance per frame
             {
-                if (random.NextDouble() < 0.05) // 5% chance per frame
-                {
-                    sprite.Texture = _testTextures.Values.ElementAt(random.Next(_testTextures.Count));
-                }
+                sprite.Texture = _testTextures.Values.ElementAt(random.Next(_testTextures.Count));
             }
         }
     }

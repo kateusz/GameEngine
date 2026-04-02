@@ -48,6 +48,7 @@ public static class EditorIoCContainer
         container.Register<IAnimationTimelinePanel, AnimationTimelinePanel>(Reuse.Singleton);
         container.Register<RecentProjectsPanel>(Reuse.Singleton);
     
+        container.Register<ComponentEditorCollection>(Reuse.Singleton);
         container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
         container.Register<IPropertiesPanel, PropertiesPanel>(Reuse.Singleton);
         container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
@@ -83,6 +84,8 @@ public static class EditorIoCContainer
         container.Register<IConsolePanel, ConsolePanel>(Reuse.Singleton);
         
         container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
+        container.Register<EditorPanels>(Reuse.Singleton);
+        container.Register<ViewportComponents>(Reuse.Singleton);
         container.Register<ILayer, EditorLayer>(Reuse.Singleton);
         container.Register<Editor>(Reuse.Singleton);
     }

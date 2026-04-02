@@ -39,9 +39,11 @@ public class AudioSourceComponentTests
             pitch: 1.2f,
             loop: true,
             playOnAwake: true,
-            is3D: false,
-            minDistance: 5.0f,
-            maxDistance: 50.0f);
+            is3D: false)
+        {
+            MinDistance = 5.0f,
+            MaxDistance = 50.0f
+        };
 
         // Assert
         component.AudioClip.ShouldBe(mockClip);
@@ -104,8 +106,10 @@ public class AudioSourceComponentTests
     {
         // Arrange
         var mockClip = Substitute.For<IAudioClip>();
-        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true, 2.0f, 150.0f)
+        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true)
         {
+            MinDistance = 2.0f,
+            MaxDistance = 150.0f,
             AudioClipPath = "audio/test-clip.wav"
         };
 

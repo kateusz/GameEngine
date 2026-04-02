@@ -29,16 +29,12 @@ internal sealed class OpenGLShader : IShader
         SilkNetContext.GL.LinkProgram(_handle);
         OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
 
-        //Check for linking errors.
         SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
         if (status == 0)
         {
-            throw new Exception($"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
+            throw new InvalidOperationException($"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
         }
 
-        // do not detach - debug purposes
-        //SilkNetContext.GL.DetachShader(_handle, vertexShader);
-        //SilkNetContext.GL.DetachShader(_handle, fragmentShader);
         SilkNetContext.GL.DeleteShader(vertex);
         OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
         SilkNetContext.GL.DeleteShader(fragment);
@@ -91,12 +87,8 @@ internal sealed class OpenGLShader : IShader
         SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
     }
 
-    public void UploadUniformIntArray(string name, int[] values, uint count)
-    {
-        if (!_uniformLocations.TryGetValue(name, out _)) return;
-        SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
-    }
+    public void UploadUniformIntArray(string name, int[] values, uint count) =>
+        SetIntArray(name, values, count);
 
     public void SetFloat(string name, float data)
     {
@@ -169,7 +161,7 @@ internal sealed class OpenGLShader : IShader
         var infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
         {
-            throw new Exception($"Error compiling shader of type {type}, failed with error {infoLog}");
+            throw new InvalidOperationException($"Error compiling shader of type {type}, failed with error {infoLog}");
         }
 
         return handle;

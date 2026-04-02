@@ -76,7 +76,7 @@ internal sealed class AudioSystem(
     {
         if (!entity.HasComponent<AudioSourceComponent>())
         {
-            Logger.Warning($"Cannot play audio for entity '{entity.Name}' - no AudioSourceComponent found");
+            Logger.Warning("Cannot play audio for entity '{EntityName}' - no AudioSourceComponent found", entity.Name);
             return;
         }
 
@@ -88,7 +88,7 @@ internal sealed class AudioSystem(
         }
         else if (component.AudioClip == null)
         {
-            Logger.Warning($"Cannot play audio for entity '{entity.Name}' - no AudioClip assigned");
+            Logger.Warning("Cannot play audio for entity '{EntityName}' - no AudioClip assigned", entity.Name);
         }
     }
 
@@ -100,7 +100,7 @@ internal sealed class AudioSystem(
     {
         if (!entity.HasComponent<AudioSourceComponent>())
         {
-            Logger.Warning($"Cannot pause audio for entity '{entity.Name}' - no AudioSourceComponent found");
+            Logger.Warning("Cannot pause audio for entity '{EntityName}' - no AudioSourceComponent found", entity.Name);
             return;
         }
 
@@ -120,7 +120,7 @@ internal sealed class AudioSystem(
     {
         if (!entity.HasComponent<AudioSourceComponent>())
         {
-            Logger.Warning($"Cannot stop audio for entity '{entity.Name}' - no AudioSourceComponent found");
+            Logger.Warning("Cannot stop audio for entity '{EntityName}' - no AudioSourceComponent found", entity.Name);
             return;
         }
 

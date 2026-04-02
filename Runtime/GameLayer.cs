@@ -101,10 +101,10 @@ public class GameLayer(
         sceneContext.ActiveScene.OnUpdateRuntime(timeSpan);
     }
 
-    public void HandleInputEvent(InputEvent inputEvent)
+    public void HandleInputEvent(InputEvent windowEvent)
     {
         // Forward input events to scripts so they can respond to keyboard/mouse input
-        scriptEngine.ProcessEvent(inputEvent);
+        scriptEngine.ProcessEvent(windowEvent);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)

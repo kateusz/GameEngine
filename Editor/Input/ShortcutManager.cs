@@ -34,18 +34,15 @@ public class ShortcutManager
     {
         // Check for conflicts
         var existingShortcut = _shortcuts.FirstOrDefault(s => s.Equals(shortcut));
-        if (existingShortcut != null)
+        if (existingShortcut != null && !allowDuplicates)
         {
-            if (!allowDuplicates)
-            {
-                Logger.Warning(
-                    "Shortcut conflict detected: {Shortcut} is already registered for '{ExistingDescription}'. " +
-                    "Attempted to register for '{NewDescription}'.",
-                    shortcut.GetDisplayString(),
-                    existingShortcut.Description,
-                    shortcut.Description);
-                return false;
-            }
+            Logger.Warning(
+                "Shortcut conflict detected: {Shortcut} is already registered for '{ExistingDescription}'. " +
+                "Attempted to register for '{NewDescription}'.",
+                shortcut.GetDisplayString(),
+                existingShortcut.Description,
+                shortcut.Description);
+            return false;
         }
 
         _shortcuts.Add(shortcut);

@@ -488,17 +488,7 @@ internal sealed class ScriptEngine : IScriptEngine
                 return (false, errors);
             }
 
-            foreach (var diagnostic in preEmitDiagnostics)
-            {
-                Logger.Debug("{Severity}: {Message}", diagnostic.Severity, diagnostic.GetMessage());
-                if (diagnostic.Location != Location.None)
-                {
-                    Logger.Debug("  Location: {Location}", diagnostic.Location);
-                }
-
-                Logger.Debug("  Id: {DiagnosticId}", diagnostic.Id);
-                Logger.Debug("");
-            }
+            LogPreEmitDiagnostics(preEmitDiagnostics);
             
             var emitOptions = new EmitOptions(
                 debugInformationFormat: _debugMode
@@ -564,6 +554,18 @@ internal sealed class ScriptEngine : IScriptEngine
         {
             Logger.Error(ex, "Error during script compilation");
             return (false, [ex.Message]);
+        }
+    }
+
+    private void LogPreEmitDiagnostics(IEnumerable<Diagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            Logger.Debug("{Severity}: {Message}", diagnostic.Severity, diagnostic.GetMessage());
+            if (diagnostic.Location != Location.None)
+                Logger.Debug("  Location: {Location}", diagnostic.Location);
+            Logger.Debug("  Id: {DiagnosticId}", diagnostic.Id);
+            Logger.Debug("");
         }
     }
 
@@ -650,121 +652,9 @@ internal sealed class ScriptEngine : IScriptEngine
             var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
             Logger.Debug("Runtime directory: {RuntimeDir}", runtimeDir);
 
-            // Essential .NET 8 assemblies
-            var essentialAssemblies = new[]
-            {
-                "System.Private.CoreLib.dll",
-                "System.Runtime.dll",
-                "System.Collections.dll",
-                "System.Console.dll",
-                "System.Linq.dll",
-                "System.Numerics.dll",
-                "System.Numerics.Vectors.dll",
-                "netstandard.dll",
-                "mscorlib.dll",
-                "System.Collections.Concurrent.dll"
-            };
-
-            foreach (var assemblyName in essentialAssemblies)
-            {
-                var path = Path.Combine(runtimeDir, assemblyName);
-                if (File.Exists(path))
-                {
-                    try
-                    {
-                        references.Add(MetadataReference.CreateFromFile(path));
-                        Logger.Debug("✅ Added .NET: {AssemblyName}", assemblyName);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warning(ex, "❌ Error adding {AssemblyName}", assemblyName);
-                    }
-                }
-                else
-                {
-                    Logger.Warning("❌ Missing: {AssemblyName}", assemblyName);
-                }
-            }
-            
-            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-                .AsValueEnumerable()
-                .Where(a => !a.IsDynamic)
-                .ToArray();
-
-            Logger.Debug("Found {AssemblyCount} loaded assemblies", loadedAssemblies.Length);
-
-            foreach (var assembly in loadedAssemblies)
-            {
-                var name = assembly.GetName().Name;
-                Logger.Debug("Checking assembly: {AssemblyName}", name);
-
-                // Check for engine-related assemblies
-                if (!name!.StartsWith("Engine") && !name.StartsWith("ECS") && !name.StartsWith("Editor")) 
-                    continue;
-                
-                try
-                {
-                    // Handle assemblies without location (in-memory assemblies)
-                    if (!string.IsNullOrEmpty(assembly.Location))
-                    {
-                        references.Add(MetadataReference.CreateFromFile(assembly.Location));
-                        Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Location}", name,
-                            assembly.Location);
-                    }
-                    else
-                    {
-                        // For in-memory assemblies, we need to find them in the output directory
-                        var currentDir = Environment.CurrentDirectory;
-                        var possiblePaths = new[]
-                        {
-                            Path.Combine(currentDir, $"{name}.dll"),
-                            Path.Combine(currentDir, "bin", "Debug", "net8.0", $"{name}.dll"),
-                            Path.Combine(currentDir, "..", name, "bin", "Debug", "net8.0", $"{name}.dll")
-                        };
-
-                        var found = false;
-                        foreach (var possiblePath in possiblePaths)
-                        {
-                            if (File.Exists(possiblePath))
-                            {
-                                references.Add(MetadataReference.CreateFromFile(possiblePath));
-                                Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Path}", name,
-                                    possiblePath);
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (!found)
-                        {
-                            Logger.Warning("❌ Could not find assembly file for: {AssemblyName}", name);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warning(ex, "❌ Error adding engine assembly {AssemblyName}", name);
-                }
-            }
-            
-            var ecsAssemblyPath = FindECSAssembly();
-            if (!string.IsNullOrEmpty(ecsAssemblyPath))
-            {
-                try
-                {
-                    references.Add(MetadataReference.CreateFromFile(ecsAssemblyPath));
-                    Logger.Debug("✅ Added ECS assembly: {ECSAssemblyPath}", ecsAssemblyPath);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "❌ Error adding ECS assembly");
-                }
-            }
-            else
-            {
-                Logger.Error("❌ CRITICAL: ECS assembly not found! Scripts will fail to compile.");
-            }
-            
+            LoadEssentialAssemblies(references, runtimeDir);
+            LoadEngineAssembliesFromDomain(references);
+            TryAddEcsAssembly(references);
             AddBox2D(references);
 
             Logger.Debug("Total references added: {ReferenceCount}", references.Count);
@@ -774,6 +664,123 @@ internal sealed class ScriptEngine : IScriptEngine
         {
             Logger.Error(ex, "❌ Error loading references");
             throw;
+        }
+    }
+
+    private void LoadEssentialAssemblies(List<MetadataReference> references, string? runtimeDir)
+    {
+        var essentialAssemblies = new[]
+        {
+            "System.Private.CoreLib.dll",
+            "System.Runtime.dll",
+            "System.Collections.dll",
+            "System.Console.dll",
+            "System.Linq.dll",
+            "System.Numerics.dll",
+            "System.Numerics.Vectors.dll",
+            "netstandard.dll",
+            "mscorlib.dll",
+            "System.Collections.Concurrent.dll"
+        };
+
+        foreach (var assemblyName in essentialAssemblies)
+        {
+            var path = Path.Combine(runtimeDir, assemblyName);
+            if (!File.Exists(path))
+            {
+                Logger.Warning("❌ Missing: {AssemblyName}", assemblyName);
+                continue;
+            }
+
+            try
+            {
+                references.Add(MetadataReference.CreateFromFile(path));
+                Logger.Debug("✅ Added .NET: {AssemblyName}", assemblyName);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "❌ Error adding {AssemblyName}", assemblyName);
+            }
+        }
+    }
+
+    private void LoadEngineAssembliesFromDomain(List<MetadataReference> references)
+    {
+        var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .AsValueEnumerable()
+            .Where(a => !a.IsDynamic)
+            .ToArray();
+
+        Logger.Debug("Found {AssemblyCount} loaded assemblies", loadedAssemblies.Length);
+
+        foreach (var assembly in loadedAssemblies)
+        {
+            var name = assembly.GetName().Name;
+            Logger.Debug("Checking assembly: {AssemblyName}", name);
+
+            if (!name!.StartsWith("Engine") && !name.StartsWith("ECS") && !name.StartsWith("Editor"))
+                continue;
+
+            try
+            {
+                if (!string.IsNullOrEmpty(assembly.Location))
+                {
+                    references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                    Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Location}", name, assembly.Location);
+                }
+                else
+                {
+                    var currentDir = Environment.CurrentDirectory;
+                    var possiblePaths = new[]
+                    {
+                        Path.Combine(currentDir, $"{name}.dll"),
+                        Path.Combine(currentDir, "bin", "Debug", "net8.0", $"{name}.dll"),
+                        Path.Combine(currentDir, "..", name, "bin", "Debug", "net8.0", $"{name}.dll")
+                    };
+
+                    if (!TryAddAssemblyFromPaths(references, name, possiblePaths))
+                        Logger.Warning("❌ Could not find assembly file for: {AssemblyName}", name);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "❌ Error adding engine assembly {AssemblyName}", name);
+            }
+        }
+    }
+
+    private bool TryAddAssemblyFromPaths(List<MetadataReference> references, string name, string[] possiblePaths)
+    {
+        foreach (var possiblePath in possiblePaths)
+        {
+            if (!File.Exists(possiblePath))
+                continue;
+
+            references.Add(MetadataReference.CreateFromFile(possiblePath));
+            Logger.Debug("✅ Added engine assembly: {AssemblyName} from {Path}", name, possiblePath);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void TryAddEcsAssembly(List<MetadataReference> references)
+    {
+        var ecsAssemblyPath = FindECSAssembly();
+        if (string.IsNullOrEmpty(ecsAssemblyPath))
+        {
+            Logger.Error("❌ CRITICAL: ECS assembly not found! Scripts will fail to compile.");
+            return;
+        }
+
+        try
+        {
+            references.Add(MetadataReference.CreateFromFile(ecsAssemblyPath));
+            Logger.Debug("✅ Added ECS assembly: {ECSAssemblyPath}", ecsAssemblyPath);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "❌ Error adding ECS assembly");
         }
     }
 

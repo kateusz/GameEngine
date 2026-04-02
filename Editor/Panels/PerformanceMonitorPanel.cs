@@ -51,9 +51,10 @@ public class PerformanceMonitorPanel(
         ImGui.Separator();
         ImGui.Text("Performance:");
 
-        var fpsColor = _currentFps >= 60.0f ? new Vector4(0f, 1f, 0f, 1f) :
-            _currentFps >= 30.0f ? new Vector4(1f, 1f, 0f, 1f) :
-            new Vector4(1f, 0f, 0f, 1f);
+        Vector4 fpsColor;
+        if (_currentFps >= 60.0f) fpsColor = new Vector4(0f, 1f, 0f, 1f);
+        else if (_currentFps >= 30.0f) fpsColor = new Vector4(1f, 1f, 0f, 1f);
+        else fpsColor = new Vector4(1f, 0f, 0f, 1f);
 
         TextDrawer.DrawColoredText($"FPS: {_currentFps:F1}", fpsColor);
 

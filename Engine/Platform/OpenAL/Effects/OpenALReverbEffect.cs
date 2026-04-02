@@ -46,7 +46,7 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
     private uint _effectId;
     private uint _slotId;
     private bool _disposed;
-    private int _decayTimeParam;
+    private readonly int _decayTimeParam;
 
     public AudioEffectType Type => AudioEffectType.Reverb;
     public uint SlotId => _slotId;
