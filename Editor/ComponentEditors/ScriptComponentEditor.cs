@@ -202,68 +202,53 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
             title: "Select Script",
             showModal: ref _showScriptSelectorPopup,
             items: availableScripts,
-            onItemSelected: scriptName =>
-            {
-                if (_selectedEntity != null)
-                {
-                    try
-                    {
-                        var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptName);
-                        if (scriptInstanceResult.IsSuccess)
-                        {
-                            var scriptInstance = scriptInstanceResult.Value;
-                            if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
-                            {
-                                scriptComponent.ScriptableEntity = scriptInstance;
-                            }
-                            else
-                            {
-                                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
-                                {
-                                    ScriptableEntity = scriptInstance
-                                });
-                            }
-
-                            Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex, "Failed to create script instance for {ScriptName}", scriptName);
-                    }
-                }
-            },
+            onItemSelected: OnScriptSelected,
             onCancel: () => { },
             emptyMessage: "No scripts available. Create one first!",
-            renderItem: (scriptName, i) =>
+            renderItem: RenderScriptItem);
+    }
+
+    private void OnScriptSelected(string scriptName)
+    {
+        if (_selectedEntity == null) return;
+        try
+        {
+            var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptName);
+            if (!scriptInstanceResult.IsSuccess) return;
+
+            var scriptInstance = scriptInstanceResult.Value;
+            if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
+                scriptComponent.ScriptableEntity = scriptInstance;
+            else
+                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent { ScriptableEntity = scriptInstance });
+
+            Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to create script instance for {ScriptName}", scriptName);
+        }
+    }
+
+    private bool RenderScriptItem(string scriptName, int i)
+    {
+        var itemClicked = ImGui.Selectable(scriptName, false, ImGuiSelectableFlags.DontClosePopups);
+
+        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            ImGui.OpenPopup($"ScriptContextMenu_{i}");
+
+        if (ImGui.BeginPopup($"ScriptContextMenu_{i}"))
+        {
+            if (ImGui.MenuItem("Delete"))
             {
-                var itemClicked = false;
+                if (scriptEngine.DeleteScript(scriptName))
+                    Logger.Information("Deleted script {ScriptName}", scriptName);
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
+        }
 
-                if (ImGui.Selectable(scriptName, false, ImGuiSelectableFlags.DontClosePopups))
-                {
-                    itemClicked = true;
-                }
-
-                if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                {
-                    ImGui.OpenPopup($"ScriptContextMenu_{i}");
-                }
-
-                if (ImGui.BeginPopup($"ScriptContextMenu_{i}"))
-                {
-                    if (ImGui.MenuItem("Delete"))
-                    {
-                        if (scriptEngine.DeleteScript(scriptName))
-                        {
-                            Logger.Information("Deleted script {ScriptName}", scriptName);
-                        }
-                        ImGui.CloseCurrentPopup();
-                    }
-                    ImGui.EndPopup();
-                }
-
-                return itemClicked;
-            });
+        return itemClicked;
     }
 
     private void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent

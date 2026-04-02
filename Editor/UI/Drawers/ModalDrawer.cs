@@ -100,49 +100,14 @@ public static class ModalDrawer
                 DrawErrorMessage(errorMessage);
 
             // Handle Enter key for OK action
-            var shouldExecuteOk = enterPressed && isValid;
-            var shouldClose = false;
-            var actionExecuted = false;
-
-            ButtonDrawer.DrawModalButtonPair(
-                okLabel: okLabel,
-                cancelLabel: cancelLabel,
-                onOk: () =>
-                {
-                    if (!actionExecuted)
-                    {
-                        shouldClose = true;
-                        actionExecuted = true;
-                        onOk();
-                    }
-                },
-                onCancel: () =>
-                {
-                    if (!actionExecuted)
-                    {
-                        shouldClose = true;
-                        actionExecuted = true;
-                        onCancel();
-                    }
-                },
-                okDisabled: !isValid);
-
-            if (shouldExecuteOk && !actionExecuted)
-            {
-                shouldClose = true;
-                actionExecuted = true;
-                onOk();
-            }
-
-            if (ImGui.IsKeyPressed(ImGuiKey.Escape) && !actionExecuted)
-            {
-                shouldClose = true;
-                actionExecuted = true;
-                onCancel();
-            }
-
-            if (shouldClose)
-                showModal = false;
+            HandleInputModalActions(
+                ref showModal,
+                enterPressed && isValid,
+                isValid,
+                okLabel,
+                cancelLabel,
+                onOk,
+                onCancel);
 
             ImGui.EndPopup();
         }
@@ -150,6 +115,49 @@ public static class ModalDrawer
         {
             showModal = modalOpen;
         }
+    }
+
+    private static void HandleInputModalActions(
+        ref bool showModal,
+        bool shouldExecuteOk,
+        bool isValid,
+        string okLabel,
+        string cancelLabel,
+        Action onOk,
+        Action onCancel)
+    {
+        var shouldClose = false;
+        var actionExecuted = false;
+
+        ButtonDrawer.DrawModalButtonPair(
+            okLabel: okLabel,
+            cancelLabel: cancelLabel,
+            onOk: () =>
+            {
+                if (!actionExecuted) { shouldClose = true; actionExecuted = true; onOk(); }
+            },
+            onCancel: () =>
+            {
+                if (!actionExecuted) { shouldClose = true; actionExecuted = true; onCancel(); }
+            },
+            okDisabled: !isValid);
+
+        if (shouldExecuteOk && !actionExecuted)
+        {
+            shouldClose = true;
+            actionExecuted = true;
+            onOk();
+        }
+
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape) && !actionExecuted)
+        {
+            shouldClose = true;
+            actionExecuted = true;
+            onCancel();
+        }
+
+        if (shouldClose)
+            showModal = false;
     }
 
     /// <summary>
@@ -319,49 +327,12 @@ public static class ModalDrawer
             }
             else
             {
-                // Calculate proper height for the listbox
-                var itemHeight = ImGui.GetTextLineHeightWithSpacing();
-                var visibleItems = Math.Min(items.Length, EditorUIConstants.MaxVisibleListItems);
-                var listboxHeight = itemHeight * visibleItems + ImGui.GetStyle().FramePadding.Y * 2;
-
-                ImGui.BeginChild($"{title}_List", new Vector2(EditorUIConstants.SelectorListBoxWidth, listboxHeight));
-
-                for (var i = 0; i < items.Length; i++)
-                {
-                    var item = items[i];
-                    var itemClicked = false;
-
-                    if (renderItem != null)
-                    {
-                        itemClicked = renderItem(item, i);
-                    }
-                    else
-                    {
-                        if (ImGui.Selectable(item, false, ImGuiSelectableFlags.DontClosePopups))
-                        {
-                            itemClicked = true;
-                        }
-                    }
-
-                    if (itemClicked)
-                    {
-                        showModal = false;
-                        onItemSelected(item);
-                    }
-                }
-
-                ImGui.EndChild();
+                RenderItemList(title, items, renderItem, onItemSelected, ref showModal);
             }
 
             ImGui.Separator();
 
-            if (ButtonDrawer.DrawModalButton("Cancel"))
-            {
-                showModal = false;
-                onCancel?.Invoke();
-            }
-
-            if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+            if (ButtonDrawer.DrawModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
             {
                 showModal = false;
                 onCancel?.Invoke();
@@ -369,6 +340,36 @@ public static class ModalDrawer
 
             ImGui.EndPopup();
         }
+    }
+
+    private static void RenderItemList(
+        string title,
+        string[] items,
+        Func<string, int, bool>? renderItem,
+        Action<string> onItemSelected,
+        ref bool showModal)
+    {
+        var itemHeight = ImGui.GetTextLineHeightWithSpacing();
+        var visibleItems = Math.Min(items.Length, EditorUIConstants.MaxVisibleListItems);
+        var listboxHeight = itemHeight * visibleItems + ImGui.GetStyle().FramePadding.Y * 2;
+
+        ImGui.BeginChild($"{title}_List", new Vector2(EditorUIConstants.SelectorListBoxWidth, listboxHeight));
+
+        for (var i = 0; i < items.Length; i++)
+        {
+            var item = items[i];
+            var itemClicked = renderItem != null
+                ? renderItem(item, i)
+                : ImGui.Selectable(item, false, ImGuiSelectableFlags.DontClosePopups);
+
+            if (itemClicked)
+            {
+                showModal = false;
+                onItemSelected(item);
+            }
+        }
+
+        ImGui.EndChild();
     }
 
     /// <summary>

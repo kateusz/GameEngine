@@ -13,7 +13,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 {
     private ImGuiController? _controller;
     private bool _disposed;
-    private IInputSystem? _inputSystem;
 
     public void OnDetach()
     {
@@ -48,8 +47,6 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
     public void OnAttach(IInputSystem inputSystem)
     {
-        _inputSystem = inputSystem;
-
         var view = SilkNetContext.Window;
         var inputContext = inputSystem.Context;
         var gl = SilkNetContext.GL;
@@ -61,9 +58,9 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
         //ImGuizmoWrapper.SetImGuiContext(ctx);
     }
 
-    public void HandleWindowEvent(WindowEvent @event)
+    public void HandleWindowEvent(WindowEvent windowEvent)
     {
-        if (@event is WindowCloseEvent)
+        if (windowEvent is WindowCloseEvent)
         {
             Dispose();
         }

@@ -14,5 +14,5 @@ public class SceneContext : ISceneContext
         SceneChanged.Invoke(newScene);
     }
     
-    public void SetState(SceneState state) => State = state;
+    public void SetState(SceneState newState) => State = newState;
 }

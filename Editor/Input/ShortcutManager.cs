@@ -13,12 +13,10 @@ public class ShortcutManager
 
     private readonly List<KeyboardShortcut> _shortcuts = new();
     private readonly Dictionary<string, List<KeyboardShortcut>> _categorizedShortcuts = new();
-    private readonly IReadOnlyDictionary<string, List<KeyboardShortcut>> _categorizedShortcutsReadOnly;
 
     public ShortcutManager()
     {
         Shortcuts = _shortcuts.AsReadOnly();
-        _categorizedShortcutsReadOnly = _categorizedShortcuts.AsReadOnly();
     }
 
     /// <summary>

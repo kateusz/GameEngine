@@ -173,7 +173,7 @@ internal sealed class Graphics3D(
         _lightShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
     }
 
-    public void DrawLightVisualization(Vector3 position, float scale = 0.2f)
+    public void DrawLightVisualization(Vector3 position, float scale = 0.5f)
     {
         var model = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateTranslation(position);
         _lightShader.SetMat4("u_Model", model);
