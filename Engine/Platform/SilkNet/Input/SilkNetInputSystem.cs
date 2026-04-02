@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Numerics;
 using Engine.Core.Input;
 using Engine.Events.Input;
 using Silk.NET.Input;
@@ -20,14 +21,14 @@ internal sealed class SilkNetInputSystem : IInputSystem
                         ?? throw new InvalidOperationException("No mouse found");
 
         // Subscribe to SilkNet input events
-        silkKeyboard.KeyDown += OnSilkKeyDown;
-        silkKeyboard.KeyUp += OnSilkKeyUp;
-        silkMouse.MouseDown += OnSilkMouseDown;
-        silkMouse.MouseUp += OnSilkMouseUp;
-        silkMouse.Scroll += OnSilkMouseScroll;
-        silkMouse.MouseMove += OnSilkMouseMove;
+        silkKeyboard.KeyDown += (_, key, _) => OnSilkKeyDown(key);
+        silkKeyboard.KeyUp += (_, key, _) => OnSilkKeyUp(key);
+        silkMouse.MouseDown += (_, button) => OnSilkMouseDown(button);
+        silkMouse.MouseUp +=  (_, button) => OnSilkMouseUp(button);
+        silkMouse.Scroll +=  (_, scrollWheel) => OnSilkMouseScroll(scrollWheel);
+        silkMouse.MouseMove += (_, position) => OnSilkMouseMove(position);
     }
-    
+
     public IInputContext Context { get; set; }
 
     public void Update(TimeSpan deltaTime)
@@ -41,7 +42,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
 
     public event Action<InputEvent>? InputReceived;
 
-    private void OnSilkKeyDown(IKeyboard _, Key key, int _keyCode)
+    private void OnSilkKeyDown(Key key)
     {
         if (_disposed) return;
 
@@ -49,7 +50,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkKeyUp(IKeyboard _keyboard, Key key, int _keyCode)
+    private void OnSilkKeyUp(Key key)
     {
         if (_disposed) return;
 
@@ -57,7 +58,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseDown(IMouse _mouse, MouseButton button)
+    private void OnSilkMouseDown(MouseButton button)
     {
         if (_disposed) return;
 
@@ -65,7 +66,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseUp(IMouse _mouse, MouseButton button)
+    private void OnSilkMouseUp(MouseButton button)
     {
         if (_disposed) return;
 
@@ -73,7 +74,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseScroll(IMouse _mouse, ScrollWheel scrollWheel)
+    private void OnSilkMouseScroll(ScrollWheel scrollWheel)
     {
         if (_disposed) return;
 
@@ -81,7 +82,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         _inputQueue.Enqueue(inputEvent);
     }
 
-    private void OnSilkMouseMove(IMouse _mouse, System.Numerics.Vector2 position)
+    private void OnSilkMouseMove(Vector2 position)
     {
         if (_disposed) return;
 

@@ -84,7 +84,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         }
     }
 
-    private void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
+    private static void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
     {
         UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
         {

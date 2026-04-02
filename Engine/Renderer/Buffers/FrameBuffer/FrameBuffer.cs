@@ -1,6 +1,6 @@
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
-internal abstract class FrameBuffer : IFrameBuffer, IDisposable
+internal abstract class FrameBuffer : IFrameBuffer
 {
 
     public abstract void Bind();

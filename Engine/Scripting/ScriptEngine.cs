@@ -669,7 +669,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    private void LoadEssentialAssemblies(List<MetadataReference> references, string? runtimeDir)
+    private static void LoadEssentialAssemblies(List<MetadataReference> references, string? runtimeDir)
     {
         var essentialAssemblies = new[]
         {
@@ -751,7 +751,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    private bool TryAddAssemblyFromPaths(List<MetadataReference> references, string name, string[] possiblePaths)
+    private static bool TryAddAssemblyFromPaths(List<MetadataReference> references, string name, string[] possiblePaths)
     {
         foreach (var possiblePath in possiblePaths)
         {
@@ -766,7 +766,7 @@ internal sealed class ScriptEngine : IScriptEngine
         return false;
     }
 
-    private void TryAddEcsAssembly(List<MetadataReference> references)
+    private static void TryAddEcsAssembly(List<MetadataReference> references)
     {
         var ecsAssemblyPath = FindECSAssembly();
         if (string.IsNullOrEmpty(ecsAssemblyPath))
