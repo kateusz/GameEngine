@@ -27,7 +27,6 @@ public class Sandbox3DLayer(
     private int _fpsFrames;
 
     private const string ModelPath = "assets/models/BistroExterior.fbx";
-    //private const string ModelPath = "assets/models/New_Sponza_001.fbx";
 
     public void OnAttach(IInputSystem inputSystem)
     {

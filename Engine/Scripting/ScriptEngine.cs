@@ -92,7 +92,7 @@ internal sealed class ScriptEngine : IScriptEngine
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
 
-        var errors = new List<Exception>();
+        var errorCount = 0;
 
         foreach (var entity in scriptEntities)
         {
@@ -105,17 +105,17 @@ internal sealed class ScriptEngine : IScriptEngine
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, $"Error in script OnDestroy for entity '{entity.Name}' (ID: {entity.Id})");
-                    errors.Add(ex);
+                    Logger.Error(ex, "Error in script OnDestroy for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
+                    errorCount++;
                 }
             }
         }
 
-        if (errors.Count > 0)
+        if (errorCount > 0)
         {
             Logger.Warning(
                 "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
-                errors.Count);
+                errorCount);
         }
     }
 

@@ -178,7 +178,7 @@ internal sealed class AudioSystem(
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Failed to initialize audio source for entity '{entity.Name}' (ID: {entity.Id})");
+            Logger.Error(ex, "Failed to initialize audio source for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
         }
     }
 
@@ -204,7 +204,7 @@ internal sealed class AudioSystem(
         }
 
         // Early exit if no active listener found
-        if (activeListenerEntity == null || activeListener == null)
+        if (activeListenerEntity == null)
             return;
 
         var transform = activeListenerEntity.GetComponent<TransformComponent>();
@@ -266,7 +266,7 @@ internal sealed class AudioSystem(
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Error updating audio source for entity '{entity.Name}' (ID: {entity.Id})");
+                Logger.Error(ex, "Error updating audio source for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
             }
         }
     }

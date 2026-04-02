@@ -86,11 +86,6 @@ public class Sandbox2DLayer : ILayer
 
         _graphics2D.BeginScene(_editorCamera);
 
-        // _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
-        //
-        // _graphics2D.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
-        // _graphics2D.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
-
         for (var row = 0; row < _mapHeight; row++)
         {
             for (var col = 0; col < _mapWidth; col++)
