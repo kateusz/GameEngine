@@ -131,7 +131,7 @@ internal sealed class SceneContactListener : ContactListener
         }
     }
     
-    private void NotifyEntityCollision(Entity entity, Entity otherEntity, bool isBegin)
+    private static void NotifyEntityCollision(Entity entity, Entity otherEntity, bool isBegin)
     {
         // Check if entity has a script component
         if (!entity.HasComponent<NativeScriptComponent>())

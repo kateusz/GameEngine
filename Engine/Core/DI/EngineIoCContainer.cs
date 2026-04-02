@@ -46,7 +46,8 @@ public static class EngineIoCContainer
             )
         );
         container.Register<IWindow>(Reuse.Singleton,
-            made: Made.Of(() => Silk.NET.Windowing.Window.Create(options))
+            made: Made.Of(() => Silk.NET.Windowing.Window.Create(options)),
+            setup: Setup.With(preventDisposal: true)
         );
         container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
         container.Register<IGameWindow>(

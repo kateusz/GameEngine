@@ -97,7 +97,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         });
     }
 
-    private bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
+    private static bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
     {
         newValue = value;
 
@@ -110,7 +110,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         return false;
     }
 
-    private void DrawNoScriptMessage()
+    private static void DrawNoScriptMessage()
     {
         TextDrawer.DrawErrorText("No script instance attached!");
     }
@@ -251,7 +251,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         return itemClicked;
     }
 
-    private void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
+    private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
     {
         // Similar to your existing DrawComponent method in SceneHierarchyPanel
         var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed

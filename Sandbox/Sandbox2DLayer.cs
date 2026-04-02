@@ -49,7 +49,6 @@ public class Sandbox2DLayer : ILayer
     private readonly IGraphics2D _graphics2D;
     private readonly ITextureFactory _textureFactory;
     private EditorCamera _editorCamera = null!;
-    private Texture2D _spriteSheet;
 
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
@@ -66,11 +65,11 @@ public class Sandbox2DLayer : ILayer
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
         _editorCamera = new EditorCamera();
-        _spriteSheet = _textureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
+        var spriteSheet = _textureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
 
         _textureMap['D'] =
-            SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(6, 11), new Vector2(128, 128), new Vector2(1, 1));
-        _textureMap['W'] = SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(11, 11), new Vector2(128, 128),
+            SubTexture2D.CreateFromCoords(spriteSheet, new Vector2(6, 11), new Vector2(128, 128), new Vector2(1, 1));
+        _textureMap['W'] = SubTexture2D.CreateFromCoords(spriteSheet, new Vector2(11, 11), new Vector2(128, 128),
             new Vector2(1, 1));
     }
 

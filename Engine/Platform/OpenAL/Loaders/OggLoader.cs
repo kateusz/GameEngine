@@ -55,10 +55,8 @@ internal sealed class OggLoader : IAudioLoader
                 throw new InvalidDataException($"OGG file contains no audio data: {path}");
             }
 
-            Logger.Debug("Decoding OGG: {Path}", path);
-            Logger.Debug("  - Sample Rate: {SampleRate} Hz", sampleRate);
-            Logger.Debug("  - Channels: {Channels}", channels);
-            Logger.Debug("  - Total Samples: {TotalSamples}", totalSamples);
+            Logger.Debug("Decoding OGG: {Path} ({SampleRate} Hz, {Channels} ch, {TotalSamples} samples)",
+                path, sampleRate, channels, totalSamples);
 
             // Allocate buffer for float samples (interleaved: L, R, L, R, ...)
             var totalFloatSamples = (int)(totalSamples * channels);

@@ -105,7 +105,7 @@ public class AnimationComponentEditor(
         }
     }
 
-    private void DrawClipSelector(Entity entity, AnimationComponent component)
+    private static void DrawClipSelector(Entity entity, AnimationComponent component)
     {
         var asset = component.Asset!;
         var currentClip = asset.GetClip(component.CurrentClipName);
@@ -121,7 +121,7 @@ public class AnimationComponentEditor(
         }
     }
 
-    private void DrawPlaybackControls(Entity entity, AnimationComponent component)
+    private static void DrawPlaybackControls(Entity entity, AnimationComponent component)
     {
         ImGui.Text("Playback:");
         ImGui.SameLine();

@@ -105,7 +105,7 @@ internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext conte
 
         // Properly destroy all physics bodies before clearing references
         var view = context.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
+        foreach (var (_, component) in view)
         {
             if (component.RuntimeBody != null)
             {

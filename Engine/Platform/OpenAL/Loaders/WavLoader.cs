@@ -25,7 +25,7 @@ public class WavLoader : IAudioLoader
         if (riffHeader != "RIFF")
             throw new InvalidDataException("Invalid RIFF header");
 
-        var fileSize = reader.ReadUInt32();
+        reader.ReadUInt32();
 
         var waveHeader = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (waveHeader != "WAVE")
@@ -39,8 +39,8 @@ public class WavLoader : IAudioLoader
         var audioFormat = reader.ReadUInt16();
         var channels = reader.ReadUInt16();
         var sampleRate = reader.ReadUInt32();
-        var byteRate = reader.ReadUInt32();
-        var blockAlign = reader.ReadUInt16();
+        reader.ReadUInt32();
+        reader.ReadUInt16();
         var bitsPerSample = reader.ReadUInt16();
         
         if (audioFormat != 1) // PCM
@@ -96,7 +96,7 @@ public class WavLoader : IAudioLoader
         return new AudioData(audioData, (int)sampleRate, channels, bitsPerSample, AudioFormat.WAV);
     }
 
-    private byte[] Convert8BitTo16Bit(byte[] data8Bit)
+    private static byte[] Convert8BitTo16Bit(byte[] data8Bit)
     {
         var data16Bit = new byte[data8Bit.Length * 2];
 
@@ -113,7 +113,7 @@ public class WavLoader : IAudioLoader
         return data16Bit;
     }
 
-    private byte[] Convert24BitTo16Bit(byte[] data24Bit)
+    private static byte[] Convert24BitTo16Bit(byte[] data24Bit)
     {
         // 24-bit has 3 bytes per sample, 16-bit has 2 bytes per sample
         var samplesCount = data24Bit.Length / 3;

@@ -8,7 +8,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneHierarchyPanel(EntityContextMenu contextMenu, PrefabDropTarget prefabDropTarget)
+public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget)
     : ISceneHierarchyPanel
 {
     private IScene _scene;

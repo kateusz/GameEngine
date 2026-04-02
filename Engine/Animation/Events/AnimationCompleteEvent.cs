@@ -15,7 +15,7 @@ internal sealed class AnimationCompleteEvent : IAnimationEvent
     /// <summary>
     /// Name of the completed clip.
     /// </summary>
-    public string ClipName { get; init; } = string.Empty;
+    public string ClipName { get; init; }
 
     public AnimationCompleteEvent(Entity entity, string clipName)
     {

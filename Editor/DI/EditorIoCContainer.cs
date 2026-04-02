@@ -52,7 +52,6 @@ public static class EditorIoCContainer
         container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
         container.Register<IPropertiesPanel, PropertiesPanel>(Reuse.Singleton);
         container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
-        container.Register<EntityContextMenu>(Reuse.Singleton);
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         
         container.RegisterMany<SceneManager>(Reuse.Singleton);

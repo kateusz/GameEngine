@@ -17,6 +17,10 @@ internal sealed class ScriptEngine : IScriptEngine
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
+    private const string DebugConfiguration = "Debug";
+    private const string TargetFramework = "net8.0";
+    private const string EcsDllName = "ECS.dll";
+
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
@@ -139,10 +143,10 @@ internal sealed class ScriptEngine : IScriptEngine
                 switch (@event)
                 {
                     case KeyPressedEvent kpe:
-                        scriptComponent.ScriptableEntity.OnKeyPressed((KeyCodes)kpe.KeyCode);
+                        scriptComponent.ScriptableEntity.OnKeyPressed(kpe.KeyCode);
                         break;
                     case KeyReleasedEvent kpe:
-                        scriptComponent.ScriptableEntity.OnKeyReleased((KeyCodes)kpe.KeyCode);
+                        scriptComponent.ScriptableEntity.OnKeyReleased(kpe.KeyCode);
                         break;
                     case MouseButtonPressedEvent mbpe:
                         scriptComponent.ScriptableEntity.OnMouseButtonPressed(mbpe.Button);
@@ -299,10 +303,8 @@ internal sealed class ScriptEngine : IScriptEngine
     
     public void PrintDebugInfo()
     {
-        Logger.Debug("=== SCRIPT ENGINE DEBUG INFO ===");
-        Logger.Debug("Debug Mode: {DebugMode}", _debugMode);
-        Logger.Debug("Scripts Directory: {ScriptsDirectory}", _scriptsDirectory);
-        Logger.Debug("Loaded Scripts: {ScriptCount}", _scriptTypes.Count);
+        Logger.Debug("=== SCRIPT ENGINE DEBUG INFO === DebugMode: {DebugMode}, ScriptsDirectory: {ScriptsDirectory}, Loaded Scripts: {ScriptCount}",
+            _debugMode, _scriptsDirectory, _scriptTypes.Count);
 
         foreach (var (name, type) in _scriptTypes)
         {
@@ -734,8 +736,8 @@ internal sealed class ScriptEngine : IScriptEngine
                     var possiblePaths = new[]
                     {
                         Path.Combine(currentDir, $"{name}.dll"),
-                        Path.Combine(currentDir, "bin", "Debug", "net8.0", $"{name}.dll"),
-                        Path.Combine(currentDir, "..", name, "bin", "Debug", "net8.0", $"{name}.dll")
+                        Path.Combine(currentDir, "bin", DebugConfiguration, TargetFramework, $"{name}.dll"),
+                        Path.Combine(currentDir, "..", name, "bin", DebugConfiguration, TargetFramework, $"{name}.dll")
                     };
 
                     if (!TryAddAssemblyFromPaths(references, name, possiblePaths))
@@ -805,16 +807,16 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    private string? FindECSAssembly()
+    private static string? FindECSAssembly()
     {
         // Try to find ECS assembly in various locations
         var currentDir = Environment.CurrentDirectory;
         var possiblePaths = new[]
         {
-            Path.Combine(currentDir, "ECS.dll"),
-            Path.Combine(currentDir, "bin", "Debug", "net8.0", "ECS.dll"),
-            Path.Combine(currentDir, "..", "ECS", "bin", "Debug", "net8.0", "ECS.dll"),
-            Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ECS.dll")
+            Path.Combine(currentDir, EcsDllName),
+            Path.Combine(currentDir, "bin", DebugConfiguration, TargetFramework, EcsDllName),
+            Path.Combine(currentDir, "..", "ECS", "bin", DebugConfiguration, TargetFramework, EcsDllName),
+            Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), EcsDllName)
         };
 
         foreach (var path in possiblePaths)

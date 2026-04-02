@@ -84,7 +84,7 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
         }
     }
 
-    private unsafe void ExtractLights(Silk.NET.Assimp.Scene* scene)
+    private static unsafe void ExtractLights(Silk.NET.Assimp.Scene* scene)
     {
         for (var i = 0; i < scene->MNumLights; i++)
         {

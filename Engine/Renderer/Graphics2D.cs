@@ -18,19 +18,15 @@ internal sealed class Graphics2D(
     IShaderFactory shaderFactory) : IGraphics2D
 {
     private Renderer2DData _data = new();
-    private static readonly Vector2[] DefaultTextureCoords;
+    private const string ViewProjectionUniform = "u_ViewProjection";
+    private static readonly Vector2[] DefaultTextureCoords =
+    [
+        new Vector2(0.0f, 0.0f),
+        new Vector2(1.0f, 0.0f),
+        new Vector2(1.0f, 1.0f),
+        new Vector2(0.0f, 1.0f)
+    ];
     private bool _disposed;
-
-    static Graphics2D()
-    {
-        DefaultTextureCoords =
-        [
-            new Vector2(0.0f, 0.0f),
-            new Vector2(1.0f, 0.0f),
-            new Vector2(1.0f, 1.0f),
-            new Vector2(0.0f, 1.0f)
-        ];
-    }
 
     public void Init()
     {
@@ -65,10 +61,10 @@ internal sealed class Graphics2D(
         }
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
+        _data.QuadShader.SetMat4(ViewProjectionUniform, viewProj);
 
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
+        _data.LineShader.SetMat4(ViewProjectionUniform, viewProj);
 
         StartBatch();
     }
@@ -78,10 +74,10 @@ internal sealed class Graphics2D(
         var viewProj = camera.GetViewProjectionMatrix();
 
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4("u_ViewProjection", viewProj);
+        _data.QuadShader.SetMat4(ViewProjectionUniform, viewProj);
 
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4("u_ViewProjection", viewProj);
+        _data.LineShader.SetMat4(ViewProjectionUniform, viewProj);
 
         StartBatch();
     }

@@ -26,7 +26,7 @@ public class Sandbox3DLayer(
     private float _fpsTimer;
     private int _fpsFrames;
 
-    private const string ModelPath = "assets/models/BistroExterior.fbx";
+    private const string ModelPath = "assets/models/BistroInterior_Wine.fbx";
 
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -37,12 +37,12 @@ public class Sandbox3DLayer(
         if (!File.Exists(ModelPath))
         {
             Logger.Error("Model not found at {Path}", ModelPath);
+            _scene = null;
             return;
         }
 
-        Logger.Information("Loading model from {Path}...", ModelPath);
         var result = modelSceneImporter.Import(_scene, ModelPath, addDefaultLighting: true, addCamera: true);
-        Logger.Information("Scene loaded: {MeshCount} mesh entities", result.MeshEntities.Count);
+        Logger.Information("Scene loaded from {Path}: {MeshCount} mesh entities", ModelPath, result.MeshEntities.Count);
 
         _cameraEntity = result.CameraEntity;
 

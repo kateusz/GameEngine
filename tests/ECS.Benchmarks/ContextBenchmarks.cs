@@ -9,16 +9,14 @@ namespace ECS.Benchmarks;
 public class ContextBenchmarks
 {
     private Context _context = null!;
-    private Entity[] _entities = null!;
 
     [Params(100, 1_000, 10_000)]
-    public int EntityCount;
+    public int EntityCount { get; set; }
 
     [GlobalSetup]
     public void Setup()
     {
         _context = new Context();
-        _entities = new Entity[EntityCount];
 
         for (var i = 0; i < EntityCount; i++)
         {
@@ -26,7 +24,6 @@ public class ContextBenchmarks
             entity.AddComponent(new TransformComponent());
             entity.AddComponent(new CameraComponent());
 
-            _entities[i] = entity;
             _context.Register(entity);
         }
     }
@@ -35,7 +32,7 @@ public class ContextBenchmarks
     public void GetById()
     {
         var id = EntityCount / 2;
-        var entity = _context.GetById(id);
+        _ = _context.GetById(id);
     }
 
     [Benchmark]

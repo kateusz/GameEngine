@@ -98,7 +98,7 @@ internal sealed class SceneSerializer(
         }
     }
 
-    private JsonArray GetJsonArray(JsonNode jsonObject, string key)
+    private static JsonArray GetJsonArray(JsonNode jsonObject, string key)
     {
         if (!jsonObject.AsObject().ContainsKey(key))
             throw new InvalidSceneJsonException($"Missing required '{key}' key in JSON");

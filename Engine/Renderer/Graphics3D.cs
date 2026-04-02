@@ -12,6 +12,7 @@ internal sealed class Graphics3D(
     IMeshFactory meshFactory,
     ITextureFactory textureFactory) : IGraphics3D
 {
+    private const string ViewProjectionUniform = "u_ViewProjection";
     private IShader _meshShader = null!;
     private IShader _lightShader = null!;
     private Mesh _cubeMesh = null!;
@@ -52,7 +53,7 @@ internal sealed class Graphics3D(
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         var cameraPos = new Vector3(transform.M41, transform.M42, transform.M43);
         _meshShader.Bind();
-        _meshShader.SetMat4("u_ViewProjection", viewProj);
+        _meshShader.SetMat4(ViewProjectionUniform, viewProj);
         _meshShader.SetFloat3("u_LightPosition", _lightPosition);
         _meshShader.SetFloat3("u_LightDirection", _lightDirection);
         _meshShader.SetInt("u_LightType", _lightType);
@@ -63,7 +64,7 @@ internal sealed class Graphics3D(
     public void BeginScene(IViewCamera camera)
     {
         _meshShader.Bind();
-        _meshShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+        _meshShader.SetMat4(ViewProjectionUniform, camera.GetViewProjectionMatrix());
         _meshShader.SetFloat3("u_LightPosition", _lightPosition);
         _meshShader.SetFloat3("u_LightDirection", _lightDirection);
         _meshShader.SetInt("u_LightType", _lightType);
@@ -163,14 +164,14 @@ internal sealed class Graphics3D(
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         rendererApi.SetDepthTest(false);
         _lightShader.Bind();
-        _lightShader.SetMat4("u_ViewProjection", viewProj);
+        _lightShader.SetMat4(ViewProjectionUniform, viewProj);
     }
 
     public void BeginLightVisualization(IViewCamera camera)
     {
         rendererApi.SetDepthTest(false);
         _lightShader.Bind();
-        _lightShader.SetMat4("u_ViewProjection", camera.GetViewProjectionMatrix());
+        _lightShader.SetMat4(ViewProjectionUniform, camera.GetViewProjectionMatrix());
     }
 
     public void DrawLightVisualization(Vector3 position, float scale = 0.5f)

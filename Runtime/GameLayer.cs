@@ -40,8 +40,7 @@ public class GameLayer(
 
         if (!File.Exists(startupScenePath))
         {
-            Logger.Error("Startup scene not found: {Path}", startupScenePath);
-            Logger.Error("Current directory: {Dir}", AppContext.BaseDirectory);
+            Logger.Error("Startup scene not found: {Path} (current directory: {Dir})", startupScenePath, AppContext.BaseDirectory);
             Logger.Warning("Creating empty scene as fallback...");
 
             // Create empty scene as fallback

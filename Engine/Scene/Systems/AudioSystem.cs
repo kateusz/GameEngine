@@ -56,7 +56,7 @@ internal sealed class AudioSystem(
     {
         // Clean up all audio sources
         var view = context.View<AudioSourceComponent>();
-        foreach (var (entity, component) in view)
+        foreach (var (_, component) in view)
         {
             if (component.RuntimeAudioSource != null)
             {
