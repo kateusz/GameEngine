@@ -106,8 +106,16 @@ public class ContentBrowserPanel : IContentBrowserPanel
         {
             if (!_imageCache.TryGetValue(entry, out var cached))
             {
-                try { cached = _textureFactory.Create(entry); _imageCache[entry] = cached; }
-                catch { cached = _fileIcon; }
+                try
+                {
+                    cached = _textureFactory.Create(entry);
+                }
+                catch
+                {
+                    cached = _fileIcon;
+                }
+
+                _imageCache[entry] = cached;
             }
             return (cached, true, false);
         }
