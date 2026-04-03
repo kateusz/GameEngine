@@ -27,10 +27,10 @@ internal sealed class Graphics3D(
 
     public void Init()
     {
-        _meshShader = shaderFactory.Create("assets/shaders/opengl/lightingShader.vert",
-            "assets/shaders/opengl/lightingShader.frag");
-        _lightShader = shaderFactory.Create("assets/shaders/opengl/lightCubeShader.vert",
-            "assets/shaders/opengl/lightCubeShader.frag");
+        _meshShader = shaderFactory.Create("assets/shaders/OpenGL/lightingShader.vert",
+            "assets/shaders/OpenGL/lightingShader.frag");
+        _lightShader = shaderFactory.Create("assets/shaders/OpenGL/lightCubeShader.vert",
+            "assets/shaders/OpenGL/lightCubeShader.frag");
         _cubeMesh = meshFactory.CreateCube();
 
         _meshShader.Bind();
