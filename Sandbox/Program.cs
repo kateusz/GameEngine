@@ -6,7 +6,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 namespace Sandbox;
 
-public static class Program
+public class Program
 {
     public static int Main(string[] args)
     {

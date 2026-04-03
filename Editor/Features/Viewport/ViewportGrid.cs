@@ -50,8 +50,8 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
             var color = isMajor ? ctx.MajorColor : ctx.MinorColor;
 
             ctx.DrawList.AddLine(
-                new Vector2(screenX, ctx.ViewportMin.Y),
-                new Vector2(screenX, ctx.ViewportMax.Y),
+                ctx.ViewportMin with { X = screenX },
+                ctx.ViewportMax with { X = screenX },
                 color);
         }
     }
@@ -74,8 +74,8 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
             var color = isMajor ? ctx.MajorColor : ctx.MinorColor;
 
             ctx.DrawList.AddLine(
-                new Vector2(ctx.ViewportMin.X, screenY),
-                new Vector2(ctx.ViewportMax.X, screenY),
+                ctx.ViewportMin with { Y = screenY },
+                ctx.ViewportMax with { Y = screenY },
                 color);
         }
     }

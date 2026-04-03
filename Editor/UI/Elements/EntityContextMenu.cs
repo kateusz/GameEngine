@@ -4,11 +4,14 @@ using ImGuiNET;
 
 namespace Editor.UI.Elements;
 
-public class EntityContextMenu
+public interface IEntityContextMenu
 {
-    protected EntityContextMenu() { }
+    void Render(IScene context);
+}
 
-    public static void Render(IScene context)
+public class EntityContextMenu : IEntityContextMenu
+{
+    public void Render(IScene context)
     {
         if (ImGui.BeginPopupContextWindow("WindowContextMenu",
                 ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))

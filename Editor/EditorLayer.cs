@@ -397,7 +397,7 @@ public class EditorLayer(
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             RenderViewport();
-            ImGui.End();
+            
             ImGui.PopStyleVar();
 
             viewport.SceneToolbar.Render();
@@ -414,106 +414,125 @@ public class EditorLayer(
     {
         if (!ImGui.BeginMenuBar()) return;
 
-        if (ImGui.BeginMenu("File"))
-        {
-            if (ImGui.MenuItem("New Project"))
-                newProjectPopup.ShowNewProjectPopup();
-            if (ImGui.MenuItem("Open Project"))
-                newProjectPopup.ShowOpenProjectPopup();
-
-            ImGui.Separator();
-
-            if (ImGui.MenuItem("Show Recent Projects"))
-                panels.RecentProjectsPanel.Show();
-
-            if (ImGui.BeginMenu("Recent Projects"))
-            {
-                var recentProjects = editorPreferences.GetRecentProjects();
-                if (recentProjects.Count == 0)
-                {
-                    ImGui.MenuItem("(No recent projects)", false);
-                }
-                else
-                {
-                    foreach (var recent in recentProjects)
-                    {
-                        if (ImGui.MenuItem($"{recent.Name}"))
-                        {
-                            if (projectManager.TryOpenProject(recent.Path, out var error))
-                                panels.ContentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-                            else
-                                Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
-                        }
-
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.BeginTooltip();
-                            ImGui.Text(recent.Path);
-                            ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
-                            ImGui.EndTooltip();
-                        }
-                    }
-
-                    ImGui.Separator();
-                    if (ImGui.MenuItem("Clear Recent Projects"))
-                        editorPreferences.ClearRecentProjects();
-                }
-                ImGui.EndMenu();
-            }
-
-            ImGui.Separator();
-            if (ImGui.MenuItem("Exit"))
-                Environment.Exit(0);
-            ImGui.EndMenu();
-        }
-
-        if (ImGui.BeginMenu("Scene..."))
-        {
-            if (ImGui.MenuItem("New", "Ctrl+N"))
-                sceneSettingsPopup.ShowNewScenePopup();
-            if (ImGui.MenuItem("Save", "Ctrl+S"))
-                sceneManager.Save();
-            ImGui.EndMenu();
-        }
-
-        if (ImGui.BeginMenu("View"))
-        {
-            if (ImGui.MenuItem("Reset Camera"))
-                ResetCamera();
-            ImGui.Separator();
-            if (ImGui.MenuItem("Show Rulers", null, viewport.ViewportRuler.Enabled))
-                viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled;
-            if (ImGui.MenuItem("Show 2D Grid", null, viewport.SceneToolbar.ShowGrid))
-                viewport.SceneToolbar.ShowGrid = !viewport.SceneToolbar.ShowGrid;
-            if (ImGui.MenuItem("Show 3D Grid", null, viewport.SceneToolbar.ShowGrid3D))
-                viewport.SceneToolbar.ShowGrid3D = !viewport.SceneToolbar.ShowGrid3D;
-            if (ImGui.MenuItem("Show Stats", null, panels.RendererStatsPanel.IsVisible))
-                panels.RendererStatsPanel.IsVisible = !panels.RendererStatsPanel.IsVisible;
-            ImGui.EndMenu();
-        }
-
-        if (ImGui.BeginMenu("Settings"))
-        {
-            if (ImGui.MenuItem("Editor Settings"))
-                editorSettingsUI.Show();
-            ImGui.EndMenu();
-        }
-
-        if (ImGui.BeginMenu("Help"))
-        {
-            if (ImGui.MenuItem("Keyboard Shortcuts"))
-                panels.KeyboardShortcutsPanel.Show();
-            ImGui.EndMenu();
-        }
-
-        if (ImGui.BeginMenu("Publish"))
-        {
-            if (ImGui.MenuItem("Build & Publish"))
-                BuildAndPublish();
-            ImGui.EndMenu();
-        }
+        RenderFileMenu();
+        RenderSceneMenu();
+        RenderViewMenu();
+        RenderSettingsMenu();
+        RenderHelpMenu();
+        RenderPublishMenu();
 
         ImGui.EndMenuBar();
+    }
+
+    private void RenderFileMenu()
+    {
+        if (!ImGui.BeginMenu("File")) return;
+
+        if (ImGui.MenuItem("New Project"))
+            newProjectPopup.ShowNewProjectPopup();
+        if (ImGui.MenuItem("Open Project"))
+            newProjectPopup.ShowOpenProjectPopup();
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem("Show Recent Projects"))
+            panels.RecentProjectsPanel.Show();
+
+        if (ImGui.BeginMenu("Recent Projects"))
+        {
+            var recentProjects = editorPreferences.GetRecentProjects();
+            if (recentProjects.Count == 0)
+            {
+                ImGui.MenuItem("(No recent projects)", false);
+            }
+            else
+            {
+                foreach (var recent in recentProjects)
+                {
+                    if (ImGui.MenuItem($"{recent.Name}"))
+                    {
+                        if (projectManager.TryOpenProject(recent.Path, out var error))
+                            panels.ContentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                        else
+                            Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
+                    }
+
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text(recent.Path);
+                        ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
+                        ImGui.EndTooltip();
+                    }
+                }
+
+                ImGui.Separator();
+                if (ImGui.MenuItem("Clear Recent Projects"))
+                    editorPreferences.ClearRecentProjects();
+            }
+            ImGui.EndMenu();
+        }
+
+        ImGui.Separator();
+        if (ImGui.MenuItem("Exit"))
+            Environment.Exit(0);
+        ImGui.EndMenu();
+    }
+
+    private void RenderSceneMenu()
+    {
+        if (!ImGui.BeginMenu("Scene...")) return;
+
+        if (ImGui.MenuItem("New", "Ctrl+N"))
+            sceneSettingsPopup.ShowNewScenePopup();
+        if (ImGui.MenuItem("Save", "Ctrl+S"))
+            sceneManager.Save();
+        ImGui.EndMenu();
+    }
+
+    private void RenderViewMenu()
+    {
+        if (!ImGui.BeginMenu("View")) return;
+
+        if (ImGui.MenuItem("Reset Camera"))
+            ResetCamera();
+        ImGui.Separator();
+        if (ImGui.MenuItem("Show Rulers", null, viewport.ViewportRuler.Enabled))
+            viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled;
+        if (ImGui.MenuItem("Show 2D Grid", null, viewport.SceneToolbar.ShowGrid))
+            viewport.SceneToolbar.ShowGrid = !viewport.SceneToolbar.ShowGrid;
+        if (ImGui.MenuItem("Show 3D Grid", null, viewport.SceneToolbar.ShowGrid3D))
+            viewport.SceneToolbar.ShowGrid3D = !viewport.SceneToolbar.ShowGrid3D;
+        if (ImGui.MenuItem("Show Stats", null, panels.RendererStatsPanel.IsVisible))
+            panels.RendererStatsPanel.IsVisible = !panels.RendererStatsPanel.IsVisible;
+        ImGui.EndMenu();
+    }
+
+    private void RenderSettingsMenu()
+    {
+        if (!ImGui.BeginMenu("Settings")) return;
+
+        if (ImGui.MenuItem("Editor Settings"))
+            editorSettingsUI.Show();
+        ImGui.EndMenu();
+    }
+
+    private void RenderHelpMenu()
+    {
+        if (!ImGui.BeginMenu("Help")) return;
+
+        if (ImGui.MenuItem("Keyboard Shortcuts"))
+            panels.KeyboardShortcutsPanel.Show();
+        ImGui.EndMenu();
+    }
+
+    private void RenderPublishMenu()
+    {
+        if (!ImGui.BeginMenu("Publish")) return;
+
+        if (ImGui.MenuItem("Build & Publish"))
+            BuildAndPublish();
+        ImGui.EndMenu();
     }
 
     private void RenderPanels()

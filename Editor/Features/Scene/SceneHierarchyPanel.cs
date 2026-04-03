@@ -8,7 +8,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget)
+public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityContextMenu entityContextMenu)
     : ISceneHierarchyPanel
 {
     private IScene _scene;
@@ -42,7 +42,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget)
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
             _selectionContext = null;
 
-        EntityContextMenu.Render(_scene);
+        entityContextMenu.Render(_scene);
 
         ImGui.End();
     }

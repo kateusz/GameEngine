@@ -214,7 +214,11 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         try
         {
             var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptName);
-            if (!scriptInstanceResult.IsSuccess) return;
+            if (!scriptInstanceResult.IsSuccess)
+            {
+                Logger.Error("Failed to create script instance for {ScriptName}: {Error}", scriptName, scriptInstanceResult.Error);
+                return;
+            }
 
             var scriptInstance = scriptInstanceResult.Value;
             if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
