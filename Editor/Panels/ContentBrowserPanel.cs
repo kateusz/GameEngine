@@ -7,6 +7,8 @@ namespace Editor.Panels;
 
 public class ContentBrowserPanel : IContentBrowserPanel
 {
+    private const float TreePanelWidth = 200f;
+
     private readonly ITextureFactory _textureFactory;
     private string _assetPath;
     private string _currentDirectory;
@@ -40,7 +42,65 @@ public class ContentBrowserPanel : IContentBrowserPanel
     {
         ImGui.Begin("Content Browser");
 
-        // Display current path at the top
+        ImGui.BeginChild("DirectoryTree", new Vector2(TreePanelWidth, 0), ImGuiChildFlags.Border);
+        DrawDirectoryTree();
+        ImGui.EndChild();
+
+        ImGui.SameLine();
+
+        ImGui.BeginChild("ContentGrid", new Vector2(0, 0), ImGuiChildFlags.None);
+        DrawContentGrid();
+        ImGui.EndChild();
+
+        ImGui.End();
+    }
+
+    private void DrawDirectoryTree()
+    {
+        DrawDirectoryNode(_assetPath);
+    }
+
+    private void DrawDirectoryNode(string directoryPath)
+    {
+        var dirName = Path.GetFileName(directoryPath) is { Length: > 0 } name ? name : "Assets";
+        var isSelected = string.Equals(directoryPath, _currentDirectory, StringComparison.OrdinalIgnoreCase);
+
+        string[] subdirectories;
+        try
+        {
+            subdirectories = Directory.GetDirectories(directoryPath);
+        }
+        catch
+        {
+            subdirectories = [];
+        }
+
+        var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
+        if (subdirectories.Length == 0)
+            flags |= ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+        if (isSelected)
+            flags |= ImGuiTreeNodeFlags.Selected;
+
+        var isAncestor = _currentDirectory.StartsWith(directoryPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                         || isSelected;
+        if (isAncestor && subdirectories.Length > 0)
+            ImGui.SetNextItemOpen(true, ImGuiCond.Always);
+
+        var opened = ImGui.TreeNodeEx(dirName, flags);
+
+        if (ImGui.IsItemClicked())
+            _currentDirectory = directoryPath;
+
+        if (opened && subdirectories.Length > 0)
+        {
+            foreach (var subdir in subdirectories)
+                DrawDirectoryNode(subdir);
+            ImGui.TreePop();
+        }
+    }
+
+    private void DrawContentGrid()
+    {
         ImGui.TextWrapped($"Current Path: {_currentDirectory}");
         ImGui.Separator();
 
@@ -99,7 +159,6 @@ public class ContentBrowserPanel : IContentBrowserPanel
         }
 
         ImGui.Columns(1);
-        ImGui.End();
     }
 
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
