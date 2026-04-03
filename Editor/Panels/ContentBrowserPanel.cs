@@ -85,8 +85,8 @@ public class ContentBrowserPanel : IContentBrowserPanel
                          || isSelected;
         if (isAncestor && subdirectories.Length > 0)
             ImGui.SetNextItemOpen(true, ImGuiCond.Always);
-
-        var opened = ImGui.TreeNodeEx(dirName, flags);
+        
+        var opened = ImGui.TreeNodeEx($"{dirName}##{directoryPath}", flags);
 
         if (ImGui.IsItemClicked())
             _currentDirectory = directoryPath;
