@@ -12,8 +12,8 @@ public class ContentBrowserPanel : IContentBrowserPanel
     private string _currentDirectory;
     private Texture2D _directoryIcon = null!;
     private Texture2D _fileIcon = null!;
-    private Texture2D _prefabIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
+    private readonly Dictionary<string, Texture2D> _folderIconCache = new();
 
     public ContentBrowserPanel(ITextureFactory textureFactory)
     {
@@ -27,7 +27,13 @@ public class ContentBrowserPanel : IContentBrowserPanel
     {
         _directoryIcon = _textureFactory.Create("Resources/Icons/ContentBrowser/DirectoryIcon.png");
         _fileIcon = _textureFactory.Create("Resources/Icons/ContentBrowser/FileIcon.png");
-        _prefabIcon = _textureFactory.Create("Resources/Icons/ContentBrowser/PrefabIcon.png");
+
+        foreach (var name in new[] { "models", "animations", "scenes", "prefabs", "scripts", "sounds", "audio", "textures" })
+        {
+            var path = $"Resources/Icons/ContentBrowser/{name}.png";
+            if (File.Exists(path))
+                _folderIconCache[name] = _textureFactory.Create(path);
+        }
     }
 
     public void Draw()
@@ -99,7 +105,12 @@ public class ContentBrowserPanel : IContentBrowserPanel
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
     {
         if (isDirectory)
+        {
+            var folderName = info.Name.ToLowerInvariant();
+            if (_folderIconCache.TryGetValue(folderName, out var folderIcon))
+                return (folderIcon, false, false);
             return (_directoryIcon, false, false);
+        }
 
         if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
             info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
@@ -119,9 +130,6 @@ public class ContentBrowserPanel : IContentBrowserPanel
             }
             return (cached, true, false);
         }
-
-        if (info.Name.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
-            return (_prefabIcon, false, true);
 
         return (_fileIcon, false, false);
     }
