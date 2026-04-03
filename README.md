@@ -10,7 +10,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Physics Integration** - Box2D physics simulation with debug visualization
 - **Hot-Reloadable Scripting** - C# scripting with real-time compilation via Roslyn
 - **Dependency Injection** - DryIoc IoC container for clean architecture
-- **Cross-Platform** - Windows, macOS, and Linux support
+- **Cross-Platform** - Windows, macOS support
 
 ### 🛠️ Editor
 - **Visual Scene Editor** - Drag-and-drop scene composition with hierarchical entities

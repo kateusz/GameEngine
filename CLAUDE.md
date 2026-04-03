@@ -1,7 +1,7 @@
 # Claude Code Repository Guidelines
 
 **Tech Stack**: C# .NET 10.0 | OpenGL 3.3+ (Silk.NET) | ImGui.NET | Box2D | OpenAL | DryIoc DI
-**Architecture**: ECS-based game engine with visual editor, hot-reloadable C# scripting, cross-platform (Windows/macOS/Linux)
+**Architecture**: ECS-based game engine with visual editor, hot-reloadable C# scripting, cross-platform (Windows/macOS)
 
 ## Solution Structure
 

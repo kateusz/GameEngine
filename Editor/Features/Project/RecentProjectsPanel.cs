@@ -319,10 +319,6 @@ public class RecentProjectsPanel(
             {
                 System.Diagnostics.Process.Start("open", path);
             }
-            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
-            {
-                System.Diagnostics.Process.Start("xdg-open", path);
-            }
         }
         catch (Exception ex)
         {

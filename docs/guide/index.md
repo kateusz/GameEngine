@@ -1,6 +1,6 @@
 # Game Engine Developer Guide
 
-This is a C# game engine built on an Entity Component System (ECS) architecture, offering 2D and 3D rendering via OpenGL, a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS, Linux) and covers the full range of common game development needs: physics simulation, spatial audio, and sprite animation.
+This is a C# game engine built on an Entity Component System (ECS) architecture, offering 2D and 3D rendering via OpenGL, a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers the full range of common game development needs: physics simulation, spatial audio, and sprite animation.
 
 ## Features
 

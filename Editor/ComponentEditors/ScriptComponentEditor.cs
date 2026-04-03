@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -56,6 +58,9 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
     {
         TextDrawer.DrawWarningText($"Script: {scriptType.Name}");
 
+        ImGui.SameLine();
+        ButtonDrawer.DrawButton($"Edit##{scriptType.Name}", 0, 0, () => OpenScriptInExternalEditor(scriptType.Name));
+
         if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
         {
             if (ImGui.MenuItem("Remove"))
@@ -65,6 +70,28 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
             }
 
             ImGui.EndPopup();
+        }
+    }
+
+    private void OpenScriptInExternalEditor(string scriptName)
+    {
+        var filePath = scriptEngine.GetScriptFilePath(scriptName);
+        if (filePath == null)
+        {
+            Logger.Warning("Script file not found for {ScriptName}", scriptName);
+            return;
+        }
+
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                Process.Start("open", filePath);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open script {ScriptName} in external editor", scriptName);
         }
     }
 

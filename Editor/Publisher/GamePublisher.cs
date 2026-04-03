@@ -12,8 +12,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
     private static readonly HashSet<string> SupportedRuntimeIdentifiers = new(StringComparer.OrdinalIgnoreCase)
     {
         "win-x64", "win-x86", "win-arm64",
-        "osx-x64", "osx-arm64",
-        "linux-x64", "linux-arm64"
+        "osx-x64", "osx-arm64"
     };
 
     public void Publish()

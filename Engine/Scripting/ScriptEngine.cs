@@ -188,6 +188,12 @@ internal sealed class ScriptEngine : IScriptEngine
 
     }
 
+    public string? GetScriptFilePath(string scriptName)
+    {
+        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
+        return File.Exists(scriptPath) ? scriptPath : null;
+    }
+
     public Result<ScriptableEntity> CreateScriptInstance(string scriptName)
     {
         if (!_scriptTypes.TryGetValue(scriptName, out var scriptType))

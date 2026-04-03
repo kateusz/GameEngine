@@ -16,9 +16,9 @@ C4Context
 
     Person(dev, "Game Developer", "Writes C# scripts and assembles scenes in the editor")
 
-    System(engine, "Game Engine", "ECS-based engine with visual editor, hot-reloadable C# scripting, cross-platform (Windows/macOS/Linux)")
+    System(engine, "Game Engine", "ECS-based engine with visual editor, hot-reloadable C# scripting, cross-platform (Windows/macOS)")
 
-    System_Ext(os, "Operating System", "Windows, macOS, or Linux — provides windowing, input, and GPU access")
+    System_Ext(os, "Operating System", "Windows, macOS — provides windowing, input, and GPU access")
     System_Ext(gpu, "GPU / Graphics Driver", "OpenGL 3.3+ rendering")
     System_Ext(audio, "Audio Driver", "OpenAL-compatible audio output")
 
