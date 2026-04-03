@@ -11,7 +11,7 @@ public class PublishSettings
     public string OutputPath { get; set; } = string.Empty;
     
     /// <summary>
-    /// Target runtime identifier (e.g., win-x64, osx-x64, linux-x64, osx-arm64, linux-arm64).
+    /// Target runtime identifier (e.g., win-x64, osx-x64, osx-arm64).
     /// </summary>
     public string RuntimeIdentifier { get; set; } = "win-x64";
     

@@ -14,10 +14,6 @@ public static class PlatformDetection
             return RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                 ? "osx-arm64" : "osx-x64";
 
-        if (OperatingSystem.IsLinux())
-            return RuntimeInformation.ProcessArchitecture == Architecture.Arm64
-                ? "linux-arm64" : "linux-x64";
-
         throw new PlatformNotSupportedException($"Unsupported platform: {RuntimeInformation.OSDescription}");
     }
 
@@ -30,8 +26,6 @@ public static class PlatformDetection
             "win-arm64" => "Windows (ARM64)",
             "osx-x64" => "macOS (Intel)",
             "osx-arm64" => "macOS (Apple Silicon)",
-            "linux-x64" => "Linux (x64)",
-            "linux-arm64" => "Linux (ARM64)",
             _ => runtimeIdentifier
         };
     }

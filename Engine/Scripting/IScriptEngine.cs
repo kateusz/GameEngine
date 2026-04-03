@@ -53,6 +53,13 @@ public interface IScriptEngine
     string GetScriptSource(string scriptName);
 
     /// <summary>
+    /// Gets the full file path of a script by name.
+    /// </summary>
+    /// <param name="scriptName">Name of the script</param>
+    /// <returns>Full file path, or null if not found</returns>
+    string? GetScriptFilePath(string scriptName);
+
+    /// <summary>
     /// Creates a new instance of a compiled script.
     /// </summary>
     /// <param name="scriptName">Name of the script class to instantiate</param>
