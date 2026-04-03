@@ -18,7 +18,7 @@ internal sealed class ScriptEngine : IScriptEngine
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
     private const string DebugConfiguration = "Debug";
-    private const string TargetFramework = "net8.0";
+    private const string TargetFramework = "net10.0";
     private const string EcsDllName = "ECS.dll";
 
     private readonly Dictionary<string, Type> _scriptTypes = new();
