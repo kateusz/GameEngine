@@ -16,6 +16,9 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     private Texture2D _iconSelect;
     private Texture2D _iconMove;
     private Texture2D _iconScale;
+    private Texture2D _iconRotate;
+    private Texture2D _iconRuler;
+    private Texture2D _iconRestart;
 
     public bool ShowGrid { get; set; } = false;
     public bool ShowGrid3D { get; set; } = true;
@@ -33,6 +36,9 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         _iconSelect = textureFactory.Create("Resources/Icons/select.png");
         _iconMove = textureFactory.Create("Resources/Icons/move.png");
         _iconScale = textureFactory.Create("Resources/Icons/scale.png");
+        _iconRotate = textureFactory.Create("Resources/Icons/rotate.png");
+        _iconRuler = textureFactory.Create("Resources/Icons/ruler.png");
+        _iconRestart = textureFactory.Create("Resources/Icons/restart.png");
     }
 
     public void Render()
@@ -86,33 +92,36 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        var isRotateMode = CurrentMode == EditorMode.Rotate;
-        if (ButtonDrawer.DrawToggleButton("↻", "↻", ref isRotateMode, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
+        if (ButtonDrawer.DrawIconButton("rotate", _iconRotate.GetRendererId(), new Vector2(15, 15),
+                isSelected: CurrentMode == EditorMode.Rotate,
+                onClick: () => CurrentMode = EditorMode.Rotate,
+                tooltip: "Rotate Mode"))
         {
-            CurrentMode = EditorMode.Rotate;
+            // Mode already set in onClick
         }
 
         ImGui.SameLine();
 
-        // Use toggle button for ruler since we don't have an icon yet
-        var isRulerMode = CurrentMode == EditorMode.Ruler;
-        if (ButtonDrawer.DrawToggleButton("📏", "📏", ref isRulerMode, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
+        if (ButtonDrawer.DrawIconButton("ruler", _iconRuler.GetRendererId(), new Vector2(15, 15),
+                isSelected: CurrentMode == EditorMode.Ruler,
+                onClick: () => CurrentMode = EditorMode.Ruler,
+                tooltip: "Ruler Mode"))
         {
-            CurrentMode = EditorMode.Ruler;
+            // Mode already set in onClick
         }
 
         ImGui.SameLine();
 
         // Grid toggles
         var showGrid = ShowGrid;
-        ButtonDrawer.DrawToggleButton("⊞", "⊞", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        ButtonDrawer.DrawToggleButton("2D", "2D", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
         LayoutDrawer.DrawTooltip("Show 2D Grid");
         ShowGrid = showGrid;
 
         ImGui.SameLine();
 
         var showGrid3D = ShowGrid3D;
-        ButtonDrawer.DrawToggleButton("⊟", "⊟", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
         LayoutDrawer.DrawTooltip("Show 3D Grid");
         ShowGrid3D = showGrid3D;
 
@@ -138,7 +147,9 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        ButtonDrawer.DrawSmallButton("🔄", onClick: OnRestartScene, tooltip: "Restart Scene");
+        _ = ButtonDrawer.DrawTransparentIconButton("restart", _iconRestart.GetRendererId(), new Vector2(20, 20),
+                onClick: OnRestartScene,
+                tooltip: "Restart Scene");
 
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);
