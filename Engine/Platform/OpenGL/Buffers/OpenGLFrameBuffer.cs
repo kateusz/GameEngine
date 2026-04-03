@@ -10,6 +10,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     private const uint MaxFramebufferSize = 8192;
 
     private uint _rendererId;
+    private bool _disposed;
     private readonly int[] _previousViewport = new int[4];
     private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
@@ -341,6 +342,10 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     
     protected override void Dispose(bool disposing)
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
         _colorAttachmentSpecs?.Clear();
 
         try
