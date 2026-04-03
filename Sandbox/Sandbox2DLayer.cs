@@ -49,11 +49,10 @@ public class Sandbox2DLayer : ILayer
     private readonly IGraphics2D _graphics2D;
     private readonly ITextureFactory _textureFactory;
     private EditorCamera _editorCamera = null!;
-    private Texture2D _spriteSheet;
-    private SubTexture2D _textureBarrel;
 
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
+    private Texture2D _spriteSheet = null!;
 
     public Sandbox2DLayer(IGraphics2D graphics2D, ITextureFactory textureFactory)
     {
@@ -69,9 +68,6 @@ public class Sandbox2DLayer : ILayer
         _editorCamera = new EditorCamera();
         _spriteSheet = _textureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
 
-        _textureBarrel =
-            SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(8, 2), new Vector2(128, 128), new Vector2(1, 1));
-
         _textureMap['D'] =
             SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(6, 11), new Vector2(128, 128), new Vector2(1, 1));
         _textureMap['W'] = SubTexture2D.CreateFromCoords(_spriteSheet, new Vector2(11, 11), new Vector2(128, 128),
@@ -81,6 +77,7 @@ public class Sandbox2DLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("Sandbox2DLayer OnDetach.");
+        _spriteSheet?.Dispose();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -89,11 +86,6 @@ public class Sandbox2DLayer : ILayer
         _graphics2D.Clear();
 
         _graphics2D.BeginScene(_editorCamera);
-
-        // _graphics2D.DrawQuad(Vector2.Zero, Vector2.One, new Vector4(100, 100, 100, 100));
-        //
-        // _graphics2D.DrawLine(Vector3.Zero, new Vector3(5, 5, 0), new Vector4(100, 100, 100, 100), 5);
-        // _graphics2D.DrawRect(Vector3.Zero, new Vector2(5, 5), new Vector4(100, 100, 100, 100), 5);
 
         for (var row = 0; row < _mapHeight; row++)
         {

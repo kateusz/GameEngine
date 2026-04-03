@@ -29,7 +29,13 @@ public abstract class Texture : IDisposable
         return 0;
     }
 
-    public virtual void Dispose()
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
     {
     }
 }

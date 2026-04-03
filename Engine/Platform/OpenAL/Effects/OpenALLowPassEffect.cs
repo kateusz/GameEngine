@@ -25,10 +25,7 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 
     private delegate void AlFilterfDelegate(uint filter, int param, float value);
 
-    private readonly AL _al;
-    private readonly AlGenFiltersDelegate _genFilters;
     private readonly AlDeleteFiltersDelegate _deleteFilters;
-    private readonly AlFilteriDelegate _filteri;
     private readonly AlFilterfDelegate _filterf;
 
     private uint _filterId;
@@ -42,26 +39,25 @@ internal sealed unsafe class OpenALLowPassEffect : IAudioEffect
 
     public OpenALLowPassEffect(AL al)
     {
-        _al = al;
-        _genFilters = GetProc<AlGenFiltersDelegate>(al, "alGenFilters");
+        var genFilters = GetProc<AlGenFiltersDelegate>(al, "alGenFilters");
         _deleteFilters = GetProc<AlDeleteFiltersDelegate>(al, "alDeleteFilters");
-        _filteri = GetProc<AlFilteriDelegate>(al, "alFilteri");
+        var filteri = GetProc<AlFilteriDelegate>(al, "alFilteri");
         _filterf = GetProc<AlFilterfDelegate>(al, "alFilterf");
 
         try
         {
             // Clear any stale OpenAL errors before EFX operations
-            _al.GetError();
+            al.GetError();
 
             fixed (uint* filterPtr = &_filterId)
-                _genFilters(1, filterPtr);
+                genFilters(1, filterPtr);
 
-            var genErr = _al.GetError();
+            var genErr = al.GetError();
             if (genErr != AudioError.NoError)
                 throw new InvalidOperationException($"alGenFilters failed: {genErr}");
 
-            _filteri(_filterId, AlFilterParamType, AlFilterTypeLowpass);
-            var err = _al.GetError();
+            filteri(_filterId, AlFilterParamType, AlFilterTypeLowpass);
+            var err = al.GetError();
             if (err != AudioError.NoError)
                 throw new InvalidOperationException($"AL_FILTER_LOWPASS not supported: {err}");
 

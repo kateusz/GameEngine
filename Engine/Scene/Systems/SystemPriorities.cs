@@ -3,7 +3,7 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// 
 /// </summary>
-public class SystemPriorities
+public static class SystemPriorities
 {
     public const int PhysicsSimulationSystem = 100;
     public const int ScriptUpdateSystem = 110;

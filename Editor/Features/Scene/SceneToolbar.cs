@@ -121,7 +121,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
         ImGui.SetCursorPosY(2.0f);
 
-        if (ButtonDrawer.DrawTransparentIconButton("playstop", icon.GetRendererId(), new Vector2(20, 20),
+        _ = ButtonDrawer.DrawTransparentIconButton("playstop", icon.GetRendererId(), new Vector2(20, 20),
                 onClick: () =>
                 {
                     switch (sceneContext.State)
@@ -134,9 +134,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                             break;
                     }
                 },
-                tooltip: sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene"))
-        {
-        }
+                tooltip: sceneContext.State == SceneState.Edit ? "Play Scene" : "Stop Scene");
 
         ImGui.SameLine();
 

@@ -10,10 +10,10 @@ public class EditorCamera : Camera, IViewCamera
     private float _distance = CameraConfig.DefaultEditorDistance;
     private float _pitch;
     private float _yaw;
-    private float _fov;
+    private readonly float _fov;
     private float _aspectRatio;
-    private float _nearClip;
-    private float _farClip;
+    private readonly float _nearClip;
+    private readonly float _farClip;
 
     private Matrix4x4 _viewMatrix = Matrix4x4.Identity;
     private bool _viewDirty = true;

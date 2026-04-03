@@ -177,108 +177,13 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         if (_results.Count > 0)
         {
-            if (ImGui.Button("Clear Results"))
-                _results.Clear();
-
-            if (ImGui.Button("Save as Baseline"))
-                BenchmarkStorage.SaveBaseline(_results);
-
-            ImGui.SameLine();
-
-            if (ImGui.Button("Load Baseline"))
-                _baselineResults = BenchmarkStorage.LoadBaseline();
-
-            ImGui.SameLine();
-
-            if (ImGui.Button("Export to Markdown"))
-                ExportResultsToMarkdown();
-
-
+            RenderResultButtons();
             ImGui.Separator();
 
             foreach (var result in _results)
             {
-                ImGui.Text($"{result.TestName}:");
-                ImGui.Indent();
-
-                // Performance metrics
-                ImGui.Text("Performance:");
-                ImGui.Indent();
-                ImGui.Text($"Avg FPS: {result.AverageFPS:F2}");
-                ImGui.Text($"Min FPS: {result.MinFPS:F2}");
-                ImGui.Text($"Max FPS: {result.MaxFPS:F2}");
-                ImGui.Text($"Avg Frame Time: {result.AverageFrameTime:F2}ms");
-                ImGui.Text($"99th Percentile: {result.Percentile99:F2}ms");
-                ImGui.Text($"Total Frames: {result.TotalFrames}");
-                ImGui.Unindent();
-
-                // CPU metrics
-                ImGui.Text("CPU Usage:");
-                ImGui.Indent();
-                ImGui.Text($"Average: {result.AverageCpuUsage:F2}%");
-                ImGui.Text($"Min: {result.MinCpuUsage:F2}%");
-                ImGui.Text($"Max: {result.MaxCpuUsage:F2}%");
-                ImGui.Unindent();
-
-                // Memory metrics
-                ImGui.Text("Memory Usage:");
-                ImGui.Indent();
-                ImGui.Text($"Average: {result.AverageMemoryUsageMB} MB");
-                ImGui.Text($"Min: {result.MinMemoryUsageMB} MB");
-                ImGui.Text($"Max: {result.MaxMemoryUsageMB} MB");
-                ImGui.Unindent();
-
-                if (result.CustomMetrics.Count > 0)
-                {
-                    ImGui.Text("Custom Metrics:");
-                    ImGui.Indent();
-                    foreach (var metric in result.CustomMetrics)
-                    {
-                        ImGui.Text($"{metric.Key}: {metric.Value}");
-                    }
-
-                    ImGui.Unindent();
-                }
-
-                ImGui.Unindent();
-                ImGui.Separator();
-
                 var baseline = _baselineResults.FirstOrDefault(b => b.TestName == result.TestName);
-                if (baseline != null)
-                {
-                    ImGui.Text("Comparison with Baseline:");
-                    ImGui.Indent();
-
-                    // Performance comparison
-                    var fpsDiff = result.AverageFPS - baseline.AverageFPS;
-                    var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
-
-                    ImGui.PushStyleColor(ImGuiCol.Text,
-                        fpsDiff >= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
-                    ImGui.Text($"Δ Avg FPS: {fpsDiff:+0.00;-0.00;0.00}");
-                    ImGui.PopStyleColor();
-
-                    ImGui.PushStyleColor(ImGuiCol.Text,
-                        frameTimeDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
-                    ImGui.Text($"Δ Frame Time: {frameTimeDiff:+0.00;-0.00;0.00}ms");
-                    ImGui.PopStyleColor();
-
-                    // CPU comparison
-                    var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
-                    ImGui.PushStyleColor(ImGuiCol.Text,
-                        cpuDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
-                    ImGui.Text($"Δ Avg CPU: {cpuDiff:+0.00;-0.00;0.00}%");
-                    ImGui.PopStyleColor();
-
-                    // Memory comparison
-                    var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
-                    ImGui.PushStyleColor(ImGuiCol.Text,
-                        memoryDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
-                    ImGui.Text($"Δ Avg Memory: {memoryDiff:+0;-0;0} MB");
-                    ImGui.PopStyleColor();
-
-                    ImGui.Unindent();
-                }
+                RenderSingleResult(result, baseline);
             }
         }
         else
@@ -287,6 +192,93 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         }
 
         ImGui.End();
+    }
+
+    private void RenderResultButtons()
+    {
+        if (ImGui.Button("Clear Results"))
+            _results.Clear();
+        if (ImGui.Button("Save as Baseline"))
+            BenchmarkStorage.SaveBaseline(_results);
+        ImGui.SameLine();
+        if (ImGui.Button("Load Baseline"))
+            _baselineResults = BenchmarkStorage.LoadBaseline();
+        ImGui.SameLine();
+        if (ImGui.Button("Export to Markdown"))
+            ExportResultsToMarkdown();
+    }
+
+    private static void RenderSingleResult(BenchmarkResult result, BenchmarkResult? baseline)
+    {
+        ImGui.Text($"{result.TestName}:");
+        ImGui.Indent();
+
+        ImGui.Text("Performance:");
+        ImGui.Indent();
+        ImGui.Text($"Avg FPS: {result.AverageFPS:F2}");
+        ImGui.Text($"Min FPS: {result.MinFPS:F2}");
+        ImGui.Text($"Max FPS: {result.MaxFPS:F2}");
+        ImGui.Text($"Avg Frame Time: {result.AverageFrameTime:F2}ms");
+        ImGui.Text($"99th Percentile: {result.Percentile99:F2}ms");
+        ImGui.Text($"Total Frames: {result.TotalFrames}");
+        ImGui.Unindent();
+
+        ImGui.Text("CPU Usage:");
+        ImGui.Indent();
+        ImGui.Text($"Average: {result.AverageCpuUsage:F2}%");
+        ImGui.Text($"Min: {result.MinCpuUsage:F2}%");
+        ImGui.Text($"Max: {result.MaxCpuUsage:F2}%");
+        ImGui.Unindent();
+
+        ImGui.Text("Memory Usage:");
+        ImGui.Indent();
+        ImGui.Text($"Average: {result.AverageMemoryUsageMB} MB");
+        ImGui.Text($"Min: {result.MinMemoryUsageMB} MB");
+        ImGui.Text($"Max: {result.MaxMemoryUsageMB} MB");
+        ImGui.Unindent();
+
+        if (result.CustomMetrics.Count > 0)
+        {
+            ImGui.Text("Custom Metrics:");
+            ImGui.Indent();
+            foreach (var metric in result.CustomMetrics)
+                ImGui.Text($"{metric.Key}: {metric.Value}");
+            ImGui.Unindent();
+        }
+
+        ImGui.Unindent();
+        ImGui.Separator();
+
+        if (baseline != null)
+            RenderBaselineComparison(result, baseline);
+    }
+
+    private static void RenderBaselineComparison(BenchmarkResult result, BenchmarkResult baseline)
+    {
+        ImGui.Text("Comparison with Baseline:");
+        ImGui.Indent();
+
+        var fpsDiff = result.AverageFPS - baseline.AverageFPS;
+        ImGui.PushStyleColor(ImGuiCol.Text, fpsDiff >= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
+        ImGui.Text($"Δ Avg FPS: {fpsDiff:+0.00;-0.00;0.00}");
+        ImGui.PopStyleColor();
+
+        var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
+        ImGui.PushStyleColor(ImGuiCol.Text, frameTimeDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
+        ImGui.Text($"Δ Frame Time: {frameTimeDiff:+0.00;-0.00;0.00}ms");
+        ImGui.PopStyleColor();
+
+        var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
+        ImGui.PushStyleColor(ImGuiCol.Text, cpuDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
+        ImGui.Text($"Δ Avg CPU: {cpuDiff:+0.00;-0.00;0.00}%");
+        ImGui.PopStyleColor();
+
+        var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
+        ImGui.PushStyleColor(ImGuiCol.Text, memoryDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
+        ImGui.Text($"Δ Avg Memory: {memoryDiff:+0;-0;0} MB");
+        ImGui.PopStyleColor();
+
+        ImGui.Unindent();
     }
 
     private void RenderPerformanceMonitor()
@@ -406,6 +398,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         if (_currentTestScene == null) return;
 
         var random = new Random();
+        var textures = _testTextures.Values.ToArray();
 
         foreach (var entity in _currentTestScene.Entities)
         {
@@ -421,12 +414,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             transform.Rotation = transform.Rotation with { Z = transform.Rotation.Z + 0.01f };
 
             // Optionally, cycle textures to break batching and increase draw calls
-            if (_testTextures.Count > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+            if (textures.Length > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite) && random.NextDouble() < 0.05) // 5% chance per frame
             {
-                if (random.NextDouble() < 0.05) // 5% chance per frame
-                {
-                    sprite.Texture = _testTextures.Values.ElementAt(random.Next(_testTextures.Count));
-                }
+                sprite.Texture = textures[random.Next(textures.Length)];
             }
         }
     }
@@ -705,97 +695,17 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
             foreach (var result in _results)
             {
-                markdown.AppendLine($"## {result.TestName}");
-                markdown.AppendLine();
-
-                // Performance metrics
-                markdown.AppendLine("### Performance");
-                markdown.AppendLine("| Metric | Value |");
-                markdown.AppendLine("|--------|-------|");
-                markdown.AppendLine($"| Average FPS | {result.AverageFPS:F2} |");
-                markdown.AppendLine($"| Min FPS | {result.MinFPS:F2} |");
-                markdown.AppendLine($"| Max FPS | {result.MaxFPS:F2} |");
-                markdown.AppendLine($"| Average Frame Time | {result.AverageFrameTime:F2} ms |");
-                markdown.AppendLine($"| 99th Percentile | {result.Percentile99:F2} ms |");
-                markdown.AppendLine($"| Total Frames | {result.TotalFrames} |");
-                markdown.AppendLine($"| Test Duration | {result.TestDuration:F2}s |");
-                markdown.AppendLine();
-
-                // CPU metrics
-                markdown.AppendLine("### CPU Usage");
-                markdown.AppendLine("| Metric | Value |");
-                markdown.AppendLine("|--------|-------|");
-                markdown.AppendLine($"| Average | {result.AverageCpuUsage:F2}% |");
-                markdown.AppendLine($"| Min | {result.MinCpuUsage:F2}% |");
-                markdown.AppendLine($"| Max | {result.MaxCpuUsage:F2}% |");
-                markdown.AppendLine();
-
-                // Memory metrics
-                markdown.AppendLine("### Memory Usage");
-                markdown.AppendLine("| Metric | Value |");
-                markdown.AppendLine("|--------|-------|");
-                markdown.AppendLine($"| Average | {result.AverageMemoryUsageMB} MB |");
-                markdown.AppendLine($"| Min | {result.MinMemoryUsageMB} MB |");
-                markdown.AppendLine($"| Max | {result.MaxMemoryUsageMB} MB |");
-                markdown.AppendLine();
-
-                // Custom metrics
-                if (result.CustomMetrics.Count > 0)
-                {
-                    markdown.AppendLine("### Custom Metrics");
-                    markdown.AppendLine("| Metric | Value |");
-                    markdown.AppendLine("|--------|-------|");
-                    foreach (var metric in result.CustomMetrics)
-                    {
-                        markdown.AppendLine($"| {metric.Key} | {metric.Value} |");
-                    }
-
-                    markdown.AppendLine();
-                }
-
-                // Baseline comparison
+                AppendResultSection(markdown, result);
                 var baseline = _baselineResults.FirstOrDefault(b => b.TestName == result.TestName);
                 if (baseline != null)
-                {
-                    markdown.AppendLine("### Comparison with Baseline");
-                    markdown.AppendLine("| Metric | Delta | Status |");
-                    markdown.AppendLine("|--------|-------|--------|");
-
-                    // FPS comparison
-                    var fpsDiff = result.AverageFPS - baseline.AverageFPS;
-                    var fpsIndicator = fpsDiff >= 0 ? "🟢" : "🔴";
-                    markdown.AppendLine($"| Avg FPS | {fpsDiff:+0.00;-0.00;0.00} | {fpsIndicator} |");
-
-                    // Frame time comparison
-                    var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
-                    var frameTimeIndicator = frameTimeDiff <= 0 ? "🟢" : "🔴";
-                    markdown.AppendLine(
-                        $"| Avg Frame Time | {frameTimeDiff:+0.00;-0.00;0.00} ms | {frameTimeIndicator} |");
-
-                    // CPU comparison
-                    var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
-                    var cpuIndicator = cpuDiff <= 0 ? "🟢" : "🔴";
-                    markdown.AppendLine($"| Avg CPU | {cpuDiff:+0.00;-0.00;0.00}% | {cpuIndicator} |");
-
-                    // Memory comparison
-                    var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
-                    var memoryIndicator = memoryDiff <= 0 ? "🟢" : "🔴";
-                    markdown.AppendLine($"| Avg Memory | {memoryDiff:+0;-0;0} MB | {memoryIndicator} |");
-
-                    markdown.AppendLine();
-                }
-
+                    AppendBaselineSection(markdown, result, baseline);
                 markdown.AppendLine("---");
                 markdown.AppendLine();
             }
 
-            // Generate filename with timestamp
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             var filename = $"benchmark_results_{timestamp}.md";
-
-            // Save to file
             File.WriteAllText(filename, markdown.ToString());
-
             Console.WriteLine($"✓ Benchmark results exported to: {filename}");
             Console.WriteLine($"   File saved in: {Path.GetFullPath(filename)}");
         }
@@ -803,5 +713,67 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         {
             Console.WriteLine($"✗ Failed to export results to Markdown: {ex.Message}");
         }
+    }
+
+    private static void AppendResultSection(System.Text.StringBuilder markdown, BenchmarkResult result)
+    {
+        markdown.AppendLine($"## {result.TestName}");
+        markdown.AppendLine();
+        markdown.AppendLine("### Performance");
+        markdown.AppendLine("| Metric | Value |");
+        markdown.AppendLine("|--------|-------|");
+        markdown.AppendLine($"| Average FPS | {result.AverageFPS:F2} |");
+        markdown.AppendLine($"| Min FPS | {result.MinFPS:F2} |");
+        markdown.AppendLine($"| Max FPS | {result.MaxFPS:F2} |");
+        markdown.AppendLine($"| Average Frame Time | {result.AverageFrameTime:F2} ms |");
+        markdown.AppendLine($"| 99th Percentile | {result.Percentile99:F2} ms |");
+        markdown.AppendLine($"| Total Frames | {result.TotalFrames} |");
+        markdown.AppendLine($"| Test Duration | {result.TestDuration:F2}s |");
+        markdown.AppendLine();
+        markdown.AppendLine("### CPU Usage");
+        markdown.AppendLine("| Metric | Value |");
+        markdown.AppendLine("|--------|-------|");
+        markdown.AppendLine($"| Average | {result.AverageCpuUsage:F2}% |");
+        markdown.AppendLine($"| Min | {result.MinCpuUsage:F2}% |");
+        markdown.AppendLine($"| Max | {result.MaxCpuUsage:F2}% |");
+        markdown.AppendLine();
+        markdown.AppendLine("### Memory Usage");
+        markdown.AppendLine("| Metric | Value |");
+        markdown.AppendLine("|--------|-------|");
+        markdown.AppendLine($"| Average | {result.AverageMemoryUsageMB} MB |");
+        markdown.AppendLine($"| Min | {result.MinMemoryUsageMB} MB |");
+        markdown.AppendLine($"| Max | {result.MaxMemoryUsageMB} MB |");
+        markdown.AppendLine();
+
+        if (result.CustomMetrics.Count > 0)
+        {
+            markdown.AppendLine("### Custom Metrics");
+            markdown.AppendLine("| Metric | Value |");
+            markdown.AppendLine("|--------|-------|");
+            foreach (var metric in result.CustomMetrics)
+                markdown.AppendLine($"| {metric.Key} | {metric.Value} |");
+            markdown.AppendLine();
+        }
+    }
+
+    private static void AppendBaselineSection(System.Text.StringBuilder markdown, BenchmarkResult result, BenchmarkResult baseline)
+    {
+        markdown.AppendLine("### Comparison with Baseline");
+        markdown.AppendLine("| Metric | Delta | Status |");
+        markdown.AppendLine("|--------|-------|--------|");
+
+        var fpsDiff = result.AverageFPS - baseline.AverageFPS;
+        markdown.AppendLine($"| Avg FPS | {fpsDiff:+0.00;-0.00;0.00} | {(fpsDiff >= 0 ? "🟢" : "🔴")} |");
+
+        var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
+        markdown.AppendLine($"| Avg Frame Time | {frameTimeDiff:+0.00;-0.00;0.00} ms | {(frameTimeDiff <= 0 ? "🟢" : "🔴")} |");
+
+        var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
+        markdown.AppendLine($"| Avg CPU | {cpuDiff:+0.00;-0.00;0.00}% | {(cpuDiff <= 0 ? "🟢" : "🔴")} |");
+
+        var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
+        markdown.AppendLine($"| Avg Memory | {memoryDiff:+0;-0;0} MB | {(memoryDiff <= 0 ? "🟢" : "🔴")} |");
+
+        markdown.AppendLine();
     }
 }

@@ -26,8 +26,7 @@ public class Sandbox3DLayer(
     private float _fpsTimer;
     private int _fpsFrames;
 
-    private const string ModelPath = "assets/models/BistroExterior.fbx";
-    //private const string ModelPath = "assets/models/New_Sponza_001.fbx";
+    private const string ModelPath = "assets/models/BistroInterior_Wine.fbx";
 
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -38,12 +37,12 @@ public class Sandbox3DLayer(
         if (!File.Exists(ModelPath))
         {
             Logger.Error("Model not found at {Path}", ModelPath);
+            _scene = null;
             return;
         }
 
-        Logger.Information("Loading model from {Path}...", ModelPath);
         var result = modelSceneImporter.Import(_scene, ModelPath, addDefaultLighting: true, addCamera: true);
-        Logger.Information("Scene loaded: {MeshCount} mesh entities", result.MeshEntities.Count);
+        Logger.Information("Scene loaded from {Path}: {MeshCount} mesh entities", ModelPath, result.MeshEntities.Count);
 
         _cameraEntity = result.CameraEntity;
 
@@ -73,9 +72,9 @@ public class Sandbox3DLayer(
         _scene?.Dispose();
     }
 
-    public void OnUpdate(TimeSpan deltaTime)
+    public void OnUpdate(TimeSpan timeSpan)
     {
-        _cameraController?.OnUpdate(deltaTime);
+        _cameraController?.OnUpdate(timeSpan);
 
         if (_cameraEntity != null && _cameraController != null)
         {
@@ -84,7 +83,7 @@ public class Sandbox3DLayer(
             transform.Rotation = new Vector3(_cameraController.Pitch, _cameraController.Yaw, 0);
         }
 
-        _fpsTimer += (float)deltaTime.TotalSeconds;
+        _fpsTimer += (float)timeSpan.TotalSeconds;
         _fpsFrames++;
         if (_fpsTimer >= 0.5f)
         {
@@ -96,12 +95,12 @@ public class Sandbox3DLayer(
         graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
         graphics3D.Clear();
 
-        _scene?.OnUpdateRuntime(deltaTime);
+        _scene?.OnUpdateRuntime(timeSpan);
     }
 
-    public void HandleInputEvent(InputEvent inputEvent)
+    public void HandleInputEvent(InputEvent windowEvent)
     {
-        _cameraController?.OnEvent(inputEvent);
+        _cameraController?.OnEvent(windowEvent);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)

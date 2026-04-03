@@ -6,20 +6,16 @@ namespace Engine.Scene;
 
 internal sealed class SceneSystemRegistry(
     PrimaryCameraSystem primaryCameraSystem,
-    SpriteRenderingSystem spriteRenderingSystem,
-    LightingSystem lightingSystem,
-    ModelRenderingSystem modelRenderingSystem,
+    RenderingSystemsGroup renderingSystems,
     ScriptUpdateSystem scriptUpdateSystem,
-    SubTextureRenderingSystem subTextureRenderingSystem,
-    PhysicsDebugRenderSystem physicsDebugRenderSystem,
     AudioSystem audioSystem,
     AnimationSystem animationSystem)
     : ISceneSystemRegistry
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemRegistry>();
-    
+
     private readonly Lock _lock = new();
-    
+
     public IReadOnlyList<ISystem> PopulateSystemManager(ISystemManager systemManager)
     {
         lock (_lock)
@@ -28,11 +24,11 @@ internal sealed class SceneSystemRegistry(
             {
                 scriptUpdateSystem,
                 primaryCameraSystem,
-                spriteRenderingSystem,
-                subTextureRenderingSystem,
-                lightingSystem,
-                modelRenderingSystem,
-                physicsDebugRenderSystem,
+                renderingSystems.SpriteRenderingSystem,
+                renderingSystems.SubTextureRenderingSystem,
+                renderingSystems.LightingSystem,
+                renderingSystems.ModelRenderingSystem,
+                renderingSystems.PhysicsDebugRenderSystem,
                 audioSystem,
                 animationSystem
             };

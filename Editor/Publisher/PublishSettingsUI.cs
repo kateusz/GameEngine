@@ -117,7 +117,7 @@ public class PublishSettingsUI(
 
             if (ButtonDrawer.DrawColoredButton("Publish", MessageType.Success, width: buttonWidth))
             {
-                StartPublish();
+                _ = StartPublish();
             }
 
             ImGui.SameLine();
@@ -143,67 +143,19 @@ public class PublishSettingsUI(
         if (ModalDrawer.BeginCenteredModal("Publishing Game...", ref isOpen, ImGuiWindowFlags.NoResize))
         {
             ImGui.Spacing();
-
-            // Current step
             ImGui.TextWrapped(_publishProgress.CurrentStep);
             ImGui.Spacing();
-
-            // Progress bar
             ImGui.ProgressBar(_publishProgress.Progress, new System.Numerics.Vector2(-1, 0));
             ImGui.Spacing();
-
             LayoutDrawer.DrawSeparatorWithSpacing();
 
-            // Build output (scrollable)
-            ImGui.Text("Build Output:");
-            ImGui.BeginChild("BuildOutput", new System.Numerics.Vector2(0, 250), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar);
-
-            foreach (var line in _publishProgress.BuildOutput)
-            {
-                if (line.StartsWith("ERROR:"))
-                {
-                    TextDrawer.DrawErrorText(line);
-                }
-                else
-                {
-                    ImGui.TextWrapped(line);
-                }
-            }
-
-            // Auto-scroll to bottom
-            if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
-                ImGui.SetScrollHereY(1.0f);
-
-            ImGui.EndChild();
+            RenderBuildOutput(_publishProgress.BuildOutput);
 
             LayoutDrawer.DrawSeparatorWithSpacing();
-
-            // Buttons - centered
-            var buttonWidth = 100.0f;
-            var availWidth = ImGui.GetContentRegionAvail().X;
-            ImGui.SetCursorPosX((availWidth - buttonWidth) / 2);
-
-            if (_publishProgress.IsComplete || _publishProgress.HasError)
-            {
-                if (ButtonDrawer.DrawColoredButton("Close", MessageType.Success, width: buttonWidth))
-                {
-                    _publishProgress = null;
-                    _publishCts?.Dispose();
-                    _publishCts = null;
-                }
-            }
-            else
-            {
-                if (ButtonDrawer.DrawColoredButton("Cancel", MessageType.Warning, width: buttonWidth))
-                {
-                    _publishCts?.Cancel();
-                }
-            }
-
+            RenderProgressButtons(_publishProgress.IsComplete, _publishProgress.HasError);
             ModalDrawer.EndModal();
         }
 
-        // Handle modal close via X button
         if (!isOpen)
         {
             _publishProgress = null;
@@ -212,7 +164,45 @@ public class PublishSettingsUI(
         }
     }
 
-    private async void StartPublish()
+    private static void RenderBuildOutput(IEnumerable<string> lines)
+    {
+        ImGui.Text("Build Output:");
+        ImGui.BeginChild("BuildOutput", new System.Numerics.Vector2(0, 250), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar);
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("ERROR:"))
+                TextDrawer.DrawErrorText(line);
+            else
+                ImGui.TextWrapped(line);
+        }
+        if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
+            ImGui.SetScrollHereY(1.0f);
+        ImGui.EndChild();
+    }
+
+    private void RenderProgressButtons(bool isComplete, bool hasError)
+    {
+        const float buttonWidth = 100.0f;
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        ImGui.SetCursorPosX((availWidth - buttonWidth) / 2);
+
+        if (isComplete || hasError)
+        {
+            if (ButtonDrawer.DrawColoredButton("Close", MessageType.Success, width: buttonWidth))
+            {
+                _publishProgress = null;
+                _publishCts?.Dispose();
+                _publishCts = null;
+            }
+        }
+        else
+        {
+            if (ButtonDrawer.DrawColoredButton("Cancel", MessageType.Warning, width: buttonWidth))
+                _publishCts?.Cancel();
+        }
+    }
+
+    private async Task StartPublish()
     {
         if (projectManager.CurrentProjectDirectory == null)
         {
@@ -234,11 +224,7 @@ public class PublishSettingsUI(
         // Create publish settings
         var settings = new PublishSettings
         {
-            OutputPath = string.IsNullOrWhiteSpace(_outputPath)
-                ? Path.Combine(projectManager.CurrentProjectDirectory, "Builds")
-                : Path.IsPathRooted(_outputPath)
-                    ? _outputPath
-                    : Path.Combine(projectManager.CurrentProjectDirectory, _outputPath),
+            OutputPath = ResolveOutputPath(projectManager.CurrentProjectDirectory),
             RuntimeIdentifier = _selectedPlatform,
             SelfContained = _selfContained,
             SingleFile = _singleFile,
@@ -287,5 +273,14 @@ public class PublishSettingsUI(
             _publishProgress.HasError = true;
             _publishProgress.IsComplete = true;
         }
+    }
+
+    private string ResolveOutputPath(string projectDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(_outputPath))
+            return Path.Combine(projectDirectory, "Builds");
+        if (Path.IsPathRooted(_outputPath))
+            return _outputPath;
+        return Path.Combine(projectDirectory, _outputPath);
     }
 }

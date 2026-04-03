@@ -309,19 +309,7 @@ internal sealed class ComponentDeserializer(
             {
                 var scriptInstance = result.Value;
                 if (componentObj["Fields"] is JsonObject fieldsObj)
-                {
-                    foreach (var field in fieldsObj)
-                    {
-                        if (field.Value == null) continue;
-                        var exposed = scriptInstance.GetExposedFields()
-                            .FirstOrDefault(f => f.Name == field.Key);
-                        if (exposed.Name != null)
-                        {
-                            var value = field.Value.Deserialize(exposed.Type, _options);
-                            scriptInstance.SetFieldValue(field.Key, value);
-                        }
-                    }
-                }
+                    DeserializeScriptFields(scriptInstance, fieldsObj);
 
                 component.ScriptableEntity = scriptInstance;
             }
@@ -334,6 +322,21 @@ internal sealed class ComponentDeserializer(
         }
 
         entity.AddComponent(component);
+    }
+
+    private void DeserializeScriptFields(ScriptableEntity scriptInstance, JsonObject fieldsObj)
+    {
+        foreach (var field in fieldsObj)
+        {
+            if (field.Value == null) continue;
+            var exposed = scriptInstance.GetExposedFields()
+                .FirstOrDefault(f => f.Name == field.Key);
+            if (exposed.Name != null)
+            {
+                var value = field.Value.Deserialize(exposed.Type, _options);
+                scriptInstance.SetFieldValue(field.Key, value);
+            }
+        }
     }
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent

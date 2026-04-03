@@ -57,13 +57,13 @@ public class AnimationComponent : IComponent
     /// Frame timing accumulator (0..frameDuration).
     /// </summary>
     [JsonIgnore]
-    public float FrameTimer = 0.0f;
+    public float FrameTimer { get; set; } = 0.0f;
 
     /// <summary>
     /// Previous frame index (for event detection).
     /// </summary>
     [JsonIgnore]
-    public int PreviousFrameIndex = -1;
+    public int PreviousFrameIndex { get; set; } = -1;
 
     /// <summary>
     /// Whether to display debug overlay in viewport.

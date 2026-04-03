@@ -23,6 +23,6 @@ void main()
     v_TexIndex = a_TexIndex;
     v_TilingFactor = a_TilingFactor;
     v_EntityID = a_EntityID;
-    
+
     gl_Position = vec4(a_Position, 1.0) * u_ViewProjection;
 }

@@ -102,10 +102,7 @@ internal sealed class OpenALAudioClip : IAudioClip, IDisposable
             Channels = audioData.Channels;
             Format = audioData.Format;
 
-            Logger.Debug("Loaded audio data: {Path}", Path);
-            Logger.Debug("  - Sample Rate: {SampleRate} Hz", SampleRate);
-            Logger.Debug("  - Channels: {Channels}", Channels);
-            Logger.Debug("  - Size: {DataSize} bytes", DataSize);
+            Logger.Debug("Loaded audio data: {Path} ({SampleRate} Hz, {Channels} ch, {DataSize} bytes)", Path, SampleRate, Channels, DataSize);
             Logger.Debug("  - Format: {Format}", Format);
         }
         catch (Exception ex)

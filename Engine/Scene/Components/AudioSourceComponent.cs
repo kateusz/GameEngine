@@ -77,8 +77,7 @@ public class AudioSourceComponent : IComponent
     }
 
     public AudioSourceComponent(IAudioClip? audioClip, float volume = 1.0f, float pitch = 1.0f,
-        bool loop = false, bool playOnAwake = false, bool is3D = true,
-        float minDistance = 1.0f, float maxDistance = 100.0f)
+        bool loop = false, bool playOnAwake = false, bool is3D = true)
     {
         AudioClip = audioClip;
         AudioClipPath = audioClip?.Path;
@@ -87,15 +86,15 @@ public class AudioSourceComponent : IComponent
         Loop = loop;
         PlayOnAwake = playOnAwake;
         Is3D = is3D;
-        MinDistance = minDistance;
-        MaxDistance = maxDistance;
     }
 
     public IComponent Clone()
     {
-        return new AudioSourceComponent(AudioClip, Volume, Pitch, Loop, PlayOnAwake, Is3D, MinDistance, MaxDistance)
+        return new AudioSourceComponent(AudioClip, Volume, Pitch, Loop, PlayOnAwake, Is3D)
         {
             AudioClipPath = AudioClipPath,
+            MinDistance = MinDistance,
+            MaxDistance = MaxDistance,
             Effects = Effects.Select(e => new AudioEffectConfig
             {
                 Type = e.Type,

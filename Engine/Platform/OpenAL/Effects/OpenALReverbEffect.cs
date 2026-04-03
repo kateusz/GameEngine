@@ -34,52 +34,47 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
 
     private delegate void AlAuxiliaryEffectSlotiDelegate(uint slot, int param, int value);
 
-    private readonly AL _al;
-    private readonly AlGenEffectsDelegate _genEffects;
     private readonly AlDeleteEffectsDelegate _deleteEffects;
-    private readonly AlEffectiDelegate _effecti;
     private readonly AlEffectfDelegate _effectf;
-    private readonly AlGenAuxiliaryEffectSlotsDelegate _genAuxSlots;
     private readonly AlDeleteAuxiliaryEffectSlotsDelegate _deleteAuxSlots;
     private readonly AlAuxiliaryEffectSlotiDelegate _auxSloti;
 
     private uint _effectId;
     private uint _slotId;
     private bool _disposed;
-    private int _decayTimeParam;
+    private readonly int _decayTimeParam;
 
     public AudioEffectType Type => AudioEffectType.Reverb;
     public uint SlotId => _slotId;
 
     public OpenALReverbEffect(AL al)
     {
-        _al = al;
-        _genEffects = GetProc<AlGenEffectsDelegate>(al, "alGenEffects");
+        var genEffects = GetProc<AlGenEffectsDelegate>(al, "alGenEffects");
         _deleteEffects = GetProc<AlDeleteEffectsDelegate>(al, "alDeleteEffects");
-        _effecti = GetProc<AlEffectiDelegate>(al, "alEffecti");
+        var effecti = GetProc<AlEffectiDelegate>(al, "alEffecti");
         _effectf = GetProc<AlEffectfDelegate>(al, "alEffectf");
-        _genAuxSlots = GetProc<AlGenAuxiliaryEffectSlotsDelegate>(al, "alGenAuxiliaryEffectSlots");
+        var genAuxSlots = GetProc<AlGenAuxiliaryEffectSlotsDelegate>(al, "alGenAuxiliaryEffectSlots");
         _deleteAuxSlots = GetProc<AlDeleteAuxiliaryEffectSlotsDelegate>(al, "alDeleteAuxiliaryEffectSlots");
         _auxSloti = GetProc<AlAuxiliaryEffectSlotiDelegate>(al, "alAuxiliaryEffectSloti");
 
         try
         {
             // Clear any stale OpenAL errors before EFX operations
-            _al.GetError();
+            al.GetError();
 
             fixed (uint* idPtr = &_effectId)
-                _genEffects(1, idPtr);
+                genEffects(1, idPtr);
 
-            var genErr = _al.GetError();
+            var genErr = al.GetError();
             if (genErr != AudioError.NoError)
                 throw new InvalidOperationException($"alGenEffects failed: {genErr}");
 
             // Try standard reverb first; fall back to EAX reverb (required on macOS Apple OpenAL)
-            _effecti(_effectId, AlEffectParamType, AlEffectTypeReverb);
-            if (_al.GetError() != AudioError.NoError)
+            effecti(_effectId, AlEffectParamType, AlEffectTypeReverb);
+            if (al.GetError() != AudioError.NoError)
             {
-                _effecti(_effectId, AlEffectParamType, AlEffectTypeEaxReverb);
-                var fallbackErr = _al.GetError();
+                effecti(_effectId, AlEffectParamType, AlEffectTypeEaxReverb);
+                var fallbackErr = al.GetError();
                 if (fallbackErr != AudioError.NoError)
                     throw new InvalidOperationException($"Neither AL_EFFECT_REVERB nor AL_EFFECT_EAXREVERB supported: {fallbackErr}");
                 _decayTimeParam = AlEffectParamEaxReverbDecayTime;
@@ -91,9 +86,9 @@ internal sealed unsafe class OpenALReverbEffect : IAudioEffect
             }
 
             fixed (uint* slotPtr = &_slotId)
-                _genAuxSlots(1, slotPtr);
+                genAuxSlots(1, slotPtr);
 
-            var slotErr = _al.GetError();
+            var slotErr = al.GetError();
             if (slotErr != AudioError.NoError)
                 throw new InvalidOperationException($"alGenAuxiliaryEffectSlots failed: {slotErr}");
 

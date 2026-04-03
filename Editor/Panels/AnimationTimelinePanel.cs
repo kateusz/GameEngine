@@ -2,6 +2,8 @@ using System.Numerics;
 using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Animation;
+using Engine.Renderer.Textures;
 using Engine.Scene.Components;
 using ImGuiNET;
 
@@ -36,8 +38,6 @@ public class AnimationTimelinePanel : IAnimationTimelinePanel
     {
         if (!_isOpen)
             return;
-
-        var wasOpen = _isOpen;
 
         // Dock to Viewport on first open
         if (!_hasBeenDockedOnce && viewportDockId != 0)
@@ -92,7 +92,7 @@ public class AnimationTimelinePanel : IAnimationTimelinePanel
         ImGui.End();
 
         // If window was just closed via X button, reset state
-        if (wasOpen && !_isOpen)
+        if (!_isOpen)
         {
             ResetState();
         }
@@ -207,74 +207,7 @@ public class AnimationTimelinePanel : IAnimationTimelinePanel
         for (var i = 0; i < clip.Frames.Length; i++)
         {
             var framePos = new Vector2(cursorPos.X + i * (FrameBoxWidth + EditorUIConstants.LargePadding * 2), cursorPos.Y + 30);
-            var frameSize = new Vector2(FrameBoxWidth, FrameBoxHeight);
-            var frame = clip.Frames[i];
-
-            // Frame box background
-            var frameColor = i == _selectedFrameIndex
-                ? ImGui.GetColorU32(new Vector4(0.3f, 0.5f, 0.8f, 1.0f))
-                : ImGui.GetColorU32(new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
-
-            drawList.AddRectFilled(framePos, framePos + frameSize, frameColor);
-            drawList.AddRect(framePos, framePos + frameSize,
-                ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f)));
-
-            // Render frame thumbnail
-            if (atlas != null)
-            {
-                var texturePointer = new IntPtr(atlas.GetRendererId());
-
-                // Swap Y coordinates to fix upside-down rendering
-                var uvMin = new Vector2(frame.TexCoords[0].X, frame.TexCoords[2].Y); // Bottom-left X, Top-right Y
-                var uvMax = new Vector2(frame.TexCoords[2].X, frame.TexCoords[0].Y); // Top-right X, Bottom-left Y
-
-                // Calculate thumbnail size maintaining aspect ratio (with padding for frame number)
-
-                var maxSize = Math.Min(FrameBoxWidth - 4, FrameBoxHeight);
-                var aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
-                Vector2 thumbnailSize;
-
-                thumbnailSize = aspectRatio > 1.0f
-                    ? new Vector2(maxSize, maxSize / aspectRatio)
-                    : new Vector2(maxSize * aspectRatio, maxSize);
-
-                // Center the thumbnail in the frame box (below frame number)
-                var thumbnailPos = framePos + new Vector2(
-                    (FrameBoxWidth - thumbnailSize.X) / 2,
-                    (FrameBoxHeight - thumbnailSize.Y) / 2
-                );
-
-                ImGui.SetCursorScreenPos(thumbnailPos);
-                ImGui.Image(texturePointer, thumbnailSize, uvMin, uvMax);
-            }
-
-            // Event markers
-            if (frame.Events.Length > 0)
-            {
-                var eventPos = new Vector2(framePos.X + FrameBoxWidth / 2 - 10, framePos.Y - 25);
-                drawList.AddText(eventPos, ImGui.GetColorU32(EditorUIConstants.WarningColor), "[E]");
-            }
-
-            // Clickable area (overlay on top of everything)
-            ImGui.SetCursorScreenPos(framePos);
-            ImGui.InvisibleButton($"Frame_{i}", frameSize);
-
-            if (ImGui.IsItemClicked())
-            {
-                _selectedFrameIndex = i;
-                _component.CurrentFrameIndex = i;
-            }
-
-            // Tooltip
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text($"Frame {i}");
-                ImGui.Text($"Rect: [{frame.Rect.X}, {frame.Rect.Y}, {frame.Rect.Width}, {frame.Rect.Height}]");
-                if (frame.Events.Length > 0)
-                    ImGui.Text($"Events: {string.Join(", ", frame.Events)}");
-                ImGui.EndTooltip();
-            }
+            RenderFrame(i, clip.Frames[i], framePos, drawList, atlas);
         }
 
         // Playhead indicator
@@ -289,6 +222,61 @@ public class AnimationTimelinePanel : IAnimationTimelinePanel
             ImGui.GetColorU32(EditorUIConstants.ErrorColor));
 
         ImGui.EndChild();
+    }
+
+    private void RenderFrame(int index, AnimationFrame frame, Vector2 framePos, ImDrawListPtr drawList, Texture2D? atlas)
+    {
+        var frameSize = new Vector2(FrameBoxWidth, FrameBoxHeight);
+
+        var frameColor = index == _selectedFrameIndex
+            ? ImGui.GetColorU32(new Vector4(0.3f, 0.5f, 0.8f, 1.0f))
+            : ImGui.GetColorU32(new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
+
+        drawList.AddRectFilled(framePos, framePos + frameSize, frameColor);
+        drawList.AddRect(framePos, framePos + frameSize,
+            ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f)));
+
+        if (atlas != null)
+        {
+            var texturePointer = new IntPtr(atlas.GetRendererId());
+            var uvMin = new Vector2(frame.TexCoords[0].X, frame.TexCoords[2].Y);
+            var uvMax = new Vector2(frame.TexCoords[2].X, frame.TexCoords[0].Y);
+            var maxSize = Math.Min(FrameBoxWidth - 4, FrameBoxHeight);
+            var aspectRatio = (float)frame.Rect.Width / frame.Rect.Height;
+            var thumbnailSize = aspectRatio > 1.0f
+                ? new Vector2(maxSize, maxSize / aspectRatio)
+                : new Vector2(maxSize * aspectRatio, maxSize);
+            var thumbnailPos = framePos + new Vector2(
+                (FrameBoxWidth - thumbnailSize.X) / 2,
+                (FrameBoxHeight - thumbnailSize.Y) / 2);
+            ImGui.SetCursorScreenPos(thumbnailPos);
+            ImGui.Image(texturePointer, thumbnailSize, uvMin, uvMax);
+        }
+
+        if (frame.Events.Length > 0)
+        {
+            var eventPos = new Vector2(framePos.X + FrameBoxWidth / 2 - 10, framePos.Y - 25);
+            drawList.AddText(eventPos, ImGui.GetColorU32(EditorUIConstants.WarningColor), "[E]");
+        }
+
+        ImGui.SetCursorScreenPos(framePos);
+        ImGui.InvisibleButton($"Frame_{index}", frameSize);
+
+        if (ImGui.IsItemClicked())
+        {
+            _selectedFrameIndex = index;
+            _component!.CurrentFrameIndex = index;
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text($"Frame {index}");
+            ImGui.Text($"Rect: [{frame.Rect.X}, {frame.Rect.Y}, {frame.Rect.Width}, {frame.Rect.Height}]");
+            if (frame.Events.Length > 0)
+                ImGui.Text($"Events: {string.Join(", ", frame.Events)}");
+            ImGui.EndTooltip();
+        }
     }
 
     private void DrawFrameDetails()

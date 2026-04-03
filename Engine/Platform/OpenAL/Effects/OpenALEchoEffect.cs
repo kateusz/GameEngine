@@ -30,11 +30,8 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
 
     private delegate void AlAuxiliaryEffectSlotiDelegate(uint slot, int param, int value);
 
-    private readonly AlGenEffectsDelegate _genEffects;
     private readonly AlDeleteEffectsDelegate _deleteEffects;
-    private readonly AlEffectiDelegate _effecti;
     private readonly AlEffectfDelegate _effectf;
-    private readonly AlGenAuxiliaryEffectSlotsDelegate _genAuxSlots;
     private readonly AlDeleteAuxiliaryEffectSlotsDelegate _deleteAuxSlots;
     private readonly AlAuxiliaryEffectSlotiDelegate _auxSloti;
 
@@ -47,23 +44,23 @@ internal sealed unsafe class OpenALEchoEffect : IAudioEffect
 
     public OpenALEchoEffect(AL al)
     {
-        _genEffects = GetProc<AlGenEffectsDelegate>(al, "alGenEffects");
+        var genEffects = GetProc<AlGenEffectsDelegate>(al, "alGenEffects");
         _deleteEffects = GetProc<AlDeleteEffectsDelegate>(al, "alDeleteEffects");
-        _effecti = GetProc<AlEffectiDelegate>(al, "alEffecti");
+        var effecti = GetProc<AlEffectiDelegate>(al, "alEffecti");
         _effectf = GetProc<AlEffectfDelegate>(al, "alEffectf");
-        _genAuxSlots = GetProc<AlGenAuxiliaryEffectSlotsDelegate>(al, "alGenAuxiliaryEffectSlots");
+        var genAuxSlots = GetProc<AlGenAuxiliaryEffectSlotsDelegate>(al, "alGenAuxiliaryEffectSlots");
         _deleteAuxSlots = GetProc<AlDeleteAuxiliaryEffectSlotsDelegate>(al, "alDeleteAuxiliaryEffectSlots");
         _auxSloti = GetProc<AlAuxiliaryEffectSlotiDelegate>(al, "alAuxiliaryEffectSloti");
 
         try
         {
             fixed (uint* idPtr = &_effectId)
-                _genEffects(1, idPtr);
+                genEffects(1, idPtr);
 
-            _effecti(_effectId, AlEffectParamType, AlEffectTypeEcho);
+            effecti(_effectId, AlEffectParamType, AlEffectTypeEcho);
 
             fixed (uint* slotPtr = &_slotId)
-                _genAuxSlots(1, slotPtr);
+                genAuxSlots(1, slotPtr);
 
             _auxSloti(_slotId, AlEffectSlotParamEffect, (int)_effectId);
 

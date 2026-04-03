@@ -8,12 +8,12 @@ public struct Vector2Int
     /// <summary>
     /// X component of the vector.
     /// </summary>
-    public int X;
+    public int X { get; set; }
 
     /// <summary>
     /// Y component of the vector.
     /// </summary>
-    public int Y;
+    public int Y { get; set; }
 
     /// <summary>
     /// Creates a new Vector2Int with the specified components.

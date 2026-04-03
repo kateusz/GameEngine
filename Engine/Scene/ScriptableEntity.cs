@@ -12,6 +12,7 @@ namespace Engine.Scene;
 /// </summary>
 public abstract class ScriptableEntity
 {
+    private const string EntityNotSetMessage = "Entity is not set!";
     private ISceneContext? _sceneContext;
 
     #region Reflection Cache
@@ -135,35 +136,35 @@ public abstract class ScriptableEntity
     protected T GetComponent<T>() where T : IComponent
     {
         if (Entity == null)
-            throw new InvalidOperationException("Entity is not set!");
+            throw new InvalidOperationException(EntityNotSetMessage);
         return Entity.GetComponent<T>();
     }
 
     protected bool HasComponent<T>() where T : IComponent
     {
         if (Entity == null)
-            throw new InvalidOperationException("Entity is not set!");
+            throw new InvalidOperationException(EntityNotSetMessage);
         return Entity.HasComponent<T>();
     }
 
     protected T AddComponent<T>() where T : IComponent, new()
     {
         if (Entity == null)
-            throw new InvalidOperationException("Entity is not set!");
+            throw new InvalidOperationException(EntityNotSetMessage);
         return Entity.AddComponent<T>();
     }
 
     protected void AddComponent<T>(T component) where T : IComponent
     {
         if (Entity == null)
-            throw new InvalidOperationException("Entity is not set!");
+            throw new InvalidOperationException(EntityNotSetMessage);
         Entity.AddComponent<T>(component);
     }
 
     protected void RemoveComponent<T>() where T : IComponent
     {
         if (Entity == null)
-            throw new InvalidOperationException("Entity is not set!");
+            throw new InvalidOperationException(EntityNotSetMessage);
         Entity.RemoveComponent<T>();
     }
 

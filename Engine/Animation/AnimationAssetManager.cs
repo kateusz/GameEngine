@@ -151,9 +151,8 @@ internal sealed class AnimationAssetManager(ITextureFactory textureFactory, Seri
     public long GetTotalMemoryUsage()
     {
         long total = 0;
-        foreach (var entry in _cache.Values)
+        foreach (var asset in _cache.Values.Select(entry => entry.Asset))
         {
-            var asset = entry.Asset;
             // Texture memory: width × height × 4 bytes (RGBA)
             total += asset.Atlas.Width * asset.Atlas.Height * 4;
             // Add metadata overhead (approximate)

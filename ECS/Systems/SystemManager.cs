@@ -115,5 +115,6 @@ public class SystemManager : ISystemManager
 
         _systems.Clear();
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

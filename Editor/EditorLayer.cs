@@ -33,33 +33,21 @@ namespace Editor;
 public class EditorLayer(
     IProjectManager projectManager,
     IEditorPreferences editorPreferences,
-    IConsolePanel consolePanel,
     EditorSettingsUI editorSettingsUI,
-    IPropertiesPanel propertiesPanel,
-    ISceneHierarchyPanel sceneHierarchyPanel,
     ISceneContext sceneContext,
     ISceneManager sceneManager,
-    IContentBrowserPanel contentBrowserPanel,
-    SceneToolbar sceneToolbar,
     NewProjectPopup newProjectPopup,
     SceneSettingsPopup sceneSettingsPopup,
     IGraphics2D graphics2D,
-    RendererStatsPanel rendererStatsPanel,
-    IAnimationTimelinePanel animationTimeline,
-    RecentProjectsPanel recentProjectsPanel,
     ShortcutManager shortcutManager,
-    KeyboardShortcutsPanel keyboardShortcutsPanel,
     IScriptEngine scriptEngine,
     ScriptComponentEditor scriptComponentEditor,
     DebugSettings debugSettings,
-    PerformanceMonitorPanel performanceMonitor,
-    ViewportToolManager viewportToolManager,
-    ViewportRuler viewportRuler,
-    ViewportGrid viewportGrid,
-    ViewportGrid3D viewportGrid3D,
     IFrameBufferFactory frameBufferFactory,
     PublishSettingsUI publishSettingsUI,
-    IContentScaleProvider contentScaleProvider) : ILayer
+    IContentScaleProvider contentScaleProvider,
+    EditorPanels panels,
+    ViewportComponents viewport) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLayer>();
 
@@ -88,16 +76,16 @@ public class EditorLayer(
     {
         Logger.Debug("EditorLayer OnAttach.");
 
-        _sceneChangedHandler = newScene => sceneHierarchyPanel.SetScene(newScene);
+        _sceneChangedHandler = newScene => panels.SceneHierarchyPanel.SetScene(newScene);
         _playSceneHandler = () => sceneManager.Play();
         _stopSceneHandler = () => sceneManager.Stop();
         _restartSceneHandler = () => sceneManager.Restart();
         _entitySelectionHandler = entity => _selectedEntity = entity;
 
         sceneContext.SceneChanged += _sceneChangedHandler;
-        sceneToolbar.OnPlayScene += _playSceneHandler;
-        sceneToolbar.OnStopScene += _stopSceneHandler;
-        sceneToolbar.OnRestartScene += _restartSceneHandler;
+        viewport.SceneToolbar.OnPlayScene += _playSceneHandler;
+        viewport.SceneToolbar.OnStopScene += _stopSceneHandler;
+        viewport.SceneToolbar.OnRestartScene += _restartSceneHandler;
 
         _editorCamera = new EditorCamera();
         _frameBuffer = frameBufferFactory.Create();
@@ -105,12 +93,12 @@ public class EditorLayer(
 
         sceneManager.New("");
 
-        sceneHierarchyPanel.EntitySelected = EntitySelected;
+        panels.SceneHierarchyPanel.EntitySelected = EntitySelected;
         // Viewport selection only updates selection state - don't move camera since entity is already visible
-        viewportToolManager.SubscribeToEntitySelection(_entitySelectionHandler);
+        viewport.ViewportToolManager.SubscribeToEntitySelection(_entitySelectionHandler);
 
-        contentBrowserPanel.Init();
-        sceneToolbar.Init();
+        panels.ContentBrowserPanel.Init();
+        viewport.SceneToolbar.Init();
 
         // Apply settings from preferences
         ApplyEditorSettings();
@@ -146,31 +134,31 @@ public class EditorLayer(
         // Editor mode shortcuts (Godot-style)
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Q, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Select,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Select,
             "Select tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.W, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Move,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Move,
             "Move tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.R, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Scale,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Scale,
             "Scale tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.E, KeyModifiers.ShiftOnly,
-            () => sceneToolbar.CurrentMode = EditorMode.Ruler,
+            () => viewport.SceneToolbar.CurrentMode = EditorMode.Ruler,
             "Ruler tool", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Escape, KeyModifiers.None,
             () =>
             {
-                if (sceneToolbar.CurrentMode == EditorMode.Ruler)
+                if (viewport.SceneToolbar.CurrentMode == EditorMode.Ruler)
                 {
-                    var rulerTool = viewportToolManager.GetTool<RulerTool>();
+                    var rulerTool = viewport.ViewportToolManager.GetTool<RulerTool>();
                     rulerTool?.ClearMeasurement();
                 }
             },
@@ -217,23 +205,23 @@ public class EditorLayer(
 
         // Unsubscribe event handlers to allow GC of this layer
         sceneContext.SceneChanged -= _sceneChangedHandler;
-        sceneToolbar.OnPlayScene -= _playSceneHandler;
-        sceneToolbar.OnStopScene -= _stopSceneHandler;
-        sceneToolbar.OnRestartScene -= _restartSceneHandler;
-        viewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
+        viewport.SceneToolbar.OnPlayScene -= _playSceneHandler;
+        viewport.SceneToolbar.OnStopScene -= _stopSceneHandler;
+        viewport.SceneToolbar.OnRestartScene -= _restartSceneHandler;
+        viewport.ViewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
 
         // Dispose current scene to cleanup resources
         sceneContext.ActiveScene?.Dispose();
 
         _frameBuffer?.Dispose();
-        consolePanel?.Dispose();
+        panels.ConsolePanel?.Dispose();
         Log.CloseAndFlush();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
     {
-        performanceMonitor.Update(timeSpan);
-        animationTimeline.Update((float)timeSpan.TotalSeconds);
+        panels.PerformanceMonitor.Update(timeSpan);
+        panels.AnimationTimeline.Update((float)timeSpan.TotalSeconds);
 
         // Resize (logical viewport → physical framebuffer)
         var spec = _frameBuffer.GetSpecification();
@@ -269,10 +257,10 @@ public class EditorLayer(
             }
         }
 
-        if (sceneContext.State == SceneState.Edit && sceneToolbar.ShowGrid3D)
+        if (sceneContext.State == SceneState.Edit && viewport.SceneToolbar.ShowGrid3D)
         {
             graphics2D.BeginScene(_editorCamera);
-            viewportGrid3D.Render(graphics2D, _editorCamera);
+            viewport.ViewportGrid3D.Render(graphics2D, _editorCamera);
             graphics2D.EndScene();
         }
 
@@ -297,7 +285,7 @@ public class EditorLayer(
         _frameBuffer.Unbind();
     }
 
-    public void HandleWindowEvent(WindowEvent @event)
+    public void HandleWindowEvent(WindowEvent windowEvent)
     {
     }
 
@@ -392,262 +380,241 @@ public class EditorLayer(
     private void SubmitUI()
     {
         var dockspaceOpen = true;
-        const bool fullscreenPersistant = true;
-        const ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags.None;
         const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking;
 
-        if (fullscreenPersistant)
-        {
-            var viewPort = ImGui.GetMainViewport();
-            ImGui.SetNextWindowPos(viewPort.Pos);
-            ImGui.SetNextWindowSize(viewPort.Size);
-            ImGui.SetNextWindowViewport(viewPort.ID);
-        }
+        var viewPort = ImGui.GetMainViewport();
+        ImGui.SetNextWindowPos(viewPort.Pos);
+        ImGui.SetNextWindowSize(viewPort.Size);
+        ImGui.SetNextWindowViewport(viewPort.ID);
 
         ImGui.Begin("DockSpace Demo", ref dockspaceOpen, windowFlags);
         {
             var dockspaceId = ImGui.GetID("MyDockSpace");
-            ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), dockspaceFlags);
+            ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), ImGuiDockNodeFlags.None);
 
-            if (ImGui.BeginMenuBar())
-            {
-                if (ImGui.BeginMenu("File"))
-                {
-                    if (ImGui.MenuItem("New Project"))
-                        newProjectPopup.ShowNewProjectPopup();
-                    if (ImGui.MenuItem("Open Project"))
-                        newProjectPopup.ShowOpenProjectPopup();
-
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem("Show Recent Projects"))
-                        recentProjectsPanel.Show();
-
-                    // Add Recent Projects submenu
-                    if (ImGui.BeginMenu("Recent Projects"))
-                    {
-                        var recentProjects = editorPreferences.GetRecentProjects();
-
-                        if (recentProjects.Count == 0)
-                        {
-                            ImGui.MenuItem("(No recent projects)", false);
-                        }
-                        else
-                        {
-                            foreach (var recent in recentProjects)
-                            {
-                                var displayName = $"{recent.Name}";
-                                if (ImGui.MenuItem(displayName))
-                                {
-                                    if (projectManager.TryOpenProject(recent.Path, out var error))
-                                    {
-                                        contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-                                    }
-                                    else
-                                    {
-                                        Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path,
-                                            error);
-                                    }
-                                }
-
-                                // Show tooltip with full path
-                                if (ImGui.IsItemHovered())
-                                {
-                                    ImGui.BeginTooltip();
-                                    ImGui.Text(recent.Path);
-                                    ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
-                                    ImGui.EndTooltip();
-                                }
-                            }
-
-                            ImGui.Separator();
-                            if (ImGui.MenuItem("Clear Recent Projects"))
-                            {
-                                editorPreferences.ClearRecentProjects();
-                            }
-                        }
-
-                        ImGui.EndMenu();
-                    }
-
-                    ImGui.Separator();
-                    if (ImGui.MenuItem("Exit"))
-                        Environment.Exit(0);
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu("Scene..."))
-                {
-                    if (ImGui.MenuItem("New", "Ctrl+N"))
-                        sceneSettingsPopup.ShowNewScenePopup();
-                    if (ImGui.MenuItem("Save", "Ctrl+S"))
-                        sceneManager.Save();
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu("View"))
-                {
-                    if (ImGui.MenuItem("Reset Camera"))
-                        ResetCamera();
-
-                    ImGui.Separator();
-
-                    if (ImGui.MenuItem("Show Rulers", null, viewportRuler.Enabled))
-                        viewportRuler.Enabled = !viewportRuler.Enabled;
-                    if (ImGui.MenuItem("Show 2D Grid", null, sceneToolbar.ShowGrid))
-                        sceneToolbar.ShowGrid = !sceneToolbar.ShowGrid;
-                    if (ImGui.MenuItem("Show 3D Grid", null, sceneToolbar.ShowGrid3D))
-                        sceneToolbar.ShowGrid3D = !sceneToolbar.ShowGrid3D;
-                    if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
-                        rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
-
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu("Settings"))
-                {
-                    if (ImGui.MenuItem("Editor Settings"))
-                        editorSettingsUI.Show();
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu("Help"))
-                {
-                    if (ImGui.MenuItem("Keyboard Shortcuts"))
-                        keyboardShortcutsPanel.Show();
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu("Publish"))
-                {
-                    if (ImGui.MenuItem("Build & Publish"))
-                        BuildAndPublish();
-                    ImGui.EndMenu();
-                }
-
-                ImGui.EndMenuBar();
-            }
-
-            sceneHierarchyPanel.Draw();
-            propertiesPanel.Draw();
-            contentBrowserPanel.Draw();
-            consolePanel.Draw();
-
-            scriptComponentEditor.Draw();
-            recentProjectsPanel.Draw();
-            keyboardShortcutsPanel.Draw();
-
-            var selectedEntity = sceneHierarchyPanel.GetSelectedEntity();
-            propertiesPanel.SetSelectedEntity(selectedEntity);
-
-            // Render Stats window if visible
-            var hoveredEntityName = _hoveredEntity?.Name ?? "None";
-            var camPos = _editorCamera.GetPosition();
-            rendererStatsPanel.Draw(hoveredEntityName, camPos, _editorCamera.Yaw, () => performanceMonitor.RenderUI());
+            RenderMenuBar();
+            RenderPanels();
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
-
-            ImGui.Begin("Viewport");
-            {
-                _viewportHovered = ImGui.IsWindowHovered();
-
-                var viewportPanelSize = ImGui.GetContentRegionAvail();
-
-                var textureId = _frameBuffer.GetColorAttachmentRendererId();
-                var texturePointer = new IntPtr(textureId);
-                ImGui.Image(texturePointer, new Vector2(viewportPanelSize.X, viewportPanelSize.Y), new Vector2(0, 1),
-                    new Vector2(1, 0));
-
-                // Get the actual screen position and size of the rendered image
-                _viewportBounds[0] = ImGui.GetItemRectMin();
-                _viewportBounds[1] = ImGui.GetItemRectMax();
-                _viewportSize = _viewportBounds[1] - _viewportBounds[0];
-                
-                var sceneValidator = DragDropDrawer.CreateExtensionValidator(
-                    [".scene"],
-                    checkFileExists: false);
-
-                DragDropDrawer.HandleFileDropTarget(
-                    DragDropDrawer.ContentBrowserItemPayload,
-                    sceneValidator,
-                    onDropped: path =>
-                    {
-                        sceneManager.Open(PathBuilder.Build(path));
-                    });
-
-                // Handle viewport interactions via ViewportToolManager
-                if (ImGui.IsWindowHovered())
-                {
-                    var currentMode = sceneToolbar.CurrentMode;
-
-                    // Prepare local mouse coordinates relative to the viewport
-                    var globalMousePos = ImGui.GetMousePos();
-                    var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X,
-                        globalMousePos.Y - _viewportBounds[0].Y);
-                    
-                    viewportToolManager.SetMode(currentMode);
-                    viewportToolManager.SetHoveredEntity(_hoveredEntity);
-                    
-                    var currentSelection = sceneHierarchyPanel.GetSelectedEntity();
-                    if (currentSelection != null)
-                    {
-                        viewportToolManager.SetTargetEntity(currentSelection);
-                    }
-                    
-                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                    {
-                        viewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
-
-                        // Update hierarchy panel selection when entity is clicked
-                        if (_hoveredEntity != null && currentMode != EditorMode.Ruler)
-                        {
-                            sceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
-                        }
-                    }
-
-                    if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
-                    {
-                        viewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _editorCamera);
-                    }
-
-                    if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
-                    {
-                        viewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _editorCamera);
-                    }
-                }
-
-                // Viewport overlay rendering (grid, rulers, tools)
-                var focalPoint = _editorCamera.FocalPoint;
-                var cameraPos = new Vector2(focalPoint.X, focalPoint.Y);
-                var distance = _editorCamera.Distance;
-                var fovRad = MathHelpers.DegreesToRadians(_editorCamera.FOV);
-                var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
-                var zoom = _viewportSize.Y / worldHeight;
-                
-                if (sceneToolbar.ShowGrid)
-                    viewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-                
-                viewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
-                viewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
-            }
+            RenderViewport();
             
-            var viewportDockId = ImGui.GetWindowDockID();
-            animationTimeline.OnImGuiRender(viewportDockId);
-
-            ImGui.End();
-
-            ImGui.End();
             ImGui.PopStyleVar();
 
-            sceneToolbar.Render();
+            viewport.SceneToolbar.Render();
             ImGui.End();
         }
 
-        // Render popups outside the dockspace window
         editorSettingsUI.Render();
         newProjectPopup.Render();
         sceneSettingsPopup.Render();
         publishSettingsUI.Render();
+    }
+
+    private void RenderMenuBar()
+    {
+        if (!ImGui.BeginMenuBar()) return;
+
+        RenderFileMenu();
+        RenderSceneMenu();
+        RenderViewMenu();
+        RenderSettingsMenu();
+        RenderHelpMenu();
+        RenderPublishMenu();
+
+        ImGui.EndMenuBar();
+    }
+
+    private void RenderFileMenu()
+    {
+        if (!ImGui.BeginMenu("File")) return;
+
+        if (ImGui.MenuItem("New Project"))
+            newProjectPopup.ShowNewProjectPopup();
+        if (ImGui.MenuItem("Open Project"))
+            newProjectPopup.ShowOpenProjectPopup();
+
+        ImGui.Separator();
+
+        if (ImGui.MenuItem("Show Recent Projects"))
+            panels.RecentProjectsPanel.Show();
+
+        if (ImGui.BeginMenu("Recent Projects"))
+        {
+            var recentProjects = editorPreferences.GetRecentProjects();
+            if (recentProjects.Count == 0)
+            {
+                ImGui.MenuItem("(No recent projects)", false);
+            }
+            else
+            {
+                foreach (var recent in recentProjects)
+                {
+                    if (ImGui.MenuItem($"{recent.Name}"))
+                    {
+                        if (projectManager.TryOpenProject(recent.Path, out var error))
+                            panels.ContentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
+                        else
+                            Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
+                    }
+
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text(recent.Path);
+                        ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
+                        ImGui.EndTooltip();
+                    }
+                }
+
+                ImGui.Separator();
+                if (ImGui.MenuItem("Clear Recent Projects"))
+                    editorPreferences.ClearRecentProjects();
+            }
+            ImGui.EndMenu();
+        }
+
+        ImGui.Separator();
+        if (ImGui.MenuItem("Exit"))
+            Environment.Exit(0);
+        ImGui.EndMenu();
+    }
+
+    private void RenderSceneMenu()
+    {
+        if (!ImGui.BeginMenu("Scene...")) return;
+
+        if (ImGui.MenuItem("New", "Ctrl+N"))
+            sceneSettingsPopup.ShowNewScenePopup();
+        if (ImGui.MenuItem("Save", "Ctrl+S"))
+            sceneManager.Save();
+        ImGui.EndMenu();
+    }
+
+    private void RenderViewMenu()
+    {
+        if (!ImGui.BeginMenu("View")) return;
+
+        if (ImGui.MenuItem("Reset Camera"))
+            ResetCamera();
+        ImGui.Separator();
+        if (ImGui.MenuItem("Show Rulers", null, viewport.ViewportRuler.Enabled))
+            viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled;
+        if (ImGui.MenuItem("Show 2D Grid", null, viewport.SceneToolbar.ShowGrid))
+            viewport.SceneToolbar.ShowGrid = !viewport.SceneToolbar.ShowGrid;
+        if (ImGui.MenuItem("Show 3D Grid", null, viewport.SceneToolbar.ShowGrid3D))
+            viewport.SceneToolbar.ShowGrid3D = !viewport.SceneToolbar.ShowGrid3D;
+        if (ImGui.MenuItem("Show Stats", null, panels.RendererStatsPanel.IsVisible))
+            panels.RendererStatsPanel.IsVisible = !panels.RendererStatsPanel.IsVisible;
+        ImGui.EndMenu();
+    }
+
+    private void RenderSettingsMenu()
+    {
+        if (!ImGui.BeginMenu("Settings")) return;
+
+        if (ImGui.MenuItem("Editor Settings"))
+            editorSettingsUI.Show();
+        ImGui.EndMenu();
+    }
+
+    private void RenderHelpMenu()
+    {
+        if (!ImGui.BeginMenu("Help")) return;
+
+        if (ImGui.MenuItem("Keyboard Shortcuts"))
+            panels.KeyboardShortcutsPanel.Show();
+        ImGui.EndMenu();
+    }
+
+    private void RenderPublishMenu()
+    {
+        if (!ImGui.BeginMenu("Publish")) return;
+
+        if (ImGui.MenuItem("Build & Publish"))
+            BuildAndPublish();
+        ImGui.EndMenu();
+    }
+
+    private void RenderPanels()
+    {
+        panels.SceneHierarchyPanel.Draw();
+        panels.PropertiesPanel.Draw();
+        panels.ContentBrowserPanel.Draw();
+        panels.ConsolePanel.Draw();
+
+        scriptComponentEditor.Draw();
+        panels.RecentProjectsPanel.Draw();
+        panels.KeyboardShortcutsPanel.Draw();
+
+        var selectedEntity = panels.SceneHierarchyPanel.GetSelectedEntity();
+        panels.PropertiesPanel.SetSelectedEntity(selectedEntity);
+
+        var hoveredEntityName = _hoveredEntity?.Name ?? "None";
+        var camPos = _editorCamera.GetPosition();
+        panels.RendererStatsPanel.Draw(hoveredEntityName, camPos, _editorCamera.Yaw, () => panels.PerformanceMonitor.RenderUI());
+    }
+
+    private void RenderViewport()
+    {
+        ImGui.Begin("Viewport");
+
+        _viewportHovered = ImGui.IsWindowHovered();
+
+        var viewportPanelSize = ImGui.GetContentRegionAvail();
+        var texturePointer = new IntPtr(_frameBuffer.GetColorAttachmentRendererId());
+        ImGui.Image(texturePointer, new Vector2(viewportPanelSize.X, viewportPanelSize.Y), new Vector2(0, 1), new Vector2(1, 0));
+
+        _viewportBounds[0] = ImGui.GetItemRectMin();
+        _viewportBounds[1] = ImGui.GetItemRectMax();
+        _viewportSize = _viewportBounds[1] - _viewportBounds[0];
+
+        var sceneValidator = DragDropDrawer.CreateExtensionValidator([".scene"], checkFileExists: false);
+        DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload, sceneValidator,
+            onDropped: path => sceneManager.Open(PathBuilder.Build(path)));
+
+        if (ImGui.IsWindowHovered())
+        {
+            var currentMode = viewport.SceneToolbar.CurrentMode;
+            var globalMousePos = ImGui.GetMousePos();
+            var localMousePos = new Vector2(globalMousePos.X - _viewportBounds[0].X, globalMousePos.Y - _viewportBounds[0].Y);
+
+            viewport.ViewportToolManager.SetMode(currentMode);
+            viewport.ViewportToolManager.SetHoveredEntity(_hoveredEntity);
+
+            var currentSelection = panels.SceneHierarchyPanel.GetSelectedEntity();
+            if (currentSelection != null)
+                viewport.ViewportToolManager.SetTargetEntity(currentSelection);
+
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+            {
+                viewport.ViewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
+                if (_hoveredEntity != null && currentMode != EditorMode.Ruler)
+                    panels.SceneHierarchyPanel.SetSelectedEntity(_hoveredEntity);
+            }
+
+            if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                viewport.ViewportToolManager.HandleMouseMove(localMousePos, _viewportBounds, _editorCamera);
+
+            if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+                viewport.ViewportToolManager.HandleMouseUp(localMousePos, _viewportBounds, _editorCamera);
+        }
+
+        var focalPoint = _editorCamera.FocalPoint;
+        var cameraPos = new Vector2(focalPoint.X, focalPoint.Y);
+        var distance = _editorCamera.Distance;
+        var fovRad = MathHelpers.DegreesToRadians(_editorCamera.FOV);
+        var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
+        var zoom = _viewportSize.Y / worldHeight;
+
+        if (viewport.SceneToolbar.ShowGrid)
+            viewport.ViewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+
+        viewport.ViewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
+        viewport.ViewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
+
+        var viewportDockId = ImGui.GetWindowDockID();
+        panels.AnimationTimeline.OnImGuiRender(viewportDockId);
+        ImGui.End();
     }
 
     private void BuildAndPublish() => publishSettingsUI.ShowPublishModal();

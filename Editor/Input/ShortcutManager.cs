@@ -13,12 +13,10 @@ public class ShortcutManager
 
     private readonly List<KeyboardShortcut> _shortcuts = new();
     private readonly Dictionary<string, List<KeyboardShortcut>> _categorizedShortcuts = new();
-    private readonly IReadOnlyDictionary<string, List<KeyboardShortcut>> _categorizedShortcutsReadOnly;
 
     public ShortcutManager()
     {
         Shortcuts = _shortcuts.AsReadOnly();
-        _categorizedShortcutsReadOnly = _categorizedShortcuts.AsReadOnly();
     }
 
     /// <summary>
@@ -36,18 +34,15 @@ public class ShortcutManager
     {
         // Check for conflicts
         var existingShortcut = _shortcuts.FirstOrDefault(s => s.Equals(shortcut));
-        if (existingShortcut != null)
+        if (existingShortcut != null && !allowDuplicates)
         {
-            if (!allowDuplicates)
-            {
-                Logger.Warning(
-                    "Shortcut conflict detected: {Shortcut} is already registered for '{ExistingDescription}'. " +
-                    "Attempted to register for '{NewDescription}'.",
-                    shortcut.GetDisplayString(),
-                    existingShortcut.Description,
-                    shortcut.Description);
-                return false;
-            }
+            Logger.Warning(
+                "Shortcut conflict detected: {Shortcut} is already registered for '{ExistingDescription}'. " +
+                "Attempted to register for '{NewDescription}'.",
+                shortcut.GetDisplayString(),
+                existingShortcut.Description,
+                shortcut.Description);
+            return false;
         }
 
         _shortcuts.Add(shortcut);

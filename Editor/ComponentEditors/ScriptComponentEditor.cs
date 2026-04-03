@@ -84,7 +84,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         }
     }
 
-    private void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
+    private static void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
     {
         UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
         {
@@ -97,7 +97,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         });
     }
 
-    private bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
+    private static bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
     {
         newValue = value;
 
@@ -110,7 +110,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         return false;
     }
 
-    private void DrawNoScriptMessage()
+    private static void DrawNoScriptMessage()
     {
         TextDrawer.DrawErrorText("No script instance attached!");
     }
@@ -202,71 +202,60 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
             title: "Select Script",
             showModal: ref _showScriptSelectorPopup,
             items: availableScripts,
-            onItemSelected: scriptName =>
-            {
-                if (_selectedEntity != null)
-                {
-                    try
-                    {
-                        var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptName);
-                        if (scriptInstanceResult.IsSuccess)
-                        {
-                            var scriptInstance = scriptInstanceResult.Value;
-                            if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
-                            {
-                                scriptComponent.ScriptableEntity = scriptInstance;
-                            }
-                            else
-                            {
-                                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
-                                {
-                                    ScriptableEntity = scriptInstance
-                                });
-                            }
-
-                            Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex, "Failed to create script instance for {ScriptName}", scriptName);
-                    }
-                }
-            },
+            onItemSelected: OnScriptSelected,
             onCancel: () => { },
             emptyMessage: "No scripts available. Create one first!",
-            renderItem: (scriptName, i) =>
-            {
-                var itemClicked = false;
-
-                if (ImGui.Selectable(scriptName, false, ImGuiSelectableFlags.DontClosePopups))
-                {
-                    itemClicked = true;
-                }
-
-                if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                {
-                    ImGui.OpenPopup($"ScriptContextMenu_{i}");
-                }
-
-                if (ImGui.BeginPopup($"ScriptContextMenu_{i}"))
-                {
-                    if (ImGui.MenuItem("Delete"))
-                    {
-                        if (scriptEngine.DeleteScript(scriptName))
-                        {
-                            Logger.Information("Deleted script {ScriptName}", scriptName);
-                        }
-                        ImGui.CloseCurrentPopup();
-                    }
-                    ImGui.EndPopup();
-                }
-
-                return itemClicked;
-            });
+            renderItem: RenderScriptItem);
     }
 
-    private void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
+    private void OnScriptSelected(string scriptName)
+    {
+        if (_selectedEntity == null) return;
+        try
+        {
+            var scriptInstanceResult = scriptEngine.CreateScriptInstance(scriptName);
+            if (!scriptInstanceResult.IsSuccess)
+            {
+                Logger.Error("Failed to create script instance for {ScriptName}: {Error}", scriptName, scriptInstanceResult.Error);
+                return;
+            }
+
+            var scriptInstance = scriptInstanceResult.Value;
+            if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
+                scriptComponent.ScriptableEntity = scriptInstance;
+            else
+                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent { ScriptableEntity = scriptInstance });
+
+            Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to create script instance for {ScriptName}", scriptName);
+        }
+    }
+
+    private bool RenderScriptItem(string scriptName, int i)
+    {
+        var itemClicked = ImGui.Selectable(scriptName, false, ImGuiSelectableFlags.DontClosePopups);
+
+        if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            ImGui.OpenPopup($"ScriptContextMenu_{i}");
+
+        if (ImGui.BeginPopup($"ScriptContextMenu_{i}"))
+        {
+            if (ImGui.MenuItem("Delete"))
+            {
+                if (scriptEngine.DeleteScript(scriptName))
+                    Logger.Information("Deleted script {ScriptName}", scriptName);
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
+        }
+
+        return itemClicked;
+    }
+
+    private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
     {
         // Similar to your existing DrawComponent method in SceneHierarchyPanel
         var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed

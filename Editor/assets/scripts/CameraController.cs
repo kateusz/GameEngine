@@ -153,15 +153,15 @@ public class CameraController : ScriptableEntity
         }
     }
 
-    public override void OnKeyReleased(KeyCodes key)
+    public override void OnKeyReleased(KeyCodes keyCode)
     {
         if (_isPerspective)
         {
-            _pressedKeys.Remove(key);
+            _pressedKeys.Remove(keyCode);
         }
         else
         {
-            switch (key)
+            switch (keyCode)
             {
                 case KeyCodes.W: _orthoInput -= Vector3.UnitY; break;
                 case KeyCodes.S: _orthoInput += Vector3.UnitY; break;

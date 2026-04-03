@@ -15,13 +15,13 @@ internal sealed class AnimationFrameEvent : IAnimationEvent
     /// <summary>
     /// Name of the animation clip.
     /// </summary>
-    public string ClipName { get; init; } = string.Empty;
+    public string ClipName { get; init; }
 
     /// <summary>
     /// Name of the event (from JSON "events" array).
     /// Examples: "footstep", "hit", "camera_shake"
     /// </summary>
-    public string EventName { get; init; } = string.Empty;
+    public string EventName { get; init; }
 
     /// <summary>
     /// Frame index that triggered the event (0-based).

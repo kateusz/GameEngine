@@ -46,7 +46,8 @@ public static class EngineIoCContainer
             )
         );
         container.Register<IWindow>(Reuse.Singleton,
-            made: Made.Of(() => Silk.NET.Windowing.Window.Create(options))
+            made: Made.Of(() => Silk.NET.Windowing.Window.Create(options)),
+            setup: Setup.With(preventDisposal: true)
         );
         container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
         container.Register<IGameWindow>(
@@ -82,6 +83,7 @@ public static class EngineIoCContainer
 
         // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);
+        container.Register<RenderingSystemsGroup>(Reuse.Singleton);
         container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
 
         // Register ECS systems (all now use dependency injection)

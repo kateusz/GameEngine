@@ -22,7 +22,6 @@ public abstract class Application : IApplication
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
 
-    private bool _isRunning;
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
     protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IAudioEngine audioEngine, IMeshFactory meshFactory, IImGuiLayer? imGuiLayer = null)
@@ -38,8 +37,6 @@ public abstract class Application : IApplication
         _gameWindow.OnClose += HandleGameWindowClose;
         _gameWindow.OnUpdate += HandleUpdate;
         _gameWindow.OnWindowLoad += HandleGameWindowOnLoad;
-        _isRunning = true;
-
         if (imGuiLayer != null)
         {
             _imGuiLayer = imGuiLayer;
@@ -186,8 +183,6 @@ public abstract class Application : IApplication
     
     private void HandleGameWindowClose(WindowCloseEvent @event)
     {
-        _isRunning = false;
-
         // Detach all layers in reverse order (LIFO) to ensure proper cleanup
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {

@@ -142,9 +142,6 @@ public static class TableDrawer
         };
 
         TextDrawer.DrawColoredText(message, color);
-        // ImGui.PushStyleColor(ImGuiCol.Text, color);
-        // ImGui.Text(message);
-        // ImGui.PopStyleColor();
     }
 
     /// <summary>
@@ -195,9 +192,11 @@ public static class TableDrawer
         Action<string, bool> onSort)
     {
         var isCurrentColumn = columnId == currentSortColumn;
-        var displayLabel = isCurrentColumn
-            ? $"{label} {(isAscending ? "▲" : "▼")}"
-            : label;
+        string displayLabel;
+        if (isCurrentColumn)
+            displayLabel = isAscending ? $"{label} ▲" : $"{label} ▼";
+        else
+            displayLabel = label;
 
         if (ImGui.Selectable(displayLabel))
         {
@@ -221,7 +220,13 @@ public static class TableDrawer
     public static void DrawSelectableDataTable<T>(string id, ColumnDefinition[] columns,
         IEnumerable<T> items, T? selectedItem,
         Func<T, string> getItemId, Action<T> onItemSelected,
-        Action<T> renderRow, string emptyMessage = "No items to display.") where T : class
+        Action<T> renderRow) where T : class =>
+        DrawSelectableDataTable(id, columns, items, selectedItem, getItemId, onItemSelected, renderRow, "No items to display.");
+
+    public static void DrawSelectableDataTable<T>(string id, ColumnDefinition[] columns,
+        IEnumerable<T> items, T? selectedItem,
+        Func<T, string> getItemId, Action<T> onItemSelected,
+        Action<T> renderRow, string emptyMessage) where T : class
     {
         var itemList = items.ToList();
 
