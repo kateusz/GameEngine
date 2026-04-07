@@ -42,7 +42,8 @@
       "Bash(git tag:*)",
       "Bash(gh issue:*)",
       "Bash(ls:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "Bash(claude mcp:*)"
     ]
   }
 }

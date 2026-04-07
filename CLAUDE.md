@@ -8,21 +8,32 @@
 ```
 GameEngine/
 ├── Engine/              # Core runtime (Animation, Audio, Renderer, Scene, Scripting)
+│   ├── Core/            # Engine core utilities
+│   ├── Events/          # Event system
+│   ├── Math/            # Math utilities
+│   ├── Platform/        # Platform abstraction
+│   ├── Renderer/        # Rendering pipeline
 │   └── Scene/
 │       ├── Components/  # ECS components (Transform, Sprite, Physics, etc.)
 │       └── Systems/     # Priority-based ECS systems
 ├── ECS/                 # Pure ECS (ISystem interface, SystemManager)
 ├── Editor/              # Visual editor with ImGui
 │   ├── ComponentEditors/  # Component property editors + Core infrastructure
+│   ├── DI/                # Editor DI registrations
 │   ├── Features/          # Project, Scene, Settings (cohesive feature modules)
+│   ├── Input/             # Editor input handling
+│   ├── Logging/           # Editor logging
 │   ├── Panels/            # Console, Properties, ContentBrowser, etc.
+│   ├── Publisher/         # Build/publish pipeline
 │   └── UI/
 │       ├── Constants/     # EditorUIConstants
 │       ├── Drawers/       # ButtonDrawer, ModalDrawer, TableDrawer, etc.
 │       ├── Elements/      # ComponentSelector, drag-drop targets, etc.
 │       └── FieldEditors/  # Generic field editors (int, float, Vector3, etc.)
 ├── Runtime/             # Standalone game player
-└── tests/               # Unit tests (ECS.Tests, Engine.Tests)
+├── Sandbox/             # Experimental/scratch project
+├── Benchmark/           # Performance benchmarks
+└── tests/               # Unit tests (ECS.Tests, Engine.Tests, ECS.Benchmarks)
 ```
 
 ## Code Standards
@@ -40,6 +51,7 @@ GameEngine/
 dotnet build                        # Build — must produce zero warnings
 dotnet test                         # Run all unit tests
 dotnet test --filter "FullyQualifiedName~ECS"  # ECS tests only
+dotnet test --filter "FullyQualifiedName~Engine"  # Engine tests only
 cd Benchmark && dotnet run -c Release          # Performance benchmarks
 ```
 

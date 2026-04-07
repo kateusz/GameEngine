@@ -8,7 +8,7 @@ This is a C# game engine built on an Entity Component System (ECS) architecture,
 - **2D and 3D rendering** — OpenGL 3.3+ renderer with sprite batching, framebuffers, and a flexible camera system
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
-- **Audio with 3D spatial support** — positional audio via OpenAL, including attenuation and listener tracking
+- **Audio support** — audio via OpenAL
 - **Sprite animation** — frame-based animation system integrated with the ECS component pipeline
 - **Visual editor** — full-featured ImGui editor with scene hierarchy, properties panel, content browser, and console
 
