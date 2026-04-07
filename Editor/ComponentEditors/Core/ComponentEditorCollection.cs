@@ -13,7 +13,6 @@ public class ComponentEditorCollection(
     SubTextureRendererComponentEditor subTextureRendererComponentEditor,
     AudioSourceComponentEditor audioSourceComponentEditor,
     AudioListenerComponentEditor audioListenerComponentEditor,
-    AnimationComponentEditor animationComponentEditor,
     LightingComponentEditor lightingComponentEditor)
 {
     public IReadOnlyDictionary<Type, IComponentEditor> Editors { get; } = new Dictionary<Type, IComponentEditor>
@@ -28,7 +27,6 @@ public class ComponentEditorCollection(
         { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
         { typeof(AudioSourceComponent), audioSourceComponentEditor },
         { typeof(AudioListenerComponent), audioListenerComponentEditor },
-        { typeof(AnimationComponent), animationComponentEditor },
         { typeof(LightingComponent), lightingComponentEditor }
     };
 }

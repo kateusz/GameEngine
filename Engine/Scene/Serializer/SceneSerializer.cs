@@ -141,7 +141,6 @@ internal sealed class SceneSerializer(
         SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
         SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
-        SerializeComponent<AnimationComponent>(entity, entityObj, nameof(AnimationComponent));
         SerializeComponent<AudioSourceComponent>(entity, entityObj, nameof(AudioSourceComponent));
         SerializeComponent<LightingComponent>(entity, entityObj, nameof(LightingComponent));
         componentDeserializer.SerializeNativeScriptComponent(entity, entityObj, ComponentsKey);

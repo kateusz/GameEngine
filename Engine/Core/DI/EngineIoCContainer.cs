@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
 using Silk.NET.Assimp;
-using Engine.Animation;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
@@ -97,9 +96,6 @@ public static class EngineIoCContainer
         
         container.Register<PrimaryCameraSystem>(Reuse.Singleton);
         container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
-
-        container.Register<IAnimationAssetManager, AnimationAssetManager>(Reuse.Singleton);
-        container.Register<AnimationSystem>(Reuse.Singleton);
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
         

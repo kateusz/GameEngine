@@ -8,8 +8,7 @@ internal sealed class SceneSystemRegistry(
     PrimaryCameraSystem primaryCameraSystem,
     RenderingSystemsGroup renderingSystems,
     ScriptUpdateSystem scriptUpdateSystem,
-    AudioSystem audioSystem,
-    AnimationSystem animationSystem)
+    AudioSystem audioSystem)
     : ISceneSystemRegistry
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemRegistry>();
@@ -29,8 +28,7 @@ internal sealed class SceneSystemRegistry(
                 renderingSystems.LightingSystem,
                 renderingSystems.ModelRenderingSystem,
                 renderingSystems.PhysicsDebugRenderSystem,
-                audioSystem,
-                animationSystem
+                audioSystem
             };
 
             foreach (var system in systems)

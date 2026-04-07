@@ -72,9 +72,6 @@ internal sealed class ComponentDeserializer(
             case nameof(ModelRendererComponent):
                 DeserializeModelRendererComponent(entity, componentObj);
                 break;
-            case nameof(AnimationComponent):
-                AddComponent<AnimationComponent>(entity, componentObj);
-                break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
@@ -127,9 +124,6 @@ internal sealed class ComponentDeserializer(
                 break;
             case nameof(ModelRendererComponent):
                 DeserializeModelRendererComponent(entity, componentObj);
-                break;
-            case nameof(AnimationComponent):
-                AddComponent<AnimationComponent>(entity, componentObj);
                 break;
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);

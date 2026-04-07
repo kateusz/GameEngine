@@ -16,10 +16,6 @@ public class SubTextureRendererComponentEditor(ITextureFactory textureFactory)
         {
             var component = entity.GetComponent<SubTextureRendererComponent>();
 
-            // Disable all fields if entity has AnimationComponent (AnimationSystem controls these values)
-            var hasAnimationComponent = entity.HasComponent<AnimationComponent>();
-            ImGui.BeginDisabled(hasAnimationComponent);
-
             TextureDropTarget.Draw("Texture", texture =>
             {
                 component.Texture = texture;
