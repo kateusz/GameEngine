@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Engine/Engine.csproj" />
+    </ItemGroup>
+
+    <!-- Copy OpenAL Soft on Windows -->
+    <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <PropertyGroup>
+            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
+        </PropertyGroup>
+        <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
+    </Target>
+
+    <!-- Copy OpenAL Soft dylib on macOS -->
+    <Target Name="CopyOpenALSoftMacOS" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <PropertyGroup>
+            <OpenALSoftPathARM>/opt/homebrew/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathARM>
+            <OpenALSoftPathARMLib>/opt/homebrew/lib/libopenal.1.dylib</OpenALSoftPathARMLib>
+            <OpenALSoftPathX86>/usr/local/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathX86>
+            <OpenALSoftPathX86Lib>/usr/local/lib/libopenal.1.dylib</OpenALSoftPathX86Lib>
+            <OpenALSoftPath Condition="Exists('$(OpenALSoftPathARM)')">$(OpenALSoftPathARM)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathARMLib)')">$(OpenALSoftPathARMLib)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86)')">$(OpenALSoftPathX86)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86Lib)')">$(OpenALSoftPathX86Lib)</OpenALSoftPath>
+        </PropertyGroup>
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFolder="$(OutputPath)" Condition="'$(OpenALSoftPath)' != ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFiles="$(OutputPath)libopenal.dylib" Condition="'$(OpenALSoftPath)' != ''" />
+    </Target>
+
+</Project>
