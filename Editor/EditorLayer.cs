@@ -221,7 +221,6 @@ public class EditorLayer(
     public void OnUpdate(TimeSpan timeSpan)
     {
         panels.PerformanceMonitor.Update(timeSpan);
-        panels.AnimationTimeline.Update((float)timeSpan.TotalSeconds);
 
         // Resize (logical viewport → physical framebuffer)
         var spec = _frameBuffer.GetSpecification();
@@ -613,7 +612,6 @@ public class EditorLayer(
         viewport.ViewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
 
         var viewportDockId = ImGui.GetWindowDockID();
-        panels.AnimationTimeline.OnImGuiRender(viewportDockId);
         ImGui.End();
     }
 

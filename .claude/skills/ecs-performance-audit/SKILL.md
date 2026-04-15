@@ -30,11 +30,16 @@ Invoke this skill when encountering:
 ### 2. Priority & Ordering
 - Validate system execution order via `SceneSystemRegistry` and `SystemManager`
 - Check for implicit update order dependencies
-- Verify priority values align with execution requirements:
-  - ScriptUpdateSystem: Priority 100
-  - AnimationSystem: Priority 198
-  - TileMapRenderSystem: Priority 200
-  - SpriteRenderingSystem, ModelRenderingSystem: Default
+- Verify priority values align with execution requirements (see `SystemPriorities.cs`):
+  - PhysicsSimulationSystem: 100
+  - ScriptUpdateSystem: 110
+  - AudioSystem: 120
+  - PrimaryCameraSystem: 145
+  - SpriteRenderSystem: 150
+  - SubTextureRenderSystem: 160
+  - LightingSystem: 165
+  - ModelRenderSystem: 170
+  - PhysicsDebugRenderSystem: 180
 - Suggest priority adjustments for better parallelization potential
 
 ### 3. Memory Allocation

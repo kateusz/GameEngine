@@ -136,14 +136,14 @@ public class MyNewPanel(
     private void DrawToolbar()
     {
         // Use ButtonDrawer for styled buttons
-        if (ButtonDrawer.DrawButton("Save", ButtonDrawer.ButtonType.Primary))
+        if (ButtonDrawer.DrawButton("Save"))
         {
             SaveData();
         }
 
         ImGui.SameLine();
 
-        if (ButtonDrawer.DrawButton("Clear", ButtonDrawer.ButtonType.Secondary))
+        if (ButtonDrawer.DrawColoredButton("Clear", MessageType.Warning))
         {
             _showConfirmModal = true;
         }
@@ -283,7 +283,7 @@ public class MyPanel : IMyPanel
         if (ImGui.Begin("My Panel", ref _isOpen))
         {
             // Use ButtonDrawer for styled buttons
-            if (ButtonDrawer.DrawButton("Save", ButtonDrawer.ButtonType.Primary))
+            if (ButtonDrawer.DrawButton("Save"))
             {
                 Save();
             }
@@ -490,7 +490,7 @@ container.Register<IMyPanel, MyPanel>(Reuse.Singleton);
 3. **❌ Confusing IFieldEditor usage** - IFieldEditor is for script inspector only, use ImGui widgets for panel properties
 4. **❌ Hardcoded UI values** - Always use EditorUIConstants
 5. **❌ Static state** - Use instance fields, inject dependencies
-6. **❌ Missing null checks** - Validate constructor parameters
+6. **❌ Null checks in constructors** - Primary constructors with non-nullable types handle this automatically; no manual null checks needed
 7. **❌ Inconsistent styling** - Follow existing panel patterns and use UI infrastructure
 8. **❌ Direct service access** - Use dependency injection
 9. **❌ Forgetting IsOpen check** - Always check before rendering

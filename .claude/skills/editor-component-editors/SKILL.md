@@ -279,7 +279,7 @@ public class MyComponentEditor : IComponentEditor
                 });
 
             // Custom UI elements with Drawers
-            if (ButtonDrawer.DrawButton("Reset", ButtonDrawer.ButtonType.Primary))
+            if (ButtonDrawer.DrawButton("Reset"))
             {
                 component.Reset();
             }
@@ -530,8 +530,9 @@ LayoutDrawer.DrawComboBox("Mode", options[(int)component.Mode], options,
 - `DrawComboBox(string label, string current, string[] options, Action<string> onSelected)`
 
 ### From ButtonDrawer
-- `DrawButton(string label, ButtonType type = ButtonType.Default)` → returns bool
+- `DrawButton(string label, Action? onClick = null, bool disabled = false)` → returns bool
 - `DrawButton(string label, float width, float height, Action? onClick = null)`
+- `DrawColoredButton(string label, MessageType type)` → returns bool (use for Error/Warning/Success)
 
 ### From TextDrawer
 - `DrawErrorText(string text)`

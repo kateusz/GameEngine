@@ -135,61 +135,34 @@ See [references/elements-api.md](references/elements-api.md) for complete API re
 
 ### FieldEditors
 
-**What**: Generic type-safe editors for primitive types, used in component editors.
+**What**: Non-generic, boxing-based editors for types discovered via reflection at runtime. Used exclusively by the **script inspector** (`ScriptComponentEditor`) to render public fields of `NativeScript` subclasses.
 
-**When**: Use in component editors for properties (int, float, Vector3, string, bool).
+**When**: Use when implementing custom rendering for a new type in the script inspector. Do **not** use in component editors — component editors use `UIPropertyRenderer` and `VectorPanel` instead (see below).
 
-**Available**: IFieldEditor<T> for bool, int, float, double, string, Vector2, Vector3, Vector4
+**Available**: Built-in editors for `int`, `float`, `double`, `bool`, `string`, `Vector2`, `Vector3`, `Vector4`. Add new types via `FieldEditorRegistry`.
 
-**Key Example**:
+**Interface** (`Editor/UI/FieldEditors/IFieldEditor.cs`):
 ```csharp
-// ❌ WRONG - Direct ImGui calls
-public class MyComponentEditor : IComponentEditor<MyComponent>
+public interface IFieldEditor
 {
-    public void DrawEditor(MyComponent component)
-    {
-        ImGui.DragFloat("Speed", ref component.Speed);
-        ImGui.Checkbox("Enabled", ref component.IsEnabled);
-    }
-}
-
-// ✅ CORRECT - Inject field editors
-public class MyComponentEditor : IComponentEditor<MyComponent>
-{
-    private readonly IFieldEditor<float> _floatEditor;
-    private readonly IFieldEditor<bool> _boolEditor;
-    private readonly IFieldEditor<Vector3> _vectorEditor;
-
-    public MyComponentEditor(
-        IFieldEditor<float> floatEditor,
-        IFieldEditor<bool> boolEditor,
-        IFieldEditor<Vector3> vectorEditor)
-    {
-        _floatEditor = floatEditor;
-        _boolEditor = boolEditor;
-        _vectorEditor = vectorEditor;
-    }
-
-    public void DrawEditor(MyComponent component)
-    {
-        _floatEditor.DrawField("Speed", ref component.Speed);
-        _boolEditor.DrawField("Enabled", ref component.IsEnabled);
-        _vectorEditor.DrawField("Offset", ref component.Offset);
-    }
+    bool Draw(string label, object value, out object newValue);
 }
 ```
 
-**Features**:
-- Automatic label rendering with PropertyLabelRatio (33/67 split)
-- Consistent spacing using EditorUIConstants
-- Drag behavior for numeric types
-- Axis color coding for vectors (X=red, Y=green, Z=blue)
-- Reset buttons for vectors (right-click)
+**How it works**: `FieldEditorRegistry.GetEditor(type)` returns the matching `IFieldEditor?`. The script inspector calls `editor.Draw(label, boxedValue, out newBoxedValue)` and uses reflection to write the result back.
 
-**Dependency Injection Pattern**:
-- Always inject field editors via constructor
-- Registered in DryIoc container automatically
-- Never create field editors inline
+**For component editors**, use `UIPropertyRenderer` and `VectorPanel` instead — they avoid boxing and are the correct pattern:
+```csharp
+// ✅ CORRECT - Component editor (known types, no boxing)
+UIPropertyRenderer.DrawPropertyField("Speed", component.Speed,
+    newValue => component.Speed = (float)newValue);
+
+var pos = component.Position;
+VectorPanel.DrawVec3Control("Position", ref pos);
+if (pos != component.Position) component.Position = pos;
+```
+
+See `editor-field-creation` skill for full details on implementing custom `IFieldEditor` types.
 
 ---
 
@@ -261,23 +234,25 @@ AudioDropTarget.Draw("Audio Clip", onAudioChanged, assetsManager);
 MeshDropTarget.Draw("Mesh", onMeshChanged, assetsManager);
 ```
 
-### 3. Inject Field Editors in Component Editors
+### 3. Use UIPropertyRenderer and VectorPanel in Component Editors
 
-**Why**: DI pattern, consistency, automatic layout ratios.
+**Why**: Component types are known at compile time — no boxing needed. `IFieldEditor` is for the script inspector only (reflection-based, runtime types).
 
 ```csharp
-// Always inject field editors via primary constructor
-public class MyComponentEditor(
-    IFieldEditor<float> floatEditor,
-    IFieldEditor<Vector3> vectorEditor) : IComponentEditor
-{
-    // Use in DrawEditor - injected parameters are available as fields
-    public void DrawEditor()
-    {
-        floatEditor.DrawField("Speed", ref component.Speed);
-        vectorEditor.DrawField("Position", ref component.Position);
-    }
-}
+// ✅ CORRECT - primitives via UIPropertyRenderer
+UIPropertyRenderer.DrawPropertyField("Speed", component.Speed,
+    newValue => component.Speed = (float)newValue);
+
+UIPropertyRenderer.DrawPropertyField("Enabled", component.IsEnabled,
+    newValue => component.IsEnabled = (bool)newValue);
+
+// ✅ CORRECT - vectors via VectorPanel (axis colors, reset buttons)
+var pos = component.Position;
+VectorPanel.DrawVec3Control("Position", ref pos);
+if (pos != component.Position) component.Position = pos;
+
+// ❌ WRONG - IFieldEditor<T> doesn't exist; don't use IFieldEditor in component editors
+_floatEditor.DrawField("Speed", ref component.Speed);
 ```
 
 ### 4. Use EditorUIConstants for All Sizing/Spacing

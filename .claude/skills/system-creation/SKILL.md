@@ -44,11 +44,11 @@ namespace Engine.Scene.Systems;
 
 public class MySystem(IMyDependency dependency) : ISystem
 {
-    // Priority ranges (lower executes first):
-    // 0–99:   Early — input, physics pre-step
-    // 100–199: Game logic — AI, gameplay, physics post-step
-    // 200–299: Rendering — transform updates, sprite batching
-    // 300+:   Post-processing — UI, debug overlays
+    // Priority ranges — see SystemPriorities.cs for all registered values.
+    // Lower executes first. Current range: 100 (physics) to 180 (debug render).
+    // Physics/simulation: ~100–120
+    // Game logic / scripts: ~110–145
+    // Rendering: ~150–180
     public int Priority => 150;
 
     public void OnAttach(Scene scene) { }
@@ -93,15 +93,21 @@ Systems are sorted by `Priority` automatically — insertion order doesn't matte
 
 ## Priority Reference
 
-| Range | Phase | Examples |
-|-------|-------|---------|
-| 0–99 | Early | Input processing, physics broad-phase |
-| 100–149 | Physics/AI | Box2D step, pathfinding, collision response |
-| 150–199 | Game Logic | Gameplay rules, animation state machines |
-| 200–299 | Rendering Prep | Transform sync, sprite sorting, camera |
-| 300+ | Post | Debug rendering, UI, overlays |
+Authoritative source: `Engine/Scene/Systems/SystemPriorities.cs`
 
-When in doubt, use 150 for gameplay logic and 200 for rendering-adjacent work.
+| Value | System |
+|-------|--------|
+| 100 | PhysicsSimulationSystem |
+| 110 | ScriptUpdateSystem |
+| 120 | AudioSystem |
+| 145 | PrimaryCameraSystem |
+| 150 | SpriteRenderSystem |
+| 160 | SubTextureRenderSystem |
+| 165 | LightingSystem |
+| 170 | ModelRenderSystem |
+| 180 | PhysicsDebugRenderSystem |
+
+When adding a new system, pick a value that fits between existing ones and register it in `SystemPriorities.cs`. When in doubt: physics/simulation ~100–130, game logic/scripts ~110–145, rendering ~150–180.
 
 ## Common Mistakes
 

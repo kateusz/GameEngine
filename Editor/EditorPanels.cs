@@ -11,7 +11,6 @@ public class EditorPanels(
     ISceneHierarchyPanel sceneHierarchyPanel,
     IContentBrowserPanel contentBrowserPanel,
     RendererStatsPanel rendererStatsPanel,
-    IAnimationTimelinePanel animationTimeline,
     RecentProjectsPanel recentProjectsPanel,
     KeyboardShortcutsPanel keyboardShortcutsPanel,
     PerformanceMonitorPanel performanceMonitor)
@@ -21,7 +20,6 @@ public class EditorPanels(
     public ISceneHierarchyPanel SceneHierarchyPanel { get; } = sceneHierarchyPanel;
     public IContentBrowserPanel ContentBrowserPanel { get; } = contentBrowserPanel;
     public RendererStatsPanel RendererStatsPanel { get; } = rendererStatsPanel;
-    public IAnimationTimelinePanel AnimationTimeline { get; } = animationTimeline;
     public RecentProjectsPanel RecentProjectsPanel { get; } = recentProjectsPanel;
     public KeyboardShortcutsPanel KeyboardShortcutsPanel { get; } = keyboardShortcutsPanel;
     public PerformanceMonitorPanel PerformanceMonitor { get; } = performanceMonitor;
