@@ -7,7 +7,7 @@ internal abstract class FrameBuffer : IFrameBuffer
 
     public abstract void Unbind();
 
-    public abstract uint GetColorAttachmentRendererId();
+    public abstract uint GetColorAttachmentRendererId(int attachmentIndex = 0);
 
     public abstract FrameBufferSpecification GetSpecification();
 

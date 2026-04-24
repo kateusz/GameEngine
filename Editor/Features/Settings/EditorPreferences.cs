@@ -23,7 +23,14 @@ public class EditorPreferences : IEditorPreferences
     // Debug Settings
     public bool ShowColliderBounds { get; set; }
     public bool ShowFPS { get; set; } = true;
-    
+    public bool BloomEnabled { get; set; } = true;
+    public float BloomThreshold { get; set; } = 1.0f;
+    public float BloomSoftKnee { get; set; } = 0.5f;
+    public float BloomIntensity { get; set; } = 0.9f;
+    public int BloomBlurPasses { get; set; } = 6;
+    public int BloomDownsampleFactor { get; set; } = 2;
+    public float BloomExposure { get; set; } = 1.0f;
+    public float BloomGamma { get; set; } = 2.2f;
 
     private static readonly string PreferencesPath =
         Path.Combine(

@@ -29,6 +29,46 @@ public interface IEditorPreferences : IDisposable
     bool ShowFPS { get; set; }
 
     /// <summary>
+    /// Gets or sets whether bloom post-processing is enabled.
+    /// </summary>
+    bool BloomEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets bloom extraction threshold.
+    /// </summary>
+    float BloomThreshold { get; set; }
+
+    /// <summary>
+    /// Gets or sets bloom extraction knee for soft transitions.
+    /// </summary>
+    float BloomSoftKnee { get; set; }
+
+    /// <summary>
+    /// Gets or sets bloom intensity added during composite.
+    /// </summary>
+    float BloomIntensity { get; set; }
+
+    /// <summary>
+    /// Gets or sets number of blur passes for bloom.
+    /// </summary>
+    int BloomBlurPasses { get; set; }
+
+    /// <summary>
+    /// Gets or sets bloom downsample factor.
+    /// </summary>
+    int BloomDownsampleFactor { get; set; }
+
+    /// <summary>
+    /// Gets or sets bloom composite exposure.
+    /// </summary>
+    float BloomExposure { get; set; }
+
+    /// <summary>
+    /// Gets or sets bloom composite gamma correction.
+    /// </summary>
+    float BloomGamma { get; set; }
+
+    /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.
     /// </summary>

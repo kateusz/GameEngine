@@ -44,6 +44,7 @@ public class EditorLayer(
     ScriptComponentEditor scriptComponentEditor,
     DebugSettings debugSettings,
     IFrameBufferFactory frameBufferFactory,
+    IBloomRenderer bloomRenderer,
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider,
     EditorPanels panels,
@@ -58,7 +59,8 @@ public class EditorLayer(
     private readonly HashSet<int> _pressedMouseButtons = [];
 
     private EditorCamera _editorCamera = null!;
-    private IFrameBuffer _frameBuffer = null!;
+    private IFrameBuffer _sceneFrameBuffer = null!;
+    private uint _viewportColorTextureId;
     private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
     private bool _viewportHovered;
@@ -88,7 +90,18 @@ public class EditorLayer(
         viewport.SceneToolbar.OnRestartScene += _restartSceneHandler;
 
         _editorCamera = new EditorCamera();
-        _frameBuffer = frameBufferFactory.Create();
+        _sceneFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
+            DisplayConfig.DefaultEditorViewportWidth,
+            DisplayConfig.DefaultEditorViewportHeight)
+        {
+            AttachmentsSpec = new FramebufferAttachmentSpecification([
+                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA16F),
+                new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
+                new FramebufferTextureSpecification(FramebufferTextureFormat.Depth)
+            ])
+        });
+        _viewportColorTextureId = _sceneFrameBuffer.GetColorAttachmentRendererId(0);
+        bloomRenderer.Resize(DisplayConfig.DefaultEditorViewportWidth, DisplayConfig.DefaultEditorViewportHeight);
         _contentScale = contentScaleProvider.ContentScale;
 
         sceneManager.New("");
@@ -213,7 +226,7 @@ public class EditorLayer(
         // Dispose current scene to cleanup resources
         sceneContext.ActiveScene?.Dispose();
 
-        _frameBuffer?.Dispose();
+        _sceneFrameBuffer?.Dispose();
         panels.ConsolePanel?.Dispose();
         Log.CloseAndFlush();
     }
@@ -224,24 +237,25 @@ public class EditorLayer(
         panels.AnimationTimeline.Update((float)timeSpan.TotalSeconds);
 
         // Resize (logical viewport → physical framebuffer)
-        var spec = _frameBuffer.GetSpecification();
+        var spec = _sceneFrameBuffer.GetSpecification();
         var fbWidth = (uint)(_viewportSize.X * _contentScale);
         var fbHeight = (uint)(_viewportSize.Y * _contentScale);
         if (_viewportSize is { X: > 0.0f, Y: > 0.0f } &&
             (spec.Width != fbWidth || spec.Height != fbHeight))
         {
-            _frameBuffer.Resize(fbWidth, fbHeight);
+            _sceneFrameBuffer.Resize(fbWidth, fbHeight);
+            bloomRenderer.Resize(fbWidth, fbHeight);
             _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
             sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
         }
 
         graphics2D.ResetStats();
-        _frameBuffer.Bind();
+        _sceneFrameBuffer.Bind();
 
         graphics2D.SetClearColor(editorSettingsUI.GetBackgroundColor());
         graphics2D.Clear();
 
-        _frameBuffer.ClearAttachment(1, -1);
+        _sceneFrameBuffer.ClearAttachment(1, -1);
 
         switch (sceneContext.State)
         {
@@ -277,12 +291,16 @@ public class EditorLayer(
 
         if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)physicalWidth && mouseY < (int)physicalHeight)
         {
-            var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
+            var entityId = _sceneFrameBuffer.ReadPixel(1, mouseX, mouseY);
             var entity = sceneContext.ActiveScene?.Entities.AsValueEnumerable().FirstOrDefault(x => x.Id == entityId);
             _hoveredEntity = entity;
         }
 
-        _frameBuffer.Unbind();
+        _sceneFrameBuffer.Unbind();
+
+        _viewportColorTextureId = bloomRenderer.Apply(
+            _sceneFrameBuffer.GetColorAttachmentRendererId(0),
+            editorSettingsUI.GetBloomSettings());
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
@@ -561,7 +579,7 @@ public class EditorLayer(
         _viewportHovered = ImGui.IsWindowHovered();
 
         var viewportPanelSize = ImGui.GetContentRegionAvail();
-        var texturePointer = new IntPtr(_frameBuffer.GetColorAttachmentRendererId());
+        var texturePointer = new IntPtr(_viewportColorTextureId);
         ImGui.Image(texturePointer, new Vector2(viewportPanelSize.X, viewportPanelSize.Y), new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();

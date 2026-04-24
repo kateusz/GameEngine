@@ -7,8 +7,7 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
 {
     public IFrameBuffer Create()
     {
-        // TODO: move to DI
-        var frameBufferSpec = new FrameBufferSpecification(DisplayConfig.DefaultEditorViewportWidth,
+        var defaultSpec = new FrameBufferSpecification(DisplayConfig.DefaultEditorViewportWidth,
             DisplayConfig.DefaultEditorViewportHeight)
         {
             AttachmentsSpec = new FramebufferAttachmentSpecification([
@@ -17,10 +16,15 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
                 new FramebufferTextureSpecification(FramebufferTextureFormat.Depth),
             ])
         };
-        
+
+        return Create(defaultSpec);
+    }
+
+    public IFrameBuffer Create(FrameBufferSpecification specification)
+    {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLFrameBuffer(frameBufferSpec),
+            ApiType.SilkNet => new OpenGLFrameBuffer(specification),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

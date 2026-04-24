@@ -34,17 +34,18 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     }
 
     /// <summary>
-    /// Gets the renderer ID of the first color attachment.
+    /// Gets the renderer ID of a color attachment.
     /// </summary>
-    /// <returns>The OpenGL texture ID of the first color attachment, or 0 if there are no color attachments (e.g., depth-only framebuffers).</returns>
-    public override uint GetColorAttachmentRendererId()
+    /// <returns>The OpenGL texture ID of the selected color attachment, or 0 when unavailable.</returns>
+    public override uint GetColorAttachmentRendererId(int attachmentIndex = 0)
     {
-        if (_colorAttachments == null || _colorAttachments.Length == 0)
+        if (_colorAttachments == null || attachmentIndex < 0 || attachmentIndex >= _colorAttachments.Length)
         {
-            Debug.WriteLine("Warning: Attempted to get color attachment from framebuffer with no color attachments");
+            Debug.WriteLine($"Warning: Invalid color attachment index {attachmentIndex}");
             return 0;
         }
-        return _colorAttachments[0];
+
+        return _colorAttachments[attachmentIndex];
     }
 
     public override FrameBufferSpecification GetSpecification() => _specification;
@@ -254,6 +255,11 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
                 format = PixelFormat.Rgba;
                 pixelType = PixelType.UnsignedByte;
                 break;
+            case FramebufferTextureFormat.RGBA16F:
+                internalFormat = InternalFormat.Rgba16f;
+                format = PixelFormat.Rgba;
+                pixelType = PixelType.Float;
+                break;
             case FramebufferTextureFormat.RED_INTEGER:
                 internalFormat = InternalFormat.R32i;
                 format = PixelFormat.RedInteger;
@@ -269,12 +275,16 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
             _specification.Height, 0, format, pixelType, (void*)0);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"TexImage2D (color attachment {attachmentIndex})");
         
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-            (int)TextureMinFilter.Nearest);
+        var colorFilter = _colorAttachmentSpecs[attachmentIndex].TextureFormat == FramebufferTextureFormat.RGBA16F
+            ? TextureMinFilter.Linear
+            : TextureMinFilter.Nearest;
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)colorFilter);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"TexParameter MinFilter (color attachment {attachmentIndex})");
         
-        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-            (int)TextureMagFilter.Nearest);
+        var colorMagFilter = _colorAttachmentSpecs[attachmentIndex].TextureFormat == FramebufferTextureFormat.RGBA16F
+            ? TextureMagFilter.Linear
+            : TextureMagFilter.Nearest;
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)colorMagFilter);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"TexParameter MagFilter (color attachment {attachmentIndex})");
         
         SilkNetContext.GL.FramebufferTexture2D(FramebufferTarget.Framebuffer,
@@ -296,6 +306,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         switch (format)
         {
             case FramebufferTextureFormat.RGBA8:       return GLEnum.Rgba8;
+            case FramebufferTextureFormat.RGBA16F:     return GLEnum.Rgba16f;
             case FramebufferTextureFormat.RED_INTEGER: return GLEnum.RedInteger;
         }
 
