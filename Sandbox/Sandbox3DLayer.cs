@@ -5,6 +5,7 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Scene;
 using Engine.Scene.Components;
 using ImGuiNET;
@@ -15,11 +16,24 @@ namespace Sandbox;
 public class Sandbox3DLayer(
     IGraphics3D graphics3D,
     SceneFactory sceneFactory,
+    IFrameBufferFactory frameBufferFactory,
+    IBloomRenderer bloomRenderer,
     ModelSceneImporter modelSceneImporter) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<Sandbox3DLayer>();
+    private static readonly BloomSettings ExampleBloomSettings = new(
+        Enabled: true,
+        Threshold: 0.85f,
+        SoftKnee: 0.65f,
+        Intensity: 1.25f,
+        BlurPasses: 8,
+        DownsampleFactor: 2,
+        Exposure: 1.05f,
+        Gamma: 2.2f);
 
     private IScene? _scene;
+    private IFrameBuffer? _sceneFrameBuffer;
+    private uint _viewportTextureId;
     private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
     private float _fps;
@@ -31,6 +45,19 @@ public class Sandbox3DLayer(
     public void OnAttach(IInputSystem inputSystem)
     {
         Logger.Information("Sandbox3DLayer OnAttach - loading scene");
+
+        _sceneFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
+            DisplayConfig.DefaultWindowWidth,
+            DisplayConfig.DefaultWindowHeight)
+        {
+            AttachmentsSpec = new FramebufferAttachmentSpecification([
+                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA16F),
+                new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
+                new FramebufferTextureSpecification(FramebufferTextureFormat.Depth)
+            ])
+        });
+        bloomRenderer.Resize(DisplayConfig.DefaultWindowWidth, DisplayConfig.DefaultWindowHeight);
+        _viewportTextureId = _sceneFrameBuffer.GetColorAttachmentRendererId(0);
 
         _scene = sceneFactory.Create("Sandbox3D", "Sandbox3D");
 
@@ -63,6 +90,7 @@ public class Sandbox3DLayer(
 
         _cameraController = new PerspectiveCameraController(startPos, initialYaw);
 
+        _scene.OnViewportResize(DisplayConfig.DefaultWindowWidth, DisplayConfig.DefaultWindowHeight);
         _scene.OnRuntimeStart();
     }
 
@@ -70,6 +98,7 @@ public class Sandbox3DLayer(
     {
         _scene?.OnRuntimeStop();
         _scene?.Dispose();
+        _sceneFrameBuffer?.Dispose();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -92,10 +121,18 @@ public class Sandbox3DLayer(
             _fpsFrames = 0;
         }
 
+        _sceneFrameBuffer?.Bind();
         graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
         graphics3D.Clear();
-
         _scene?.OnUpdateRuntime(timeSpan);
+        _sceneFrameBuffer?.Unbind();
+
+        if (_sceneFrameBuffer is not null)
+        {
+            _viewportTextureId = bloomRenderer.Apply(
+                _sceneFrameBuffer.GetColorAttachmentRendererId(0),
+                ExampleBloomSettings);
+        }
     }
 
     public void HandleInputEvent(InputEvent windowEvent)
@@ -105,14 +142,30 @@ public class Sandbox3DLayer(
 
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
-        if (windowEvent is WindowResizeEvent resizeEvent && _scene != null)
-            _scene.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
+        if (windowEvent is WindowResizeEvent resizeEvent &&
+            resizeEvent.Width > 0 &&
+            resizeEvent.Height > 0 &&
+            _scene != null)
+        {
+            var width = (uint)resizeEvent.Width;
+            var height = (uint)resizeEvent.Height;
+            _sceneFrameBuffer?.Resize(width, height);
+            bloomRenderer.Resize(width, height);
+            _scene.OnViewportResize(width, height);
+        }
     }
 
     public void Draw()
     {
         const float padding = 10f;
         var io = ImGui.GetIO();
+        if (_viewportTextureId != 0)
+        {
+            var background = ImGui.GetBackgroundDrawList();
+            background.AddImage(new IntPtr(_viewportTextureId), Vector2.Zero, io.DisplaySize, new Vector2(0, 1),
+                new Vector2(1, 0));
+        }
+
         var drawList = ImGui.GetForegroundDrawList();
         var white = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 1f));
 

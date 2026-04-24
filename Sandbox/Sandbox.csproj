@@ -27,6 +27,18 @@
         <None Update="assets\shaders\OpenGL\lineShader.vert">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="assets\shaders\OpenGL\bloomBlur.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\bloomComposite.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\bloomExtract.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\fullscreenQuad.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
         <None Update="assets\shaders\OpenGL\phong.frag">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
