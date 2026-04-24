@@ -14,16 +14,11 @@ internal sealed class OpenGLBloomRenderer(
     private const uint MinFramebufferSize = 2;
     private const int FullscreenQuadVertexCount = 6;
 
-    private readonly (uint Vao, uint Vbo) _fullscreenQuad = CreateFullscreenQuad();
-    private readonly IShader _extractShader = shaderFactory.Create(
-        "assets/shaders/OpenGL/fullscreenQuad.vert",
-        "assets/shaders/OpenGL/bloomExtract.frag");
-    private readonly IShader _blurShader = shaderFactory.Create(
-        "assets/shaders/OpenGL/fullscreenQuad.vert",
-        "assets/shaders/OpenGL/bloomBlur.frag");
-    private readonly IShader _compositeShader = shaderFactory.Create(
-        "assets/shaders/OpenGL/fullscreenQuad.vert",
-        "assets/shaders/OpenGL/bloomComposite.frag");
+    private (uint Vao, uint Vbo) _fullscreenQuad;
+    private IShader? _extractShader;
+    private IShader? _blurShader;
+    private IShader? _compositeShader;
+    private bool _rendererResourcesInitialized;
 
     private IFrameBuffer? _extractFrameBuffer;
     private IFrameBuffer? _pingFrameBuffer;
@@ -53,6 +48,7 @@ internal sealed class OpenGLBloomRenderer(
         if (!settings.Enabled)
             return sourceColorTextureId;
 
+        EnsureRendererResources();
         var nextDownsampleFactor = Math.Clamp(settings.DownsampleFactor, 1, 4);
         if (nextDownsampleFactor != _downsampleFactor)
         {
@@ -94,6 +90,24 @@ internal sealed class OpenGLBloomRenderer(
         RecreateFramebuffers();
     }
 
+    private void EnsureRendererResources()
+    {
+        if (_rendererResourcesInitialized)
+            return;
+
+        _extractShader = shaderFactory.Create(
+            "assets/shaders/OpenGL/fullscreenQuad.vert",
+            "assets/shaders/OpenGL/bloomExtract.frag");
+        _blurShader = shaderFactory.Create(
+            "assets/shaders/OpenGL/fullscreenQuad.vert",
+            "assets/shaders/OpenGL/bloomBlur.frag");
+        _compositeShader = shaderFactory.Create(
+            "assets/shaders/OpenGL/fullscreenQuad.vert",
+            "assets/shaders/OpenGL/bloomComposite.frag");
+        _fullscreenQuad = CreateFullscreenQuad();
+        _rendererResourcesInitialized = true;
+    }
+
     private void RecreateFramebuffers()
     {
         _extractFrameBuffer?.Dispose();
@@ -131,7 +145,7 @@ internal sealed class OpenGLBloomRenderer(
         rendererApi.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
         rendererApi.Clear();
 
-        _extractShader.Bind();
+        _extractShader!.Bind();
         _extractShader.SetInt("u_SceneTexture", 0);
         _extractShader.SetFloat("u_Threshold", settings.Threshold);
         _extractShader.SetFloat("u_SoftKnee", settings.SoftKnee);
@@ -151,7 +165,7 @@ internal sealed class OpenGLBloomRenderer(
             _pingFrameBuffer!.Bind();
             rendererApi.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
             rendererApi.Clear();
-            _blurShader.Bind();
+            _blurShader!.Bind();
             _blurShader.SetInt("u_Source", 0);
             _blurShader.SetInt("u_Horizontal", 1);
             BindTextureToSlot(inputTexture, 0);
@@ -161,7 +175,7 @@ internal sealed class OpenGLBloomRenderer(
             _pongFrameBuffer!.Bind();
             rendererApi.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
             rendererApi.Clear();
-            _blurShader.Bind();
+            _blurShader!.Bind();
             _blurShader.SetInt("u_Source", 0);
             _blurShader.SetInt("u_Horizontal", 0);
             BindTextureToSlot(_pingFrameBuffer.GetColorAttachmentRendererId(), 0);
@@ -180,7 +194,7 @@ internal sealed class OpenGLBloomRenderer(
         rendererApi.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
         rendererApi.Clear();
 
-        _compositeShader.Bind();
+        _compositeShader!.Bind();
         _compositeShader.SetInt("u_SceneTexture", 0);
         _compositeShader.SetInt("u_BloomTexture", 1);
         _compositeShader.SetFloat("u_BloomIntensity", settings.Intensity);
@@ -251,11 +265,19 @@ internal sealed class OpenGLBloomRenderer(
         _pingFrameBuffer?.Dispose();
         _pongFrameBuffer?.Dispose();
         _compositeFrameBuffer?.Dispose();
-        _extractShader.Dispose();
-        _blurShader.Dispose();
-        _compositeShader.Dispose();
-        SilkNetContext.GL.DeleteBuffer(_fullscreenQuad.Vbo);
-        SilkNetContext.GL.DeleteVertexArray(_fullscreenQuad.Vao);
+        _extractShader?.Dispose();
+        _extractShader = null;
+        _blurShader?.Dispose();
+        _blurShader = null;
+        _compositeShader?.Dispose();
+        _compositeShader = null;
+
+        if (_fullscreenQuad.Vbo != 0)
+            SilkNetContext.GL.DeleteBuffer(_fullscreenQuad.Vbo);
+        if (_fullscreenQuad.Vao != 0)
+            SilkNetContext.GL.DeleteVertexArray(_fullscreenQuad.Vao);
+        _rendererResourcesInitialized = false;
+        _fullscreenQuad = default;
 
         _disposed = true;
         GC.SuppressFinalize(this);
