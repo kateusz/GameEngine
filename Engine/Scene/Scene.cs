@@ -385,6 +385,86 @@ internal sealed class Scene(
         };
     }
 
+    public IEnumerable<Entity> GetRootEntities()
+    {
+        foreach (var e in _entities)
+        {
+            if (!e.TryGetComponent<TransformComponent>(out var t) || t.ParentId is null)
+                yield return e;
+        }
+    }
+
+    public IEnumerable<Entity> GetChildren(Entity entity)
+    {
+        if (!entity.TryGetComponent<TransformComponent>(out var t))
+            yield break;
+
+        foreach (var childId in t.ChildIds)
+        {
+            var child = _entities.FirstOrDefault(e => e.Id == childId);
+            if (child is not null)
+                yield return child;
+        }
+    }
+
+    public void SetParent(Entity child, Entity? parent)
+    {
+        if (!child.TryGetComponent<TransformComponent>(out var childT))
+            throw new InvalidOperationException(
+                $"Entity {child.Id} ('{child.Name}') has no TransformComponent and cannot be parented.");
+
+        if (parent is not null)
+        {
+            if (parent.Id == child.Id)
+                throw new InvalidOperationException("Cannot parent an entity to itself.");
+
+            if (!parent.HasComponent<TransformComponent>())
+                throw new InvalidOperationException(
+                    $"Parent entity {parent.Id} ('{parent.Name}') has no TransformComponent.");
+
+            var cursorId = parent.Id;
+            while (true)
+            {
+                if (cursorId == child.Id)
+                    throw new InvalidOperationException(
+                        "Cannot parent entity to its own descendant (would create a cycle).");
+
+                var cursorEntity = _entities.FirstOrDefault(e => e.Id == cursorId);
+                if (cursorEntity is null) break;
+                if (!cursorEntity.TryGetComponent<TransformComponent>(out var cursorT)) break;
+                if (cursorT.ParentId is null) break;
+                cursorId = cursorT.ParentId.Value;
+            }
+        }
+
+        if (childT.ParentId is { } oldParentId)
+        {
+            var oldParent = _entities.FirstOrDefault(e => e.Id == oldParentId);
+            if (oldParent is not null && oldParent.TryGetComponent<TransformComponent>(out var oldParentT))
+                oldParentT.RemoveChildIdInternal(child.Id);
+        }
+
+        childT.SetParentIdInternal(parent?.Id);
+
+        if (parent is not null)
+        {
+            var parentT = parent.GetComponent<TransformComponent>();
+            parentT.AddChildIdInternal(child.Id);
+        }
+
+        MarkSubtreeWorldDirty(child);
+    }
+
+    private void MarkSubtreeWorldDirty(Entity root)
+    {
+        if (!root.TryGetComponent<TransformComponent>(out var rootT))
+            return;
+
+        rootT.MarkWorldDirty();
+        foreach (var child in GetChildren(root))
+            MarkSubtreeWorldDirty(child);
+    }
+
     /// <summary>
     /// Duplicates an entity by cloning all of its components.
     /// </summary>

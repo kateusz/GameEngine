@@ -1,0 +1,122 @@
+using ECS;
+using ECS.Systems;
+using Engine.Renderer;
+using Engine.Scene;
+using Engine.Scene.Components;
+using NSubstitute;
+using Shouldly;
+using EngineScene = Engine.Scene.Scene;
+
+namespace Engine.Tests;
+
+public class SceneHierarchyTests : IDisposable
+{
+    private readonly IGraphics2D _g2 = Substitute.For<IGraphics2D>();
+    private readonly IGraphics3D _g3 = Substitute.For<IGraphics3D>();
+    private readonly ISceneSystemRegistry _reg = Substitute.For<ISceneSystemRegistry>();
+    private readonly IContext _ctx = new Context();
+
+    public SceneHierarchyTests()
+    {
+        _reg.PopulateSystemManager(Arg.Any<ISystemManager>())
+            .Returns(new List<ISystem>());
+    }
+
+    public void Dispose() => _ctx.Clear();
+
+    private EngineScene NewScene() =>
+        new("p", "p", _reg, _g2, _g3, _ctx, new Engine.Core.DebugSettings());
+
+    private static (Entity e, TransformComponent t) WithTransform(Entity e)
+    {
+        var t = e.AddComponent<TransformComponent>();
+        return (e, t);
+    }
+
+    [Fact]
+    public void GetRootEntities_AllEntitiesAreRootsByDefault()
+    {
+        using var scene = NewScene();
+        var a = WithTransform(scene.CreateEntity("A")).e;
+        var b = WithTransform(scene.CreateEntity("B")).e;
+
+        scene.GetRootEntities().ShouldBe(new[] { a, b }, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void SetParent_RegistersChildOnParent_AndChildKnowsParent()
+    {
+        using var scene = NewScene();
+        var (parent, parentT) = WithTransform(scene.CreateEntity("P"));
+        var (child, childT) = WithTransform(scene.CreateEntity("C"));
+
+        scene.SetParent(child, parent);
+
+        childT.ParentId.ShouldBe(parent.Id);
+        parentT.ChildIds.ShouldContain(child.Id);
+        scene.GetChildren(parent).ShouldBe(new[] { child });
+        scene.GetRootEntities().ShouldNotContain(child);
+    }
+
+    [Fact]
+    public void SetParent_Null_UnparentsChildToRoot()
+    {
+        using var scene = NewScene();
+        var (parent, parentT) = WithTransform(scene.CreateEntity("P"));
+        var (child, childT) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(child, parent);
+
+        scene.SetParent(child, null);
+
+        childT.ParentId.ShouldBeNull();
+        parentT.ChildIds.ShouldBeEmpty();
+        scene.GetRootEntities().ShouldContain(child);
+    }
+
+    [Fact]
+    public void SetParent_MovingFromOldParent_RemovesFromOldChildren()
+    {
+        using var scene = NewScene();
+        var (p1, p1T) = WithTransform(scene.CreateEntity("P1"));
+        var (p2, p2T) = WithTransform(scene.CreateEntity("P2"));
+        var (c, _) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(c, p1);
+
+        scene.SetParent(c, p2);
+
+        p1T.ChildIds.ShouldNotContain(c.Id);
+        p2T.ChildIds.ShouldContain(c.Id);
+    }
+
+    [Fact]
+    public void SetParent_ToSelf_Throws()
+    {
+        using var scene = NewScene();
+        var (e, _) = WithTransform(scene.CreateEntity("E"));
+
+        Should.Throw<InvalidOperationException>(() => scene.SetParent(e, e));
+    }
+
+    [Fact]
+    public void SetParent_ToOwnDescendant_Throws()
+    {
+        using var scene = NewScene();
+        var (a, _) = WithTransform(scene.CreateEntity("A"));
+        var (b, _) = WithTransform(scene.CreateEntity("B"));
+        var (c, _) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(b, a);
+        scene.SetParent(c, b);
+
+        Should.Throw<InvalidOperationException>(() => scene.SetParent(a, c));
+    }
+
+    [Fact]
+    public void SetParent_RequiresChildToHaveTransform()
+    {
+        using var scene = NewScene();
+        var child = scene.CreateEntity("C");          // no TransformComponent
+        var (parent, _) = WithTransform(scene.CreateEntity("P"));
+
+        Should.Throw<InvalidOperationException>(() => scene.SetParent(child, parent));
+    }
+}
