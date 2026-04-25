@@ -5,7 +5,7 @@ using Silk.NET.Assimp;
 
 namespace Engine.Renderer;
 
-public record FbxModelResult(List<Mesh> Meshes, List<MeshMaterial> Materials, string Directory);
+public record FbxModelResult(List<Mesh> Meshes, List<PbrMaterial> Materials, List<ModelLightData> Lights, string Directory);
 
 internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assimp)
 {
@@ -14,7 +14,8 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
     public FbxModelResult Load(string path)
     {
         var meshes = new List<Mesh>();
-        var materials = new List<MeshMaterial>();
+        var materials = new List<PbrMaterial>();
+        var lights = new List<ModelLightData>();
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
 
         const uint flags = (uint)(PostProcessSteps.Triangulate |
@@ -29,24 +30,24 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
             if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
             {
                 Logger.Error("Failed to load FBX model: {Path}", path);
-                return new FbxModelResult(meshes, materials, directory);
+                return new FbxModelResult(meshes, materials, lights, directory);
             }
 
             Logger.Information("Loading model from {Path}, directory: {Directory}", path, directory);
 
-            ExtractLights(scene);
+            lights = ExtractLights(scene);
             ProcessNode(scene->MRootNode, scene, Matrix4x4.Identity, directory, meshes, materials);
 
-            Logger.Information("Model loaded: {MeshCount} meshes", meshes.Count);
+            Logger.Information("Model loaded: {MeshCount} meshes, {LightCount} lights", meshes.Count, lights.Count);
 
             assimp.ReleaseImport(scene);
         }
 
-        return new FbxModelResult(meshes, materials, directory);
+        return new FbxModelResult(meshes, materials, lights, directory);
     }
 
     private unsafe void ProcessNode(Node* rootNode, Silk.NET.Assimp.Scene* scene, Matrix4x4 parentTransform,
-        string directory, List<Mesh> meshes, List<MeshMaterial> materials)
+        string directory, List<Mesh> meshes, List<PbrMaterial> materials)
     {
         if (rootNode == null) return;
 
@@ -84,25 +85,73 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
         }
     }
 
-    private static unsafe void ExtractLights(Silk.NET.Assimp.Scene* scene)
+    private unsafe List<ModelLightData> ExtractLights(Silk.NET.Assimp.Scene* scene)
     {
+        var result = new List<ModelLightData>();
+        if (scene->MNumLights == 0)
+            return result;
+
+        // Build name → raw light metadata map (type + color from the light struct)
+        var lightMeta = new Dictionary<string, (LightSourceType Type, Vector3 Color)>(StringComparer.Ordinal);
         for (var i = 0; i < scene->MNumLights; i++)
         {
             var light = scene->MLights[i];
             var name = light->MName.AsString;
-            var type = light->MType;
-            var pos = light->MPosition;
-            var dir = light->MDirection;
-            var color = light->MColorDiffuse;
+            var raw = light->MColorDiffuse;
+            // glTF KHR_lights_punctual stores color*intensity in MColorDiffuse.
+            // If Assimp reports black (extension not read / intensity=0), fall back to white.
+            var color = new Vector3(raw.X, raw.Y, raw.Z);
+            if (color == Vector3.Zero)
+                color = Vector3.One;
 
-            Logger.Information(
-                "FBX Light found: \"{Name}\"\n  Type: {Type}\n  Position: ({PX:F1}, {PY:F1}, {PZ:F1})\n  Direction: ({DX:F1}, {DY:F1}, {DZ:F1})\n  Color: ({CR:F2}, {CG:F2}, {CB:F2})\n  AttenuationConstant: {AC:F2}",
-                name, type,
-                pos.X, pos.Y, pos.Z,
-                dir.X, dir.Y, dir.Z,
-                color.X, color.Y, color.Z,
-                light->MAttenuationConstant);
+            lightMeta[name] = (light->MType, color);
         }
+
+        // Traverse scene graph: accumulate world transforms and match nodes to lights.
+        var stack = new Stack<(nint NodePtr, Matrix4x4 ParentWorld)>();
+        stack.Push(((nint)scene->MRootNode, Matrix4x4.Identity));
+
+        while (stack.Count > 0)
+        {
+            var (nodePtr, parentWorld) = stack.Pop();
+            var node = (Node*)nodePtr;
+            if (node == null) continue;
+
+            var m = node->MTransformation;
+            var local = Matrix4x4.Transpose(new Matrix4x4(
+                m.M11, m.M12, m.M13, m.M14,
+                m.M21, m.M22, m.M23, m.M24,
+                m.M31, m.M32, m.M33, m.M34,
+                m.M41, m.M42, m.M43, m.M44));
+            var world = local * parentWorld;
+
+            var nodeName = node->MName.AsString;
+            if (lightMeta.TryGetValue(nodeName, out var meta))
+            {
+                // Position = translation of world matrix
+                var position = new Vector3(world.M41, world.M42, world.M43);
+                // glTF lights point along -Z in local space
+                var direction = Vector3.Normalize(Vector3.TransformNormal(new Vector3(0f, 0f, -1f), world));
+
+                var lightType = meta.Type switch
+                {
+                    LightSourceType.Directional => ModelLightType.Directional,
+                    LightSourceType.Point => ModelLightType.Point,
+                    LightSourceType.Spot => ModelLightType.Spot,
+                    _ => ModelLightType.Point
+                };
+
+                result.Add(new ModelLightData(nodeName, lightType, position, direction, meta.Color, 1.0f));
+                Logger.Information(
+                    "Light '{Name}' ({Type}) — pos: {Position}, dir: {Direction}, color: {Color}",
+                    nodeName, lightType, position, direction, meta.Color);
+            }
+
+            for (var i = 0; i < node->MNumChildren; i++)
+                stack.Push(((nint)node->MChildren[i], world));
+        }
+
+        return result;
     }
 
     private unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh)
@@ -148,30 +197,46 @@ internal sealed class FbxModelLoader(ITextureFactory textureFactory, Assimp assi
         return mesh;
     }
 
-    private unsafe MeshMaterial ExtractMaterial(Silk.NET.Assimp.Scene* scene, uint materialIndex, string directory)
+    private unsafe PbrMaterial ExtractMaterial(Silk.NET.Assimp.Scene* scene, uint materialIndex, string directory)
     {
         var aiMaterial = scene->MMaterials[materialIndex];
-        var material = new MeshMaterial
-        {
-            DiffuseTexture = LoadMaterialTexture(aiMaterial, TextureType.Diffuse, directory, out var diffusePath)
-                             ?? textureFactory.GetWhiteTexture(),
-            DiffuseTexturePath = diffusePath,
-            SpecularTexture = LoadMaterialTexture(aiMaterial, TextureType.Specular, directory, out var specularPath)
-                              ?? textureFactory.GetBlackTexture(),
-            SpecularTexturePath = specularPath
-        };
+        var material = new PbrMaterial();
 
-        var normalTexture = LoadMaterialTexture(aiMaterial, TextureType.Normals, directory, out var normalPath);
+        // BaseColor: prefer glTF BaseColor slot, fall back to legacy Diffuse for FBX
+        material.BaseColorTexture =
+            LoadMaterialTexture(aiMaterial, TextureType.BaseColor, directory, out var bcPath)
+            ?? LoadMaterialTexture(aiMaterial, TextureType.Diffuse, directory, out bcPath)
+            ?? textureFactory.GetWhiteTexture();
+        material.BaseColorTexturePath = bcPath;
 
-        if (normalTexture == null)
-            normalTexture = LoadMaterialTexture(aiMaterial, TextureType.Height, directory, out normalPath);
+        // MetallicRoughness: Assimp exposes glTF packed texture via Unknown or Metalness slot
+        var mrTexture =
+            LoadMaterialTexture(aiMaterial, TextureType.Metalness, directory, out var mrPath)
+            ?? LoadMaterialTexture(aiMaterial, TextureType.DiffuseRoughness, directory, out mrPath)
+            ?? LoadMaterialTexture(aiMaterial, TextureType.Unknown, directory, out mrPath);
+        material.MetallicRoughnessTexture = mrTexture;
+        material.MetallicRoughnessTexturePath = mrPath;
 
-        material.NormalTexture = normalTexture ?? textureFactory.GetFlatNormalTexture();
-        material.NormalTexturePath = normalPath;
+        // Normal map
+        material.NormalTexture =
+            LoadMaterialTexture(aiMaterial, TextureType.Normals, directory, out var nPath)
+            ?? LoadMaterialTexture(aiMaterial, TextureType.Height, directory, out nPath)
+            ?? textureFactory.GetFlatNormalTexture();
+        material.NormalTexturePath = nPath;
 
-        var shininess = 32.0f;
-        assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
-        material.Shininess = shininess > 0 ? shininess : 32.0f;
+        // AO
+        material.AoTexture =
+            LoadMaterialTexture(aiMaterial, TextureType.AmbientOcclusion, directory, out var aoPath)
+            ?? LoadMaterialTexture(aiMaterial, TextureType.Lightmap, directory, out aoPath);
+        material.AoTexturePath = aoPath;
+
+        // Emissive
+        material.EmissiveTexture =
+            LoadMaterialTexture(aiMaterial, TextureType.EmissionColor, directory, out var ePath)
+            ?? LoadMaterialTexture(aiMaterial, TextureType.Emissive, directory, out ePath);
+        material.EmissiveTexturePath = ePath;
+        if (material.EmissiveTexture != null)
+            material.EmissiveFactor = System.Numerics.Vector3.One;
 
         return material;
     }

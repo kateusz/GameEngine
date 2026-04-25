@@ -27,6 +27,13 @@ public interface ITextureFactory
     Texture2D GetFlatNormalTexture();
 
     /// <summary>
+    /// Gets a shared singleton 1x1 default MetallicRoughness texture.
+    /// Encoded as linear RGB(0, 255, 0): G=1 (fully rough), B=0 (non-metal).
+    /// Matches the glTF 2.0 packed MetallicRoughness format (G=roughness, B=metallic).
+    /// </summary>
+    Texture2D GetDefaultMetallicRoughness();
+
+    /// <summary>
     /// Creates or retrieves a cached texture from the specified file path.
     /// Uses weak-reference-based caching to prevent duplicate GPU resource allocations
     /// while allowing the garbage collector to reclaim unused textures.

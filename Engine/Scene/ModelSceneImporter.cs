@@ -14,7 +14,7 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
     {
         Logger.Information("Importing model from {ModelPath}", modelPath);
 
-        var (meshes, materials) = meshFactory.LoadModel(modelPath);
+        var (meshes, materials, lights) = meshFactory.LoadModel(modelPath);
         var result = new ImportResult();
 
         for (var i = 0; i < meshes.Count; i++)
@@ -49,7 +49,14 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
         ComputeSceneBounds(meshes, result);
         Logger.Information("Scene bounds — Center: {Center}, Radius: {Radius}", result.SceneCenter, result.SceneRadius);
 
-        if (addDefaultLighting)
+        if (lights.Count > 0)
+        {
+            foreach (var lightData in lights)
+                CreateLightEntity(scene, lightData, result);
+
+            Logger.Information("Imported {Count} lights from model", lights.Count);
+        }
+        else if (addDefaultLighting)
         {
             var lightEntity = scene.CreateEntity("Sun_Light");
             var light = lightEntity.AddComponent<DirectionalLightComponent>();
@@ -57,7 +64,7 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
             light.Strength = 0.8f;
             var tc = lightEntity.AddComponent<TransformComponent>();
             tc.Translation = new Vector3(-1.39f, 73, 35);
-            result.LightEntity = lightEntity;
+            result.LightEntities.Add(lightEntity);
 
             Logger.Information("Added default lighting at {Position}", tc.Translation);
         }
@@ -82,6 +89,35 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
         }
 
         return result;
+    }
+
+    private static void CreateLightEntity(IScene scene, ModelLightData data, ImportResult result)
+    {
+        var entity = scene.CreateEntity(data.Name);
+        var tc = entity.AddComponent<TransformComponent>();
+        tc.Translation = data.Position;
+
+        switch (data.Type)
+        {
+            case ModelLightType.Directional:
+            {
+                var comp = entity.AddComponent<DirectionalLightComponent>();
+                comp.Color = data.Color;
+                comp.Direction = data.Direction;
+                comp.Strength = data.Intensity;
+                break;
+            }
+            case ModelLightType.Point:
+            case ModelLightType.Spot:
+            {
+                var comp = entity.AddComponent<PointLightComponent>();
+                comp.Color = data.Color;
+                comp.Intensity = data.Intensity * 10f;
+                break;
+            }
+        }
+
+        result.LightEntities.Add(entity);
     }
 
     private static void ComputeSceneBounds(List<Mesh> meshes, ImportResult result)
@@ -117,7 +153,7 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
     public class ImportResult
     {
         public List<ECS.Entity> MeshEntities { get; } = [];
-        public ECS.Entity? LightEntity { get; set; }
+        public List<ECS.Entity> LightEntities { get; } = [];
         public ECS.Entity? CameraEntity { get; set; }
         public Vector3 SceneCenter { get; set; }
         public Vector3 SceneExtents { get; set; }

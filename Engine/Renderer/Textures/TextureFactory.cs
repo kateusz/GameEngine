@@ -10,6 +10,8 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
     private readonly Lock _blackLock = new();
     private Texture2D? _flatNormalTexture;
     private readonly Lock _flatNormalLock = new();
+    private Texture2D? _defaultMetallicRoughness;
+    private readonly Lock _metallicRoughnessLock = new();
     private readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
@@ -64,6 +66,23 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
             _flatNormalTexture = Create(1, 1);
             _flatNormalTexture.SetData(0xFFFF8080u, 4);
             return _flatNormalTexture;
+        }
+    }
+
+    public Texture2D GetDefaultMetallicRoughness()
+    {
+        if (_defaultMetallicRoughness != null)
+            return _defaultMetallicRoughness;
+
+        lock (_metallicRoughnessLock)
+        {
+            if (_defaultMetallicRoughness != null)
+                return _defaultMetallicRoughness;
+
+            _defaultMetallicRoughness = Create(1, 1);
+            // Linear RGB(0, 255, 0): G=1 (fully rough), B=0 (non-metal)
+            _defaultMetallicRoughness.SetData(0xFF00FF00u, 4);
+            return _defaultMetallicRoughness;
         }
     }
 
@@ -153,6 +172,12 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
         {
             _flatNormalTexture?.Dispose();
             _flatNormalTexture = null;
+        }
+
+        lock (_metallicRoughnessLock)
+        {
+            _defaultMetallicRoughness?.Dispose();
+            _defaultMetallicRoughness = null;
         }
 
         ClearCache();

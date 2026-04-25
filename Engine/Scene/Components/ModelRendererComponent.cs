@@ -7,7 +7,7 @@ namespace Engine.Scene.Components;
 public class ModelRendererComponent : IComponent
 {
     public Vector4 Color { get; set; } = Vector4.One;
-    public List<MeshMaterial> Materials { get; set; } = [];
+    public List<PbrMaterial> Materials { get; set; } = [];
     public bool CastShadows { get; set; } = true;
     public bool ReceiveShadows { get; set; } = true;
 
@@ -18,14 +18,11 @@ public class ModelRendererComponent : IComponent
         Color = color;
     }
 
-    public IComponent Clone()
+    public IComponent Clone() => new ModelRendererComponent
     {
-        return new ModelRendererComponent
-        {
-            Color = Color,
-            Materials = [..Materials],
-            CastShadows = CastShadows,
-            ReceiveShadows = ReceiveShadows
-        };
-    }
+        Color = Color,
+        Materials = [..Materials],
+        CastShadows = CastShadows,
+        ReceiveShadows = ReceiveShadows
+    };
 }

@@ -15,7 +15,7 @@ internal sealed class MeshFactory(
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private readonly Dictionary<string, Mesh> _loadedMeshes = new();
-    private readonly Dictionary<string, (List<Mesh> Meshes, List<MeshMaterial> Materials)> _loadedModels = new();
+    private readonly Dictionary<string, (List<Mesh> Meshes, List<PbrMaterial> Materials, List<ModelLightData> Lights)> _loadedModels = new();
     private bool _disposed;
 
     public Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
@@ -82,7 +82,7 @@ internal sealed class MeshFactory(
         return CreateCube(textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
     }
 
-    public (List<Mesh> Meshes, List<MeshMaterial> Materials) LoadModel(string path)
+    public (List<Mesh> Meshes, List<PbrMaterial> Materials, List<ModelLightData> Lights) LoadModel(string path)
     {
         if (_loadedModels.TryGetValue(path, out var cached))
             return cached;
@@ -91,7 +91,7 @@ internal sealed class MeshFactory(
 
         // Filter out empty meshes that have no geometry (helper/dummy nodes in FBX)
         var validMeshes = new List<Mesh>();
-        var validMaterials = new List<MeshMaterial>();
+        var validMaterials = new List<PbrMaterial>();
 
         for (var i = 0; i < result.Meshes.Count; i++)
         {
@@ -111,14 +111,14 @@ internal sealed class MeshFactory(
         _logger.Information("Initialized {Count}/{Total} meshes from {Path}",
             validMeshes.Count, result.Meshes.Count, path);
 
-        var entry = (validMeshes, validMaterials);
+        var entry = (validMeshes, validMaterials, result.Lights);
         _loadedModels[path] = entry;
         return entry;
     }
 
     public void Clear()
     {
-        foreach (var (meshes, _) in _loadedModels.Values)
+        foreach (var (meshes, _, _) in _loadedModels.Values)
         {
             foreach (var mesh in meshes)
                 mesh.Dispose();

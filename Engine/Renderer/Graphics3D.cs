@@ -36,15 +36,17 @@ internal sealed class Graphics3D(
     public void Init()
     {
         _meshShader = shaderFactory.Create("assets/shaders/OpenGL/lightingShader.vert",
-            "assets/shaders/OpenGL/lightingShader.frag");
+            "assets/shaders/OpenGL/pbrShader.frag");
         _lightShader = shaderFactory.Create("assets/shaders/OpenGL/lightCubeShader.vert",
             "assets/shaders/OpenGL/lightCubeShader.frag");
         _cubeMesh = meshFactory.CreateCube();
 
         _meshShader.Bind();
-        _meshShader.SetInt("u_DiffuseMap", 0);
-        _meshShader.SetInt("u_SpecularMap", 1);
-        _meshShader.SetInt("u_NormalMap", 2);
+        _meshShader.SetInt("u_BaseColor", 0);
+        _meshShader.SetInt("u_MetallicRoughness", 1);
+        _meshShader.SetInt("u_Normal", 2);
+        _meshShader.SetInt("u_AO", 3);
+        _meshShader.SetInt("u_Emissive", 4);
         _meshShader.Unbind();
     }
 
@@ -79,7 +81,7 @@ internal sealed class Graphics3D(
         _meshShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, PbrMaterial material, int entityId = -1)
     {
         Matrix4x4.Invert(transform, out var invTransform);
         var normalMatrix = Matrix4x4.Transpose(invTransform);
@@ -87,21 +89,9 @@ internal sealed class Graphics3D(
         _meshShader.Bind();
         _meshShader.SetMat4("u_Model", transform);
         _meshShader.SetMat4("u_NormalMatrix", normalMatrix);
-        _meshShader.SetFloat4("u_Color", Vector4.One);
         _meshShader.SetInt("u_EntityID", entityId);
 
-        _meshShader.SetFloat("u_Shininess", material.Shininess);
-        _meshShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
-        _meshShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
-        _meshShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
-
-        var diffuse = material.DiffuseTexture ?? textureFactory.GetWhiteTexture();
-        var specular = material.SpecularTexture ?? textureFactory.GetBlackTexture();
-        var normal = material.NormalTexture ?? textureFactory.GetFlatNormalTexture();
-
-        diffuse.Bind(0);
-        specular.Bind(1);
-        normal.Bind(2);
+        BindPbrMaterial(material);
 
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
@@ -115,7 +105,6 @@ internal sealed class Graphics3D(
             return;
 
         _meshShader.Bind();
-        _meshShader.SetFloat4("u_Color", modelRenderer.Color);
         _meshShader.SetInt("u_EntityID", entityId);
 
         for (var i = 0; i < meshComponent.Meshes.Count; i++)
@@ -129,20 +118,8 @@ internal sealed class Graphics3D(
             _meshShader.SetMat4("u_Model", meshTransform);
             _meshShader.SetMat4("u_NormalMatrix", normalMatrix);
 
-            var material = i < modelRenderer.Materials.Count ? modelRenderer.Materials[i] : new MeshMaterial();
-
-            _meshShader.SetFloat("u_Shininess", material.Shininess);
-            _meshShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
-            _meshShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
-            _meshShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
-
-            var diffuse = material.DiffuseTexture ?? textureFactory.GetWhiteTexture();
-            var specular = material.SpecularTexture ?? textureFactory.GetBlackTexture();
-            var normalTex = material.NormalTexture ?? textureFactory.GetFlatNormalTexture();
-
-            diffuse.Bind(0);
-            specular.Bind(1);
-            normalTex.Bind(2);
+            var material = i < modelRenderer.Materials.Count ? modelRenderer.Materials[i] : new PbrMaterial();
+            BindPbrMaterial(material);
 
             mesh.Bind();
             rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
@@ -174,8 +151,32 @@ internal sealed class Graphics3D(
             _pointLights[i] = pointLights[i];
     }
 
-    public void SetShininess(float shininess)
+    private void BindPbrMaterial(PbrMaterial material)
     {
+        _meshShader.SetFloat4("u_BaseColorFactor", material.BaseColorFactor);
+        _meshShader.SetFloat("u_MetallicFactor", material.MetallicFactor);
+        _meshShader.SetFloat("u_RoughnessFactor", material.RoughnessFactor);
+        _meshShader.SetFloat3("u_EmissiveFactor", material.EmissiveFactor);
+        _meshShader.SetFloat("u_NormalScale", material.NormalScale);
+        _meshShader.SetFloat("u_AoStrength", material.AoStrength);
+
+        _meshShader.SetInt("u_HasBaseColor", material.HasBaseColorMap ? 1 : 0);
+        _meshShader.SetInt("u_HasMetallicRoughness", material.HasMetallicRoughnessMap ? 1 : 0);
+        _meshShader.SetInt("u_HasNormal", material.HasNormalMap ? 1 : 0);
+        _meshShader.SetInt("u_HasAO", material.HasAoMap ? 1 : 0);
+        _meshShader.SetInt("u_HasEmissive", material.HasEmissiveMap ? 1 : 0);
+
+        var baseColor = material.BaseColorTexture ?? textureFactory.GetWhiteTexture();
+        var mr        = material.MetallicRoughnessTexture ?? textureFactory.GetDefaultMetallicRoughness();
+        var normal    = material.NormalTexture ?? textureFactory.GetFlatNormalTexture();
+        var ao        = material.AoTexture ?? textureFactory.GetWhiteTexture();
+        var emissive  = material.EmissiveTexture ?? textureFactory.GetBlackTexture();
+
+        baseColor.Bind(0);
+        mr.Bind(1);
+        normal.Bind(2);
+        ao.Bind(3);
+        emissive.Bind(4);
     }
 
     private void UploadLightUniforms()

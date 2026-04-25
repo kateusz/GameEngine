@@ -22,7 +22,7 @@ public interface IMeshFactory : IDisposable
 
     Mesh CreateCube();
 
-    (List<Mesh> Meshes, List<MeshMaterial> Materials) LoadModel(string path);
+    (List<Mesh> Meshes, List<PbrMaterial> Materials, List<ModelLightData> Lights) LoadModel(string path);
 
     /// <summary>
     /// Clears all cached meshes and disposes loaded models to free GPU resources.

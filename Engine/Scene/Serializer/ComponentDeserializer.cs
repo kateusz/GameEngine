@@ -291,12 +291,16 @@ internal sealed class ComponentDeserializer(
 
         foreach (var material in component.Materials)
         {
-            if (!string.IsNullOrWhiteSpace(material.DiffuseTexturePath))
-                material.DiffuseTexture = textureFactory.Create(PathBuilder.Build(material.DiffuseTexturePath));
-            if (!string.IsNullOrWhiteSpace(material.SpecularTexturePath))
-                material.SpecularTexture = textureFactory.Create(PathBuilder.Build(material.SpecularTexturePath));
+            if (!string.IsNullOrWhiteSpace(material.BaseColorTexturePath))
+                material.BaseColorTexture = textureFactory.Create(PathBuilder.Build(material.BaseColorTexturePath));
+            if (!string.IsNullOrWhiteSpace(material.MetallicRoughnessTexturePath))
+                material.MetallicRoughnessTexture = textureFactory.Create(PathBuilder.Build(material.MetallicRoughnessTexturePath));
             if (!string.IsNullOrWhiteSpace(material.NormalTexturePath))
                 material.NormalTexture = textureFactory.Create(PathBuilder.Build(material.NormalTexturePath));
+            if (!string.IsNullOrWhiteSpace(material.AoTexturePath))
+                material.AoTexture = textureFactory.Create(PathBuilder.Build(material.AoTexturePath));
+            if (!string.IsNullOrWhiteSpace(material.EmissiveTexturePath))
+                material.EmissiveTexture = textureFactory.Create(PathBuilder.Build(material.EmissiveTexturePath));
         }
 
         entity.AddComponent(component);
