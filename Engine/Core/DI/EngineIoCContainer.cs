@@ -17,6 +17,7 @@ using Engine.Renderer.VertexArray;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
+using Engine.Scene.Systems.Pong;
 using Engine.Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -94,6 +95,12 @@ public static class EngineIoCContainer
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
+        container.Register<IPongInputState, PongInputState>(Reuse.Singleton);
+        container.Register<PaddleInputSystem>(Reuse.Singleton);
+        container.Register<PaddleAiSystem>(Reuse.Singleton);
+        container.Register<BallMovementSystem>(Reuse.Singleton);
+        container.Register<PongCollisionSystem>(Reuse.Singleton);
+        container.Register<PongScoringSystem>(Reuse.Singleton);
         
         container.Register<PrimaryCameraSystem>(Reuse.Singleton);
         container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
