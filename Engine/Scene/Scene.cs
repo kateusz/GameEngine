@@ -536,25 +536,42 @@ internal sealed class Scene(
             MarkSubtreeWorldDirty(child);
     }
 
-    /// <summary>
-    /// Duplicates an entity by cloning all of its components.
-    /// </summary>
-    /// <param name="entity">The entity to duplicate.</param>
-    /// <returns>The newly created entity with cloned components.</returns>
     public Entity DuplicateEntity(Entity entity)
     {
-        var newEntity = CreateEntity(entity.Name);
+        var idMap = new Dictionary<int, int>();
+        var root = DuplicateRecursive(entity, parentNewId: null, idMap);
 
-        foreach (var component in entity.GetAllComponents())
+        if (root.HasComponent<CameraComponent>() && root.GetComponent<CameraComponent>().Primary)
+            SetPrimaryCamera(root);
+
+        return root;
+    }
+
+    private Entity DuplicateRecursive(Entity source, int? parentNewId, Dictionary<int, int> idMap)
+    {
+        var clone = CreateEntity(source.Name);
+        idMap[source.Id] = clone.Id;
+
+        foreach (var component in source.GetAllComponents())
+            clone.AddComponentDynamic(component.Clone());
+
+        if (parentNewId is not null)
         {
-            newEntity.AddComponentDynamic(component.Clone());
+            var parentEntity = _entities.First(e => e.Id == parentNewId.Value);
+            SetParent(clone, parentEntity);
         }
 
-        // Normalize primary camera flags to ensure at most one primary camera
-        if (newEntity.HasComponent<CameraComponent>() && newEntity.GetComponent<CameraComponent>().Primary)
-            SetPrimaryCamera(newEntity);
+        if (source.TryGetComponent<TransformComponent>(out var sourceT))
+        {
+            foreach (var childId in sourceT.ChildIds)
+            {
+                var child = _entities.FirstOrDefault(e => e.Id == childId);
+                if (child is not null)
+                    DuplicateRecursive(child, clone.Id, idMap);
+            }
+        }
 
-        return newEntity;
+        return clone;
     }
 
     /// <summary>

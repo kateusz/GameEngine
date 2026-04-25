@@ -172,4 +172,29 @@ public class SceneHierarchyTests : IDisposable
         parentT.ChildIds.ShouldNotContain(child.Id);
         scene.Entities.ShouldContain(parent);
     }
+
+    [Fact]
+    public void DuplicateEntity_DuplicatesEntireSubtree()
+    {
+        using var scene = NewScene();
+        var (a, _) = WithTransform(scene.CreateEntity("A"));
+        var (b, _) = WithTransform(scene.CreateEntity("B"));
+        var (c, _) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(b, a);
+        scene.SetParent(c, b);
+
+        var dup = scene.DuplicateEntity(a);
+
+        dup.Id.ShouldNotBe(a.Id);
+        dup.Name.ShouldBe(a.Name);
+
+        var dupT = dup.GetComponent<TransformComponent>();
+        dupT.ParentId.ShouldBeNull();
+        dupT.ChildIds.Count.ShouldBe(1);
+
+        var dupB = scene.Entities.First(e => e.Id == dupT.ChildIds[0]);
+        var dupBT = dupB.GetComponent<TransformComponent>();
+        dupBT.ChildIds.Count.ShouldBe(1);
+        dupBT.ParentId.ShouldBe(dup.Id);
+    }
 }
