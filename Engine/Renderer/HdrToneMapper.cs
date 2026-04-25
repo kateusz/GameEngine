@@ -87,6 +87,7 @@ internal sealed class HdrToneMapper(
         if (_disposed)
             return;
 
+        _shader?.Dispose();
         _quadVertexArray.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);

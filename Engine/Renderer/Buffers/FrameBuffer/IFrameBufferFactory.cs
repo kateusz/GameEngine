@@ -6,11 +6,10 @@ namespace Engine.Renderer.Buffers.FrameBuffer;
 public interface IFrameBufferFactory
 {
     /// <summary>
-    /// Creates a new framebuffer with the specified specification.
+    /// Creates a new framebuffer with the default specification.
     /// </summary>
     /// <returns>A framebuffer instance.</returns>
     IFrameBuffer Create();
-
     /// <summary>
     /// Creates a new framebuffer with a custom specification.
     /// </summary>
