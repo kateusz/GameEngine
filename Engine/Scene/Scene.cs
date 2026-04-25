@@ -81,9 +81,41 @@ internal sealed class Scene(
 
     public void DestroyEntity(Entity entity)
     {
-        UnhookHierarchy(entity);
-        context.Remove(entity.Id);
-        _entities.Remove(entity);
+        // Detach from parent's child list (only the destroyed root entry — the descendants
+        // are removed wholesale below).
+        if (entity.TryGetComponent<TransformComponent>(out var t) && t.ParentId is { } parentId)
+        {
+            var parent = _entities.FirstOrDefault(e => e.Id == parentId);
+            if (parent is not null && parent.TryGetComponent<TransformComponent>(out var parentT))
+                parentT.RemoveChildIdInternal(entity.Id);
+        }
+
+        // Collect descendants in post-order (deepest first).
+        var toDestroy = new List<Entity>();
+        CollectSubtreePostOrder(entity, toDestroy);
+
+        foreach (var e in toDestroy)
+        {
+            UnhookHierarchy(e);
+            context.Remove(e.Id);
+            _entities.Remove(e);
+        }
+    }
+
+    private void CollectSubtreePostOrder(Entity entity, List<Entity> output)
+    {
+        if (entity.TryGetComponent<TransformComponent>(out var t))
+        {
+            // Copy the child list because the recursion path can mutate it indirectly
+            // if a child without TC ever appeared (defensive).
+            foreach (var childId in t.ChildIds.ToList())
+            {
+                var child = _entities.FirstOrDefault(e => e.Id == childId);
+                if (child is not null)
+                    CollectSubtreePostOrder(child, output);
+            }
+        }
+        output.Add(entity);
     }
 
     private void HookHierarchy(Entity entity)

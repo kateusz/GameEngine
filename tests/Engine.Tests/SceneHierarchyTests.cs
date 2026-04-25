@@ -143,4 +143,33 @@ public class SceneHierarchyTests : IDisposable
         bT.IsWorldDirty.ShouldBeTrue();
         cT.IsWorldDirty.ShouldBeTrue();
     }
+
+    [Fact]
+    public void DestroyEntity_CascadesToDescendants()
+    {
+        using var scene = NewScene();
+        var (a, _) = WithTransform(scene.CreateEntity("A"));
+        var (b, _) = WithTransform(scene.CreateEntity("B"));
+        var (c, _) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(b, a);
+        scene.SetParent(c, b);
+
+        scene.DestroyEntity(a);
+
+        scene.Entities.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DestroyEntity_RemovesSelfFromParentChildren()
+    {
+        using var scene = NewScene();
+        var (parent, parentT) = WithTransform(scene.CreateEntity("P"));
+        var (child, _) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(child, parent);
+
+        scene.DestroyEntity(child);
+
+        parentT.ChildIds.ShouldNotContain(child.Id);
+        scene.Entities.ShouldContain(parent);
+    }
 }
