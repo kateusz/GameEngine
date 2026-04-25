@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using ECS;
 using Engine.Math;
@@ -12,6 +13,13 @@ public class TransformComponent : IComponent
 
     private Matrix4x4 _cachedTransform;
     private bool _isDirty = true;
+
+    private readonly List<int> _childIds = new();
+    private int? _parentId;
+#pragma warning disable CS0169
+    private Matrix4x4 _cachedWorldTransform;
+#pragma warning restore CS0169
+    internal bool _isWorldDirty = true;
 
     public Vector3 Translation
     {
@@ -42,6 +50,10 @@ public class TransformComponent : IComponent
             _isDirty = true;
         }
     }
+
+    public int? ParentId => _parentId;
+
+    public IReadOnlyList<int> ChildIds => _childIds;
 
     public TransformComponent()
     {
@@ -74,6 +86,23 @@ public class TransformComponent : IComponent
         }
 
         return _cachedTransform;
+    }
+
+    internal void SetParentIdInternal(int? parentId)
+    {
+        _parentId = parentId;
+        _isWorldDirty = true;
+    }
+
+    internal void AddChildIdInternal(int childId)
+    {
+        if (!_childIds.Contains(childId))
+            _childIds.Add(childId);
+    }
+
+    internal void RemoveChildIdInternal(int childId)
+    {
+        _childIds.Remove(childId);
     }
 
     public IComponent Clone()
