@@ -12,6 +12,14 @@ public interface IContext
     /// <param name="entityId">Id of Entity</param>
     /// <returns><see cref="Entity"/></returns>
     Entity GetById(int entityId);
+
+    /// <summary>
+    /// Tries to get an entity by its Id without throwing.
+    /// </summary>
+    /// <param name="entityId">The entity Id to look up.</param>
+    /// <param name="entity">When this method returns, contains the entity if found; otherwise, the default value.</param>
+    /// <returns><see langword="true"/> if an entity with the given Id exists; otherwise, <see langword="false"/>.</returns>
+    bool TryGetById(int entityId, out Entity entity);
     
     /// <summary>
     /// Registers a new entity in the context.

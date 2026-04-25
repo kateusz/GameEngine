@@ -160,10 +160,14 @@ internal sealed class Scene(
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
+            var worldMatrix = entity.GetWorldTransform(context);
+            Matrix4x4.Decompose(worldMatrix, out _, out _, out var worldTranslation);
+            var worldAngle = MathF.Atan2(worldMatrix.M12, worldMatrix.M11);
+
             var bodyDef = new BodyDef
             {
-                position = new Vector2(transform.Translation.X, transform.Translation.Y),
-                angle = transform.Rotation.Z,
+                position = new Vector2(worldTranslation.X, worldTranslation.Y),
+                angle = worldAngle,
                 type = RigidBody2DTypeToBox2DBody(component.BodyType),
                 bullet = component.BodyType == RigidBodyType.Dynamic
             };
@@ -281,10 +285,8 @@ internal sealed class Scene(
         
         foreach (var (entity, modelRendererComponent) in modelGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
             var meshComponent = entity.GetComponent<MeshComponent>();
-        
-            graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
+            graphics3D.DrawModel(entity.GetWorldTransform(context), meshComponent, modelRendererComponent,
                 entity.Id);
         }
         
@@ -313,8 +315,7 @@ internal sealed class Scene(
         var spriteGroup = context.View<SpriteRendererComponent>();
         foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            graphics2D.DrawSprite(entity.GetWorldTransform(context), spriteRendererComponent, entity.Id);
         }
 
         var subtextureGroup = context.View<SubTextureRendererComponent>();
@@ -343,9 +344,7 @@ internal sealed class Scene(
                 texCoords = subTexture.TexCoords;
             }
 
-            // Use transform directly without additional scaling (same as runtime)
-            var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
+            graphics2D.DrawQuad(entity.GetWorldTransform(context), subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
 
         if (debugSettings.ShowColliderBounds)

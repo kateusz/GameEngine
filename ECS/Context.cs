@@ -51,6 +51,8 @@ public class Context : IContext
     }
     
     public Entity GetById(int entityId) => _entitiesById[entityId];
+
+    public bool TryGetById(int entityId, out Entity entity) => _entitiesById.TryGetValue(entityId, out entity!);
     
     public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent
     {

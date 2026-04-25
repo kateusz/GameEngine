@@ -3,6 +3,7 @@ using ECS;
 using ECS.Systems;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
+using Engine.Scene;
 using Engine.Scene.Components;
 using Serilog;
 
@@ -37,14 +38,10 @@ internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext c
         var subtextureGroup = context.View<SubTextureRendererComponent>();
         foreach (var (entity, subtextureComponent) in subtextureGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            
             if (subtextureComponent.Texture == null)
                 continue;
 
-            // Use the transform component's matrix directly (same as SpriteRenderingSystem)
-            // The transform scale determines the world-space size of the rendered sprite
-            var transform = transformComponent.GetTransform();
+            var transform = entity.GetWorldTransform(context);
 
             // Use pre-calculated TexCoords if available (e.g., from animation system)
             // Otherwise calculate from grid coordinates
