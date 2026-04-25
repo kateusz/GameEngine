@@ -10,4 +10,11 @@ public interface IFrameBufferFactory
     /// </summary>
     /// <returns>A framebuffer instance.</returns>
     IFrameBuffer Create();
+
+    /// <summary>
+    /// Creates a new framebuffer with a custom specification.
+    /// </summary>
+    /// <param name="specification">Framebuffer configuration.</param>
+    /// <returns>A framebuffer instance.</returns>
+    IFrameBuffer Create(FrameBufferSpecification specification);
 }

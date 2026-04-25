@@ -15,12 +15,14 @@ public class AmbientLightComponentEditor : IComponentEditor
                 return;
 
             var color = ambientLight.Color;
-            ImGui.ColorEdit3("Color", ref color);
+            ImGui.ColorEdit3("Color", ref color,
+                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
+                ImGuiColorEditFlags.NoOptions);
             if (color != ambientLight.Color)
                 ambientLight.Color = color;
 
             var strength = ambientLight.Strength;
-            if (ImGui.DragFloat("Strength", ref strength, 0.01f, 0.0f, 1.0f))
+            if (ImGui.DragFloat("Strength", ref strength, 0.01f, 0.0f, 100.0f))
                 ambientLight.Strength = strength;
 
             ambientLight.Type = LightType.Ambient;

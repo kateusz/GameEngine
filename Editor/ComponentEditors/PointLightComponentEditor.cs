@@ -16,7 +16,9 @@ public class PointLightComponentEditor : IComponentEditor
                 return;
 
             var newColor = pointLight.Color;
-            ImGui.ColorEdit3("Color", ref newColor);
+            ImGui.ColorEdit3("Color", ref newColor,
+                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
+                ImGuiColorEditFlags.NoOptions);
             if (newColor != pointLight.Color)
                 pointLight.Color = newColor;
 

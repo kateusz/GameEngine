@@ -75,6 +75,7 @@ public static class EngineIoCContainer
         
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
+        container.Register<IHdrToneMapper, HdrToneMapper>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);

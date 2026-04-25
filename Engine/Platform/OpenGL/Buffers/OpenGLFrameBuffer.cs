@@ -254,6 +254,11 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
                 format = PixelFormat.Rgba;
                 pixelType = PixelType.UnsignedByte;
                 break;
+            case FramebufferTextureFormat.RGBA16F:
+                internalFormat = InternalFormat.Rgba16f;
+                format = PixelFormat.Rgba;
+                pixelType = PixelType.Float;
+                break;
             case FramebufferTextureFormat.RED_INTEGER:
                 internalFormat = InternalFormat.R32i;
                 format = PixelFormat.RedInteger;

@@ -29,6 +29,11 @@ public interface IEditorPreferences : IDisposable
     bool ShowFPS { get; set; }
 
     /// <summary>
+    /// Gets or sets HDR tonemapping exposure value.
+    /// </summary>
+    float HdrExposure { get; set; }
+
+    /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.
     /// </summary>
