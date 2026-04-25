@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using ECS;
@@ -16,10 +17,8 @@ public class TransformComponent : IComponent
 
     private readonly List<int> _childIds = new();
     private int? _parentId;
-#pragma warning disable CS0169
     private Matrix4x4 _cachedWorldTransform;
-#pragma warning restore CS0169
-    internal bool _isWorldDirty = true;
+    private bool _isWorldDirty = true;
 
     public Vector3 Translation
     {
@@ -28,6 +27,7 @@ public class TransformComponent : IComponent
         {
             _translation = value;
             _isDirty = true;
+            _isWorldDirty = true;
         }
     }
 
@@ -38,6 +38,7 @@ public class TransformComponent : IComponent
         {
             _rotation = value;
             _isDirty = true;
+            _isWorldDirty = true;
         }
     }
 
@@ -48,6 +49,7 @@ public class TransformComponent : IComponent
         {
             _scale = value;
             _isDirty = true;
+            _isWorldDirty = true;
         }
     }
 
@@ -87,6 +89,33 @@ public class TransformComponent : IComponent
 
         return _cachedTransform;
     }
+
+    public Matrix4x4 GetWorldTransform(Func<int, TransformComponent?> resolveParent)
+    {
+        if (!_isWorldDirty && !_isDirty)
+            return _cachedWorldTransform;
+
+        var local = GetTransform();
+
+        if (_parentId is null)
+        {
+            _cachedWorldTransform = local;
+        }
+        else
+        {
+            var parent = resolveParent(_parentId.Value);
+            _cachedWorldTransform = parent is null
+                ? local
+                : local * parent.GetWorldTransform(resolveParent);
+        }
+
+        _isWorldDirty = false;
+        return _cachedWorldTransform;
+    }
+
+    internal bool IsWorldDirty => _isWorldDirty;
+
+    internal void MarkWorldDirty() => _isWorldDirty = true;
 
     internal void SetParentIdInternal(int? parentId)
     {
