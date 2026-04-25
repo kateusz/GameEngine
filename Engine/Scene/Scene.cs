@@ -183,7 +183,7 @@ internal sealed class Scene(
             graphics3D.SetAmbientLight(
                 enabled: true,
                 color: ambientLight.Color,
-                strength: 1.0f);
+                strength: ambientLight.Strength);
         }
         else
         {

@@ -12,7 +12,8 @@ public class DirectionalLightComponentEditor : IComponentEditor
     {
         ComponentEditorRegistry.DrawComponent<DirectionalLightComponent>("Directional Light", entity, () =>
         {
-            var directionalLight = entity.GetComponent<DirectionalLightComponent>();
+            if (!entity.TryGetComponent<DirectionalLightComponent>(out var directionalLight))
+                return;
 
             var direction = directionalLight.Direction;
             VectorPanel.DrawVec3Control("Direction", ref direction);

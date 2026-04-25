@@ -11,12 +11,17 @@ public class AmbientLightComponentEditor : IComponentEditor
     {
         ComponentEditorRegistry.DrawComponent<AmbientLightComponent>("Ambient Light", entity, () =>
         {
-            var ambientLight = entity.GetComponent<AmbientLightComponent>();
+            if (!entity.TryGetComponent<AmbientLightComponent>(out var ambientLight))
+                return;
 
             var color = ambientLight.Color;
             ImGui.ColorEdit3("Color", ref color);
             if (color != ambientLight.Color)
                 ambientLight.Color = color;
+
+            var strength = ambientLight.Strength;
+            if (ImGui.DragFloat("Strength", ref strength, 0.01f, 0.0f, 1.0f))
+                ambientLight.Strength = strength;
 
             ambientLight.Type = LightType.Ambient;
         });

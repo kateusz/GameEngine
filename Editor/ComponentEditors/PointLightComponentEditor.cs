@@ -12,7 +12,8 @@ public class PointLightComponentEditor : IComponentEditor
     {
         ComponentEditorRegistry.DrawComponent<PointLightComponent>("Point Light", entity, () =>
         {
-            var pointLight = entity.GetComponent<PointLightComponent>();
+            if (!entity.TryGetComponent<PointLightComponent>(out var pointLight))
+                return;
 
             var newColor = pointLight.Color;
             ImGui.ColorEdit3("Color", ref newColor);
