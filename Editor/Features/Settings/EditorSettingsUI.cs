@@ -18,7 +18,9 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         
         ImGui.Text("Editor Background Color");
         var backgroundColor = editorPreferences.BackgroundColor;
-        if (ImGui.ColorEdit4("Background Color", ref backgroundColor))
+        if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
+                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
+                ImGuiColorEditFlags.NoOptions))
         {
             editorPreferences.BackgroundColor = backgroundColor;
             editorPreferences.Save();
@@ -43,6 +45,16 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.Save();
         }
 
+        ImGui.Separator();
+        ImGui.SeparatorText("HDR");
+
+        var hdrExposure = editorPreferences.HdrExposure;
+        if (ImGui.DragFloat("Exposure", ref hdrExposure, 0.01f, 0.1f, 8.0f))
+        {
+            editorPreferences.HdrExposure = hdrExposure;
+            editorPreferences.Save();
+        }
+
         ModalDrawer.EndModal();
     }
 
@@ -50,4 +62,6 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
     /// Gets the current background color from preferences.
     /// </summary>
     public Vector4 GetBackgroundColor() => editorPreferences.BackgroundColor;
+
+    public float GetHdrExposure() => editorPreferences.HdrExposure;
 }

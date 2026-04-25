@@ -7,6 +7,7 @@ public interface IRendererAPI
 {
     void SetClearColor(Vector4 color);
     void Clear();
+    void BindTexture2D(uint textureId, int slot = 0);
     void DrawIndexed(IVertexArray vertexArray, uint count);
     void DrawLines(IVertexArray vertexArray, uint vertexCount);
     void SetLineWidth(float width);

@@ -23,7 +23,9 @@ public class EditorPreferences : IEditorPreferences
     // Debug Settings
     public bool ShowColliderBounds { get; set; }
     public bool ShowFPS { get; set; } = true;
-    
+
+    // HDR Settings
+    public float HdrExposure { get; set; } = 1.0f;
 
     private static readonly string PreferencesPath =
         Path.Combine(

@@ -1,4 +1,5 @@
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 
 namespace Editor.ComponentEditors.Core;
 
@@ -13,7 +14,9 @@ public class ComponentEditorCollection(
     SubTextureRendererComponentEditor subTextureRendererComponentEditor,
     AudioSourceComponentEditor audioSourceComponentEditor,
     AudioListenerComponentEditor audioListenerComponentEditor,
-    LightingComponentEditor lightingComponentEditor)
+    PointLightComponentEditor pointLightComponentEditor,
+    DirectionalLightComponentEditor directionalLightComponentEditor,
+    AmbientLightComponentEditor ambientLightComponentEditor)
 {
     public IReadOnlyDictionary<Type, IComponentEditor> Editors { get; } = new Dictionary<Type, IComponentEditor>
     {
@@ -27,6 +30,8 @@ public class ComponentEditorCollection(
         { typeof(SubTextureRendererComponent), subTextureRendererComponentEditor },
         { typeof(AudioSourceComponent), audioSourceComponentEditor },
         { typeof(AudioListenerComponent), audioListenerComponentEditor },
-        { typeof(LightingComponent), lightingComponentEditor }
+        { typeof(PointLightComponent), pointLightComponentEditor },
+        { typeof(DirectionalLightComponent), directionalLightComponentEditor },
+        { typeof(AmbientLightComponent), ambientLightComponentEditor }
     };
 }

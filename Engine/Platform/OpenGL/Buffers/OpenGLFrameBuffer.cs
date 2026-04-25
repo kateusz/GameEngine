@@ -254,6 +254,11 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
                 format = PixelFormat.Rgba;
                 pixelType = PixelType.UnsignedByte;
                 break;
+            case FramebufferTextureFormat.RGBA16F:
+                internalFormat = InternalFormat.Rgba16f;
+                format = PixelFormat.Rgba;
+                pixelType = PixelType.Float;
+                break;
             case FramebufferTextureFormat.RED_INTEGER:
                 internalFormat = InternalFormat.R32i;
                 format = PixelFormat.RedInteger;
@@ -296,12 +301,12 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         switch (format)
         {
             case FramebufferTextureFormat.RGBA8:       return GLEnum.Rgba8;
+            case FramebufferTextureFormat.RGBA16F:     return GLEnum.Rgba16f;
             case FramebufferTextureFormat.RED_INTEGER: return GLEnum.RedInteger;
+            default:
+                throw new NotSupportedException($"Unsupported texture format: {format}");
         }
-
-        return 0;
     }
-
     private static void AttachDepthTexture(uint id, uint samples, GLEnum format, FramebufferAttachment attachmentType, uint width, uint height)
     {
         var multisampled = samples > 1;

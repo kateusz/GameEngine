@@ -20,6 +20,14 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "Clear");
     }
 
+    public void BindTexture2D(uint textureId, int slot = 0)
+    {
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
+        OpenGLDebug.CheckError(SilkNetContext.GL, $"ActiveTexture({slot})");
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, textureId);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
+    }
+
     public unsafe void DrawIndexed(IVertexArray vertexArray, uint count)
     {
         var indexBuffer = vertexArray.IndexBuffer;

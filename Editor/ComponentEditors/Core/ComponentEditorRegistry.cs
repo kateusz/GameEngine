@@ -2,6 +2,8 @@ using System.Numerics;
 using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 using ImGuiNET;
 
 namespace Editor.ComponentEditors.Core;
@@ -43,10 +45,16 @@ public class ComponentEditorRegistry(
             ImGui.PopStyleVar();
 
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-            ButtonDrawer.DrawButton("-", lineHeight, lineHeight, entity.RemoveComponent<T>);
+            var removed = ButtonDrawer.DrawButton("-", lineHeight, lineHeight, entity.RemoveComponent<T>);
 
             if (open)
             {
+                if (removed || !entity.TryGetComponent<T>(out _))
+                {
+                    ImGui.TreePop();
+                    return;
+                }
+
                 uiFunction();
                 ImGui.TreePop();
             }

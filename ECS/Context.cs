@@ -62,9 +62,8 @@ public class Context : IContext
 
         foreach (var entity in snapshot)
         {
-            if (entity.HasComponent<TComponent>())
+            if (entity.TryGetComponent<TComponent>(out var component))
             {
-                var component = entity.GetComponent<TComponent>();
                 yield return (entity, component);
             }
         }

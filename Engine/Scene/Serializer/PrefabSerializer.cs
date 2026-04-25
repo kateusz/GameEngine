@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 
 namespace Engine.Scene.Serializer;
 
@@ -91,7 +92,9 @@ internal sealed class PrefabSerializer(
         SerializeComponent<ModelRendererComponent>(entity, componentsArray, nameof(ModelRendererComponent));
         SerializeComponent<AudioListenerComponent>(entity, componentsArray, nameof(AudioListenerComponent));
         SerializeComponent<AudioSourceComponent>(entity, componentsArray, nameof(AudioSourceComponent));
-        SerializeComponent<LightingComponent>(entity, componentsArray, nameof(LightingComponent));
+        SerializeComponent<PointLightComponent>(entity, componentsArray, nameof(PointLightComponent));
+        SerializeComponent<DirectionalLightComponent>(entity, componentsArray, nameof(DirectionalLightComponent));
+        SerializeComponent<AmbientLightComponent>(entity, componentsArray, nameof(AmbientLightComponent));
         componentDeserializer.SerializeNativeScriptComponentToArray(entity, componentsArray);
     }
 
@@ -123,7 +126,9 @@ internal sealed class PrefabSerializer(
         if (entity.HasComponent<AudioListenerComponent>()) entity.RemoveComponent<AudioListenerComponent>();
         if (entity.HasComponent<AudioSourceComponent>()) entity.RemoveComponent<AudioSourceComponent>();
         if (entity.HasComponent<NativeScriptComponent>()) entity.RemoveComponent<NativeScriptComponent>();
-        if (entity.HasComponent<LightingComponent>()) entity.RemoveComponent<LightingComponent>();
+        if (entity.HasComponent<PointLightComponent>()) entity.RemoveComponent<PointLightComponent>();
+        if (entity.HasComponent<DirectionalLightComponent>()) entity.RemoveComponent<DirectionalLightComponent>();
+        if (entity.HasComponent<AmbientLightComponent>()) entity.RemoveComponent<AmbientLightComponent>();
     }
 
     private static JsonArray GetJsonArray(JsonObject jsonObject, string key)

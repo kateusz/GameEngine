@@ -10,6 +10,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 using Engine.Scene.Systems;
 using Serilog;
 
@@ -154,35 +155,91 @@ internal sealed class Scene(
 
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
-        graphics3D.BeginScene(camera);
+        var pointLights = context.View<PointLightComponent>().ToList();
+        var directionalLights = context.View<DirectionalLightComponent>().ToList();
+        var ambientLights = context.View<AmbientLightComponent>().ToList();
 
+        if (directionalLights.Count > 0)
+        {
+            var (_, directionalLight) = directionalLights[0];
+            graphics3D.SetDirectionalLight(
+                enabled: true,
+                direction: directionalLight.Direction,
+                color: directionalLight.Color,
+                strength: directionalLight.Strength);
+        }
+        else
+        {
+            graphics3D.SetDirectionalLight(
+                enabled: false,
+                direction: default,
+                color: default,
+                strength: 0.0f);
+        }
+
+        if (ambientLights.Count > 0)
+        {
+            var (_, ambientLight) = ambientLights[0];
+            graphics3D.SetAmbientLight(
+                enabled: true,
+                color: ambientLight.Color,
+                strength: ambientLight.Strength);
+        }
+        else
+        {
+            graphics3D.SetAmbientLight(
+                enabled: false,
+                color: default,
+                strength: 0.0f);
+        }
+
+        var pointLightData = new List<PointLightData>(16);
+        foreach (var (entity, pointLight) in pointLights)
+        {
+            if (pointLightData.Count >= 16)
+                break;
+            if (!entity.TryGetComponent<TransformComponent>(out var lightTransform))
+                continue;
+
+            pointLightData.Add(new PointLightData(
+                lightTransform.Translation,
+                pointLight.Color,
+                pointLight.Intensity));
+        }
+        graphics3D.SetPointLights(pointLightData);
+
+        graphics3D.BeginScene(camera);
+        
         var modelGroup = context.View<ModelRendererComponent>();
         
         foreach (var (entity, modelRendererComponent) in modelGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
             var meshComponent = entity.GetComponent<MeshComponent>();
-
+        
             graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
                 entity.Id);
         }
-
+        
         graphics3D.EndScene();
-
-        var lightGroup = context.View<LightingComponent>().ToList();
-        if (lightGroup.Count > 0)
+        
+        graphics3D.BeginLightVisualization(camera);
+        foreach (var (e, _) in pointLights)
         {
-            var (_, firstLight) = lightGroup[0];
-            graphics3D.SetLightPosition(firstLight.Position);
-            graphics3D.SetLightDirection(firstLight.Direction);
-            graphics3D.SetLightType((int)firstLight.Type);
-            graphics3D.SetLightColor(firstLight.Color);
+            if (!e.TryGetComponent<TransformComponent>(out var transform))
+                continue;
 
-            graphics3D.BeginLightVisualization(camera);
-            foreach (var (_, lightingComponent) in lightGroup)
-                graphics3D.DrawLightVisualization(lightingComponent.Position);
-            graphics3D.EndLightVisualization();
+            graphics3D.DrawLightVisualization(transform.Translation);
         }
+
+        foreach (var (e, _) in directionalLights)
+        {
+            if (!e.TryGetComponent<TransformComponent>(out var transform))
+                continue;
+
+            graphics3D.DrawLightVisualization(transform.Translation);
+        }
+        graphics3D.EndLightVisualization();
 
         graphics2D.BeginScene(camera);
 
