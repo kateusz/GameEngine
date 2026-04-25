@@ -12,15 +12,23 @@ internal sealed class Graphics3D(
     IMeshFactory meshFactory,
     ITextureFactory textureFactory) : IGraphics3D
 {
+    private const int MaxPointLights = 16;
     private const string ViewProjectionUniform = "u_ViewProjection";
     private IShader _meshShader = null!;
     private IShader _lightShader = null!;
     private Mesh _cubeMesh = null!;
 
-    private Vector3 _lightPosition = Vector3.Zero;
-    private Vector3 _lightDirection = -Vector3.UnitY;
-    private int _lightType = 0;
-    private Vector3 _lightColor = Vector3.One;
+    private bool _directionalLightEnabled;
+    private Vector3 _directionalLightDirection = -Vector3.UnitY;
+    private Vector3 _directionalLightColor = Vector3.One;
+    private float _directionalLightStrength = 1.0f;
+
+    private bool _ambientLightEnabled;
+    private Vector3 _ambientLightColor = Vector3.One;
+    private float _ambientLightStrength = 0.1f;
+
+    private readonly PointLightData[] _pointLights = new PointLightData[MaxPointLights];
+    private int _pointLightCount;
 
     private readonly Statistics _stats = new();
     private bool _disposed;
@@ -54,10 +62,7 @@ internal sealed class Graphics3D(
         var cameraPos = new Vector3(transform.M41, transform.M42, transform.M43);
         _meshShader.Bind();
         _meshShader.SetMat4(ViewProjectionUniform, viewProj);
-        _meshShader.SetFloat3("u_LightPosition", _lightPosition);
-        _meshShader.SetFloat3("u_LightDirection", _lightDirection);
-        _meshShader.SetInt("u_LightType", _lightType);
-        _meshShader.SetFloat3("u_LightColor", _lightColor);
+        UploadLightUniforms();
         _meshShader.SetFloat3("u_ViewPosition", cameraPos);
     }
 
@@ -65,10 +70,7 @@ internal sealed class Graphics3D(
     {
         _meshShader.Bind();
         _meshShader.SetMat4(ViewProjectionUniform, camera.GetViewProjectionMatrix());
-        _meshShader.SetFloat3("u_LightPosition", _lightPosition);
-        _meshShader.SetFloat3("u_LightDirection", _lightDirection);
-        _meshShader.SetInt("u_LightType", _lightType);
-        _meshShader.SetFloat3("u_LightColor", _lightColor);
+        UploadLightUniforms();
         _meshShader.SetFloat3("u_ViewPosition", camera.GetPosition());
     }
 
@@ -148,13 +150,52 @@ internal sealed class Graphics3D(
         }
     }
 
-    public void SetLightPosition(Vector3 position) => _lightPosition = position;
-    public void SetLightDirection(Vector3 direction) => _lightDirection = direction;
-    public void SetLightType(int type) => _lightType = type;
-    public void SetLightColor(Vector3 color) => _lightColor = color;
+    public void SetDirectionalLight(bool enabled, Vector3 direction, Vector3 color, float strength)
+    {
+        _directionalLightEnabled = enabled;
+        _directionalLightDirection = direction;
+        _directionalLightColor = color;
+        _directionalLightStrength = strength;
+    }
+
+    public void SetAmbientLight(bool enabled, Vector3 color, float strength)
+    {
+        _ambientLightEnabled = enabled;
+        _ambientLightColor = color;
+        _ambientLightStrength = strength;
+    }
+
+    public void SetPointLights(IReadOnlyList<PointLightData> pointLights)
+    {
+        var count = System.Math.Min(pointLights.Count, MaxPointLights);
+        _pointLightCount = count;
+
+        for (var i = 0; i < count; i++)
+            _pointLights[i] = pointLights[i];
+    }
 
     public void SetShininess(float shininess)
     {
+    }
+
+    private void UploadLightUniforms()
+    {
+        _meshShader.SetInt("u_DirectionalLightEnabled", _directionalLightEnabled ? 1 : 0);
+        _meshShader.SetFloat3("u_DirectionalLightDirection", _directionalLightDirection);
+        _meshShader.SetFloat3("u_DirectionalLightColor", _directionalLightColor);
+        _meshShader.SetFloat("u_DirectionalLightStrength", _directionalLightStrength);
+
+        _meshShader.SetInt("u_AmbientLightEnabled", _ambientLightEnabled ? 1 : 0);
+        _meshShader.SetFloat3("u_AmbientLightColor", _ambientLightColor);
+        _meshShader.SetFloat("u_AmbientLightStrength", _ambientLightStrength);
+
+        _meshShader.SetInt("u_PointLightCount", _pointLightCount);
+        for (var i = 0; i < _pointLightCount; i++)
+        {
+            _meshShader.SetFloat3($"u_PointLightPositions[{i}]", _pointLights[i].Position);
+            _meshShader.SetFloat3($"u_PointLightColors[{i}]", _pointLights[i].Color);
+            _meshShader.SetFloat($"u_PointLightIntensities[{i}]", _pointLights[i].Intensity);
+        }
     }
 
     public void BeginLightVisualization(Camera camera, Matrix4x4 transform)

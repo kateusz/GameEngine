@@ -42,7 +42,9 @@ public static class EditorIoCContainer
         container.Register<SubTextureRendererComponentEditor>(Reuse.Singleton);
         container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
         container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
-        container.Register<LightingComponentEditor>(Reuse.Singleton);
+        container.Register<PointLightComponentEditor>(Reuse.Singleton);
+        container.Register<DirectionalLightComponentEditor>(Reuse.Singleton);
+        container.Register<AmbientLightComponentEditor>(Reuse.Singleton);
         
         container.Register<RecentProjectsPanel>(Reuse.Singleton);
     

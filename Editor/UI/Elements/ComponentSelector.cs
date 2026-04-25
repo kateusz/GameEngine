@@ -3,6 +3,7 @@ using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 using ImGuiNET;
 using CameraController = Editor.assets.scripts.CameraController;
 
@@ -40,7 +41,9 @@ public static class ComponentSelector
             DrawComponentMenuItem<MeshComponent>("Mesh", entity);
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
-            DrawComponentMenuItem<LightingComponent>("Lighting Component", entity);
+            DrawComponentMenuItem<PointLightComponent>("Point Light", entity);
+            DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity);
+            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);
 
             ImGui.EndPopup();
         }

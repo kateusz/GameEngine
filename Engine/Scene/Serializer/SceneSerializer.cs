@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 using Serilog;
 
 namespace Engine.Scene.Serializer;
@@ -142,7 +143,9 @@ internal sealed class SceneSerializer(
         SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
         SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
         SerializeComponent<AudioSourceComponent>(entity, entityObj, nameof(AudioSourceComponent));
-        SerializeComponent<LightingComponent>(entity, entityObj, nameof(LightingComponent));
+        SerializeComponent<PointLightComponent>(entity, entityObj, nameof(PointLightComponent));
+        SerializeComponent<DirectionalLightComponent>(entity, entityObj, nameof(DirectionalLightComponent));
+        SerializeComponent<AmbientLightComponent>(entity, entityObj, nameof(AmbientLightComponent));
         componentDeserializer.SerializeNativeScriptComponent(entity, entityObj, ComponentsKey);
 
         jsonEntities.Add(entityObj);

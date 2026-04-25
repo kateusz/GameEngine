@@ -7,6 +7,7 @@ using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 using Engine.Scripting;
 using Serilog;
 
@@ -75,8 +76,14 @@ internal sealed class ComponentDeserializer(
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
-            case nameof(LightingComponent):
-                AddComponent<LightingComponent>(entity, componentObj);
+            case nameof(PointLightComponent):
+                AddComponent<PointLightComponent>(entity, componentObj);
+                break;
+            case nameof(DirectionalLightComponent):
+                AddComponent<DirectionalLightComponent>(entity, componentObj);
+                break;
+            case nameof(AmbientLightComponent):
+                AddComponent<AmbientLightComponent>(entity, componentObj);
                 break;
             default:
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
@@ -128,8 +135,14 @@ internal sealed class ComponentDeserializer(
             case nameof(NativeScriptComponent):
                 DeserializeNativeScriptComponent(entity, componentObj);
                 break;
-            case nameof(LightingComponent):
-                AddComponent<LightingComponent>(entity, componentObj);
+            case nameof(PointLightComponent):
+                AddComponent<PointLightComponent>(entity, componentObj);
+                break;
+            case nameof(DirectionalLightComponent):
+                AddComponent<DirectionalLightComponent>(entity, componentObj);
+                break;
+            case nameof(AmbientLightComponent):
+                AddComponent<AmbientLightComponent>(entity, componentObj);
                 break;
             // Unknown types silently skipped (version tolerance)
         }

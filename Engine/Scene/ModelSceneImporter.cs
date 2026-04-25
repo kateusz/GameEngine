@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Renderer;
 using Engine.Scene.Components;
+using Engine.Scene.Components.Lights;
 using Serilog;
 
 namespace Engine.Scene;
@@ -51,14 +52,14 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
         if (addDefaultLighting)
         {
             var lightEntity = scene.CreateEntity("Sun_Light");
-            var light = lightEntity.AddComponent<LightingComponent>();
-            light.Type = LightType.Directional;
-            light.Direction = new Vector3(-0.3f, -1.0f, -0.5f);
+            var light = lightEntity.AddComponent<DirectionalLightComponent>();
             light.Color = new Vector3(1.0f, 0.95f, 0.9f);
-            light.Position = new Vector3(-1.39f, 73, 35);
+            light.Strength = 0.8f;
+            var tc = lightEntity.AddComponent<TransformComponent>();
+            tc.Translation = new Vector3(-1.39f, 73, 35);
             result.LightEntity = lightEntity;
 
-            Logger.Information("Added default lighting at {Position}", light.Position);
+            Logger.Information("Added default lighting at {Position}", tc.Translation);
         }
 
         if (addCamera)
