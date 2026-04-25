@@ -1,8 +1,13 @@
+using System.IO;
 using ECS;
 using ECS.Systems;
+using Engine.Audio;
 using Engine.Renderer;
+using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Components;
+using Engine.Scene.Serializer;
+using Engine.Scripting;
 using NSubstitute;
 using Shouldly;
 using EngineScene = Engine.Scene.Scene;
@@ -196,5 +201,43 @@ public class SceneHierarchyTests : IDisposable
         var dupBT = dupB.GetComponent<TransformComponent>();
         dupBT.ChildIds.Count.ShouldBe(1);
         dupBT.ParentId.ShouldBe(dup.Id);
+    }
+
+    [Fact]
+    public void Serialization_RoundTripsParentId_AndRebuildsChildIds()
+    {
+        var serializerOptions = new SerializerOptions();
+        var componentDeserializer = new ComponentDeserializer(
+            Substitute.For<IAudioEngine>(),
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IMeshFactory>(),
+            Substitute.For<IScriptEngine>(),
+            serializerOptions);
+        var sceneSerializer = new SceneSerializer(componentDeserializer, serializerOptions);
+
+        var path = Path.Combine(Path.GetTempPath(), $"hierarchy-{Guid.NewGuid():N}.scene.json");
+        try
+        {
+            using (var scene = NewScene())
+            {
+                var (parent, _) = WithTransform(scene.CreateEntity("P"));
+                var (child, _) = WithTransform(scene.CreateEntity("C"));
+                scene.SetParent(child, parent);
+                sceneSerializer.Serialize(scene, path);
+            }
+
+            using var loaded = NewScene();
+            sceneSerializer.Deserialize(loaded, path);
+
+            var loadedChild = loaded.Entities.First(e => e.Name == "C");
+            var loadedParent = loaded.Entities.First(e => e.Name == "P");
+            loadedChild.GetComponent<TransformComponent>().ParentId.ShouldBe(loadedParent.Id);
+            loadedParent.GetComponent<TransformComponent>().ChildIds.ShouldContain(loadedChild.Id);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
     }
 }

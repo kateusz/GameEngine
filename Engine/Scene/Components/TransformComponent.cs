@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Math;
 
@@ -40,8 +41,17 @@ public class TransformComponent : IComponent
         set { _scale = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
     }
 
-    public int? ParentId => _parentId;
+    public int? ParentId
+    {
+        get => _parentId;
+        set
+        {
+            _parentId = value;
+            _isWorldDirty = true;
+        }
+    }
 
+    [JsonIgnore]
     public IReadOnlyList<int> ChildIds => _childIds;
 
     public TransformComponent()
@@ -104,11 +114,7 @@ public class TransformComponent : IComponent
 
     internal void MarkWorldDirty() => _isWorldDirty = true;
 
-    internal void SetParentIdInternal(int? parentId)
-    {
-        _parentId = parentId;
-        _isWorldDirty = true;
-    }
+    internal void SetParentIdInternal(int? parentId) => ParentId = parentId;
 
     internal void AddChildIdInternal(int childId)
     {
