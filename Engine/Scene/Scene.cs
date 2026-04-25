@@ -537,8 +537,7 @@ internal sealed class Scene(
 
     public Entity DuplicateEntity(Entity entity)
     {
-        var idMap = new Dictionary<int, int>();
-        var root = DuplicateRecursive(entity, parentNewId: null, idMap);
+        var root = DuplicateRecursive(entity, parentNewId: null);
 
         if (root.HasComponent<CameraComponent>() && root.GetComponent<CameraComponent>().Primary)
             SetPrimaryCamera(root);
@@ -546,10 +545,9 @@ internal sealed class Scene(
         return root;
     }
 
-    private Entity DuplicateRecursive(Entity source, int? parentNewId, Dictionary<int, int> idMap)
+    private Entity DuplicateRecursive(Entity source, int? parentNewId)
     {
         var clone = CreateEntity(source.Name);
-        idMap[source.Id] = clone.Id;
 
         foreach (var component in source.GetAllComponents())
             clone.AddComponentDynamic(component.Clone());
@@ -566,7 +564,7 @@ internal sealed class Scene(
             {
                 var child = _entities.FirstOrDefault(e => e.Id == childId);
                 if (child is not null)
-                    DuplicateRecursive(child, clone.Id, idMap);
+                    DuplicateRecursive(child, clone.Id);
             }
         }
 
