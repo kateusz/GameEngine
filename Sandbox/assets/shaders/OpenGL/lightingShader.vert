@@ -23,6 +23,7 @@ void main()
     v_FragPos  = worldPos.xyz;
     v_Normal   = normalize(a_Normal * mat3(u_NormalMatrix));
     v_TexCoord = a_TexCoord;
+    v_EntityID = a_EntityID;
 
     vec3 T = normalize(a_Tangent * mat3(u_NormalMatrix));
     vec3 N = v_Normal;
@@ -30,6 +31,5 @@ void main()
     vec3 B = cross(N, T);
     v_TBN = mat3(T, B, N);
 
-    v_EntityID  = a_EntityID;
     gl_Position = worldPos * u_ViewProjection;
 }
