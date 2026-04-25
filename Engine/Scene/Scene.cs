@@ -31,6 +31,7 @@ internal sealed class Scene(
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
+    private readonly Dictionary<int, Action> _hookedEntityHandlers = new();
     private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
     {
         var systemManager = new SystemManager();
@@ -58,7 +59,7 @@ internal sealed class Scene(
         var entity = Entity.Create(_nextEntityId++, name);
         context.Register(entity);
         _entities.Add(entity);
-
+        HookHierarchy(entity);
         return entity;
     }
 
@@ -67,22 +68,56 @@ internal sealed class Scene(
         if (entity.Id <= 0)
             throw new ArgumentException($"Entity ID must be positive, got {entity.Id}", nameof(entity));
 
-        // Track the highest ID when adding existing entities (e.g., from deserialization)
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
 
         context.Register(entity);
         _entities.Add(entity);
+        HookHierarchy(entity);
 
-        // Normalize primary camera flags to ensure at most one primary camera
         if (entity.HasComponent<CameraComponent>() && entity.GetComponent<CameraComponent>().Primary)
             SetPrimaryCamera(entity);
     }
 
     public void DestroyEntity(Entity entity)
     {
+        UnhookHierarchy(entity);
         context.Remove(entity.Id);
         _entities.Remove(entity);
+    }
+
+    private void HookHierarchy(Entity entity)
+    {
+        if (_hookedEntityHandlers.ContainsKey(entity.Id))
+            return;
+        if (!entity.TryGetComponent<TransformComponent>(out var t))
+            return;
+
+        Action handler = () => MarkChildrenWorldDirty(entity);
+        t.LocalChanged += handler;
+        _hookedEntityHandlers[entity.Id] = handler;
+    }
+
+    private void UnhookHierarchy(Entity entity)
+    {
+        if (!_hookedEntityHandlers.Remove(entity.Id, out var handler))
+            return;
+        if (entity.TryGetComponent<TransformComponent>(out var t))
+            t.LocalChanged -= handler;
+    }
+
+    private void MarkChildrenWorldDirty(Entity entity)
+    {
+        if (!entity.TryGetComponent<TransformComponent>(out var t))
+            return;
+        foreach (var childId in t.ChildIds)
+        {
+            var child = _entities.FirstOrDefault(e => e.Id == childId);
+            if (child is null) continue;
+            if (!child.TryGetComponent<TransformComponent>(out var childT)) continue;
+            childT.MarkWorldDirty();
+            MarkChildrenWorldDirty(child);
+        }
     }
 
     public void OnRuntimeStart()
@@ -409,6 +444,10 @@ internal sealed class Scene(
 
     public void SetParent(Entity child, Entity? parent)
     {
+        HookHierarchy(child);
+        if (parent is not null)
+            HookHierarchy(parent);
+
         if (!child.TryGetComponent<TransformComponent>(out var childT))
             throw new InvalidOperationException(
                 $"Entity {child.Id} ('{child.Name}') has no TransformComponent and cannot be parented.");
@@ -488,8 +527,8 @@ internal sealed class Scene(
 
     /// <summary>
     /// Disposes the scene and cleans up all resources.
-    /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
-    /// and clears entity storage to prevent memory leaks.
+    /// Unsubscribes transform hierarchy <see cref="TransformComponent.LocalChanged" /> handlers,
+    /// disposes the SystemManager (which handles per-scene systems), and clears entity storage to prevent memory leaks.
     /// </summary>
     public void Dispose()
     {
@@ -502,6 +541,8 @@ internal sealed class Scene(
         // Singleton systems (rendering, scripts) are shared and won't be disposed
         _init.SystemManager?.Dispose();
 
+        foreach (var e in _entities.ToList())
+            UnhookHierarchy(e);
         // Clear entity storage
         context.Clear();
 

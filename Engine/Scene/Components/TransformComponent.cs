@@ -20,37 +20,24 @@ public class TransformComponent : IComponent
     private Matrix4x4 _cachedWorldTransform;
     private bool _isWorldDirty = true;
 
+    internal event Action? LocalChanged;
+
     public Vector3 Translation
     {
         get => _translation;
-        set
-        {
-            _translation = value;
-            _isDirty = true;
-            _isWorldDirty = true;
-        }
+        set { _translation = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
     }
 
     public Vector3 Rotation
     {
         get => _rotation;
-        set
-        {
-            _rotation = value;
-            _isDirty = true;
-            _isWorldDirty = true;
-        }
+        set { _rotation = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
     }
 
     public Vector3 Scale
     {
         get => _scale;
-        set
-        {
-            _scale = value;
-            _isDirty = true;
-            _isWorldDirty = true;
-        }
+        set { _scale = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
     }
 
     public int? ParentId => _parentId;

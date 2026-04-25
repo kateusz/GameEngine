@@ -119,4 +119,28 @@ public class SceneHierarchyTests : IDisposable
 
         Should.Throw<InvalidOperationException>(() => scene.SetParent(child, parent));
     }
+
+    [Fact]
+    public void MutatingParentTranslation_MarksDescendantsWorldDirty()
+    {
+        using var scene = NewScene();
+        var (a, aT) = WithTransform(scene.CreateEntity("A"));
+        var (b, bT) = WithTransform(scene.CreateEntity("B"));
+        var (c, cT) = WithTransform(scene.CreateEntity("C"));
+        scene.SetParent(b, a);
+        scene.SetParent(c, b);
+
+        TransformComponent? Resolve(int id) =>
+            scene.Entities.FirstOrDefault(e => e.Id == id)?.GetComponent<TransformComponent>();
+
+        _ = aT.GetWorldTransform(Resolve);
+        _ = bT.GetWorldTransform(Resolve);
+        _ = cT.GetWorldTransform(Resolve);
+
+        aT.Translation = new System.Numerics.Vector3(5, 0, 0);
+
+        aT.IsWorldDirty.ShouldBeTrue();
+        bT.IsWorldDirty.ShouldBeTrue();
+        cT.IsWorldDirty.ShouldBeTrue();
+    }
 }
