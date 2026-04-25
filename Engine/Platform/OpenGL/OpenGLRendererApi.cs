@@ -20,6 +20,12 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "Clear");
     }
 
+    public void ClearDepth()
+    {
+        SilkNetContext.GL.Clear(ClearBufferMask.DepthBufferBit);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "ClearDepth");
+    }
+
     public void BindTexture2D(uint textureId, int slot = 0)
     {
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
@@ -61,6 +67,21 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         else
             SilkNetContext.GL.Disable(EnableCap.DepthTest);
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthTest");
+    }
+
+    public void SetCullFace(CullMode mode)
+    {
+        if (mode == CullMode.None)
+        {
+            SilkNetContext.GL.Disable(EnableCap.CullFace);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "Disable(CullFace)");
+            return;
+        }
+
+        SilkNetContext.GL.Enable(EnableCap.CullFace);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(CullFace)");
+        SilkNetContext.GL.CullFace(mode == CullMode.Front ? TriangleFace.Front : TriangleFace.Back);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "CullFace");
     }
 
     public void Init()

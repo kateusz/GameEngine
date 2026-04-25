@@ -13,6 +13,7 @@ public enum FramebufferTextureFormat
 
     // Depth/stencil
     DEPTH24STENCIL8 = 4,
+    DEPTH32F = 5,
 
     // Defaults
     Depth = DEPTH24STENCIL8

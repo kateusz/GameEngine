@@ -9,6 +9,8 @@ internal abstract class FrameBuffer : IFrameBuffer
 
     public abstract uint GetColorAttachmentRendererId();
 
+    public abstract uint GetDepthAttachmentRendererId();
+
     public abstract FrameBufferSpecification GetSpecification();
 
     public abstract void Resize(uint width, uint height);
