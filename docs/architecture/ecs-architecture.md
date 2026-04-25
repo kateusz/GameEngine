@@ -64,7 +64,7 @@ classDiagram
 - **Storage**: `Dictionary<Type, IComponent>` — one component per type per entity
 - **Equality**: Based solely on `Id` — stable in collections regardless of name changes
 - **Validation**: `AddComponent` throws if a component of that type already exists
-- **Cloning**: `DuplicateEntity()` in Scene calls `Clone()` on every component
+- **Cloning**: `DuplicateEntity()` in Scene walks the hierarchy and calls `Clone()` on every component in the duplicated subtree
 
 ---
 
@@ -78,7 +78,7 @@ All components implement `IComponent` (defined in `ECS/Component.cs`), which req
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| **TransformComponent** | `Engine/Scene/Components/` | Position, rotation, scale with cached transform matrix (dirty flag) |
+| **TransformComponent** | `Engine/Scene/Components/` | Local position, rotation, scale; cached local matrix; optional parent id; cached world matrix |
 | **SpriteRendererComponent** | | Color, texture path, tiling factor for 2D sprite rendering |
 | **SubTextureRendererComponent** | | Sprite atlas region: coords, cell size, UV coordinates |
 | **CameraComponent** | | Wraps SceneCamera (orthographic/perspective), `Primary` flag |
@@ -94,6 +94,16 @@ All components implement `IComponent` (defined in `ECS/Component.cs`), which req
 | **IdComponent** | | Unique long ID for serialization cross-references |
 
 Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `RigidBody2DComponent.RuntimeBody`, `NativeScriptComponent.ScriptableEntity`, `AnimationComponent.IsPlaying`).
+
+### Entity hierarchy
+
+Entities with a `TransformComponent` may form a parent/child hierarchy.
+
+- `TransformComponent.ParentId` stores the parent's entity id, or `null` for a root. `ChildIds` is derived after load from all entities' `ParentId` values and is not written to scene JSON (`[JsonIgnore]` on the property).
+- Use `IScene.SetParent(child, parent)` with `parent` null to unparent. This updates both the child's `ParentId` and the parent's `ChildIds`, rejects cycles, and marks world transforms dirty on the affected subtree.
+- Child TRS values are **local to the parent**. For world-space matrices (rendering, initial Box2D body pose at `OnRuntimeStart`), use `entity.GetWorldTransform(context)` from `Engine/Scene/SceneHierarchyExtensions.cs`. Local space remains available via `TransformComponent.GetTransform()`.
+- `DestroyEntity` removes the entity and all descendants. `DuplicateEntity` clones the entire subtree under the duplicated root with new ids and rewired hierarchy.
+- **Known limitation (V1):** after runtime starts, Box2D owns body transforms; reparenting an entity with a rigid body does not update the physics world until you restart play mode. Prefer keeping simulated bodies at the scene root when possible.
 
 ---
 

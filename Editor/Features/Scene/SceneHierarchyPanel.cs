@@ -4,6 +4,7 @@ using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
+using Engine.Scene.Components;
 using ImGuiNET;
 
 namespace Editor.Features.Scene;
@@ -11,6 +12,8 @@ namespace Editor.Features.Scene;
 public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityContextMenu entityContextMenu)
     : ISceneHierarchyPanel
 {
+    private const string EntityReparentPayload = "ENTITY_REPARENT";
+
     private IScene _scene;
     private Entity? _selectionContext;
 
@@ -39,6 +42,27 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
 
         RenderEntityHierarchy();
 
+        if (_scene is not null)
+        {
+            ImGui.Dummy(ImGui.GetContentRegionAvail());
+            if (ImGui.BeginDragDropTarget())
+            {
+                var payload = ImGui.AcceptDragDropPayload(EntityReparentPayload);
+                unsafe
+                {
+                    if (payload.NativePtr != null && payload.DataSize == sizeof(int))
+                    {
+                        var droppedId = *(int*)payload.Data;
+                        var dropped = _scene.Entities.FirstOrDefault(e => e.Id == droppedId);
+                        if (dropped is not null)
+                            _scene.SetParent(dropped, null);
+                    }
+                }
+
+                ImGui.EndDragDropTarget();
+            }
+        }
+
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
             _selectionContext = null;
 
@@ -57,6 +81,11 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         var isSelected = _selectionContext?.Id == entity.Id;
         var entityDeleted = false;
 
+        var children = _scene.GetChildren(entity).ToList();
+        var nodeFlags = children.Count == 0
+            ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen
+            : ImGuiTreeNodeFlags.OpenOnArrow;
+
         var opened = TreeDrawer.DrawSelectableTreeNode(
             label: tag,
             isSelected: isSelected,
@@ -67,17 +96,70 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             },
             onContextMenu: () =>
             {
-                if (ImGui.MenuItem("Delete Entity"))
+                if (ImGui.MenuItem("Create Empty Child"))
+                {
+                    var child = _scene.CreateEntity("Empty Entity");
+                    child.AddComponent<TransformComponent>();
+                    _scene.SetParent(child, entity);
+                }
+
+                var canUnparent = entity.TryGetComponent<TransformComponent>(out var tc) && tc.ParentId is not null;
+                if (canUnparent && ImGui.MenuItem("Unparent"))
+                    _scene.SetParent(entity, null);
+
+                var deleteLabel = children.Count > 0 ? "Delete Entity (and children)" : "Delete Entity";
+                if (ImGui.MenuItem(deleteLabel))
                     entityDeleted = true;
             },
-            flags: ImGuiTreeNodeFlags.OpenOnArrow
+            flags: nodeFlags
         );
 
-        // Prefab drag & drop handling
         prefabDropTarget.HandleEntityDrop(entity);
 
-        if (opened)
+        if (ImGui.BeginDragDropSource())
         {
+            var idCopy = entity.Id;
+            unsafe
+            {
+                ImGui.SetDragDropPayload(EntityReparentPayload, (IntPtr)(&idCopy), sizeof(int));
+            }
+
+            ImGui.TextUnformatted(entity.Name);
+            ImGui.EndDragDropSource();
+        }
+
+        if (ImGui.BeginDragDropTarget())
+        {
+            var payload = ImGui.AcceptDragDropPayload(EntityReparentPayload);
+            unsafe
+            {
+                if (payload.NativePtr != null && payload.DataSize == sizeof(int))
+                {
+                    var droppedId = *(int*)payload.Data;
+                    if (droppedId != entity.Id)
+                    {
+                        var dropped = _scene.Entities.FirstOrDefault(e => e.Id == droppedId);
+                        if (dropped is not null)
+                        {
+                            try
+                            {
+                                _scene.SetParent(dropped, entity);
+                            }
+                            catch (InvalidOperationException)
+                            {
+                            }
+                        }
+                    }
+                }
+            }
+
+            ImGui.EndDragDropTarget();
+        }
+
+        if (opened && children.Count > 0)
+        {
+            foreach (var child in children)
+                DrawEntityNode(child);
             ImGui.TreePop();
         }
 
@@ -123,7 +205,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         }
         else
         {
-            foreach (var entity in _scene?.Entities.ToList() ?? [])
+            foreach (var entity in _scene?.GetRootEntities().ToList() ?? [])
             {
                 DrawEntityNode(entity);
             }
