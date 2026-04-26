@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
@@ -14,6 +15,8 @@ internal sealed class SceneSerializer(
     ComponentDeserializer componentDeserializer,
     SerializerOptions serializerOptions) : ISceneSerializer
 {
+    private static readonly ILogger Logger = Log.ForContext<SceneSerializer>();
+
     private const string SceneKey = "Scene";
     private const string EntitiesKey = "Entities";
     private const string ComponentsKey = "Components";
@@ -96,6 +99,40 @@ internal sealed class SceneSerializer(
             if (jsonEntity is not JsonObject entityObj) continue;
             var entity = DeserializeEntity(entityObj);
             scene.AddEntity(entity);
+        }
+
+        RebuildChildIdsFromParentIds(scene);
+    }
+
+    private static void RebuildChildIdsFromParentIds(IScene scene)
+    {
+        foreach (var entity in scene.Entities)
+        {
+            if (!entity.TryGetComponent<TransformComponent>(out var childT))
+                continue;
+            if (childT.ParentId is not { } parentId)
+                continue;
+
+            var parent = scene.Entities.FirstOrDefault(e => e.Id == parentId);
+            if (parent is null)
+            {
+                Logger.Warning(
+                    "Entity {ChildId} ('{ChildName}') references missing parent {ParentId}; treating as root.",
+                    entity.Id, entity.Name, parentId);
+                childT.ParentId = null;
+                continue;
+            }
+
+            if (!parent.TryGetComponent<TransformComponent>(out var parentT))
+            {
+                Logger.Warning(
+                    "Entity {ChildId} ('{ChildName}') parent {ParentId} has no TransformComponent; treating as root.",
+                    entity.Id, entity.Name, parentId);
+                childT.ParentId = null;
+                continue;
+            }
+
+            parentT.AddChildIdInternal(entity.Id);
         }
     }
 

@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 using Engine.Math;
 
@@ -13,35 +16,43 @@ public class TransformComponent : IComponent
     private Matrix4x4 _cachedTransform;
     private bool _isDirty = true;
 
+    private readonly List<int> _childIds = new();
+    private int? _parentId;
+    private Matrix4x4 _cachedWorldTransform;
+    private bool _isWorldDirty = true;
+
+    internal event Action? LocalChanged;
+
     public Vector3 Translation
     {
         get => _translation;
-        set
-        {
-            _translation = value;
-            _isDirty = true;
-        }
+        set { _translation = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
     }
 
     public Vector3 Rotation
     {
         get => _rotation;
-        set
-        {
-            _rotation = value;
-            _isDirty = true;
-        }
+        set { _rotation = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
     }
 
     public Vector3 Scale
     {
         get => _scale;
+        set { _scale = value; _isDirty = true; _isWorldDirty = true; LocalChanged?.Invoke(); }
+    }
+
+    public int? ParentId
+    {
+        get => _parentId;
         set
         {
-            _scale = value;
-            _isDirty = true;
+            _parentId = value;
+            _isWorldDirty = true;
         }
     }
+
+    [JsonIgnore]
+    public IReadOnlyList<int> ChildIds => _childIds;
 
     public TransformComponent()
     {
@@ -74,6 +85,46 @@ public class TransformComponent : IComponent
         }
 
         return _cachedTransform;
+    }
+
+    public Matrix4x4 GetWorldTransform(Func<int, TransformComponent?> resolveParent)
+    {
+        if (!_isWorldDirty && !_isDirty)
+            return _cachedWorldTransform;
+
+        var local = GetTransform();
+
+        if (_parentId is null)
+        {
+            _cachedWorldTransform = local;
+        }
+        else
+        {
+            var parent = resolveParent(_parentId.Value);
+            _cachedWorldTransform = parent is null
+                ? local
+                : local * parent.GetWorldTransform(resolveParent);
+        }
+
+        _isWorldDirty = false;
+        return _cachedWorldTransform;
+    }
+
+    internal bool IsWorldDirty => _isWorldDirty;
+
+    internal void MarkWorldDirty() => _isWorldDirty = true;
+
+    internal void SetParentIdInternal(int? parentId) => ParentId = parentId;
+
+    internal void AddChildIdInternal(int childId)
+    {
+        if (!_childIds.Contains(childId))
+            _childIds.Add(childId);
+    }
+
+    internal void RemoveChildIdInternal(int childId)
+    {
+        _childIds.Remove(childId);
     }
 
     public IComponent Clone()

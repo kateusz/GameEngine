@@ -31,6 +31,7 @@ internal sealed class Scene(
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
+    private readonly Dictionary<int, Action> _hookedEntityHandlers = new();
     private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
     {
         var systemManager = new SystemManager();
@@ -58,7 +59,7 @@ internal sealed class Scene(
         var entity = Entity.Create(_nextEntityId++, name);
         context.Register(entity);
         _entities.Add(entity);
-
+        HookHierarchy(entity);
         return entity;
     }
 
@@ -67,22 +68,88 @@ internal sealed class Scene(
         if (entity.Id <= 0)
             throw new ArgumentException($"Entity ID must be positive, got {entity.Id}", nameof(entity));
 
-        // Track the highest ID when adding existing entities (e.g., from deserialization)
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
 
         context.Register(entity);
         _entities.Add(entity);
+        HookHierarchy(entity);
 
-        // Normalize primary camera flags to ensure at most one primary camera
         if (entity.HasComponent<CameraComponent>() && entity.GetComponent<CameraComponent>().Primary)
             SetPrimaryCamera(entity);
     }
 
     public void DestroyEntity(Entity entity)
     {
-        context.Remove(entity.Id);
-        _entities.Remove(entity);
+        // Detach from parent's child list (only the destroyed root entry — the descendants
+        // are removed wholesale below).
+        if (entity.TryGetComponent<TransformComponent>(out var t) && t.ParentId is { } parentId)
+        {
+            var parent = _entities.FirstOrDefault(e => e.Id == parentId);
+            if (parent is not null && parent.TryGetComponent<TransformComponent>(out var parentT))
+                parentT.RemoveChildIdInternal(entity.Id);
+        }
+
+        // Collect descendants in post-order (deepest first).
+        var toDestroy = new List<Entity>();
+        CollectSubtreePostOrder(entity, toDestroy);
+
+        foreach (var e in toDestroy)
+        {
+            UnhookHierarchy(e);
+            context.Remove(e.Id);
+            _entities.Remove(e);
+        }
+    }
+
+    private void CollectSubtreePostOrder(Entity entity, List<Entity> output)
+    {
+        if (entity.TryGetComponent<TransformComponent>(out var t))
+        {
+            // Copy the child list because the recursion path can mutate it indirectly
+            // if a child without TC ever appeared (defensive).
+            foreach (var childId in t.ChildIds.ToList())
+            {
+                var child = _entities.FirstOrDefault(e => e.Id == childId);
+                if (child is not null)
+                    CollectSubtreePostOrder(child, output);
+            }
+        }
+        output.Add(entity);
+    }
+
+    private void HookHierarchy(Entity entity)
+    {
+        if (_hookedEntityHandlers.ContainsKey(entity.Id))
+            return;
+        if (!entity.TryGetComponent<TransformComponent>(out var t))
+            return;
+
+        Action handler = () => MarkChildrenWorldDirty(entity);
+        t.LocalChanged += handler;
+        _hookedEntityHandlers[entity.Id] = handler;
+    }
+
+    private void UnhookHierarchy(Entity entity)
+    {
+        if (!_hookedEntityHandlers.Remove(entity.Id, out var handler))
+            return;
+        if (entity.TryGetComponent<TransformComponent>(out var t))
+            t.LocalChanged -= handler;
+    }
+
+    private void MarkChildrenWorldDirty(Entity entity)
+    {
+        if (!entity.TryGetComponent<TransformComponent>(out var t))
+            return;
+        foreach (var childId in t.ChildIds)
+        {
+            var child = _entities.FirstOrDefault(e => e.Id == childId);
+            if (child is null) continue;
+            if (!child.TryGetComponent<TransformComponent>(out var childT)) continue;
+            childT.MarkWorldDirty();
+            MarkChildrenWorldDirty(child);
+        }
     }
 
     public void OnRuntimeStart()
@@ -93,10 +160,14 @@ internal sealed class Scene(
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
+            var worldMatrix = entity.GetWorldTransform(context);
+            Matrix4x4.Decompose(worldMatrix, out _, out _, out var worldTranslation);
+            var worldAngle = MathF.Atan2(worldMatrix.M12, worldMatrix.M11);
+
             var bodyDef = new BodyDef
             {
-                position = new Vector2(transform.Translation.X, transform.Translation.Y),
-                angle = transform.Rotation.Z,
+                position = new Vector2(worldTranslation.X, worldTranslation.Y),
+                angle = worldAngle,
                 type = RigidBody2DTypeToBox2DBody(component.BodyType),
                 bullet = component.BodyType == RigidBodyType.Dynamic
             };
@@ -214,10 +285,8 @@ internal sealed class Scene(
         
         foreach (var (entity, modelRendererComponent) in modelGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
             var meshComponent = entity.GetComponent<MeshComponent>();
-        
-            graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
+            graphics3D.DrawModel(entity.GetWorldTransform(context), meshComponent, modelRendererComponent,
                 entity.Id);
         }
         
@@ -246,8 +315,7 @@ internal sealed class Scene(
         var spriteGroup = context.View<SpriteRendererComponent>();
         foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            graphics2D.DrawSprite(entity.GetWorldTransform(context), spriteRendererComponent, entity.Id);
         }
 
         var subtextureGroup = context.View<SubTextureRendererComponent>();
@@ -276,9 +344,7 @@ internal sealed class Scene(
                 texCoords = subTexture.TexCoords;
             }
 
-            // Use transform directly without additional scaling (same as runtime)
-            var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
+            graphics2D.DrawQuad(entity.GetWorldTransform(context), subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
 
         if (debugSettings.ShowColliderBounds)
@@ -385,31 +451,130 @@ internal sealed class Scene(
         };
     }
 
-    /// <summary>
-    /// Duplicates an entity by cloning all of its components.
-    /// </summary>
-    /// <param name="entity">The entity to duplicate.</param>
-    /// <returns>The newly created entity with cloned components.</returns>
-    public Entity DuplicateEntity(Entity entity)
+    public IEnumerable<Entity> GetRootEntities()
     {
-        var newEntity = CreateEntity(entity.Name);
-
-        foreach (var component in entity.GetAllComponents())
+        foreach (var e in _entities)
         {
-            newEntity.AddComponentDynamic(component.Clone());
+            if (!e.TryGetComponent<TransformComponent>(out var t) || t.ParentId is null)
+                yield return e;
+        }
+    }
+
+    public IEnumerable<Entity> GetChildren(Entity entity)
+    {
+        if (!entity.TryGetComponent<TransformComponent>(out var t))
+            yield break;
+
+        foreach (var childId in t.ChildIds)
+        {
+            var child = _entities.FirstOrDefault(e => e.Id == childId);
+            if (child is not null)
+                yield return child;
+        }
+    }
+
+    public void SetParent(Entity child, Entity? parent)
+    {
+        HookHierarchy(child);
+        if (parent is not null)
+            HookHierarchy(parent);
+
+        if (!child.TryGetComponent<TransformComponent>(out var childT))
+            throw new InvalidOperationException(
+                $"Entity {child.Id} ('{child.Name}') has no TransformComponent and cannot be parented.");
+
+        if (parent is not null)
+        {
+            if (parent.Id == child.Id)
+                throw new InvalidOperationException("Cannot parent an entity to itself.");
+
+            if (!parent.HasComponent<TransformComponent>())
+                throw new InvalidOperationException(
+                    $"Parent entity {parent.Id} ('{parent.Name}') has no TransformComponent.");
+
+            var cursorId = parent.Id;
+            while (true)
+            {
+                if (cursorId == child.Id)
+                    throw new InvalidOperationException(
+                        "Cannot parent entity to its own descendant (would create a cycle).");
+
+                var cursorEntity = _entities.FirstOrDefault(e => e.Id == cursorId);
+                if (cursorEntity is null) break;
+                if (!cursorEntity.TryGetComponent<TransformComponent>(out var cursorT)) break;
+                if (cursorT.ParentId is null) break;
+                cursorId = cursorT.ParentId.Value;
+            }
         }
 
-        // Normalize primary camera flags to ensure at most one primary camera
-        if (newEntity.HasComponent<CameraComponent>() && newEntity.GetComponent<CameraComponent>().Primary)
-            SetPrimaryCamera(newEntity);
+        if (childT.ParentId is { } oldParentId)
+        {
+            var oldParent = _entities.FirstOrDefault(e => e.Id == oldParentId);
+            if (oldParent is not null && oldParent.TryGetComponent<TransformComponent>(out var oldParentT))
+                oldParentT.RemoveChildIdInternal(child.Id);
+        }
 
-        return newEntity;
+        childT.SetParentIdInternal(parent?.Id);
+
+        if (parent is not null)
+        {
+            var parentT = parent.GetComponent<TransformComponent>();
+            parentT.AddChildIdInternal(child.Id);
+        }
+
+        MarkSubtreeWorldDirty(child);
+    }
+
+    private void MarkSubtreeWorldDirty(Entity root)
+    {
+        if (!root.TryGetComponent<TransformComponent>(out var rootT))
+            return;
+
+        rootT.MarkWorldDirty();
+        foreach (var child in GetChildren(root))
+            MarkSubtreeWorldDirty(child);
+    }
+
+    public Entity DuplicateEntity(Entity entity)
+    {
+        var root = DuplicateRecursive(entity, parentNewId: null);
+
+        if (root.HasComponent<CameraComponent>() && root.GetComponent<CameraComponent>().Primary)
+            SetPrimaryCamera(root);
+
+        return root;
+    }
+
+    private Entity DuplicateRecursive(Entity source, int? parentNewId)
+    {
+        var clone = CreateEntity(source.Name);
+
+        foreach (var component in source.GetAllComponents())
+            clone.AddComponentDynamic(component.Clone());
+
+        if (parentNewId is not null)
+        {
+            var parentEntity = _entities.First(e => e.Id == parentNewId.Value);
+            SetParent(clone, parentEntity);
+        }
+
+        if (source.TryGetComponent<TransformComponent>(out var sourceT))
+        {
+            foreach (var childId in sourceT.ChildIds)
+            {
+                var child = _entities.FirstOrDefault(e => e.Id == childId);
+                if (child is not null)
+                    DuplicateRecursive(child, clone.Id);
+            }
+        }
+
+        return clone;
     }
 
     /// <summary>
     /// Disposes the scene and cleans up all resources.
-    /// Unsubscribes from events, disposes the SystemManager (which handles per-scene systems),
-    /// and clears entity storage to prevent memory leaks.
+    /// Unsubscribes transform hierarchy <see cref="TransformComponent.LocalChanged" /> handlers,
+    /// disposes the SystemManager (which handles per-scene systems), and clears entity storage to prevent memory leaks.
     /// </summary>
     public void Dispose()
     {
@@ -422,6 +587,8 @@ internal sealed class Scene(
         // Singleton systems (rendering, scripts) are shared and won't be disposed
         _init.SystemManager?.Dispose();
 
+        foreach (var e in _entities.ToList())
+            UnhookHierarchy(e);
         // Clear entity storage
         context.Clear();
 

@@ -1,6 +1,7 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
+using Engine.Scene;
 using Engine.Scene.Components;
 using Serilog;
 
@@ -34,11 +35,10 @@ internal sealed class ModelRenderingSystem(IGraphics3D graphics3D, IContext cont
         var view = context.View<MeshComponent>();
         foreach (var (entity, meshComponent) in view)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
             var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
 
             graphics3D.DrawModel(
-                transformComponent.GetTransform(),
+                entity.GetWorldTransform(context),
                 meshComponent,
                 modelRendererComponent,
                 entity.Id

@@ -84,4 +84,22 @@ public interface IScene : IDisposable
     /// <param name="entity">The entity to duplicate</param>
     /// <returns>The newly created entity with cloned components</returns>
     Entity DuplicateEntity(Entity entity);
+
+    /// <summary>Returns entities that have no parent (or no TransformComponent).</summary>
+    IEnumerable<Entity> GetRootEntities();
+
+    /// <summary>Returns the immediate children of an entity.</summary>
+    IEnumerable<Entity> GetChildren(Entity entity);
+
+    /// <summary>
+    /// Sets <paramref name="parent"/> as the parent of <paramref name="child"/>.
+    /// Pass null to unparent.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="child"/> has no TransformComponent, or (when
+    /// <paramref name="parent"/> is non-null) when parent has no TransformComponent,
+    /// when parent equals child, or when the assignment would create a cycle
+    /// (i.e. <paramref name="parent"/> is a descendant of <paramref name="child"/>).
+    /// </exception>
+    void SetParent(Entity child, Entity? parent);
 }

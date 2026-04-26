@@ -1,6 +1,7 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
+using Engine.Scene;
 using Engine.Scene.Components;
 using Serilog;
 
@@ -34,8 +35,7 @@ internal sealed class SpriteRenderingSystem(IGraphics2D renderer, IContext conte
         var spriteGroup = context.View<SpriteRendererComponent>();
         foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            renderer.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            renderer.DrawSprite(entity.GetWorldTransform(context), spriteRendererComponent, entity.Id);
         }
         
         renderer.EndScene();
