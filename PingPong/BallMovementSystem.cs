@@ -1,11 +1,12 @@
+using System;
 using ECS;
 using ECS.Systems;
 using Engine.Scene.Components;
-using Engine.Scene.Components.Pong;
+using Engine.Scene.Systems;
 
-namespace Engine.Scene.Systems.Pong;
+namespace PingPong;
 
-internal sealed class BallMovementSystem(IContext context) : ISystem
+internal sealed class BallMovementSystem(IContext context) : IGameSystem
 {
     public int Priority => SystemPriorities.PongBallMovementSystem;
 

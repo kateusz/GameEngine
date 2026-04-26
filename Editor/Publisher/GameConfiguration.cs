@@ -2,7 +2,9 @@ namespace Editor.Publisher;
 
 public class GameConfiguration
 {
-    public string StartupScenePath { get; set; } = "assets/scenes/Scene.scene";
+    public string AssemblyName { get; set; } = "GameAssembly";
+    public string GameAssemblyPath { get; set; } = "GameAssembly.dll";
+    public string StartupScenePath { get; set; } = "assets/scenes/game.scene";
     public int WindowWidth { get; set; } = 1920;
     public int WindowHeight { get; set; } = 1080;
     public bool Fullscreen { get; set; } = false;

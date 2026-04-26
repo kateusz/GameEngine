@@ -1,6 +1,7 @@
+using System;
 using ECS;
 
-namespace Engine.Scene.Components.Pong;
+namespace PingPong;
 
 public enum BoundaryPosition
 {
@@ -8,7 +9,7 @@ public enum BoundaryPosition
     Bottom
 }
 
-public sealed class BoundaryComponent : IComponent
+public sealed class BoundaryComponent : IGameComponent
 {
     public BoundaryPosition Position { get; set; } = BoundaryPosition.Top;
 

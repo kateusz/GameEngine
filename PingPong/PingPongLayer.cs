@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
+using ECS.Systems;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -6,20 +10,73 @@ using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Components;
-using Engine.Scene.Components.Pong;
-using Engine.Scene.Systems.Pong;
+using Engine.Scene.Serializer;
+using Engine.Scripting;
 
-namespace Sandbox;
+namespace PingPong;
 
 public sealed class PingPongLayer(
     SceneFactory sceneFactory,
     IGraphics2D graphics2D,
-    IPongInputState pongInputState) : ILayer
+    IPongInputState pongInputState,
+    ISystemManager systemManager,
+    IEnumerable<IGameSystem> gameSystems,
+    IScriptEngine scriptEngine,
+    ISceneContext sceneContext,
+    ISceneSerializer sceneSerializer) : ILayer
 {
     private IScene? _scene;
 
     public void OnAttach(IInputSystem inputSystem)
     {
+        foreach (var gameSystem in gameSystems)
+        {
+            systemManager.RegisterSystem(gameSystem);
+        }
+        
+        // Set scripts directory for script engine
+        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "scripts");
+        scriptEngine.SetScriptsDirectory(scriptsDir);
+
+        // Load startup scene
+        //var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
+        var startupScenePath = Path.Combine(AppContext.BaseDirectory, "game.scene");
+
+        if (!File.Exists(startupScenePath))
+        {
+            Console.Error.WriteLine($"Startup scene not found: {startupScenePath} (current directory: {AppContext.BaseDirectory})");
+            Console.Error.WriteLine("Creating empty scene as fallback...");
+
+            // Create empty scene as fallback
+            var emptyScene = sceneFactory.Create("", "");
+            sceneContext.SetScene(emptyScene);
+        }
+        else
+        {
+            try
+            {
+                Console.WriteLine($"Loading startup scene from: {startupScenePath}");
+
+                // Create and load scene
+                var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
+                sceneSerializer.Deserialize(scene, startupScenePath);
+                sceneContext.SetScene(scene);
+
+                // Start runtime (activate systems, physics, etc.)
+                scene.OnRuntimeStart();
+                Console.WriteLine("Startup scene loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Failed to load startup scene: {startupScenePath}");
+                Console.Error.WriteLine(ex);
+
+                // Create empty scene as fallback
+                var emptyScene = sceneFactory.Create("", "");
+                sceneContext.SetScene(emptyScene);
+            }
+        }
+        
         _scene = sceneFactory.Create("PingPong", "PingPong");
         CreateCameraEntity(_scene);
         CreateGameplayEntities(_scene);

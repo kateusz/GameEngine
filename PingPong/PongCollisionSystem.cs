@@ -1,12 +1,13 @@
+using System;
 using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Scene.Components;
-using Engine.Scene.Components.Pong;
+using Engine.Scene.Systems;
 
-namespace Engine.Scene.Systems.Pong;
+namespace PingPong;
 
-internal sealed class PongCollisionSystem(IContext context) : ISystem
+internal sealed class PongCollisionSystem(IContext context) : IGameSystem
 {
     private const float PaddleHalfWidth = 0.75f;
     private const float PaddleHalfHeight = 2.0f;

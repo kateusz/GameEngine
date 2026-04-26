@@ -17,6 +17,10 @@ public interface IScriptEngine
     /// <param name="scriptsDirectory">Path to the scripts directory</param>
     void SetScriptsDirectory(string scriptsDirectory);
 
+    void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory);
+
+    void SetSuppressFileChangeRecompile(bool suppress);
+
     /// <summary>
     /// Updates all script components in the current scene.
     /// Checks for script file changes and triggers hot reload if needed.
@@ -91,7 +95,7 @@ public interface IScriptEngine
     /// Saves debug symbols (PDB file) to disk for external debugger use.
     /// </summary>
     /// <param name="outputPath">Path to save the PDB file</param>
-    /// <param name="assemblyName">Name of the assembly (default: "DynamicScripts")</param>
+    /// <param name="assemblyName">Name of the assembly (default: "GameAssembly")</param>
     /// <returns>True if successful, false otherwise</returns>
     bool SaveDebugSymbols(string outputPath, string assemblyName = "DynamicScripts");
 

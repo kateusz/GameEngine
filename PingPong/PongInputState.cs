@@ -1,4 +1,4 @@
-namespace Engine.Scene.Systems.Pong;
+namespace PingPong;
 
 internal sealed class PongInputState : IPongInputState
 {

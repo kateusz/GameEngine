@@ -1,27 +1,27 @@
+using System;
 using ECS;
 using ECS.Systems;
 using Engine.Scene.Components;
-using Engine.Scene.Components.Pong;
+using Engine.Scene.Systems;
 
-namespace Engine.Scene.Systems.Pong;
+namespace PingPong;
 
-internal sealed class PaddleInputSystem(IContext context, IPongInputState pongInputState) : ISystem
+internal sealed class PaddleAiSystem(IContext context) : IGameSystem
 {
-    public int Priority => SystemPriorities.PongPaddleInputSystem;
+    private const float VerticalDeadzone = 0.1f;
+
+    public int Priority => SystemPriorities.PongPaddleAiSystem;
 
     public void OnInit() { }
 
+    
     public void OnUpdate(TimeSpan deltaTime)
     {
         if (IsGameOver())
             return;
 
-        var direction = 0.0f;
-        if (pongInputState.MoveUpPressed)
-            direction += 1.0f;
-        if (pongInputState.MoveDownPressed)
-            direction -= 1.0f;
-        if (MathF.Abs(direction) <= float.Epsilon)
+        var targetY = GetBallY();
+        if (!targetY.HasValue)
             return;
 
         var (topBoundary, bottomBoundary) = GetBoundaryLimits();
@@ -29,9 +29,15 @@ internal sealed class PaddleInputSystem(IContext context, IPongInputState pongIn
 
         foreach (var (entity, paddle) in context.View<PaddleComponent>())
         {
-            if (!paddle.IsPlayer || !entity.TryGetComponent<TransformComponent>(out var transform))
+            if (paddle.IsPlayer || !entity.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
+            var currentY = transform.Translation.Y;
+            var deltaY = targetY.Value - currentY;
+            if (MathF.Abs(deltaY) <= VerticalDeadzone)
+                continue;
+
+            var direction = MathF.Sign(deltaY);
             var translation = transform.Translation;
             translation.Y += direction * paddle.MoveSpeed * deltaSeconds;
             translation.Y = ClampPaddleY(translation.Y, transform.Scale.Y, topBoundary, bottomBoundary);
@@ -50,6 +56,17 @@ internal sealed class PaddleInputSystem(IContext context, IPongInputState pongIn
         }
 
         return false;
+    }
+
+    private float? GetBallY()
+    {
+        foreach (var (entity, _) in context.View<BallComponent>())
+        {
+            if (entity.TryGetComponent<TransformComponent>(out var transform))
+                return transform.Translation.Y;
+        }
+
+        return null;
     }
 
     private (float? TopBoundary, float? BottomBoundary) GetBoundaryLimits()

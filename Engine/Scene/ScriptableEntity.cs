@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using System.Numerics;
-using System.Reflection;
 using ECS;
 using Engine.Core.Input;
 using Engine.Scene.Components;
@@ -14,22 +12,6 @@ public abstract class ScriptableEntity
 {
     private const string EntityNotSetMessage = "Entity is not set!";
     private ISceneContext? _sceneContext;
-
-    #region Reflection Cache
-
-    /// <summary>
-    /// Thread-safe cache for reflected field metadata to avoid repeated reflection operations.
-    /// Keyed by script type, stores all public instance fields for that type.
-    /// </summary>
-    private static readonly ConcurrentDictionary<Type, FieldInfo[]> _fieldCache = new();
-
-    /// <summary>
-    /// Thread-safe cache for reflected property metadata to avoid repeated reflection operations.
-    /// Keyed by script type, stores all public instance properties with getters and setters.
-    /// </summary>
-    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
-
-    #endregion
 
     /// <summary>
     /// The entity this script is attached to
@@ -288,31 +270,7 @@ public abstract class ScriptableEntity
     /// </summary>
     public IEnumerable<(string Name, Type Type, object Value)> GetExposedFields()
     {
-        var type = GetType();
-
-        // Get cached fields or compute and cache them
-        var fields = _fieldCache.GetOrAdd(type, t =>
-            t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-                .Where(f => IsSupportedType(f.FieldType))
-                .ToArray());
-
-        // Yield field values using cached metadata
-        foreach (var field in fields)
-        {
-            yield return (field.Name, field.FieldType, field.GetValue(this));
-        }
-
-        // Get cached properties or compute and cache them
-        var properties = _propertyCache.GetOrAdd(type, t =>
-            t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
-                .ToArray());
-
-        // Yield property values using cached metadata
-        foreach (var prop in properties)
-        {
-            yield return (prop.Name, prop.PropertyType, prop.GetValue(this));
-        }
+        return ExposedMemberAccessor.GetExposedMembers(this);
     }
 
     /// <summary>
@@ -320,29 +278,7 @@ public abstract class ScriptableEntity
     /// </summary>
     public object GetFieldValue(string name)
     {
-        var type = GetType();
-
-        // Search in cached fields
-        var fields = _fieldCache.GetOrAdd(type, t =>
-            t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-                .Where(f => IsSupportedType(f.FieldType))
-                .ToArray());
-
-        var field = Array.Find(fields, f => f.Name == name);
-        if (field != null)
-            return field.GetValue(this);
-
-        // Search in cached properties
-        var properties = _propertyCache.GetOrAdd(type, t =>
-            t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
-                .ToArray());
-
-        var prop = Array.Find(properties, p => p.Name == name);
-        if (prop != null && prop.CanRead)
-            return prop.GetValue(this);
-
-        throw new ArgumentException($"Field or property '{name}' not found or not supported.");
+        return ExposedMemberAccessor.GetMemberValue(this, name);
     }
 
     /// <summary>
@@ -350,62 +286,7 @@ public abstract class ScriptableEntity
     /// </summary>
     public void SetFieldValue(string name, object value)
     {
-        var type = GetType();
-
-        // Search in cached fields
-        var fields = _fieldCache.GetOrAdd(type, t =>
-            t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-                .Where(f => IsSupportedType(f.FieldType))
-                .ToArray());
-
-        var field = Array.Find(fields, f => f.Name == name);
-        if (field != null)
-        {
-            field.SetValue(this, ConvertToSupportedType(value, field.FieldType));
-            return;
-        }
-
-        // Search in cached properties
-        var properties = _propertyCache.GetOrAdd(type, t =>
-            t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite && IsSupportedType(p.PropertyType))
-                .ToArray());
-
-        var prop = Array.Find(properties, p => p.Name == name);
-        if (prop != null && prop.CanWrite)
-        {
-            prop.SetValue(this, ConvertToSupportedType(value, prop.PropertyType));
-            return;
-        }
-
-        throw new ArgumentException($"Field or property '{name}' not found or not supported.");
-    }
-
-    private static bool IsSupportedType(Type type)
-    {
-        return type == typeof(int) || type == typeof(float) || type == typeof(double) ||
-               type == typeof(bool) || type == typeof(string) ||
-               type == typeof(Vector2) || type == typeof(Vector3) || type == typeof(Vector4);
-    }
-
-    private static object ConvertToSupportedType(object? value, Type targetType)
-    {
-        if (value == null) 
-            return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
-        
-        if (targetType.IsInstanceOfType(value)) 
-            return value;
-        
-        if (targetType == typeof(Vector2) && value is System.Text.Json.Nodes.JsonArray { Count: 2 } arr2)
-            return new Vector2((float)arr2[0]!, (float)arr2[1]!);
-        
-        if (targetType == typeof(Vector3) && value is System.Text.Json.Nodes.JsonArray { Count: 3 } arr3)
-            return new Vector3((float)arr3[0]!, (float)arr3[1]!, (float)arr3[2]!);
-        
-        if (targetType == typeof(Vector4) && value is System.Text.Json.Nodes.JsonArray { Count: 4 } arr4)
-            return new Vector4((float)arr4[0]!, (float)arr4[1]!, (float)arr4[2]!, (float)arr4[3]!);
-        
-        return Convert.ChangeType(value, targetType);
+        ExposedMemberAccessor.SetMemberValue(this, name, value);
     }
 
     #endregion

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
+using ECS.Systems;
 using Silk.NET.Assimp;
 using Engine.Core.Input;
 using Engine.Core.Window;
@@ -17,7 +18,6 @@ using Engine.Renderer.VertexArray;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
-using Engine.Scene.Systems.Pong;
 using Engine.Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -70,6 +70,7 @@ public static class EngineIoCContainer
         
         container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
+        container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
         
         RegisterFactories(container);
@@ -88,6 +89,7 @@ public static class EngineIoCContainer
         container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
 
         // Register ECS systems (all now use dependency injection)
+        container.Register<ISystemManager, SystemManager>(Reuse.Singleton);
         container.Register<SpriteRenderingSystem>(Reuse.Singleton);
         container.Register<LightingSystem>(Reuse.Singleton);
         container.Register<ModelRenderingSystem>(Reuse.Singleton);
@@ -95,12 +97,6 @@ public static class EngineIoCContainer
         container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
-        container.Register<IPongInputState, PongInputState>(Reuse.Singleton);
-        container.Register<PaddleInputSystem>(Reuse.Singleton);
-        container.Register<PaddleAiSystem>(Reuse.Singleton);
-        container.Register<BallMovementSystem>(Reuse.Singleton);
-        container.Register<PongCollisionSystem>(Reuse.Singleton);
-        container.Register<PongScoringSystem>(Reuse.Singleton);
         
         container.Register<PrimaryCameraSystem>(Reuse.Singleton);
         container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();

@@ -10,6 +10,7 @@ namespace Editor.ComponentEditors.Core;
 
 public class ComponentEditorRegistry(
     ComponentEditorCollection editorCollection,
+    GameComponentInspector gameComponentInspector,
     ScriptComponentEditor scriptComponentEditor)
     : IComponentEditorRegistry
 {
@@ -21,6 +22,8 @@ public class ComponentEditorRegistry(
         {
             editor.DrawComponent(entity);
         }
+
+        gameComponentInspector.Draw(entity);
 
         // Special handling for script components
         scriptComponentEditor.DrawScriptComponent(entity);

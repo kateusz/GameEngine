@@ -1,8 +1,8 @@
 using ECS;
 
-namespace Engine.Scene.Components.Pong;
+namespace PingPong;
 
-public sealed class ScoreComponent : IComponent
+public sealed class ScoreComponent : IGameComponent
 {
     public int PlayerScore { get; set; }
     public int AiScore { get; set; }

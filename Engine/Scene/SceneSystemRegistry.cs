@@ -1,16 +1,10 @@
 using ECS.Systems;
 using Engine.Scene.Systems;
-using Engine.Scene.Systems.Pong;
 using Serilog;
 
 namespace Engine.Scene;
 
 internal sealed class SceneSystemRegistry(
-    PaddleInputSystem paddleInputSystem,
-    PaddleAiSystem paddleAiSystem,
-    BallMovementSystem ballMovementSystem,
-    PongCollisionSystem pongCollisionSystem,
-    PongScoringSystem pongScoringSystem,
     PrimaryCameraSystem primaryCameraSystem,
     RenderingSystemsGroup renderingSystems,
     ScriptUpdateSystem scriptUpdateSystem,
@@ -27,11 +21,6 @@ internal sealed class SceneSystemRegistry(
         {
             var systems = new List<ISystem>
             {
-                paddleInputSystem,
-                paddleAiSystem,
-                ballMovementSystem,
-                pongCollisionSystem,
-                pongScoringSystem,
                 scriptUpdateSystem,
                 primaryCameraSystem,
                 renderingSystems.SpriteRenderingSystem,

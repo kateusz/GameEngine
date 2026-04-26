@@ -1,15 +1,14 @@
+using System;
 using ECS;
 using ECS.Systems;
 using Engine.Scene.Components;
-using Engine.Scene.Components.Pong;
+using Engine.Scene.Systems;
 
-namespace Engine.Scene.Systems.Pong;
+namespace PingPong;
 
-internal sealed class PaddleAiSystem(IContext context) : ISystem
+internal sealed class PaddleInputSystem(IContext context, IPongInputState pongInputState) : IGameSystem
 {
-    private const float VerticalDeadzone = 0.1f;
-
-    public int Priority => SystemPriorities.PongPaddleAiSystem;
+    public int Priority => SystemPriorities.PongPaddleInputSystem;
 
     public void OnInit() { }
 
@@ -18,8 +17,12 @@ internal sealed class PaddleAiSystem(IContext context) : ISystem
         if (IsGameOver())
             return;
 
-        var targetY = GetBallY();
-        if (!targetY.HasValue)
+        var direction = 0.0f;
+        if (pongInputState.MoveUpPressed)
+            direction += 1.0f;
+        if (pongInputState.MoveDownPressed)
+            direction -= 1.0f;
+        if (MathF.Abs(direction) <= float.Epsilon)
             return;
 
         var (topBoundary, bottomBoundary) = GetBoundaryLimits();
@@ -27,15 +30,9 @@ internal sealed class PaddleAiSystem(IContext context) : ISystem
 
         foreach (var (entity, paddle) in context.View<PaddleComponent>())
         {
-            if (paddle.IsPlayer || !entity.TryGetComponent<TransformComponent>(out var transform))
+            if (!paddle.IsPlayer || !entity.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
-            var currentY = transform.Translation.Y;
-            var deltaY = targetY.Value - currentY;
-            if (MathF.Abs(deltaY) <= VerticalDeadzone)
-                continue;
-
-            var direction = MathF.Sign(deltaY);
             var translation = transform.Translation;
             translation.Y += direction * paddle.MoveSpeed * deltaSeconds;
             translation.Y = ClampPaddleY(translation.Y, transform.Scale.Y, topBoundary, bottomBoundary);
@@ -54,17 +51,6 @@ internal sealed class PaddleAiSystem(IContext context) : ISystem
         }
 
         return false;
-    }
-
-    private float? GetBallY()
-    {
-        foreach (var (entity, _) in context.View<BallComponent>())
-        {
-            if (entity.TryGetComponent<TransformComponent>(out var transform))
-                return transform.Translation.Y;
-        }
-
-        return null;
     }
 
     private (float? TopBoundary, float? BottomBoundary) GetBoundaryLimits()

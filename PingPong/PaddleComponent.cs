@@ -1,8 +1,8 @@
 using ECS;
 
-namespace Engine.Scene.Components.Pong;
+namespace PingPong;
 
-public sealed class PaddleComponent : IComponent
+public sealed class PaddleComponent : IGameComponent
 {
     public bool IsPlayer { get; set; }
     public float MoveSpeed { get; set; } = 6.0f;

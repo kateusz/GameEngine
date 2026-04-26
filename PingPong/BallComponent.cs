@@ -1,9 +1,10 @@
+using System;
 using System.Numerics;
 using ECS;
 
-namespace Engine.Scene.Components.Pong;
+namespace PingPong;
 
-public sealed class BallComponent : IComponent
+public sealed class BallComponent : IGameComponent
 {
     public Vector2 Velocity { get; set; } = Vector2.Zero;
     public float Speed { get; set; } = 8.0f;

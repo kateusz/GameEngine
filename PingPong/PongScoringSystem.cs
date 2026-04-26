@@ -1,12 +1,14 @@
+using System;
+using System.Linq;
 using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Scene.Components;
-using Engine.Scene.Components.Pong;
+using Engine.Scene.Systems;
 
-namespace Engine.Scene.Systems.Pong;
+namespace PingPong;
 
-internal sealed class PongScoringSystem(IContext context) : ISystem
+internal sealed class PongScoringSystem(IContext context) : IGameSystem
 {
     private const float GoalX = 11.0f;
 

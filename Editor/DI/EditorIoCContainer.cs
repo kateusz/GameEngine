@@ -1,4 +1,5 @@
 using DryIoc;
+using ECS.Systems;
 using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
 using Editor.Features.Project;
@@ -12,6 +13,7 @@ using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
 using Engine.Scene;
+using Engine.Scripting;
 
 namespace Editor.DI;
 
@@ -55,6 +57,12 @@ public static class EditorIoCContainer
         container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         
+        container.RegisterDelegate<IGameAssemblySystemsBridge>(
+            _ => new GameAssemblySystemsBridge(
+                assemblyName => RegisterGameAssembly(container, assemblyName),
+                () => container.ResolveMany<IGameSystem>()),
+            Reuse.Singleton);
+
         container.RegisterMany<SceneManager>(Reuse.Singleton);
         
         container.Register<IContentBrowserPanel, ContentBrowserPanel>(Reuse.Singleton);
@@ -64,6 +72,7 @@ public static class EditorIoCContainer
         container.Register<RendererStatsPanel>(Reuse.Singleton);
         container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
         container.Register<ScriptComponentEditor>(Reuse.Singleton);
+        container.Register<GameComponentInspector>(Reuse.Singleton);
     
         // Viewport infrastructure
         container.Register<IViewportScaleHelper, ViewportScaleHelper>(Reuse.Singleton);
@@ -89,4 +98,9 @@ public static class EditorIoCContainer
         container.Register<ILayer, EditorLayer>(Reuse.Singleton);
         container.Register<Editor>(Reuse.Singleton);
     }
+
+    private static bool RegisterGameAssembly(Container container, string gameAssemblyNameOrFilePath) =>
+        GameAssemblyContainerRegistration.TryRegisterContainer(
+            container,
+            GameAssemblyContainerRegistration.Load(gameAssemblyNameOrFilePath));
 }

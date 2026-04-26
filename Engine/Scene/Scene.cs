@@ -16,27 +16,45 @@ using Serilog;
 
 namespace Engine.Scene;
 
-internal sealed class Scene(
-    string path,
-    string sceneName,
-    ISceneSystemRegistry systemRegistry,
-    IGraphics2D graphics2D,
-    IGraphics3D graphics3D,
-    IContext context,
-    DebugSettings debugSettings) : IScene
+internal sealed class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
 
-    private readonly (ISystemManager SystemManager, World PhysicsWorld) _init = Initialize(systemRegistry, context);
+    private readonly (ISystemManager SystemManager, World PhysicsWorld) _init;
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
-    private static (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
-    {
-        var systemManager = new SystemManager();
+    private readonly string _path;
+    private readonly string _sceneName;
+    private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
+    private readonly IContext _context;
+    private readonly DebugSettings _debugSettings;
+    private readonly ISystemManager _systemManager;
 
+    public Scene(string path,
+        string sceneName,
+        ISceneSystemRegistry systemRegistry,
+        IGraphics2D graphics2D,
+        IGraphics3D graphics3D,
+        IContext context,
+        DebugSettings debugSettings,
+        ISystemManager systemManager)
+    {
+        _path = path;
+        _sceneName = sceneName;
+        _graphics2D = graphics2D;
+        _graphics3D = graphics3D;
+        _context = context;
+        _debugSettings = debugSettings;
+        _systemManager = systemManager;
+        _init = Initialize(systemRegistry, context);
+    }
+    
+    private (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
+    {
         // Populate system manager from registry (singleton systems shared across scenes)
-        systemRegistry.PopulateSystemManager(systemManager);
+        systemRegistry.PopulateSystemManager(_systemManager);
 
         var physicsWorld = new World(new Vector2(0, -9.8f));
         var contactListener = new SceneContactListener();
@@ -45,18 +63,18 @@ internal sealed class Scene(
         // Create and register physics simulation system with the physics world
         // NOTE: This system is per-scene because each scene has its own physics world
         var physicsSimulationSystem = new PhysicsSimulationSystem(physicsWorld, context);
-        systemManager.RegisterSystem(physicsSimulationSystem);
+        _systemManager.RegisterSystem(physicsSimulationSystem);
 
-        return (systemManager, physicsWorld);
+        return (_systemManager, physicsWorld);
     }
 
-    public string Name => sceneName;
+    public string Name => _sceneName;
     public IEnumerable<Entity> Entities => _entities;
 
     public Entity CreateEntity(string name)
     {
         var entity = Entity.Create(_nextEntityId++, name);
-        context.Register(entity);
+        _context.Register(entity);
         _entities.Add(entity);
 
         return entity;
@@ -71,7 +89,7 @@ internal sealed class Scene(
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
 
-        context.Register(entity);
+        _context.Register(entity);
         _entities.Add(entity);
 
         // Normalize primary camera flags to ensure at most one primary camera
@@ -81,7 +99,7 @@ internal sealed class Scene(
 
     public void DestroyEntity(Entity entity)
     {
-        context.Remove(entity.Id);
+        _context.Remove(entity.Id);
         _entities.Remove(entity);
     }
 
@@ -89,7 +107,7 @@ internal sealed class Scene(
     {
         _init.SystemManager.Initialize();
 
-        var view = context.View<RigidBody2DComponent>();
+        var view = _context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
@@ -155,14 +173,14 @@ internal sealed class Scene(
 
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
-        var pointLights = context.View<PointLightComponent>().ToList();
-        var directionalLights = context.View<DirectionalLightComponent>().ToList();
-        var ambientLights = context.View<AmbientLightComponent>().ToList();
+        var pointLights = _context.View<PointLightComponent>().ToList();
+        var directionalLights = _context.View<DirectionalLightComponent>().ToList();
+        var ambientLights = _context.View<AmbientLightComponent>().ToList();
 
         if (directionalLights.Count > 0)
         {
             var (_, directionalLight) = directionalLights[0];
-            graphics3D.SetDirectionalLight(
+            _graphics3D.SetDirectionalLight(
                 enabled: true,
                 direction: directionalLight.Direction,
                 color: directionalLight.Color,
@@ -170,7 +188,7 @@ internal sealed class Scene(
         }
         else
         {
-            graphics3D.SetDirectionalLight(
+            _graphics3D.SetDirectionalLight(
                 enabled: false,
                 direction: default,
                 color: default,
@@ -180,14 +198,14 @@ internal sealed class Scene(
         if (ambientLights.Count > 0)
         {
             var (_, ambientLight) = ambientLights[0];
-            graphics3D.SetAmbientLight(
+            _graphics3D.SetAmbientLight(
                 enabled: true,
                 color: ambientLight.Color,
                 strength: ambientLight.Strength);
         }
         else
         {
-            graphics3D.SetAmbientLight(
+            _graphics3D.SetAmbientLight(
                 enabled: false,
                 color: default,
                 strength: 0.0f);
@@ -206,30 +224,30 @@ internal sealed class Scene(
                 pointLight.Color,
                 pointLight.Intensity));
         }
-        graphics3D.SetPointLights(pointLightData);
+        _graphics3D.SetPointLights(pointLightData);
 
-        graphics3D.BeginScene(camera);
+        _graphics3D.BeginScene(camera);
         
-        var modelGroup = context.View<ModelRendererComponent>();
+        var modelGroup = _context.View<ModelRendererComponent>();
         
         foreach (var (entity, modelRendererComponent) in modelGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
             var meshComponent = entity.GetComponent<MeshComponent>();
         
-            graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
+            _graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
                 entity.Id);
         }
         
-        graphics3D.EndScene();
+        _graphics3D.EndScene();
         
-        graphics3D.BeginLightVisualization(camera);
+        _graphics3D.BeginLightVisualization(camera);
         foreach (var (e, _) in pointLights)
         {
             if (!e.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
-            graphics3D.DrawLightVisualization(transform.Translation);
+            _graphics3D.DrawLightVisualization(transform.Translation);
         }
 
         foreach (var (e, _) in directionalLights)
@@ -237,20 +255,20 @@ internal sealed class Scene(
             if (!e.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
-            graphics3D.DrawLightVisualization(transform.Translation);
+            _graphics3D.DrawLightVisualization(transform.Translation);
         }
-        graphics3D.EndLightVisualization();
+        _graphics3D.EndLightVisualization();
 
-        graphics2D.BeginScene(camera);
+        _graphics2D.BeginScene(camera);
 
-        var spriteGroup = context.View<SpriteRendererComponent>();
+        var spriteGroup = _context.View<SpriteRendererComponent>();
         foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
-            graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
         }
 
-        var subtextureGroup = context.View<SubTextureRendererComponent>();
+        var subtextureGroup = _context.View<SubTextureRendererComponent>();
         foreach (var (entity, subtextureComponent) in subtextureGroup)
         {
             if (subtextureComponent.Texture is null)
@@ -278,12 +296,12 @@ internal sealed class Scene(
 
             // Use transform directly without additional scaling (same as runtime)
             var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
+            _graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
         }
 
-        if (debugSettings.ShowColliderBounds)
+        if (_debugSettings.ShowColliderBounds)
         {
-            foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
+            foreach (var (entity, boxCollider) in _context.View<BoxCollider2DComponent>())
             {
                 var transform = entity.GetComponent<TransformComponent>();
                 var size = new Vector2(
@@ -311,18 +329,18 @@ internal sealed class Scene(
                 var trs = Matrix4x4.CreateTranslation(worldPos)
                           * Matrix4x4.CreateRotationZ(rotation)
                           * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-                graphics2D.DrawRect(trs, color, entity.Id);
+                _graphics2D.DrawRect(trs, color, entity.Id);
             }
         }
 
-        graphics2D.EndScene();
+        _graphics2D.EndScene();
     }
 
     public void OnViewportResize(uint width, uint height)
     {
         Logger.Information("Scene.OnViewportResize called: {Width}x{Height}", width, height);
 
-        var group = context.View<CameraComponent>();
+        var group = _context.View<CameraComponent>();
         foreach (var (entity, cameraComponent) in group)
         {
             if (!cameraComponent.FixedAspectRatio)
@@ -336,7 +354,7 @@ internal sealed class Scene(
 
     public Entity? GetPrimaryCameraEntity()
     {
-        var view = context.View<CameraComponent>();
+        var view = _context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.Primary)
@@ -354,7 +372,7 @@ internal sealed class Scene(
         if (!cameraEntity.HasComponent<CameraComponent>())
             throw new ArgumentException("Entity must have a CameraComponent", nameof(cameraEntity));
 
-        var view = context.View<CameraComponent>();
+        var view = _context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             component.Primary = entity.Id == cameraEntity.Id;
@@ -416,17 +434,17 @@ internal sealed class Scene(
         if (_disposed)
             return;
 
-        Logger.Debug("Disposing scene '{Path}'", path);
+        Logger.Debug("Disposing scene '{Path}'", _path);
 
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
         // Singleton systems (rendering, scripts) are shared and won't be disposed
         _init.SystemManager?.Dispose();
 
         // Clear entity storage
-        context.Clear();
+        _context.Clear();
 
         _disposed = true;
         GC.SuppressFinalize(this);
-        Logger.Debug("Scene '{Path}' disposed successfully", path);
+        Logger.Debug("Scene '{Path}' disposed successfully", _path);
     }
 }
