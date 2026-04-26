@@ -54,10 +54,60 @@
         <None Update="assets\shaders\OpenGL\textureShader.vert">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="assets\shaders\OpenGL\flatColorShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\flatColorShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\hdrTonemap.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\hdrTonemap.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lightCubeShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lightCubeShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lightingShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lightingShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lineShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\lineShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\phong.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\phong.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\textureShader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="assets\shaders\OpenGL\textureShader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures" />
+    </Target>
+
+    <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <PropertyGroup>
+            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
+        </PropertyGroup>
+        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled." Condition="!Exists('$(OpenALNativePath)')" />
+        <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 
 </Project>

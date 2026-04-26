@@ -3,6 +3,7 @@ using DryIoc;
 using ECS;
 using Engine.Core;
 using Engine.Core.DI;
+using Engine.Scripting;
 using Serilog;
 
 namespace Runtime;
@@ -104,9 +105,32 @@ public class Program
         EngineIoCContainer.Register(container);
         container.Register<IContext, Context>(Reuse.Singleton);
         container.RegisterInstance(gameConfig);
-        container.Register<ILayer, GameLayer>(Reuse.Singleton);
+        
+        // todo: remove
+        //container.Register<ILayer, GameLayer>(Reuse.Singleton);
+        
         container.Register<RuntimeApplication>(Reuse.Singleton);
 
+        RegisterGameAssembly(container, gameConfig);
+
         container.ValidateAndThrow();
+    }
+
+    private static void RegisterGameAssembly(Container container, GameConfiguration gameConfig)
+    {
+        var rel = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
+            ? "GameAssembly.dll"
+            : gameConfig.GameAssemblyPath;
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, rel));
+        if (!File.Exists(path))
+            throw new InvalidOperationException(
+                $"Game assembly not found: {path}. Build scripts (publish) or add GameAssembly.dll next to the executable.");
+
+        var assembly = GameAssemblyContainerRegistration.Load(path);
+        if (!GameAssemblyContainerRegistration.TryRegisterContainer(container, assembly))
+            Logger.Warning("No static IoCContainer.Register in game assembly; running without custom DI.");
+
+        if (!((Container)container).IsRegistered<ILayer>())
+            container.Register<ILayer, GameLayer>(Reuse.Singleton);
     }
 }

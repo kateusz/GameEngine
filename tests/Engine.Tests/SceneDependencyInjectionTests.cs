@@ -1,4 +1,5 @@
 using ECS;
+using ECS.Systems;
 using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Systems;
@@ -23,10 +24,11 @@ public class SceneDependencyInjectionTests
         var mockGraphics2D = Substitute.For<IGraphics2D>();
         var mockGraphics3D = Substitute.For<IGraphics3D>();
         var mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
+        var systemManager = Substitute.For<ISystemManager>();
 
         // Act - Create scene with injected dependencies (previously impossible with singletons)
         var scene = new EngineScene("test-scene", "test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D,
-            mockContext, new Engine.Core.DebugSettings());
+            mockContext, new Engine.Core.DebugSettings(), systemManager);
 
         // Assert - Scene was created successfully
         scene.ShouldNotBeNull();
@@ -40,9 +42,10 @@ public class SceneDependencyInjectionTests
         var mockGraphics2D = Substitute.For<IGraphics2D>();
         var mockGraphics3D = Substitute.For<IGraphics3D>();
         var mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
+        var systemManager = Substitute.For<ISystemManager>();
 
         var scene = new EngineScene("test-scene", "test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D,
-            mockContext, new Engine.Core.DebugSettings());
+            mockContext, new Engine.Core.DebugSettings(), systemManager);
 
         // Act
         var entity = scene.CreateEntity("TestEntity");
@@ -59,9 +62,10 @@ public class SceneDependencyInjectionTests
         var mockGraphics2D = Substitute.For<IGraphics2D>();
         var mockGraphics3D = Substitute.For<IGraphics3D>();
         var mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
+        var systemManager = Substitute.For<ISystemManager>();
 
         var scene = new EngineScene("test-scene", "test-scene", mockSystemRegistry, mockGraphics2D, mockGraphics3D,
-            mockContext, new Engine.Core.DebugSettings());
+            mockContext, new Engine.Core.DebugSettings(), systemManager);
         var entity = scene.CreateEntity("TestEntity");
 
         // Act

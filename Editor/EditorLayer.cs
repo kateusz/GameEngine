@@ -78,7 +78,29 @@ public class EditorLayer(
     {
         Logger.Debug("EditorLayer OnAttach.");
 
-        _sceneChangedHandler = newScene => panels.SceneHierarchyPanel.SetScene(newScene);
+        _sceneChangedHandler = newScene =>
+        {
+            panels.SceneHierarchyPanel.SetScene(newScene);
+
+            if (string.IsNullOrWhiteSpace(newScene.Name))
+                return;
+            
+            // Prefer current project; otherwise default to CWD/assets/scripts
+            var scriptsDir = projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
+            scriptEngine.SetScriptsDirectory(scriptsDir);
+        
+#if DEBUG
+            // Enable script debugging in debug builds
+            scriptEngine.EnableHybridDebugging(true);
+
+            // Optional: Save debug symbols to disk for external debuggers
+            var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
+            Directory.CreateDirectory(symbolsPath);
+            scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "GameAssembly"), "GameAssembly");
+
+            scriptEngine.PrintDebugInfo();
+#endif
+        };
         _playSceneHandler = () => sceneManager.Play();
         _stopSceneHandler = () => sceneManager.Stop();
         _restartSceneHandler = () => sceneManager.Restart();
@@ -114,10 +136,6 @@ public class EditorLayer(
 
         // Apply settings from preferences
         ApplyEditorSettings();
-
-        // Prefer current project; otherwise default to CWD/assets/scripts
-        var scriptsDir = projectManager.ScriptsDir ?? Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-        scriptEngine.SetScriptsDirectory(scriptsDir);
 
         // Register keyboard shortcuts
         RegisterShortcuts();

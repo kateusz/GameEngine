@@ -79,6 +79,11 @@ public sealed class Entity : IEquatable<Entity>
         _components.Remove(typeof(T));
     }
 
+    public void RemoveComponent(Type componentType)
+    {
+        _components.Remove(componentType);
+    }
+
     /// <summary>
     /// Gets a component of the specified type from this entity.
     /// </summary>
@@ -109,6 +114,11 @@ public sealed class Entity : IEquatable<Entity>
 
         component = default!;
         return false;
+    }
+
+    public bool TryGetComponent(Type componentType, out IComponent? component)
+    {
+        return _components.TryGetValue(componentType, out component);
     }
 
     public bool HasComponent<T>() where T : IComponent

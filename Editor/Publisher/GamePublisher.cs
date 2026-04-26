@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Editor.Features.Project;
+using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Publisher;
 
-public class GamePublisher(IProjectManager projectManager) : IGamePublisher
+public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder gameAssemblyBuilder) : IGamePublisher
 {
     private static readonly ILogger Logger = Log.ForContext<GamePublisher>();
 
@@ -25,11 +26,11 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
 
         var gameConfig = new GameConfiguration
         {
+            GameAssemblyPath = "GameAssembly.dll",
             StartupScenePath = "assets/scenes/Scene.scene",
             WindowWidth = 1920,
             WindowHeight = 1080,
             Fullscreen = false,
-            GameTitle = "My Game",
             TargetFrameRate = 60
         };
 
@@ -48,6 +49,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
     {
         var defaultGameConfig = new GameConfiguration
         {
+            GameAssemblyPath = "GameAssembly.dll",
             StartupScenePath = "assets/scenes/Scene.scene",
             WindowWidth = 1920,
             WindowHeight = 1080,
@@ -128,8 +130,33 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
                 return copyScriptsResult;
             }
 
+            ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
+            var publishScriptsDir = Path.Combine(tempOutputPath, "assets", "scripts");
+            var gameDllPath = Path.Combine(tempOutputPath, "GameAssembly.dll");
+            if (!gameAssemblyBuilder.TryBuild(publishScriptsDir, gameDllPath, emitPdb: false, out var scriptBuildErrors))
+            {
+                foreach (var line in scriptBuildErrors)
+                {
+                    buildOutput.Add(line);
+                    Logger.Error("Script build: {Line}", line);
+                }
+
+                CleanupTempDirectory(tempOutputPath);
+                return PublishResult.Failed("Compiling project scripts to GameAssembly.dll failed. See build output for Roslyn errors.");
+            }
+
             ReportProgress(progress, "Creating game configuration...", 0.8f);
-            var configResult = CreateGameConfig(tempOutputPath, gameConfig);
+            var mergedConfig = new GameConfiguration
+            {
+                GameAssemblyPath = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath) ? "GameAssembly.dll" : gameConfig.GameAssemblyPath,
+                StartupScenePath = gameConfig.StartupScenePath,
+                WindowWidth = gameConfig.WindowWidth,
+                WindowHeight = gameConfig.WindowHeight,
+                Fullscreen = gameConfig.Fullscreen,
+                GameTitle = gameConfig.GameTitle,
+                TargetFrameRate = gameConfig.TargetFrameRate
+            };
+            var configResult = CreateGameConfig(tempOutputPath, mergedConfig);
             if (!configResult.Success)
             {
                 CleanupTempDirectory(tempOutputPath);
@@ -137,7 +164,7 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             }
 
             ReportProgress(progress, "Validating build...", 0.9f);
-            var validationCheck = ValidatePublishedBuild(tempOutputPath, settings.RuntimeIdentifier, gameConfig);
+            var validationCheck = ValidatePublishedBuild(tempOutputPath, settings.RuntimeIdentifier, mergedConfig);
             if (!validationCheck.Success)
             {
                 CleanupTempDirectory(tempOutputPath);
@@ -526,6 +553,17 @@ public class GamePublisher(IProjectManager projectManager) : IGamePublisher
             var error = $"Game configuration not found at {configPath}";
             Logger.Error(error);
             return PublishResult.Failed(error);
+        }
+
+        var relDll = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
+            ? "GameAssembly.dll"
+            : gameConfig.GameAssemblyPath;
+        var gameAssemblyPath = Path.Combine(outputPath, relDll);
+        if (!File.Exists(gameAssemblyPath))
+        {
+            var err = $"GameAssembly not found at {gameAssemblyPath}";
+            Logger.Error(err);
+            return PublishResult.Failed(err);
         }
 
         var startupScenePath = Path.Combine(outputPath, gameConfig.StartupScenePath);
