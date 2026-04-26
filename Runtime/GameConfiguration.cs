@@ -2,7 +2,6 @@ namespace Runtime;
 
 public class GameConfiguration
 {
-    public string AssemblyName { get; set; } = "GameAssembly";
     public string GameAssemblyPath { get; set; } = "GameAssembly.dll";
     public string StartupScenePath { get; set; } = "assets/scenes/game.scene";
     public int WindowWidth { get; set; } = 1920;

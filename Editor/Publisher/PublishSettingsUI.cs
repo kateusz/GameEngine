@@ -228,13 +228,10 @@ public class PublishSettingsUI(
             SelfContained = _selfContained,
             SingleFile = _singleFile,
             Configuration = _configuration
-        };
-
+            GameTitle = new DirectoryInfo(projectManager.CurrentProjectDirectory).Name,
         // Create game configuration
         var gameConfig = new GameConfiguration
         {
-            // todo: remove hardcoded
-            AssemblyName = "PingPong",
             StartupScenePath = Path.GetRelativePath(projectManager.CurrentProjectDirectory, currentScene)
                 .Replace('\\', '/'),
             WindowWidth = 1920,

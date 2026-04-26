@@ -26,7 +26,6 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
 
         var gameConfig = new GameConfiguration
         {
-            AssemblyName = "GameAssembly",
             GameAssemblyPath = "GameAssembly.dll",
             StartupScenePath = "assets/scenes/Scene.scene",
             WindowWidth = 1920,
@@ -50,7 +49,6 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
     {
         var defaultGameConfig = new GameConfiguration
         {
-            AssemblyName = "GameAssembly",
             GameAssemblyPath = "GameAssembly.dll",
             StartupScenePath = "assets/scenes/Scene.scene",
             WindowWidth = 1920,
@@ -150,7 +148,6 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             ReportProgress(progress, "Creating game configuration...", 0.8f);
             var mergedConfig = new GameConfiguration
             {
-                AssemblyName = string.IsNullOrWhiteSpace(gameConfig.AssemblyName) ? "GameAssembly" : gameConfig.AssemblyName,
                 GameAssemblyPath = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath) ? "GameAssembly.dll" : gameConfig.GameAssemblyPath,
                 StartupScenePath = gameConfig.StartupScenePath,
                 WindowWidth = gameConfig.WindowWidth,

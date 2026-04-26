@@ -43,11 +43,7 @@ internal static class ScriptCompilationReferences
                 errors.Add($"Missing required assembly: {required}");
         }
 
-        if (!referenceNames.Any(n => n == "ECS"))
-            errors.Add("ECS assembly is required but not found. Scripts cannot access Entity class without it.");
-
-        return (errors.Count == 0, errors.ToArray());
-    }
+        return (errors.Count == 0, errors.ToArray());    }
 
     private static void LoadEssentialAssemblies(List<MetadataReference> references, string? runtimeDir)
     {

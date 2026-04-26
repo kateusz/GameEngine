@@ -218,9 +218,6 @@ public class SceneManager(
                 if (File.Exists(p))
                     return p;
             }
-
-            if (!string.IsNullOrWhiteSpace(config.AssemblyName))
-                return config.AssemblyName;
         }
         catch (Exception ex)
         {
