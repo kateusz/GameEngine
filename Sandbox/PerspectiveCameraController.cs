@@ -20,7 +20,7 @@ public class PerspectiveCameraController
     private bool _firstMouse = true;
     private bool _mouseLookActive;
 
-    private const float MoveSpeed = 30.0f;
+    private const float MoveSpeed = 50.0f;
     private const float MouseSensitivity = 0.003f;
     private const float ScrollSpeedMultiplier = 2.0f;
     private float _speedMultiplier = 2.0f;

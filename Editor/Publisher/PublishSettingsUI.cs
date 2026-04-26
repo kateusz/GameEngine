@@ -227,17 +227,18 @@ public class PublishSettingsUI(
             RuntimeIdentifier = _selectedPlatform,
             SelfContained = _selfContained,
             SingleFile = _singleFile,
-            Configuration = _configuration
-            GameTitle = new DirectoryInfo(projectManager.CurrentProjectDirectory).Name,
+            Configuration = _configuration,
+        };
+        
         // Create game configuration
         var gameConfig = new GameConfiguration
         {
+            GameTitle = new DirectoryInfo(projectManager.CurrentProjectDirectory).Name,
             StartupScenePath = Path.GetRelativePath(projectManager.CurrentProjectDirectory, currentScene)
                 .Replace('\\', '/'),
             WindowWidth = 1920,
             WindowHeight = 1080,
             Fullscreen = false,
-            GameTitle = Path.GetFileName(projectManager.CurrentProjectDirectory),
             TargetFrameRate = 60
         };
 

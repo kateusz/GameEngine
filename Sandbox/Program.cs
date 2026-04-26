@@ -64,6 +64,7 @@ public class Program
         container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
         container.Register<Engine.Scene.ModelSceneImporter>(Reuse.Singleton);
         container.Register<SandboxApplication>(Reuse.Singleton);
+        container.Register<ILayer, Sandbox3DLayer>(Reuse.Singleton);
 
         container.ValidateAndThrow();
     }
