@@ -4,12 +4,9 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
-using Editor.UI.Elements;
-using Editor.UI.FieldEditors;
-using Engine.Scene;
-using Engine.Scene.Components;
 using Engine.Scripting;
 using ImGuiNET;
+using SceneComponents;
 using Serilog;
 
 namespace Editor.ComponentEditors;
@@ -35,7 +32,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
 
         DrawComponent<NativeScriptComponent>("Script", entity, component =>
         {
-            if (component.ScriptableEntity != null)
+            if (!string.IsNullOrWhiteSpace(component.ScriptTypeName))
                 DrawAttachedScript(entity, component);
             else
                 DrawNoScriptMessage();
@@ -47,21 +44,17 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
 
     private void DrawAttachedScript(Entity entity, NativeScriptComponent component)
     {
-        var script = component.ScriptableEntity!;
-        var scriptType = script.GetType();
-
-        DrawScriptHeader(entity, scriptType);
-        DrawScriptFields(script);
+        DrawScriptHeader(entity, component.ScriptTypeName!);
     }
 
-    private void DrawScriptHeader(Entity entity, Type scriptType)
+    private void DrawScriptHeader(Entity entity, string scriptTypeName)
     {
-        TextDrawer.DrawWarningText($"Script: {scriptType.Name}");
+        TextDrawer.DrawWarningText($"Script: {scriptTypeName}");
 
         ImGui.SameLine();
-        ButtonDrawer.DrawButton($"Edit##{scriptType.Name}", 0, 0, () => OpenScriptInExternalEditor(scriptType.Name));
+        ButtonDrawer.DrawButton($"Edit##{scriptTypeName}", 0, 0, () => OpenScriptInExternalEditor(scriptTypeName));
 
-        if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptType.Name}"))
+        if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptTypeName}"))
         {
             if (ImGui.MenuItem("Remove"))
             {
@@ -93,48 +86,6 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
         {
             Logger.Error(ex, "Failed to open script {ScriptName} in external editor", scriptName);
         }
-    }
-
-    private void DrawScriptFields(ScriptableEntity script)
-    {
-        var fields = script.GetExposedFields().ToList();
-
-        if (!fields.Any())
-        {
-            TextDrawer.DrawErrorText("No public fields/properties found!");
-            return;
-        }
-
-        foreach (var (fieldName, fieldType, fieldValue) in fields)
-        {
-            DrawScriptField(script, fieldName, fieldType, fieldValue);
-        }
-    }
-
-    private static void DrawScriptField(ScriptableEntity script, string fieldName, Type fieldType, object fieldValue)
-    {
-        UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
-        {
-            var inputLabel = $"{fieldName}##{fieldName}";
-
-            if (TryDrawFieldEditor(inputLabel, fieldType, fieldValue, out var newValue))
-            {
-                script.SetFieldValue(fieldName, newValue);
-            }
-        });
-    }
-
-    private static bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
-    {
-        newValue = value;
-
-        var editor = FieldEditorRegistry.GetEditor(type);
-        if (editor != null)
-            return editor.Draw(label, value, out newValue);
-
-        // Fallback: unsupported type
-        ImGui.TextDisabled($"Unsupported type: {type.Name}");
-        return false;
     }
 
     private static void DrawNoScriptMessage()
@@ -196,16 +147,15 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
                     var scriptInstanceResult = scriptEngine.CreateScriptInstance(_newScriptName);
                     if (scriptInstanceResult.IsSuccess)
                     {
-                        var scriptInstance = scriptInstanceResult.Value;
                         if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
                         {
-                            scriptComponent.ScriptableEntity = scriptInstance;
+                            scriptComponent.ScriptTypeName = _newScriptName;
                         }
                         else
                         {
                             _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
                             {
-                                ScriptableEntity = scriptInstance
+                                ScriptTypeName = _newScriptName
                             });
                         }
 
@@ -247,11 +197,10 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
                 return;
             }
 
-            var scriptInstance = scriptInstanceResult.Value;
             if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
-                scriptComponent.ScriptableEntity = scriptInstance;
+                scriptComponent.ScriptTypeName = scriptName;
             else
-                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent { ScriptableEntity = scriptInstance });
+                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent { ScriptTypeName = scriptName });
 
             Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
         }

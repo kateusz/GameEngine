@@ -1,9 +1,7 @@
-using System;
 using System.Numerics;
 using ECS;
 using ECS.Systems;
-using Engine.Scene.Components;
-using Engine.Scene.Systems;
+using SceneComponents;
 
 namespace PingPong;
 
@@ -14,7 +12,7 @@ internal sealed class PongCollisionSystem(IContext context) : IGameSystem
     private const float MaxVerticalInfluence = 0.9f;
     private const float MinHorizontalComponent = 0.35f;
 
-    public int Priority => SystemPriorities.PongCollisionSystem;
+    public int Priority => 104;
 
     public void OnInit() { }
 

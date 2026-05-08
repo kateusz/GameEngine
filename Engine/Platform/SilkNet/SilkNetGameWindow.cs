@@ -7,6 +7,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using Input;
 
 namespace Engine.Platform.SilkNet;
 

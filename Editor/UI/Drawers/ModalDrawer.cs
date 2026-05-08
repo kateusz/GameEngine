@@ -361,7 +361,7 @@ public static class ModalDrawer
         ref bool showModal)
     {
         var itemHeight = ImGui.GetTextLineHeightWithSpacing();
-        var visibleItems = Math.Min(items.Length, EditorUIConstants.MaxVisibleListItems);
+        var visibleItems = System.Math.Min(items.Length, EditorUIConstants.MaxVisibleListItems);
         var listboxHeight = itemHeight * visibleItems + ImGui.GetStyle().FramePadding.Y * 2;
 
         ImGui.BeginChild($"{title}_List", new Vector2(EditorUIConstants.SelectorListBoxWidth, listboxHeight));

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Editor.Features.Viewport;
 using Editor.UI.Constants;
 using ImGuiNET;
 

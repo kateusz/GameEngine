@@ -2,8 +2,6 @@ using System.Numerics;
 using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
 using ImGuiNET;
 
 namespace Editor.ComponentEditors.Core;

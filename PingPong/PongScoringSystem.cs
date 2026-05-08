@@ -1,10 +1,7 @@
-using System;
-using System.Linq;
 using System.Numerics;
 using ECS;
 using ECS.Systems;
-using Engine.Scene.Components;
-using Engine.Scene.Systems;
+using SceneComponents;
 
 namespace PingPong;
 
@@ -12,7 +9,7 @@ internal sealed class PongScoringSystem(IContext context) : IGameSystem
 {
     private const float GoalX = 11.0f;
 
-    public int Priority => SystemPriorities.PongScoringSystem;
+    public int Priority => 105;
 
     public void OnInit() { }
 

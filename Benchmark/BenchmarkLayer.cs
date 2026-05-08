@@ -8,8 +8,10 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene;
-using Engine.Scene.Components;
 using ImGuiNET;
+using SceneComponents;
+using SceneComponents.Camera;
+using SceneComponents.Rendering;
 
 namespace Benchmark;
 
@@ -416,7 +418,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             // Optionally, cycle textures to break batching and increase draw calls
             if (textures.Length > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite) && random.NextDouble() < 0.05) // 5% chance per frame
             {
-                sprite.Texture = textures[random.Next(textures.Length)];
+                sprite.TexturePath = textures[random.Next(textures.Length)].Path;
             }
         }
     }
@@ -488,7 +490,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
                 0);
 
             var sprite = entity.AddComponent<SpriteRendererComponent>();
-            sprite.Texture = _testTextures[textureKeys[i % textureKeys.Length]];
+            sprite.TexturePath = _testTextures[textureKeys[i % textureKeys.Length]].Path;
         }
     }
 
@@ -512,7 +514,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             // Use different textures to force draw call breaks
             if (i % 2 == 0 && _testTextures.Count > 1)
             {
-                sprite.Texture = _testTextures.Values.ElementAt(i % _testTextures.Count);
+                sprite.TexturePath = _testTextures.Values.ElementAt(i % _testTextures.Count).Path;
             }
         }
     }
@@ -540,7 +542,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         {
             if (random.NextDouble() < 0.1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
-                sprite.Texture = textureValues[random.Next(textureValues.Length)];
+                sprite.TexturePath = textureValues[random.Next(textureValues.Length)].Path;
             }
         }
     }
@@ -602,7 +604,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
                 var cpuTimeDiff = (currentTotalProcessorTime - _lastTotalProcessorTime).TotalMilliseconds;
                 var cpuUsagePercent = (float)((cpuTimeDiff / (Environment.ProcessorCount * timeDiff)) * 100.0);
 
-                _currentCpuUsage = Math.Clamp(cpuUsagePercent, 0, 100 * Environment.ProcessorCount);
+                _currentCpuUsage = System.Math.Clamp(cpuUsagePercent, 0, 100 * Environment.ProcessorCount);
 
                 _lastCpuCheck = currentTime;
                 _lastTotalProcessorTime = currentTotalProcessorTime;

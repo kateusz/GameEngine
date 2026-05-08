@@ -2,8 +2,8 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
 using Engine.Renderer.Textures;
-using Engine.Scene.Components;
 using ImGuiNET;
+using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors;
 
@@ -18,7 +18,6 @@ public class SubTextureRendererComponentEditor(ITextureFactory textureFactory)
 
             TextureDropTarget.Draw("Texture", texture =>
             {
-                component.Texture = texture;
                 component.TexturePath = texture.Path;
             }, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,

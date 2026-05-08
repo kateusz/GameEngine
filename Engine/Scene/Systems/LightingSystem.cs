@@ -1,8 +1,8 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
+using SceneComponents;
+using SceneComponents.Lights;
 
 namespace Engine.Scene.Systems;
 

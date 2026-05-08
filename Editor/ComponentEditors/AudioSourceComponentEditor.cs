@@ -3,8 +3,9 @@ using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Audio;
-using Engine.Scene.Components;
+using Engine.Scene.Serializer;
 using ImGuiNET;
+using SceneComponents.Audio;
 using ZLinq;
 
 namespace Editor.ComponentEditors;
@@ -16,9 +17,8 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
         ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", entity, () =>
         {
             var component = entity.GetComponent<AudioSourceComponent>();
-            audioDropTarget.Draw("Audio Clip", component.AudioClip, (audioClip, relativePath) =>
+            audioDropTarget.Draw("Audio Clip", null, (_, relativePath) =>
             {
-                component.AudioClip = audioClip;
                 component.AudioClipPath = relativePath;
             });
 
@@ -50,12 +50,9 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
 
             ButtonDrawer.DrawButton("Play", () =>
             {
-                var path = component.AudioClip?.Path;
-                if (!string.IsNullOrWhiteSpace(path))
-                    audioEngine.PlayOneShot(path, volume: 0.5f);
+                if (!string.IsNullOrWhiteSpace(component.AudioClipPath))
+                    audioEngine.PlayOneShot(PathBuilder.Build(component.AudioClipPath), volume: 0.5f);
             });
-
-            ImGui.Text($"Status: {(component.IsPlaying ? "Playing" : "Stopped")}");
 
             DrawEffectsSection(component);
         });
@@ -120,7 +117,7 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
 
             if (ImGui.Selectable(type.ToString()))
             {
-                component.Effects.Add(new AudioEffectConfig
+                component.Effects.Add(new AudioEffectData
                 {
                     Type = type,
                     Enabled = true,

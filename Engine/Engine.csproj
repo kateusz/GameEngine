@@ -39,10 +39,17 @@
 
     <ItemGroup>
         <ProjectReference Include="../ECS/ECS.csproj" />
+        <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />
+        <ProjectReference Include="..\Scripting\Scripting.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <Compile Remove="Platform\OpenTK\Audio\OpenTKAudioClip.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Math\" />
+      <Folder Include="Scene\Components\" />
     </ItemGroup>
 
     <!-- No asset directories needed for Engine project -->

@@ -2,7 +2,6 @@
 using Editor.DI;
 using Editor.Panels;
 using Engine.Core;
-using Engine.Scripting;
 using Serilog;
 using Editor.Logging;
 using Engine.Core.DI;

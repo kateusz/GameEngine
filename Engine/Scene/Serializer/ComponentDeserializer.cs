@@ -2,13 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
-using Engine.Audio;
-using Engine.Core;
-using Engine.Renderer;
-using Engine.Renderer.Textures;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
-using Engine.Scripting;
+using SceneComponents;
+using SceneComponents.Audio;
+using SceneComponents.Camera;
+using SceneComponents.Lights;
+using SceneComponents.Physics;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene.Serializer;
@@ -18,10 +17,6 @@ namespace Engine.Scene.Serializer;
 [SuppressMessage("Trimming",
     "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
 internal sealed class ComponentDeserializer(
-    IAudioEngine audioEngine,
-    ITextureFactory textureFactory,
-    IMeshFactory meshFactory,
-    IScriptEngine scriptEngine,
     SerializerOptions serializerOptions)
 {
     private static readonly ILogger Logger = Log.ForContext<ComponentDeserializer>();
@@ -176,21 +171,8 @@ internal sealed class ComponentDeserializer(
     {
         var obj = new JsonObject { [NameKey] = nameof(NativeScriptComponent) };
 
-        if (component.ScriptableEntity != null)
-            component.ScriptTypeName = component.ScriptableEntity.GetType().Name;
-
         if (!string.IsNullOrEmpty(component.ScriptTypeName))
             obj[ScriptTypeKey] = component.ScriptTypeName;
-
-        if (component.ScriptableEntity != null)
-        {
-            var fieldsObj = new JsonObject();
-            foreach (var (fieldName, _, fieldValue) in component.ScriptableEntity.GetExposedFields())
-                fieldsObj[fieldName] = JsonSerializer.SerializeToNode(fieldValue, _options);
-
-            if (fieldsObj.Count > 0)
-                obj["Fields"] = fieldsObj;
-        }
 
         return obj;
     }
@@ -200,9 +182,6 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<SpriteRendererComponent>(_options);
         if (component == null) return;
 
-        if (!string.IsNullOrWhiteSpace(component.TexturePath))
-            component.Texture = textureFactory.Create(PathBuilder.Build(component.TexturePath));
-
         entity.AddComponent(component);
     }
 
@@ -211,9 +190,6 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<SubTextureRendererComponent>(_options);
         if (component == null) 
             return;
-        
-        if (!string.IsNullOrWhiteSpace(component.TexturePath))
-            component.Texture = textureFactory.Create(PathBuilder.Build(component.TexturePath));
 
         entity.AddComponent(component);
     }
@@ -223,21 +199,6 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<AudioSourceComponent>(_options);
         if (component == null) return;
 
-        if (!string.IsNullOrWhiteSpace(component.AudioClipPath))
-        {
-            try
-            {
-                var fullPath = Path.Combine(PathBuilder.Build(component.AudioClipPath!));
-                component.AudioClip = audioEngine.LoadAudioClip(fullPath);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex,
-                    "Failed to load audio clip '{AudioClipPath}' for entity '{EntityName}'. Audio component will be created without clip.",
-                    component.AudioClipPath, entity.Name);
-            }
-        }
-
         entity.AddComponent(component);
     }
 
@@ -246,41 +207,6 @@ internal sealed class ComponentDeserializer(
         var component = componentObj.Deserialize<MeshComponent>(_options);
         if (component == null) return;
 
-        if (!string.IsNullOrWhiteSpace(component.ModelPath))
-        {
-            var fullPath = PathBuilder.Build(component.ModelPath!);
-            try
-            {
-                var result = meshFactory.LoadModel(fullPath);
-                if (component.MeshIndex.HasValue && component.MeshIndex.Value < result.Meshes.Count)
-                {
-                    component.Meshes = [result.Meshes[component.MeshIndex.Value]];
-                }
-                else
-                {
-                    component.SetModel(result.Meshes, fullPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex,
-                    "Failed to load model '{ModelPath}' for entity '{EntityName}'. Mesh component will be created without meshes.",
-                    component.ModelPath, entity.Name);
-            }
-        }
-        else
-        {
-            try
-            {
-                component.SetModel([meshFactory.CreateCube()]);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex,
-                    "Failed to create cube for entity '{EntityName}'.", entity.Name);
-            }
-        }
-
         entity.AddComponent(component);
     }
 
@@ -288,16 +214,6 @@ internal sealed class ComponentDeserializer(
     {
         var component = componentObj.Deserialize<ModelRendererComponent>(_options);
         if (component == null) return;
-
-        foreach (var material in component.Materials)
-        {
-            if (!string.IsNullOrWhiteSpace(material.DiffuseTexturePath))
-                material.DiffuseTexture = textureFactory.Create(PathBuilder.Build(material.DiffuseTexturePath));
-            if (!string.IsNullOrWhiteSpace(material.SpecularTexturePath))
-                material.SpecularTexture = textureFactory.Create(PathBuilder.Build(material.SpecularTexturePath));
-            if (!string.IsNullOrWhiteSpace(material.NormalTexturePath))
-                material.NormalTexture = textureFactory.Create(PathBuilder.Build(material.NormalTexturePath));
-        }
 
         entity.AddComponent(component);
     }
@@ -310,40 +226,9 @@ internal sealed class ComponentDeserializer(
         if (!string.IsNullOrEmpty(scriptTypeName))
         {
             component.ScriptTypeName = scriptTypeName;
-
-            var result = scriptEngine.CreateScriptInstance(scriptTypeName);
-            if (result.IsSuccess)
-            {
-                var scriptInstance = result.Value;
-                if (componentObj["Fields"] is JsonObject fieldsObj)
-                    DeserializeScriptFields(scriptInstance, fieldsObj);
-
-                component.ScriptableEntity = scriptInstance;
-            }
-            else
-            {
-                Logger.Warning(
-                    "Failed to instantiate script '{ScriptTypeName}' for entity '{EntityName}'. Component will retain ScriptTypeName for re-serialization.",
-                    scriptTypeName, entity.Name);
-            }
         }
 
         entity.AddComponent(component);
-    }
-
-    private void DeserializeScriptFields(ScriptableEntity scriptInstance, JsonObject fieldsObj)
-    {
-        foreach (var field in fieldsObj)
-        {
-            if (field.Value == null) continue;
-            var exposed = scriptInstance.GetExposedFields()
-                .FirstOrDefault(f => f.Name == field.Key);
-            if (exposed.Name != null)
-            {
-                var value = field.Value.Deserialize(exposed.Type, _options);
-                scriptInstance.SetFieldValue(field.Key, value);
-            }
-        }
     }
 
     private void AddComponent<T>(Entity entity, JsonObject componentObj) where T : class, IComponent

@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Numerics;
-using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
-using Engine.Math;
+using Input;
+using Math;
 
 namespace Sandbox;
 

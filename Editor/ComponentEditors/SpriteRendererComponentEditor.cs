@@ -1,9 +1,8 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
-using Engine.Core;
 using Engine.Renderer.Textures;
-using Engine.Scene.Components;
+using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors;
 
@@ -20,7 +19,6 @@ public class SpriteRendererComponentEditor(ITextureFactory textureFactory)
                 newValue => component.Color = (System.Numerics.Vector4)newValue);
             TextureDropTarget.Draw("Texture", texture =>
             {
-                component.Texture = texture;
                 component.TexturePath = texture.Path;
             }, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,

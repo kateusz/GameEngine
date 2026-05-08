@@ -1,4 +1,3 @@
-using System.Numerics;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.UI.Constants;

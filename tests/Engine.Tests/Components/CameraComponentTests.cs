@@ -1,5 +1,4 @@
-using Engine.Scene;
-using Engine.Scene.Components;
+using SceneComponents.Camera;
 using Shouldly;
 
 namespace Engine.Tests.Components;
@@ -13,7 +12,7 @@ public class CameraComponentTests
         var component = new CameraComponent();
 
         // Assert
-        component.Camera.ShouldNotBeNull();
+        component.ProjectionType.ShouldBe(CameraProjectionTypeData.Orthographic);
         component.Primary.ShouldBeFalse();
         component.FixedAspectRatio.ShouldBeFalse();
     }
@@ -51,56 +50,70 @@ public class CameraComponentTests
         var original = new CameraComponent
         {
             Primary = false,
-            FixedAspectRatio = true
+            FixedAspectRatio = true,
+            ProjectionType = CameraProjectionTypeData.Orthographic,
+            OrthographicSize = 15f,
+            OrthographicNear = -2f,
+            OrthographicFar = 2f,
+            AspectRatio = 1920f / 1080f
         };
-        original.Camera.SetOrthographic(15f, -2f, 2f);
-        original.Camera.SetViewportSize(1920, 1080);
 
         // Act
         var clone = (CameraComponent)original.Clone();
 
         // Assert
         clone.ShouldNotBeSameAs(original);
-        clone.Camera.ShouldNotBeSameAs(original.Camera);
         clone.Primary.ShouldBe(false);
         clone.FixedAspectRatio.ShouldBeTrue();
-        clone.Camera.ProjectionType.ShouldBe(original.Camera.ProjectionType);
-        clone.Camera.OrthographicSize.ShouldBe(original.Camera.OrthographicSize);
-        clone.Camera.OrthographicNear.ShouldBe(original.Camera.OrthographicNear);
-        clone.Camera.OrthographicFar.ShouldBe(original.Camera.OrthographicFar);
-        clone.Camera.AspectRatio.ShouldBe(original.Camera.AspectRatio);
+        clone.ProjectionType.ShouldBe(original.ProjectionType);
+        clone.OrthographicSize.ShouldBe(original.OrthographicSize);
+        clone.OrthographicNear.ShouldBe(original.OrthographicNear);
+        clone.OrthographicFar.ShouldBe(original.OrthographicFar);
+        clone.AspectRatio.ShouldBe(original.AspectRatio);
     }
 
     [Fact]
     public void CameraComponent_Clone_ShouldCopyPerspectiveProperties()
     {
         // Arrange
-        var original = new CameraComponent();
-        original.Camera.SetPerspective(MathF.PI / 3, 0.5f, 2000f);
+        var original = new CameraComponent
+        {
+            ProjectionType = CameraProjectionTypeData.Perspective,
+            PerspectiveFOV = MathF.PI / 3,
+            PerspectiveNear = 0.5f,
+            PerspectiveFar = 2000f
+        };
 
         // Act
         var clone = (CameraComponent)original.Clone();
 
         // Assert
-        clone.Camera.ProjectionType.ShouldBe(ProjectionType.Perspective);
-        clone.Camera.PerspectiveFOV.ShouldBe(original.Camera.PerspectiveFOV);
-        clone.Camera.PerspectiveNear.ShouldBe(original.Camera.PerspectiveNear);
-        clone.Camera.PerspectiveFar.ShouldBe(original.Camera.PerspectiveFar);
+        clone.ProjectionType.ShouldBe(CameraProjectionTypeData.Perspective);
+        clone.PerspectiveFOV.ShouldBe(original.PerspectiveFOV);
+        clone.PerspectiveNear.ShouldBe(original.PerspectiveNear);
+        clone.PerspectiveFar.ShouldBe(original.PerspectiveFar);
     }
 
     [Fact]
     public void CameraComponent_Clone_ModifyingClone_ShouldNotAffectOriginal()
     {
         // Arrange
-        var original = new CameraComponent();
-        original.Camera.SetOrthographic(10f, -1f, 1f);
+        var original = new CameraComponent
+        {
+            ProjectionType = CameraProjectionTypeData.Orthographic,
+            OrthographicSize = 10f,
+            OrthographicNear = -1f,
+            OrthographicFar = 1f
+        };
 
         // Act
         var clone = (CameraComponent)original.Clone();
-        clone.Camera.SetOrthographic(20f, -2f, 2f);
+        clone.OrthographicSize = 20f;
+        clone.OrthographicNear = -2f;
+        clone.OrthographicFar = 2f;
 
         // Assert
-        original.Camera.OrthographicSize.ShouldBe(10f);
-        clone.Camera.OrthographicSize.ShouldBe(20f);
+        original.OrthographicSize.ShouldBe(10f);
+        clone.OrthographicSize.ShouldBe(20f);
     }
 }

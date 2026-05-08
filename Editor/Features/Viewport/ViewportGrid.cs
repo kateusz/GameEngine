@@ -36,7 +36,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
     {
         var worldWidth = ctx.ViewportSize.X / ctx.Zoom;
         var worldLeft = ctx.CameraPosition.X - worldWidth / 2.0f;
-        var firstTick = (float)Math.Floor(worldLeft / ctx.TickSpacing) * ctx.TickSpacing;
+        var firstTick = (float)System.Math.Floor(worldLeft / ctx.TickSpacing) * ctx.TickSpacing;
 
         for (var worldX = firstTick; worldX <= worldLeft + worldWidth; worldX += ctx.TickSpacing)
         {
@@ -46,7 +46,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
             if (screenX < ctx.ViewportMin.X || screenX > ctx.ViewportMax.X)
                 continue;
 
-            var isMajor = (int)Math.Round(worldX / ctx.TickSpacing) % RenderingConstants.GridMajorStep == 0;
+            var isMajor = (int)System.Math.Round(worldX / ctx.TickSpacing) % RenderingConstants.GridMajorStep == 0;
             var color = isMajor ? ctx.MajorColor : ctx.MinorColor;
 
             ctx.DrawList.AddLine(
@@ -60,7 +60,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
     {
         var worldHeight = ctx.ViewportSize.Y / ctx.Zoom;
         var worldTop = ctx.CameraPosition.Y + worldHeight / 2.0f;
-        var firstTick = (float)Math.Floor((worldTop - worldHeight) / ctx.TickSpacing) * ctx.TickSpacing;
+        var firstTick = (float)System.Math.Floor((worldTop - worldHeight) / ctx.TickSpacing) * ctx.TickSpacing;
 
         for (var worldY = firstTick; worldY <= worldTop; worldY += ctx.TickSpacing)
         {
@@ -70,7 +70,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
             if (screenY < ctx.ViewportMin.Y || screenY > ctx.ViewportMax.Y)
                 continue;
 
-            var isMajor = (int)Math.Round(worldY / ctx.TickSpacing) % RenderingConstants.GridMajorStep == 0;
+            var isMajor = (int)System.Math.Round(worldY / ctx.TickSpacing) % RenderingConstants.GridMajorStep == 0;
             var color = isMajor ? ctx.MajorColor : ctx.MinorColor;
 
             ctx.DrawList.AddLine(

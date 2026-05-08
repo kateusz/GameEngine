@@ -2,7 +2,8 @@ using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Engine.Scene.Components;
+using Engine.Scene.Serializer;
+using SceneComponents.Rendering;
 
 namespace Engine.Renderer;
 
@@ -29,6 +30,8 @@ internal sealed class Graphics3D(
 
     private readonly PointLightData[] _pointLights = new PointLightData[MaxPointLights];
     private int _pointLightCount;
+    private readonly Dictionary<string, (List<Mesh> Meshes, List<MeshMaterial> Materials)> _modelCache = [];
+    private readonly Dictionary<string, MeshMaterial> _runtimeMaterialCache = [];
 
     private readonly Statistics _stats = new();
     private bool _disposed;
@@ -111,16 +114,17 @@ internal sealed class Graphics3D(
     public void DrawModel(Matrix4x4 transform, MeshComponent meshComponent, ModelRendererComponent modelRenderer,
         int entityId = -1)
     {
-        if (meshComponent.Meshes.Count == 0)
+        var (meshes, importedMaterials) = ResolveMeshes(meshComponent);
+        if (meshes.Count == 0)
             return;
 
         _meshShader.Bind();
         _meshShader.SetFloat4("u_Color", modelRenderer.Color);
         _meshShader.SetInt("u_EntityID", entityId);
 
-        for (var i = 0; i < meshComponent.Meshes.Count; i++)
+        for (var i = 0; i < meshes.Count; i++)
         {
-            var mesh = meshComponent.Meshes[i];
+            var mesh = meshes[i];
             var meshTransform = mesh.NodeTransform * transform;
 
             Matrix4x4.Invert(meshTransform, out var invTransform);
@@ -129,7 +133,19 @@ internal sealed class Graphics3D(
             _meshShader.SetMat4("u_Model", meshTransform);
             _meshShader.SetMat4("u_NormalMatrix", normalMatrix);
 
-            var material = i < modelRenderer.Materials.Count ? modelRenderer.Materials[i] : new MeshMaterial();
+            MeshMaterial material;
+            if (i < modelRenderer.Materials.Count)
+            {
+                material = ResolveRuntimeMaterial(modelRenderer.Materials[i]);
+            }
+            else if (i < importedMaterials.Count)
+            {
+                material = importedMaterials[i];
+            }
+            else
+            {
+                material = new MeshMaterial();
+            }
 
             _meshShader.SetFloat("u_Shininess", material.Shininess);
             _meshShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
@@ -148,6 +164,64 @@ internal sealed class Graphics3D(
             rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
             _stats.DrawCalls++;
         }
+    }
+
+    private (List<Mesh> Meshes, List<MeshMaterial> Materials) ResolveMeshes(MeshComponent meshComponent)
+    {
+        if (meshComponent.UseBuiltinCube)
+            return (new List<Mesh> { meshFactory.CreateCube() }, new List<MeshMaterial> { new MeshMaterial() });
+
+        if (string.IsNullOrWhiteSpace(meshComponent.ModelPath))
+            return ([], []);
+
+        var resolvedPath = Path.IsPathRooted(meshComponent.ModelPath)
+            ? meshComponent.ModelPath
+            : PathBuilder.Build(meshComponent.ModelPath);
+
+        if (!_modelCache.TryGetValue(resolvedPath, out var loaded))
+        {
+            loaded = meshFactory.LoadModel(resolvedPath);
+            _modelCache[resolvedPath] = loaded;
+        }
+
+        if (meshComponent.MeshIndex.HasValue)
+        {
+            var meshIndex = meshComponent.MeshIndex.Value;
+            if (meshIndex >= 0 && meshIndex < loaded.Meshes.Count)
+            {
+                var material = meshIndex < loaded.Materials.Count
+                    ? new List<MeshMaterial> { loaded.Materials[meshIndex] }
+                    : new List<MeshMaterial> { new MeshMaterial() };
+                return (new List<Mesh> { loaded.Meshes[meshIndex] }, material);
+            }
+        }
+
+        return loaded;
+    }
+
+    private MeshMaterial ResolveRuntimeMaterial(MaterialData materialData)
+    {
+        var key = $"{materialData.Shininess}|{materialData.DiffuseTexturePath}|{materialData.SpecularTexturePath}|{materialData.NormalTexturePath}";
+        if (_runtimeMaterialCache.TryGetValue(key, out var cached))
+            return cached;
+
+        var material = new MeshMaterial
+        {
+            Shininess = materialData.Shininess,
+            DiffuseTexturePath = materialData.DiffuseTexturePath,
+            SpecularTexturePath = materialData.SpecularTexturePath,
+            NormalTexturePath = materialData.NormalTexturePath
+        };
+
+        if (!string.IsNullOrWhiteSpace(material.DiffuseTexturePath))
+            material.DiffuseTexture = textureFactory.Create(PathBuilder.Build(material.DiffuseTexturePath));
+        if (!string.IsNullOrWhiteSpace(material.SpecularTexturePath))
+            material.SpecularTexture = textureFactory.Create(PathBuilder.Build(material.SpecularTexturePath));
+        if (!string.IsNullOrWhiteSpace(material.NormalTexturePath))
+            material.NormalTexture = textureFactory.Create(PathBuilder.Build(material.NormalTexturePath));
+
+        _runtimeMaterialCache[key] = material;
+        return material;
     }
 
     public void SetDirectionalLight(bool enabled, Vector3 direction, Vector3 color, float strength)

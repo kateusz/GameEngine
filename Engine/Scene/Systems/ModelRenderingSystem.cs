@@ -1,7 +1,8 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
-using Engine.Scene.Components;
+using SceneComponents;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene.Systems;

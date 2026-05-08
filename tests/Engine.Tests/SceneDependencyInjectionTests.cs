@@ -84,7 +84,7 @@ public class SceneDependencyInjectionTests
         var mockCameraProvider = Substitute.For<IPrimaryCameraProvider>();
 
         // Act - Create system with injected dependencies (previously used Context.Instance singleton)
-        var system = new SpriteRenderingSystem(mockRenderer, mockContext, mockCameraProvider);
+        var system = new SpriteRenderingSystem(mockRenderer, null, mockContext, mockCameraProvider);
 
         // Assert
         system.ShouldNotBeNull();

@@ -1,5 +1,5 @@
 using System.Numerics;
-using Engine.Scene.Components;
+using SceneComponents.Physics;
 using Shouldly;
 
 namespace Engine.Tests.Components;

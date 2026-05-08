@@ -2,8 +2,10 @@ using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Audio;
-using Engine.Math;
-using Engine.Scene.Components;
+using Engine.Scene.Serializer;
+using Math;
+using SceneComponents;
+using SceneComponents.Audio;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -18,6 +20,7 @@ internal sealed class AudioSystem(
     IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
+    private readonly Dictionary<int, AudioRuntimeState> _runtimeByEntityId = [];
 
     public int Priority => SystemPriorities.AudioSystem;
 
@@ -54,16 +57,11 @@ internal sealed class AudioSystem(
     /// </summary>
     public void OnShutdown()
     {
-        // Clean up all audio sources
-        var view = context.View<AudioSourceComponent>();
-        foreach (var (_, component) in view)
+        foreach (var runtimeState in _runtimeByEntityId.Values)
         {
-            if (component.RuntimeAudioSource != null)
-            {
-                component.RuntimeAudioSource.Dispose();
-                component.RuntimeAudioSource = null;
-            }
+            runtimeState.Source.Dispose();
         }
+        _runtimeByEntityId.Clear();
 
         Logger.Debug("AudioSystem shut down");
     }
@@ -72,7 +70,7 @@ internal sealed class AudioSystem(
     /// Plays the audio source for the specified entity.
     /// </summary>
     /// <param name="entity">Entity with an AudioSourceComponent.</param>
-    public static void Play(Entity entity)
+    public void Play(Entity entity)
     {
         if (!entity.HasComponent<AudioSourceComponent>())
         {
@@ -81,12 +79,13 @@ internal sealed class AudioSystem(
         }
 
         var component = entity.GetComponent<AudioSourceComponent>();
-        if (component.RuntimeAudioSource != null && component.AudioClip != null)
+        var runtimeState = EnsureRuntimeState(entity);
+        if (TrySyncClip(component, runtimeState, entity) && runtimeState.Source.Clip != null)
         {
-            component.RuntimeAudioSource.Play();
-            component.IsPlaying = true;
+            runtimeState.Source.Play();
+            runtimeState.IsPlaying = true;
         }
-        else if (component.AudioClip == null)
+        else
         {
             Logger.Warning("Cannot play audio for entity '{EntityName}' - no AudioClip assigned", entity.Name);
         }
@@ -96,7 +95,7 @@ internal sealed class AudioSystem(
     /// Pauses the audio playback for the specified entity.
     /// </summary>
     /// <param name="entity">Entity with an AudioSourceComponent.</param>
-    public static void Pause(Entity entity)
+    public void Pause(Entity entity)
     {
         if (!entity.HasComponent<AudioSourceComponent>())
         {
@@ -104,11 +103,10 @@ internal sealed class AudioSystem(
             return;
         }
 
-        var component = entity.GetComponent<AudioSourceComponent>();
-        if (component.RuntimeAudioSource != null)
+        if (_runtimeByEntityId.TryGetValue(entity.Id, out var runtimeState))
         {
-            component.RuntimeAudioSource.Pause();
-            component.IsPlaying = false;
+            runtimeState.Source.Pause();
+            runtimeState.IsPlaying = false;
         }
     }
 
@@ -116,7 +114,7 @@ internal sealed class AudioSystem(
     /// Stops the audio playback for the specified entity.
     /// </summary>
     /// <param name="entity">Entity with an AudioSourceComponent.</param>
-    public static void Stop(Entity entity)
+    public void Stop(Entity entity)
     {
         if (!entity.HasComponent<AudioSourceComponent>())
         {
@@ -124,11 +122,10 @@ internal sealed class AudioSystem(
             return;
         }
 
-        var component = entity.GetComponent<AudioSourceComponent>();
-        if (component.RuntimeAudioSource != null)
+        if (_runtimeByEntityId.TryGetValue(entity.Id, out var runtimeState))
         {
-            component.RuntimeAudioSource.Stop();
-            component.IsPlaying = false;
+            runtimeState.Source.Stop();
+            runtimeState.IsPlaying = false;
         }
     }
 
@@ -138,42 +135,26 @@ internal sealed class AudioSystem(
     /// </summary>
     private void InitializeAudioSource(Entity entity, AudioSourceComponent component)
     {
-        if (component.RuntimeAudioSource != null)
-        {
-            // Already initialized
-            return;
-        }
-
+        var runtimeState = EnsureRuntimeState(entity);
         try
         {
-            // Create audio source from engine
-            component.RuntimeAudioSource = audioEngine.CreateAudioSource();
+            runtimeState.Source.Volume = component.Volume;
+            runtimeState.Source.Pitch = component.Pitch;
+            runtimeState.Source.Loop = component.Loop;
+            runtimeState.Source.SetSpatialMode(component.Is3D, component.MinDistance, component.MaxDistance);
 
-            // Set initial properties
-            if (component.AudioClip != null)
-            {
-                component.RuntimeAudioSource.Clip = component.AudioClip;
-            }
+            TrySyncClip(component, runtimeState, entity);
 
-            component.RuntimeAudioSource.Volume = component.Volume;
-            component.RuntimeAudioSource.Pitch = component.Pitch;
-            component.RuntimeAudioSource.Loop = component.Loop;
-
-            // Configure spatial mode
-            component.RuntimeAudioSource.SetSpatialMode(component.Is3D, component.MinDistance, component.MaxDistance);
-
-            // Set initial 3D position from transform if applicable
             if (component.Is3D && entity.HasComponent<TransformComponent>())
             {
                 var transform = entity.GetComponent<TransformComponent>();
-                component.RuntimeAudioSource.SetPosition(transform.Translation);
+                runtimeState.Source.SetPosition(transform.Translation);
             }
 
-            // Play on awake if requested
-            if (component is { PlayOnAwake: true, AudioClip: not null })
+            if (component.PlayOnAwake && runtimeState.Source.Clip != null)
             {
-                component.RuntimeAudioSource.Play();
-                component.IsPlaying = true;
+                runtimeState.Source.Play();
+                runtimeState.IsPlaying = true;
             }
         }
         catch (Exception ex)
@@ -226,57 +207,74 @@ internal sealed class AudioSystem(
     /// </summary>
     private void UpdateAudioSources()
     {
+        var activeEntityIds = new HashSet<int>();
         var view = context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
         {
-            // Initialize audio source if not already done (for newly added components)
-            if (component.RuntimeAudioSource == null)
-            {
-                InitializeAudioSource(entity, component);
-                continue;
-            }
-
+            activeEntityIds.Add(entity.Id);
             try
             {
-                // Update audio source properties
-                component.RuntimeAudioSource.Volume = component.Volume;
-                component.RuntimeAudioSource.Pitch = component.Pitch;
-                component.RuntimeAudioSource.Loop = component.Loop;
+                var runtimeState = EnsureRuntimeState(entity);
+                runtimeState.Source.Volume = component.Volume;
+                runtimeState.Source.Pitch = component.Pitch;
+                runtimeState.Source.Loop = component.Loop;
+                runtimeState.Source.SetSpatialMode(component.Is3D, component.MinDistance, component.MaxDistance);
 
-                // Update audio clip if changed
-                if (component.AudioClip != null && component.RuntimeAudioSource.Clip != component.AudioClip)
-                {
-                    component.RuntimeAudioSource.Clip = component.AudioClip;
-                }
+                TrySyncClip(component, runtimeState, entity);
 
-                // Update 3D position if enabled
                 if (component.Is3D && entity.HasComponent<TransformComponent>())
                 {
                     var transform = entity.GetComponent<TransformComponent>();
-                    component.RuntimeAudioSource.SetPosition(transform.Translation);
-
-                    // Update distance properties if changed
-                    component.RuntimeAudioSource.SetSpatialMode(true, component.MinDistance, component.MaxDistance);
+                    runtimeState.Source.SetPosition(transform.Translation);
                 }
 
-                // Sync playing state
-                component.IsPlaying = component.RuntimeAudioSource.IsPlaying;
-
-                SyncEffects(component);
+                runtimeState.IsPlaying = runtimeState.Source.IsPlaying;
+                SyncEffects(runtimeState.Source, component);
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error updating audio source for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
             }
         }
+
+        CleanupOrphanedRuntime(activeEntityIds);
     }
 
-    private void SyncEffects(AudioSourceComponent component)
+    private bool TrySyncClip(AudioSourceComponent component, AudioRuntimeState runtimeState, Entity entity)
     {
-        if (component.RuntimeAudioSource == null)
-            return;
+        var clipPath = component.AudioClipPath;
+        if (string.IsNullOrWhiteSpace(clipPath))
+        {
+            runtimeState.Clip = null;
+            runtimeState.LoadedClipPath = null;
+            return false;
+        }
 
-        var source = component.RuntimeAudioSource;
+        if (runtimeState.LoadedClipPath == clipPath && runtimeState.Clip != null)
+            return true;
+
+        try
+        {
+            var fullPath = PathBuilder.Build(clipPath);
+            var clip = audioEngine.LoadAudioClip(fullPath);
+            runtimeState.Clip = clip;
+            runtimeState.LoadedClipPath = clipPath;
+            runtimeState.Source.Clip = clip;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex,
+                "Failed to load audio clip '{AudioClipPath}' for entity '{EntityName}'. Audio source will continue without clip.",
+                clipPath, entity.Name);
+            runtimeState.Clip = null;
+            runtimeState.LoadedClipPath = null;
+            return false;
+        }
+    }
+
+    private void SyncEffects(IAudioSource source, AudioSourceComponent component)
+    {
         var desiredEffects = component.Effects
             .Where(e => e.Enabled)
             .GroupBy(e => e.Type)
@@ -299,5 +297,33 @@ internal sealed class AudioSystem(
             }
             source.UpdateEffect(config.Type, config.Amount);
         }
+    }
+
+    private AudioRuntimeState EnsureRuntimeState(Entity entity)
+    {
+        if (_runtimeByEntityId.TryGetValue(entity.Id, out var runtimeState))
+            return runtimeState;
+
+        runtimeState = new AudioRuntimeState(audioEngine.CreateAudioSource());
+        _runtimeByEntityId[entity.Id] = runtimeState;
+        return runtimeState;
+    }
+
+    private void CleanupOrphanedRuntime(HashSet<int> activeEntityIds)
+    {
+        var staleEntityIds = _runtimeByEntityId.Keys.Where(id => !activeEntityIds.Contains(id)).ToList();
+        foreach (var staleEntityId in staleEntityIds)
+        {
+            _runtimeByEntityId[staleEntityId].Source.Dispose();
+            _runtimeByEntityId.Remove(staleEntityId);
+        }
+    }
+
+    private sealed class AudioRuntimeState(IAudioSource source)
+    {
+        public IAudioSource Source { get; } = source;
+        public IAudioClip? Clip { get; set; }
+        public string? LoadedClipPath { get; set; }
+        public bool IsPlaying { get; set; }
     }
 }

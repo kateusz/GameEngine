@@ -1,9 +1,13 @@
 using System.Numerics;
+using Box2D.NetStandard.Collision.Shapes;
+using Box2D.NetStandard.Dynamics.Bodies;
+using Box2D.NetStandard.Dynamics.Fixtures;
 using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using ECS.Systems;
 using Engine.Renderer.Cameras;
-using Engine.Scene.Components;
+using SceneComponents;
+using SceneComponents.Physics;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -13,9 +17,12 @@ namespace Engine.Scene.Systems;
 /// Handles fixed timestep physics stepping and synchronization between physics bodies and transforms.
 /// This is a PER-SCENE system - each scene has its own instance with its own physics world.
 /// </summary>
-internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext context) : ISystem, IDisposable
+internal sealed class PhysicsSimulationSystem(
+    World physicsWorld,
+    IContext context) : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
+    private static readonly PhysicsRuntimeBodyStore bodyStore = PhysicsRuntimeBodyStore.Instance;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator;
@@ -38,6 +45,7 @@ internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext conte
     {
         // Reset physics accumulator for clean state
         _physicsAccumulator = 0f;
+        EnsureBodiesCreated();
         Logger.Debug("PhysicsSimulationSystem initialized with priority {Priority}", Priority);
     }
 
@@ -72,25 +80,26 @@ internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext conte
             _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
         }
 
+        EnsureBodiesCreated();
+        CleanupOrphanedBodies();
+
         // Retrieve transform from Box2D and sync with entities
         var view = context.View<RigidBody2DComponent>();
         foreach (var (entity, component) in view)
         {
             var transform = entity.GetComponent<TransformComponent>();
             var collision = entity.GetComponent<BoxCollider2DComponent>();
-            var body = component.RuntimeBody;
+            if (!bodyStore.TryGet(entity.Id, out var body))
+                continue;
 
-            if (body != null)
-            {
-                var fixture = body.GetFixtureList();
-                fixture.Density = collision.Density;
-                fixture.m_friction = collision.Friction;
-                fixture.Restitution = collision.Restitution;
+            var fixture = body.GetFixtureList();
+            fixture.Density = collision.Density;
+            fixture.m_friction = collision.Friction;
+            fixture.Restitution = collision.Restitution;
 
-                var position = body.GetPosition();
-                transform.Translation = new Vector3(position.X, position.Y, 0);
-                transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
-            }
+            var position = body.GetPosition();
+            transform.Translation = new Vector3(position.X, position.Y, 0);
+            transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
         }
     }
 
@@ -103,24 +112,86 @@ internal sealed class PhysicsSimulationSystem(World physicsWorld, IContext conte
     {
         Logger.Debug("PhysicsSimulationSystem shutting down - cleaning up physics bodies");
 
-        // Properly destroy all physics bodies before clearing references
-        var view = context.View<RigidBody2DComponent>();
-        foreach (var (_, component) in view)
+        foreach (var (_, body) in bodyStore.Snapshot())
         {
-            if (component.RuntimeBody != null)
-            {
-                // Clear user data to prevent dangling references
-                component.RuntimeBody.SetUserData(null);
-
-                // Destroy the Box2D body
-                physicsWorld.DestroyBody(component.RuntimeBody);
-
-                // Clear component reference to prevent double-cleanup
-                component.RuntimeBody = null;
-            }
+            body.SetUserData(null);
+            physicsWorld.DestroyBody(body);
         }
 
+        bodyStore.Clear();
         Logger.Debug("PhysicsSimulationSystem shut down - all physics bodies destroyed");
+    }
+
+    private void EnsureBodiesCreated()
+    {
+        var view = context.View<RigidBody2DComponent>();
+        foreach (var (entity, component) in view)
+        {
+            if (bodyStore.TryGet(entity.Id, out _))
+                continue;
+
+            var transform = entity.GetComponent<TransformComponent>();
+            var bodyDef = new BodyDef
+            {
+                position = new Vector2(transform.Translation.X, transform.Translation.Y),
+                angle = transform.Rotation.Z,
+                type = RigidBody2DTypeToBox2DBody(component.BodyType),
+                bullet = component.BodyType == RigidBodyType.Dynamic
+            };
+
+            var body = physicsWorld.CreateBody(bodyDef);
+            body.SetFixedRotation(component.FixedRotation);
+            body.SetUserData(entity);
+            bodyStore.Set(entity.Id, body);
+
+            if (!entity.HasComponent<BoxCollider2DComponent>())
+                continue;
+
+            var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
+            var shape = new PolygonShape();
+            var actualSizeX = boxCollider.Size.X * transform.Scale.X;
+            var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
+            var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
+            var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
+            var center = new Vector2(actualOffsetX, actualOffsetY);
+            shape.SetAsBox(actualSizeX, actualSizeY, center, 0.0f);
+
+            var fixtureDef = new FixtureDef
+            {
+                shape = shape,
+                density = boxCollider.Density,
+                friction = boxCollider.Friction,
+                restitution = boxCollider.Restitution,
+                isSensor = boxCollider.IsTrigger
+            };
+            body.CreateFixture(fixtureDef);
+        }
+    }
+
+    private void CleanupOrphanedBodies()
+    {
+        var activeEntityIds = context.View<RigidBody2DComponent>().Select(v => v.Entity.Id).ToHashSet();
+        var staleEntityIds = bodyStore.Snapshot().Keys.Where(id => !activeEntityIds.Contains(id)).ToList();
+        foreach (var staleEntityId in staleEntityIds)
+        {
+            if (!bodyStore.TryGet(staleEntityId, out var body))
+                continue;
+
+            body.SetUserData(null);
+            physicsWorld.DestroyBody(body);
+            bodyStore.Remove(staleEntityId);
+        }
+    }
+
+    private static BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
+    {
+        return componentBodyType switch
+        {
+            RigidBodyType.Static => BodyType.Static,
+            RigidBodyType.Dynamic => BodyType.Dynamic,
+            RigidBodyType.Kinematic => BodyType.Kinematic,
+            _ => throw new ArgumentOutOfRangeException(nameof(componentBodyType), componentBodyType, null)
+        };
     }
 
     /// <summary>

@@ -3,7 +3,8 @@ using Box2D.NetStandard.Dynamics.Contacts;
 using Box2D.NetStandard.Dynamics.World;
 using Box2D.NetStandard.Dynamics.World.Callbacks;
 using ECS;
-using Engine.Scene.Components;
+using Engine.Scripting;
+using SceneComponents;
 using Serilog;
 
 namespace Engine.Scene;
@@ -108,10 +109,7 @@ internal sealed class SceneContactListener : ContactListener
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
             
-        var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-        var scriptableEntity = scriptComponent.ScriptableEntity;
-        
-        if (scriptableEntity == null)
+        if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
             return;
         
         try
@@ -137,10 +135,7 @@ internal sealed class SceneContactListener : ContactListener
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
             
-        var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-        var scriptableEntity = scriptComponent.ScriptableEntity;
-        
-        if (scriptableEntity == null)
+        if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
             return;
         
         try

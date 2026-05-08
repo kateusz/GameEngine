@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
-using Engine.Math;
 using Engine.Renderer.Cameras;
+using Math;
 using Serilog;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 

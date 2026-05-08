@@ -1,7 +1,4 @@
 using System.Numerics;
-using Box2D.NetStandard.Collision.Shapes;
-using Box2D.NetStandard.Dynamics.Bodies;
-using Box2D.NetStandard.Dynamics.Fixtures;
 using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using ECS.Systems;
@@ -9,9 +6,13 @@ using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
+using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
+using SceneComponents;
+using SceneComponents.Camera;
+using SceneComponents.Lights;
+using SceneComponents.Physics;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene;
@@ -19,6 +20,13 @@ namespace Engine.Scene;
 internal sealed class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
+    private static readonly Vector2[] DefaultTextureCoords =
+    [
+        new(0.0f, 0.0f),
+        new(1.0f, 0.0f),
+        new(1.0f, 1.0f),
+        new(0.0f, 1.0f)
+    ];
 
     private readonly (ISystemManager SystemManager, World PhysicsWorld) _init;
     private int _nextEntityId = 1;
@@ -28,6 +36,7 @@ internal sealed class Scene : IScene
     private readonly string _sceneName;
     private readonly IGraphics2D _graphics2D;
     private readonly IGraphics3D _graphics3D;
+    private readonly ITextureFactory? _textureFactory;
     private readonly IContext _context;
     private readonly DebugSettings _debugSettings;
     private readonly ISystemManager _systemManager;
@@ -37,6 +46,7 @@ internal sealed class Scene : IScene
         ISceneSystemRegistry systemRegistry,
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
         IContext context,
         DebugSettings debugSettings,
         ISystemManager systemManager)
@@ -45,10 +55,23 @@ internal sealed class Scene : IScene
         _sceneName = sceneName;
         _graphics2D = graphics2D;
         _graphics3D = graphics3D;
+        _textureFactory = textureFactory;
         _context = context;
         _debugSettings = debugSettings;
         _systemManager = systemManager;
         _init = Initialize(systemRegistry, context);
+    }
+
+    public Scene(string path,
+        string sceneName,
+        ISceneSystemRegistry systemRegistry,
+        IGraphics2D graphics2D,
+        IGraphics3D graphics3D,
+        IContext context,
+        DebugSettings debugSettings,
+        ISystemManager systemManager)
+        : this(path, sceneName, systemRegistry, graphics2D, graphics3D, textureFactory: null!, context, debugSettings, systemManager)
+    {
     }
     
     private (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
@@ -106,51 +129,6 @@ internal sealed class Scene : IScene
     public void OnRuntimeStart()
     {
         _init.SystemManager.Initialize();
-
-        var view = _context.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
-        {
-            var transform = entity.GetComponent<TransformComponent>();
-            var bodyDef = new BodyDef
-            {
-                position = new Vector2(transform.Translation.X, transform.Translation.Y),
-                angle = transform.Rotation.Z,
-                type = RigidBody2DTypeToBox2DBody(component.BodyType),
-                bullet = component.BodyType == RigidBodyType.Dynamic
-            };
-
-            var body = _init.PhysicsWorld.CreateBody(bodyDef);
-            body.SetFixedRotation(component.FixedRotation);
-
-            body.SetUserData(entity);
-
-            component.RuntimeBody = body;
-
-            if (entity.HasComponent<BoxCollider2DComponent>())
-            {
-                var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-                var shape = new PolygonShape();
-
-                var actualSizeX = boxCollider.Size.X * transform.Scale.X;
-                var actualSizeY = boxCollider.Size.Y * transform.Scale.Y;
-                var actualOffsetX = boxCollider.Offset.X * transform.Scale.X;
-                var actualOffsetY = boxCollider.Offset.Y * transform.Scale.Y;
-
-                var center = new Vector2(actualOffsetX, actualOffsetY);
-                shape.SetAsBox(actualSizeX, actualSizeY, center, 0.0f);
-
-                var fixtureDef = new FixtureDef
-                {
-                    shape = shape,
-                    density = boxCollider.Density,
-                    friction = boxCollider.Friction,
-                    restitution = boxCollider.Restitution,
-                    isSensor = boxCollider.IsTrigger
-                };
-
-                body.CreateFixture(fixtureDef);
-            }
-        }
     }
 
     public void OnRuntimeStop()
@@ -265,13 +243,18 @@ internal sealed class Scene : IScene
         foreach (var (entity, spriteRendererComponent) in spriteGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
-            _graphics2D.DrawSprite(transformComponent.GetTransform(), spriteRendererComponent, entity.Id);
+            var texture = ResolveTexture(spriteRendererComponent.TexturePath);
+            if (texture is not null)
+                _graphics2D.DrawQuad(transformComponent.GetTransform(), texture, DefaultTextureCoords, spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, entity.Id);
+            else
+                _graphics2D.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color, entity.Id);
         }
 
         var subtextureGroup = _context.View<SubTextureRendererComponent>();
         foreach (var (entity, subtextureComponent) in subtextureGroup)
         {
-            if (subtextureComponent.Texture is null)
+            var texture = ResolveTexture(subtextureComponent.TexturePath);
+            if (texture is null)
                 continue;
 
             // Use pre-calculated TexCoords if available (e.g., from animation system)
@@ -286,7 +269,7 @@ internal sealed class Scene : IScene
             {
                 // Calculate from grid coordinates (traditional subtexture rendering)
                 var subTexture = SubTexture2D.CreateFromCoords(
-                    subtextureComponent.Texture,
+                    texture,
                     subtextureComponent.Coords,
                     subtextureComponent.CellSize,
                     subtextureComponent.SpriteSize
@@ -296,7 +279,7 @@ internal sealed class Scene : IScene
 
             // Use transform directly without additional scaling (same as runtime)
             var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            _graphics2D.DrawQuad(transform, subtextureComponent.Texture, texCoords, entityId: entity.Id);
+            _graphics2D.DrawQuad(transform, texture, texCoords, entityId: entity.Id);
         }
 
         if (_debugSettings.ShowColliderBounds)
@@ -347,7 +330,7 @@ internal sealed class Scene : IScene
             {
                 Logger.Information("Updating camera viewport for entity '{EntityName}' to {Width}x{Height}",
                     entity.Name, width, height);
-                cameraComponent.Camera.SetViewportSize(width, height);
+                cameraComponent.AspectRatio = (float)width / height;
             }
         }
     }
@@ -392,15 +375,12 @@ internal sealed class Scene : IScene
         };
     }
 
-    private static BodyType RigidBody2DTypeToBox2DBody(RigidBodyType componentBodyType)
+    private Texture2D? ResolveTexture(string? texturePath)
     {
-        return componentBodyType switch
-        {
-            RigidBodyType.Static => BodyType.Static,
-            RigidBodyType.Dynamic => BodyType.Dynamic,
-            RigidBodyType.Kinematic => BodyType.Kinematic,
-            _ => throw new ArgumentOutOfRangeException(nameof(componentBodyType), componentBodyType, null)
-        };
+        if (string.IsNullOrWhiteSpace(texturePath))
+            return null;
+
+        return _textureFactory?.Create(PathBuilder.Build(texturePath));
     }
 
     /// <summary>

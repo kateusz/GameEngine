@@ -4,7 +4,8 @@ using ECS;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Scene.Components;
+using SceneComponents;
+using SceneComponents.Physics;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -20,6 +21,7 @@ internal sealed class PhysicsDebugRenderSystem(
     IPrimaryCameraProvider cameraProvider) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
+    private static readonly PhysicsRuntimeBodyStore bodyStore = PhysicsRuntimeBodyStore.Instance;
 
     public int Priority => SystemPriorities.PhysicsDebugRenderSystem;
 
@@ -64,13 +66,12 @@ internal sealed class PhysicsDebugRenderSystem(
     private void DrawPhysicsDebug()
     {
         var rigidBodyView = context.View<RigidBody2DComponent>();
-        foreach (var (entity, rigidBodyComponent) in rigidBodyView)
+        foreach (var (entity, _) in rigidBodyView)
         {
-            if (rigidBodyComponent.RuntimeBody == null)
+            if (!bodyStore.TryGet(entity.Id, out var body))
                 continue;
 
             // Get pose from Box2D body
-            var body = rigidBodyComponent.RuntimeBody;
             var bodyPosition = body.GetPosition();
             var angle = body.GetAngle();
 
@@ -78,7 +79,7 @@ internal sealed class PhysicsDebugRenderSystem(
             if (entity.TryGetComponent<BoxCollider2DComponent>(out var boxCollider))
             {
                 var transform = entity.GetComponent<TransformComponent>();
-                var color = GetBodyDebugColor(rigidBodyComponent.RuntimeBody);
+                var color = GetBodyDebugColor(body);
 
                 var size = new Vector2(
                     boxCollider.Size.X * 2.0f * transform.Scale.X,

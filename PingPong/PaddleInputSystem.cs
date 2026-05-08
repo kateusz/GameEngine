@@ -1,14 +1,12 @@
-using System;
 using ECS;
 using ECS.Systems;
-using Engine.Scene.Components;
-using Engine.Scene.Systems;
+using SceneComponents;
 
 namespace PingPong;
 
 internal sealed class PaddleInputSystem(IContext context, IPongInputState pongInputState) : IGameSystem
 {
-    public int Priority => SystemPriorities.PongPaddleInputSystem;
+    public int Priority => 101;
 
     public void OnInit() { }
 

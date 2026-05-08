@@ -1,7 +1,9 @@
 using System.Numerics;
 using Engine.Renderer;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
+using SceneComponents;
+using SceneComponents.Camera;
+using SceneComponents.Lights;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene;
@@ -30,7 +32,6 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
             // Keep NodeTransform on the mesh — DrawModel applies mesh.NodeTransform * entityTransform.
             // Decomposing to Euler angles is lossy and corrupts the transform.
             var meshComponent = entity.AddComponent<MeshComponent>();
-            meshComponent.SetMesh(mesh);
             meshComponent.ModelPath = modelPath;
             meshComponent.MeshIndex = i;
 
@@ -39,7 +40,19 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
             modelRenderer.ReceiveShadows = true;
 
             if (i < materials.Count)
-                modelRenderer.Materials = [materials[i]];
+            {
+                var source = materials[i];
+                modelRenderer.Materials =
+                [
+                    new MaterialData
+                    {
+                        Shininess = source.Shininess,
+                        DiffuseTexturePath = source.DiffuseTexturePath,
+                        SpecularTexturePath = source.SpecularTexturePath,
+                        NormalTexturePath = source.NormalTexturePath
+                    }
+                ];
+            }
 
             result.MeshEntities.Add(entity);
         }
@@ -74,8 +87,10 @@ public class ModelSceneImporter(IMeshFactory meshFactory)
 
             var cameraComponent = cameraEntity.AddComponent<CameraComponent>();
             cameraComponent.Primary = true;
-            cameraComponent.Camera = new SceneCamera();
-            cameraComponent.Camera.SetPerspective(MathF.PI / 4f, 0.1f, farClip);
+            cameraComponent.ProjectionType = CameraProjectionTypeData.Perspective;
+            cameraComponent.PerspectiveFOV = MathF.PI / 4f;
+            cameraComponent.PerspectiveNear = 0.1f;
+            cameraComponent.PerspectiveFar = farClip;
             result.CameraEntity = cameraEntity;
 
             Logger.Information("Added perspective camera at {Position}, far clip: {Far}", cameraPos, farClip);

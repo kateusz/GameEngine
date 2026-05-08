@@ -1,3 +1,5 @@
+using SceneComponents.Audio;
+
 namespace Engine.Audio;
 
 public interface IAudioEffect : IDisposable

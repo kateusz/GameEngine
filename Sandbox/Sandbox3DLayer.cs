@@ -7,9 +7,9 @@ using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Scene;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
 using ImGuiNET;
+using SceneComponents;
+using SceneComponents.Lights;
 using Serilog;
 
 namespace Sandbox;

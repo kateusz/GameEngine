@@ -1,3 +1,5 @@
+using SceneComponents.Audio;
+
 namespace Engine.Audio;
 
 internal sealed class NoOpAudioEffect(AudioEffectType type) : IAudioEffect

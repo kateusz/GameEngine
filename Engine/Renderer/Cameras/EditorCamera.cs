@@ -1,6 +1,6 @@
 using System.Numerics;
 using Engine.Core;
-using Engine.Math;
+using Math;
 
 namespace Engine.Renderer.Cameras;
 

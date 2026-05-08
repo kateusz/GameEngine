@@ -1,11 +1,13 @@
 namespace ECS;
 
+public interface IEntity;
+
 /// <summary>
 /// Represents an entity in the Entity Component System.
 /// Entities are uniquely identified by their Id property.
 /// Equality comparisons are based solely on the immutable Id to ensure stable behavior in collections.
 /// </summary>
-public sealed class Entity : IEquatable<Entity>
+public sealed class Entity : IEntity, IEquatable<Entity>
 {
     private readonly Dictionary<Type, IComponent> _components = new();
     

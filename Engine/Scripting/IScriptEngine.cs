@@ -1,6 +1,6 @@
 using CSharpFunctionalExtensions;
 using Engine.Events;
-using Engine.Scene;
+using Scripting;
 
 namespace Engine.Scripting;
 

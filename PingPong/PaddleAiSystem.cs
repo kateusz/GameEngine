@@ -1,8 +1,6 @@
-using System;
 using ECS;
 using ECS.Systems;
-using Engine.Scene.Components;
-using Engine.Scene.Systems;
+using SceneComponents;
 
 namespace PingPong;
 
@@ -10,7 +8,7 @@ internal sealed class PaddleAiSystem(IContext context) : IGameSystem
 {
     private const float VerticalDeadzone = 0.1f;
 
-    public int Priority => SystemPriorities.PongPaddleAiSystem;
+    public int Priority => 102;
 
     public void OnInit() { }
 

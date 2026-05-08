@@ -1,4 +1,4 @@
-using Engine.Scene.Components;
+using SceneComponents.Physics;
 using Shouldly;
 
 namespace Engine.Tests.Components;
@@ -14,7 +14,6 @@ public class RigidBody2DComponentTests
         // Assert
         component.BodyType.ShouldBe(RigidBodyType.Static);
         component.FixedRotation.ShouldBeFalse();
-        component.RuntimeBody.ShouldBeNull();
     }
 
     [Fact]
@@ -44,14 +43,13 @@ public class RigidBody2DComponentTests
     }
 
     [Fact]
-    public void RigidBody2DComponent_Clone_ShouldCopyProperties_WithoutRuntimeBody()
+    public void RigidBody2DComponent_Clone_ShouldCopyProperties()
     {
         // Arrange
         var original = new RigidBody2DComponent
         {
             BodyType = RigidBodyType.Kinematic,
-            FixedRotation = true,
-            RuntimeBody = null // Would be a Box2D body at runtime
+            FixedRotation = true
         };
 
         // Act
@@ -61,7 +59,6 @@ public class RigidBody2DComponentTests
         clone.ShouldNotBeSameAs(original);
         clone.BodyType.ShouldBe(RigidBodyType.Kinematic);
         clone.FixedRotation.ShouldBeTrue();
-        clone.RuntimeBody.ShouldBeNull(); // Should not clone runtime body
     }
 
     [Theory]

@@ -1,8 +1,8 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
-using Engine.Math;
-using Engine.Scene.Components;
+using Math;
+using SceneComponents;
 
 namespace Editor.ComponentEditors;
 

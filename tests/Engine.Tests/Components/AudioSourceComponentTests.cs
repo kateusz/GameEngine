@@ -1,7 +1,5 @@
 using System.Text.Json;
-using Engine.Audio;
-using Engine.Scene.Components;
-using NSubstitute;
+using SceneComponents.Audio;
 using Shouldly;
 
 namespace Engine.Tests.Components;
@@ -15,7 +13,6 @@ public class AudioSourceComponentTests
         var component = new AudioSourceComponent();
 
         // Assert
-        component.AudioClip.ShouldBeNull();
         component.Volume.ShouldBe(1.0f);
         component.Pitch.ShouldBe(1.0f);
         component.Loop.ShouldBeFalse();
@@ -23,30 +20,26 @@ public class AudioSourceComponentTests
         component.Is3D.ShouldBeTrue();
         component.MinDistance.ShouldBe(1.0f);
         component.MaxDistance.ShouldBe(100.0f);
-        component.IsPlaying.ShouldBeFalse();
     }
 
     [Fact]
     public void AudioSourceComponent_ParameterizedConstructor_ShouldSetAllProperties()
     {
-        // Arrange
-        var mockClip = Substitute.For<IAudioClip>();
-
         // Act
-        var component = new AudioSourceComponent(
-            mockClip,
-            volume: 0.8f,
-            pitch: 1.2f,
-            loop: true,
-            playOnAwake: true,
-            is3D: false)
+        var component = new AudioSourceComponent
         {
+            AudioClipPath = "audio/test.wav",
+            Volume = 0.8f,
+            Pitch = 1.2f,
+            Loop = true,
+            PlayOnAwake = true,
+            Is3D = false,
             MinDistance = 5.0f,
             MaxDistance = 50.0f
         };
 
         // Assert
-        component.AudioClip.ShouldBe(mockClip);
+        component.AudioClipPath.ShouldBe("audio/test.wav");
         component.Volume.ShouldBe(0.8f);
         component.Pitch.ShouldBe(1.2f);
         component.Loop.ShouldBeTrue();
@@ -105,9 +98,13 @@ public class AudioSourceComponentTests
     public void AudioSourceComponent_Clone_ShouldCopyAllProperties()
     {
         // Arrange
-        var mockClip = Substitute.For<IAudioClip>();
-        var original = new AudioSourceComponent(mockClip, 0.7f, 1.5f, true, false, true)
+        var original = new AudioSourceComponent
         {
+            Volume = 0.7f,
+            Pitch = 1.5f,
+            Loop = true,
+            PlayOnAwake = false,
+            Is3D = true,
             MinDistance = 2.0f,
             MaxDistance = 150.0f,
             AudioClipPath = "audio/test-clip.wav"
@@ -118,7 +115,6 @@ public class AudioSourceComponentTests
 
         // Assert
         clone.ShouldNotBeSameAs(original);
-        clone.AudioClip.ShouldBe(mockClip);
         clone.Volume.ShouldBe(0.7f);
         clone.Pitch.ShouldBe(1.5f);
         clone.Loop.ShouldBeTrue();
@@ -145,24 +141,24 @@ public class AudioSourceComponentTests
     [Fact]
     public void AudioSourceComponent_AudioClipPath_ShouldReturnPathWhenExplicitlySet()
     {
-        // AudioClipPath is now a stored property independent of AudioClip.
-        // Setting AudioClip alone does not update AudioClipPath; callers must set it explicitly.
-        var mockClip = Substitute.For<IAudioClip>();
-        mockClip.Path.Returns("audio/test.wav");
         var component = new AudioSourceComponent
         {
-            AudioClip = mockClip,
-            AudioClipPath = mockClip.Path
+            AudioClipPath = "audio/test.wav"
         };
 
         component.AudioClipPath.ShouldBe("audio/test.wav");
     }
 
     [Fact]
-    public void IsPlaying_ShouldNotBeSerialized()
+    public void AudioSourceComponent_ShouldSerializeWithoutRuntimeState()
     {
-        var component = new AudioSourceComponent { IsPlaying = true };
+        var component = new AudioSourceComponent
+        {
+            AudioClipPath = "audio/test.wav",
+            Volume = 0.5f
+        };
         var json = JsonSerializer.Serialize(component);
-        json.ShouldNotContain("IsPlaying");
+        json.ShouldContain("AudioClipPath");
+        json.ShouldContain("Volume");
     }
 }

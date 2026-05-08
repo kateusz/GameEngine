@@ -2,7 +2,7 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Engine.Scene.Components;
+using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors;
 

@@ -71,7 +71,7 @@ public class ViewportRuler(IViewportScaleHelper viewportScaleHelper)
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
-        var firstMajorTick = (float)Math.Floor(worldLeft / majorTickInterval) * majorTickInterval;
+        var firstMajorTick = (float)System.Math.Floor(worldLeft / majorTickInterval) * majorTickInterval;
         
         // Draw ticks
         for (var worldX = firstMajorTick; worldX < worldLeft + worldWidth; worldX += tickSpacing)
@@ -81,7 +81,7 @@ public class ViewportRuler(IViewportScaleHelper viewportScaleHelper)
             if (screenX < viewportMin.X || screenX > viewportMin.X + viewportSize.X)
                 continue;
             
-            var isMajorTick = Math.Abs(worldX % majorTickInterval) < 0.001f;
+            var isMajorTick = System.Math.Abs(worldX % majorTickInterval) < 0.001f;
             
             if (isMajorTick)
             {
@@ -133,7 +133,7 @@ public class ViewportRuler(IViewportScaleHelper viewportScaleHelper)
         var majorTickInterval = tickSpacing * 10.0f;
         
         // Find the first major tick to draw
-        var firstMajorTick = (float)Math.Ceiling((worldTop - worldHeight) / majorTickInterval) * majorTickInterval;
+        var firstMajorTick = (float)System.Math.Ceiling((worldTop - worldHeight) / majorTickInterval) * majorTickInterval;
         
         // Draw ticks
         for (var worldY = firstMajorTick; worldY < worldTop; worldY += tickSpacing)
@@ -144,7 +144,7 @@ public class ViewportRuler(IViewportScaleHelper viewportScaleHelper)
             if (screenY < viewportMin.Y + RulerThickness || screenY > viewportMin.Y + viewportSize.Y)
                 continue;
             
-            var isMajorTick = Math.Abs(worldY % majorTickInterval) < 0.001f;
+            var isMajorTick = System.Math.Abs(worldY % majorTickInterval) < 0.001f;
             
             if (isMajorTick)
             {

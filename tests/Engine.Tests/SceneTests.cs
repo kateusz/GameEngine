@@ -3,9 +3,9 @@ using ECS;
 using ECS.Systems;
 using Engine.Renderer;
 using Engine.Scene;
-using Engine.Scene.Components;
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
+using SceneComponents;
+using SceneComponents.Camera;
 using Shouldly;
 using EngineScene = Engine.Scene.Scene;
 

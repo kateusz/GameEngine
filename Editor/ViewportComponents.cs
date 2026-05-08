@@ -1,5 +1,4 @@
 using Editor.Features.Viewport;
-using Editor.Features.Viewport.Tools;
 using Editor.Features.Scene;
 
 namespace Editor;

@@ -1,4 +1,3 @@
-using System;
 using ECS;
 
 namespace PingPong;

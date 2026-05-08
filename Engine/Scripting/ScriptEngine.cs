@@ -1,10 +1,11 @@
 using System.Reflection;
 using CSharpFunctionalExtensions;
-using Engine.Core.Input;
+using ECS;
 using Engine.Events;
 using Engine.Events.Input;
 using Engine.Scene;
-using Engine.Scene.Components;
+using SceneComponents;
+using Scripting;
 using Serilog;
 using ZLinq;
 
@@ -85,15 +86,15 @@ internal sealed class ScriptEngine : IScriptEngine
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            if (scriptComponent.ScriptableEntity == null) continue;
+            var scriptableEntity = GetOrCreateRuntimeScript(entity, scriptComponent);
+            if (scriptableEntity == null) continue;
 
-            if (scriptComponent.ScriptableEntity.Entity == null)
+            if (!scriptableEntity.IsInitialized)
             {
-                scriptComponent.ScriptableEntity.SetEntity(entity);
-                scriptComponent.ScriptableEntity.SetSceneContext(_sceneContext);
+                scriptableEntity.SetEntity(entity);
                 try
                 {
-                    scriptComponent.ScriptableEntity.OnCreate();
+                    scriptableEntity.OnCreate();
                 }
                 catch (Exception ex)
                 {
@@ -103,7 +104,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
             try
             {
-                scriptComponent.ScriptableEntity.OnUpdate(deltaTime);
+                scriptableEntity.OnUpdate(deltaTime);
             }
             catch (Exception ex)
             {
@@ -125,12 +126,11 @@ internal sealed class ScriptEngine : IScriptEngine
 
         foreach (var entity in scriptEntities)
         {
-            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            if (scriptComponent.ScriptableEntity != null)
+            if (ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
             {
                 try
                 {
-                    scriptComponent.ScriptableEntity.OnDestroy();
+                    scriptableEntity.OnDestroy();
                 }
                 catch (Exception ex)
                 {
@@ -138,6 +138,7 @@ internal sealed class ScriptEngine : IScriptEngine
                     errorCount++;
                 }
             }
+            ScriptRuntimeStore.Remove(entity.Id);
         }
 
         if (errorCount > 0)
@@ -159,8 +160,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
         foreach (var entity in scriptEntities)
         {
-            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            if (scriptComponent.ScriptableEntity == null) 
+            if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
                 continue;
 
             try
@@ -168,22 +168,22 @@ internal sealed class ScriptEngine : IScriptEngine
                 switch (@event)
                 {
                     case KeyPressedEvent kpe:
-                        scriptComponent.ScriptableEntity.OnKeyPressed(kpe.KeyCode);
+                        scriptableEntity.OnKeyPressed(kpe.KeyCode);
                         break;
                     case KeyReleasedEvent kpe:
-                        scriptComponent.ScriptableEntity.OnKeyReleased(kpe.KeyCode);
+                        scriptableEntity.OnKeyReleased(kpe.KeyCode);
                         break;
                     case MouseButtonPressedEvent mbpe:
-                        scriptComponent.ScriptableEntity.OnMouseButtonPressed(mbpe.Button);
+                        scriptableEntity.OnMouseButtonPressed(mbpe.Button);
                         break;
                     case MouseMovedEvent mme:
-                        scriptComponent.ScriptableEntity.OnMouseMoved(mme.X, mme.Y);
+                        scriptableEntity.OnMouseMoved(mme.X, mme.Y);
                         break;
                     case MouseButtonReleasedEvent mbre:
-                        scriptComponent.ScriptableEntity.OnMouseButtonReleased(mbre.Button);
+                        scriptableEntity.OnMouseButtonReleased(mbre.Button);
                         break;
                     case MouseScrolledEvent mse:
-                        scriptComponent.ScriptableEntity.OnMouseScrolled(mse.XOffSet, mse.YOffset);
+                        scriptableEntity.OnMouseScrolled(mse.XOffSet, mse.YOffset);
                         break;
                 }
             }
@@ -230,10 +230,10 @@ internal sealed class ScriptEngine : IScriptEngine
 
         try
         {
-            var instance = Activator.CreateInstance(scriptType) as ScriptableEntity;
-            return instance is null
-                ? Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}")
-                : Result.Success(instance);
+            var componentAccessor = new ComponentAccessor();
+            return Activator.CreateInstance(scriptType, componentAccessor) is ScriptableEntity instance
+                ? Result.Success(instance)
+                : Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}");
         }
         catch (Exception ex)
         {
@@ -540,19 +540,33 @@ internal sealed class ScriptEngine : IScriptEngine
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            var scriptType = scriptComponent.ScriptableEntity?.GetType();
-            if (scriptType == null || !_scriptTypes.ContainsKey(scriptType.Name)) 
+            if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName) || !_scriptTypes.ContainsKey(scriptComponent.ScriptTypeName))
                 continue;
             
-            var newInstance = CreateScriptInstance(scriptType.Name);
+            var newInstance = CreateScriptInstance(scriptComponent.ScriptTypeName);
             if (newInstance.IsSuccess)
             {
-                scriptComponent.ScriptableEntity = newInstance.Value;
-                scriptComponent.ScriptableEntity.SetEntity(entity);
-                scriptComponent.ScriptableEntity.SetSceneContext(_sceneContext);
-                scriptComponent.ScriptableEntity.OnCreate();
+                ScriptRuntimeStore.Set(entity.Id, newInstance.Value);
+                newInstance.Value.SetEntity(entity);
+                newInstance.Value.OnCreate();
             }
         }
+    }
+
+    private ScriptableEntity? GetOrCreateRuntimeScript(ECS.Entity entity, NativeScriptComponent scriptComponent)
+    {
+        if (ScriptRuntimeStore.TryGet(entity.Id, out var existing))
+            return existing;
+
+        if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName))
+            return null;
+
+        var result = CreateScriptInstance(scriptComponent.ScriptTypeName);
+        if (!result.IsSuccess)
+            return null;
+
+        ScriptRuntimeStore.Set(entity.Id, result.Value);
+        return result.Value;
     }
     
     public string GenerateScriptTemplate(string scriptName)
@@ -561,13 +575,15 @@ internal sealed class ScriptEngine : IScriptEngine
                  using System;
                  using System.Collections.Generic;
                  using System.Numerics;
-                 using ECS;  // CRITICAL: For Entity class
+                 using ECS;
                  using Engine.Scene;
                  using Engine.Core.Input;
                  using Engine.Scene.Components;
 
                  public class {{scriptName}} : ScriptableEntity
                  {
+                    public {{scriptName}}(IComponentAccessor componentAccessor) : base(componentAccessor) {}
+                 
                      public override void OnCreate()
                      {
                          Console.WriteLine("{{scriptName}} created!");

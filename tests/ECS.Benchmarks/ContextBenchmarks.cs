@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
-using Engine.Scene.Components;
+using SceneComponents;
+using SceneComponents.Camera;
 
 namespace ECS.Benchmarks;
 

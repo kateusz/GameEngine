@@ -13,16 +13,30 @@ public static class GameAssemblyCompiler
     private static readonly ILogger Logger = Log.ForContext(typeof(GameAssemblyCompiler));
     public const string AssemblyName = "GameAssembly";
 
+    private static readonly CSharpParseOptions ScriptParseOptions = CSharpParseOptions.Default
+        .WithLanguageVersion(LanguageVersion.Latest);
+
+    private const string ScriptGlobalUsingsSource = """
+        global using System;
+        global using System.Collections.Generic;
+        global using System.Linq;
+        global using System.Numerics;
+        global using System.Globalization;
+        global using System.Text;
+        global using System.Threading;
+        global using System.Threading.Tasks;
+        """;
+
     public static string GetNextEditorBuildPath(string outputDirectory) =>
         Path.Combine(outputDirectory, $"GameAssembly_{Guid.NewGuid():N}.dll");
 
-    private const string PlaceholderSource = """
-namespace GameAssembly;
+    private const string EmptyPlaceholderSource = """
+                                                  namespace GameAssembly;
 
-internal static class _GameAssemblyPlaceholder
-{
-}
-""";
+                                                  internal static class EmptyGameAssemblyPlaceholder
+                                                  {
+                                                  }
+                                                  """;
 
     public static bool TryCompile(
         string scriptsDirectory,
@@ -34,32 +48,40 @@ internal static class _GameAssemblyPlaceholder
         errors = null;
         if (string.IsNullOrWhiteSpace(scriptsDirectory) || !Directory.Exists(scriptsDirectory))
         {
-            errors = new[] { $"Scripts directory is missing or invalid: {scriptsDirectory}" };
+            errors = [$"Scripts directory is missing or invalid: {scriptsDirectory}"];
             return false;
         }
 
         var scriptFiles = Directory.GetFiles(scriptsDirectory, "*.cs", SearchOption.AllDirectories);
-        var syntaxTrees = new List<SyntaxTree>();
+        var syntaxTrees = new List<SyntaxTree>
+        {
+            CSharpSyntaxTree.ParseText(
+                ScriptGlobalUsingsSource,
+                ScriptParseOptions,
+                path: "GameAssembly.GlobalUsings.g.cs",
+                encoding: Encoding.UTF8)
+        };
 
         foreach (var scriptPath in scriptFiles)
         {
-            if (string.Equals(Path.GetFileName(scriptPath), "GameAssembly.Placeholder.cs", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Path.GetFileName(scriptPath), "GameAssembly.Placeholder.cs",
+                    StringComparison.OrdinalIgnoreCase))
                 continue;
 
             var scriptContent = File.ReadAllText(scriptPath, Encoding.UTF8);
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 text: scriptContent,
-                options: CSharpParseOptions.Default,
+                options: ScriptParseOptions,
                 path: scriptPath,
                 encoding: Encoding.UTF8);
             syntaxTrees.Add(syntaxTree);
         }
 
-        if (syntaxTrees.Count == 0)
+        if (syntaxTrees.Count == 1)
         {
             syntaxTrees.Add(CSharpSyntaxTree.ParseText(
-                PlaceholderSource,
-                CSharpParseOptions.Default,
+                EmptyPlaceholderSource,
+                ScriptParseOptions,
                 "GameAssembly.Placeholder.cs",
                 Encoding.UTF8));
         }

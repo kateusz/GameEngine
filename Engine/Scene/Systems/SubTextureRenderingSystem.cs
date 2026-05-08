@@ -3,7 +3,9 @@ using ECS;
 using ECS.Systems;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
-using Engine.Scene.Components;
+using Engine.Scene.Serializer;
+using SceneComponents;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -11,7 +13,11 @@ namespace Engine.Scene.Systems;
 /// <summary>
 /// System responsible for rendering 2D subtextures (sprite atlas/sprite sheet regions).
 /// </summary>
-internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext context, IPrimaryCameraProvider cameraProvider) : ISystem
+internal sealed class SubTextureRenderingSystem(
+    IGraphics2D renderer,
+    ITextureFactory? textureFactory,
+    IContext context,
+    IPrimaryCameraProvider cameraProvider) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
 
@@ -38,8 +44,11 @@ internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext c
         foreach (var (entity, subtextureComponent) in subtextureGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
-            
-            if (subtextureComponent.Texture == null)
+            if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
+                continue;
+
+            var texture = textureFactory.Create(PathBuilder.Build(subtextureComponent.TexturePath));
+            if (texture == null)
                 continue;
 
             // Use the transform component's matrix directly (same as SpriteRenderingSystem)
@@ -58,7 +67,7 @@ internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext c
             {
                 // Calculate from grid coordinates (traditional subtexture rendering)
                 var subTexture = SubTexture2D.CreateFromCoords(
-                    subtextureComponent.Texture,
+                    texture,
                     subtextureComponent.Coords,
                     subtextureComponent.CellSize,
                     subtextureComponent.SpriteSize
@@ -67,7 +76,7 @@ internal sealed class SubTextureRenderingSystem(IGraphics2D renderer, IContext c
             }
             
             // Draw the subtexture quad with entity ID for picking
-            renderer.DrawQuad(transform, subtextureComponent.Texture, texCoords, 1.0f, Vector4.One, entity.Id);
+            renderer.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
 
         renderer.EndScene();

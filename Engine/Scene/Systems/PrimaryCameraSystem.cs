@@ -2,7 +2,8 @@ using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Renderer.Cameras;
-using Engine.Scene.Components;
+using SceneComponents;
+using SceneComponents.Camera;
 
 namespace Engine.Scene.Systems;
 
@@ -15,6 +16,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
 
     private Entity? _cachedEntity;
     private CameraComponent? _cachedCameraComponent;
+    private readonly Dictionary<int, SceneCamera> _runtimeCameras = [];
 
     public void OnInit() { }
 
@@ -22,6 +24,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
     {
         if (_cachedEntity != null && _cachedCameraComponent?.Primary == true)
         {
+            Camera = ResolveRuntimeCamera(_cachedEntity.Id, _cachedCameraComponent);
             Transform = _cachedCameraComponent.CameraViewTransform
                 ?? _cachedEntity.GetComponent<TransformComponent>().GetTransform();
             return;
@@ -39,7 +42,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
 
             _cachedEntity = entity;
             _cachedCameraComponent = cameraComponent;
-            Camera = cameraComponent.Camera;
+            Camera = ResolveRuntimeCamera(entity.Id, cameraComponent);
             Transform = cameraComponent.CameraViewTransform
                 ?? entity.GetComponent<TransformComponent>().GetTransform();
             break;
@@ -47,4 +50,25 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
     }
 
     public void OnShutdown() { }
+
+    private SceneCamera ResolveRuntimeCamera(int entityId, CameraComponent component)
+    {
+        if (!_runtimeCameras.TryGetValue(entityId, out var camera))
+        {
+            camera = new SceneCamera();
+            _runtimeCameras[entityId] = camera;
+        }
+
+        camera.ProjectionType = component.ProjectionType == CameraProjectionTypeData.Perspective
+            ? ProjectionType.Perspective
+            : ProjectionType.Orthographic;
+        camera.OrthographicSize = component.OrthographicSize;
+        camera.OrthographicNear = component.OrthographicNear;
+        camera.OrthographicFar = component.OrthographicFar;
+        camera.PerspectiveFOV = component.PerspectiveFOV;
+        camera.PerspectiveNear = component.PerspectiveNear;
+        camera.PerspectiveFar = component.PerspectiveFar;
+        camera.AspectRatio = component.AspectRatio;
+        return camera;
+    }
 }
