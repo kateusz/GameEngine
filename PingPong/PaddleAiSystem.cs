@@ -1,9 +1,11 @@
 using ECS;
 using ECS.Systems;
 using SceneComponents;
+using Scripting;
 
 namespace PingPong;
 
+[Register(typeof(IGameSystem))]
 internal sealed class PaddleAiSystem(IContext context) : IGameSystem
 {
     private const float VerticalDeadzone = 0.1f;

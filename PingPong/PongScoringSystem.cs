@@ -2,9 +2,11 @@ using System.Numerics;
 using ECS;
 using ECS.Systems;
 using SceneComponents;
+using Scripting;
 
 namespace PingPong;
 
+[Register(typeof(IGameSystem))]
 internal sealed class PongScoringSystem(IContext context) : IGameSystem
 {
     private const float GoalX = 11.0f;

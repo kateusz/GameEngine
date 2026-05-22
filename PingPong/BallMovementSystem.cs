@@ -1,9 +1,11 @@
 using ECS;
 using ECS.Systems;
 using SceneComponents;
+using Scripting;
 
 namespace PingPong;
 
+[Register(typeof(IGameSystem))]
 internal sealed class BallMovementSystem(IContext context) : IGameSystem
 {
     public int Priority => 103;

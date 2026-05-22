@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="..\build\GameScriptReferences.props" />
+
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -7,10 +9,25 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ECS\ECS.csproj" />
-      <ProjectReference Include="..\Input\Input.csproj" />
-      <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />
-      <ProjectReference Include="..\Scripting\Scripting.csproj" />
+        <Reference Include="ECS">
+            <HintPath>$(GameScriptSdkPath)ECS.dll</HintPath>
+        </Reference>
+        <Reference Include="Input">
+            <HintPath>$(GameScriptSdkPath)Input.dll</HintPath>
+        </Reference>
+        <Reference Include="SceneComponents">
+            <HintPath>$(GameScriptSdkPath)SceneComponents.dll</HintPath>
+        </Reference>
+        <Reference Include="Scripting">
+            <HintPath>$(GameScriptSdkPath)Scripting.dll</HintPath>
+        </Reference>
+        <Reference Include="Math">
+            <HintPath>$(GameScriptSdkPath)Math.dll</HintPath>
+        </Reference>
+        <Reference Include="Box2D.NetStandard">
+            <HintPath>$(GameScriptSdkPath)Box2D.NetStandard.dll</HintPath>
+        </Reference>
     </ItemGroup>
+
 
 </Project>

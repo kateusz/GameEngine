@@ -142,7 +142,7 @@ public class SceneManager(
         {
             if (!gameAssemblySystemsBridge.EnsureRegistered(key))
             {
-                Logger.Warning("Game assembly at {Key} does not expose static IoCContainer.Register", key);
+                Logger.Warning("Game assembly at {Key} has no types marked with [Register]", key);
                 return;
             }
             

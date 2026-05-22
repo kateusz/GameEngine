@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>GameScriptSdk</RootNamespace>
+        <GameScriptSdkStagingDir>$(MSBuildThisFileDirectory)..\artifacts\GameScriptSdk\$(Configuration)\$(TargetFramework)\</GameScriptSdkStagingDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ECS\ECS.csproj" />
+        <ProjectReference Include="..\Input\Input.csproj" />
+        <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />
+        <ProjectReference Include="..\Scripting\Scripting.csproj" />
+        <ProjectReference Include="..\Math\Math.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha" GeneratePathProperty="true" />
+    </ItemGroup>
+
+    <Target Name="StageGameScriptSdk" AfterTargets="Build">
+        <RemoveDir Directories="$(GameScriptSdkStagingDir)" Condition="Exists('$(GameScriptSdkStagingDir)')" />
+        <MakeDir Directories="$(GameScriptSdkStagingDir)" />
+        <ItemGroup>
+            <_StageDll Include="$(OutputPath)*.dll" />
+            <_StagePdb Include="$(OutputPath)*.pdb" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_StageDll)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(_StagePdb)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" />
+        <PropertyGroup>
+            <_Box2DFromPkg>$(PkgBox2D_NetStandard)\lib\netstandard2.1\Box2D.NetStandard.dll</_Box2DFromPkg>
+        </PropertyGroup>
+        <Copy SourceFiles="$(_Box2DFromPkg)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" Condition="Exists('$(_Box2DFromPkg)')" />
+        <Message Importance="high" Text="Game script SDK staged to $(GameScriptSdkStagingDir)" />
+    </Target>
+
+    <Target Name="CleanGameScriptSdkStaging" BeforeTargets="Clean">
+        <RemoveDir Directories="$(GameScriptSdkStagingDir)" Condition="Exists('$(GameScriptSdkStagingDir)')" />
+    </Target>
+
+</Project>

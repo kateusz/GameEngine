@@ -24,6 +24,7 @@ public static class EditorIoCContainer
         container.Register<ShortcutManager>(Reuse.Singleton);
         
         container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
+        container.Register<IGameProjectScriptBootstrapper, GameProjectScriptBootstrapper>(Reuse.Singleton);
         container.Register<IGamePublisher, GamePublisher>(Reuse.Singleton);
         container.Register<PublishSettingsUI>(Reuse.Singleton);
         container.Register<IEditorPreferences, EditorPreferences>(Reuse.Singleton,

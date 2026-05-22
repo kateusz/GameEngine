@@ -1,9 +1,11 @@
 using ECS;
 using ECS.Systems;
 using SceneComponents;
+using Scripting;
 
 namespace PingPong;
 
+[Register(typeof(IGameSystem))]
 internal sealed class PaddleInputSystem(IContext context, IPongInputState pongInputState) : IGameSystem
 {
     public int Priority => 101;

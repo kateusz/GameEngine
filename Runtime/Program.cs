@@ -128,7 +128,7 @@ public class Program
 
         var assembly = GameAssemblyContainerRegistration.Load(path);
         if (!GameAssemblyContainerRegistration.TryRegisterContainer(container, assembly))
-            Logger.Warning("No static IoCContainer.Register in game assembly; running without custom DI.");
+            Logger.Warning("Game assembly has no types marked with [Register]; running without custom game DI.");
 
         if (!((Container)container).IsRegistered<ILayer>())
             container.Register<ILayer, GameLayer>(Reuse.Singleton);

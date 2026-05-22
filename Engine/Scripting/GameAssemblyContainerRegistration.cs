@@ -1,19 +1,17 @@
 using System.Reflection;
 using DryIoc;
-using ZLinq;
+using Scripting;
 
 namespace Engine.Scripting;
 
 public static class GameAssemblyContainerRegistration
 {
-    /// <summary>
-    /// Removes DryIoc factories whose implementation type comes from a compiled game assembly
-    /// (assembly simple name <see cref="GameAssemblyCompiler.AssemblyName"/>), so a new DLL can
-    /// call <c>IoCContainer.Register</c> again without duplicate-registration errors.
-    /// </summary>
-    public static void UnregisterRegistrationsFromGameAssemblyModules(Container container)
+    public static void UnregisterRegistrationsFromGameAssembly(Container container, Assembly gameAssembly)
     {
-        var gameAssemblyName = GameAssemblyCompiler.AssemblyName;
+        var gameAssemblyName = gameAssembly.GetName().Name;
+        if (string.IsNullOrEmpty(gameAssemblyName))
+            return;
+
         var toRemove = container.GetServiceRegistrations()
             .Where(r => r.ImplementationType is { } impl &&
                 string.Equals(impl.Assembly.GetName().Name, gameAssemblyName, StringComparison.Ordinal))
@@ -41,52 +39,68 @@ public static class GameAssemblyContainerRegistration
 
     public static bool TryRegisterContainer(Container container, Assembly assembly)
     {
-        var registerMethod = FindRegisterMethod(assembly);
-        if (registerMethod is null)
+        var items = DiscoverIocRegistrations(assembly);
+        if (items.Count == 0)
             return false;
-        var parameterType = registerMethod.GetParameters().Single().ParameterType;
-        if (parameterType == typeof(IRegistrator) || parameterType == typeof(Container))
+
+        UnregisterRegistrationsFromGameAssembly(container, assembly);
+        foreach (var item in items)
+            Register(container, item.ImplementationType, item.ServiceType, item.Lifetime);
+        return true;
+    }
+
+    private static IReadOnlyList<IocRegistrationItem> DiscoverIocRegistrations(Assembly assembly)
+    {
+        var list = new List<IocRegistrationItem>();
+        foreach (var type in GetLoadableTypes(assembly))
         {
-            UnregisterRegistrationsFromGameAssemblyModules(container);
-            registerMethod.Invoke(null, [container]);
-            return true;
+            if (type is not { IsClass: true, IsAbstract: false })
+                continue;
+
+            var attr = type.GetCustomAttribute<RegisterAttribute>();
+            if (attr is null)
+                continue;
+
+            if (attr.ServiceType.IsAssignableFrom(type))
+            {
+                list.Add(new IocRegistrationItem(type, attr.ServiceType, attr.Lifetime));
+                continue;
+            }
+
+            throw new InvalidOperationException(
+                $"Type {type.FullName} is marked with [Register] but does not implement {attr.ServiceType.FullName}.");
         }
 
-        throw new InvalidOperationException(
-            $"Unsupported game registration signature: Register({parameterType.Name})");
+        return list;
     }
 
-    private static MethodInfo? FindRegisterMethod(Assembly assembly)
+    private static void Register(Container container, Type implementationType, Type serviceType, GameIocLifetime lifetime)
     {
-        var name = assembly.GetName().Name ?? "";
-        var expectedType = assembly.GetType($"{name}.IoCContainer");
-        if (expectedType != null)
+        var reuse = lifetime switch
         {
-            var m = GetRegisterMethod(expectedType);
-            if (m is not null)
-                return m;
-        }
+            GameIocLifetime.Singleton => Reuse.Singleton,
+            GameIocLifetime.Transient => Reuse.Transient,
+            GameIocLifetime.Scoped => Reuse.Scoped,
+            _ => throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null)
+        };
 
-        return assembly.GetTypes()
-            .AsValueEnumerable()
-            .Where(t => string.Equals(t.Name, "IoCContainer", StringComparison.Ordinal))
-            .Select(GetRegisterMethod)
-            .FirstOrDefault(m => m is not null);
+        container.Register(serviceType, implementationType, reuse);
     }
 
-    private static MethodInfo? GetRegisterMethod(Type type)
+    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
     {
-        return type.GetMethod(
-                   "Register",
-                   BindingFlags.Public | BindingFlags.Static,
-                   binder: null,
-                   types: [typeof(IRegistrator)],
-                   modifiers: null)
-               ?? type.GetMethod(
-                   "Register",
-                   BindingFlags.Public | BindingFlags.Static,
-                   binder: null,
-                   types: [typeof(Container)],
-                   modifiers: null);
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(t => t is not null).Cast<Type>().ToArray();
+        }
     }
+
+    private readonly record struct IocRegistrationItem(
+        Type ImplementationType,
+        Type ServiceType,
+        GameIocLifetime Lifetime);
 }
