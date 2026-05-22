@@ -72,6 +72,7 @@ internal sealed class PhysicsSimulationSystem(
         while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
             SyncKinematicTransformsToBodies();
+            SyncVelocitiesToBodies();
             physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
             _physicsAccumulator -= CameraConfig.PhysicsTimestep;
             stepCount++;
@@ -101,6 +102,12 @@ internal sealed class PhysicsSimulationSystem(
             var position = body.GetPosition();
             transform.Translation = new Vector3(position.X, position.Y, 0);
             transform.Rotation = transform.Rotation with { Z = body.GetAngle() };
+
+            if (component.BodyType is RigidBodyType.Dynamic or RigidBodyType.Kinematic)
+            {
+                var velocity = body.GetLinearVelocity();
+                component.Velocity = velocity;
+            }
         }
     }
 
@@ -166,6 +173,20 @@ internal sealed class PhysicsSimulationSystem(
                 isSensor = boxCollider.IsTrigger
             };
             body.CreateFixture(fixtureDef);
+        }
+    }
+
+    private void SyncVelocitiesToBodies()
+    {
+        foreach (var (entity, component) in context.View<RigidBody2DComponent>())
+        {
+            if (component.BodyType is RigidBodyType.Dynamic or RigidBodyType.Kinematic)
+            {
+                if (bodyStore.TryGet(entity.Id, out var body))
+                {
+                    body.SetLinearVelocity(component.Velocity);
+                }
+            }
         }
     }
 
