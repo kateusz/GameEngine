@@ -8,12 +8,17 @@ namespace PingPong;
 [Register(typeof(IGameSystem))]
 internal sealed class BallMovementSystem(IContext context) : IGameSystem
 {
-    public int Priority => 103;
+    public int Priority => 99;
 
     public void OnInit()
     {
-        var entity = context.GetByName("Ball");
-        entity.AddComponent<BallComponent>();
+        var ball = context.GetByName(PongEntityNames.Ball);
+        if (ball is not null && !ball.HasComponent<BallComponent>())
+            ball.AddComponent(new BallComponent { Speed = PongConstants.BallSpeed });
+
+        var scoreEntity = context.GetByName(PongEntityNames.Score);
+        if (scoreEntity is not null && !scoreEntity.HasComponent<ScoreComponent>())
+            scoreEntity.AddComponent(new ScoreComponent { MaxScore = PongConstants.MaxScore });
     }
 
     public void OnUpdate(TimeSpan deltaTime)
@@ -38,15 +43,4 @@ internal sealed class BallMovementSystem(IContext context) : IGameSystem
     }
 
     public void OnShutdown() { }
-
-    private bool IsGameOver()
-    {
-        foreach (var (_, score) in context.View<ScoreComponent>())
-        {
-            if (score.IsGameOver)
-                return true;
-        }
-
-        return false;
-    }
 }

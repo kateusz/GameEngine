@@ -47,7 +47,7 @@
           "Name": "SpriteRendererComponent"
         },
         {
-          "Size": [0.35, 2.0],
+          "Size": [0.5, 0.5],
           "Offset": [0, 0],
           "Density": 1,
           "Friction": 0,
@@ -75,7 +75,7 @@
           "Name": "SpriteRendererComponent"
         },
         {
-          "Size": [0.35, 2.0],
+          "Size": [0.5, 0.5],
           "Offset": [0, 0],
           "Density": 1,
           "Friction": 0,
@@ -103,7 +103,7 @@
           "Name": "SpriteRendererComponent"
         },
         {
-          "Size": [0.25, 0.25],
+          "Size": [0.5, 0.5],
           "Offset": [0, 0],
           "Density": 1,
           "Friction": 0,
@@ -111,6 +111,15 @@
           "RestitutionThreshold": 0,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Name": "NativeScriptComponent",
+          "ScriptType": "PongBallBehaviour"
         }
       ]
     },
@@ -142,6 +151,60 @@
       "Id": 8,
       "Name": "Score",
       "Components": []
+    },
+    {
+      "Id": 12,
+      "Name": "Left Goal Wall",
+      "Components": [
+        {
+          "Translation": [-11, 0, 0],
+          "Rotation": [0, 0, 0],
+          "Scale": [0.5, 11, 1],
+          "Name": "TransformComponent"
+        },
+        {
+          "Size": [0.5, 0.5],
+          "Offset": [0, 0],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "Name": "RigidBody2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 13,
+      "Name": "Right Goal Wall",
+      "Components": [
+        {
+          "Translation": [11, 0, 0],
+          "Rotation": [0, 0, 0],
+          "Scale": [0.5, 11, 1],
+          "Name": "TransformComponent"
+        },
+        {
+          "Size": [0.5, 0.5],
+          "Offset": [0, 0],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "Name": "RigidBody2DComponent"
+        }
+      ]
     },
     {
       "Id": 9,
