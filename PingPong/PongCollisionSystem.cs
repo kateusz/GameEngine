@@ -16,7 +16,22 @@ internal sealed class PongCollisionSystem(IContext context) : IGameSystem
 
     public int Priority => 104;
 
-    public void OnInit() { }
+    public void OnInit()
+    {
+        var topBoundaryEntity = context.GetByName("Top Boundary");
+        var topBoundaryComponent = new BoundaryComponent
+        {
+            Position = BoundaryPosition.Top
+        };
+        topBoundaryEntity.AddComponent(topBoundaryComponent);
+        
+        var bottomBoundaryEntity = context.GetByName("Bottom Boundary");
+        var bottomBoundaryComponent = new BoundaryComponent
+        {
+            Position = BoundaryPosition.Bottom
+        };
+        bottomBoundaryEntity.AddComponent(bottomBoundaryComponent);
+    }
 
     public void OnUpdate(TimeSpan deltaTime)
     {

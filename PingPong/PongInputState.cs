@@ -1,10 +1,7 @@
-using Scripting;
-
 namespace PingPong;
 
-[Register(typeof(IPongInputState))]
-internal sealed class PongInputState : IPongInputState
+internal static class PongInputState
 {
-    public bool MoveUpPressed { get; set; }
-    public bool MoveDownPressed { get; set; }
+    public static bool MoveUpPressed { get; set; }
+    public static bool MoveDownPressed { get; set; }
 }

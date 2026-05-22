@@ -10,7 +10,11 @@ internal sealed class BallMovementSystem(IContext context) : IGameSystem
 {
     public int Priority => 103;
 
-    public void OnInit() { }
+    public void OnInit()
+    {
+        var entity = context.GetByName("Ball");
+        entity.AddComponent<BallComponent>();
+    }
 
     public void OnUpdate(TimeSpan deltaTime)
     {

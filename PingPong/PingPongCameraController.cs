@@ -6,10 +6,10 @@ using SceneComponents;
 using SceneComponents.Camera;
 using Scripting;
 
-namespace Editor.assets.scripts;
+namespace PingPong;
 
 // TODO: this must be removed from the engine and implemented in the user project
-public class CameraController : ScriptableEntity
+public class PingPongCameraController : ScriptableEntity
 {
     private const float MoveSpeed = 10.0f;
     private const float ScrollSpeedMultiplier = 1.0f;
@@ -30,7 +30,7 @@ public class CameraController : ScriptableEntity
     // Orthographic movement accumulator
     private Vector3 _orthoInput = Vector3.Zero;
 
-    public CameraController(IComponentAccessor componentAccessor) : base(componentAccessor)
+    public PingPongCameraController(IComponentAccessor componentAccessor) : base(componentAccessor)
     {
     }
 
@@ -139,37 +139,31 @@ public class CameraController : ScriptableEntity
 
     public override void OnKeyPressed(KeyCodes key)
     {
-        if (_isPerspective)
+        switch (key)
         {
-            _pressedKeys.Add(key);
-        }
-        else
-        {
-            switch (key)
-            {
-                case KeyCodes.W: _orthoInput += Vector3.UnitY; break;
-                case KeyCodes.S: _orthoInput -= Vector3.UnitY; break;
-                case KeyCodes.A: _orthoInput -= Vector3.UnitX; break;
-                case KeyCodes.D: _orthoInput += Vector3.UnitX; break;
-            }
+            case KeyCodes.W:
+                PongInputState.MoveUpPressed = true;
+                PongInputState.MoveDownPressed = false;
+                break;
+            case KeyCodes.S:
+                PongInputState.MoveUpPressed = false;
+                PongInputState.MoveDownPressed = true;
+                break;
         }
     }
 
     public override void OnKeyReleased(KeyCodes keyCode)
     {
-        if (_isPerspective)
+        switch (keyCode)
         {
-            _pressedKeys.Remove(keyCode);
-        }
-        else
-        {
-            switch (keyCode)
-            {
-                case KeyCodes.W: _orthoInput -= Vector3.UnitY; break;
-                case KeyCodes.S: _orthoInput += Vector3.UnitY; break;
-                case KeyCodes.A: _orthoInput += Vector3.UnitX; break;
-                case KeyCodes.D: _orthoInput -= Vector3.UnitX; break;
-            }
+            case KeyCodes.W:
+                PongInputState.MoveUpPressed = false;
+                PongInputState.MoveDownPressed = false;
+                break;
+            case KeyCodes.S:
+                PongInputState.MoveUpPressed = false;
+                PongInputState.MoveDownPressed = false;
+                break;
         }
     }
 }

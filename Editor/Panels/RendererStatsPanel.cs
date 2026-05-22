@@ -22,7 +22,7 @@ public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
         renderPerformanceMonitor?.Invoke();
         
         // Camera info
-        ImGui.Text("Camera:");
+        ImGui.Text("Editor Camera:");
         ImGui.Text($"Position: ({cameraPosition.X:F2}, {cameraPosition.Y:F2}, {cameraPosition.Z:F2})");
         ImGui.Text($"Rotation: {cameraRotation:F1}°");
 

@@ -12,8 +12,11 @@ internal sealed class PaddleAiSystem(IContext context) : IGameSystem
 
     public int Priority => 102;
 
-    public void OnInit() { }
-
+    public void OnInit()
+    {
+        var score = context.GetByName("AI Paddle");
+        score.AddComponent<PaddleComponent>();
+    }
     
     public void OnUpdate(TimeSpan deltaTime)
     {
@@ -27,25 +30,25 @@ internal sealed class PaddleAiSystem(IContext context) : IGameSystem
         var (topBoundary, bottomBoundary) = GetBoundaryLimits();
         var deltaSeconds = (float)deltaTime.TotalSeconds;
 
-        foreach (var (entity, paddle) in context.View<PaddleComponent>())
-        {
-            if (paddle.IsPlayer || !entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
+        var entity = context.GetByName("AI Paddle");
+        var transform = entity.GetComponent<TransformComponent>();
+        var paddle = entity.GetComponent<PaddleComponent>();
 
-            var currentY = transform.Translation.Y;
-            var deltaY = targetY.Value - currentY;
-            if (MathF.Abs(deltaY) <= VerticalDeadzone)
-                continue;
+        var currentY = transform.Translation.Y;
+        var deltaY = targetY.Value - currentY;
+        if (MathF.Abs(deltaY) <= VerticalDeadzone)
+            return;
 
-            var direction = MathF.Sign(deltaY);
-            var translation = transform.Translation;
-            translation.Y += direction * paddle.MoveSpeed * deltaSeconds;
-            translation.Y = ClampPaddleY(translation.Y, transform.Scale.Y, topBoundary, bottomBoundary);
-            transform.Translation = translation;
-        }
+        var direction = MathF.Sign(deltaY);
+        var translation = transform.Translation;
+        translation.Y += direction * paddle.MoveSpeed * deltaSeconds;
+        translation.Y = ClampPaddleY(translation.Y, transform.Scale.Y, topBoundary, bottomBoundary);
+        transform.Translation = translation;
     }
 
-    public void OnShutdown() { }
+    public void OnShutdown()
+    {
+    }
 
     private bool IsGameOver()
     {

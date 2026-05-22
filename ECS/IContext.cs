@@ -13,6 +13,8 @@ public interface IContext
     /// <returns><see cref="Entity"/></returns>
     Entity GetById(int entityId);
     
+    Entity GetByName(string name);
+    
     /// <summary>
     /// Registers a new entity in the context.
     /// </summary>

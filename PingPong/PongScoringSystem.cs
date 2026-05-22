@@ -13,7 +13,11 @@ internal sealed class PongScoringSystem(IContext context) : IGameSystem
 
     public int Priority => 105;
 
-    public void OnInit() { }
+    public void OnInit()
+    {
+        var score = context.GetByName("Score");
+        score.AddComponent<ScoreComponent>();
+    }
 
     public void OnUpdate(TimeSpan deltaTime)
     {

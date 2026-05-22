@@ -6,11 +6,19 @@ using Scripting;
 namespace PingPong;
 
 [Register(typeof(IGameSystem))]
-internal sealed class PaddleInputSystem(IContext context, IPongInputState pongInputState) : IGameSystem
+internal sealed class PaddleInputSystem(IContext context) : IGameSystem
 {
     public int Priority => 101;
 
-    public void OnInit() { }
+    public void OnInit()
+    {
+        var player = context.GetByName("Player");
+        var paddle = new PaddleComponent
+        {
+            IsPlayer = true
+        };
+        player.AddComponent(paddle);
+    }
 
     public void OnUpdate(TimeSpan deltaTime)
     {
@@ -18,9 +26,9 @@ internal sealed class PaddleInputSystem(IContext context, IPongInputState pongIn
             return;
 
         var direction = 0.0f;
-        if (pongInputState.MoveUpPressed)
+        if (PongInputState.MoveUpPressed)
             direction += 1.0f;
-        if (pongInputState.MoveDownPressed)
+        if (PongInputState.MoveDownPressed)
             direction -= 1.0f;
         if (MathF.Abs(direction) <= float.Epsilon)
             return;

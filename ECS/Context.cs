@@ -52,6 +52,8 @@ public class Context : IContext
     
     public Entity GetById(int entityId) => _entitiesById[entityId];
     
+    public Entity GetByName(string name) => _entitiesList.FirstOrDefault(e => e.Name == name);
+    
     public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent
     {
         Entity[] snapshot;
