@@ -1,4 +1,4 @@
-{
+﻿{
   "Scene": "game",
   "Entities": [
     {
@@ -55,6 +55,11 @@
           "RestitutionThreshold": 0,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": true,
+          "Name": "RigidBody2DComponent"
         }
       ]
     },
@@ -83,6 +88,11 @@
           "RestitutionThreshold": 0,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": true,
+          "Name": "RigidBody2DComponent"
         }
       ]
     },
@@ -113,7 +123,7 @@
           "Name": "BoxCollider2DComponent"
         },
         {
-          "BodyType": "Kinematic",
+          "BodyType": "Dynamic",
           "FixedRotation": true,
           "Name": "RigidBody2DComponent"
         },
@@ -132,6 +142,21 @@
           "Rotation": [0, 0, 0],
           "Scale": [1, 1, 1],
           "Name": "TransformComponent"
+        },
+        {
+          "Size": [11, 0.5],
+          "Offset": [0, 0],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 1,
+          "RestitutionThreshold": 0,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "Name": "RigidBody2DComponent"
         }
       ]
     },
@@ -144,6 +169,21 @@
           "Rotation": [0, 0, 0],
           "Scale": [1, 1, 1],
           "Name": "TransformComponent"
+        },
+        {
+          "Size": [11, 0.5],
+          "Offset": [0, 0],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 1,
+          "RestitutionThreshold": 0,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "Name": "RigidBody2DComponent"
         }
       ]
     },
