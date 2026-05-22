@@ -35,12 +35,12 @@ internal sealed class BallMovementSystem(IContext context) : IGameSystem
             // --- Scoring ---
             if (PongScoreHandler.PlayerScored)
             {
-                score.PlayerScore = Math.Min(score.PlayerScore + 1, score.MaxScore);
+                score.PlayerScore = score.PlayerScore + 1 > score.MaxScore ? score.MaxScore : score.PlayerScore + 1;
                 PongScoreHandler.PlayerScored = false;
             }
             if (PongScoreHandler.AiScored)
             {
-                score.AiScore = Math.Min(score.AiScore + 1, score.MaxScore);
+                score.AiScore = score.AiScore + 1 > score.MaxScore ? score.MaxScore : score.AiScore + 1;
                 PongScoreHandler.AiScored = false;
             }
 
