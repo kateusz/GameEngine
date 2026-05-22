@@ -64,10 +64,14 @@ internal sealed class PhysicsSimulationSystem(
         // Accumulate time
         _physicsAccumulator += deltaSeconds;
 
+        EnsureBodiesCreated();
+        CleanupOrphanedBodies();
+
         // Step physics multiple times if needed to catch up
         var stepCount = 0;
         while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
+            SyncKinematicTransformsToBodies();
             physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
             _physicsAccumulator -= CameraConfig.PhysicsTimestep;
             stepCount++;
@@ -79,9 +83,6 @@ internal sealed class PhysicsSimulationSystem(
         {
             _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
         }
-
-        EnsureBodiesCreated();
-        CleanupOrphanedBodies();
 
         // Retrieve transform from Box2D and sync with entities
         var view = context.View<RigidBody2DComponent>();
@@ -165,6 +166,23 @@ internal sealed class PhysicsSimulationSystem(
                 isSensor = boxCollider.IsTrigger
             };
             body.CreateFixture(fixtureDef);
+        }
+    }
+
+    private void SyncKinematicTransformsToBodies()
+    {
+        foreach (var (entity, component) in context.View<RigidBody2DComponent>())
+        {
+            if (component.BodyType != RigidBodyType.Kinematic)
+                continue;
+
+            if (!bodyStore.TryGet(entity.Id, out var body))
+                continue;
+
+            var transform = entity.GetComponent<TransformComponent>();
+            body.SetTransform(
+                new Vector2(transform.Translation.X, transform.Translation.Y),
+                transform.Rotation.Z);
         }
     }
 

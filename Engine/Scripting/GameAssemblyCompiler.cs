@@ -52,7 +52,7 @@ public static class GameAssemblyCompiler
             return false;
         }
 
-        var scriptFiles = Directory.GetFiles(scriptsDirectory, "*.cs", SearchOption.AllDirectories);
+        var scriptFiles = EnumerateGameScriptFiles(scriptsDirectory);
         var syntaxTrees = new List<SyntaxTree>
         {
             CSharpSyntaxTree.ParseText(
@@ -154,6 +154,48 @@ public static class GameAssemblyCompiler
         }
 
         Logger.Information("Compiled game assembly: {Path}", outputDllPath);
+        return true;
+    }
+
+    public static IEnumerable<string> EnumerateGameScriptFiles(string scriptsDirectory)
+    {
+        if (!Directory.Exists(scriptsDirectory))
+            return [];
+
+        return Directory
+            .EnumerateFiles(scriptsDirectory, "*.cs", SearchOption.AllDirectories)
+            .Where(path => ShouldIncludeGameScriptFile(path, scriptsDirectory));
+    }
+
+    public static bool ShouldIncludeGameScriptFile(string filePath, string scriptsDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        var fullPath = Path.GetFullPath(filePath);
+        var root = Path.GetFullPath(scriptsDirectory);
+        if (!fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var relative = Path.GetRelativePath(root, fullPath);
+        if (relative.StartsWith("..", StringComparison.Ordinal))
+            return false;
+
+        foreach (var segment in relative.Split(
+                     [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (segment.Equals("obj", StringComparison.OrdinalIgnoreCase) ||
+                segment.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
+                segment.Equals(".vs", StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        var fileName = Path.GetFileName(fullPath);
+        if (fileName.EndsWith(".AssemblyInfo.cs", StringComparison.OrdinalIgnoreCase) ||
+            fileName.Contains("AssemblyAttributes", StringComparison.OrdinalIgnoreCase))
+            return false;
+
         return true;
     }
 }

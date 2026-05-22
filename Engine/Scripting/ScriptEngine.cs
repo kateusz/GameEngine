@@ -450,7 +450,7 @@ internal sealed class ScriptEngine : IScriptEngine
         if (!Directory.Exists(_scriptsDirectory))
             return;
 
-        foreach (var scriptPath in Directory.GetFiles(_scriptsDirectory, "*.cs", SearchOption.AllDirectories))
+        foreach (var scriptPath in GameAssemblyCompiler.EnumerateGameScriptFiles(_scriptsDirectory))
         {
             var scriptName = Path.GetFileNameWithoutExtension(scriptPath);
             try
