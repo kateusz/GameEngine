@@ -1,3 +1,4 @@
+using System.Numerics;
 using ECS;
 
 namespace SceneComponents.Physics;
@@ -13,13 +14,15 @@ public class RigidBody2DComponent : IComponent
 {
     public RigidBodyType BodyType { get; set; }
     public bool FixedRotation { get; set; }
+    public Vector2 Velocity { get; set; }
 
     public IComponent Clone()
     {
         return new RigidBody2DComponent
         {
             BodyType = BodyType,
-            FixedRotation = FixedRotation
+            FixedRotation = FixedRotation,
+            Velocity = Velocity
         };
     }
 }
