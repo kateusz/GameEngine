@@ -4,8 +4,6 @@ namespace Engine.Scene.Systems;
 
 internal sealed class PhysicsRuntimeBodyStore
 {
-    public static PhysicsRuntimeBodyStore Instance { get; } = new();
-
     private readonly Dictionary<int, Body> _bodiesByEntityId = [];
 
     public bool TryGet(int entityId, out Body body) => _bodiesByEntityId.TryGetValue(entityId, out body!);

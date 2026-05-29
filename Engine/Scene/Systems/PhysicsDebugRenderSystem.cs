@@ -18,10 +18,10 @@ internal sealed class PhysicsDebugRenderSystem(
     IGraphics2D renderer,
     IContext context,
     DebugSettings debugSettings,
-    IPrimaryCameraProvider cameraProvider) : ISystem
+    IPrimaryCameraProvider cameraProvider,
+    PhysicsRuntimeBodyStore bodyStore ) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
-    private static readonly PhysicsRuntimeBodyStore bodyStore = PhysicsRuntimeBodyStore.Instance;
 
     public int Priority => SystemPriorities.PhysicsDebugRenderSystem;
 

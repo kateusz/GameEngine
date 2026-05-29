@@ -3,6 +3,7 @@ using ECS;
 using ECS.Systems;
 using Engine.Renderer;
 using Engine.Scene;
+using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
 using SceneComponents.Camera;
@@ -19,6 +20,7 @@ public class SceneTests : IDisposable
     private readonly ISceneSystemRegistry _mockSystemRegistry;
     private readonly IContext _context;
     private readonly ISystemManager _systemManager;
+    private readonly PhysicsRuntimeBodyStore _bodyStore;
 
     public SceneTests()
     {
@@ -27,6 +29,7 @@ public class SceneTests : IDisposable
         _mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
         _systemManager = Substitute.For<ISystemManager>();
         _context = new Context();
+        _bodyStore = Substitute.For<PhysicsRuntimeBodyStore>();
 
         // Setup system registry to return our mock system manager behavior
         _mockSystemRegistry.PopulateSystemManager(Arg.Any<ISystemManager>())
@@ -46,7 +49,7 @@ public class SceneTests : IDisposable
     {
         // Act
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Assert
         scene.Entities.ShouldBeEmpty();
@@ -61,7 +64,7 @@ public class SceneTests : IDisposable
 
         // Act
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Assert - Context should be cleared
         scene.Entities.ShouldBeEmpty();
@@ -77,7 +80,7 @@ public class SceneTests : IDisposable
 
         // Act
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Assert
         _mockSystemRegistry.Received(1).PopulateSystemManager(Arg.Any<ISystemManager>());
@@ -92,7 +95,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entityName = _faker.Random.Word();
 
         // Act
@@ -107,7 +110,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Act
         var entity = scene.CreateEntity("test");
@@ -121,7 +124,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Act
         var entity1 = scene.CreateEntity("first");
@@ -138,7 +141,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Act
         var entity = scene.CreateEntity("test");
@@ -153,7 +156,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Act
         var entities = new List<Entity>();
@@ -176,7 +179,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity = Entity.Create(100, "imported");
 
         // Act
@@ -191,7 +194,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var highIdEntity = Entity.Create(500, "high-id");
 
         // Act
@@ -207,7 +210,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         scene.CreateEntity("first"); // Gets ID 1
         var lowIdEntity = Entity.Create(50, "low-id"); // Use ID 50 instead of 1
 
@@ -224,7 +227,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var invalidEntity = Entity.Create(0, "invalid");
 
         // Act & Assert
@@ -236,7 +239,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var invalidEntity = Entity.Create(-5, "invalid");
 
         // Act & Assert
@@ -252,7 +255,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity = scene.CreateEntity("to-destroy");
 
         // Act
@@ -267,7 +270,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity = scene.CreateEntity("to-destroy");
 
         // Act
@@ -283,7 +286,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity = scene.CreateEntity("original");
         var entityId = entity.Id;
 
@@ -306,7 +309,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entities = Enumerable.Range(0, 5)
             .Select(i => scene.CreateEntity($"entity-{i}"))
             .ToList();
@@ -331,7 +334,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var original = scene.CreateEntity("original");
 
         // Act
@@ -347,7 +350,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var original = scene.CreateEntity("original");
         original.AddComponent(new TagComponent { Tag = "test-tag" });
         original.AddComponent(new TransformComponent(
@@ -375,7 +378,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var original = scene.CreateEntity("original");
         var originalTag = new TagComponent { Tag = "original" };
         original.AddComponent(originalTag);
@@ -395,7 +398,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var original = scene.CreateEntity("original");
 
         // Act
@@ -415,7 +418,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         scene.CreateEntity("no-camera");
 
         // Act
@@ -430,7 +433,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var cameraEntity = scene.CreateEntity("camera");
         var cameraComponent = new CameraComponent { Primary = true };
         cameraEntity.AddComponent(cameraComponent);
@@ -447,7 +450,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var cameraEntity = scene.CreateEntity("camera");
         var cameraComponent = new CameraComponent { Primary = false };
         cameraEntity.AddComponent(cameraComponent);
@@ -464,7 +467,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = false });
@@ -491,7 +494,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = true });
@@ -512,7 +515,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity = scene.CreateEntity("no-camera");
 
         // Act & Assert
@@ -524,7 +527,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var foreignEntity = Entity.Create(999, "foreign");
         foreignEntity.AddComponent(new CameraComponent { Primary = true });
 
@@ -537,7 +540,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = true });
 
@@ -557,7 +560,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var original = scene.CreateEntity("camera");
         original.AddComponent(new CameraComponent { Primary = true });
 
@@ -578,7 +581,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         scene.CreateEntity("no-camera");
 
         // Act & Assert
@@ -594,7 +597,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity1 = scene.CreateEntity("first");
         var entity2 = scene.CreateEntity("second");
         var entity3 = scene.CreateEntity("third");
@@ -614,7 +617,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
         var entity1 = scene.CreateEntity("first");
         var entity2 = scene.CreateEntity("second");
         scene.DestroyEntity(entity1);
@@ -637,7 +640,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Act - Create 1000 entities
         var entities = new List<Entity>();
@@ -661,7 +664,7 @@ public class SceneTests : IDisposable
     {
         // Arrange
         using var scene = new EngineScene("test-scene", "test-scene", _mockSystemRegistry, _mockGraphics2D,
-            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager);
+            _mockGraphics3D, _context, new Core.DebugSettings(), _systemManager, _bodyStore);
 
         // Act - Create entities with various components
         var entities = new List<Entity>();

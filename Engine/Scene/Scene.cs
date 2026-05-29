@@ -20,6 +20,7 @@ namespace Engine.Scene;
 internal sealed class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
+
     private static readonly Vector2[] DefaultTextureCoords =
     [
         new(0.0f, 0.0f),
@@ -40,6 +41,7 @@ internal sealed class Scene : IScene
     private readonly IContext _context;
     private readonly DebugSettings _debugSettings;
     private readonly ISystemManager _systemManager;
+    private readonly PhysicsRuntimeBodyStore _bodyStore;
 
     public Scene(string path,
         string sceneName,
@@ -49,7 +51,8 @@ internal sealed class Scene : IScene
         ITextureFactory textureFactory,
         IContext context,
         DebugSettings debugSettings,
-        ISystemManager systemManager)
+        ISystemManager systemManager,
+        PhysicsRuntimeBodyStore bodyStore)
     {
         _path = path;
         _sceneName = sceneName;
@@ -59,19 +62,8 @@ internal sealed class Scene : IScene
         _context = context;
         _debugSettings = debugSettings;
         _systemManager = systemManager;
+        _bodyStore = bodyStore;
         _init = Initialize(systemRegistry, context);
-    }
-
-    public Scene(string path,
-        string sceneName,
-        ISceneSystemRegistry systemRegistry,
-        IGraphics2D graphics2D,
-        IGraphics3D graphics3D,
-        IContext context,
-        DebugSettings debugSettings,
-        ISystemManager systemManager)
-        : this(path, sceneName, systemRegistry, graphics2D, graphics3D, textureFactory: null!, context, debugSettings, systemManager)
-    {
     }
     
     private (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
@@ -85,7 +77,7 @@ internal sealed class Scene : IScene
 
         // Create and register physics simulation system with the physics world
         // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(physicsWorld, context);
+        var physicsSimulationSystem = new PhysicsSimulationSystem(physicsWorld, context, _bodyStore);
         _systemManager.RegisterSystem(physicsSimulationSystem);
 
         return (_systemManager, physicsWorld);
@@ -202,23 +194,24 @@ internal sealed class Scene : IScene
                 pointLight.Color,
                 pointLight.Intensity));
         }
+
         _graphics3D.SetPointLights(pointLightData);
 
         _graphics3D.BeginScene(camera);
-        
+
         var modelGroup = _context.View<ModelRendererComponent>();
-        
+
         foreach (var (entity, modelRendererComponent) in modelGroup)
         {
             var transformComponent = entity.GetComponent<TransformComponent>();
             var meshComponent = entity.GetComponent<MeshComponent>();
-        
+
             _graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
                 entity.Id);
         }
-        
+
         _graphics3D.EndScene();
-        
+
         _graphics3D.BeginLightVisualization(camera);
         foreach (var (e, _) in pointLights)
         {
@@ -235,6 +228,7 @@ internal sealed class Scene : IScene
 
             _graphics3D.DrawLightVisualization(transform.Translation);
         }
+
         _graphics3D.EndLightVisualization();
 
         _graphics2D.BeginScene(camera);
@@ -245,7 +239,8 @@ internal sealed class Scene : IScene
             var transformComponent = entity.GetComponent<TransformComponent>();
             var texture = ResolveTexture(spriteRendererComponent.TexturePath);
             if (texture is not null)
-                _graphics2D.DrawQuad(transformComponent.GetTransform(), texture, DefaultTextureCoords, spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, entity.Id);
+                _graphics2D.DrawQuad(transformComponent.GetTransform(), texture, DefaultTextureCoords,
+                    spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, entity.Id);
             else
                 _graphics2D.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color, entity.Id);
         }
@@ -369,9 +364,9 @@ internal sealed class Scene : IScene
 
         return rb.BodyType switch
         {
-            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),    // Bright green
+            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f), // Bright green
             RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f), // Orange
-            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f)                        // Magenta
+            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f) // Magenta
         };
     }
 

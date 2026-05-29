@@ -19,10 +19,10 @@ namespace Engine.Scene.Systems;
 /// </summary>
 internal sealed class PhysicsSimulationSystem(
     World physicsWorld,
-    IContext context) : ISystem, IDisposable
+    IContext context,
+    PhysicsRuntimeBodyStore bodyStore) : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
-    private static readonly PhysicsRuntimeBodyStore bodyStore = PhysicsRuntimeBodyStore.Instance;
 
     // Fixed timestep accumulator for deterministic physics
     private float _physicsAccumulator;
@@ -144,7 +144,8 @@ internal sealed class PhysicsSimulationSystem(
                 position = new Vector2(transform.Translation.X, transform.Translation.Y),
                 angle = transform.Rotation.Z,
                 type = RigidBody2DTypeToBox2DBody(component.BodyType),
-                bullet = component.BodyType == RigidBodyType.Dynamic
+                bullet = component.BodyType == RigidBodyType.Dynamic,
+                gravityScale = component.GravityScale
             };
 
             var body = physicsWorld.CreateBody(bodyDef);

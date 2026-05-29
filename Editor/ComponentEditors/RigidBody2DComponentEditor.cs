@@ -31,6 +31,8 @@ public class RigidBody2DComponentEditor : IComponentEditor
 
             UIPropertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
                 newValue => component.FixedRotation = (bool)newValue);
+            UIPropertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
+                newValue => component.GravityScale = (float)newValue);
         });
     }
 }

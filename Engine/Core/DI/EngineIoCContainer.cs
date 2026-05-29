@@ -98,6 +98,8 @@ public static class EngineIoCContainer
         container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
         container.Register<AudioSystem>(Reuse.Singleton);
         
+        container.Register<PhysicsRuntimeBodyStore>(Reuse.Singleton);
+        
         container.Register<PrimaryCameraSystem>(Reuse.Singleton);
         container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
         
