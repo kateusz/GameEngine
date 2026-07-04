@@ -1,13 +1,13 @@
 using Editor.Features.Settings;
+using Editor.Features.Scripting;
 using Engine.Core;
-using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Features.Project;
 
 public class ProjectManager(
     IEditorPreferences editorPreferences,
-    IScriptEngine scriptEngine,
+    GameScriptWorkspace scriptWorkspace,
     IGameProjectScriptBootstrapper gameProjectScriptBootstrapper)
     : IProjectManager
 {
@@ -165,6 +165,6 @@ public class ProjectManager(
 
         // Point the scripting engine to /assets/scripts if that exists
         var scriptsDir = Path.Combine(projectDir, "assets", "scripts");
-        scriptEngine.SetScriptsDirectory(scriptsDir);
+        scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
     }
 }

@@ -5,7 +5,7 @@ Hot-reloadable C# scripts compile into a `GameAssembly` DLL. The engine supports
 | Tier | Types | Integration |
 |------|-------|-------------|
 | Data | `IGameComponent`, `[SerializableComponent]` | Scene JSON via `ComponentSerializerRegistry` |
-| Glue | `ScriptableEntity`, `NativeScriptComponent` | `ScriptEngine` lifecycle + event fan-out |
+| Glue | `ScriptableEntity`, `NativeScriptComponent` | `IScriptEngine` lifecycle + event fan-out (editor authoring via `GameScriptWorkspace`) |
 | Logic | `IGameSystem`, `[Register]` | DryIoc + `SceneManager.RegisterGameSystems()` |
 
 ## Component Diagram
@@ -74,4 +74,4 @@ File timestamps are checked each frame (unless suppressed during editor play). A
 
 ## ECS integration
 
-`ScriptUpdateSystem` (priority 110) delegates to `IScriptEngine.OnUpdate`. Game systems register at play time with priorities defined on each `IGameSystem` implementation.
+`ScriptUpdateSystem` (priority 110) delegates to `IScriptEngine.OnUpdate`. Editor compile/file operations use `GameScriptWorkspace` (calls `GameAssemblyCompiler` + `LoadGameAssemblyFromFile`). Game systems register at play time with priorities defined on each `IGameSystem` implementation.

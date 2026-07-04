@@ -1,5 +1,6 @@
 using ECS;
 using Editor.Features.Project;
+using Editor.Features.Scripting;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Serilog;
@@ -8,7 +9,7 @@ namespace Editor.Features.Components;
 
 public class GameComponentFactory(
     IProjectManager projectManager,
-    IScriptEngine scriptEngine,
+    GameScriptWorkspace scriptWorkspace,
     IComponentSerializerRegistry serializerRegistry)
     : IGameComponentFactory
 {
@@ -24,7 +25,7 @@ public class GameComponentFactory(
                 names.Add(name);
         }
 
-        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
         {
             foreach (var type in AssemblyLoadTypes.From(assembly))
             {
@@ -50,11 +51,11 @@ public class GameComponentFactory(
         await File.WriteAllTextAsync(filePath, GameComponentTemplates.Generate(className));
         Logger.Information("Created game component file {Path}", filePath);
 
-        var (compiled, errors) = scriptEngine.TryCompileAllScripts();
+        var (compiled, errors) = scriptWorkspace.TryCompileAllScripts();
         if (!compiled)
             return (false, string.Join('\n', errors.Take(5)));
 
-        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
             serializerRegistry.RegisterFromAssembly(assembly);
 
         return (true, null);
@@ -70,11 +71,11 @@ public class GameComponentFactory(
         if (!created)
             return (false, error);
 
-        var type = scriptEngine.GetLoadedGameType(className);
+        var type = scriptWorkspace.GetLoadedGameType(className);
         if (type is null)
             return (false, "Component compiled but type not found.");
 
-        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
             serializerRegistry.RegisterFromAssembly(assembly);
 
         if (entity.GetAllComponents().Any(c => c.GetType() == type))
@@ -93,14 +94,14 @@ public class GameComponentFactory(
         if (!DiscoverComponentNames().Contains(typeName))
             return (false, $"Component type '{typeName}' not found in scripts.");
 
-        var type = scriptEngine.GetLoadedGameType(typeName);
+        var type = scriptWorkspace.GetLoadedGameType(typeName);
         if (type is null)
         {
-            var (compiled, errors) = scriptEngine.TryCompileAllScripts();
+            var (compiled, errors) = scriptWorkspace.TryCompileAllScripts();
             if (!compiled)
                 return (false, string.Join('\n', errors.Take(5)));
 
-            type = scriptEngine.GetLoadedGameType(typeName);
+            type = scriptWorkspace.GetLoadedGameType(typeName);
         }
 
         if (type is null || !typeof(IGameComponent).IsAssignableFrom(type))
@@ -109,7 +110,7 @@ public class GameComponentFactory(
         if (entity.GetAllComponents().Any(c => c.GetType() == type))
             return (false, "Entity already has this component.");
 
-        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
             serializerRegistry.RegisterFromAssembly(assembly);
 
         entity.AddComponentDynamic((IComponent)Activator.CreateInstance(type)!);

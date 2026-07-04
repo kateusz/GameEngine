@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using Editor.Features.Components;
 using Editor.Features.Project;
+using Editor.Features.Scripting;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
@@ -21,7 +22,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     private readonly ITextureFactory _textureFactory;
     private readonly IProjectManager _projectManager;
-    private readonly IScriptEngine _scriptEngine;
+    private readonly GameScriptWorkspace _scriptWorkspace;
     private readonly IGameComponentFactory _gameComponentFactory;
     private string _assetPath;
     private string _currentDirectory;
@@ -42,12 +43,12 @@ public class ContentBrowserPanel : IContentBrowserPanel
     public ContentBrowserPanel(
         ITextureFactory textureFactory,
         IProjectManager projectManager,
-        IScriptEngine scriptEngine,
+        GameScriptWorkspace scriptWorkspace,
         IGameComponentFactory gameComponentFactory)
     {
         _textureFactory = textureFactory;
         _projectManager = projectManager;
-        _scriptEngine = scriptEngine;
+        _scriptWorkspace = scriptWorkspace;
         _gameComponentFactory = gameComponentFactory;
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
@@ -303,8 +304,8 @@ public class ContentBrowserPanel : IContentBrowserPanel
         if (_projectManager.ScriptsDir is null)
             return (false, "Open a project first.");
 
-        var template = _scriptEngine.GenerateScriptTemplate(scriptName);
-        var (success, errors) = await _scriptEngine.CreateOrUpdateScriptAsync(scriptName, template);
+        var template = _scriptWorkspace.GenerateScriptTemplate(scriptName);
+        var (success, errors) = await _scriptWorkspace.CreateOrUpdateScriptAsync(scriptName, template);
         return success ? (true, null) : (false, string.Join('\n', errors.Take(5)));
     }
 
@@ -321,7 +322,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
         await File.WriteAllTextAsync(filePath, GameSystemTemplates.Generate(className));
         Logger.Information("Created game system file {Path}", filePath);
 
-        var (compiled, errors) = _scriptEngine.TryCompileAllScripts();
+        var (compiled, errors) = _scriptWorkspace.TryCompileAllScripts();
         return compiled ? (true, null) : (false, string.Join('\n', errors.Take(5)));
     }
 

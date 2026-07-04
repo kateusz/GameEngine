@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
+using Editor.Features.Scripting;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Scene;
@@ -12,7 +13,10 @@ using Serilog;
 
 namespace Editor.ComponentEditors;
 
-public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sceneContext)
+public class ScriptComponentEditor(
+    IScriptEngine scriptEngine,
+    GameScriptWorkspace scriptWorkspace,
+    ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentEditor));
 
@@ -62,7 +66,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sce
             {
                 entity.RemoveComponent<NativeScriptComponent>();
                 if (sceneContext.ActiveScriptRuntimeStore is { } store)
-                    scriptEngine.ForceRecompile(store);
+                    scriptWorkspace.ForceRecompile(store);
             }
 
             ImGui.EndPopup();
@@ -71,7 +75,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sce
 
     private void OpenScriptInExternalEditor(string scriptName)
     {
-        var filePath = scriptEngine.GetScriptFilePath(scriptName);
+        var filePath = scriptWorkspace.GetScriptFilePath(scriptName);
         if (filePath == null)
         {
             Logger.Warning("Script file not found for {ScriptName}", scriptName);
@@ -138,8 +142,8 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sce
 
                 try
                 {
-                    var scriptTemplate = scriptEngine.GenerateScriptTemplate(_newScriptName);
-                    var (success, errors) = await scriptEngine.CreateOrUpdateScriptAsync(_newScriptName, scriptTemplate);
+                    var scriptTemplate = scriptWorkspace.GenerateScriptTemplate(_newScriptName);
+                    var (success, errors) = await scriptWorkspace.CreateOrUpdateScriptAsync(_newScriptName, scriptTemplate);
 
                     if (!success)
                     {
@@ -176,7 +180,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sce
 
     private void RenderScriptSelectorPopup()
     {
-        var availableScripts = scriptEngine.GetAvailableScriptNames();
+        var availableScripts = scriptWorkspace.GetAvailableScriptNames();
 
         ModalDrawer.RenderListSelectionModal(
             title: "Select Script",
@@ -224,7 +228,7 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sce
         {
             if (ImGui.MenuItem("Delete"))
             {
-                if (scriptEngine.DeleteScript(scriptName))
+                if (scriptWorkspace.DeleteScript(scriptName))
                     Logger.Information("Deleted script {ScriptName}", scriptName);
                 ImGui.CloseCurrentPopup();
             }

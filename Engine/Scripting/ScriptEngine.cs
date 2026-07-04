@@ -12,64 +12,41 @@ using ZLinq;
 
 namespace Engine.Scripting;
 
-internal sealed class ScriptEngine : IScriptEngine
+internal sealed class ScriptEngine(
+    ISceneContext sceneContext,
+    IAudio audio,
+    IAudioPlayback audioPlayback) : IScriptEngine
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
-    private readonly Dictionary<string, string> _scriptSources = new();
-    private readonly ISceneContext _sceneContext;
-    private readonly IAudio _audio;
-    private readonly IAudioPlayback _audioPlayback;
-    private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
-
-    private readonly Dictionary<string, byte[]> _debugSymbols = new();
-    private bool _debugMode = true;
+    private string _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
+    private string? _loadedDllPath;
     private bool _suppressFileChangeRecompile;
-
-    public ScriptEngine(ISceneContext sceneContext, IAudio audio, IAudioPlayback audioPlayback)
-    {
-        _sceneContext = sceneContext;
-        _audio = audio;
-        _audioPlayback = audioPlayback;
-        _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-        Directory.CreateDirectory(_scriptsDirectory);
-    }
-
-    public void SetScriptsDirectory(string scriptsDirectory)
-    {
-        _scriptsDirectory = scriptsDirectory;
-        Directory.CreateDirectory(_scriptsDirectory);
-        _suppressFileChangeRecompile = false;
-        CompileAllScripts();
-    }
 
     public void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory)
     {
         _scriptsDirectory = scriptsDirectory;
         Directory.CreateDirectory(_scriptsDirectory);
-        var full = Path.GetFullPath(dllPath);
-        if (!File.Exists(full))
+        _loadedDllPath = Path.GetFullPath(dllPath);
+        if (!File.Exists(_loadedDllPath))
         {
-            Logger.Error("Game assembly not found: {Path}", full);
+            Logger.Error("Game assembly not found: {Path}", _loadedDllPath);
             return;
         }
 
         try
         {
-            _dynamicAssembly = Assembly.LoadFrom(full);
-            if (_debugMode && File.Exists(Path.ChangeExtension(full, ".pdb")))
-                _debugSymbols[GameAssemblyCompiler.AssemblyName] = File.ReadAllBytes(Path.ChangeExtension(full, ".pdb")!);
-
-            IndexScriptSourcesFromDisk();
+            _dynamicAssembly = Assembly.LoadFrom(_loadedDllPath);
+            IndexScriptLastModifiedFromDisk();
             UpdateScriptTypes();
-            Logger.Information("Loaded game assembly from {Path}", full);
+            Logger.Information("Loaded game assembly from {Path}", _loadedDllPath);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed to load game assembly from {Path}", full);
+            Logger.Error(ex, "Failed to load game assembly from {Path}", _loadedDllPath);
         }
     }
 
@@ -80,10 +57,10 @@ internal sealed class ScriptEngine : IScriptEngine
         if (!_suppressFileChangeRecompile)
             CheckForScriptChanges();
 
-        if (_sceneContext.ActiveScene == null)
+        if (sceneContext.ActiveScene == null)
             return;
 
-        var scriptEntities = _sceneContext.ActiveScene.Entities
+        var scriptEntities = sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
 
@@ -119,10 +96,10 @@ internal sealed class ScriptEngine : IScriptEngine
 
     public void OnRuntimeStop(ScriptRuntimeStore store)
     {
-        if (_sceneContext.ActiveScene == null)
+        if (sceneContext.ActiveScene == null)
             return;
 
-        var scriptEntities = _sceneContext.ActiveScene.Entities
+        var scriptEntities = sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
 
@@ -155,10 +132,10 @@ internal sealed class ScriptEngine : IScriptEngine
 
     public void ProcessEvent(Event @event, ScriptRuntimeStore store)
     {
-        if (_sceneContext.ActiveScene == null)
+        if (sceneContext.ActiveScene == null)
             return;
 
-        var scriptEntities = _sceneContext.ActiveScene.Entities
+        var scriptEntities = sceneContext.ActiveScene.Entities
             .AsValueEnumerable()
             .Where(e => e.HasComponent<NativeScriptComponent>());
 
@@ -198,30 +175,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    public string[] GetAvailableScriptNames() => _scriptTypes.Keys.ToArray();
-
     public Type? GetScriptType(string scriptName) => _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
-
-    public string GetScriptSource(string scriptName)
-    {
-        if (_scriptSources.TryGetValue(scriptName, out var source))
-            return source;
-
-        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-        if (!File.Exists(scriptPath)) 
-            return string.Empty;
-        
-        var src = File.ReadAllText(scriptPath);
-        _scriptSources[scriptName] = src;
-        return src;
-
-    }
-
-    public string? GetScriptFilePath(string scriptName)
-    {
-        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-        return File.Exists(scriptPath) ? scriptPath : null;
-    }
 
     public Result<ScriptableEntity> CreateScriptInstance(string scriptName)
     {
@@ -235,7 +189,7 @@ internal sealed class ScriptEngine : IScriptEngine
         try
         {
             var componentAccessor = new ComponentAccessor();
-            return Activator.CreateInstance(scriptType, componentAccessor, _audio, _audioPlayback) is ScriptableEntity instance
+            return Activator.CreateInstance(scriptType, componentAccessor, audio, audioPlayback) is ScriptableEntity instance
                 ? Result.Success(instance)
                 : Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}");
         }
@@ -247,235 +201,69 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    public async Task<(bool Success, string[] Errors)> CreateOrUpdateScriptAsync(string scriptName,
-        string scriptContent)
+    public Assembly? GetLoadedGameAssembly() => _dynamicAssembly;
+
+    public void RefreshScriptInstances(ScriptRuntimeStore store)
     {
-        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-
-        try
-        {
-            await File.WriteAllTextAsync(scriptPath, scriptContent);
-            _scriptSources[scriptName] = scriptContent;
-            _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
-            
-            var (success, errors) = CompileScript(scriptName, scriptContent);
-            if (success)
-            {
-                Logger.Information("Script '{ScriptName}' successfully compiled", scriptName);
-                return (true, []);
-            }
-
-            Logger.Error("Failed to compile script '{ScriptName}': {Errors}", scriptName, string.Join(", ", errors));
-            return (false, errors);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Error saving or compiling script '{ScriptName}'", scriptName);
-            return (false, [ex.Message]);
-        }
-    }
-
-    public bool DeleteScript(string scriptName)
-    {
-        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-
-        try
-        {
-            if (File.Exists(scriptPath)) 
-                File.Delete(scriptPath);
-
-            _scriptTypes.Remove(scriptName);
-            _scriptSources.Remove(scriptName);
-            _scriptLastModified.Remove(scriptName);
-            
-            CompileAllScripts();
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Error deleting script '{ScriptName}'", scriptName);
-            return false;
-        }
-    }
-
-    public void EnableHybridDebugging(bool enable = true)
-    {
-        _debugMode = enable;
-
-        if (enable)
-        {
-            Logger.Information("Hybrid debugging enabled - engine + scripts");
-            CompileAllScripts();
-        }
-    }
-    
-    public bool SaveDebugSymbols(string outputPath, string assemblyName = "GameAssembly")
-    {
-        try
-        {
-            if (_debugSymbols.TryGetValue(assemblyName, out var symbols))
-            {
-                File.WriteAllBytes($"{outputPath}.pdb", symbols);
-
-                // Also save the assembly for complete debugging setup
-                if (_dynamicAssembly != null && !string.IsNullOrEmpty(_dynamicAssembly.Location))
-                {
-                    File.Copy(_dynamicAssembly.Location, $"{outputPath}.dll", true);
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to save debug symbols to {OutputPath}", outputPath);
-            return false;
-        }
-    }
-    
-    public void PrintDebugInfo()
-    {
-        Logger.Debug("=== SCRIPT ENGINE DEBUG INFO === DebugMode: {DebugMode}, ScriptsDirectory: {ScriptsDirectory}, Loaded Scripts: {ScriptCount}",
-            _debugMode, _scriptsDirectory, _scriptTypes.Count);
-
-        foreach (var (name, type) in _scriptTypes)
-        {
-            Logger.Debug("  - {ScriptName}: {TypeFullName}", name, type.FullName);
-        }
-
-        Logger.Debug("Debug Symbols Available: {DebugSymbolsAvailable}", _debugSymbols.Count > 0);
-
-        if (_dynamicAssembly != null)
-        {
-            Logger.Debug("Assembly Location: {AssemblyLocation}", _dynamicAssembly.Location);
-            Logger.Debug("Assembly Full Name: {AssemblyFullName}", _dynamicAssembly.FullName);
-        }
-
-        Logger.Debug("================================");
-    }
-    
-    public void CompileAllScripts()
-    {
-        var (success, errors) = TryCompileAllScripts();
-        if (success)
+        if (sceneContext.ActiveScene == null)
             return;
 
-        foreach (var err in errors)
-            Logger.Error("Script compilation: {Error}", err);
-    }
+        var scriptEntities = sceneContext.ActiveScene.Entities
+            .AsValueEnumerable()
+            .Where(e => e.HasComponent<NativeScriptComponent>());
 
-    public (bool Success, string[] Errors) TryCompileAllScripts()
-    {
-        Logger.Information("Compiling all scripts to {GameAssembly}...", GameAssemblyCompiler.AssemblyName);
-        if (!Directory.Exists(_scriptsDirectory))
+        foreach (var entity in scriptEntities)
         {
-            var error = $"Scripts directory does not exist: {_scriptsDirectory}";
-            Logger.Warning("{Error}", error);
-            return (false, [error]);
+            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
+            if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName) || !_scriptTypes.ContainsKey(scriptComponent.ScriptTypeName))
+                continue;
+
+            var newInstance = CreateScriptInstance(scriptComponent.ScriptTypeName);
+            if (!newInstance.IsSuccess)
+                continue;
+
+            store.Set(entity.Id, newInstance.Value);
+            newInstance.Value.SetEntity(entity);
+            newInstance.Value.OnCreate();
         }
-
-        var outputPath = AllocateGameAssemblyBuildPath();
-        if (!GameAssemblyCompiler.TryCompile(
-                _scriptsDirectory,
-                outputPath,
-                _debugMode,
-                useDebugOptimization: _debugMode,
-                out var errors))
-            return (false, errors ?? []);
-
-        TryLoadCompiledAssembly(outputPath);
-        return _dynamicAssembly is null
-            ? (false, ["Failed to load compiled game assembly"])
-            : (true, []);
     }
-
-    public Type? GetLoadedGameType(string typeName)
-    {
-        if (_dynamicAssembly is null || string.IsNullOrWhiteSpace(typeName))
-            return null;
-
-        return Array.Find(_dynamicAssembly.GetTypes(), t =>
-            t is { IsClass: true, IsAbstract: false }
-            && t.Name == typeName
-            && typeof(IGameComponent).IsAssignableFrom(t));
-    }
-
-    public Assembly? GetLoadedGameAssembly() => _dynamicAssembly;
 
     private void CheckForScriptChanges()
     {
+        if (string.IsNullOrEmpty(_loadedDllPath))
+            return;
+
         var needsRecompile = false;
 
         foreach (var (scriptName, lastModified) in _scriptLastModified)
         {
             var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-            if (!File.Exists(scriptPath)) 
+            if (!File.Exists(scriptPath))
                 continue;
-            
-            var currentModified = File.GetLastWriteTime(scriptPath);
-            if (currentModified > lastModified)
+
+            if (File.GetLastWriteTime(scriptPath) > lastModified)
             {
                 needsRecompile = true;
                 break;
             }
         }
 
-        if (needsRecompile)
+        if (!needsRecompile)
+            return;
+
+        Logger.Information("Script changes detected, recompiling...");
+        if (!GameAssemblyCompiler.TryCompile(_scriptsDirectory, _loadedDllPath, emitPdb: false, useDebugOptimization: false, out var errors))
         {
-            Logger.Information("Script changes detected, recompiling...");
-            CompileAllScripts();
+            foreach (var err in errors ?? [])
+                Logger.Error("Script hot-reload: {Error}", err);
+            return;
         }
+
+        LoadGameAssemblyFromFile(_loadedDllPath, _scriptsDirectory);
     }
 
-    private (bool Success, string[] Errors) CompileScript(string scriptName, string scriptContent)
+    private void IndexScriptLastModifiedFromDisk()
     {
-        _ = scriptName;
-        _ = scriptContent;
-        return EmitGameAssemblyToDisk();
-    }
-
-    private (bool Success, string[] Errors) EmitGameAssemblyToDisk()
-    {
-        var outputPath = AllocateGameAssemblyBuildPath();
-        if (!GameAssemblyCompiler.TryCompile(
-                _scriptsDirectory,
-                outputPath,
-                _debugMode,
-                useDebugOptimization: _debugMode,
-                out var errors))
-            return (false, errors ?? [""]);
-
-        TryLoadCompiledAssembly(outputPath);
-        return (true, []);
-    }
-
-    private void TryLoadCompiledAssembly(string outputPath)
-    {
-        try
-        {
-            if (_debugMode && File.Exists(Path.ChangeExtension(outputPath, ".pdb")))
-                _debugSymbols[GameAssemblyCompiler.AssemblyName] = File.ReadAllBytes(Path.ChangeExtension(outputPath, ".pdb")!);
-
-            var existing = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => string.Equals(a.GetName().Name, GameAssemblyCompiler.AssemblyName, StringComparison.Ordinal));
-
-            _dynamicAssembly = existing ?? Assembly.LoadFrom(outputPath);
-            IndexScriptSourcesFromDisk();
-            UpdateScriptTypes();
-            Logger.Information("Loaded {Count} script types from game assembly", _scriptTypes.Count);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to load compiled game assembly");
-        }
-    }
-
-    private void IndexScriptSourcesFromDisk()
-    {
-        _scriptSources.Clear();
         _scriptLastModified.Clear();
         if (!Directory.Exists(_scriptsDirectory))
             return;
@@ -485,7 +273,6 @@ internal sealed class ScriptEngine : IScriptEngine
             var scriptName = Path.GetFileNameWithoutExtension(scriptPath);
             try
             {
-                _scriptSources[scriptName] = File.ReadAllText(scriptPath, System.Text.Encoding.UTF8);
                 _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
             }
             catch (Exception ex)
@@ -495,56 +282,12 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    private static bool IsEditorProcess() =>
-        AppDomain.CurrentDomain.GetAssemblies()
-            .AsValueEnumerable()
-            .Any(a => a.GetName().Name == "Editor");
-
-    private string AllocateGameAssemblyBuildPath()
-    {
-        var stablePath = ResolveGameAssemblyOutputPath();
-        if (IsEditorProcess())
-        {
-            var engineDir = Path.GetDirectoryName(stablePath);
-            if (string.IsNullOrEmpty(engineDir))
-                return stablePath;
-            Directory.CreateDirectory(engineDir);
-            return GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
-        }
-
-        return stablePath;
-    }
-
-    private string ResolveGameAssemblyOutputPath()
-    {
-        var fullScripts = Path.GetFullPath(_scriptsDirectory);
-        var parentName = Path.GetFileName(fullScripts.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        if (!parentName.Equals("scripts", StringComparison.OrdinalIgnoreCase))
-            return Path.Combine(fullScripts, "..", "..", "GameAssembly.dll");
-
-        var assetsDir = Path.GetDirectoryName(fullScripts);
-        if (assetsDir is null)
-            return Path.Combine(fullScripts, "GameAssembly.dll");
-
-        if (!Path.GetFileName(assetsDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
-                .Equals("assets", StringComparison.OrdinalIgnoreCase))
-            return Path.Combine(assetsDir, "GameAssembly.dll");
-
-        var appRoot = Path.GetDirectoryName(assetsDir);
-        if (appRoot is null)
-            return Path.Combine(assetsDir, "GameAssembly.dll");
-
-        if (IsEditorProcess())
-            return Path.Combine(appRoot, ".engine", "GameAssembly.dll");
-
-        return Path.Combine(appRoot, "GameAssembly.dll");
-    }
-    
     private void UpdateScriptTypes()
     {
         _scriptTypes.Clear();
 
-        if (_dynamicAssembly == null) return;
+        if (_dynamicAssembly == null)
+            return;
 
         foreach (var type in _dynamicAssembly.GetTypes())
         {
@@ -552,33 +295,6 @@ internal sealed class ScriptEngine : IScriptEngine
             {
                 _scriptTypes[type.Name] = type;
                 Logger.Debug("Registered script type: {TypeName}", type.Name);
-            }
-        }
-    }
-    
-    public void ForceRecompile(ScriptRuntimeStore store)
-    {
-        Logger.Information("Force recompiling scripts for debugging...");
-        CompileAllScripts();
-        
-        if (_sceneContext.ActiveScene == null) 
-            return;
-
-        var scriptEntities = _sceneContext.ActiveScene.Entities
-            .AsValueEnumerable()
-            .Where(e => e.HasComponent<NativeScriptComponent>());
-        foreach (var entity in scriptEntities)
-        {
-            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName) || !_scriptTypes.ContainsKey(scriptComponent.ScriptTypeName))
-                continue;
-            
-            var newInstance = CreateScriptInstance(scriptComponent.ScriptTypeName);
-            if (newInstance.IsSuccess)
-            {
-                store.Set(entity.Id, newInstance.Value);
-                newInstance.Value.SetEntity(entity);
-                newInstance.Value.OnCreate();
             }
         }
     }
@@ -597,46 +313,5 @@ internal sealed class ScriptEngine : IScriptEngine
 
         store.Set(entity.Id, result.Value);
         return result.Value;
-    }
-    
-    public string GenerateScriptTemplate(string scriptName)
-    {
-        return $$"""
-                 using Audio;
-                 using ECS;
-                 using Input;
-                 using Math;
-                 using SceneComponents;
-                 using SceneComponents.Camera;
-                 using Scripting;
-
-                 public class {{scriptName}} : ScriptableEntity
-                 {
-                    public {{scriptName}}(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback) : base(componentAccessor, audio, audioPlayback) {}
-                 
-                     public override void OnCreate()
-                     {
-                         Console.WriteLine("{{scriptName}} created!");
-                     }
-
-                     public override void OnUpdate(TimeSpan ts)
-                     {
-                         // Your update logic here
-                     }
-
-                     public override void OnDestroy()
-                     {
-                         Console.WriteLine("{{scriptName}} destroyed!");
-                     }
-                     
-                     public override void OnKeyPressed(KeyCodes key)
-                     {
-                         if (key == KeyCodes.Space)
-                         {
-                             Console.WriteLine("{{scriptName}} action triggered!");
-                         }
-                     }
-                 }
-                 """;
     }
 }

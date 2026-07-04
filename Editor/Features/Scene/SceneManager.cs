@@ -2,6 +2,7 @@ using System.Text.Json;
 using ECS;
 using ECS.Systems;
 using Editor.Features.Project;
+using Editor.Features.Scripting;
 using Engine.Core;
 using Engine.Scene;
 using Engine.Scene.Serializer;
@@ -19,6 +20,7 @@ public class SceneManager(
     IProjectManager projectManager,
     IGameAssemblyBuilder gameAssemblyBuilder,
     IScriptEngine scriptEngine,
+    GameScriptWorkspace scriptWorkspace,
     IComponentSerializerRegistry componentSerializerRegistry)
     : ISceneManager
 {
@@ -50,10 +52,10 @@ public class SceneManager(
 
         if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
         {
-            if (scriptEngine.GetLoadedGameAssembly() is null)
-                scriptEngine.TryCompileAllScripts();
+            if (scriptWorkspace.GetLoadedGameAssembly() is null)
+                scriptWorkspace.TryCompileAllScripts();
 
-            if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+            if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
                 componentSerializerRegistry.RegisterFromAssembly(assembly);
         }
 
@@ -115,8 +117,8 @@ public class SceneManager(
         sceneContext.SetState(SceneState.Edit);
         sceneContext.ActiveScene.OnRuntimeStop();
         scriptEngine.SetSuppressFileChangeRecompile(false);
-        if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
-            scriptEngine.SetScriptsDirectory(projectManager.ScriptsDir);
+        if (!string.IsNullOrEmpty(projectManager.ScriptsDir) && projectManager.CurrentProjectDirectory is { } projectDir)
+            scriptWorkspace.SetScriptsDirectory(projectManager.ScriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
 
         if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
             Open(EditorScenePath);

@@ -11,6 +11,7 @@ using Editor.Input;
 using Editor.Panels;
 using Editor.Publisher;
 using Editor.UI.Elements;
+using Editor.Features.Scripting;
 using Editor.Features.Shell;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
@@ -28,6 +29,7 @@ public static class EditorIoCContainer
         container.Register<IEditorSelection, EditorSelection>(Reuse.Singleton);
         
         container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
+        container.Register<GameScriptWorkspace>(Reuse.Singleton);
         container.Register<IGameProjectScriptBootstrapper, GameProjectScriptBootstrapper>(Reuse.Singleton);
         container.Register<IGamePublisher, GamePublisher>(Reuse.Singleton);
         container.Register<PublishSettingsUI>(Reuse.Singleton);

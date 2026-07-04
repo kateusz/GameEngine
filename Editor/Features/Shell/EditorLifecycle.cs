@@ -1,6 +1,7 @@
 using ECS;
 using Editor.Features.Project;
 using Editor.Features.Scene;
+using Editor.Features.Scripting;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
@@ -20,7 +21,7 @@ public class EditorLifecycle(
     DebugSettings debugSettings,
     ISceneContext sceneContext,
     ISceneManager sceneManager,
-    IScriptEngine scriptEngine,
+    GameScriptWorkspace scriptWorkspace,
     ShortcutManager shortcutManager,
     EditorShortcutRegistrar shortcutRegistrar,
     IEditorSelection selection,
@@ -49,15 +50,16 @@ public class EditorLifecycle(
 
             var scriptsDir = projectManager.ScriptsDir ??
                              Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-            scriptEngine.SetScriptsDirectory(scriptsDir);
+            if (projectManager.CurrentProjectDirectory is { } projectDir)
+                scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
 
 #if DEBUG
-            scriptEngine.EnableHybridDebugging(true);
+            scriptWorkspace.EnableHybridDebugging(true);
 
             var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
             Directory.CreateDirectory(symbolsPath);
-            scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "GameAssembly"), "GameAssembly");
-            scriptEngine.PrintDebugInfo();
+            scriptWorkspace.SaveDebugSymbols(Path.Combine(symbolsPath, "GameAssembly"), "GameAssembly");
+            scriptWorkspace.PrintDebugInfo();
 #endif
         };
         _playSceneHandler = sceneManager.Play;
