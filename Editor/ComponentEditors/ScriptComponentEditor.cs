@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
+using Editor.ComponentEditors.Core;
 using Editor.Features.Scripting;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -16,14 +17,14 @@ namespace Editor.ComponentEditors;
 public class ScriptComponentEditor(
     IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace,
-    ISceneContext sceneContext)
+    ISceneContext sceneContext) : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentEditor));
 
     private bool _showCreateScriptPopup;
     private bool _showScriptSelectorPopup;
     private string _newScriptName = string.Empty;
-    private Entity _selectedEntity;
+    private Entity? _selectedEntity;
 
     public void Draw()
     {
@@ -31,20 +32,49 @@ public class ScriptComponentEditor(
         RenderScriptSelectorPopup();
     }
 
-    public void DrawScriptComponent(Entity entity)
+    public void DrawComponent(Entity entity)
     {
         _selectedEntity = entity;
 
-        DrawComponent<NativeScriptComponent>("Script", entity, component =>
+        if (entity.TryGetComponent<NativeScriptComponent>(out _))
         {
-            if (!string.IsNullOrWhiteSpace(component.ScriptTypeName))
-                DrawAttachedScript(entity, component);
-            else
-                DrawNoScriptMessage();
+            ComponentEditorRegistry.DrawComponent<NativeScriptComponent>("Script", entity, () =>
+            {
+                var component = entity.GetComponent<NativeScriptComponent>();
+                if (!string.IsNullOrWhiteSpace(component.ScriptTypeName))
+                    DrawAttachedScript(entity, component);
+                else
+                    DrawNoScriptMessage();
 
-            ImGui.Separator();
-            DrawScriptActions();
-        });
+                ImGui.Separator();
+                DrawScriptActions();
+            });
+        }
+        else
+        {
+            DrawAddScriptPlaceholder(entity);
+        }
+    }
+
+    private static void DrawAddScriptPlaceholder(Entity entity)
+    {
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
+        ImGui.Separator();
+
+        var placeholderFlags = ImGuiTreeNodeFlags.Framed
+                               | ImGuiTreeNodeFlags.SpanAvailWidth
+                               | ImGuiTreeNodeFlags.AllowOverlap;
+
+        var open = ImGui.TreeNodeEx("AddScriptPlaceholder", placeholderFlags, "Add Script");
+        ImGui.PopStyleVar();
+
+        if (!open)
+            return;
+
+        ButtonDrawer.DrawFullWidthButton("Add Script Component", () =>
+            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent()));
+
+        ImGui.TreePop();
     }
 
     private void DrawAttachedScript(Entity entity, NativeScriptComponent component)
@@ -236,63 +266,5 @@ public class ScriptComponentEditor(
         }
 
         return itemClicked;
-    }
-
-    private static void DrawComponent<T>(string name, Entity entity, Action<T> uiFunction) where T : IComponent
-    {
-        // Similar to your existing DrawComponent method in SceneHierarchyPanel
-        var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
-                                                           | ImGuiTreeNodeFlags.SpanAvailWidth |
-                                                           ImGuiTreeNodeFlags.AllowOverlap |
-                                                           ImGuiTreeNodeFlags.FramePadding;
-
-        if (entity.TryGetComponent<T>(out var component))
-        {
-            var contentRegionAvailable = ImGui.GetContentRegionAvail();
-
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
-            var lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
-            ImGui.Separator();
-
-            var open = ImGui.TreeNodeEx(typeof(T).GetHashCode().ToString(), treeNodeFlags, name);
-            ImGui.PopStyleVar();
-
-            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-            ButtonDrawer.DrawButton("-", lineHeight, lineHeight, () => entity.RemoveComponent<T>());
-
-            if (open)
-            {
-                uiFunction(component);
-                ImGui.TreePop();
-            }
-        }
-        else
-        {
-            // If entity doesn't have this component, we'll create a placeholder for adding it
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
-            ImGui.Separator();
-
-            // Use different tree node flags for placeholder
-            var placeholderFlags = ImGuiTreeNodeFlags.Framed |
-                                   ImGuiTreeNodeFlags.SpanAvailWidth |
-                                   ImGuiTreeNodeFlags.AllowOverlap;
-
-            var open = ImGui.TreeNodeEx($"Add{name}Placeholder", placeholderFlags, $"Add {name}");
-            ImGui.PopStyleVar();
-
-            if (!open) 
-                return;
-            
-            // Add NativeScriptComponent button
-            ButtonDrawer.DrawFullWidthButton($"Add {name} Component", () =>
-            {
-                entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent());
-
-                // After adding, call UI function with newly created component
-                uiFunction(entity.GetComponent<T>());
-            });
-
-            ImGui.TreePop();
-        }
     }
 }

@@ -1,66 +1,31 @@
-using System.Numerics;
 using ECS;
-using Editor.UI.Constants;
+using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Editor.UI.FieldEditors;
 using Engine.Scene;
-using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
-public class GameComponentInspector
+public class GameComponentInspector : IComponentEditor
 {
-    public void Draw(Entity entity)
+    public void DrawComponent(Entity entity)
     {
-        var gameComponents = entity.GetAllComponents()
-            .Where(component => component is IGameComponent)
-            .OrderBy(component => component.GetType().Name)
-            .ToList();
-
-        foreach (var component in gameComponents)
+        foreach (var component in entity.GetAllComponents()
+                     .Where(c => c is IGameComponent)
+                     .OrderBy(c => c.GetType().Name))
         {
-            DrawComponent(entity, component);
+            var componentType = component.GetType();
+            var treeNodeId = $"{componentType.FullName}_{entity.Id}";
+            ComponentEditorRegistry.DrawComponent(componentType.Name, entity, componentType,
+                () => DrawComponentFields(component, treeNodeId));
         }
-    }
-
-    private static void DrawComponent(Entity entity, IComponent component)
-    {
-        var componentType = component.GetType();
-        var treeNodeFlags = ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.Framed
-                                                           | ImGuiTreeNodeFlags.SpanAvailWidth
-                                                           | ImGuiTreeNodeFlags.AllowOverlap
-                                                           | ImGuiTreeNodeFlags.FramePadding;
-
-        var contentRegionAvailable = ImGui.GetContentRegionAvail();
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
-        var lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.Y * 2.0f;
-        ImGui.Separator();
-
-        var treeNodeId = $"{componentType.FullName}_{entity.Id}";
-        var open = ImGui.TreeNodeEx(treeNodeId, treeNodeFlags, componentType.Name);
-        ImGui.PopStyleVar();
-
-        ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-        var removed = ButtonDrawer.DrawButton("-", lineHeight, lineHeight, () => entity.RemoveComponent(componentType));
-
-        if (!open)
-            return;
-
-        if (removed || !entity.TryGetComponent(componentType, out _))
-        {
-            ImGui.TreePop();
-            return;
-        }
-
-        DrawComponentFields(component, treeNodeId);
-        ImGui.TreePop();
     }
 
     private static void DrawComponentFields(IComponent component, string componentId)
     {
         var fields = ExposedMemberAccessor.GetExposedMembers(component).ToList();
-        if (!fields.Any())
+        if (fields.Count == 0)
         {
             TextDrawer.DrawErrorText("No public fields/properties found!");
             return;
@@ -87,7 +52,7 @@ public class GameComponentInspector
         if (editor != null)
             return editor.Draw(label, value, out newValue);
 
-        ImGui.TextDisabled($"Unsupported type: {type.Name}");
+        ImGuiNET.ImGui.TextDisabled($"Unsupported type: {type.Name}");
         return false;
     }
 }

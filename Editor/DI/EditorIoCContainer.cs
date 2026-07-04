@@ -40,20 +40,21 @@ public static class EditorIoCContainer
         container.Register<AudioDropTarget>(Reuse.Singleton);
         container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
     
-        container.Register<TransformComponentEditor>(Reuse.Singleton);
-        container.Register<CameraComponentEditor>(Reuse.Singleton);
-        container.Register<SpriteRendererComponentEditor>(Reuse.Singleton);
-        container.Register<ModelRendererComponentEditor>(Reuse.Singleton);
-        container.Register<RigidBody2DComponentEditor>(Reuse.Singleton);
-        container.Register<BoxCollider2DComponentEditor>(Reuse.Singleton);
-        container.Register<SubTextureRendererComponentEditor>(Reuse.Singleton);
-        container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
-        container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
-        
+        // Component editors — registration order = properties panel draw order
+        container.RegisterMany<TransformComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<CameraComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<SpriteRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<RigidBody2DComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<BoxCollider2DComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<SubTextureRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<AudioSourceComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<AudioListenerComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<GameComponentInspector>(Reuse.Singleton);
+        container.RegisterMany<ScriptComponentEditor>(Reuse.Singleton);
+        container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
         container.Register<RecentProjectsPanel>(Reuse.Singleton);
     
-        container.Register<ComponentEditorCollection>(Reuse.Singleton);
-        container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
         container.Register<IPropertiesPanel, PropertiesPanel>(Reuse.Singleton);
         container.Register<IEntityContextMenu, EntityContextMenu>(Reuse.Singleton);
         container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
@@ -75,10 +76,8 @@ public static class EditorIoCContainer
         container.Register<SceneToolbar>(Reuse.Singleton);
         container.Register<RendererStatsPanel>(Reuse.Singleton);
         container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
-        container.Register<ScriptComponentEditor>(Reuse.Singleton);
         container.Register<GameComponentEditor>(Reuse.Singleton);
         container.Register<IGameComponentFactory, GameComponentFactory>(Reuse.Singleton);
-        container.Register<GameComponentInspector>(Reuse.Singleton);
     
         // Viewport infrastructure
         container.Register<IViewportScaleHelper, ViewportScaleHelper>(Reuse.Singleton);
