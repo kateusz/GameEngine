@@ -16,7 +16,6 @@ public class SceneManager(
     SceneFactory sceneFactory,
     IGameAssemblySystemsBridge gameAssemblySystemsBridge,
     IProjectManager projectManager,
-    ISystemManager systemManager,
     IGameAssemblyBuilder gameAssemblyBuilder,
     IScriptEngine scriptEngine)
     : ISceneManager
@@ -173,7 +172,7 @@ public class SceneManager(
         {
             try
             {
-                systemManager.RegisterSystem(gameSystem);
+                sceneContext.ActiveScene!.RegisterRuntimeSystem(gameSystem);
             }
             catch (InvalidOperationException)
             {

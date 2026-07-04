@@ -273,6 +273,32 @@ public class SystemManagerTests
     }
 
     [Fact]
+    public void Dispose_DoesNotDisposeSharedSystems()
+    {
+        var manager = new SystemManager();
+        var shared = new DisposableTestSystem { Priority = 1 };
+        var perScene = new DisposableTestSystem { Priority = 2 };
+        manager.RegisterSystem(shared, isShared: true);
+        manager.RegisterSystem(perScene);
+
+        manager.Dispose();
+
+        Assert.False(shared.DisposeCalled);
+        Assert.True(perScene.DisposeCalled);
+    }
+
+    private sealed class DisposableTestSystem : ISystem, IDisposable
+    {
+        public int Priority { get; set; }
+        public bool DisposeCalled { get; private set; }
+
+        public void OnInit() { }
+        public void OnUpdate(TimeSpan deltaTime) { }
+        public void OnShutdown() { }
+        public void Dispose() => DisposeCalled = true;
+    }
+
+    [Fact]
     public void IsInitialized_ReturnsFalseBeforeInitialize()
     {
         // Arrange

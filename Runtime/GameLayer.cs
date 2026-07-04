@@ -19,7 +19,6 @@ public class GameLayer(
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
     GameConfiguration gameConfig,
-    ISystemManager systemManager,
     IEnumerable<IGameSystem> gameSystems)
     : ILayer
 {
@@ -30,11 +29,6 @@ public class GameLayer(
 
     public void OnAttach(IInputSystem inputSystem)
     {
-        foreach (var gameSystem in gameSystems)
-        {
-            systemManager.RegisterSystem(gameSystem);
-        }
-        
         sceneContext.SceneChanged += _sceneChangedHandler;
 
         Logger.Information("Game layer attached.");
@@ -59,6 +53,7 @@ public class GameLayer(
 
             // Create empty scene as fallback
             var emptyScene = sceneFactory.Create("", "");
+            RegisterGameSystems(emptyScene);
             sceneContext.SetScene(emptyScene);
         }
         else
@@ -70,6 +65,7 @@ public class GameLayer(
                 // Create and load scene
                 var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
                 sceneSerializer.Deserialize(scene, startupScenePath);
+                RegisterGameSystems(scene);
                 sceneContext.SetScene(scene);
 
                 // Start runtime (activate systems, physics, etc.)
@@ -82,9 +78,16 @@ public class GameLayer(
 
                 // Create empty scene as fallback
                 var emptyScene = sceneFactory.Create("", "");
+                RegisterGameSystems(emptyScene);
                 sceneContext.SetScene(emptyScene);
             }
         }
+    }
+
+    private void RegisterGameSystems(IScene scene)
+    {
+        foreach (var gameSystem in gameSystems)
+            scene.RegisterRuntimeSystem(gameSystem);
     }
 
     public void OnDetach()

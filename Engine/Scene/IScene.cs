@@ -1,4 +1,5 @@
 using ECS;
+using ECS.Systems;
 using Engine.Renderer.Cameras;
 
 namespace Engine.Scene;
@@ -40,6 +41,11 @@ public interface IScene : IDisposable
     /// Initializes systems and physics bodies.
     /// </summary>
     void OnRuntimeStart();
+
+    /// <summary>
+    /// Registers an additional runtime system (e.g. game script systems) before <see cref="OnRuntimeStart"/>.
+    /// </summary>
+    void RegisterRuntimeSystem(ISystem system);
 
     /// <summary>
     /// Called when exiting runtime/play mode.

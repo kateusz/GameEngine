@@ -1,5 +1,4 @@
 using System.Numerics;
-using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using ECS.Systems;
 using Engine.Core;
@@ -29,7 +28,6 @@ internal sealed class Scene : IScene
         new(0.0f, 1.0f)
     ];
 
-    private readonly (ISystemManager SystemManager, World PhysicsWorld) _init;
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly List<Entity> _entities = [];
@@ -41,18 +39,15 @@ internal sealed class Scene : IScene
     private readonly IContext _context;
     private readonly DebugSettings _debugSettings;
     private readonly ISystemManager _systemManager;
-    private readonly PhysicsRuntimeBodyStore _bodyStore;
 
     public Scene(string path,
         string sceneName,
-        ISceneSystemRegistry systemRegistry,
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IContext context,
         DebugSettings debugSettings,
-        ISystemManager systemManager,
-        PhysicsRuntimeBodyStore bodyStore)
+        ISystemManager systemManager)
     {
         _path = path;
         _sceneName = sceneName;
@@ -62,26 +57,9 @@ internal sealed class Scene : IScene
         _context = context;
         _debugSettings = debugSettings;
         _systemManager = systemManager;
-        _bodyStore = bodyStore;
-        _init = Initialize(systemRegistry, context);
     }
-    
-    private (ISystemManager, World) Initialize(ISceneSystemRegistry systemRegistry, IContext context)
-    {
-        // Populate system manager from registry (singleton systems shared across scenes)
-        systemRegistry.PopulateSystemManager(_systemManager);
 
-        var physicsWorld = new World(new Vector2(0, -9.8f));
-        var contactListener = new SceneContactListener();
-        physicsWorld.SetContactListener(contactListener);
-
-        // Create and register physics simulation system with the physics world
-        // NOTE: This system is per-scene because each scene has its own physics world
-        var physicsSimulationSystem = new PhysicsSimulationSystem(physicsWorld, context, _bodyStore);
-        _systemManager.RegisterSystem(physicsSimulationSystem);
-
-        return (_systemManager, physicsWorld);
-    }
+    public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 
     public string Name => _sceneName;
     public IEnumerable<Entity> Entities => _entities;
@@ -120,12 +98,12 @@ internal sealed class Scene : IScene
 
     public void OnRuntimeStart()
     {
-        _init.SystemManager.Initialize();
+        _systemManager.Initialize();
     }
 
     public void OnRuntimeStop()
     {
-        _init.SystemManager.Shutdown();
+        _systemManager.Shutdown();
     }
 
     public void OnUpdateRuntime(TimeSpan ts)
@@ -137,7 +115,7 @@ internal sealed class Scene : IScene
         // 205: SubTextureRenderingSystem
         // 210: ModelRenderingSystem
         // 500: PhysicsDebugRenderSystem
-        _init.SystemManager.Update(ts);
+        _systemManager.Update(ts);
     }
 
 
@@ -413,7 +391,7 @@ internal sealed class Scene : IScene
 
         // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
         // Singleton systems (rendering, scripts) are shared and won't be disposed
-        _init.SystemManager?.Dispose();
+        _systemManager.Dispose();
 
         // Clear entity storage
         _context.Clear();

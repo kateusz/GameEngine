@@ -89,7 +89,8 @@ public static class EngineIoCContainer
         container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
 
         // Register ECS systems (all now use dependency injection)
-        container.Register<ISystemManager, SystemManager>(Reuse.Singleton);
+        container.Register<SystemManagerFactory>(Reuse.Singleton);
+        container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
         container.Register<SpriteRenderingSystem>(Reuse.Singleton);
         container.Register<LightingSystem>(Reuse.Singleton);
         container.Register<ModelRenderingSystem>(Reuse.Singleton);
@@ -99,6 +100,8 @@ public static class EngineIoCContainer
         container.Register<AudioSystem>(Reuse.Singleton);
         
         container.Register<PhysicsRuntimeBodyStore>(Reuse.Singleton);
+        container.Register<PhysicsSimulationSystemFactory>(Reuse.Singleton);
+        container.RegisterMapping<IPhysicsSimulationSystemFactory, PhysicsSimulationSystemFactory>();
         
         container.Register<PrimaryCameraSystem>(Reuse.Singleton);
         container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
