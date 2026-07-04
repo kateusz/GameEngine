@@ -2,6 +2,7 @@ using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Core;
 using ImGuiNET;
 
 namespace Editor.Publisher;
@@ -236,9 +237,7 @@ public class PublishSettingsUI(
             StartupScenePath = Path.GetRelativePath(projectManager.CurrentProjectDirectory, currentScene)
                 .Replace('\\', '/'),
             WindowWidth = 1920,
-            WindowHeight = 1080,
-            Fullscreen = false,
-            TargetFrameRate = 60
+            WindowHeight = 1080
         };
 
         // Start publishing in background

@@ -38,34 +38,25 @@ public class GameLayer(
 
         if (!File.Exists(startupScenePath))
         {
-            Logger.Error("Startup scene not found: {Path} (current directory: {Dir})", startupScenePath, AppContext.BaseDirectory);
-            Logger.Warning("Creating empty scene as fallback...");
-
-            var emptyScene = sceneFactory.Create("", "");
-            sceneContext.SetScene(emptyScene);
-            RuntimeSceneStarter.Start(emptyScene, sceneContext, resolveGameSystems());
+            throw new InvalidOperationException(
+                $"Startup scene not found: {startupScenePath} (base directory: {AppContext.BaseDirectory})");
         }
-        else
+
+        Logger.Information("Loading startup scene from: {Path}", startupScenePath);
+
+        var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
+        try
         {
-            try
-            {
-                Logger.Information("Loading startup scene from: {Path}", startupScenePath);
-
-                var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
-                sceneSerializer.Deserialize(scene, startupScenePath);
-                sceneContext.SetScene(scene);
-                RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
-                Logger.Information("Startup scene loaded successfully");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Failed to load startup scene: {Path}", startupScenePath);
-
-                var emptyScene = sceneFactory.Create("", "");
-                sceneContext.SetScene(emptyScene);
-                RuntimeSceneStarter.Start(emptyScene, sceneContext, resolveGameSystems());
-            }
+            sceneSerializer.Deserialize(scene, startupScenePath);
         }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to load startup scene: {startupScenePath}", ex);
+        }
+
+        sceneContext.SetScene(scene);
+        RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
+        Logger.Information("Startup scene loaded successfully");
     }
 
     public void OnDetach()

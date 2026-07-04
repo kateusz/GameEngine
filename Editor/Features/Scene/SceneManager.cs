@@ -2,7 +2,7 @@ using System.Text.Json;
 using ECS;
 using ECS.Systems;
 using Editor.Features.Project;
-using Editor.Publisher;
+using Engine.Core;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;

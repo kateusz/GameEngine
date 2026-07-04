@@ -26,11 +26,6 @@ public class PublishSettings
     public bool SingleFile { get; set; } = true;
     
     /// <summary>
-    /// Whether to create a distributable package (e.g., zip archive).
-    /// </summary>
-    public bool CreatePackage { get; set; } = false;
-    
-    /// <summary>
     /// Build configuration (Release or Debug).
     /// </summary>
     public string Configuration { get; set; } = "Release";

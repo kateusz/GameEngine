@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Editor.Features.Project;
+using Engine.Core;
 using Engine.Scripting;
 using Serilog;
 
@@ -29,9 +30,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             GameAssemblyPath = "GameAssembly.dll",
             StartupScenePath = "assets/scenes/Scene.scene",
             WindowWidth = 1920,
-            WindowHeight = 1080,
-            Fullscreen = false,
-            TargetFrameRate = 60
+            WindowHeight = 1080
         };
 
         var result = PublishAsync(settings, gameConfig).GetAwaiter().GetResult();
@@ -53,9 +52,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             StartupScenePath = "assets/scenes/Scene.scene",
             WindowWidth = 1920,
             WindowHeight = 1080,
-            Fullscreen = false,
-            GameTitle = "My Game",
-            TargetFrameRate = 60
+            GameTitle = "My Game"
         };
 
         return PublishAsync(settings, defaultGameConfig, progress, cancellationToken);
@@ -82,6 +79,12 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             if (!settingsValidation.Success)
             {
                 return settingsValidation;
+            }
+
+            var startupSceneValidation = ValidateStartupScene(gameConfig);
+            if (!startupSceneValidation.Success)
+            {
+                return startupSceneValidation;
             }
 
             progress?.Report("Preparing build directory...");
@@ -115,25 +118,28 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             }
 
             ReportProgress(progress, "Copying assets...", 0.5f);
-            var copyAssetsResult = CopyAssets(tempOutputPath);
+            var copyAssetsResult = CopyAssets(tempOutputPath, settings);
             if (!copyAssetsResult.Success)
             {
                 CleanupTempDirectory(tempOutputPath);
                 return copyAssetsResult;
             }
 
-            ReportProgress(progress, "Copying scripts...", 0.7f);
-            var copyScriptsResult = CopyScripts(tempOutputPath);
-            if (!copyScriptsResult.Success)
+            if (string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase))
             {
-                CleanupTempDirectory(tempOutputPath);
-                return copyScriptsResult;
+                ReportProgress(progress, "Copying scripts...", 0.7f);
+                var copyScriptsResult = CopyScripts(tempOutputPath);
+                if (!copyScriptsResult.Success)
+                {
+                    CleanupTempDirectory(tempOutputPath);
+                    return copyScriptsResult;
+                }
             }
 
             ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
-            var publishScriptsDir = Path.Combine(tempOutputPath, "assets", "scripts");
+            var scriptsSource = projectManager.ScriptsDir!;
             var gameDllPath = Path.Combine(tempOutputPath, "GameAssembly.dll");
-            if (!gameAssemblyBuilder.TryBuild(publishScriptsDir, gameDllPath, emitPdb: false, out var scriptBuildErrors))
+            if (!gameAssemblyBuilder.TryBuild(scriptsSource, gameDllPath, emitPdb: false, out var scriptBuildErrors))
             {
                 foreach (var line in scriptBuildErrors)
                 {
@@ -152,9 +158,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
                 StartupScenePath = gameConfig.StartupScenePath,
                 WindowWidth = gameConfig.WindowWidth,
                 WindowHeight = gameConfig.WindowHeight,
-                Fullscreen = gameConfig.Fullscreen,
-                GameTitle = gameConfig.GameTitle,
-                TargetFrameRate = gameConfig.TargetFrameRate
+                GameTitle = gameConfig.GameTitle
             };
             var configResult = CreateGameConfig(tempOutputPath, mergedConfig);
             if (!configResult.Success)
@@ -277,6 +281,17 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             return PublishResult.Failed("Build configuration cannot be empty.");
 
         return new PublishResult { Success = true };
+    }
+
+    private PublishResult ValidateStartupScene(GameConfiguration gameConfig)
+    {
+        var startupScenePath = Path.Combine(projectManager.CurrentProjectDirectory!, gameConfig.StartupScenePath);
+        if (File.Exists(startupScenePath))
+            return new PublishResult { Success = true };
+
+        var error = $"Startup scene not found: {startupScenePath}";
+        Logger.Error(error);
+        return PublishResult.Failed(error);
     }
 
     private string GetDefaultOutputPath()
@@ -447,7 +462,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
         return null;
     }
 
-    private PublishResult CopyAssets(string buildOutput)
+    private PublishResult CopyAssets(string buildOutput, PublishSettings settings)
     {
         if (projectManager.CurrentProjectDirectory is null)
         {
@@ -463,10 +478,11 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
         }
 
         var assetsTarget = Path.Combine(buildOutput, "assets");
+        var includeScripts = string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase);
 
         try
         {
-            CopyDirectory(assetsSource, assetsTarget);
+            CopyDirectory(assetsSource, assetsTarget, includeScripts);
             Logger.Information("Copied assets from {Source} to {Target}", assetsSource, assetsTarget);
             return new PublishResult { Success = true };
         }
@@ -570,20 +586,24 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
         if (!File.Exists(startupScenePath))
         {
             var error = $"Startup scene not found: {startupScenePath}";
-            Logger.Warning(error);
+            Logger.Error(error);
+            return PublishResult.Failed(error);
         }
 
         Logger.Information("Published build validation passed");
         return PublishResult.Succeeded("Validation passed");
     }
 
-    private static void CopyDirectory(string sourceDir, string targetDir)
+    private static void CopyDirectory(string sourceDir, string targetDir, bool includeScripts = true)
     {
         Directory.CreateDirectory(targetDir);
 
         foreach (var file in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceDir, file);
+            if (!includeScripts && IsUnderScriptsFolder(relativePath))
+                continue;
+
             var destPath = Path.Combine(targetDir, relativePath);
             var destDirectory = Path.GetDirectoryName(destPath);
 
@@ -594,5 +614,12 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
 
             File.Copy(file, destPath, overwrite: true);
         }
+    }
+
+    private static bool IsUnderScriptsFolder(string relativePath)
+    {
+        var normalized = relativePath.Replace('\\', '/');
+        return normalized.StartsWith("scripts/", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "scripts", StringComparison.OrdinalIgnoreCase);
     }
 }
