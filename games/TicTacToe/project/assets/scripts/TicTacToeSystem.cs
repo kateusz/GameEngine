@@ -129,7 +129,7 @@ public class TicTacToeSystem(IContext context) : IGameSystem
             return;
 
         sprite.TexturePath = texturePath;
-        sprite.Color = texturePath == null ? Vector4.Zero : Vector4.One;
+        sprite.Color = Vector4.One;
     }
 
     private static bool CheckWin(BoardComponent board, int player)
