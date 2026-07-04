@@ -159,20 +159,23 @@ public class RecentProjectsPanel(
     {
         _pendingOpenPath = null;
 
-        try
+        Task.Run(() =>
         {
-            if (projectManager.TryOpenProject(path, out var error))
+            try
             {
-                Logger.Information("Opened project from recent list: {Path}", path);
-                _isOpen = false;
+                if (projectManager.TryOpenProject(path, out var error))
+                {
+                    Logger.Information("Opened project from recent list: {Path}", path);
+                    _isOpen = false;
+                }
+                else
+                    Logger.Error("Failed to open project {Path}: {Error}", path, error);
             }
-            else
-                Logger.Error("Failed to open project {Path}: {Error}", path, error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+            finally
+            {
+                _isLoading = false;
+            }
+        });
     }
 
     private void DrawQuickActions()
