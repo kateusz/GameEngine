@@ -99,7 +99,7 @@ GameEngine/
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
 | [Rendering Pipeline](rendering-pipeline.md) | IRendererAPI, 2D batching, shaders, textures, cameras, framebuffers |
-| [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, hot-reload, ScriptableEntity, script–entity interaction |
+| [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, ScriptableEntity, editor vs runtime |
 | [Physics System](physics-system.md) | Box2D integration, fixed timestep, collision callbacks, body types |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |
 | [Animation System](animation-system.md) | Animation assets, clips, frame progression |

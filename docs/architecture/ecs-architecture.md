@@ -211,7 +211,7 @@ sequenceDiagram
 | Priority | System | Responsibility |
 |----------|--------|---------------|
 | 100 | PhysicsSimulationSystem | Fixed-timestep Box2D stepping, syncs physics bodies → TransformComponent |
-| 110 | ScriptUpdateSystem | `View<NativeScriptComponent>()`, hot-reload, script OnCreate/OnUpdate |
+| 110 | ScriptUpdateSystem | `View<NativeScriptComponent>()`, script OnCreate/OnUpdate via `NativeScriptIteration` |
 | 120 | AudioSystem | Audio listener position, source playback |
 | 130 | *(TileMapRenderSystem)* | *(Reserved, not yet implemented)* |
 | 140 | AnimationSystem | Advances animation frames, updates SubTexture UV coords |

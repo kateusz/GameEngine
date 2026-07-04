@@ -8,7 +8,7 @@ See [Scripting Tiers](scripting-tiers.md) for when to use scripts vs game compon
 
 A script is a C# class that extends `ScriptableEntity`. Scripts are **per-entity glue**: input on one object, wiring between components, small local behavior. Put shared state in `IGameComponent` types and batch logic in `IGameSystem` classes.
 
-Scripts compile into your project's `GameAssembly` and support hot reload in the editor.
+Scripts compile into a versioned `GameAssembly_{guid}.dll` under your project's `.engine/` folder. Saving or creating a script in the editor triggers a recompile and reload — see [Scripting Lifecycle](../../architecture/scripting-lifecycle.md) for the full pipeline.
 
 ## Creating a Script
 

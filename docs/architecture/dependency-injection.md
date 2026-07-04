@@ -128,8 +128,8 @@ graph TD
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `EventBus` | `EventBus` | Singleton | Global pub-sub messaging |
-| `IScriptEngine` | `ScriptEngine` | Singleton | Runtime: load assembly, create instances, hot-reload, event dispatch |
-| `GameScriptWorkspace` | `GameScriptWorkspace` | Singleton (Editor) | Editor: compile, file CRUD, templates, debug symbols |
+| `IScriptEngine` | `ScriptEngine` | Singleton | Load/unload game assembly ALC, type index, script instance factory, event dispatch |
+| `GameScriptWorkspace` | `GameScriptWorkspace` | Singleton (Editor) | Editor: compile orchestration, script file CRUD, apply/revoke DI and serializers |
 | `DebugSettings` | `DebugSettings` | Singleton | Runtime debug toggles |
 | `IAssetsManager` | `AssetsManager` | Singleton | Asset path tracking |
 | `IInputSystemFactory` | `InputSystemFactory` | Singleton | Creates input systems |
