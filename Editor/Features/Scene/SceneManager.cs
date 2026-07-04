@@ -62,12 +62,14 @@ public class SceneManager(
 
     public void Save()
     {
-        var sceneDir = PathBuilder.Build("scenes");
-        if (!Directory.Exists(sceneDir))
+        if (string.IsNullOrEmpty(EditorScenePath))
+        {
+            var sceneDir = PathBuilder.Build("scenes");
             Directory.CreateDirectory(sceneDir);
+            EditorScenePath = Path.Combine(sceneDir, $"{sceneContext.ActiveScene!.Name}.scene");
+        }
 
-        EditorScenePath = Path.Combine(sceneDir, $"{sceneContext.ActiveScene.Name}.scene");
-        sceneSerializer.Serialize(sceneContext.ActiveScene, EditorScenePath);
+        sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
         Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }
 
@@ -100,7 +102,7 @@ public class SceneManager(
         RegisterGameSystems();
 
         if (!string.IsNullOrEmpty(EditorScenePath))
-            Save();
+            sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
 
         sceneContext.SetState(SceneState.Play);
         sceneContext.ActiveScene.OnRuntimeStart();

@@ -27,6 +27,36 @@ public class Box2DPhysicsWorld2DTests
     }
 
     [Fact]
+    public void CreateBody_AppliesFixedRotation()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+
+        var fixedBody = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero,
+            0f,
+            PhysicsBodyMotionType.Dynamic,
+            FixedRotation: true,
+            GravityScale: 0f));
+        fixedBody.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.5f, 0f, false));
+        ((Box2DPhysicsBody2D)fixedBody).NativeBody.ApplyAngularImpulse(10f);
+
+        var freeBody = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero,
+            0f,
+            PhysicsBodyMotionType.Dynamic,
+            FixedRotation: false,
+            GravityScale: 0f));
+        freeBody.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.5f, 0f, false));
+        ((Box2DPhysicsBody2D)freeBody).NativeBody.ApplyAngularImpulse(10f);
+
+        for (var i = 0; i < 10; i++)
+            world.Step(1f / 60f, 6, 2);
+
+        fixedBody.Angle.ShouldBe(0f);
+        freeBody.Angle.ShouldNotBe(0f);
+    }
+
+    [Fact]
     public void PhysicsWorld2DFactory_Box2DBackend_CreatesWorld()
     {
         IPhysicsWorld2DFactory factory = new PhysicsWorld2DFactory(new PhysicsBackendConfig(PhysicsBackendType.Box2D));

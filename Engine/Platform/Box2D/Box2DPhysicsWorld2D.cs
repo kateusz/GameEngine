@@ -33,6 +33,7 @@ internal sealed class Box2DPhysicsWorld2D : IPhysicsWorld2D
         };
 
         var body = _world.CreateBody(bodyDef);
+        body.SetFixedRotation(def.FixedRotation);
         var wrapper = new Box2DPhysicsBody2D(body);
         body.SetUserData(wrapper);
         return wrapper;
