@@ -1,6 +1,7 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer.Cameras;
+using Scripting;
 
 namespace Engine.Scene;
 
@@ -14,6 +15,8 @@ public interface IScene : IDisposable
     /// Scene-owned entity registry. Isolated from other scenes.
     /// </summary>
     IContext Context { get; }
+
+    IPhysicsContacts PhysicsContacts { get; }
 
     public string Name { get; }
     

@@ -19,8 +19,9 @@ public class SystemManagerFactoryTests
 
         var build = builder.Create(context);
 
-        _mockSystemsFactory.Received(1).PopulateSystemManager(build.SystemManager, context, build.BodyStore);
+        _mockSystemsFactory.Received(1).PopulateSystemManager(build.SystemManager, context, build.BodyStore, build.ContactQueue);
         build.BodyStore.ShouldNotBeNull();
+        build.ContactQueue.ShouldNotBeNull();
     }
 
     [Fact]

@@ -1,12 +1,14 @@
 using ECS;
 using Engine.Physics;
+using Engine.Scene.Systems;
 using Engine.Scripting;
 using SceneComponents;
+using Scripting;
 using Serilog;
 
 namespace Engine.Scene;
 
-internal sealed class SceneContactListener : IPhysicsContactListener
+internal sealed class SceneContactListener(PhysicsContactQueue contactQueue) : IPhysicsContactListener
 {
     private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
 
@@ -22,14 +24,14 @@ internal sealed class SceneContactListener : IPhysicsContactListener
             if (isTrigger)
             {
                 Logger.Debug("Trigger began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                NotifyEntityTrigger(entityA, entityB, true);
-                NotifyEntityTrigger(entityB, entityA, true);
+                EnqueueAndNotifyTrigger(entityA, entityB, isBegin: true);
+                EnqueueAndNotifyTrigger(entityB, entityA, isBegin: true);
             }
             else
             {
                 Logger.Debug("Collision began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                NotifyEntityCollision(entityA, entityB, true);
-                NotifyEntityCollision(entityB, entityA, true);
+                EnqueueAndNotifyCollision(entityA, entityB, isBegin: true);
+                EnqueueAndNotifyCollision(entityB, entityA, isBegin: true);
             }
         }
         catch (Exception ex)
@@ -50,20 +52,32 @@ internal sealed class SceneContactListener : IPhysicsContactListener
             if (isTrigger)
             {
                 Logger.Debug("Trigger ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                NotifyEntityTrigger(entityA, entityB, false);
-                NotifyEntityTrigger(entityB, entityA, false);
+                EnqueueAndNotifyTrigger(entityA, entityB, isBegin: false);
+                EnqueueAndNotifyTrigger(entityB, entityA, isBegin: false);
             }
             else
             {
                 Logger.Debug("Collision ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                NotifyEntityCollision(entityA, entityB, false);
-                NotifyEntityCollision(entityB, entityA, false);
+                EnqueueAndNotifyCollision(entityA, entityB, isBegin: false);
+                EnqueueAndNotifyCollision(entityB, entityA, isBegin: false);
             }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error in OnContactEnd");
         }
+    }
+
+    private void EnqueueAndNotifyTrigger(Entity entity, Entity otherEntity, bool isBegin)
+    {
+        contactQueue.Enqueue(new PhysicsContact(entity, otherEntity, IsTrigger: true, isBegin));
+        NotifyEntityTrigger(entity, otherEntity, isBegin);
+    }
+
+    private void EnqueueAndNotifyCollision(Entity entity, Entity otherEntity, bool isBegin)
+    {
+        contactQueue.Enqueue(new PhysicsContact(entity, otherEntity, IsTrigger: false, isBegin));
+        NotifyEntityCollision(entity, otherEntity, isBegin);
     }
 
     private static void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)

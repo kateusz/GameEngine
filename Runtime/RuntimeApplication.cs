@@ -2,17 +2,20 @@ using Audio;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.Renderer;
+using Input;
 
 namespace Runtime;
 
 /// <summary>
 /// The main application class for the standalone game runtime.
 /// </summary>
-public class RuntimeApplication : Application
+public class RuntimeApplication(
+    IGameWindow gameWindow,
+    IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
+    IAudio audio,
+    IMeshFactory meshFactory,
+    IKeyboardInput keyboardInput)
+    : Application(gameWindow, graphics2D, graphics3D, audio, meshFactory, keyboardInput: keyboardInput)
 {
-    public RuntimeApplication(IGameWindow gameWindow, IGraphics2D graphics2D, IGraphics3D graphics3D,
-        IAudio audio, IMeshFactory meshFactory)
-        : base(gameWindow, graphics2D, graphics3D, audio, meshFactory)
-    {
-    }
 }

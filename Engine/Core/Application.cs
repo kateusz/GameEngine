@@ -1,9 +1,9 @@
 using Audio;
-using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
+using Input;
 using Serilog;
 
 namespace Engine.Core;
@@ -18,6 +18,7 @@ public abstract class Application : IApplication
     private readonly IFrameCompositor? _frameCompositor;
     private readonly IAudio _audio;
     private readonly IMeshFactory _meshFactory;
+    private readonly IKeyboardInput? _keyboardInput;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
 
@@ -30,7 +31,8 @@ public abstract class Application : IApplication
         IAudio audio,
         IMeshFactory meshFactory,
         IFrameCompositor? frameCompositor = null,
-        ILayer? inputOverlay = null)
+        ILayer? inputOverlay = null,
+        IKeyboardInput? keyboardInput = null)
     {
         _gameWindow = gameWindow;
         _graphics2D = graphics2D;
@@ -38,6 +40,7 @@ public abstract class Application : IApplication
         _audio = audio;
         _meshFactory = meshFactory;
         _frameCompositor = frameCompositor;
+        _keyboardInput = keyboardInput;
 
         _gameWindow.OnWindowEvent += HandleWindowEvent;
         _gameWindow.OnInputEvent += HandleInputEvent;
@@ -135,6 +138,8 @@ public abstract class Application : IApplication
             _layersStack[index].Draw();
 
         _frameCompositor?.EndFrame();
+
+        _keyboardInput?.EndFrame();
     }
 
     private void HandleWindowEvent(WindowEvent @event)

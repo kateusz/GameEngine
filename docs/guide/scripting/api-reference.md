@@ -1,6 +1,6 @@
 # ScriptableEntity API Reference
 
-Complete reference for all methods available in your game scripts.
+Reference for per-entity **glue** scripts (`ScriptableEntity`). For batch game logic, input in systems, and shared state, see [Scripting Tiers](scripting-tiers.md) (`IGameComponent`, `IGameSystem`, `IKeyboardInput`, `IPhysicsContacts`).
 
 All scripts extend `ScriptableEntity`. The methods below are available to every script.
 

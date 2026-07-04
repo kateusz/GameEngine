@@ -6,6 +6,7 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using SceneComponents.Camera;
+using Scripting;
 using Serilog;
 
 namespace Engine.Scene;
@@ -25,6 +26,7 @@ internal sealed class Scene : IScene
     private readonly DebugSettings _debugSettings;
     private readonly ISystemManager _systemManager;
     private readonly PhysicsRuntimeBodyStore _physicsRuntimeBodyStore;
+    private readonly PhysicsContactQueue _physicsContactQueue;
 
     public Scene(string path,
         string sceneName,
@@ -34,7 +36,8 @@ internal sealed class Scene : IScene
         IContext context,
         DebugSettings debugSettings,
         ISystemManager systemManager,
-        PhysicsRuntimeBodyStore physicsRuntimeBodyStore)
+        PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
+        PhysicsContactQueue physicsContactQueue)
     {
         _path = path;
         _sceneName = sceneName;
@@ -45,7 +48,10 @@ internal sealed class Scene : IScene
         _debugSettings = debugSettings;
         _systemManager = systemManager;
         _physicsRuntimeBodyStore = physicsRuntimeBodyStore;
+        _physicsContactQueue = physicsContactQueue;
     }
+
+    public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 

@@ -40,6 +40,7 @@ public class GameComponentEditor(IGameComponentFactory gameComponentFactory)
             return;
 
         ImGui.Text("Attach an existing component or create a new one?");
+        ImGui.TextDisabled("Serializable state — use Game Systems for rules and input.");
         ImGui.Separator();
 
         if (ButtonDrawer.DrawModalButton("Attach Existing"))

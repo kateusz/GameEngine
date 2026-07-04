@@ -1,5 +1,6 @@
 using System.Numerics;
 using Editor.Features.Viewport;
+using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Scene;
 using Engine.Scripting;
@@ -11,6 +12,7 @@ namespace Editor.Input;
 public class EditorInputHandler(
     ISceneContext sceneContext,
     IScriptEngine scriptEngine,
+    IKeyboardInput keyboardInput,
     ShortcutManager shortcutManager,
     IEditorViewport editorViewport)
 {
@@ -57,6 +59,9 @@ public class EditorInputHandler(
         }
         else if (sceneContext.State == SceneState.Play)
         {
+            if (keyboardInput is KeyboardInputState state)
+                state.Apply(windowEvent);
+
             scriptEngine.ProcessEvent(windowEvent);
         }
     }

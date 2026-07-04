@@ -1,13 +1,15 @@
 ﻿using System.Numerics;
+using Audio;
 using ECS;
 using ECS.Systems;
+using Input;
 using SceneComponents.Rendering;
 using Scripting;
 
 namespace TicTacToe;
 
 [Register(typeof(IGameSystem))]
-public class TicTacToeSystem(IContext context) : IGameSystem
+public class TicTacToeSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
 {
     private static readonly int[][] WinLines =
     [
@@ -26,16 +28,20 @@ public class TicTacToeSystem(IContext context) : IGameSystem
         if (board == null)
             return;
 
-        if (board.ResetRequested)
+        if (keyboardInput.WasKeyPressed(KeyCodes.R))
         {
+            audio.PlayOneShot("assets/sounds/car-horn.wav");
             board.Reset();
             Console.WriteLine("Board reset. X's turn.");
         }
 
-        if (board.PendingCellIndex >= 0)
+        for (var key = KeyCodes.D1; key <= KeyCodes.D9; key++)
         {
-            TryPlace(board, board.PendingCellIndex);
-            board.PendingCellIndex = -1;
+            if (!keyboardInput.WasKeyPressed(key))
+                continue;
+
+            var index = key - KeyCodes.D1;
+            TryPlace(board, index);
         }
 
         SyncCellVisuals(board);
@@ -51,7 +57,7 @@ public class TicTacToeSystem(IContext context) : IGameSystem
         return null;
     }
 
-    private static void TryPlace(BoardComponent board, int index)
+    public static void TryPlace(BoardComponent board, int index)
     {
         if (board.GameOver || board.Cells[index] != BoardComponent.Empty)
             return;

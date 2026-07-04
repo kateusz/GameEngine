@@ -16,7 +16,10 @@ using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scene.Systems;
 using Engine.Scripting;
+using Input;
+using Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
@@ -38,6 +41,8 @@ public static class EngineIoCContainer
 
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
+        container.Register<KeyboardInputState>(Reuse.Singleton);
+        container.RegisterMapping<IKeyboardInput, KeyboardInputState>();
         container.Register<DebugSettings>(Reuse.Singleton);
 
         RegisterFactories(container);
@@ -64,6 +69,10 @@ public static class EngineIoCContainer
         container.RegisterDelegate<IContext>(
             r => r.Resolve<ISceneContext>().ActiveScene?.Context
                  ?? throw new InvalidOperationException("Cannot resolve IContext without an active scene."));
+
+        container.RegisterDelegate<IPhysicsContacts>(r =>
+            r.Resolve<ISceneContext>().ActiveScene?.PhysicsContacts
+            ?? NullPhysicsContacts.Instance);
 
         container.Register<SerializerOptions>(Reuse.Singleton);
         container.Register<ComponentSerializerRegistry>(Reuse.Singleton);

@@ -16,17 +16,12 @@ public class BoardComponent : IGameComponent
     public bool GameOver { get; set; }
     public int Winner { get; set; }
 
-    public int PendingCellIndex { get; set; } = -1;
-    public bool ResetRequested { get; set; }
-
     public void Reset()
     {
         Array.Fill(Cells, Empty);
         CurrentPlayer = Cross;
         GameOver = false;
         Winner = NoWinner;
-        PendingCellIndex = -1;
-        ResetRequested = false;
     }
 
     public IComponent Clone() => new BoardComponent
@@ -34,8 +29,6 @@ public class BoardComponent : IGameComponent
         Cells = (int[])Cells.Clone(),
         CurrentPlayer = CurrentPlayer,
         GameOver = GameOver,
-        Winner = Winner,
-        PendingCellIndex = PendingCellIndex,
-        ResetRequested = ResetRequested
+        Winner = Winner
     };
 }

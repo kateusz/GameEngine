@@ -6,5 +6,9 @@ namespace Engine.Scene;
 
 public interface ISceneSystemsFactory
 {
-    void PopulateSystemManager(ISystemManager systemManager, IContext context, PhysicsRuntimeBodyStore bodyStore);
+    void PopulateSystemManager(
+        ISystemManager systemManager,
+        IContext context,
+        PhysicsRuntimeBodyStore bodyStore,
+        PhysicsContactQueue contactQueue);
 }

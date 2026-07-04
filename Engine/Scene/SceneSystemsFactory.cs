@@ -25,12 +25,16 @@ internal sealed class SceneSystemsFactory(
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
     private static readonly Vector2 DefaultGravity = new(0, -9.8f);
 
-    public void PopulateSystemManager(ISystemManager systemManager, IContext context, PhysicsRuntimeBodyStore bodyStore)
+    public void PopulateSystemManager(
+        ISystemManager systemManager,
+        IContext context,
+        PhysicsRuntimeBodyStore bodyStore,
+        PhysicsContactQueue contactQueue)
     {
         var primaryCamera = new PrimaryCameraSystem(context);
 
         var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity);
-        physicsWorld.SetContactListener(new SceneContactListener());
+        physicsWorld.SetContactListener(new SceneContactListener(contactQueue));
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);

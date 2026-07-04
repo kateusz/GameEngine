@@ -8,6 +8,7 @@ using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
+using Input;
 using Serilog;
 
 namespace Runtime;
@@ -18,6 +19,7 @@ public class GameLayer(
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
+    IKeyboardInput keyboardInput,
     GameConfiguration gameConfig,
     Func<IEnumerable<IGameSystem>> resolveGameSystems)
     : ILayer
@@ -89,6 +91,9 @@ public class GameLayer(
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
+        if (keyboardInput is KeyboardInputState state)
+            state.Apply(windowEvent);
+
         scriptEngine.ProcessEvent(windowEvent);
     }
 

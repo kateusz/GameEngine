@@ -7,10 +7,11 @@ public static class GameSystemTemplates
     public static string Generate(string className) => $$"""
         using ECS;
         using ECS.Systems;
+        using Input;
         using Scripting;
 
         [Register(typeof(IGameSystem))]
-        public class {{className}}(IContext context) : IGameSystem
+        public class {{className}}(IContext context, IKeyboardInput keyboardInput) : IGameSystem
         {
             public int Priority => 100;
 

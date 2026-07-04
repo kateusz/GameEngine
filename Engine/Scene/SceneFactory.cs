@@ -17,6 +17,6 @@ public sealed class SceneFactory(
         var context = new Context();
         var build = systemManagerFactory.Create(context);
         return new Scene(path, newSceneName, graphics2D, graphics3D, textureFactory, context, debugSettings,
-            build.SystemManager, build.BodyStore);
+            build.SystemManager, build.BodyStore, build.ContactQueue);
     }
 }
