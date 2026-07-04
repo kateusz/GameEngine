@@ -36,16 +36,13 @@ public class GameComponentFactory(
         return names.OrderBy(n => n).ToArray();
     }
 
-    public async Task<(bool Success, string? Error)> CreateAndAttachAsync(Entity entity, string baseName)
+    public async Task<(bool Success, string? Error)> CreateFileAsync(string baseName)
     {
         var scriptsDir = projectManager.ScriptsDir;
         if (scriptsDir is null)
             return (false, "Open a project first.");
 
         var className = GameComponentTemplates.ToClassName(baseName);
-        if (entity.GetAllComponents().Any(c => c.GetType().Name == className))
-            return (false, "Entity already has this component.");
-
         var filePath = Path.Combine(scriptsDir, $"{className}.cs");
         if (File.Exists(filePath))
             return (false, "Component file already exists.");
@@ -56,6 +53,22 @@ public class GameComponentFactory(
         var (compiled, errors) = scriptEngine.TryCompileAllScripts();
         if (!compiled)
             return (false, string.Join('\n', errors.Take(5)));
+
+        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+            serializerRegistry.RegisterFromAssembly(assembly);
+
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> CreateAndAttachAsync(Entity entity, string baseName)
+    {
+        var className = GameComponentTemplates.ToClassName(baseName);
+        if (entity.GetAllComponents().Any(c => c.GetType().Name == className))
+            return (false, "Entity already has this component.");
+
+        var (created, error) = await CreateFileAsync(baseName);
+        if (!created)
+            return (false, error);
 
         var type = scriptEngine.GetLoadedGameType(className);
         if (type is null)

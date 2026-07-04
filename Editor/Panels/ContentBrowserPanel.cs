@@ -1,15 +1,28 @@
 using System.Numerics;
+using System.Text.RegularExpressions;
+using Editor.Features.Components;
+using Editor.Features.Project;
+using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
+using Engine.Scripting;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.Panels;
 
 public class ContentBrowserPanel : IContentBrowserPanel
 {
+    private enum CreateAssetKind { Script, Component, System }
+
     private const float TreePanelWidth = 200f;
+    private static readonly Regex ValidNameRegex = new(@"^[a-zA-Z][a-zA-Z0-9_]*$", RegexOptions.Compiled);
+    private static readonly ILogger Logger = Log.ForContext<ContentBrowserPanel>();
 
     private readonly ITextureFactory _textureFactory;
+    private readonly IProjectManager _projectManager;
+    private readonly IScriptEngine _scriptEngine;
+    private readonly IGameComponentFactory _gameComponentFactory;
     private string _assetPath;
     private string _currentDirectory;
     private Texture2D _directoryIcon = null!;
@@ -17,9 +30,25 @@ public class ContentBrowserPanel : IContentBrowserPanel
     private readonly Dictionary<string, Texture2D> _imageCache = new();
     private readonly Dictionary<string, Texture2D> _folderIconCache = new();
 
-    public ContentBrowserPanel(ITextureFactory textureFactory)
+    private const string CreateAssetPopupId = "ContentBrowserCreateAsset";
+
+    private CreateAssetKind _pendingCreateKind;
+    private bool _showNameModal;
+    private bool _queueCreateAssetModal;
+    private string _createAssetPopupName = string.Empty;
+    private string _newAssetName = string.Empty;
+    private string? _errorMessage;
+
+    public ContentBrowserPanel(
+        ITextureFactory textureFactory,
+        IProjectManager projectManager,
+        IScriptEngine scriptEngine,
+        IGameComponentFactory gameComponentFactory)
     {
         _textureFactory = textureFactory;
+        _projectManager = projectManager;
+        _scriptEngine = scriptEngine;
+        _gameComponentFactory = gameComponentFactory;
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
         _currentDirectory = _assetPath;
@@ -54,6 +83,8 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
         ImGui.End();
     }
+
+    public void RenderPopups() => RenderCreateAssetModal();
 
     private void DrawDirectoryTree()
     {
@@ -91,12 +122,207 @@ public class ContentBrowserPanel : IContentBrowserPanel
         if (ImGui.IsItemClicked())
             _currentDirectory = directoryPath;
 
+        if (ImGui.BeginPopupContextItem($"DirCtx##{directoryPath}"))
+        {
+            var canCreate = CanCreateScriptAssets(directoryPath);
+            if (ImGui.MenuItem("Add Script", enabled: canCreate))
+                BeginCreateAsset(CreateAssetKind.Script);
+            if (ImGui.MenuItem("Add Component", enabled: canCreate))
+                BeginCreateAsset(CreateAssetKind.Component);
+            if (ImGui.MenuItem("Add System", enabled: canCreate))
+                BeginCreateAsset(CreateAssetKind.System);
+            ImGui.EndPopup();
+        }
+
         if (opened && subdirectories.Length > 0)
         {
             foreach (var subdir in subdirectories)
                 DrawDirectoryNode(subdir);
             ImGui.TreePop();
         }
+    }
+
+    private bool CanCreateScriptAssets(string directoryPath)
+    {
+        if (_projectManager.ScriptsDir is not { } scriptsDir)
+            return false;
+
+        var fullDir = Path.GetFullPath(directoryPath);
+        var fullScripts = Path.GetFullPath(scriptsDir);
+        return fullDir.Equals(fullScripts, StringComparison.OrdinalIgnoreCase)
+               || fullDir.StartsWith(fullScripts + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void BeginCreateAsset(CreateAssetKind kind)
+    {
+        _pendingCreateKind = kind;
+        _errorMessage = null;
+        _newAssetName = kind switch
+        {
+            CreateAssetKind.Script => $"Script_{DateTime.Now.Ticks % 1000:000}",
+            CreateAssetKind.Component => string.Empty,
+            CreateAssetKind.System => "MyGame",
+            _ => string.Empty
+        };
+        _createAssetPopupName = kind switch
+        {
+            CreateAssetKind.Script => $"Create New Script##{CreateAssetPopupId}",
+            CreateAssetKind.Component => $"Create Game Component##{CreateAssetPopupId}",
+            CreateAssetKind.System => $"Create Game System##{CreateAssetPopupId}",
+            _ => $"Create Asset##{CreateAssetPopupId}"
+        };
+        _queueCreateAssetModal = true;
+    }
+
+    private void RenderCreateAssetModal()
+    {
+        if (_queueCreateAssetModal)
+        {
+            _queueCreateAssetModal = false;
+            _showNameModal = true;
+            ImGui.OpenPopup(_createAssetPopupName);
+            return;
+        }
+
+        if (!_showNameModal)
+            return;
+
+        if (!ImGui.IsPopupOpen(_createAssetPopupName, ImGuiPopupFlags.AnyPopupId))
+        {
+            _showNameModal = false;
+            return;
+        }
+
+        var isValidName = !string.IsNullOrEmpty(_newAssetName) && ValidNameRegex.IsMatch(_newAssetName);
+        var promptText = _pendingCreateKind switch
+        {
+            CreateAssetKind.Script => "Enter name for the new script:",
+            CreateAssetKind.Component => isValidName
+                ? $"Enter base name for the new component:\nWill create: {GameComponentTemplates.ToClassName(_newAssetName)}"
+                : "Enter base name for the new component:",
+            CreateAssetKind.System => isValidName
+                ? $"Enter base name for the new system:\nWill create: {GameSystemTemplates.ToClassName(_newAssetName)}"
+                : "Enter base name for the new system:",
+            _ => "Enter name:"
+        };
+
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
+            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+
+        if (!ImGui.BeginPopupModal(_createAssetPopupName,
+                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+            return;
+
+        ImGui.Text(promptText);
+
+        if (ImGui.IsWindowAppearing())
+            ImGui.SetKeyboardFocusHere();
+
+        var enterPressed = ImGui.InputText($"##{CreateAssetPopupId}_Input", ref _newAssetName,
+            EditorUIConstants.MaxNameLength, ImGuiInputTextFlags.EnterReturnsTrue);
+
+        ImGui.Separator();
+
+        if (!isValidName && !string.IsNullOrEmpty(_newAssetName))
+            TextDrawer.DrawErrorText("Name must start with a letter and contain only letters, numbers, and underscores.");
+
+        if (!string.IsNullOrEmpty(_errorMessage))
+            TextDrawer.DrawErrorText(_errorMessage);
+
+        var shouldClose = false;
+
+        ButtonDrawer.DrawModalButtonPair(
+            onOk: () =>
+            {
+                if (!isValidName)
+                    return;
+                shouldClose = true;
+                _ = CreateAssetAsync();
+            },
+            onCancel: () =>
+            {
+                shouldClose = true;
+                _errorMessage = null;
+            },
+            okDisabled: !isValidName);
+
+        if (enterPressed && isValidName)
+        {
+            shouldClose = true;
+            _ = CreateAssetAsync();
+        }
+
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+        {
+            shouldClose = true;
+            _errorMessage = null;
+        }
+
+        if (shouldClose)
+        {
+            _showNameModal = false;
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.EndPopup();
+    }
+
+    private async Task CreateAssetAsync()
+    {
+        try
+        {
+            var (success, error) = _pendingCreateKind switch
+            {
+                CreateAssetKind.Script => await CreateScriptAsync(_newAssetName),
+                CreateAssetKind.Component => await _gameComponentFactory.CreateFileAsync(_newAssetName),
+                CreateAssetKind.System => await CreateSystemAsync(_newAssetName),
+                _ => (false, "Unknown asset type.")
+            };
+
+            if (success)
+            {
+                _errorMessage = null;
+                return;
+            }
+
+            _errorMessage = error ?? "Failed to create asset.";
+            _queueCreateAssetModal = true;
+            _showNameModal = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to create {Kind} asset", _pendingCreateKind);
+            _errorMessage = ex.Message;
+            _queueCreateAssetModal = true;
+            _showNameModal = true;
+        }
+    }
+
+    private async Task<(bool Success, string? Error)> CreateScriptAsync(string scriptName)
+    {
+        if (_projectManager.ScriptsDir is null)
+            return (false, "Open a project first.");
+
+        var template = _scriptEngine.GenerateScriptTemplate(scriptName);
+        var (success, errors) = await _scriptEngine.CreateOrUpdateScriptAsync(scriptName, template);
+        return success ? (true, null) : (false, string.Join('\n', errors.Take(5)));
+    }
+
+    private async Task<(bool Success, string? Error)> CreateSystemAsync(string baseName)
+    {
+        if (_projectManager.ScriptsDir is not { } scriptsDir)
+            return (false, "Open a project first.");
+
+        var className = GameSystemTemplates.ToClassName(baseName);
+        var filePath = Path.Combine(scriptsDir, $"{className}.cs");
+        if (File.Exists(filePath))
+            return (false, "System file already exists.");
+
+        await File.WriteAllTextAsync(filePath, GameSystemTemplates.Generate(className));
+        Logger.Information("Created game system file {Path}", filePath);
+
+        var (compiled, errors) = _scriptEngine.TryCompileAllScripts();
+        return compiled ? (true, null) : (false, string.Join('\n', errors.Take(5)));
     }
 
     private void DrawContentGrid()

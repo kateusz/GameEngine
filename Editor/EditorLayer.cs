@@ -582,6 +582,7 @@ public class EditorLayer(
 
         scriptComponentEditor.Draw();
         gameComponentEditor.RenderPopups();
+        panels.ContentBrowserPanel.RenderPopups();
         panels.RecentProjectsPanel.Draw();
         panels.KeyboardShortcutsPanel.Draw();
 

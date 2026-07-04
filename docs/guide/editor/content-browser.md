@@ -40,9 +40,19 @@ The Content Browser passes the asset's path relative to the `assets` directory a
 
 ## Creating Assets
 
-**Scripts**
+### Context Menu (Directory Tree)
 
-Scripts are created from the NativeScriptComponent in the Properties panel, not directly from the Content Browser. With an entity selected, expand the Script section in the Properties panel and click **Create New Script**. Enter a valid C# identifier as the script name and confirm. The engine generates a script template and saves it to `assets/scripts/`. The script is immediately compiled and attached to the entity.
+Right-click any folder in the left-side directory tree to open a context menu with three options:
+
+- **Add Script** — creates a new `ScriptableEntity` script in `assets/scripts/`
+- **Add Component** — creates a new `IGameComponent` class in `assets/scripts/`
+- **Add System** — creates a new `IGameSystem` class in `assets/scripts/`
+
+These options are enabled only when you right-click the `scripts` folder or one of its subfolders. On other folders (textures, scenes, etc.) the menu items appear grayed out. A name prompt opens when you choose an action; the new file is compiled immediately but is not attached to any entity.
+
+**Scripts (Properties panel)**
+
+Scripts can also be created from the NativeScriptComponent in the Properties panel. With an entity selected, expand the Script section and click **Create New Script**. Enter a valid C# identifier as the script name and confirm. The engine generates a script template and saves it to `assets/scripts/`. The script is immediately compiled and attached to the entity.
 
 You can also click **Add Existing Script** to attach a previously created script to the selected entity.
 

@@ -20,8 +20,8 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     private Texture2D _iconRuler;
     private Texture2D _iconRestart;
 
-    public bool ShowGrid { get; set; } = false;
-    public bool ShowGrid3D { get; set; } = true;
+    public bool ShowGrid { get; set; } = true;
+    public bool ShowGrid3D { get; set; } = false;
 
     public event Action OnPlayScene;
     public event Action OnStopScene;

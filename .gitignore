@@ -406,3 +406,4 @@ FodyWeavers.xsd
 .idea/
 .DS_Store
 .worktrees/
+.build-check
