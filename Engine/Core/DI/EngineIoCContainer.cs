@@ -69,7 +69,6 @@ public static class EngineIoCContainer
             )
         );
         
-        container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
