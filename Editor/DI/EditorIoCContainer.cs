@@ -1,4 +1,5 @@
 using DryIoc;
+using ECS;
 using ECS.Systems;
 using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
@@ -93,6 +94,11 @@ public static class EditorIoCContainer
         container.Register<ViewportToolManager>(Reuse.Singleton);
         
         container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
+
+        // Game systems from GameAssembly resolve via DryIoc and may depend on the active scene context.
+        container.RegisterDelegate<IContext>(
+            r => r.Resolve<ISceneContext>().ActiveScene?.Context
+                 ?? throw new InvalidOperationException("Cannot resolve IContext without an active scene."));
         
         container.Register<IConsolePanel, ConsolePanel>(Reuse.Singleton);
         

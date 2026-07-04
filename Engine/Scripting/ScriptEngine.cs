@@ -393,8 +393,10 @@ internal sealed class ScriptEngine : IScriptEngine
         if (_dynamicAssembly is null || string.IsNullOrWhiteSpace(typeName))
             return null;
 
-        return _dynamicAssembly.GetType(typeName)
-               ?? Array.Find(_dynamicAssembly.GetTypes(), t => t.Name == typeName);
+        return Array.Find(_dynamicAssembly.GetTypes(), t =>
+            t is { IsClass: true, IsAbstract: false }
+            && t.Name == typeName
+            && typeof(IGameComponent).IsAssignableFrom(t));
     }
 
     public Assembly? GetLoadedGameAssembly() => _dynamicAssembly;

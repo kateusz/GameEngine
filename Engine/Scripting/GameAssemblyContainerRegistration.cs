@@ -13,7 +13,7 @@ public static class GameAssemblyContainerRegistration
             return;
 
         var toRemove = container.GetServiceRegistrations()
-            .Where(r => r.ImplementationType is { } impl &&
+            .Where(r => TryGetImplementationType(r) is { } impl &&
                 string.Equals(impl.Assembly.GetName().Name, gameAssemblyName, StringComparison.Ordinal))
             .ToList();
 
@@ -25,6 +25,14 @@ public static class GameAssemblyContainerRegistration
                 FactoryType.Service,
                 f => ReferenceEquals(f, r.Factory));
         }
+    }
+
+    private static Type? TryGetImplementationType(ServiceRegistrationInfo registration)
+    {
+        if (registration.Factory is null || !registration.Factory.CanAccessImplementationType)
+            return null;
+
+        return registration.Factory.ImplementationType;
     }
 
     public static Assembly Load(string assemblyNameOrFilePath)

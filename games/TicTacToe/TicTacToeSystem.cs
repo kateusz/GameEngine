@@ -9,6 +9,13 @@ namespace TicTacToe;
 [Register(typeof(IGameSystem))]
 public class TicTacToeSystem(IContext context) : IGameSystem
 {
+    private static readonly int[][] WinLines =
+    [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+    ];
+
     public int Priority => 115;
 
     public void OnInit() { }
@@ -32,13 +39,14 @@ public class TicTacToeSystem(IContext context) : IGameSystem
         }
 
         SyncCellVisuals(board);
+        SyncGameOverBanner(board);
     }
 
     public void OnShutdown() { }
 
     private BoardComponent? FindBoard()
     {
-        foreach (var (entity, board) in context.View<BoardComponent>())
+        foreach (var (_, board) in context.View<BoardComponent>())
             return board;
         return null;
     }
@@ -54,6 +62,7 @@ public class TicTacToeSystem(IContext context) : IGameSystem
         if (CheckWin(board, player))
         {
             board.GameOver = true;
+            board.Winner = player;
             Console.WriteLine($"{PlayerName(player)} wins!");
             return;
         }
@@ -61,6 +70,7 @@ public class TicTacToeSystem(IContext context) : IGameSystem
         if (IsBoardFull(board))
         {
             board.GameOver = true;
+            board.Winner = BoardComponent.Draw;
             Console.WriteLine("Draw!");
             return;
         }
@@ -79,18 +89,73 @@ public class TicTacToeSystem(IContext context) : IGameSystem
             if (!entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
                 continue;
 
-            sprite.Color = board.Cells[cell.Index] switch
+            switch (board.Cells[cell.Index])
             {
-                BoardComponent.Cross => new Vector4(0.9f, 0.2f, 0.2f, 1f),
-                BoardComponent.Circle => new Vector4(0.2f, 0.4f, 0.9f, 1f),
-                _ => new Vector4(0.25f, 0.25f, 0.25f, 1f)
-            };
+                case BoardComponent.Cross:
+                    sprite.TexturePath = "textures/X.png";
+                    sprite.Color = Vector4.One;
+                    break;
+                case BoardComponent.Circle:
+                    sprite.TexturePath = "textures/O.png";
+                    sprite.Color = Vector4.One;
+                    break;
+                default:
+                    sprite.TexturePath = null;
+                    sprite.Color = new Vector4(0.8935698f, 0.7945044f, 0.7945044f, 1f);
+                    break;
+            }
         }
     }
 
-    // CheckWin, IsBoardFull, PlayerName — same as before
-    private static bool CheckWin(BoardComponent board, int player) { /* ... */ return false; }
-    private static bool IsBoardFull(BoardComponent board) { /* ... */ return false; }
+    private void SyncGameOverBanner(BoardComponent board)
+    {
+        SetBanner("GameOverBanner", board.GameOver
+            ? board.Winner switch
+            {
+                BoardComponent.Cross => "textures/x_wins.png",
+                BoardComponent.Circle => "textures/o_wins.png",
+                BoardComponent.Draw => "textures/draw.png",
+                _ => null
+            }
+            : null);
+
+        SetBanner("ResetHint", board.GameOver ? "textures/press_r.png" : null);
+    }
+
+    private void SetBanner(string entityName, string? texturePath)
+    {
+        var entity = context.GetByName(entityName);
+        if (entity == null || !entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+            return;
+
+        sprite.TexturePath = texturePath;
+        sprite.Color = texturePath == null ? Vector4.Zero : Vector4.One;
+    }
+
+    private static bool CheckWin(BoardComponent board, int player)
+    {
+        foreach (var line in WinLines)
+        {
+            if (board.Cells[line[0]] == player &&
+                board.Cells[line[1]] == player &&
+                board.Cells[line[2]] == player)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsBoardFull(BoardComponent board)
+    {
+        foreach (var cell in board.Cells)
+        {
+            if (cell == BoardComponent.Empty)
+                return false;
+        }
+
+        return true;
+    }
+
     private static string PlayerName(int player) => player switch
     {
         BoardComponent.Cross => "X",

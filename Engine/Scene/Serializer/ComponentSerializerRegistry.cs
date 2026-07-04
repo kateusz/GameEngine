@@ -54,25 +54,6 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
             _assemblyNames[assembly] = names;
     }
 
-    public void RegisterDiscoveredGameComponents(string scriptsDirectory, Assembly? gameAssembly = null)
-    {
-        if (string.IsNullOrWhiteSpace(scriptsDirectory) || !Directory.Exists(scriptsDirectory))
-            return;
-
-        if (GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDirectory).Length == 0)
-            return;
-
-        var assembly = gameAssembly ?? FindLoadedGameAssembly();
-        if (assembly is null)
-            return;
-
-        RegisterFromAssembly(assembly);
-    }
-
-    private static Assembly? FindLoadedGameAssembly() =>
-        AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(a => string.Equals(a.GetName().Name, GameAssemblyCompiler.AssemblyName, StringComparison.Ordinal));
-
     public void UnregisterAssembly(Assembly assembly)
     {
         if (!_assemblyNames.Remove(assembly, out var names))

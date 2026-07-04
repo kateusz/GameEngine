@@ -49,13 +49,11 @@ public class SceneManager(
 
         if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
         {
-            var scriptsDir = projectManager.ScriptsDir;
-            if (scriptEngine.GetLoadedGameAssembly() is null
-                && GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDir).Length > 0)
+            if (scriptEngine.GetLoadedGameAssembly() is null)
                 scriptEngine.TryCompileAllScripts();
 
-            componentSerializerRegistry.RegisterDiscoveredGameComponents(
-                scriptsDir, scriptEngine.GetLoadedGameAssembly());
+            if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+                componentSerializerRegistry.RegisterFromAssembly(assembly);
         }
 
         sceneSerializer.Deserialize(sceneContext.ActiveScene!, path);
@@ -95,6 +93,10 @@ public class SceneManager(
         scriptEngine.SetSuppressFileChangeRecompile(true);
 
         EnsureGameAssemblyRegistered(dllPath);
+
+        if (scriptEngine.GetLoadedGameAssembly() is { } playAssembly)
+            componentSerializerRegistry.RegisterFromAssembly(playAssembly);
+
         RegisterGameSystems();
 
         if (!string.IsNullOrEmpty(EditorScenePath))

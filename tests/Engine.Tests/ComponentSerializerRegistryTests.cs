@@ -73,7 +73,7 @@ public class ComponentSerializerRegistryTests
     }
 
     [Fact]
-    public void RegisterDiscoveredGameComponents_RegistersExploredTypesFromScriptsDir()
+    public void RegisterFromAssembly_GameComponent_RoundTrip()
     {
         var dir = Path.Combine(Path.GetTempPath(), $"ge-ser-{Guid.NewGuid():N}");
         Directory.CreateDirectory(dir);
@@ -93,7 +93,7 @@ public class ComponentSerializerRegistryTests
 
             var outputPath = Path.Combine(Path.GetTempPath(), $"GameAssembly_{Guid.NewGuid():N}.dll");
             GameAssemblyCompiler.TryCompile(dir, outputPath, emitPdb: false, useDebugOptimization: true, out _).ShouldBeTrue();
-            _registry.RegisterDiscoveredGameComponents(dir, Assembly.LoadFrom(outputPath));
+            _registry.RegisterFromAssembly(Assembly.LoadFrom(outputPath));
 
             var json = JsonNode.Parse("""{"Name":"ScoreComponent","Points":7}""")!.AsObject();
             var entity = Entity.Create(1, "e");

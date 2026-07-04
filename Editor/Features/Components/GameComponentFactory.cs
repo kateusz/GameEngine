@@ -16,8 +16,24 @@ public class GameComponentFactory(
 
     public string[] DiscoverComponentNames()
     {
-        var scriptsDir = projectManager.ScriptsDir;
-        return scriptsDir is null ? [] : GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDir);
+        var names = new HashSet<string>(StringComparer.Ordinal);
+
+        if (projectManager.ScriptsDir is { } scriptsDir)
+        {
+            foreach (var name in GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDir))
+                names.Add(name);
+        }
+
+        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+        {
+            foreach (var type in assembly.GetTypes())
+            {
+                if (type is { IsClass: true, IsAbstract: false } && typeof(IGameComponent).IsAssignableFrom(type))
+                    names.Add(type.Name);
+            }
+        }
+
+        return names.OrderBy(n => n).ToArray();
     }
 
     public async Task<(bool Success, string? Error)> CreateAndAttachAsync(Entity entity, string baseName)
