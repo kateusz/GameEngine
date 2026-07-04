@@ -2,7 +2,7 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Engine.Scene.Components;
+using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors;
 
@@ -31,6 +31,8 @@ public class RigidBody2DComponentEditor : IComponentEditor
 
             UIPropertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
                 newValue => component.FixedRotation = (bool)newValue);
+            UIPropertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
+                newValue => component.GravityScale = (float)newValue);
         });
     }
 }

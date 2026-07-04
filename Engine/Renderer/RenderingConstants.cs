@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Engine.Renderer;
 
 /// <summary>

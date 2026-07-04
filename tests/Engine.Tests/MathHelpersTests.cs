@@ -1,6 +1,6 @@
 using System.Numerics;
 using Bogus;
-using Engine.Math;
+using Math;
 using Shouldly;
 
 namespace Engine.Tests;

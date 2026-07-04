@@ -1,6 +1,6 @@
 using CSharpFunctionalExtensions;
 using Engine.Events;
-using Engine.Scene;
+using Scripting;
 
 namespace Engine.Scripting;
 
@@ -16,6 +16,10 @@ public interface IScriptEngine
     /// </summary>
     /// <param name="scriptsDirectory">Path to the scripts directory</param>
     void SetScriptsDirectory(string scriptsDirectory);
+
+    void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory);
+
+    void SetSuppressFileChangeRecompile(bool suppress);
 
     /// <summary>
     /// Updates all script components in the current scene.
@@ -91,7 +95,7 @@ public interface IScriptEngine
     /// Saves debug symbols (PDB file) to disk for external debugger use.
     /// </summary>
     /// <param name="outputPath">Path to save the PDB file</param>
-    /// <param name="assemblyName">Name of the assembly (default: "DynamicScripts")</param>
+    /// <param name="assemblyName">Name of the assembly (default: "GameAssembly")</param>
     /// <returns>True if successful, false otherwise</returns>
     bool SaveDebugSymbols(string outputPath, string assemblyName = "DynamicScripts");
 

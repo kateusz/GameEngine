@@ -1,5 +1,5 @@
-using Engine.Core.Input;
 using Engine.Events.Input;
+using Input;
 using Shouldly;
 
 namespace Engine.Tests.Events;

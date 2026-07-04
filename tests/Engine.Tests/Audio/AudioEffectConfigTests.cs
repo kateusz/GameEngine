@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Engine.Audio;
-using Engine.Scene.Components;
+using SceneComponents.Audio;
 using Shouldly;
 
 namespace Engine.Tests.Audio;
@@ -44,8 +44,8 @@ public class AudioEffectConfigTests
             Volume = 0.8f,
             Effects =
             [
-                new AudioEffectConfig { Type = AudioEffectType.Reverb, Amount = 0.7f },
-                new AudioEffectConfig { Type = AudioEffectType.LowPass, Amount = 0.3f }
+                new AudioEffectData { Type = AudioEffectType.Reverb, Amount = 0.7f },
+                new AudioEffectData { Type = AudioEffectType.LowPass, Amount = 0.3f }
             ]
         };
 

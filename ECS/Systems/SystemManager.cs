@@ -103,18 +103,27 @@ public class SystemManager : ISystemManager
     {
         if (_disposed) return;
 
-        // Only dispose per-scene systems (systems that implement IDisposable)
-        // Singleton systems are shared and should NOT be disposed here
+        if (IsInitialized)
+            Shutdown();
+        else
+            DisposePerSceneSystems();
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+    private void DisposePerSceneSystems()
+    {
         foreach (var system in _systems)
         {
+            if (_sharedSystems.Contains(system))
+                continue;
+
             if (system is IDisposable disposableSystem)
-            {
                 disposableSystem.Dispose();
-            }
         }
 
         _systems.Clear();
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        _sharedSystems.Clear();
     }
 }

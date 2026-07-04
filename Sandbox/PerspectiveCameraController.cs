@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Numerics;
-using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
-using Engine.Math;
+using Input;
+using Math;
 
 namespace Sandbox;
 
@@ -20,7 +20,7 @@ public class PerspectiveCameraController
     private bool _firstMouse = true;
     private bool _mouseLookActive;
 
-    private const float MoveSpeed = 30.0f;
+    private const float MoveSpeed = 50.0f;
     private const float MouseSensitivity = 0.003f;
     private const float ScrollSpeedMultiplier = 2.0f;
     private float _speedMultiplier = 2.0f;

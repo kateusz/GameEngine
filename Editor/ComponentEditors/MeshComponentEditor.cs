@@ -3,17 +3,14 @@ using Editor.ComponentEditors.Core;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Engine.Core;
-using Engine.Renderer;
 using Engine.Scene;
-using Engine.Scene.Components;
 using ImGuiNET;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Editor.ComponentEditors;
 
 public class MeshComponentEditor(
-    IMeshFactory meshFactory,
     ModelSceneImporter modelSceneImporter,
     ISceneContext sceneContext)
     : IComponentEditor
@@ -28,27 +25,24 @@ public class MeshComponentEditor(
 
             ButtonDrawer.DrawButton("Load Cube", EditorUIConstants.DefaultButtonWidth, 0, () =>
             {
-                var cube = meshFactory.CreateCube();
-                meshComponent.SetModel([cube]);
+                meshComponent.UseBuiltinCube = true;
+                meshComponent.ModelPath = null;
+                meshComponent.MeshIndex = null;
             });
 
             ImGui.SameLine();
             ButtonDrawer.DrawButton("Drop Mesh", EditorUIConstants.DefaultButtonWidth, 0);
             _ = MeshDropTarget.Draw(modelSceneImporter, sceneContext, Logger);
 
-            if (meshComponent.MeshCount > 0)
+            if (meshComponent.UseBuiltinCube)
             {
-                ImGui.Text($"Meshes: {meshComponent.MeshCount}");
-                ImGui.BeginChild("MeshList", new System.Numerics.Vector2(0, 200), ImGuiChildFlags.Border, ImGuiWindowFlags.None);
-                foreach (var mesh in meshComponent.Meshes)
-                {
-                    ImGui.Text($"  {mesh.Name}: {mesh.Vertices.Count} verts, {mesh.Indices.Count} indices");
-                }
-                ImGui.EndChild();
+                ImGui.Text("Mesh: Built-in Cube");
             }
             else if (!string.IsNullOrWhiteSpace(meshComponent.ModelPath))
             {
-                ImGui.Text($"Model: {meshComponent.ModelPath} (not loaded)");
+                ImGui.Text($"Model: {meshComponent.ModelPath}");
+                if (meshComponent.MeshIndex.HasValue)
+                    ImGui.Text($"Mesh Index: {meshComponent.MeshIndex.Value}");
             }
             else
             {

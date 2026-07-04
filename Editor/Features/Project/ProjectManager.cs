@@ -7,7 +7,8 @@ namespace Editor.Features.Project;
 
 public class ProjectManager(
     IEditorPreferences editorPreferences,
-    IScriptEngine scriptEngine)
+    IScriptEngine scriptEngine,
+    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper)
     : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
@@ -39,12 +40,28 @@ public class ProjectManager(
         return System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_\- ]+$");
     }
 
-    public bool TryCreateNewProject(string projectName, out string error)
+    public bool TryCreateNewProject(string parentDirectory, string projectName, out string error)
     {
         error = string.Empty;
 
         try
         {
+            if (string.IsNullOrWhiteSpace(parentDirectory))
+            {
+                error = "Parent folder path is required.";
+                return false;
+            }
+
+            var parentFull = Path.GetFullPath(Path.IsPathRooted(parentDirectory.Trim())
+                ? parentDirectory.Trim()
+                : Path.Combine(Environment.CurrentDirectory, parentDirectory.Trim()));
+
+            if (!Directory.Exists(parentFull))
+            {
+                error = "Parent folder does not exist.";
+                return false;
+            }
+
             if (!IsValidProjectName(projectName))
             {
                 error =
@@ -52,10 +69,10 @@ public class ProjectManager(
                 return false;
             }
 
-            var projectDir = Path.Combine(Environment.CurrentDirectory, projectName.Trim());
+            var projectDir = Path.GetFullPath(Path.Combine(parentFull, projectName.Trim()));
             if (Directory.Exists(projectDir))
             {
-                error = "A directory with this name already exists.";
+                error = "A folder with this name already exists in the selected location.";
                 return false;
             }
 
@@ -63,6 +80,22 @@ public class ProjectManager(
 
             foreach (var rel in RequiredDirs)
                 Directory.CreateDirectory(Path.Combine(projectDir, rel));
+
+            if (!gameProjectScriptBootstrapper.TryInstallScriptSdkForNewProject(projectDir, projectName.Trim(),
+                    out var sdkError))
+            {
+                try
+                {
+                    Directory.Delete(projectDir, recursive: true);
+                }
+                catch (Exception delEx)
+                {
+                    Logger.Warning(delEx, "Failed to remove project directory after SDK bootstrap error");
+                }
+
+                error = sdkError;
+                return false;
+            }
 
             SetCurrentProject(projectDir);
 
@@ -102,6 +135,8 @@ public class ProjectManager(
             }
 
             SetCurrentProject(full);
+
+            gameProjectScriptBootstrapper.TryEnsureScriptSdkAfterOpen(full);
 
             Logger.Information("📂 Project opened: {ProjectPath}", full);
             var projectName = Path.GetFileName(full);

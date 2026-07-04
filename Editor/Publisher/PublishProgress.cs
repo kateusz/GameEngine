@@ -25,6 +25,6 @@ public class PublishProgress : IProgress<string>
 
     public void SetProgress(float progress)
     {
-        Progress = Math.Clamp(progress, 0.0f, 1.0f);
+        Progress = System.Math.Clamp(progress, 0.0f, 1.0f);
     }
 }

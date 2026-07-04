@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
+using ECS.Systems;
 using Silk.NET.Assimp;
 using Engine.Core.Input;
 using Engine.Core.Window;
@@ -69,6 +70,7 @@ public static class EngineIoCContainer
         
         container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
+        container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
         
         RegisterFactories(container);
@@ -81,22 +83,10 @@ public static class EngineIoCContainer
         container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);
         container.Register<Engine.Audio.IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
 
-        // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);
-        container.Register<RenderingSystemsGroup>(Reuse.Singleton);
-        container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
-
-        // Register ECS systems (all now use dependency injection)
-        container.Register<SpriteRenderingSystem>(Reuse.Singleton);
-        container.Register<LightingSystem>(Reuse.Singleton);
-        container.Register<ModelRenderingSystem>(Reuse.Singleton);
-        container.Register<ScriptUpdateSystem>(Reuse.Singleton);
-        container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
-        container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
-        container.Register<AudioSystem>(Reuse.Singleton);
-        
-        container.Register<PrimaryCameraSystem>(Reuse.Singleton);
-        container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
+        container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
+        container.Register<SystemManagerFactory>(Reuse.Singleton);
+        container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
         

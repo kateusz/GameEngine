@@ -14,7 +14,6 @@ public class Program
         try
         {
             EngineIoCContainer.Register(container);
-            container.Register<IContext, Context>(Reuse.Singleton);
             container.Register<BenchmarkLayer>(Reuse.Singleton);
             container.Register<BenchmarkApplication>(Reuse.Singleton);
             container.ValidateAndThrow();

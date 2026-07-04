@@ -2,9 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
-using Serilog;
+using SceneComponents;
+using SceneComponents.Audio;
+using SceneComponents.Camera;
+using SceneComponents.Lights;
+using SceneComponents.Physics;
+using SceneComponents.Rendering;
 
 namespace Engine.Scene.Serializer;
 

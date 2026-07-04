@@ -1,5 +1,5 @@
 using System.Numerics;
-using Engine.Scene.Components;
+using SceneComponents.Rendering;
 using Shouldly;
 
 namespace Engine.Tests.Components;
@@ -14,7 +14,7 @@ public class SpriteRendererComponentTests
 
         // Assert
         component.Color.ShouldBe(Vector4.One);
-        component.Texture.ShouldBeNull();
+        component.TexturePath.ShouldBeNull();
         component.TilingFactor.ShouldBe(1.0f);
     }
 
@@ -29,23 +29,27 @@ public class SpriteRendererComponentTests
 
         // Assert
         component.Color.ShouldBe(color);
-        component.Texture.ShouldBeNull();
+        component.TexturePath.ShouldBeNull();
         component.TilingFactor.ShouldBe(1.0f);
     }
 
     [Fact]
-    public void SpriteRendererComponent_FullConstructor_ShouldSetAllProperties()
+    public void SpriteRendererComponent_Properties_ShouldSetAllValues()
     {
         // Arrange
         var color = new Vector4(0.5f, 0.5f, 0.5f, 1f);
         var tilingFactor = 2.5f;
 
         // Act
-        var component = new SpriteRendererComponent(color, null, tilingFactor);
+        var component = new SpriteRendererComponent(color)
+        {
+            TexturePath = "textures/test.png",
+            TilingFactor = tilingFactor
+        };
 
         // Assert
         component.Color.ShouldBe(color);
-        component.Texture.ShouldBeNull();
+        component.TexturePath.ShouldBe("textures/test.png");
         component.TilingFactor.ShouldBe(tilingFactor);
     }
 
@@ -81,7 +85,11 @@ public class SpriteRendererComponentTests
     {
         // Arrange
         var color = new Vector4(0.1f, 0.2f, 0.3f, 0.4f);
-        var original = new SpriteRendererComponent(color, null, 2.0f);
+        var original = new SpriteRendererComponent(color)
+        {
+            TexturePath = "textures/player.png",
+            TilingFactor = 2.0f
+        };
 
         // Act
         var clone = (SpriteRendererComponent)original.Clone();
@@ -90,6 +98,7 @@ public class SpriteRendererComponentTests
         // Assert
         clone.ShouldNotBeSameAs(original);
         clone.TilingFactor.ShouldBe(2.0f);
+        clone.TexturePath.ShouldBe("textures/player.png");
         original.Color.ShouldBe(color);
         clone.Color.ShouldBe(Vector4.Zero);
     }

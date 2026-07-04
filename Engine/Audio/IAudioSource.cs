@@ -1,4 +1,5 @@
 using System.Numerics;
+using SceneComponents.Audio;
 
 namespace Engine.Audio;
 

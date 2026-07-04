@@ -1,11 +1,13 @@
 namespace ECS;
 
+public interface IEntity;
+
 /// <summary>
 /// Represents an entity in the Entity Component System.
 /// Entities are uniquely identified by their Id property.
 /// Equality comparisons are based solely on the immutable Id to ensure stable behavior in collections.
 /// </summary>
-public sealed class Entity : IEquatable<Entity>
+public sealed class Entity : IEntity, IEquatable<Entity>
 {
     private readonly Dictionary<Type, IComponent> _components = new();
     
@@ -79,6 +81,11 @@ public sealed class Entity : IEquatable<Entity>
         _components.Remove(typeof(T));
     }
 
+    public void RemoveComponent(Type componentType)
+    {
+        _components.Remove(componentType);
+    }
+
     /// <summary>
     /// Gets a component of the specified type from this entity.
     /// </summary>
@@ -109,6 +116,11 @@ public sealed class Entity : IEquatable<Entity>
 
         component = default!;
         return false;
+    }
+
+    public bool TryGetComponent(Type componentType, out IComponent? component)
+    {
+        return _components.TryGetValue(componentType, out component);
     }
 
     public bool HasComponent<T>() where T : IComponent

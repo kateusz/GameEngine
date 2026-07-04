@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using Engine.Core.Input;
 using Engine.Events.Input;
+using Input;
 using Silk.NET.Input;
 
 namespace Engine.Platform.SilkNet.Input;

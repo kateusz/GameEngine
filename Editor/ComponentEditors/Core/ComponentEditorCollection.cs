@@ -1,5 +1,9 @@
-using Engine.Scene.Components;
-using Engine.Scene.Components.Lights;
+using SceneComponents;
+using SceneComponents.Audio;
+using SceneComponents.Camera;
+using SceneComponents.Lights;
+using SceneComponents.Physics;
+using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Core;
 

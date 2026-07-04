@@ -1,4 +1,3 @@
-using System.Numerics;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.UI.Constants;
@@ -227,18 +226,18 @@ public class PublishSettingsUI(
             RuntimeIdentifier = _selectedPlatform,
             SelfContained = _selfContained,
             SingleFile = _singleFile,
-            Configuration = _configuration
+            Configuration = _configuration,
         };
-
+        
         // Create game configuration
         var gameConfig = new GameConfiguration
         {
+            GameTitle = new DirectoryInfo(projectManager.CurrentProjectDirectory).Name,
             StartupScenePath = Path.GetRelativePath(projectManager.CurrentProjectDirectory, currentScene)
                 .Replace('\\', '/'),
             WindowWidth = 1920,
             WindowHeight = 1080,
             Fullscreen = false,
-            GameTitle = Path.GetFileName(projectManager.CurrentProjectDirectory) ?? "My Game",
             TargetFrameRate = 60
         };
 

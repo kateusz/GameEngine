@@ -1,4 +1,4 @@
-using Engine.Core.Input;
+using Input;
 
 namespace Engine.Events.Input;
 

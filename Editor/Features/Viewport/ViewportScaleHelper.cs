@@ -24,7 +24,7 @@ public class ViewportScaleHelper : IViewportScaleHelper
             return RenderingConstants.TargetPixelSpacing;
 
         var rawSpacing = RenderingConstants.TargetPixelSpacing / zoom;
-        var magnitude = (float)Math.Pow(10, Math.Floor(Math.Log10(rawSpacing)));
+        var magnitude = (float)System.Math.Pow(10, System.Math.Floor(System.Math.Log10(rawSpacing)));
         var normalizedSpacing = rawSpacing / magnitude;
 
         float niceSpacing;

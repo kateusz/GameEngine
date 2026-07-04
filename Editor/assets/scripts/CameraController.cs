@@ -1,11 +1,10 @@
-using System;
 using System.Numerics;
-using Engine.Core.Input;
-using Engine.Math;
-using Engine.Renderer.Cameras;
-using Engine.Scene;
-using Engine.Scene.Components;
-using System.Collections.Generic;
+using ECS;
+using Input;
+using Math;
+using SceneComponents;
+using SceneComponents.Camera;
+using Scripting;
 
 namespace Editor.assets.scripts;
 
@@ -26,17 +25,21 @@ public class CameraController : ScriptableEntity
     private float _lastMouseX;
     private float _lastMouseY;
     private bool _firstMouseSample = true;
-    private readonly HashSet<KeyCodes> _pressedKeys = new();
+    private readonly HashSet<KeyCodes> _pressedKeys = [];
 
     // Orthographic movement accumulator
     private Vector3 _orthoInput = Vector3.Zero;
+
+    public CameraController(IComponentAccessor componentAccessor) : base(componentAccessor)
+    {
+    }
 
     public override void OnCreate()
     {
         if (!HasComponent<CameraComponent>())
             return;
 
-        _isPerspective = GetComponent<CameraComponent>().Camera.ProjectionType == ProjectionType.Perspective;
+        _isPerspective = GetComponent<CameraComponent>().ProjectionType == CameraProjectionTypeData.Perspective;
 
         if (_isPerspective && HasComponent<TransformComponent>())
             _position = GetComponent<TransformComponent>().Translation;
@@ -47,7 +50,6 @@ public class CameraController : ScriptableEntity
         if (!_isPerspective)
         {
             UpdateOrthographic((float)ts.TotalSeconds);
-            return;
         }
 
         if (!HasComponent<CameraComponent>())
@@ -108,8 +110,8 @@ public class CameraController : ScriptableEntity
         _lastMouseX = x;
         _lastMouseY = y;
 
-        _yaw -= deltaX * CameraConfig.EditorMouseSensitivity;
-        _pitch += deltaY * CameraConfig.EditorMouseSensitivity;
+        _yaw -= deltaX * 0.003f;
+        _pitch += deltaY * 0.003f;
         _pitch = System.Math.Clamp(_pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);
     }
 

@@ -1,6 +1,7 @@
 using Engine.Scene;
-using Engine.Scene.Components;
 using ImGuiNET;
+using SceneComponents;
+using SceneComponents.Rendering;
 
 namespace Editor.UI.Elements;
 

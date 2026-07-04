@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Audio;
+using SceneComponents.Audio;
 
 namespace Engine.Platform.OpenAL;
 

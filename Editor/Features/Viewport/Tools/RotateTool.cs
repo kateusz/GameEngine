@@ -2,7 +2,7 @@ using System.Numerics;
 using ECS;
 using Editor.Features.Viewport.Gizmos;
 using Engine.Renderer.Cameras;
-using Engine.Scene.Components;
+using SceneComponents;
 
 namespace Editor.Features.Viewport.Tools;
 

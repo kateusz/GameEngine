@@ -1,4 +1,5 @@
 using System.Numerics;
+using ECS.Systems;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -17,7 +18,8 @@ public class GameLayer(
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
-    GameConfiguration gameConfig)
+    GameConfiguration gameConfig,
+    IEnumerable<IGameSystem> gameSystems)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
@@ -31,9 +33,15 @@ public class GameLayer(
 
         Logger.Information("Game layer attached.");
 
-        // Set scripts directory for script engine
-        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "scripts");
-        scriptEngine.SetScriptsDirectory(scriptsDir);
+        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "assets", "scripts");
+        var rel = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
+            ? "GameAssembly.dll"
+            : gameConfig.GameAssemblyPath;
+        var gameDll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, rel));
+        if (File.Exists(gameDll))
+            scriptEngine.LoadGameAssemblyFromFile(gameDll, scriptsDir);
+        else
+            scriptEngine.SetScriptsDirectory(scriptsDir);
 
         // Load startup scene
         var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
@@ -45,6 +53,7 @@ public class GameLayer(
 
             // Create empty scene as fallback
             var emptyScene = sceneFactory.Create("", "");
+            RegisterGameSystems(emptyScene);
             sceneContext.SetScene(emptyScene);
         }
         else
@@ -56,6 +65,7 @@ public class GameLayer(
                 // Create and load scene
                 var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
                 sceneSerializer.Deserialize(scene, startupScenePath);
+                RegisterGameSystems(scene);
                 sceneContext.SetScene(scene);
 
                 // Start runtime (activate systems, physics, etc.)
@@ -68,9 +78,16 @@ public class GameLayer(
 
                 // Create empty scene as fallback
                 var emptyScene = sceneFactory.Create("", "");
+                RegisterGameSystems(emptyScene);
                 sceneContext.SetScene(emptyScene);
             }
         }
+    }
+
+    private void RegisterGameSystems(IScene scene)
+    {
+        foreach (var gameSystem in gameSystems)
+            scene.RegisterRuntimeSystem(gameSystem);
     }
 
     public void OnDetach()

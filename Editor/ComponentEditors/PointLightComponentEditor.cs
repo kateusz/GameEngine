@@ -1,8 +1,7 @@
 using ECS;
 using Editor.ComponentEditors.Core;
-using Editor.UI.Elements;
-using Engine.Scene.Components.Lights;
 using ImGuiNET;
+using SceneComponents.Lights;
 
 namespace Editor.ComponentEditors;
 

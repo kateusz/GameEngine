@@ -1,5 +1,5 @@
 using Bogus;
-using Engine.Scene.Components;
+using SceneComponents;
 using Shouldly;
 
 namespace Engine.Tests.Components;

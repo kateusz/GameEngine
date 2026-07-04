@@ -4,8 +4,9 @@ using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using System.Numerics;
-using Engine.Math;
-using Engine.Scene.Components;
+using Engine.Scene.Serializer;
+using Math;
+using SceneComponents.Rendering;
 
 namespace Engine.Renderer;
 
@@ -220,8 +221,8 @@ internal sealed class Graphics2D(
 
     public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
     {
-        if (src.Texture is not null)
-            DrawQuad(transform, src.Texture, DefaultTextureCoords, src.TilingFactor, src.Color, entityId);
+        if (!string.IsNullOrWhiteSpace(src.TexturePath))
+            DrawQuad(transform, textureFactory.Create(PathBuilder.Build(src.TexturePath)), DefaultTextureCoords, src.TilingFactor, src.Color, entityId);
         else
             DrawQuad(transform, src.Color, entityId);
     }

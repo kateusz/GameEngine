@@ -12,7 +12,7 @@ public static class EntityNameEditor
         var buffer = new byte[EditorUIConstants.MaxTextInputLength];
         Array.Clear(buffer, 0, buffer.Length);
         var tagBytes = System.Text.Encoding.UTF8.GetBytes(tag);
-        Array.Copy(tagBytes, buffer, Math.Min(tagBytes.Length, buffer.Length - 1));
+        Array.Copy(tagBytes, buffer, System.Math.Min(tagBytes.Length, buffer.Length - 1));
 
         ImGui.Columns(2, "tag_columns", false);
         ImGui.SetColumnWidth(0, EditorUIConstants.DefaultColumnWidth);

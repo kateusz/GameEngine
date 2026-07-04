@@ -2,7 +2,6 @@
 using Editor.DI;
 using Editor.Panels;
 using Engine.Core;
-using Engine.Scripting;
 using Serilog;
 using Editor.Logging;
 using Engine.Core.DI;
@@ -32,19 +31,6 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 Log.Information("Editor has started.");
-
-#if DEBUG
-// Enable script debugging in debug builds
-var scriptEngine = container.Resolve<IScriptEngine>();
-scriptEngine.EnableHybridDebugging(true);
-
-// Optional: Save debug symbols to disk for external debuggers
-var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
-Directory.CreateDirectory(symbolsPath);
-scriptEngine.SaveDebugSymbols(Path.Combine(symbolsPath, "DynamicScripts"));
-
-scriptEngine.PrintDebugInfo();
-#endif
 
 var editor = container.Resolve<Editor.Editor>();
 var editorLayer = container.Resolve<ILayer>();
