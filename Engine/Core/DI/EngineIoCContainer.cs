@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
+using ECS;
 using ECS.Systems;
 using Silk.NET.Assimp;
 using Engine.Core.Input;
@@ -92,6 +93,11 @@ public static class EngineIoCContainer
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
+
+        // Game systems from GameAssembly resolve via DryIoc and read the active scene ECS context.
+        container.RegisterDelegate<IContext>(
+            r => r.Resolve<ISceneContext>().ActiveScene?.Context
+                 ?? throw new InvalidOperationException("Cannot resolve IContext without an active scene."));
         
         container.Register<SerializerOptions>(Reuse.Singleton);
         container.Register<ComponentSerializerRegistry>(Reuse.Singleton);

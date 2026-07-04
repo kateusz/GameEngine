@@ -19,12 +19,11 @@ public class GameLayer(
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
     GameConfiguration gameConfig,
-    IEnumerable<IGameSystem> gameSystems)
+    Func<IEnumerable<IGameSystem>> resolveGameSystems)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
 
-    // Named delegate so it can be unsubscribed in OnDetach
     private readonly Action<IScene> _sceneChangedHandler = _ => Logger.Information("Active scene changed");
 
     public void OnAttach(IInputSystem inputSystem)
@@ -43,7 +42,6 @@ public class GameLayer(
         else
             scriptEngine.SetScriptsDirectory(scriptsDir);
 
-        // Load startup scene
         var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
 
         if (!File.Exists(startupScenePath))
@@ -51,10 +49,9 @@ public class GameLayer(
             Logger.Error("Startup scene not found: {Path} (current directory: {Dir})", startupScenePath, AppContext.BaseDirectory);
             Logger.Warning("Creating empty scene as fallback...");
 
-            // Create empty scene as fallback
             var emptyScene = sceneFactory.Create("", "");
-            RegisterGameSystems(emptyScene);
             sceneContext.SetScene(emptyScene);
+            RegisterGameSystems(emptyScene);
         }
         else
         {
@@ -62,13 +59,10 @@ public class GameLayer(
             {
                 Logger.Information("Loading startup scene from: {Path}", startupScenePath);
 
-                // Create and load scene
                 var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
                 sceneSerializer.Deserialize(scene, startupScenePath);
-                RegisterGameSystems(scene);
                 sceneContext.SetScene(scene);
-
-                // Start runtime (activate systems, physics, etc.)
+                RegisterGameSystems(scene);
                 scene.OnRuntimeStart();
                 Logger.Information("Startup scene loaded successfully");
             }
@@ -76,17 +70,16 @@ public class GameLayer(
             {
                 Logger.Error(ex, "Failed to load startup scene: {Path}", startupScenePath);
 
-                // Create empty scene as fallback
                 var emptyScene = sceneFactory.Create("", "");
-                RegisterGameSystems(emptyScene);
                 sceneContext.SetScene(emptyScene);
+                RegisterGameSystems(emptyScene);
             }
         }
     }
 
     private void RegisterGameSystems(IScene scene)
     {
-        foreach (var gameSystem in gameSystems)
+        foreach (var gameSystem in resolveGameSystems())
             scene.RegisterRuntimeSystem(gameSystem);
     }
 
@@ -96,7 +89,6 @@ public class GameLayer(
 
         Logger.Information("Game layer detached.");
 
-        // Stop runtime and cleanup
         sceneContext.ActiveScene?.OnRuntimeStop();
         sceneContext.ActiveScene?.Dispose();
     }
@@ -104,28 +96,21 @@ public class GameLayer(
     public void OnUpdate(TimeSpan timeSpan)
     {
         if (sceneContext.ActiveScene == null)
-        {
-            // No scene loaded
             return;
-        }
 
-        // Clear the screen before rendering the new frame
         graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         graphics2D.Clear();
 
-        // Update scene systems (this runs all ECS systems including rendering, physics, scripting, etc.)
         sceneContext.ActiveScene.OnUpdateRuntime(timeSpan);
     }
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
-        // Forward input events to scripts so they can respond to keyboard/mouse input
         scriptEngine.ProcessEvent(windowEvent);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
-        // Handle window resize to update scene viewport
         if (windowEvent is WindowResizeEvent resizeEvent)
         {
             Logger.Information("GameLayer: Window resized: {Width}x{Height}", resizeEvent.Width, resizeEvent.Height);
@@ -133,8 +118,5 @@ public class GameLayer(
         }
     }
 
-    public void Draw()
-    {
-        // Drawing is handled by OnUpdate through the scene's rendering systems
-    }
+    public void Draw() { }
 }

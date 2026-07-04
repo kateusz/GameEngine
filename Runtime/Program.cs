@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DryIoc;
+using ECS.Systems;
 using Engine.Core;
 using Engine.Core.DI;
 using Engine.Scene.Serializer;
@@ -111,6 +112,10 @@ public class Program
         container.Register<RuntimeApplication>(Reuse.Singleton);
 
         RegisterGameAssembly(container, gameConfig);
+
+        container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
+            r => () => r.ResolveMany<IGameSystem>(),
+            Reuse.Singleton);
 
         container.ValidateAndThrow();
     }
