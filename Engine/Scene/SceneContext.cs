@@ -1,3 +1,5 @@
+using Engine.Scene.Systems;
+
 namespace Engine.Scene;
 
 public class SceneContext : ISceneContext
@@ -6,6 +8,9 @@ public class SceneContext : ISceneContext
 
     public ScriptRuntimeStore? ActiveScriptRuntimeStore =>
         ActiveScene as Scene is { } scene ? scene.ScriptRuntimeStore : null;
+
+    public PhysicsRuntimeBodyStore? ActivePhysicsBodyStore =>
+        ActiveScene as Scene is { } scene ? scene.PhysicsBodies : null;
 
     public SceneState State { get; private set; } = SceneState.Edit;
 

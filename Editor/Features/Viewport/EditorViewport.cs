@@ -6,6 +6,7 @@ using Editor.Features.Settings;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
@@ -146,15 +147,15 @@ public sealed class EditorViewport(
             case SceneState.Edit:
                 if (sceneContext.ActiveScene is { } scene)
                 {
+                    var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
                     SceneRenderPipeline.RenderScene(
                         scene.Context,
                         graphics2D,
                         graphics3D,
                         textureFactory,
-                        debugSettings,
-                        scene.PhysicsBodies,
-                        SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera),
-                        useTransformFallbackWhenNoBody: true);
+                        camera);
+                    if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
+                        PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
                 }
                 break;
             case SceneState.Play:

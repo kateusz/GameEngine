@@ -17,7 +17,6 @@ internal sealed class Scene : IScene
     private readonly string _sceneName;
     private readonly IContext _context;
     private readonly ISystemManager _systemManager;
-    private readonly PhysicsRuntimeBodyStore _physicsRuntimeBodyStore;
     private readonly PhysicsContactQueue _physicsContactQueue;
     private readonly ScriptRuntimeStore _scriptRuntimeStore;
 
@@ -35,14 +34,14 @@ internal sealed class Scene : IScene
         _sceneName = sceneName;
         _context = context;
         _systemManager = systemManager;
-        _physicsRuntimeBodyStore = physicsRuntimeBodyStore;
+        PhysicsBodies = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
         _scriptRuntimeStore = scriptRuntimeStore;
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
 
-    public PhysicsRuntimeBodyStore PhysicsBodies => _physicsRuntimeBodyStore;
+    internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 
@@ -126,6 +125,7 @@ internal sealed class Scene : IScene
         // 120: AudioSystem
         // 145: PrimaryCameraSystem
         // 150: SceneRenderSystem
+        // 151: PhysicsDebugRenderSystem
         _systemManager.Update(ts);
     }
 

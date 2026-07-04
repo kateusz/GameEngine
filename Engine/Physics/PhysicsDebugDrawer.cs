@@ -1,0 +1,133 @@
+using System.Numerics;
+using ECS;
+using Engine.Renderer;
+using Engine.Scene;
+using Engine.Scene.Systems;
+using SceneComponents;
+using SceneComponents.Physics;
+
+namespace Engine.Physics;
+
+internal static class PhysicsDebugDrawer
+{
+    public static void Draw(
+        IContext context,
+        IGraphics2D graphics2D,
+        PhysicsRuntimeBodyStore bodyStore,
+        in SceneRenderPipeline.CameraBinding camera,
+        bool useTransformFallbackWhenNoBody)
+    {
+        if (!camera.IsValid)
+            return;
+
+        Begin2DScene(graphics2D, camera);
+        foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
+        {
+            if (bodyStore.TryGet(entity.Id, out var body))
+                DrawColliderFromBody(graphics2D, entity, boxCollider, body);
+            else if (useTransformFallbackWhenNoBody)
+                DrawColliderFromTransform(graphics2D, entity, boxCollider);
+        }
+
+        graphics2D.EndScene();
+    }
+
+    private static void Begin2DScene(IGraphics2D graphics2D, in SceneRenderPipeline.CameraBinding camera)
+    {
+        if (camera.ViewCamera != null)
+            graphics2D.BeginScene(camera.ViewCamera);
+        else
+            graphics2D.BeginScene(camera.Camera!, camera.Transform);
+    }
+
+    private static void DrawColliderFromBody(
+        IGraphics2D graphics2D,
+        Entity entity,
+        BoxCollider2DComponent boxCollider,
+        IPhysicsBody2D body)
+    {
+        var bodyPosition = body.Position;
+        var angle = body.Angle;
+        var transform = entity.GetComponent<TransformComponent>();
+        var color = GetRuntimeBodyDebugColor(body);
+        var size = new Vector2(
+            boxCollider.Size.X * 2.0f * transform.Scale.X,
+            boxCollider.Size.Y * 2.0f * transform.Scale.Y);
+
+        var offset = new Vector2(
+            boxCollider.Offset.X * transform.Scale.X,
+            boxCollider.Offset.Y * transform.Scale.Y);
+        var cos = MathF.Cos(angle);
+        var sin = MathF.Sin(angle);
+        var rotatedOffset = new Vector2(
+            offset.X * cos - offset.Y * sin,
+            offset.X * sin + offset.Y * cos);
+        var worldPos = new Vector3(
+            bodyPosition.X + rotatedOffset.X,
+            bodyPosition.Y + rotatedOffset.Y,
+            0.0f);
+
+        var trs = Matrix4x4.CreateTranslation(worldPos)
+                  * Matrix4x4.CreateRotationZ(angle)
+                  * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        graphics2D.DrawRect(trs, color, entity.Id);
+    }
+
+    private static void DrawColliderFromTransform(
+        IGraphics2D graphics2D,
+        Entity entity,
+        BoxCollider2DComponent boxCollider)
+    {
+        var transform = entity.GetComponent<TransformComponent>();
+        var size = new Vector2(
+            boxCollider.Size.X * 2.0f * transform.Scale.X,
+            boxCollider.Size.Y * 2.0f * transform.Scale.Y);
+        var color = GetEditorColliderColor(entity);
+        var rotation = transform.Rotation.Z;
+        var cos = MathF.Cos(rotation);
+        var sin = MathF.Sin(rotation);
+        var scaledOffset = new Vector2(
+            boxCollider.Offset.X * transform.Scale.X,
+            boxCollider.Offset.Y * transform.Scale.Y);
+        var rotatedOffset = new Vector2(
+            scaledOffset.X * cos - scaledOffset.Y * sin,
+            scaledOffset.X * sin + scaledOffset.Y * cos);
+        var worldPos = new Vector3(
+            transform.Translation.X + rotatedOffset.X,
+            transform.Translation.Y + rotatedOffset.Y,
+            0.0f);
+
+        var trs = Matrix4x4.CreateTranslation(worldPos)
+                  * Matrix4x4.CreateRotationZ(rotation)
+                  * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        graphics2D.DrawRect(trs, color, entity.Id);
+    }
+
+    private static Vector4 GetEditorColliderColor(Entity entity)
+    {
+        if (!entity.TryGetComponent<RigidBody2DComponent>(out var rb))
+            return new Vector4(0.0f, 1.0f, 1.0f, 1.0f);
+
+        return rb.BodyType switch
+        {
+            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+            RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
+        };
+    }
+
+    private static Vector4 GetRuntimeBodyDebugColor(IPhysicsBody2D body)
+    {
+        if (!body.IsEnabled())
+            return new Vector4(0.5f, 0.5f, 0.0f, 1.0f);
+
+        return body.MotionType switch
+        {
+            PhysicsBodyMotionType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+            PhysicsBodyMotionType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+            _ => body.IsAwake()
+                ? new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
+                : new Vector4(0.5f, 0.5f, 0.5f, 1.0f)
+        };
+    }
+}
