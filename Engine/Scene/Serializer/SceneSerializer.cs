@@ -2,19 +2,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
-using SceneComponents;
-using SceneComponents.Audio;
-using SceneComponents.Camera;
-using SceneComponents.Lights;
-using SceneComponents.Physics;
-using SceneComponents.Rendering;
 
 namespace Engine.Scene.Serializer;
 
 [SuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
 internal sealed class SceneSerializer(
-    ComponentDeserializer componentDeserializer,
+    ComponentSerializerRegistry registry,
     SerializerOptions serializerOptions) : ISceneSerializer
 {
     private const string SceneKey = "Scene";
@@ -23,7 +17,7 @@ internal sealed class SceneSerializer(
     private const string NameKey = "Name";
     private const string IdKey = "Id";
 
-    private readonly JsonSerializerOptions _defaultSerializerOptions = serializerOptions.Options;
+    private readonly JsonSerializerOptions _options = serializerOptions.Options;
 
     public void Serialize(IScene scene, string path)
     {
@@ -97,8 +91,7 @@ internal sealed class SceneSerializer(
         foreach (var jsonEntity in jsonEntities)
         {
             if (jsonEntity is not JsonObject entityObj) continue;
-            var entity = DeserializeEntity(entityObj);
-            scene.AddEntity(entity);
+            scene.AddEntity(DeserializeEntity(entityObj));
         }
     }
 
@@ -121,52 +114,26 @@ internal sealed class SceneSerializer(
         var componentsArray = GetJsonArray(entityObj, ComponentsKey);
 
         foreach (var componentNode in componentsArray)
-            componentDeserializer.DeserializeComponent(entity,
-                componentNode ?? throw new InvalidSceneJsonException("Got null JSON Component"));
+        {
+            if (componentNode is not JsonObject componentObj)
+                throw new InvalidSceneJsonException("Got null JSON Component");
+
+            registry.DeserializeComponent(entity, componentObj, _options, strict: true);
+        }
 
         return entity;
     }
 
     private void SerializeEntity(JsonArray jsonEntities, Entity entity)
     {
-        var entityObj = new JsonObject
+        var componentsArray = new JsonArray();
+        registry.SerializeEntity(entity, componentsArray, _options);
+
+        jsonEntities.Add(new JsonObject
         {
             [IdKey] = entity.Id,
             [NameKey] = entity.Name,
-            [ComponentsKey] = new JsonArray()
-        };
-
-        SerializeComponent<TransformComponent>(entity, entityObj, nameof(TransformComponent));
-        SerializeComponent<CameraComponent>(entity, entityObj, nameof(CameraComponent));
-        SerializeComponent<SpriteRendererComponent>(entity, entityObj, nameof(SpriteRendererComponent));
-        SerializeComponent<SubTextureRendererComponent>(entity, entityObj, nameof(SubTextureRendererComponent));
-        SerializeComponent<RigidBody2DComponent>(entity, entityObj, nameof(RigidBody2DComponent));
-        SerializeComponent<BoxCollider2DComponent>(entity, entityObj, nameof(BoxCollider2DComponent));
-        SerializeComponent<AudioListenerComponent>(entity, entityObj, nameof(AudioListenerComponent));
-        SerializeComponent<MeshComponent>(entity, entityObj, nameof(MeshComponent));
-        SerializeComponent<ModelRendererComponent>(entity, entityObj, nameof(ModelRendererComponent));
-        SerializeComponent<AudioSourceComponent>(entity, entityObj, nameof(AudioSourceComponent));
-        SerializeComponent<PointLightComponent>(entity, entityObj, nameof(PointLightComponent));
-        SerializeComponent<DirectionalLightComponent>(entity, entityObj, nameof(DirectionalLightComponent));
-        SerializeComponent<AmbientLightComponent>(entity, entityObj, nameof(AmbientLightComponent));
-        componentDeserializer.SerializeNativeScriptComponent(entity, entityObj, ComponentsKey);
-
-        jsonEntities.Add(entityObj);
-    }
-
-    private void SerializeComponent<T>(Entity entity, JsonObject entityObj, string componentName)
-        where T : IComponent
-    {
-        if (!entity.HasComponent<T>())
-            return;
-
-        var component = entity.GetComponent<T>();
-        var element = JsonSerializer.SerializeToNode(component, _defaultSerializerOptions);
-        if (element != null)
-        {
-            element[NameKey] = componentName;
-            var components = GetJsonArray(entityObj, ComponentsKey);
-            components.Add(element);
-        }
+            [ComponentsKey] = componentsArray
+        });
     }
 }

@@ -222,9 +222,23 @@ internal sealed class Graphics2D(
     public void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId)
     {
         if (!string.IsNullOrWhiteSpace(src.TexturePath))
-            DrawQuad(transform, textureFactory.Create(PathBuilder.Build(src.TexturePath)), DefaultTextureCoords, src.TilingFactor, src.Color, entityId);
-        else
-            DrawQuad(transform, src.Color, entityId);
+        {
+            try
+            {
+                DrawQuad(transform, textureFactory.Create(PathBuilder.Resolve(src.TexturePath)), DefaultTextureCoords,
+                    src.TilingFactor, src.Color, entityId);
+                return;
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.ForContext<Graphics2D>().Warning(
+                    ex,
+                    "Failed to load sprite texture '{TexturePath}' — drawing a solid color quad instead",
+                    src.TexturePath);
+            }
+        }
+
+        DrawQuad(transform, src.Color, entityId);
     }
 
     public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
@@ -308,25 +322,21 @@ internal sealed class Graphics2D(
     {
         if (_data.QuadIndexBufferCount > 0)
         {
-            // Calculate actual data size (already known from index)
             var vertexCount = _data.CurrentVertexBufferIndex;
             var dataSize = vertexCount * QuadVertex.GetSize();
 
-            // Make sure we're using the quad shader
             _data.QuadShader.Bind();
-
-            // Explicitly bind the quad vertex array
             _data.QuadVertexArray.Bind();
 
-            // Upload only used portion to GPU
             var usedVertices = _data.QuadVertexBufferBase.AsSpan(0, vertexCount);
             _data.QuadVertexBuffer.SetData(usedVertices, dataSize);
 
-            // Bind textures
             for (var i = 0; i < _data.TextureSlotIndex; i++)
                 _data.TextureSlots[i].Bind(i);
 
+            rendererApi.SetDepthTest(false);
             rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+            rendererApi.SetDepthTest(true);
             _data.Stats.DrawCalls++;
         }
 

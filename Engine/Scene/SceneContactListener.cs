@@ -1,81 +1,52 @@
-using Box2D.NetStandard.Collision;
-using Box2D.NetStandard.Dynamics.Contacts;
-using Box2D.NetStandard.Dynamics.World;
-using Box2D.NetStandard.Dynamics.World.Callbacks;
 using ECS;
+using Engine.Physics;
 using Engine.Scripting;
 using SceneComponents;
 using Serilog;
 
 namespace Engine.Scene;
 
-internal sealed class SceneContactListener : ContactListener
+internal sealed class SceneContactListener : IPhysicsContactListener
 {
     private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
-    
-    public override void BeginContact(in Contact contact)
+
+    public void OnContactBegin(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger)
     {
         try
         {
-            // Get the two fixtures that collided
-            var fixtureA = contact.GetFixtureA();
-            var fixtureB = contact.GetFixtureB();
-            
-            // Get the two bodies that collided
-            var bodyA = fixtureA.GetBody();
-            var bodyB = fixtureB.GetBody();
-            
-            // Get entities from bodies (we'll store entity reference in UserData)
-            var entityA = bodyA.GetUserData<Entity>();
-            var entityB = bodyB.GetUserData<Entity>();
-            
+            var entityA = bodyA.Entity;
+            var entityB = bodyB.Entity;
             if (entityA == null || entityB == null)
-            {
-                // Bodies might not have entity references
                 return;
-            }
-            
-            // Check if either fixture is a sensor (trigger)
-            var isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
-            
+
             if (isTrigger)
             {
                 Logger.Debug("Trigger began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                // Notify trigger events
                 NotifyEntityTrigger(entityA, entityB, true);
                 NotifyEntityTrigger(entityB, entityA, true);
             }
             else
             {
                 Logger.Debug("Collision began between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
-                // Notify collision events
                 NotifyEntityCollision(entityA, entityB, true);
                 NotifyEntityCollision(entityB, entityA, true);
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error in BeginContact");
+            Logger.Error(ex, "Error in OnContactBegin");
         }
     }
-    
-    public override void EndContact(in Contact contact)
+
+    public void OnContactEnd(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger)
     {
         try
         {
-            var fixtureA = contact.GetFixtureA();
-            var fixtureB = contact.GetFixtureB();
-            var bodyA = fixtureA.GetBody();
-            var bodyB = fixtureB.GetBody();
-            
-            var entityA = bodyA.GetUserData<Entity>();
-            var entityB = bodyB.GetUserData<Entity>();
-            
+            var entityA = bodyA.Entity;
+            var entityB = bodyB.Entity;
             if (entityA == null || entityB == null)
                 return;
-            
-            var isTrigger = fixtureA.IsSensor() || fixtureB.IsSensor();
-            
+
             if (isTrigger)
             {
                 Logger.Debug("Trigger ended between {EntityA} and {EntityB}", entityA.Name, entityB.Name);
@@ -91,63 +62,45 @@ internal sealed class SceneContactListener : ContactListener
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error in EndContact");
+            Logger.Error(ex, "Error in OnContactEnd");
         }
-    }
-
-    public override void PreSolve(in Contact contact, in Manifold oldManifold)
-    {
-    }
-
-    public override void PostSolve(in Contact contact, in ContactImpulse impulse)
-    {
     }
 
     private static void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)
     {
-        // Check if entity has a script component
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
-            
+
         if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
             return;
-        
+
         try
         {
             if (isEnter)
-            {
                 scriptableEntity.OnTriggerEnter(otherEntity);
-            }
             else
-            {
                 scriptableEntity.OnTriggerExit(otherEntity);
-            }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error calling trigger event on {EntityName}", entity.Name);
         }
     }
-    
+
     private static void NotifyEntityCollision(Entity entity, Entity otherEntity, bool isBegin)
     {
-        // Check if entity has a script component
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
-            
+
         if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
             return;
-        
+
         try
         {
             if (isBegin)
-            {
                 scriptableEntity.OnCollisionBegin(otherEntity);
-            }
             else
-            {
                 scriptableEntity.OnCollisionEnd(otherEntity);
-            }
         }
         catch (Exception ex)
         {

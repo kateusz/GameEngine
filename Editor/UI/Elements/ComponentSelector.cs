@@ -1,4 +1,5 @@
 using ECS;
+using Editor.ComponentEditors;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Scene;
@@ -15,7 +16,7 @@ namespace Editor.UI.Elements;
 
 public static class ComponentSelector
 {
-    public static void Draw(Entity entity, IScene scene)
+    public static void Draw(Entity entity, IScene scene, GameComponentEditor gameComponentEditor)
     {
         ButtonDrawer.DrawButton("Add Component", () => ImGui.OpenPopup("AddComponent"));
 
@@ -37,8 +38,18 @@ public static class ComponentSelector
             });
 
             DrawComponentMenuItem<TransformComponent>("Transform", entity);
-            DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity);
-            DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity);
+            DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                entity.AddComponent<SpriteRendererComponent>();
+            });
+            DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                entity.AddComponent<SubTextureRendererComponent>();
+            });
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity);
@@ -48,6 +59,12 @@ public static class ComponentSelector
             DrawComponentMenuItem<PointLightComponent>("Point Light", entity);
             DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity);
             DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);
+
+            if (ImGui.MenuItem("Game Component"))
+            {
+                gameComponentEditor.RequestCreate(entity);
+                ImGui.CloseCurrentPopup();
+            }
 
             ImGui.EndPopup();
         }

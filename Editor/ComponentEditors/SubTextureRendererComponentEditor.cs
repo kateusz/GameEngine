@@ -16,9 +16,9 @@ public class SubTextureRendererComponentEditor(ITextureFactory textureFactory)
         {
             var component = entity.GetComponent<SubTextureRendererComponent>();
 
-            TextureDropTarget.Draw("Texture", texture =>
+            TextureDropTarget.Draw("Texture", relativePath =>
             {
-                component.TexturePath = texture.Path;
+                component.TexturePath = relativePath;
             }, textureFactory);
             UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);

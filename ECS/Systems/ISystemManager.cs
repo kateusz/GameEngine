@@ -45,10 +45,11 @@ public interface ISystemManager : IDisposable
     /// <summary>
     /// Shuts down per-scene systems by calling their OnShutdown method.
     /// Shared systems are NOT shut down (they have application-wide lifetime).
-    /// Systems are shut down in reverse priority order.
+    /// Systems remain registered and can be started again via <see cref="Initialize"/>.
     /// </summary>
     /// <remarks>
-    /// Use ShutdownAll() for global cleanup when the application is closing.
+    /// Use <see cref="ShutdownAll"/> for global cleanup when the application is closing.
+    /// Unregistration and disposal happen in <see cref="IDisposable.Dispose"/>.
     /// </remarks>
     void Shutdown();
 

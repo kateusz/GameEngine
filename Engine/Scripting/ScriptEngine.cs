@@ -75,7 +75,6 @@ internal sealed class ScriptEngine : IScriptEngine
         if (!_suppressFileChangeRecompile)
             CheckForScriptChanges();
 
-        // TODO: check if ActiveScene could be null
         if (_sceneContext.ActiveScene == null)
             return;
 
@@ -355,11 +354,22 @@ internal sealed class ScriptEngine : IScriptEngine
     
     public void CompileAllScripts()
     {
+        var (success, errors) = TryCompileAllScripts();
+        if (success)
+            return;
+
+        foreach (var err in errors)
+            Logger.Error("Script compilation: {Error}", err);
+    }
+
+    public (bool Success, string[] Errors) TryCompileAllScripts()
+    {
         Logger.Information("Compiling all scripts to {GameAssembly}...", GameAssemblyCompiler.AssemblyName);
         if (!Directory.Exists(_scriptsDirectory))
         {
-            Logger.Warning("Scripts directory does not exist: {Dir}", _scriptsDirectory);
-            return;
+            var error = $"Scripts directory does not exist: {_scriptsDirectory}";
+            Logger.Warning("{Error}", error);
+            return (false, [error]);
         }
 
         var outputPath = AllocateGameAssemblyBuildPath();
@@ -369,14 +379,26 @@ internal sealed class ScriptEngine : IScriptEngine
                 _debugMode,
                 useDebugOptimization: _debugMode,
                 out var errors))
-        {
-            foreach (var err in errors ?? [])
-                Logger.Error("Script compilation: {Error}", err);
-            return;
-        }
+            return (false, errors ?? []);
 
         TryLoadCompiledAssembly(outputPath);
+        return _dynamicAssembly is null
+            ? (false, ["Failed to load compiled game assembly"])
+            : (true, []);
     }
+
+    public Type? GetLoadedGameType(string typeName)
+    {
+        if (_dynamicAssembly is null || string.IsNullOrWhiteSpace(typeName))
+            return null;
+
+        return Array.Find(_dynamicAssembly.GetTypes(), t =>
+            t is { IsClass: true, IsAbstract: false }
+            && t.Name == typeName
+            && typeof(IGameComponent).IsAssignableFrom(t));
+    }
+
+    public Assembly? GetLoadedGameAssembly() => _dynamicAssembly;
 
     private void CheckForScriptChanges()
     {
@@ -432,7 +454,10 @@ internal sealed class ScriptEngine : IScriptEngine
             if (_debugMode && File.Exists(Path.ChangeExtension(outputPath, ".pdb")))
                 _debugSymbols[GameAssemblyCompiler.AssemblyName] = File.ReadAllBytes(Path.ChangeExtension(outputPath, ".pdb")!);
 
-            _dynamicAssembly = Assembly.LoadFrom(outputPath);
+            var existing = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => string.Equals(a.GetName().Name, GameAssemblyCompiler.AssemblyName, StringComparison.Ordinal));
+
+            _dynamicAssembly = existing ?? Assembly.LoadFrom(outputPath);
             IndexScriptSourcesFromDisk();
             UpdateScriptTypes();
             Logger.Information("Loaded {Count} script types from game assembly", _scriptTypes.Count);
@@ -572,13 +597,13 @@ internal sealed class ScriptEngine : IScriptEngine
     public string GenerateScriptTemplate(string scriptName)
     {
         return $$"""
-                 using System;
-                 using System.Collections.Generic;
                  using System.Numerics;
                  using ECS;
-                 using Engine.Scene;
-                 using Engine.Core.Input;
-                 using Engine.Scene.Components;
+                 using Input;
+                 using Math;
+                 using SceneComponents;
+                 using SceneComponents.Camera;
+                 using Scripting;
 
                  public class {{scriptName}} : ScriptableEntity
                  {

@@ -90,13 +90,29 @@ internal sealed class Scene : IScene
 
     public void OnRuntimeStart()
     {
+        EnsurePrimaryCamera();
         _systemManager.Initialize();
     }
 
-    public void OnRuntimeStop()
+    private void EnsurePrimaryCamera()
     {
-        _systemManager.Shutdown();
+        if (GetPrimaryCameraEntity() is not null)
+            return;
+
+        foreach (var (entity, _) in _context.View<CameraComponent>())
+        {
+            SetPrimaryCamera(entity);
+            Logger.Warning(
+                "No primary camera was set — '{EntityName}' is now the primary camera. " +
+                "Enable Primary on a CameraComponent to choose explicitly.",
+                entity.Name);
+            return;
+        }
+
+        Logger.Warning("Play mode has no camera — nothing will render until you add a CameraComponent.");
     }
+
+    public void OnRuntimeStop() => _systemManager.Shutdown();
 
     public void OnUpdateRuntime(TimeSpan ts)
     {

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DryIoc;
+using ECS;
 using ECS.Systems;
 using Silk.NET.Assimp;
 using Engine.Core.Input;
@@ -9,6 +10,7 @@ using Engine.ImGuiNet;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
 using Silk.NET.OpenAL;
+using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -23,6 +25,7 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
 [assembly: InternalsVisibleTo("Engine.Tests")]
+[assembly: InternalsVisibleTo("Editor")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
 namespace Engine.Core.DI;
@@ -68,7 +71,6 @@ public static class EngineIoCContainer
             )
         );
         
-        container.Register<EventBus, EventBus>(Reuse.Singleton);
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
@@ -84,14 +86,23 @@ public static class EngineIoCContainer
         container.Register<Engine.Audio.IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
 
         container.Register<SceneFactory>(Reuse.Singleton);
+        container.Register<IPhysicsBackendConfig>(Reuse.Singleton,
+            made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D)));
+        container.Register<IPhysicsWorld2DFactory, PhysicsWorld2DFactory>(Reuse.Singleton);
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
+
+        // Game systems from GameAssembly resolve via DryIoc and read the active scene ECS context.
+        container.RegisterDelegate<IContext>(
+            r => r.Resolve<ISceneContext>().ActiveScene?.Context
+                 ?? throw new InvalidOperationException("Cannot resolve IContext without an active scene."));
         
         container.Register<SerializerOptions>(Reuse.Singleton);
-        container.Register<ComponentDeserializer>(Reuse.Singleton);
+        container.Register<ComponentSerializerRegistry>(Reuse.Singleton);
+        container.RegisterMapping<IComponentSerializerRegistry, ComponentSerializerRegistry>();
         container.Register<IPrefabSerializer, PrefabSerializer>(Reuse.Singleton);
         container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
     }

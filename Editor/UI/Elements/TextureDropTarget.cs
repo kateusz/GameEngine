@@ -1,4 +1,5 @@
 using Editor.UI.Drawers;
+using Engine.Core;
 using Engine.Renderer.Textures;
 using Engine.Scene.Serializer;
 
@@ -16,9 +17,9 @@ public static class TextureDropTarget
     /// Draws a drag-and-drop target button for textures.
     /// </summary>
     /// <param name="label">Label to display for the property</param>
-    /// <param name="onTextureChanged">Callback invoked when a texture is dropped</param>
+    /// <param name="onTexturePathChanged">Callback invoked with an asset-relative path when a texture is dropped</param>
     /// <param name="textureFactory">Texture factory for creating textures</param>
-    public static void Draw(string label, Action<Texture2D> onTextureChanged, ITextureFactory textureFactory)
+    public static void Draw(string label, Action<string> onTexturePathChanged, ITextureFactory textureFactory)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
@@ -31,14 +32,26 @@ public static class TextureDropTarget
                 DragDropDrawer.ContentBrowserItemPayload,
                 path =>
                 {
-                    var texturePath = PathBuilder.Build(path);
+                    var texturePath = PathBuilder.Resolve(path);
                     return DragDropDrawer.IsValidFile(texturePath, SupportedExtensions);
                 },
                 path =>
                 {
-                    var texturePath = PathBuilder.Build(path);
-                    onTextureChanged(textureFactory.Create(texturePath));
+                    var texturePath = PathBuilder.Resolve(path);
+                    textureFactory.Create(texturePath);
+                    onTexturePathChanged(ToAssetRelativePath(path));
                 });
         });
+    }
+
+    private static string ToAssetRelativePath(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var assetsPath = Path.GetFullPath(AssetsManager.AssetsPath);
+        var relative = Path.GetRelativePath(assetsPath, fullPath);
+        if (!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative))
+            return relative.Replace('\\', '/');
+
+        return path.Replace('\\', '/');
     }
 }

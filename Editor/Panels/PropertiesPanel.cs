@@ -9,7 +9,11 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegistry componentEditors, ISceneContext sceneContext)
+public class PropertiesPanel(
+    IPrefabManager prefabManager,
+    IComponentEditorRegistry componentEditors,
+    ISceneContext sceneContext,
+    GameComponentEditor gameComponentEditor)
     : IPropertiesPanel
 {
     private Entity? _selectedEntity;
@@ -39,7 +43,7 @@ public class PropertiesPanel(IPrefabManager prefabManager, IComponentEditorRegis
         ImGui.Spacing();
 
         // Add component button and popup
-        ComponentSelector.Draw(_selectedEntity, sceneContext.ActiveScene);
+        ComponentSelector.Draw(_selectedEntity, sceneContext.ActiveScene, gameComponentEditor);
         ImGui.SameLine();
 
         // Save as prefab button

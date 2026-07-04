@@ -40,6 +40,7 @@ public class EditorLayer(
     ShortcutManager shortcutManager,
     IScriptEngine scriptEngine,
     ScriptComponentEditor scriptComponentEditor,
+    GameComponentEditor gameComponentEditor,
     DebugSettings debugSettings,
     IFrameBufferFactory frameBufferFactory,
     IHdrToneMapper hdrToneMapper,
@@ -385,6 +386,10 @@ public class EditorLayer(
         if (keyPressedEvent.IsRepeat)
             return;
 
+        var io = ImGui.GetIO();
+        if (io.WantCaptureKeyboard)
+            return;
+
         var control = _pressedKeys.Contains(KeyCodes.LeftControl) ||
                       _pressedKeys.Contains(KeyCodes.RightControl);
         var shift = _pressedKeys.Contains(KeyCodes.LeftShift) ||
@@ -576,6 +581,7 @@ public class EditorLayer(
         panels.ConsolePanel.Draw();
 
         scriptComponentEditor.Draw();
+        gameComponentEditor.RenderPopups();
         panels.RecentProjectsPanel.Draw();
         panels.KeyboardShortcutsPanel.Draw();
 

@@ -40,6 +40,16 @@ public class SystemManagerTests
         }
     }
 
+    private sealed class CountingShutdownSystem : ISystem
+    {
+        public int Priority => 0;
+        public int ShutdownCount { get; private set; }
+
+        public void OnInit() { }
+        public void OnUpdate(TimeSpan deltaTime) { }
+        public void OnShutdown() => ShutdownCount++;
+    }
+
     [Fact]
     public void RegisterSystem_AddsSystemToManager()
     {
@@ -205,6 +215,38 @@ public class SystemManagerTests
     }
 
     [Fact]
+    public void Shutdown_CalledTwice_OnlyInvokesOnShutdownOnce()
+    {
+        var manager = new SystemManager();
+        var system = new CountingShutdownSystem();
+        manager.RegisterSystem(system);
+        manager.Initialize();
+
+        manager.Shutdown();
+        manager.Shutdown();
+
+        Assert.Equal(1, system.ShutdownCount);
+    }
+
+    [Fact]
+    public void Shutdown_CallsOnShutdownButKeepsSystemsRegistered()
+    {
+        var manager = new SystemManager();
+        var system = new TestSystem { Priority = 1 };
+        manager.RegisterSystem(system);
+        manager.Initialize();
+
+        manager.Shutdown();
+
+        Assert.True(system.ShutdownCalled);
+        Assert.Equal(1, manager.SystemCount);
+        Assert.False(manager.IsInitialized);
+
+        manager.Initialize();
+        Assert.True(manager.IsInitialized);
+    }
+
+    [Fact]
     public void Shutdown_CallsOnShutdownOnAllSystems()
     {
         // Arrange
@@ -221,7 +263,7 @@ public class SystemManagerTests
         // Assert
         Assert.True(system1.ShutdownCalled);
         Assert.True(system2.ShutdownCalled);
-        Assert.Equal(0, manager.SystemCount);
+        Assert.Equal(2, manager.SystemCount);
         Assert.False(manager.IsInitialized);
     }
 

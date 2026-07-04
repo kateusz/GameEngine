@@ -1,6 +1,7 @@
 using CSharpFunctionalExtensions;
 using Engine.Events;
 using Scripting;
+using System.Reflection;
 
 namespace Engine.Scripting;
 
@@ -108,6 +109,21 @@ public interface IScriptEngine
     /// Compiles all script files in the scripts directory.
     /// </summary>
     void CompileAllScripts();
+
+    /// <summary>
+    /// Compiles all script files and returns whether compilation succeeded.
+    /// </summary>
+    (bool Success, string[] Errors) TryCompileAllScripts();
+
+    /// <summary>
+    /// Gets a type from the loaded game assembly by simple name.
+    /// </summary>
+    Type? GetLoadedGameType(string typeName);
+
+    /// <summary>
+    /// Gets the currently loaded game assembly, if any.
+    /// </summary>
+    Assembly? GetLoadedGameAssembly();
 
     /// <summary>
     /// Forces recompilation of all scripts and reloads existing script instances.

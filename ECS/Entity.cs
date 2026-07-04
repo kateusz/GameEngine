@@ -46,6 +46,7 @@ public sealed class Entity : IEntity, IEquatable<Entity>
     {
         ValidateComponentNotExists<TComponent>();
         _components[typeof(TComponent)] = component;
+        ComponentAdded?.Invoke(typeof(TComponent));
         return component;
     }
 
@@ -62,6 +63,7 @@ public sealed class Entity : IEntity, IEquatable<Entity>
         ValidateComponentNotExists<TComponent>();
         var component = new TComponent();
         _components[typeof(TComponent)] = component;
+        ComponentAdded?.Invoke(typeof(TComponent));
         return component;
     }
     
@@ -74,16 +76,20 @@ public sealed class Entity : IEntity, IEquatable<Entity>
         var componentType = component.GetType();
         if (!_components.TryAdd(componentType, component))
             throw new InvalidOperationException($"Entity {Id} ('{Name}') already has component {componentType.Name}");
+
+        ComponentAdded?.Invoke(componentType);
     }
 
     public void RemoveComponent<T>() where T : IComponent
     {
-        _components.Remove(typeof(T));
+        if (_components.Remove(typeof(T)))
+            ComponentRemoved?.Invoke(typeof(T));
     }
 
     public void RemoveComponent(Type componentType)
     {
-        _components.Remove(componentType);
+        if (_components.Remove(componentType))
+            ComponentRemoved?.Invoke(componentType);
     }
 
     /// <summary>
@@ -147,6 +153,18 @@ public sealed class Entity : IEntity, IEquatable<Entity>
     public IEnumerable<IComponent> GetAllComponents()
     {
         return _components.Values;
+    }
+
+    /// <summary>Component types currently on this entity (for registry indexing).</summary>
+    internal IEnumerable<Type> ComponentTypes => _components.Keys;
+
+    internal Action<Type>? ComponentAdded;
+    internal Action<Type>? ComponentRemoved;
+
+    internal void ClearComponentHooks()
+    {
+        ComponentAdded = null;
+        ComponentRemoved = null;
     }
 
     /// <summary>

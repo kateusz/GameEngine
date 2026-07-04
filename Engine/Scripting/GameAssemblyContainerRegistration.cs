@@ -13,7 +13,7 @@ public static class GameAssemblyContainerRegistration
             return;
 
         var toRemove = container.GetServiceRegistrations()
-            .Where(r => r.ImplementationType is { } impl &&
+            .Where(r => TryGetImplementationType(r) is { } impl &&
                 string.Equals(impl.Assembly.GetName().Name, gameAssemblyName, StringComparison.Ordinal))
             .ToList();
 
@@ -25,6 +25,14 @@ public static class GameAssemblyContainerRegistration
                 FactoryType.Service,
                 f => ReferenceEquals(f, r.Factory));
         }
+    }
+
+    private static Type? TryGetImplementationType(ServiceRegistrationInfo registration)
+    {
+        if (registration.Factory is null || !registration.Factory.CanAccessImplementationType)
+            return null;
+
+        return registration.Factory.ImplementationType;
     }
 
     public static Assembly Load(string assemblyNameOrFilePath)
@@ -52,7 +60,7 @@ public static class GameAssemblyContainerRegistration
     private static IReadOnlyList<IocRegistrationItem> DiscoverIocRegistrations(Assembly assembly)
     {
         var list = new List<IocRegistrationItem>();
-        foreach (var type in GetLoadableTypes(assembly))
+        foreach (var type in AssemblyLoadTypes.From(assembly))
         {
             if (type is not { IsClass: true, IsAbstract: false })
                 continue;
@@ -85,18 +93,6 @@ public static class GameAssemblyContainerRegistration
         };
 
         container.Register(serviceType, implementationType, reuse);
-    }
-
-    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
-    {
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            return ex.Types.Where(t => t is not null).Cast<Type>().ToArray();
-        }
     }
 
     private readonly record struct IocRegistrationItem(

@@ -17,7 +17,8 @@ public class SceneManager(
     IGameAssemblySystemsBridge gameAssemblySystemsBridge,
     IProjectManager projectManager,
     IGameAssemblyBuilder gameAssemblyBuilder,
-    IScriptEngine scriptEngine)
+    IScriptEngine scriptEngine,
+    IComponentSerializerRegistry componentSerializerRegistry)
     : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
@@ -29,6 +30,7 @@ public class SceneManager(
     public void New(string sceneName)
     {
         sceneContext.ActiveScene?.Dispose();
+        EditorScenePath = null;
 
         sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
         Logger.Information("📄 New scene created");
@@ -44,18 +46,30 @@ public class SceneManager(
         
         EditorScenePath = path;
         sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));
+
+        if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
+        {
+            if (scriptEngine.GetLoadedGameAssembly() is null)
+                scriptEngine.TryCompileAllScripts();
+
+            if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+                componentSerializerRegistry.RegisterFromAssembly(assembly);
+        }
+
         sceneSerializer.Deserialize(sceneContext.ActiveScene!, path);
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
     public void Save()
     {
-        var sceneDir = PathBuilder.Build("scenes");
-        if (!Directory.Exists(sceneDir))
+        if (string.IsNullOrEmpty(EditorScenePath))
+        {
+            var sceneDir = PathBuilder.Build("scenes");
             Directory.CreateDirectory(sceneDir);
+            EditorScenePath = Path.Combine(sceneDir, $"{sceneContext.ActiveScene!.Name}.scene");
+        }
 
-        EditorScenePath = Path.Combine(sceneDir, $"{sceneContext.ActiveScene.Name}.scene");
-        sceneSerializer.Serialize(sceneContext.ActiveScene, EditorScenePath);
+        sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
         Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
     }
 
@@ -81,7 +95,15 @@ public class SceneManager(
         scriptEngine.SetSuppressFileChangeRecompile(true);
 
         EnsureGameAssemblyRegistered(dllPath);
+
+        if (scriptEngine.GetLoadedGameAssembly() is { } playAssembly)
+            componentSerializerRegistry.RegisterFromAssembly(playAssembly);
+
         RegisterGameSystems();
+
+        if (!string.IsNullOrEmpty(EditorScenePath))
+            sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
+
         sceneContext.SetState(SceneState.Play);
         sceneContext.ActiveScene.OnRuntimeStart();
         Logger.Information("▶️ Scene play started");
@@ -95,10 +117,8 @@ public class SceneManager(
         if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
             scriptEngine.SetScriptsDirectory(projectManager.ScriptsDir);
 
-        if (!string.IsNullOrEmpty(EditorScenePath))
-        {
+        if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
             Open(EditorScenePath);
-        }
 
         Logger.Information("⏹️ Scene play stopped");
     }
@@ -112,7 +132,6 @@ public class SceneManager(
         }
 
         Stop();
-        Open(EditorScenePath);
         Play();
         Logger.Information("🔄 Scene restarted");
     }
@@ -140,11 +159,11 @@ public class SceneManager(
         try
         {
             if (!gameAssemblySystemsBridge.EnsureRegistered(key))
-            {
-                Logger.Warning("Game assembly at {Key} has no types marked with [Register]", key);
-                return;
-            }
-            
+                Logger.Debug("Game assembly at {Key} has no types marked with [Register]", key);
+
+            var assembly = GameAssemblyContainerRegistration.Load(key);
+            componentSerializerRegistry.RegisterFromAssembly(assembly);
+
             _gameAssemblyRegistered = true;
             _registeredAssemblyName = key;
             Logger.Information("Registered game assembly: {Key}", key);

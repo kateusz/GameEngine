@@ -1,7 +1,9 @@
 using System.Text.Json;
 using DryIoc;
+using ECS.Systems;
 using Engine.Core;
 using Engine.Core.DI;
+using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Serilog;
 
@@ -111,6 +113,10 @@ public class Program
 
         RegisterGameAssembly(container, gameConfig);
 
+        container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
+            r => () => r.ResolveMany<IGameSystem>(),
+            Reuse.Singleton);
+
         container.ValidateAndThrow();
     }
 
@@ -127,6 +133,8 @@ public class Program
         var assembly = GameAssemblyContainerRegistration.Load(path);
         if (!GameAssemblyContainerRegistration.TryRegisterContainer(container, assembly))
             Logger.Warning("Game assembly has no types marked with [Register]; running without custom game DI.");
+
+        container.Resolve<IComponentSerializerRegistry>().RegisterFromAssembly(assembly);
 
         if (!((Container)container).IsRegistered<ILayer>())
             container.Register<ILayer, GameLayer>(Reuse.Singleton);

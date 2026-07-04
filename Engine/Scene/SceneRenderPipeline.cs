@@ -1,7 +1,7 @@
 using System.Numerics;
-using Box2D.NetStandard.Dynamics.Bodies;
 using ECS;
 using Engine.Core;
+using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -44,7 +44,6 @@ internal static class SceneRenderPipeline
 
     public static void ApplyLighting(IContext context, IGraphics3D graphics3D)
     {
-        var pointLights = context.View<PointLightComponent>().ToList();
         var directionalLights = context.View<DirectionalLightComponent>().ToList();
         var ambientLights = context.View<AmbientLightComponent>().ToList();
 
@@ -83,12 +82,10 @@ internal static class SceneRenderPipeline
         }
 
         var pointLightData = new List<PointLightData>(16);
-        foreach (var (entity, pointLight) in pointLights)
+        foreach (var (_, pointLight, transform) in context.View<PointLightComponent, TransformComponent>())
         {
             if (pointLightData.Count >= 16)
                 break;
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
 
             pointLightData.Add(new PointLightData(
                 transform.Translation,
@@ -107,25 +104,12 @@ internal static class SceneRenderPipeline
         if (!camera.IsValid)
             return;
 
-        var pointLights = context.View<PointLightComponent>().ToList();
-        var directionalLights = context.View<DirectionalLightComponent>().ToList();
-
         Begin3DScene(graphics3D, camera, lightVisualization: true);
-        foreach (var (entity, _) in pointLights)
-        {
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
+        foreach (var (_, _, transform) in context.View<PointLightComponent, TransformComponent>())
             graphics3D.DrawLightVisualization(transform.Translation);
-        }
 
-        foreach (var (entity, _) in directionalLights)
-        {
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
+        foreach (var (_, _, transform) in context.View<DirectionalLightComponent, TransformComponent>())
             graphics3D.DrawLightVisualization(transform.Translation);
-        }
 
         graphics3D.EndLightVisualization();
     }
@@ -136,10 +120,11 @@ internal static class SceneRenderPipeline
             return;
 
         Begin3DScene(graphics3D, camera);
-        foreach (var (entity, meshComponent) in context.View<MeshComponent>())
+        foreach (var (entity, meshComponent, transformComponent) in
+                 context.View<MeshComponent, TransformComponent>())
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+            if (!entity.TryGetComponent<ModelRendererComponent>(out var modelRendererComponent))
+                continue;
 
             graphics3D.DrawModel(
                 transformComponent.GetTransform(),
@@ -161,18 +146,13 @@ internal static class SceneRenderPipeline
             return;
 
         Begin2DScene(graphics2D, camera);
-        foreach (var (entity, spriteRendererComponent) in context.View<SpriteRendererComponent>())
+        foreach (var (entity, spriteRendererComponent, transformComponent) in
+                 context.View<SpriteRendererComponent, TransformComponent>())
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            Texture2D? texture = null;
-            if (textureFactory != null && !string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath))
-                texture = textureFactory.Create(PathBuilder.Build(spriteRendererComponent.TexturePath));
-
-            if (texture is not null)
-                graphics2D.DrawQuad(transformComponent.GetTransform(), texture, DefaultTextureCoords,
-                    spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, entity.Id);
-            else
-                graphics2D.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color, entity.Id);
+            graphics2D.DrawSprite(
+                transformComponent.GetTransform(),
+                spriteRendererComponent,
+                entity.Id);
         }
 
         graphics2D.EndScene();
@@ -188,16 +168,17 @@ internal static class SceneRenderPipeline
             return;
 
         Begin2DScene(graphics2D, camera);
-        foreach (var (entity, subtextureComponent) in context.View<SubTextureRendererComponent>())
+        foreach (var (entity, subtextureComponent, transformComponent) in
+                 context.View<SubTextureRendererComponent, TransformComponent>())
         {
             if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
                 continue;
 
-            var texture = textureFactory.Create(PathBuilder.Build(subtextureComponent.TexturePath));
+            var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
             if (texture == null)
                 continue;
 
-            var transform = entity.GetComponent<TransformComponent>().GetTransform();
+            var transform = transformComponent.GetTransform();
             Vector2[] texCoords;
             if (subtextureComponent.TexCoords != null)
             {
@@ -252,11 +233,11 @@ internal static class SceneRenderPipeline
         in CameraBinding camera,
         bool useTransformFallbackWhenNoBody)
     {
-        RenderSprites(context, graphics2D, textureFactory, camera);
-        RenderSubTextures(context, graphics2D, textureFactory, camera);
         ApplyLighting(context, graphics3D);
         RenderModels(context, graphics3D, camera);
         RenderLightVisualization(context, graphics3D, camera);
+        RenderSprites(context, graphics2D, textureFactory, camera);
+        RenderSubTextures(context, graphics2D, textureFactory, camera);
         RenderPhysicsDebug(context, graphics2D, debugSettings, bodyStore, camera, useTransformFallbackWhenNoBody);
     }
 
@@ -289,10 +270,10 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         Entity entity,
         BoxCollider2DComponent boxCollider,
-        Body body)
+        IPhysicsBody2D body)
     {
-        var bodyPosition = body.GetPosition();
-        var angle = body.GetAngle();
+        var bodyPosition = body.Position;
+        var angle = body.Angle;
         var transform = entity.GetComponent<TransformComponent>();
         var color = GetRuntimeBodyDebugColor(body);
         var size = new Vector2(
@@ -361,15 +342,15 @@ internal static class SceneRenderPipeline
         };
     }
 
-    private static Vector4 GetRuntimeBodyDebugColor(Body body)
+    private static Vector4 GetRuntimeBodyDebugColor(IPhysicsBody2D body)
     {
         if (!body.IsEnabled())
             return new Vector4(0.5f, 0.5f, 0.0f, 1.0f);
 
-        return body.Type() switch
+        return body.MotionType switch
         {
-            BodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
-            BodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+            PhysicsBodyMotionType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+            PhysicsBodyMotionType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
             _ => body.IsAwake()
                 ? new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
                 : new Vector4(0.5f, 0.5f, 0.5f, 1.0f)
