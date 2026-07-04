@@ -1,7 +1,6 @@
 using ECS;
 using Engine.Core;
 using Editor.Features.Scripting;
-using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Serilog;
 
@@ -9,8 +8,7 @@ namespace Editor.Features.Components;
 
 public class GameComponentFactory(
     IProjectContext projectContext,
-    GameScriptWorkspace scriptWorkspace,
-    IComponentSerializerRegistry serializerRegistry)
+    GameScriptWorkspace scriptWorkspace)
     : IGameComponentFactory
 {
     private static readonly ILogger Logger = Log.ForContext<GameComponentFactory>();
@@ -55,9 +53,6 @@ public class GameComponentFactory(
         if (!compiled)
             return (false, string.Join('\n', errors.Take(5)));
 
-        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
-            serializerRegistry.RegisterFromAssembly(assembly);
-
         return (true, null);
     }
 
@@ -74,9 +69,6 @@ public class GameComponentFactory(
         var type = scriptWorkspace.GetLoadedGameType(className);
         if (type is null)
             return (false, "Component compiled but type not found.");
-
-        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
-            serializerRegistry.RegisterFromAssembly(assembly);
 
         if (entity.GetAllComponents().Any(c => c.GetType() == type))
             return (false, "Entity already has this component.");
@@ -109,9 +101,6 @@ public class GameComponentFactory(
 
         if (entity.GetAllComponents().Any(c => c.GetType() == type))
             return (false, "Entity already has this component.");
-
-        if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
-            serializerRegistry.RegisterFromAssembly(assembly);
 
         entity.AddComponentDynamic((IComponent)Activator.CreateInstance(type)!);
         Logger.Information("Attached existing {ComponentName} to entity {EntityName}", typeName, entity.Name);

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using ECS;
 using ECS.Systems;
 using Editor.Features.Scripting;
@@ -14,20 +13,16 @@ public class SceneManager(
     ISceneContext sceneContext,
     ISceneSerializer sceneSerializer,
     SceneFactory sceneFactory,
-    Func<string, bool> ensureGameAssemblyRegistered,
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IProjectContext projectContext,
     IGameAssemblyBuilder gameAssemblyBuilder,
     IScriptEngine scriptEngine,
-    GameScriptWorkspace scriptWorkspace,
-    IComponentSerializerRegistry componentSerializerRegistry)
+    GameScriptWorkspace scriptWorkspace)
     : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
 
     public string? EditorScenePath { get; private set; }
-    private bool _gameAssemblyRegistered;
-    private string? _registeredAssemblyName;
 
     public void New(string sceneName)
     {
@@ -45,18 +40,12 @@ public class SceneManager(
 
         sceneContext.ActiveScene?.Dispose();
         EditorScenePath = null;
-        
+
         EditorScenePath = path;
         sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));
 
         if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
-        {
-            if (scriptWorkspace.GetLoadedGameAssembly() is null)
-                scriptWorkspace.TryCompileAllScripts();
-
-            if (scriptWorkspace.GetLoadedGameAssembly() is { } assembly)
-                componentSerializerRegistry.RegisterFromAssembly(assembly);
-        }
+            scriptWorkspace.EnsureScriptsCompiledAndApplied();
 
         sceneSerializer.Deserialize(sceneContext.ActiveScene!, path);
         Logger.Information("📂 Scene opened: {Path}", path);
@@ -93,13 +82,8 @@ public class SceneManager(
             return;
         }
 
-        scriptEngine.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
+        scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
         scriptEngine.SetSuppressFileChangeRecompile(true);
-
-        EnsureGameAssemblyRegistered(dllPath);
-
-        if (scriptEngine.GetLoadedGameAssembly() is { } playAssembly)
-            componentSerializerRegistry.RegisterFromAssembly(playAssembly);
 
         if (!string.IsNullOrEmpty(EditorScenePath))
             sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
@@ -148,76 +132,4 @@ public class SceneManager(
     }
 
     public string? GetCurrentScenePath() => EditorScenePath;
-
-    private void EnsureGameAssemblyRegistered(string? builtDllPath = null)
-    {
-        var key = builtDllPath ?? ResolveGameAssemblyName();
-        if (string.IsNullOrWhiteSpace(key))
-            return;
-
-        if (_gameAssemblyRegistered && string.Equals(_registeredAssemblyName, key, StringComparison.Ordinal))
-            return;
-
-        try
-        {
-            if (!ensureGameAssemblyRegistered(key))
-                Logger.Debug("Game assembly at {Key} has no types marked with [Register]", key);
-
-            var assembly = GameAssemblyContainerRegistration.Load(key);
-            componentSerializerRegistry.RegisterFromAssembly(assembly);
-
-            _gameAssemblyRegistered = true;
-            _registeredAssemblyName = key;
-            Logger.Information("Registered game assembly: {Key}", key);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to register game assembly: {Key}", key);
-        }
-    }
-
-    private string ResolveGameAssemblyName()
-    {
-        try
-        {
-            var projectDir = projectContext.Root;
-            if (string.IsNullOrWhiteSpace(projectDir))
-                return string.Empty;
-
-            if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
-            {
-                var engineDir = Path.Combine(projectDir, ".engine");
-                if (Directory.Exists(engineDir))
-                {
-                    var match = Directory.GetFiles(engineDir, "GameAssembly*.dll", SearchOption.TopDirectoryOnly)
-                        .Select(p => new FileInfo(p))
-                        .OrderByDescending(f => f.LastWriteTimeUtc)
-                        .FirstOrDefault();
-                    if (match is not null)
-                        return match.FullName;
-                }
-            }
-
-            var configPath = Path.Combine(projectDir, "game.config.json");
-            if (!File.Exists(configPath))
-                return string.Empty;
-
-            var json = File.ReadAllText(configPath);
-            var config = JsonSerializer.Deserialize<GameConfiguration>(json);
-            if (config is null)
-                return string.Empty;
-            if (!string.IsNullOrWhiteSpace(config.GameAssemblyPath) && !string.IsNullOrWhiteSpace(projectDir))
-            {
-                var p = Path.GetFullPath(Path.Combine(projectDir, config.GameAssemblyPath));
-                if (File.Exists(p))
-                    return p;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Warning(ex, "Failed to resolve game assembly from project config");
-        }
-
-        return string.Empty;
-    }
 }

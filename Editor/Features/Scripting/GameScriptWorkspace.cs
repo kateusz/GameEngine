@@ -1,6 +1,7 @@
 using System.Reflection;
 using ECS;
 using Engine.Scene;
+using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using Engine.Scripting;
 using Scripting;
@@ -10,10 +11,13 @@ namespace Editor.Features.Scripting;
 
 public sealed class GameScriptWorkspace(
     IGameAssemblyBuilder builder,
-    IScriptEngine scriptEngine)
+    IScriptEngine scriptEngine,
+    IComponentSerializerRegistry componentSerializerRegistry,
+    Func<string, bool> ensureGameAssemblyRegistered)
 {
     private static readonly ILogger Logger = Log.ForContext<GameScriptWorkspace>();
 
+    private string? _appliedAssemblyKey;
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
     private readonly Dictionary<string, byte[]> _debugSymbols = new();
@@ -171,7 +175,7 @@ public sealed class GameScriptWorkspace(
             _debugSymbols[GameAssemblyCompiler.AssemblyName] = File.ReadAllBytes(Path.ChangeExtension(_outputDllPath, ".pdb")!);
 
         IndexScriptSourcesFromDisk();
-        scriptEngine.LoadGameAssemblyFromFile(_outputDllPath, _scriptsDirectory);
+        LoadGameAssemblyFromFile(_outputDllPath, _scriptsDirectory);
 
         return scriptEngine.GetLoadedGameAssembly() is null
             ? (false, ["Failed to load compiled game assembly"])
@@ -191,6 +195,55 @@ public sealed class GameScriptWorkspace(
     }
 
     public Assembly? GetLoadedGameAssembly() => scriptEngine.GetLoadedGameAssembly();
+
+    public void EnsureScriptsCompiledAndApplied()
+    {
+        if (GetLoadedGameAssembly() is null)
+            TryCompileAllScripts();
+        else if (GetLoadedGameAssembly() is { } assembly)
+            ApplyLoadedAssembly(assembly);
+    }
+
+    public void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory)
+    {
+        scriptEngine.LoadGameAssemblyFromFile(dllPath, scriptsDirectory);
+        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
+            ApplyLoadedAssembly(assembly);
+    }
+
+    public void ApplyLoadedAssembly(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+
+        var key = string.IsNullOrWhiteSpace(assembly.Location)
+            ? assembly.FullName ?? assembly.GetName().Name ?? string.Empty
+            : Path.GetFullPath(assembly.Location);
+
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        if (_appliedAssemblyKey is not null
+            && string.Equals(_appliedAssemblyKey, key, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        try
+        {
+            var registrationKey = string.IsNullOrWhiteSpace(assembly.Location)
+                ? key
+                : Path.GetFullPath(assembly.Location);
+
+            if (!ensureGameAssemblyRegistered(registrationKey))
+                Logger.Debug("Game assembly at {Key} has no types marked with [Register]", registrationKey);
+
+            componentSerializerRegistry.RegisterFromAssembly(assembly);
+            _appliedAssemblyKey = key;
+            Logger.Information("Applied loaded game assembly: {Key}", key);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to apply loaded game assembly: {Key}", key);
+        }
+    }
 
     public void ForceRecompile(IContext context, ScriptRuntimeStore store)
     {
