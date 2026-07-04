@@ -43,7 +43,6 @@ public class EditorLayer(
     GameComponentEditor gameComponentEditor,
     DebugSettings debugSettings,
     IFrameBufferFactory frameBufferFactory,
-    IHdrToneMapper hdrToneMapper,
     PublishSettingsUI publishSettingsUI,
     IContentScaleProvider contentScaleProvider,
     EditorPanels panels,
@@ -59,7 +58,6 @@ public class EditorLayer(
 
     private EditorCamera _editorCamera = null!;
     private IFrameBuffer _frameBuffer = null!;
-    private IFrameBuffer _toneMappedFrameBuffer = null!;
     private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
     private bool _viewportHovered;
@@ -112,17 +110,7 @@ public class EditorLayer(
 
         _editorCamera = new EditorCamera();
         _frameBuffer = frameBufferFactory.Create();
-        _toneMappedFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
-            DisplayConfig.DefaultEditorViewportWidth,
-            DisplayConfig.DefaultEditorViewportHeight)
-        {
-            AttachmentsSpec = new FramebufferAttachmentSpecification([
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8)
-            ])
-        });
         _contentScale = contentScaleProvider.ContentScale;
-
-        hdrToneMapper.Init();
 
         sceneManager.New("");
 
@@ -243,7 +231,6 @@ public class EditorLayer(
         sceneContext.ActiveScene?.Dispose();
 
         _frameBuffer?.Dispose();
-        _toneMappedFrameBuffer?.Dispose();
         panels.ConsolePanel?.Dispose();
         Log.CloseAndFlush();
     }
@@ -260,7 +247,6 @@ public class EditorLayer(
             (spec.Width != fbWidth || spec.Height != fbHeight))
         {
             _frameBuffer.Resize(fbWidth, fbHeight);
-            _toneMappedFrameBuffer.Resize(fbWidth, fbHeight);
             _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
             sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
         }
@@ -313,10 +299,6 @@ public class EditorLayer(
         }
 
         _frameBuffer.Unbind();
-        hdrToneMapper.RenderToFramebuffer(
-            _frameBuffer.GetColorAttachmentRendererId(),
-            _toneMappedFrameBuffer,
-            editorSettingsUI.GetHdrExposure());
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
@@ -601,7 +583,7 @@ public class EditorLayer(
         _viewportHovered = ImGui.IsWindowHovered();
 
         var viewportPanelSize = ImGui.GetContentRegionAvail();
-        var texturePointer = new IntPtr(_toneMappedFrameBuffer.GetColorAttachmentRendererId());
+        var texturePointer = new IntPtr(_frameBuffer.GetColorAttachmentRendererId());
         ImGui.Image(texturePointer, new Vector2(viewportPanelSize.X, viewportPanelSize.Y), new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();

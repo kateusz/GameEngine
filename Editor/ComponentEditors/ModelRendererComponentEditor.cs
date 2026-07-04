@@ -15,10 +15,6 @@ public class ModelRendererComponentEditor : IComponentEditor
 
             UIPropertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
                 newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);
-            UIPropertyRenderer.DrawPropertyField("Cast Shadows", modelRendererComponent.CastShadows,
-                newValue => modelRendererComponent.CastShadows = (bool)newValue);
-            UIPropertyRenderer.DrawPropertyField("Receive Shadows", modelRendererComponent.ReceiveShadows,
-                newValue => modelRendererComponent.ReceiveShadows = (bool)newValue);
         });
     }
 }

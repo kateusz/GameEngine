@@ -57,10 +57,10 @@
         <None Update="assets\shaders\OpenGL\lightCubeShader.vert">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="assets\shaders\OpenGL\lightingShader.frag">
+        <None Update="assets\shaders\OpenGL\flatColorShader.frag">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="assets\shaders\OpenGL\lightingShader.vert">
+        <None Update="assets\shaders\OpenGL\flatColorShader.vert">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="assets\shaders\OpenGL\lineShader.frag">

@@ -5,99 +5,50 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
-using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Scene;
 using ImGuiNET;
 using SceneComponents;
-using SceneComponents.Lights;
+using SceneComponents.Camera;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Sandbox;
 
 public class Sandbox3DLayer(
     IGraphics3D graphics3D,
-    SceneFactory sceneFactory,
-    ModelSceneImporter modelSceneImporter,
-    IFrameBufferFactory frameBufferFactory,
-    IHdrToneMapper hdrToneMapper) : ILayer
+    SceneFactory sceneFactory) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<Sandbox3DLayer>();
-    private const float HdrExposure = 1.8f;
 
     private IScene? _scene;
     private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
-    private IFrameBuffer? _hdrFrameBuffer;
-    private IFrameBuffer? _toneMappedFrameBuffer;
-    private uint _viewportWidth = DisplayConfig.DefaultWindowWidth;
-    private uint _viewportHeight = DisplayConfig.DefaultWindowHeight;
     private float _fps;
     private float _fpsTimer;
     private int _fpsFrames;
 
-    private const string ModelPath = "assets/models/BistroExterior.fbx";
-
     public void OnAttach(IInputSystem inputSystem)
     {
-        Logger.Information("Sandbox3DLayer OnAttach - loading scene");
-
-        _hdrFrameBuffer = frameBufferFactory.Create();
-        _toneMappedFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
-            DisplayConfig.DefaultWindowWidth,
-            DisplayConfig.DefaultWindowHeight)
-        {
-            AttachmentsSpec = new FramebufferAttachmentSpecification([
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA8)
-            ])
-        });
-        hdrToneMapper.Init();
+        Logger.Information("Sandbox3DLayer OnAttach - creating cube scene");
 
         _scene = sceneFactory.Create("Sandbox3D", "Sandbox3D");
 
-        if (!File.Exists(ModelPath))
-        {
-            Logger.Error("Model not found at {Path}", ModelPath);
-            _scene = null;
-            return;
-        }
+        var cameraEntity = _scene.CreateEntity("Camera");
+        var cameraTransform = cameraEntity.AddComponent<TransformComponent>();
+        cameraTransform.Translation = new Vector3(0f, 2f, 5f);
+        var cameraComponent = cameraEntity.AddComponent<CameraComponent>();
+        cameraComponent.Primary = true;
+        cameraComponent.ProjectionType = CameraProjectionTypeData.Perspective;
+        cameraComponent.PerspectiveFOV = MathF.PI / 4f;
+        cameraComponent.PerspectiveNear = 0.1f;
+        cameraComponent.PerspectiveFar = 100f;
+        _cameraEntity = cameraEntity;
 
-        var result = modelSceneImporter.Import(_scene, ModelPath, addDefaultLighting: false, addCamera: true);
-        Logger.Information("Scene loaded from {Path}: {MeshCount} mesh entities", ModelPath, result.MeshEntities.Count);
+        var cubeEntity = _scene.CreateEntity("Cube");
+        cubeEntity.AddComponent<TransformComponent>();
+        cubeEntity.AddComponent<ModelRendererComponent>(new ModelRendererComponent(Vector4.One));
 
-        var sunLight = _scene.CreateEntity("Sun_Light");
-        var sunTransform = sunLight.AddComponent<TransformComponent>();
-        sunTransform.Translation = new Vector3(-1.39f, 1f, 1f);
-        var directionalLight = sunLight.AddComponent<DirectionalLightComponent>();
-        directionalLight.Type = LightType.Directional;
-        directionalLight.Direction = new Vector3(0.6f, -0.25f, 0.4f);
-        directionalLight.Color = new Vector3(1f, 0.72f, 0.45f);
-        directionalLight.Strength = 3.5f;
-
-        var ambientEntity = _scene.CreateEntity("Ambient");
-        var ambientLight = ambientEntity.AddComponent<AmbientLightComponent>();
-        ambientLight.Type = LightType.Ambient;
-        ambientLight.Color = new Vector3(0.45f, 0.55f, 0.75f);
-        ambientLight.Strength = 0.35f;
-
-        _cameraEntity = result.CameraEntity;
-
-        var startPos = new Vector3(-4.72f, 3.39f, 22.50f);
-        var initialYaw = 0f;
-        if (_cameraEntity != null)
-        {
-            var t = _cameraEntity.GetComponent<TransformComponent>();
-            
-            // todo: hardcoded
-            t.Translation = startPos;
-
-            // Compute yaw to look toward scene center
-            var toCenter = result.SceneCenter - startPos;
-            if (toCenter.LengthSquared() > 0.001f)
-                initialYaw = MathF.Atan2(-toCenter.X, -toCenter.Z);
-        }
-
-        _cameraController = new PerspectiveCameraController(startPos, initialYaw);
-
+        _cameraController = new PerspectiveCameraController(new Vector3(0f, 2f, 5f), 0f);
         _scene.OnRuntimeStart();
     }
 
@@ -105,8 +56,6 @@ public class Sandbox3DLayer(
     {
         _scene?.OnRuntimeStop();
         _scene?.Dispose();
-        _hdrFrameBuffer?.Dispose();
-        _toneMappedFrameBuffer?.Dispose();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -129,22 +78,8 @@ public class Sandbox3DLayer(
             _fpsFrames = 0;
         }
 
-        if (_hdrFrameBuffer != null && _toneMappedFrameBuffer != null)
-        {
-            _hdrFrameBuffer.Bind();
-            graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
-            graphics3D.Clear();
-
-            _scene?.OnUpdateRuntime(timeSpan);
-
-            _hdrFrameBuffer.Unbind();
-            hdrToneMapper.RenderToFramebuffer(
-                _hdrFrameBuffer.GetColorAttachmentRendererId(),
-                _toneMappedFrameBuffer,
-                HdrExposure);
-            return;
-        }
-
+        graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
+        graphics3D.Clear();
         _scene?.OnUpdateRuntime(timeSpan);
     }
 
@@ -156,13 +91,7 @@ public class Sandbox3DLayer(
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
         if (windowEvent is WindowResizeEvent resizeEvent && _scene != null)
-        {
-            _viewportWidth = (uint)resizeEvent.Width;
-            _viewportHeight = (uint)resizeEvent.Height;
-            _hdrFrameBuffer?.Resize(_viewportWidth, _viewportHeight);
-            _toneMappedFrameBuffer?.Resize(_viewportWidth, _viewportHeight);
             _scene.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
-        }
     }
 
     public void Draw()
@@ -170,17 +99,6 @@ public class Sandbox3DLayer(
         const float padding = 10f;
         var io = ImGui.GetIO();
         var drawList = ImGui.GetForegroundDrawList();
-        if (_toneMappedFrameBuffer != null)
-        {
-            var imagePtr = new IntPtr(_toneMappedFrameBuffer.GetColorAttachmentRendererId());
-            ImGui.GetBackgroundDrawList().AddImage(
-                imagePtr,
-                new Vector2(0, 0),
-                io.DisplaySize,
-                new Vector2(0, 1),
-                new Vector2(1, 0));
-        }
-
         var white = ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 1f));
 
         var fpsText = $"FPS: {_fps:F0}";

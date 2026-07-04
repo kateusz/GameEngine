@@ -10,17 +10,17 @@ internal sealed class MeshFactory(
     ITextureFactory textureFactory,
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory,
-    FbxModelLoader fbxModelLoader) : IMeshFactory
+    IIndexBufferFactory indexBufferFactory) : IMeshFactory
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
-    private readonly Dictionary<string, Mesh> _loadedMeshes = new();
-    private readonly Dictionary<string, (List<Mesh> Meshes, List<MeshMaterial> Materials)> _loadedModels = new();
+    private Mesh? _cubeMesh;
     private bool _disposed;
 
-    public Mesh CreateCube(ITextureFactory textureFactory, IVertexArrayFactory vertexArrayFactory,
-        IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
+    public Mesh CreateCube()
     {
+        if (_cubeMesh != null)
+            return _cubeMesh;
+
         var mesh = new Mesh("Cube", textureFactory);
         var size = 0.5f;
 
@@ -30,37 +30,31 @@ internal sealed class MeshFactory(
         var bitangentNegZ = -Vector3.UnitZ;
         var bitangentZ = Vector3.UnitZ;
 
-        // Front face (+Z): Normal=(0,0,1), Tangent=(1,0,0), Bitangent=(0,1,0)
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), Vector3.UnitZ, new Vector2(0.0f, 0.0f), tangentX, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitZ, new Vector2(1.0f, 0.0f), tangentX, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitZ, new Vector2(1.0f, 1.0f), tangentX, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitZ, new Vector2(0.0f, 1.0f), tangentX, bitangentY));
 
-        // Back face (-Z): Normal=(0,0,-1), Tangent=(-1,0,0), Bitangent=(0,1,0)
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitZ, new Vector2(1.0f, 0.0f), tangentNegX, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), -Vector3.UnitZ, new Vector2(1.0f, 1.0f), tangentNegX, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), -Vector3.UnitZ, new Vector2(0.0f, 1.0f), tangentNegX, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitZ, new Vector2(0.0f, 0.0f), tangentNegX, bitangentY));
 
-        // Top face (+Y): Normal=(0,1,0), Tangent=(1,0,0), Bitangent=(0,0,-1)
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, -size), Vector3.UnitY, new Vector2(0.0f, 0.0f), tangentX, bitangentNegZ));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), Vector3.UnitY, new Vector2(0.0f, 1.0f), tangentX, bitangentNegZ));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitY, new Vector2(1.0f, 1.0f), tangentX, bitangentNegZ));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitY, new Vector2(1.0f, 0.0f), tangentX, bitangentNegZ));
 
-        // Bottom face (-Y): Normal=(0,-1,0), Tangent=(1,0,0), Bitangent=(0,0,1)
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitY, new Vector2(0.0f, 1.0f), tangentX, bitangentZ));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), -Vector3.UnitY, new Vector2(1.0f, 1.0f), tangentX, bitangentZ));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), -Vector3.UnitY, new Vector2(1.0f, 0.0f), tangentX, bitangentZ));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitY, new Vector2(0.0f, 0.0f), tangentX, bitangentZ));
 
-        // Right face (+X): Normal=(1,0,0), Tangent=(0,0,-1), Bitangent=(0,1,0)
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, -size), Vector3.UnitX, new Vector2(0.0f, 0.0f), -Vector3.UnitZ, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, -size), Vector3.UnitX, new Vector2(0.0f, 1.0f), -Vector3.UnitZ, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, size, size), Vector3.UnitX, new Vector2(1.0f, 1.0f), -Vector3.UnitZ, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(size, -size, size), Vector3.UnitX, new Vector2(1.0f, 0.0f), -Vector3.UnitZ, bitangentY));
 
-        // Left face (-X): Normal=(-1,0,0), Tangent=(0,0,1), Bitangent=(0,1,0)
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, -size), -Vector3.UnitX, new Vector2(1.0f, 0.0f), Vector3.UnitZ, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, -size, size), -Vector3.UnitX, new Vector2(0.0f, 0.0f), Vector3.UnitZ, bitangentY));
         mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-size, size, size), -Vector3.UnitX, new Vector2(0.0f, 1.0f), Vector3.UnitZ, bitangentY));
@@ -74,59 +68,14 @@ internal sealed class MeshFactory(
         mesh.Indices.AddRange([20, 21, 22, 22, 23, 20]);
 
         mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        _cubeMesh = mesh;
         return mesh;
-    }
-
-    public Mesh CreateCube()
-    {
-        return CreateCube(textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-    }
-
-    public (List<Mesh> Meshes, List<MeshMaterial> Materials) LoadModel(string path)
-    {
-        if (_loadedModels.TryGetValue(path, out var cached))
-            return cached;
-
-        var result = fbxModelLoader.Load(path);
-
-        // Filter out empty meshes that have no geometry (helper/dummy nodes in FBX)
-        var validMeshes = new List<Mesh>();
-        var validMaterials = new List<MeshMaterial>();
-
-        for (var i = 0; i < result.Meshes.Count; i++)
-        {
-            var mesh = result.Meshes[i];
-            if (mesh.Vertices.Count == 0 || mesh.Indices.Count == 0)
-            {
-                _logger.Debug("Skipping empty mesh '{Name}' (vertices: {V}, indices: {I})",
-                    mesh.Name, mesh.Vertices.Count, mesh.Indices.Count);
-                continue;
-            }
-
-            mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-            validMeshes.Add(mesh);
-            validMaterials.Add(result.Materials[i]);
-        }
-
-        _logger.Information("Initialized {Count}/{Total} meshes from {Path}",
-            validMeshes.Count, result.Meshes.Count, path);
-
-        var entry = (validMeshes, validMaterials);
-        _loadedModels[path] = entry;
-        return entry;
     }
 
     public void Clear()
     {
-        foreach (var (meshes, _) in _loadedModels.Values)
-        {
-            foreach (var mesh in meshes)
-                mesh.Dispose();
-        }
-
-        _loadedModels.Clear();
-        _loadedMeshes.Clear();
-
+        _cubeMesh?.Dispose();
+        _cubeMesh = null;
         _logger.Information("MeshFactory cache cleared and resources disposed");
     }
 
@@ -136,23 +85,8 @@ internal sealed class MeshFactory(
             return;
 
         _logger.Debug("Disposing MeshFactory and clearing cache");
-
         Clear();
-
         _disposed = true;
         GC.SuppressFinalize(this);
     }
-
-#if DEBUG
-    ~MeshFactory()
-    {
-        if (!_disposed)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"FACTORY LEAK: MeshFactory not disposed! " +
-                $"Cached meshes: {_loadedMeshes.Count}"
-            );
-        }
-    }
-#endif
 }

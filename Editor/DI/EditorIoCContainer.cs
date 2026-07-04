@@ -33,22 +33,17 @@ public static class EditorIoCContainer
         );
         container.Register<EditorSettingsUI>(Reuse.Singleton);
         container.Register<AudioDropTarget>(Reuse.Singleton);
-        container.Register<ModelSceneImporter>(Reuse.Singleton);
         container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
     
         container.Register<TransformComponentEditor>(Reuse.Singleton);
         container.Register<CameraComponentEditor>(Reuse.Singleton);
         container.Register<SpriteRendererComponentEditor>(Reuse.Singleton);
-        container.Register<MeshComponentEditor>(Reuse.Singleton);
         container.Register<ModelRendererComponentEditor>(Reuse.Singleton);
         container.Register<RigidBody2DComponentEditor>(Reuse.Singleton);
         container.Register<BoxCollider2DComponentEditor>(Reuse.Singleton);
         container.Register<SubTextureRendererComponentEditor>(Reuse.Singleton);
         container.Register<AudioSourceComponentEditor>(Reuse.Singleton);
         container.Register<AudioListenerComponentEditor>(Reuse.Singleton);
-        container.Register<PointLightComponentEditor>(Reuse.Singleton);
-        container.Register<DirectionalLightComponentEditor>(Reuse.Singleton);
-        container.Register<AmbientLightComponentEditor>(Reuse.Singleton);
         
         container.Register<RecentProjectsPanel>(Reuse.Singleton);
     

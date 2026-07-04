@@ -15,7 +15,6 @@ public static class SystemPriorities
     public const int PrimaryCameraSystem = 145;
     public const int SpriteRenderSystem = 150;
     public const int SubTextureRenderSystem = 160;
-    public const int LightingSystem = 165;
     public const int ModelRenderSystem = 170;
     public const int PhysicsDebugRenderSystem = 180;
     

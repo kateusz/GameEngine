@@ -40,7 +40,6 @@ public class EntityContextMenu : IEntityContextMenu
     {
         var entity = context.CreateEntity("3D Entity");
         entity.AddComponent<TransformComponent>();
-        entity.AddComponent<MeshComponent>();
         entity.AddComponent<ModelRendererComponent>();
     }
 }

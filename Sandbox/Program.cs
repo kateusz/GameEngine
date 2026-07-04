@@ -61,7 +61,6 @@ public class Program
     {
         EngineIoCContainer.Register(container);
 
-        container.Register<Engine.Scene.ModelSceneImporter>(Reuse.Singleton);
         container.Register<SandboxApplication>(Reuse.Singleton);
         container.Register<ILayer, Sandbox3DLayer>(Reuse.Singleton);
 

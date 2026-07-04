@@ -1,3 +1,4 @@
+using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
@@ -6,9 +7,6 @@ using Serilog;
 
 namespace Engine.Scene.Systems;
 
-/// <summary>
-/// System responsible for rendering 3D models
-/// </summary>
 internal sealed class ModelRenderingSystem(
     IGraphics3D graphics3D,
     IContext context,
@@ -25,7 +23,7 @@ internal sealed class ModelRenderingSystem(
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        SceneRenderPipeline.RenderModels(
+        SceneRenderPipeline.RenderCubes(
             context,
             graphics3D,
             SceneRenderPipeline.CameraBinding.FromProvider(cameraProvider));

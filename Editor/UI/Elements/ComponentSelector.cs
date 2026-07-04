@@ -7,7 +7,6 @@ using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Audio;
 using SceneComponents.Camera;
-using SceneComponents.Lights;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using CameraController = Editor.assets.scripts.CameraController;
@@ -52,13 +51,14 @@ public static class ComponentSelector
             });
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
-            DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity);
-            DrawComponentMenuItem<MeshComponent>("Mesh", entity);
+            DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                entity.AddComponent<ModelRendererComponent>();
+            });
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
-            DrawComponentMenuItem<PointLightComponent>("Point Light", entity);
-            DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity);
-            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);
 
             if (ImGui.MenuItem("Game Component"))
             {

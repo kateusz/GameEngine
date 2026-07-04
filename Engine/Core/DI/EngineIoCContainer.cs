@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using DryIoc;
 using ECS;
 using ECS.Systems;
-using Silk.NET.Assimp;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events;
@@ -79,7 +78,6 @@ public static class EngineIoCContainer
         
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
-        container.Register<IHdrToneMapper, HdrToneMapper>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);
@@ -112,8 +110,6 @@ public static class EngineIoCContainer
         container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
-        container.RegisterDelegate<Assimp>(_ => Assimp.GetApi(), Reuse.Singleton);
-        container.Register<FbxModelLoader>(Reuse.Singleton);
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);

@@ -8,15 +8,11 @@ using Engine.Renderer.Textures;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using SceneComponents;
-using SceneComponents.Lights;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 
 namespace Engine.Scene;
 
-/// <summary>
-/// Shared scene rendering used by ECS render systems and the editor viewport.
-/// </summary>
 internal static class SceneRenderPipeline
 {
     private static readonly Vector2[] DefaultTextureCoords =
@@ -42,94 +38,18 @@ internal static class SceneRenderPipeline
             new() { ViewCamera = camera };
     }
 
-    public static void ApplyLighting(IContext context, IGraphics3D graphics3D)
-    {
-        var directionalLights = context.View<DirectionalLightComponent>().ToList();
-        var ambientLights = context.View<AmbientLightComponent>().ToList();
-
-        if (directionalLights.Count > 0)
-        {
-            var (_, directionalLight) = directionalLights[0];
-            graphics3D.SetDirectionalLight(
-                enabled: true,
-                direction: directionalLight.Direction,
-                color: directionalLight.Color,
-                strength: directionalLight.Strength);
-        }
-        else
-        {
-            graphics3D.SetDirectionalLight(
-                enabled: false,
-                direction: default,
-                color: default,
-                strength: 0.0f);
-        }
-
-        if (ambientLights.Count > 0)
-        {
-            var (_, ambientLight) = ambientLights[0];
-            graphics3D.SetAmbientLight(
-                enabled: true,
-                color: ambientLight.Color,
-                strength: ambientLight.Strength);
-        }
-        else
-        {
-            graphics3D.SetAmbientLight(
-                enabled: false,
-                color: default,
-                strength: 0.0f);
-        }
-
-        var pointLightData = new List<PointLightData>(16);
-        foreach (var (_, pointLight, transform) in context.View<PointLightComponent, TransformComponent>())
-        {
-            if (pointLightData.Count >= 16)
-                break;
-
-            pointLightData.Add(new PointLightData(
-                transform.Translation,
-                pointLight.Color,
-                pointLight.Intensity));
-        }
-
-        graphics3D.SetPointLights(pointLightData);
-    }
-
-    public static void RenderLightVisualization(
-        IContext context,
-        IGraphics3D graphics3D,
-        in CameraBinding camera)
-    {
-        if (!camera.IsValid)
-            return;
-
-        Begin3DScene(graphics3D, camera, lightVisualization: true);
-        foreach (var (_, _, transform) in context.View<PointLightComponent, TransformComponent>())
-            graphics3D.DrawLightVisualization(transform.Translation);
-
-        foreach (var (_, _, transform) in context.View<DirectionalLightComponent, TransformComponent>())
-            graphics3D.DrawLightVisualization(transform.Translation);
-
-        graphics3D.EndLightVisualization();
-    }
-
-    public static void RenderModels(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
+    public static void RenderCubes(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
 
         Begin3DScene(graphics3D, camera);
-        foreach (var (entity, meshComponent, transformComponent) in
-                 context.View<MeshComponent, TransformComponent>())
+        foreach (var (entity, modelRenderer, transformComponent) in
+                 context.View<ModelRendererComponent, TransformComponent>())
         {
-            if (!entity.TryGetComponent<ModelRendererComponent>(out var modelRendererComponent))
-                continue;
-
-            graphics3D.DrawModel(
+            graphics3D.DrawCube(
                 transformComponent.GetTransform(),
-                meshComponent,
-                modelRendererComponent,
+                modelRenderer.Color,
                 entity.Id);
         }
 
@@ -233,9 +153,7 @@ internal static class SceneRenderPipeline
         in CameraBinding camera,
         bool useTransformFallbackWhenNoBody)
     {
-        ApplyLighting(context, graphics3D);
-        RenderModels(context, graphics3D, camera);
-        RenderLightVisualization(context, graphics3D, camera);
+        RenderCubes(context, graphics3D, camera);
         RenderSprites(context, graphics2D, textureFactory, camera);
         RenderSubTextures(context, graphics2D, textureFactory, camera);
         RenderPhysicsDebug(context, graphics2D, debugSettings, bodyStore, camera, useTransformFallbackWhenNoBody);
@@ -249,17 +167,8 @@ internal static class SceneRenderPipeline
             graphics2D.BeginScene(camera.Camera!, camera.Transform);
     }
 
-    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera, bool lightVisualization = false)
+    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera)
     {
-        if (lightVisualization)
-        {
-            if (camera.ViewCamera != null)
-                graphics3D.BeginLightVisualization(camera.ViewCamera);
-            else
-                graphics3D.BeginLightVisualization(camera.Camera!, camera.Transform);
-            return;
-        }
-
         if (camera.ViewCamera != null)
             graphics3D.BeginScene(camera.ViewCamera);
         else
