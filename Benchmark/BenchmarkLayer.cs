@@ -8,6 +8,7 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene;
+using Engine.Scene.Serializer;
 using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Camera;
@@ -553,14 +554,33 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         graphics2D.BeginScene(_cameraController);
 
-        // Render all entities in the test scene
         foreach (var entity in _currentTestScene.Entities)
         {
             if (!entity.TryGetComponent<TransformComponent>(out var transform)) continue;
 
             if (entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
-                graphics2D.DrawSprite(transform.GetTransform(), sprite, entity.Id);
+                var trs = transform.GetTransform();
+                if (!string.IsNullOrWhiteSpace(sprite.TexturePath))
+                {
+                    try
+                    {
+                        var texture = textureFactory.Create(PathBuilder.Resolve(sprite.TexturePath));
+                        graphics2D.DrawQuad(trs, texture, [
+                            new Vector2(0.0f, 0.0f),
+                            new Vector2(1.0f, 0.0f),
+                            new Vector2(1.0f, 1.0f),
+                            new Vector2(0.0f, 1.0f)
+                        ], sprite.TilingFactor, sprite.Color, entity.Id);
+                        continue;
+                    }
+                    catch
+                    {
+                        // fall through to solid color
+                    }
+                }
+
+                graphics2D.DrawQuad(trs, sprite.Color, entity.Id);
             }
         }
 

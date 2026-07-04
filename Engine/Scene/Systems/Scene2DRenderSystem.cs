@@ -2,32 +2,28 @@ using ECS;
 using ECS.Systems;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
-using Engine.Scene;
 using Serilog;
 
 namespace Engine.Scene.Systems;
 
-/// <summary>
-/// System responsible for rendering 2D subtextures (sprite atlas/sprite sheet regions).
-/// </summary>
-internal sealed class SubTextureRenderingSystem(
+internal sealed class Scene2DRenderSystem(
     IGraphics2D renderer,
     ITextureFactory? textureFactory,
     IContext context,
     IPrimaryCameraProvider cameraProvider) : ISystem
 {
-    private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
+    private static readonly ILogger Logger = Log.ForContext<Scene2DRenderSystem>();
 
-    public int Priority => SystemPriorities.SubTextureRenderSystem;
+    public int Priority => SystemPriorities.Scene2DRenderSystem;
 
     public void OnInit()
     {
-        Logger.Debug("SubTextureRenderingSystem initialized with priority {Priority}", Priority);
+        Logger.Debug("Scene2DRenderSystem initialized with priority {Priority}", Priority);
     }
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        SceneRenderPipeline.RenderSubTextures(
+        SceneRenderPipeline.RenderSpritesAndSubTextures(
             context,
             renderer,
             textureFactory,

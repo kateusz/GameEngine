@@ -10,11 +10,14 @@ using Engine.Scene.Systems;
 using SceneComponents;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
+using Serilog;
 
 namespace Engine.Scene;
 
 internal static class SceneRenderPipeline
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
+
     private static readonly Vector2[] DefaultTextureCoords =
     [
         new(0.0f, 0.0f),
@@ -56,7 +59,7 @@ internal static class SceneRenderPipeline
         graphics3D.EndScene();
     }
 
-    public static void RenderSprites(
+    public static void RenderSpritesAndSubTextures(
         IContext context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory,
@@ -66,28 +69,78 @@ internal static class SceneRenderPipeline
             return;
 
         Begin2DScene(graphics2D, camera);
-        foreach (var (entity, spriteRendererComponent, transformComponent) in
-                 context.View<SpriteRendererComponent, TransformComponent>())
-        {
-            graphics2D.DrawSprite(
-                transformComponent.GetTransform(),
-                spriteRendererComponent,
-                entity.Id);
-        }
-
+        RenderSpritesInternal(context, graphics2D, textureFactory);
+        RenderSubTexturesInternal(context, graphics2D, textureFactory);
         graphics2D.EndScene();
     }
 
-    public static void RenderSubTextures(
+    public static void RenderPhysicsDebug(
         IContext context,
         IGraphics2D graphics2D,
-        ITextureFactory? textureFactory,
-        in CameraBinding camera)
+        DebugSettings debugSettings,
+        PhysicsRuntimeBodyStore bodyStore,
+        in CameraBinding camera,
+        bool useTransformFallbackWhenNoBody)
     {
-        if (!camera.IsValid)
+        if (!debugSettings.ShowColliderBounds || !camera.IsValid)
             return;
 
         Begin2DScene(graphics2D, camera);
+        RenderPhysicsDebugInternal(context, graphics2D, bodyStore, useTransformFallbackWhenNoBody);
+        graphics2D.EndScene();
+    }
+
+    public static void RenderScene(
+        IContext context,
+        IGraphics2D graphics2D,
+        IGraphics3D graphics3D,
+        ITextureFactory? textureFactory,
+        DebugSettings debugSettings,
+        PhysicsRuntimeBodyStore bodyStore,
+        in CameraBinding camera,
+        bool useTransformFallbackWhenNoBody)
+    {
+        RenderCubes(context, graphics3D, camera);
+        RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
+        RenderPhysicsDebug(context, graphics2D, debugSettings, bodyStore, camera, useTransformFallbackWhenNoBody);
+    }
+
+    private static void RenderSpritesInternal(
+        IContext context,
+        IGraphics2D graphics2D,
+        ITextureFactory? textureFactory)
+    {
+        foreach (var (entity, spriteRendererComponent, transformComponent) in
+                 context.View<SpriteRendererComponent, TransformComponent>())
+        {
+            var transform = transformComponent.GetTransform();
+            if (!string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath) && textureFactory != null)
+            {
+                try
+                {
+                    var texture = textureFactory.Create(PathBuilder.Resolve(spriteRendererComponent.TexturePath));
+                    graphics2D.DrawQuad(transform, texture, DefaultTextureCoords, spriteRendererComponent.TilingFactor,
+                        spriteRendererComponent.Color, entity.Id);
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning(
+                        ex,
+                        "Failed to load sprite texture '{TexturePath}' — drawing a solid color quad instead",
+                        spriteRendererComponent.TexturePath);
+                }
+            }
+
+            graphics2D.DrawQuad(transform, spriteRendererComponent.Color, entity.Id);
+        }
+    }
+
+    private static void RenderSubTexturesInternal(
+        IContext context,
+        IGraphics2D graphics2D,
+        ITextureFactory? textureFactory)
+    {
         foreach (var (entity, subtextureComponent, transformComponent) in
                  context.View<SubTextureRendererComponent, TransformComponent>())
         {
@@ -116,22 +169,14 @@ internal static class SceneRenderPipeline
 
             graphics2D.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
-
-        graphics2D.EndScene();
     }
 
-    public static void RenderPhysicsDebug(
+    private static void RenderPhysicsDebugInternal(
         IContext context,
         IGraphics2D graphics2D,
-        DebugSettings debugSettings,
         PhysicsRuntimeBodyStore bodyStore,
-        in CameraBinding camera,
         bool useTransformFallbackWhenNoBody)
     {
-        if (!debugSettings.ShowColliderBounds || !camera.IsValid)
-            return;
-
-        Begin2DScene(graphics2D, camera);
         foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
         {
             if (bodyStore.TryGet(entity.Id, out var body))
@@ -139,24 +184,6 @@ internal static class SceneRenderPipeline
             else if (useTransformFallbackWhenNoBody)
                 DrawColliderFromTransform(graphics2D, entity, boxCollider);
         }
-
-        graphics2D.EndScene();
-    }
-
-    public static void RenderScene(
-        IContext context,
-        IGraphics2D graphics2D,
-        IGraphics3D graphics3D,
-        ITextureFactory? textureFactory,
-        DebugSettings debugSettings,
-        PhysicsRuntimeBodyStore bodyStore,
-        in CameraBinding camera,
-        bool useTransformFallbackWhenNoBody)
-    {
-        RenderCubes(context, graphics3D, camera);
-        RenderSprites(context, graphics2D, textureFactory, camera);
-        RenderSubTextures(context, graphics2D, textureFactory, camera);
-        RenderPhysicsDebug(context, graphics2D, debugSettings, bodyStore, camera, useTransformFallbackWhenNoBody);
     }
 
     private static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)

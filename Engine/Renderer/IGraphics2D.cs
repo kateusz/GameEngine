@@ -1,7 +1,6 @@
 using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
-using SceneComponents.Rendering;
 
 namespace Engine.Renderer;
 
@@ -62,7 +61,6 @@ public interface IGraphics2D : IGraphics
     /// </exception>
     void DrawQuad(Matrix4x4 transform, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null, int entityId = -1);
 
-    void DrawSprite(Matrix4x4 transform, SpriteRendererComponent src, int entityId);
     void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId);
     void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId);
     void DrawRect(Matrix4x4 transform, Vector4 color, int entityId);

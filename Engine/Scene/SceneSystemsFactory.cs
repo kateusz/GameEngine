@@ -45,8 +45,7 @@ internal sealed class SceneSystemsFactory(
             new ScriptUpdateSystem(scriptEngine),
             audioSystem,
             primaryCamera,
-            new SpriteRenderingSystem(graphics2D, textureFactory, context, primaryCamera),
-            new SubTextureRenderingSystem(graphics2D, textureFactory, context, primaryCamera),
+            new Scene2DRenderSystem(graphics2D, textureFactory, context, primaryCamera),
             new ModelRenderingSystem(graphics3D, context, primaryCamera),
             new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, primaryCamera, bodyStore)
         ];
