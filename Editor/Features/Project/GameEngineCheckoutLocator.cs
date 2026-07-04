@@ -21,9 +21,14 @@ public static class GameEngineCheckoutLocator
 
     public static string? TryGetGameScriptSdkStagingDirectory(string configuration)
     {
+        var installed = Path.Combine(AppContext.BaseDirectory, "Data", "GameScriptSdk");
+        if (Directory.Exists(installed) && Directory.EnumerateFiles(installed, "*.dll").Any())
+            return installed;
+
         var root = TryFindEngineCheckoutRoot();
         if (root is null)
             return null;
+
         var staging = Path.Combine(root, "artifacts", "GameScriptSdk", configuration, "net10.0");
         return Directory.Exists(staging) ? staging : null;
     }

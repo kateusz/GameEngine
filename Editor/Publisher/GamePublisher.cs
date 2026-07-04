@@ -158,7 +158,9 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
                 StartupScenePath = gameConfig.StartupScenePath,
                 WindowWidth = gameConfig.WindowWidth,
                 WindowHeight = gameConfig.WindowHeight,
-                GameTitle = gameConfig.GameTitle
+                Fullscreen = gameConfig.Fullscreen,
+                GameTitle = gameConfig.GameTitle,
+                TargetFrameRate = gameConfig.TargetFrameRate
             };
             var configResult = CreateGameConfig(tempOutputPath, mergedConfig);
             if (!configResult.Success)

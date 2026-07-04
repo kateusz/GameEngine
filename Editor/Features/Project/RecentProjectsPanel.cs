@@ -1,6 +1,5 @@
 using System.Numerics;
 using Editor.Features.Settings;
-using Editor.Panels;
 using Editor.UI.Drawers;
 using Engine.Core;
 using ImGuiNET;
@@ -8,35 +7,30 @@ using Serilog;
 
 namespace Editor.Features.Project;
 
-/// <summary>
-/// Startup window displaying recent projects with quick access options.
-/// Shown automatically on editor launch for streamlined workflow.
-/// </summary>
 public class RecentProjectsPanel(
     IEditorPreferences editorPreferences,
     IProjectManager projectManager,
-    IContentBrowserPanel contentBrowserPanel,
     NewProjectPopup newProjectPopup)
 {
     private static readonly ILogger Logger = Log.ForContext<RecentProjectsPanel>();
-        
+
     private bool _isOpen = true;
     private bool _isLoading;
     private string _loadingProjectName = string.Empty;
     private string? _projectToRemove;
+    private string? _pendingOpenPath;
     private float _loadingSpinnerRotation;
-
 
     public void Draw()
     {
+        if (_pendingOpenPath is { } pendingPath)
+            ProcessPendingOpen(pendingPath);
+
         if (!_isOpen)
-        {
             return;
-        }
 
         ImGui.SetNextWindowSize(new Vector2(DisplayConfig.StandardPopupSize.Width, DisplayConfig.StandardPopupSize.Height), ImGuiCond.FirstUseEver);
 
-        // Center window on first appearance
         var viewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowPos(
             new Vector2(viewport.Pos.X + viewport.Size.X * 0.5f, viewport.Pos.Y + viewport.Size.Y * 0.5f),
@@ -49,9 +43,7 @@ public class RecentProjectsPanel(
         if (ImGui.Begin("Recent Projects", ref _isOpen, windowFlags))
         {
             if (_isLoading)
-            {
                 DrawLoadingOverlay();
-            }
             else
             {
                 DrawRecentProjects();
@@ -61,7 +53,6 @@ public class RecentProjectsPanel(
         }
         ImGui.End();
 
-        // Handle deferred project removal (can't remove during iteration)
         if (_projectToRemove != null)
         {
             editorPreferences.RemoveRecentProject(_projectToRemove);
@@ -82,17 +73,12 @@ public class RecentProjectsPanel(
         ImGui.Text("Recent Projects:");
         ImGui.Spacing();
 
-        // Calculate available height for the list (leaving space for separator and quick actions)
-        var availableHeight = ImGui.GetContentRegionAvail().Y - 140; // Reserve space for separator + quick actions
-            
-        // Begin child region for scrollable list
+        var availableHeight = ImGui.GetContentRegionAvail().Y - 140;
+
         if (ImGui.BeginChild("ProjectsList", new Vector2(0, availableHeight), ImGuiChildFlags.Border))
         {
             for (var i = 0; i < recentProjects.Count; i++)
-            {
-                var project = recentProjects[i];
-                DrawProjectItem(project, i);
-            }
+                DrawProjectItem(recentProjects[i], i);
         }
         ImGui.EndChild();
     }
@@ -100,10 +86,9 @@ public class RecentProjectsPanel(
     private void DrawProjectItem(RecentProject project, int index)
     {
         var projectExists = Directory.Exists(project.Path);
-            
+
         ImGui.PushID(index);
-            
-        // Project card background
+
         var cursorPos = ImGui.GetCursorScreenPos();
         var cardSize = new Vector2(ImGui.GetContentRegionAvail().X, 70);
         var drawList = ImGui.GetWindowDrawList();
@@ -118,47 +103,34 @@ public class RecentProjectsPanel(
         ImGui.Spacing();
         ImGui.Indent(10);
 
-        // Project name
         if (!projectExists)
             TextDrawer.DrawErrorText(project.Name);
         else
             ImGui.Text(project.Name);
 
-        // Project path
         TextDrawer.DrawColoredText(project.Path, new Vector4(0.6f, 0.6f, 0.6f, 1.0f));
 
-        // Last opened timestamp
         var timeAgo = GetTimeAgoString(project.LastOpened);
         TextDrawer.DrawColoredText($"Last opened: {timeAgo}", new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
 
         ImGui.Unindent(10);
         ImGui.EndGroup();
 
-        // Handle click to open project
         if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-        {
-            OpenProject(project);
-        }
+            QueueOpenProject(project);
 
-        // Context menu
         if (ImGui.BeginPopupContextItem($"ProjectContext_{index}"))
         {
             if (ImGui.MenuItem("Open"))
-            {
-                OpenProject(project);
-            }
+                QueueOpenProject(project);
 
             if (ImGui.MenuItem("Show in Explorer"))
-            {
                 ShowInFileExplorer(project.Path);
-            }
 
             ImGui.Separator();
 
             if (ImGui.MenuItem("Remove from list"))
-            {
                 _projectToRemove = project.Path;
-            }
 
             ImGui.EndPopup();
         }
@@ -167,7 +139,7 @@ public class RecentProjectsPanel(
         ImGui.PopID();
     }
 
-    private void OpenProject(RecentProject project)
+    private void QueueOpenProject(RecentProject project)
     {
         if (!Directory.Exists(project.Path))
         {
@@ -176,33 +148,30 @@ public class RecentProjectsPanel(
             return;
         }
 
-        _isLoading = true;
+        _pendingOpenPath = project.Path;
         _loadingProjectName = project.Name;
         _loadingSpinnerRotation = 0.0f;
+        _isLoading = true;
+    }
 
-        // Use Task.Run to prevent blocking UI
-        Task.Run(() =>
+    private void ProcessPendingOpen(string path)
+    {
+        _pendingOpenPath = null;
+
+        try
         {
-            try
+            if (projectManager.TryOpenProject(path, out var error))
             {
-                if (projectManager.TryOpenProject(project.Path, out var error))
-                {
-                    contentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-                    Logger.Information("Opened project: {Name}", project.Name);
-                    
-                    // Close window on next frame
-                    _isOpen = false;
-                }
-                else
-                {
-                    Logger.Error("Failed to open project {Path}: {Error}", project.Path, error);
-                }
+                Logger.Information("Opened project from recent list: {Path}", path);
+                _isOpen = false;
             }
-            finally
-            {
-                _isLoading = false;
-            }
-        });
+            else
+                Logger.Error("Failed to open project {Path}: {Error}", path, error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private void DrawQuickActions()
@@ -230,8 +199,7 @@ public class RecentProjectsPanel(
     {
         var windowSize = ImGui.GetWindowSize();
         var windowPos = ImGui.GetWindowPos();
-        
-        // Semi-transparent overlay
+
         var drawList = ImGui.GetWindowDrawList();
         drawList.AddRectFilled(
             windowPos,
@@ -239,13 +207,11 @@ public class RecentProjectsPanel(
             ImGui.GetColorU32(new Vector4(0.0f, 0.0f, 0.0f, 0.5f))
         );
 
-        // Center content
         var centerX = windowPos.X + windowSize.X * 0.5f;
         var centerY = windowPos.Y + windowSize.Y * 0.5f;
 
-        // Animated spinner
-        _loadingSpinnerRotation += ImGui.GetIO().DeltaTime * 3.0f; // Rotation speed
-        
+        _loadingSpinnerRotation += ImGui.GetIO().DeltaTime * 3.0f;
+
         const float spinnerRadius = 30.0f;
         const int segments = 12;
         const float thickness = 4.0f;
@@ -254,10 +220,10 @@ public class RecentProjectsPanel(
         {
             var angle = (_loadingSpinnerRotation + (i * MathF.PI * 2.0f / segments)) % (MathF.PI * 2.0f);
             var alpha = 1.0f - (i / (float)segments);
-            
+
             var startAngle = angle;
             var endAngle = angle + (MathF.PI * 2.0f / segments * 0.8f);
-            
+
             drawList.PathArcTo(
                 new Vector2(centerX, centerY),
                 spinnerRadius,
@@ -265,7 +231,7 @@ public class RecentProjectsPanel(
                 endAngle,
                 10
             );
-            
+
             drawList.PathStroke(
                 ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, alpha)),
                 0,
@@ -273,10 +239,9 @@ public class RecentProjectsPanel(
             );
         }
 
-        // Loading text
         var loadingText = $"Loading {_loadingProjectName}...";
         var textSize = ImGui.CalcTextSize(loadingText);
-        
+
         drawList.AddText(
             new Vector2(centerX - textSize.X * 0.5f, centerY + spinnerRadius + 20),
             ImGui.GetColorU32(new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
@@ -298,7 +263,7 @@ public class RecentProjectsPanel(
 
         if (timeSpan.TotalHours < 24)
             return $"{(int)timeSpan.TotalHours} hour{(timeSpan.TotalHours >= 2 ? "s" : "")} ago";
-            
+
         return timeSpan.TotalDays switch
         {
             < 30 => $"{(int)timeSpan.TotalDays} day{(timeSpan.TotalDays >= 2 ? "s" : "")} ago",
@@ -312,13 +277,9 @@ public class RecentProjectsPanel(
         try
         {
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-            {
                 System.Diagnostics.Process.Start("explorer.exe", path);
-            }
             else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
-            {
                 System.Diagnostics.Process.Start("open", path);
-            }
         }
         catch (Exception ex)
         {
@@ -326,9 +287,6 @@ public class RecentProjectsPanel(
         }
     }
 
-    /// <summary>
-    /// Show the window again.
-    /// </summary>
     public void Show()
     {
         Logger.Debug("RecentProjectsWindow.Show() called, setting _isOpen = true");

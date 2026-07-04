@@ -2,6 +2,7 @@
 using Editor.DI;
 using Editor.Panels;
 using Engine.Core;
+using Engine.Scene.Serializer;
 using Serilog;
 using Editor.Logging;
 using Engine.Core.DI;
@@ -16,6 +17,7 @@ static void ConfigureContainer(Container container)
     EditorIoCContainer.Register(container);
 
     container.ValidateAndThrow();
+    PathBuilder.UseProjectContext(container.Resolve<IProjectContext>());
 }
 
 var container = new Container();

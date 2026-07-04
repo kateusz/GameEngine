@@ -47,7 +47,7 @@ public static class TextureDropTarget
     private static string ToAssetRelativePath(string path)
     {
         var fullPath = Path.GetFullPath(path);
-        var assetsPath = Path.GetFullPath(AssetsManager.AssetsPath);
+        var assetsPath = Path.GetFullPath(PathBuilder.AssetsPath);
         var relative = Path.GetRelativePath(assetsPath, fullPath);
         if (!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative))
             return relative.Replace('\\', '/');

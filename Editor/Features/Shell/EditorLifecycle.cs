@@ -17,6 +17,7 @@ namespace Editor.Features.Shell;
 
 public class EditorLifecycle(
     IProjectManager projectManager,
+    IProjectContext projectContext,
     IEditorPreferences editorPreferences,
     DebugSettings debugSettings,
     ISceneContext sceneContext,
@@ -36,10 +37,24 @@ public class EditorLifecycle(
     private Action _stopSceneHandler = null!;
     private Action _restartSceneHandler = null!;
     private Action<Entity?, SelectionSource> _selectionChangedHandler = null!;
+    private Action<ProjectPaths> _projectOpenedHandler = null!;
+    private Action _projectClosedHandler = null!;
 
     public void Attach(IInputSystem inputSystem)
     {
         Logger.Debug("EditorLifecycle Attach.");
+
+        _projectOpenedHandler = paths =>
+            panels.ContentBrowserPanel.SetRootDirectory(paths.AssetsDir);
+
+        _projectClosedHandler = () =>
+        {
+            panels.ContentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
+            sceneManager.New("");
+        };
+
+        projectManager.ProjectOpened += _projectOpenedHandler;
+        projectManager.ProjectClosed += _projectClosedHandler;
 
         _sceneChangedHandler = newScene =>
         {
@@ -48,9 +63,7 @@ public class EditorLifecycle(
             if (string.IsNullOrWhiteSpace(newScene.Name))
                 return;
 
-            var scriptsDir = projectManager.ScriptsDir ??
-                             Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-            if (projectManager.CurrentProjectDirectory is { } projectDir)
+            if (projectManager.CurrentProjectDirectory is { } projectDir && projectManager.ScriptsDir is { } scriptsDir)
                 scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
 
 #if DEBUG
@@ -93,6 +106,8 @@ public class EditorLifecycle(
     {
         Logger.Debug("EditorLifecycle Detach.");
 
+        projectManager.ProjectOpened -= _projectOpenedHandler;
+        projectManager.ProjectClosed -= _projectClosedHandler;
         sceneContext.SceneChanged -= _sceneChangedHandler;
         selection.SelectionChanged -= _selectionChangedHandler;
         viewport.SceneToolbar.OnPlayScene -= _playSceneHandler;

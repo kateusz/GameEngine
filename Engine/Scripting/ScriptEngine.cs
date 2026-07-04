@@ -203,6 +203,14 @@ internal sealed class ScriptEngine(
 
     public Assembly? GetLoadedGameAssembly() => _dynamicAssembly;
 
+    public void UnloadGameAssembly()
+    {
+        _dynamicAssembly = null;
+        _loadedDllPath = null;
+        _scriptTypes.Clear();
+        _scriptLastModified.Clear();
+    }
+
     public void RefreshScriptInstances(ScriptRuntimeStore store)
     {
         if (sceneContext.ActiveScene == null)

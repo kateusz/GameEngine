@@ -2,21 +2,23 @@ namespace Editor.Features.Project;
 
 public interface IProjectManager
 {
-    /// <summary>Absolute path to the current project root directory (null if no project is loaded).</summary>
     string? CurrentProjectDirectory { get; }
-    
-    /// <summary>Absolute path to /assets/scripts (null if no project).</summary>
+
     string? ScriptsDir { get; }
 
-    /// <summary>Absolute path to /assets/scenes (null if no project).</summary>
     string? ScenesDir { get; }
 
-    /// <summary>Validate a project name for creation UI.</summary>
+    bool IsProjectLoaded { get; }
+
+    event Action<ProjectPaths>? ProjectOpened;
+
+    event Action? ProjectClosed;
+
     bool IsValidProjectName(string? name);
 
-    /// <summary>Create a new project as a child folder of <paramref name="parentDirectory"/>.</summary>
     bool TryCreateNewProject(string parentDirectory, string projectName, out string error);
 
-    /// <summary>Open an existing project directory (absolute or relative to current working directory).</summary>
     bool TryOpenProject(string projectDir, out string error);
+
+    void CloseProject();
 }

@@ -1,14 +1,21 @@
+using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Scripting;
 using Engine.Core;
+using Engine.Scene;
+using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Features.Project;
 
 public class ProjectManager(
     IEditorPreferences editorPreferences,
+    IProjectContext projectContext,
     GameScriptWorkspace scriptWorkspace,
-    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper)
+    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper,
+    IScriptEngine scriptEngine,
+    ISceneContext sceneContext,
+    Lazy<ISceneManager> sceneManager)
     : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
@@ -22,21 +29,22 @@ public class ProjectManager(
         Path.Combine("assets", "prefabs")
     ];
 
-    public string? CurrentProjectDirectory { get; private set; }
-    
-    public string? ScriptsDir => CurrentProjectDirectory is null
-        ? null
-        : Path.Combine(CurrentProjectDirectory, "assets", "scripts");
+    public event Action<ProjectPaths>? ProjectOpened;
+    public event Action? ProjectClosed;
 
-    public string? ScenesDir => CurrentProjectDirectory is null
-        ? null
-        : Path.Combine(CurrentProjectDirectory, "assets", "scenes");
+    public string? CurrentProjectDirectory => projectContext.Root;
+
+    public string? ScriptsDir => projectContext.ScriptsDir;
+
+    public string? ScenesDir => projectContext.ScenesDir;
+
+    public bool IsProjectLoaded => projectContext.HasProject;
 
     public bool IsValidProjectName(string? name)
     {
-        if (string.IsNullOrWhiteSpace(name)) 
+        if (string.IsNullOrWhiteSpace(name))
             return false;
-        
+
         return System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_\- ]+$");
     }
 
@@ -97,7 +105,9 @@ public class ProjectManager(
                 return false;
             }
 
-            SetCurrentProject(projectDir);
+            CloseProject();
+            ApplyProjectPaths(projectDir);
+            InitializeScripts();
 
             Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
             editorPreferences.AddRecentProject(projectDir, projectName.Trim());
@@ -117,7 +127,6 @@ public class ProjectManager(
 
         try
         {
-            // allow relative input
             var full = Path.GetFullPath(Path.IsPathRooted(projectDir)
                 ? projectDir
                 : Path.Combine(Environment.CurrentDirectory, projectDir));
@@ -128,13 +137,14 @@ public class ProjectManager(
                 return false;
             }
 
-            // If /assets doesn’t exist, fallback to the root as assets path to keep old samples working.
             if (!Directory.Exists(Path.Combine(full, "assets")))
             {
                 Logger.Warning("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
             }
 
-            SetCurrentProject(full);
+            CloseProject();
+            ApplyProjectPaths(full);
+            InitializeScripts();
 
             gameProjectScriptBootstrapper.TryEnsureScriptSdkAfterOpen(full);
 
@@ -152,19 +162,37 @@ public class ProjectManager(
         }
     }
 
-    private void SetCurrentProject(string projectDir)
+    public void CloseProject()
     {
-        CurrentProjectDirectory = projectDir;
+        if (!projectContext.HasProject)
+            return;
 
-        // Determine assets root (prefer /assets if present)
-        var assetsDir = Directory.Exists(Path.Combine(projectDir, "assets"))
-            ? Path.Combine(projectDir, "assets")
-            : projectDir;
+        if (sceneContext.State == SceneState.Play)
+            sceneManager.Value.Stop();
 
-        AssetsManager.SetAssetsPath(assetsDir);
+        scriptEngine.UnloadGameAssembly();
+        projectContext.Clear();
+        ProjectClosed?.Invoke();
+    }
 
-        // Point the scripting engine to /assets/scripts if that exists
-        var scriptsDir = Path.Combine(projectDir, "assets", "scripts");
-        scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
+    private void ApplyProjectPaths(string projectDir)
+    {
+        projectContext.Apply(projectDir);
+        var paths = new ProjectPaths(
+            projectContext.Root!,
+            projectContext.AssetsPath,
+            projectContext.ScriptsDir!,
+            projectContext.ScenesDir!);
+        ProjectOpened?.Invoke(paths);
+    }
+
+    private void InitializeScripts()
+    {
+        if (projectContext.Root is null || projectContext.ScriptsDir is null)
+            return;
+
+        scriptWorkspace.SetScriptsDirectory(
+            projectContext.ScriptsDir,
+            GameScriptWorkspace.ResolveEditorDllPath(projectContext.Root));
     }
 }

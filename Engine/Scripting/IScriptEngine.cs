@@ -24,5 +24,7 @@ public interface IScriptEngine
 
     Assembly? GetLoadedGameAssembly();
 
+    void UnloadGameAssembly();
+
     void RefreshScriptInstances(ScriptRuntimeStore store);
 }

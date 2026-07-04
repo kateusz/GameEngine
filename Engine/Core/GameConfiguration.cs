@@ -6,5 +6,7 @@ public class GameConfiguration
     public string StartupScenePath { get; set; } = "assets/scenes/game.scene";
     public int WindowWidth { get; set; } = 1920;
     public int WindowHeight { get; set; } = 1080;
+    public bool Fullscreen { get; set; }
     public string GameTitle { get; set; } = "My Game";
+    public int TargetFrameRate { get; set; } = 60;
 }

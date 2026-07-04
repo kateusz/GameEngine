@@ -64,9 +64,7 @@ public class EditorMenuBar(
                 {
                     if (ImGui.MenuItem($"{recent.Name}"))
                     {
-                        if (projectManager.TryOpenProject(recent.Path, out var error))
-                            panels.ContentBrowserPanel.SetRootDirectory(AssetsManager.AssetsPath);
-                        else
+                        if (!projectManager.TryOpenProject(recent.Path, out var error))
                             Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
                     }
 

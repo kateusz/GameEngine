@@ -15,7 +15,9 @@ public class GameConfigurationTests
             StartupScenePath = "assets/scenes/level1.scene",
             WindowWidth = 1280,
             WindowHeight = 720,
-            GameTitle = "Test Game"
+            Fullscreen = true,
+            GameTitle = "Test Game",
+            TargetFrameRate = 120
         };
 
         var json = JsonSerializer.Serialize(original);
@@ -26,7 +28,9 @@ public class GameConfigurationTests
         restored.StartupScenePath.ShouldBe(original.StartupScenePath);
         restored.WindowWidth.ShouldBe(original.WindowWidth);
         restored.WindowHeight.ShouldBe(original.WindowHeight);
+        restored.Fullscreen.ShouldBe(original.Fullscreen);
         restored.GameTitle.ShouldBe(original.GameTitle);
+        restored.TargetFrameRate.ShouldBe(original.TargetFrameRate);
     }
 
     [Fact]
@@ -48,5 +52,7 @@ public class GameConfigurationTests
 
         config.ShouldNotBeNull();
         config.GameTitle.ShouldBe("Legacy Game");
+        config.Fullscreen.ShouldBeTrue();
+        config.TargetFrameRate.ShouldBe(120);
     }
 }

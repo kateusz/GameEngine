@@ -7,7 +7,7 @@ using Serilog;
 
 namespace Editor.UI.Elements;
 
-public class PrefabManager(IPrefabSerializer serializer) : IPrefabManager
+public class PrefabManager(IPrefabSerializer serializer, IProjectContext projectContext) : IPrefabManager
 {
     private static readonly ILogger Logger = Log.ForContext<PrefabManager>();
 
@@ -69,9 +69,6 @@ public class PrefabManager(IPrefabSerializer serializer) : IPrefabManager
             okLabel: "Save");
     }
 
-    private string GetCurrentProjectPath()
-    {
-        var assetsPath = AssetsManager.AssetsPath;
-        return Path.GetDirectoryName(assetsPath) ?? Environment.CurrentDirectory;
-    }
+    private string GetCurrentProjectPath() =>
+        projectContext.Root ?? Environment.CurrentDirectory;
 }

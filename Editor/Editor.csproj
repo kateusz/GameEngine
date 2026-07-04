@@ -12,6 +12,7 @@
     <ItemGroup>
         <ProjectReference Include="../Engine/Engine.csproj" />
         <ProjectReference Include="../Ui.ImGui/Ui.ImGui.csproj" />
+        <ProjectReference Include="../GameScriptSdk/GameScriptSdk.csproj" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,6 +27,19 @@
 
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/fonts;$(OutputPath)assets/fonts/opensans;$(OutputPath)assets/game;$(OutputPath)assets/game/textures;$(OutputPath)assets/objModels;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures;$(OutputPath)assets/textures/skybox;$(OutputPath)Resources;$(OutputPath)libs" />
+    </Target>
+
+    <Target Name="CopyGameScriptSdk" AfterTargets="Build">
+        <PropertyGroup>
+            <_SdkStaging>$(MSBuildThisFileDirectory)..\artifacts\GameScriptSdk\$(Configuration)\$(TargetFramework)\</_SdkStaging>
+            <_SdkDest>$(OutputPath)Data\GameScriptSdk\</_SdkDest>
+        </PropertyGroup>
+        <MakeDir Directories="$(_SdkDest)" />
+        <ItemGroup>
+            <_SdkFiles Include="$(_SdkStaging)*.dll;$(_SdkStaging)*.pdb" Condition="Exists('$(_SdkStaging)')" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_SdkFiles)" DestinationFolder="$(_SdkDest)" SkipUnchangedFiles="true"
+              Condition="'@(_SdkFiles)' != ''" />
     </Target>
 
     <!-- Copy OpenAL Soft on Windows from NuGet runtimes folder to output root -->
