@@ -13,7 +13,7 @@ public sealed class GameScriptWorkspace(
     IGameAssemblyBuilder builder,
     IScriptEngine scriptEngine,
     IComponentSerializerRegistry componentSerializerRegistry,
-    Func<string, bool> ensureGameAssemblyRegistered)
+    Func<Assembly, bool> ensureGameAssemblyRegistered)
 {
     private static readonly ILogger Logger = Log.ForContext<GameScriptWorkspace>();
 
@@ -24,6 +24,8 @@ public sealed class GameScriptWorkspace(
     private string _scriptsDirectory = string.Empty;
     private string _outputDllPath = string.Empty;
     private bool _debugMode = true;
+
+    public void ClearAppliedAssembly() => _appliedAssemblyKey = null;
 
     public static string ResolveEditorDllPath(string projectDir) =>
         Path.Combine(projectDir, ".engine", "GameAssembly.dll");
@@ -228,12 +230,8 @@ public sealed class GameScriptWorkspace(
 
         try
         {
-            var registrationKey = string.IsNullOrWhiteSpace(assembly.Location)
-                ? key
-                : Path.GetFullPath(assembly.Location);
-
-            if (!ensureGameAssemblyRegistered(registrationKey))
-                Logger.Debug("Game assembly at {Key} has no types marked with [Register]", registrationKey);
+            if (!ensureGameAssemblyRegistered(assembly))
+                Logger.Debug("Game assembly at {Key} has no types marked with [Register]", key);
 
             componentSerializerRegistry.RegisterFromAssembly(assembly);
             _appliedAssemblyKey = key;

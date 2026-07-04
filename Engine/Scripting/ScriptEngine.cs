@@ -17,6 +17,7 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
     private readonly Dictionary<string, Type> _scriptTypes = new();
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private Assembly? _dynamicAssembly;
+    private GameAssemblyLoadContext? _loadContext;
     private string _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
     private string? _loadedDllPath;
     private bool _suppressFileChangeRecompile;
@@ -34,7 +35,9 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
 
         try
         {
-            _dynamicAssembly = Assembly.LoadFrom(_loadedDllPath);
+            UnloadLoadContext();
+            _loadContext = new GameAssemblyLoadContext(_loadedDllPath);
+            _dynamicAssembly = _loadContext.LoadAssembly();
             IndexScriptLastModifiedFromDisk();
             UpdateScriptTypes();
             Logger.Information("Loaded game assembly from {Path}", _loadedDllPath);
@@ -86,10 +89,21 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
 
     public void UnloadGameAssembly()
     {
-        _dynamicAssembly = null;
+        UnloadLoadContext();
         _loadedDllPath = null;
-        _scriptTypes.Clear();
         _scriptLastModified.Clear();
+    }
+
+    private void UnloadLoadContext()
+    {
+        _dynamicAssembly = null;
+        _scriptTypes.Clear();
+
+        if (_loadContext is null)
+            return;
+
+        _loadContext.Unload();
+        _loadContext = null;
     }
 
     private void CheckForScriptChanges()

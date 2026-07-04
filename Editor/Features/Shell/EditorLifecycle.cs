@@ -51,6 +51,7 @@ public class EditorLifecycle(
             if (sceneContext.State == SceneState.Play)
                 sceneManager.Stop();
             scriptEngine.UnloadGameAssembly();
+            scriptWorkspace.ClearAppliedAssembly();
         };
 
         _projectOpenedHandler = () =>

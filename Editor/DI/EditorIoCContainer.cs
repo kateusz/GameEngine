@@ -1,3 +1,4 @@
+using System.Reflection;
 using DryIoc;
 using ECS.Systems;
 using Editor.ComponentEditors;
@@ -60,8 +61,8 @@ public static class EditorIoCContainer
         container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         
-        container.RegisterDelegate<Func<string, bool>>(
-            _ => assemblyName => RegisterGameAssembly(container, assemblyName),
+        container.RegisterDelegate<Func<Assembly, bool>>(
+            _ => assembly => RegisterGameAssembly(container, assembly),
             Reuse.Singleton);
 
         container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
@@ -111,8 +112,6 @@ public static class EditorIoCContainer
         container.Register<Editor>(Reuse.Singleton);
     }
 
-    private static bool RegisterGameAssembly(Container container, string gameAssemblyNameOrFilePath) =>
-        GameAssemblyContainerRegistration.TryRegisterContainer(
-            container,
-            GameAssemblyContainerRegistration.Load(gameAssemblyNameOrFilePath));
+    private static bool RegisterGameAssembly(Container container, Assembly assembly) =>
+        GameAssemblyContainerRegistration.TryRegisterContainer(container, assembly);
 }

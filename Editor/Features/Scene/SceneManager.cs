@@ -72,27 +72,36 @@ public class SceneManager(
             return;
         }
 
-        var engineDir = Path.Combine(projectContext.Root, ".engine");
-        Directory.CreateDirectory(engineDir);
-        var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
-        if (!gameAssemblyBuilder.TryBuild(projectContext.ScriptsDir, dllPath, emitPdb: true, out var buildErrors))
+        var scene = sceneContext.ActiveScene!;
+        var snapshotPath = Path.Combine(Path.GetTempPath(), $"ge-play-{Guid.NewGuid():N}.scene");
+
+        try
         {
-            foreach (var e in buildErrors)
-                Logger.Error("Game script build: {Error}", e);
-            return;
+            sceneSerializer.Serialize(scene, snapshotPath);
+
+            var engineDir = Path.Combine(projectContext.Root, ".engine");
+            Directory.CreateDirectory(engineDir);
+            var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
+            if (!gameAssemblyBuilder.TryBuild(projectContext.ScriptsDir, dllPath, emitPdb: true, out var buildErrors))
+            {
+                foreach (var e in buildErrors)
+                    Logger.Error("Game script build: {Error}", e);
+                return;
+            }
+
+            scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
+            scriptEngine.SetSuppressFileChangeRecompile(true);
+
+            ReloadEntitiesFromSnapshot(scene, snapshotPath);
+
+            RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
+            Logger.Information("▶️ Scene play started");
         }
-
-        scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
-        scriptEngine.SetSuppressFileChangeRecompile(true);
-
-        if (!string.IsNullOrEmpty(EditorScenePath))
-            sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
-
-        RuntimeSceneStarter.Start(
-            sceneContext.ActiveScene!,
-            sceneContext,
-            resolveGameSystems());
-        Logger.Information("▶️ Scene play started");
+        finally
+        {
+            if (File.Exists(snapshotPath))
+                File.Delete(snapshotPath);
+        }
     }
 
     public void Stop()
@@ -100,8 +109,6 @@ public class SceneManager(
         sceneContext.SetState(SceneState.Edit);
         sceneContext.ActiveScene.OnRuntimeStop();
         scriptEngine.SetSuppressFileChangeRecompile(false);
-        if (projectContext.ScriptsDir is { } scriptsDir && projectContext.Root is { } projectDir)
-            scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
 
         if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
             Open(EditorScenePath);
@@ -132,4 +139,17 @@ public class SceneManager(
     }
 
     public string? GetCurrentScenePath() => EditorScenePath;
+
+    private void ReloadEntitiesFromSnapshot(IScene scene, string snapshotPath)
+    {
+        var destroyed = 0;
+        foreach (var entity in scene.Entities.ToList())
+        {
+            scene.DestroyEntity(entity);
+            destroyed++;
+        }
+
+        sceneSerializer.Deserialize(scene, snapshotPath);
+        Logger.Debug("♻️ Reloaded {Destroyed} entities from snapshot for play-mode assembly", destroyed);
+    }
 }

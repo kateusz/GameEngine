@@ -76,7 +76,11 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         foreach (var component in entity.GetAllComponents())
         {
             if (!_byType.TryGetValue(component.GetType(), out var serializer))
-                continue;
+            {
+                throw new InvalidOperationException(
+                    $"No serializer registered for component type '{component.GetType().FullName}' on entity '{entity.Name}' (Id={entity.Id}). " +
+                    "Refusing to serialize a partial entity — this would silently drop data.");
+            }
 
             if (serializer.TrySerialize(component, options, out var json) && json is not null)
                 componentsArray.Add(json);
