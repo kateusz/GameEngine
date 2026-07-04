@@ -10,6 +10,7 @@ public interface IGraphics3D : IGraphics
     void BeginScene(IViewCamera camera);
     void EndScene();
     void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1);
+    void SetAmbientLight(Vector3 color, float strength);
     void ResetStats();
     Statistics GetStats();
 }

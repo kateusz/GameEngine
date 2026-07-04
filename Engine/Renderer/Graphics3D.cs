@@ -57,10 +57,18 @@ internal sealed class Graphics3D(
         _meshShader.SetMat4("u_Model", transform);
         _meshShader.SetFloat4("u_Color", color);
         _meshShader.SetInt("u_EntityID", entityId);
+        
 
         _cubeMesh.Bind();
         rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
         _stats.DrawCalls++;
+    }
+
+    public void SetAmbientLight(Vector3 color, float strength)
+    {
+        _meshShader.Bind();
+        _meshShader.SetFloat3("lightColor", color);
+        _meshShader.SetFloat("strength", strength);
     }
 
     public void ResetStats()

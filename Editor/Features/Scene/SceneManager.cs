@@ -41,12 +41,13 @@ public class SceneManager(
         EditorScenePath = null;
 
         EditorScenePath = path;
-        sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));
+        var scene = sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path));
 
         if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
             scriptWorkspace.EnsureScriptsCompiledAndApplied();
 
-        sceneSerializer.Deserialize(sceneContext.ActiveScene!, path);
+        sceneSerializer.Deserialize(scene, path);
+        sceneContext.SetScene(scene);
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 

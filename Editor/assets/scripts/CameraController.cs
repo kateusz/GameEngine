@@ -21,7 +21,7 @@ public class CameraController : ScriptableEntity
     private Vector3 _position;
     private float _yaw;
     private float _pitch;
-    private float _speedMultiplier = 10.0f;
+    private float _speedMultiplier = 1.0f;
     private bool _mouseLookActive;
     private float _lastMouseX;
     private float _lastMouseY;
@@ -44,16 +44,23 @@ public class CameraController : ScriptableEntity
 
         if (_isPerspective && HasComponent<TransformComponent>())
             _position = GetComponent<TransformComponent>().Translation;
+
+        if (_isPerspective)
+            GetComponent<CameraComponent>().CameraViewTransform = null;
     }
 
     public override void OnUpdate(TimeSpan ts)
     {
+        if (!HasComponent<CameraComponent>())
+            return;
+
         if (!_isPerspective)
         {
             UpdateOrthographic((float)ts.TotalSeconds);
+            return;
         }
 
-        if (!HasComponent<CameraComponent>())
+        if (!HasComponent<TransformComponent>())
             return;
 
         var dt = (float)ts.TotalSeconds;
@@ -75,9 +82,10 @@ public class CameraController : ScriptableEntity
         if (_pressedKeys.Contains(KeyCodes.Q) || _pressedKeys.Contains(KeyCodes.LeftShift))
             _position -= Vector3.UnitY * speed;
 
-        var orientation = Quaternion.CreateFromYawPitchRoll(-_yaw, -_pitch, 0f);
-        GetComponent<CameraComponent>().CameraViewTransform =
-            Matrix4x4.CreateTranslation(-_position) * Matrix4x4.CreateFromQuaternion(orientation);
+        GetComponent<CameraComponent>().CameraViewTransform = null;
+        var transform = GetComponent<TransformComponent>();
+        transform.Translation = _position;
+        transform.Rotation = new Vector3(_pitch, _yaw, 0);
     }
 
     public override void OnDestroy()

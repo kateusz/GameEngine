@@ -64,6 +64,7 @@ public static class EditorIoCContainer
         container.RegisterMany<AudioListenerComponentEditor>(Reuse.Singleton);
         container.RegisterMany<GameComponentInspector>(Reuse.Singleton);
         container.RegisterMany<ScriptComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<AmbientLightComponentEditor>(Reuse.Singleton);
         container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
 
         // Panel draw order

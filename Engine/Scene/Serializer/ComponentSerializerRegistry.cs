@@ -6,6 +6,7 @@ using Engine.Scripting;
 using SceneComponents;
 using SceneComponents.Audio;
 using SceneComponents.Camera;
+using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 
@@ -130,6 +131,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<AudioListenerComponent>();
         Register<AudioSourceComponent>();
         Register<ModelRendererComponent>();
+        Register<AmbientLightComponent>();
         RegisterSerializer(new NativeScriptComponentSerializer());
     }
 

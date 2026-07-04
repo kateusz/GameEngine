@@ -14,6 +14,7 @@ internal sealed class SceneSerializer(
 {
     private const string SceneKey = "Scene";
     private const string BackgroundColorKey = "BackgroundColor";
+    private const string DimensionKey = "Dimension";
     private const string EntitiesKey = "Entities";
     private const string ComponentsKey = "Components";
     private const string NameKey = "Name";
@@ -28,6 +29,7 @@ internal sealed class SceneSerializer(
         {
             [SceneKey] = sceneName,
             [BackgroundColorKey] = JsonSerializer.SerializeToNode(scene.BackgroundColor, _options),
+            [DimensionKey] = JsonSerializer.SerializeToNode(scene.Dimension, _options),
             [EntitiesKey] = new JsonArray()
         };
 
@@ -92,6 +94,9 @@ internal sealed class SceneSerializer(
 
         if (jsonObj.TryGetPropertyValue(BackgroundColorKey, out var backgroundColorNode) && backgroundColorNode != null)
             scene.BackgroundColor = backgroundColorNode.Deserialize<Vector4>(_options)!;
+
+        if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null)
+            scene.Dimension = dimensionNode.Deserialize<SceneDimension>(_options)!;
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
         foreach (var jsonEntity in jsonEntities)

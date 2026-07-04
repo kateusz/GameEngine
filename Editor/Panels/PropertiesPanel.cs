@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
+using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
@@ -14,6 +15,7 @@ public class PropertiesPanel(
     IPrefabManager prefabManager,
     IComponentEditorRegistry componentEditors,
     ISceneContext sceneContext,
+    SceneToolbar sceneToolbar,
     GameComponentEditor gameComponentEditor,
     IEditorSelection selection)
     : IPropertiesPanel, IEditorPanel
@@ -54,6 +56,21 @@ public class PropertiesPanel(
             return;
 
         ImGui.SeparatorText("Scene");
+
+        var dimension = scene.Dimension;
+        if (ImGui.RadioButton("2D", dimension == SceneDimension.TwoD))
+        {
+            scene.Dimension = SceneDimension.TwoD;
+            sceneToolbar.ApplyGridFromScene(scene);
+        }
+
+        ImGui.SameLine();
+        if (ImGui.RadioButton("3D", dimension == SceneDimension.ThreeD))
+        {
+            scene.Dimension = SceneDimension.ThreeD;
+            sceneToolbar.ApplyGridFromScene(scene);
+        }
+
         var backgroundColor = scene.BackgroundColor;
         if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
                 ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |

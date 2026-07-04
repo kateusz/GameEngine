@@ -48,7 +48,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Math\" />
+      <Folder Include="Lighting\" />
       <Folder Include="Scene\Components\" />
     </ItemGroup>
 

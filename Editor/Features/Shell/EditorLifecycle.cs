@@ -71,7 +71,11 @@ public class EditorLifecycle(
         projectManager.ProjectOpened += _projectOpenedHandler;
         projectManager.ProjectClosed += _projectClosedHandler;
 
-        _sceneChangedHandler = newScene => sceneHierarchyPanel.SetScene(newScene);
+        _sceneChangedHandler = newScene =>
+        {
+            sceneHierarchyPanel.SetScene(newScene);
+            viewport.SceneToolbar.ApplyGridFromScene(newScene);
+        };
         _playSceneHandler = sceneManager.Play;
         _stopSceneHandler = sceneManager.Stop;
         _restartSceneHandler = sceneManager.Restart;

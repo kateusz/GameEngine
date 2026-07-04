@@ -22,6 +22,8 @@ public interface IScene : IDisposable
 
     Vector4 BackgroundColor { get; set; }
 
+    SceneDimension Dimension { get; set; }
+
     /// <summary>
     /// Gets all entities in the scene.
     /// </summary>

@@ -7,6 +7,7 @@ using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Audio;
 using SceneComponents.Camera;
+using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 
@@ -54,6 +55,7 @@ public static class ComponentSelector
             });
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
+            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);
 
             if (ImGui.MenuItem("Game Component"))
             {

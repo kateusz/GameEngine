@@ -1,5 +1,6 @@
 {
   "Scene": "2d",
+  "Dimension": "TwoD",
   "Entities": [
     {
       "Id": 3,

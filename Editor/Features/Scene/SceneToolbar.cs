@@ -23,6 +23,12 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     public bool ShowGrid { get; set; } = true;
     public bool ShowGrid3D { get; set; } = false;
 
+    public void ApplyGridFromScene(IScene scene)
+    {
+        ShowGrid = scene.Dimension == SceneDimension.TwoD;
+        ShowGrid3D = scene.Dimension == SceneDimension.ThreeD;
+    }
+
     public event Action OnPlayScene;
     public event Action OnStopScene;
     public event Action OnRestartScene;

@@ -6,6 +6,7 @@ using Engine.Renderer.Textures;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Serilog;
 
@@ -55,6 +56,9 @@ internal static class SceneRenderPipeline
             return;
 
         Begin3DScene(graphics3D, camera);
+        var (ambientColor, ambientStrength) = ResolveAmbient(context);
+        graphics3D.SetAmbientLight(ambientColor, ambientStrength);
+
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
@@ -162,5 +166,13 @@ internal static class SceneRenderPipeline
             graphics3D.BeginScene(camera.ViewCamera);
         else
             graphics3D.BeginScene(camera.Camera!, camera.Transform);
+    }
+
+    private static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
+    {
+        foreach (var (_, alc) in context.View<AmbientLightComponent>())
+            return (alc.Color, alc.Strength);
+
+        return (Vector3.One, 0.1f);
     }
 }
