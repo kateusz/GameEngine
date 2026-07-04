@@ -10,7 +10,7 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
     private readonly Lock _blackLock = new();
     private Texture2D? _flatNormalTexture;
     private readonly Lock _flatNormalLock = new();
-    private readonly Dictionary<string, WeakReference<Texture2D>> _textureCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Texture2D> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
@@ -74,27 +74,16 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
 
         lock (_cacheLock)
         {
-            // Check cache first
-            if (_textureCache.TryGetValue(normalizedPath, out var weakRef))
-            {
-                if (weakRef.TryGetTarget(out var cachedTexture))
-                {
-                    return cachedTexture;
-                }
+            if (_textureCache.TryGetValue(normalizedPath, out var cachedTexture))
+                return cachedTexture;
 
-                // Weak reference died, remove from cache
-                _textureCache.Remove(normalizedPath);
-            }
-
-            // Create new texture (use original path for loading)
             var texture = apiConfig.Type switch
             {
                 ApiType.SilkNet => OpenGLTexture2D.Create(path),
                 _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
             };
 
-            // Add to cache with weak reference using normalized path
-            _textureCache[normalizedPath] = new WeakReference<Texture2D>(texture);
+            _textureCache[normalizedPath] = texture;
             return texture;
         }
     }
@@ -112,13 +101,8 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
     {
         lock (_cacheLock)
         {
-            foreach (var weakRef in _textureCache.Values)
-            {
-                if (weakRef.TryGetTarget(out var texture))
-                {
-                    texture?.Dispose();
-                }
-            }
+            foreach (var texture in _textureCache.Values)
+                texture.Dispose();
 
             _textureCache.Clear();
         }

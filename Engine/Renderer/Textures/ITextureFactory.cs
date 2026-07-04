@@ -28,8 +28,8 @@ public interface ITextureFactory
 
     /// <summary>
     /// Creates or retrieves a cached texture from the specified file path.
-    /// Uses weak-reference-based caching to prevent duplicate GPU resource allocations
-    /// while allowing the garbage collector to reclaim unused textures.
+    /// Returns a cached instance when the same path was loaded before.
+    /// The factory owns cached textures and disposes them via <see cref="ClearCache"/> or container shutdown.
     /// </summary>
     /// <param name="path">The file path to the texture resource.</param>
     /// <returns>A texture instance, either from cache or newly created.</returns>
@@ -45,14 +45,14 @@ public interface ITextureFactory
     Texture2D Create(int width, int height);
 
     /// <summary>
-    /// Clears all cached textures, removing weak references from the cache.
+    /// Disposes and removes all path-cached textures.
     /// Useful during scene transitions or when explicit memory management is required.
     /// </summary>
     void ClearCache();
 
     /// <summary>
     /// Gets the current number of entries in the texture cache.
-    /// Note that this includes both live textures and dead weak references that haven't been cleaned up yet.
+    /// Returns the number of path-cached textures currently held by the factory.
     /// </summary>
     /// <returns>The number of cache entries.</returns>
     int GetCacheSize();
