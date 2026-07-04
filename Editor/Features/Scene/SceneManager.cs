@@ -99,13 +99,13 @@ public class SceneManager(
         if (scriptEngine.GetLoadedGameAssembly() is { } playAssembly)
             componentSerializerRegistry.RegisterFromAssembly(playAssembly);
 
-        RegisterGameSystems();
-
         if (!string.IsNullOrEmpty(EditorScenePath))
             sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
 
-        sceneContext.SetState(SceneState.Play);
-        sceneContext.ActiveScene.OnRuntimeStart();
+        RuntimeSceneStarter.Start(
+            sceneContext.ActiveScene!,
+            sceneContext,
+            gameAssemblySystemsBridge.ResolveSystems());
         Logger.Information("▶️ Scene play started");
     }
 
@@ -171,32 +171,6 @@ public class SceneManager(
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to register game assembly: {Key}", key);
-        }
-    }
-
-    private void RegisterGameSystems()
-    {
-        IReadOnlyList<IGameSystem> gameSystems;
-        try
-        {
-            gameSystems = gameAssemblySystemsBridge.ResolveSystems();
-        }
-        catch (Exception ex)
-        {
-            Logger.Warning(ex, "Failed to resolve game systems from container");
-            return;
-        }
-
-        foreach (var gameSystem in gameSystems)
-        {
-            try
-            {
-                sceneContext.ActiveScene!.RegisterRuntimeSystem(gameSystem);
-            }
-            catch (InvalidOperationException)
-            {
-                // Scene can re-enter play with already registered singleton instances.
-            }
         }
     }
 

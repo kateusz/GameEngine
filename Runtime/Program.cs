@@ -132,7 +132,12 @@ public class Program
             throw new InvalidOperationException(
                 $"Game assembly not found: {path}. Build scripts (publish) or add GameAssembly.dll next to the executable.");
 
-        var assembly = GameAssemblyContainerRegistration.Load(path);
+        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "assets", "scripts");
+        var scriptEngine = container.Resolve<IScriptEngine>();
+        scriptEngine.LoadGameAssemblyFromFile(path, scriptsDir);
+
+        var assembly = scriptEngine.GetLoadedGameAssembly()
+            ?? throw new InvalidOperationException($"Failed to load game assembly from {path}.");
         if (!GameAssemblyContainerRegistration.TryRegisterContainer(container, assembly))
             Logger.Warning("Game assembly has no types marked with [Register]; running without custom game DI.");
 

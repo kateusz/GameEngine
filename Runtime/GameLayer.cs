@@ -32,16 +32,6 @@ public class GameLayer(
 
         Logger.Information("Game layer attached.");
 
-        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "assets", "scripts");
-        var rel = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
-            ? "GameAssembly.dll"
-            : gameConfig.GameAssemblyPath;
-        var gameDll = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, rel));
-        if (File.Exists(gameDll))
-            scriptEngine.LoadGameAssemblyFromFile(gameDll, scriptsDir);
-        else
-            scriptEngine.SetScriptsDirectory(scriptsDir);
-
         var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
 
         if (!File.Exists(startupScenePath))
@@ -51,7 +41,7 @@ public class GameLayer(
 
             var emptyScene = sceneFactory.Create("", "");
             sceneContext.SetScene(emptyScene);
-            RegisterGameSystems(emptyScene);
+            RuntimeSceneStarter.Start(emptyScene, sceneContext, resolveGameSystems());
         }
         else
         {
@@ -62,8 +52,7 @@ public class GameLayer(
                 var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
                 sceneSerializer.Deserialize(scene, startupScenePath);
                 sceneContext.SetScene(scene);
-                RegisterGameSystems(scene);
-                scene.OnRuntimeStart();
+                RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
                 Logger.Information("Startup scene loaded successfully");
             }
             catch (Exception ex)
@@ -72,15 +61,9 @@ public class GameLayer(
 
                 var emptyScene = sceneFactory.Create("", "");
                 sceneContext.SetScene(emptyScene);
-                RegisterGameSystems(emptyScene);
+                RuntimeSceneStarter.Start(emptyScene, sceneContext, resolveGameSystems());
             }
         }
-    }
-
-    private void RegisterGameSystems(IScene scene)
-    {
-        foreach (var gameSystem in resolveGameSystems())
-            scene.RegisterRuntimeSystem(gameSystem);
     }
 
     public void OnDetach()
