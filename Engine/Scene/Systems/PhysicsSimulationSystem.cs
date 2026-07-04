@@ -85,12 +85,12 @@ internal sealed class PhysicsSimulationSystem(
             _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f; // Preserve half timestep
         }
 
-        // Retrieve transform from Box2D and sync with entities
-        var view = context.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
+        // Retrieve transform from Box2D and sync with entities that have colliders
+        foreach (var (entity, component, transform) in
+                 context.View<RigidBody2DComponent, TransformComponent>())
         {
-            var transform = entity.GetComponent<TransformComponent>();
-            var collision = entity.GetComponent<BoxCollider2DComponent>();
+            if (!entity.TryGetComponent<BoxCollider2DComponent>(out var collision))
+                continue;
             if (!bodyStore.TryGet(entity.Id, out var body))
                 continue;
 
@@ -132,13 +132,11 @@ internal sealed class PhysicsSimulationSystem(
 
     private void EnsureBodiesCreated()
     {
-        var view = context.View<RigidBody2DComponent>();
-        foreach (var (entity, component) in view)
+        foreach (var (entity, component, transform) in context.View<RigidBody2DComponent, TransformComponent>())
         {
             if (bodyStore.TryGet(entity.Id, out _))
                 continue;
 
-            var transform = entity.GetComponent<TransformComponent>();
             var bodyDef = new BodyDef
             {
                 position = new Vector2(transform.Translation.X, transform.Translation.Y),
@@ -193,7 +191,7 @@ internal sealed class PhysicsSimulationSystem(
 
     private void SyncKinematicTransformsToBodies()
     {
-        foreach (var (entity, component) in context.View<RigidBody2DComponent>())
+        foreach (var (entity, component, transform) in context.View<RigidBody2DComponent, TransformComponent>())
         {
             if (component.BodyType != RigidBodyType.Kinematic)
                 continue;
@@ -201,7 +199,6 @@ internal sealed class PhysicsSimulationSystem(
             if (!bodyStore.TryGet(entity.Id, out var body))
                 continue;
 
-            var transform = entity.GetComponent<TransformComponent>();
             body.SetTransform(
                 new Vector2(transform.Translation.X, transform.Translation.Y),
                 transform.Rotation.Z);

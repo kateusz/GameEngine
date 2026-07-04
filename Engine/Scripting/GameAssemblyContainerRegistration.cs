@@ -52,7 +52,7 @@ public static class GameAssemblyContainerRegistration
     private static IReadOnlyList<IocRegistrationItem> DiscoverIocRegistrations(Assembly assembly)
     {
         var list = new List<IocRegistrationItem>();
-        foreach (var type in GetLoadableTypes(assembly))
+        foreach (var type in AssemblyLoadTypes.From(assembly))
         {
             if (type is not { IsClass: true, IsAbstract: false })
                 continue;
@@ -85,18 +85,6 @@ public static class GameAssemblyContainerRegistration
         };
 
         container.Register(serviceType, implementationType, reuse);
-    }
-
-    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
-    {
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            return ex.Types.Where(t => t is not null).Cast<Type>().ToArray();
-        }
     }
 
     private readonly record struct IocRegistrationItem(

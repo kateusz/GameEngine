@@ -26,16 +26,18 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
         {
             Camera = ResolveRuntimeCamera(_cachedEntity.Id, _cachedCameraComponent);
             Transform = _cachedCameraComponent.CameraViewTransform
-                ?? _cachedEntity.GetComponent<TransformComponent>().GetTransform();
+                ?? (_cachedEntity.TryGetComponent<TransformComponent>(out var transform)
+                    ? transform.GetTransform()
+                    : Matrix4x4.Identity);
             return;
         }
-        
+
         Camera = null;
         Transform = Matrix4x4.Identity;
         _cachedEntity = null;
         _cachedCameraComponent = null;
 
-        foreach (var (entity, cameraComponent) in context.View<CameraComponent>())
+        foreach (var (entity, cameraComponent, transformComponent) in context.View<CameraComponent, TransformComponent>())
         {
             if (!cameraComponent.Primary)
                 continue;
@@ -43,8 +45,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
             _cachedEntity = entity;
             _cachedCameraComponent = cameraComponent;
             Camera = ResolveRuntimeCamera(entity.Id, cameraComponent);
-            Transform = cameraComponent.CameraViewTransform
-                ?? entity.GetComponent<TransformComponent>().GetTransform();
+            Transform = cameraComponent.CameraViewTransform ?? transformComponent.GetTransform();
             break;
         }
     }

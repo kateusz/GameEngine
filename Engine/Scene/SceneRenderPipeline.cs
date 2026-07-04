@@ -44,7 +44,6 @@ internal static class SceneRenderPipeline
 
     public static void ApplyLighting(IContext context, IGraphics3D graphics3D)
     {
-        var pointLights = context.View<PointLightComponent>().ToList();
         var directionalLights = context.View<DirectionalLightComponent>().ToList();
         var ambientLights = context.View<AmbientLightComponent>().ToList();
 
@@ -83,12 +82,10 @@ internal static class SceneRenderPipeline
         }
 
         var pointLightData = new List<PointLightData>(16);
-        foreach (var (entity, pointLight) in pointLights)
+        foreach (var (_, pointLight, transform) in context.View<PointLightComponent, TransformComponent>())
         {
             if (pointLightData.Count >= 16)
                 break;
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
 
             pointLightData.Add(new PointLightData(
                 transform.Translation,
@@ -107,25 +104,12 @@ internal static class SceneRenderPipeline
         if (!camera.IsValid)
             return;
 
-        var pointLights = context.View<PointLightComponent>().ToList();
-        var directionalLights = context.View<DirectionalLightComponent>().ToList();
-
         Begin3DScene(graphics3D, camera, lightVisualization: true);
-        foreach (var (entity, _) in pointLights)
-        {
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
+        foreach (var (_, _, transform) in context.View<PointLightComponent, TransformComponent>())
             graphics3D.DrawLightVisualization(transform.Translation);
-        }
 
-        foreach (var (entity, _) in directionalLights)
-        {
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
+        foreach (var (_, _, transform) in context.View<DirectionalLightComponent, TransformComponent>())
             graphics3D.DrawLightVisualization(transform.Translation);
-        }
 
         graphics3D.EndLightVisualization();
     }
@@ -136,10 +120,11 @@ internal static class SceneRenderPipeline
             return;
 
         Begin3DScene(graphics3D, camera);
-        foreach (var (entity, meshComponent) in context.View<MeshComponent>())
+        foreach (var (entity, meshComponent, transformComponent) in
+                 context.View<MeshComponent, TransformComponent>())
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+            if (!entity.TryGetComponent<ModelRendererComponent>(out var modelRendererComponent))
+                continue;
 
             graphics3D.DrawModel(
                 transformComponent.GetTransform(),
@@ -161,9 +146,9 @@ internal static class SceneRenderPipeline
             return;
 
         Begin2DScene(graphics2D, camera);
-        foreach (var (entity, spriteRendererComponent) in context.View<SpriteRendererComponent>())
+        foreach (var (entity, spriteRendererComponent, transformComponent) in
+                 context.View<SpriteRendererComponent, TransformComponent>())
         {
-            var transformComponent = entity.GetComponent<TransformComponent>();
             Texture2D? texture = null;
             if (textureFactory != null && !string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath))
                 texture = textureFactory.Create(PathBuilder.Build(spriteRendererComponent.TexturePath));
@@ -188,7 +173,8 @@ internal static class SceneRenderPipeline
             return;
 
         Begin2DScene(graphics2D, camera);
-        foreach (var (entity, subtextureComponent) in context.View<SubTextureRendererComponent>())
+        foreach (var (entity, subtextureComponent, transformComponent) in
+                 context.View<SubTextureRendererComponent, TransformComponent>())
         {
             if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
                 continue;
@@ -197,7 +183,7 @@ internal static class SceneRenderPipeline
             if (texture == null)
                 continue;
 
-            var transform = entity.GetComponent<TransformComponent>().GetTransform();
+            var transform = transformComponent.GetTransform();
             Vector2[] texCoords;
             if (subtextureComponent.TexCoords != null)
             {

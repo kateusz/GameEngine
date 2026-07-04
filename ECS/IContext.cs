@@ -34,12 +34,14 @@ public interface IContext
     void Clear();
 
     /// <summary>
-    /// Returns an enumerable view of all entities that have the specified component type.
+    /// Entities with <typeparamref name="TComponent"/> (indexed; O(matches) not O(all entities)).
     /// </summary>
-    /// <typeparam name="TComponent">The type of component to query for.</typeparam>
-    /// <returns>An enumerable of (Entity, TComponent) tuples representing each entity and its component.</returns>
-    /// <remarks>
-    /// Note: For best performance, consume results directly via foreach.
-    /// </remarks>
     IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent;
+
+    /// <summary>
+    /// Entities with both component types. Iterates the smaller index.
+    /// </summary>
+    IEnumerable<(Entity Entity, T1 Component1, T2 Component2)> View<T1, T2>()
+        where T1 : IComponent
+        where T2 : IComponent;
 }

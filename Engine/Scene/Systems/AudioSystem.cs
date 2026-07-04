@@ -35,9 +35,7 @@ internal sealed class AudioSystem(
         // Create audio sources for all entities that have AudioSourceComponent
         var view = context.View<AudioSourceComponent>();
         foreach (var (entity, component) in view)
-        {
             InitializeAudioSource(entity, component);
-        }
     }
 
     /// <summary>
@@ -144,12 +142,8 @@ internal sealed class AudioSystem(
             runtimeState.Source.SetSpatialMode(component.Is3D, component.MinDistance, component.MaxDistance);
 
             TrySyncClip(component, runtimeState, entity);
-
-            if (component.Is3D && entity.HasComponent<TransformComponent>())
-            {
-                var transform = entity.GetComponent<TransformComponent>();
+            if (component.Is3D && entity.TryGetComponent<TransformComponent>(out var transform))
                 runtimeState.Source.SetPosition(transform.Translation);
-            }
 
             if (component.PlayOnAwake && runtimeState.Source.Clip != null)
             {
@@ -169,37 +163,22 @@ internal sealed class AudioSystem(
     /// </summary>
     private void UpdateListener()
     {
-        // Find active audio listener with transform
-        Entity? activeListenerEntity = null;
-        AudioListenerComponent? activeListener = null;
-
-        var listenerView = context.View<AudioListenerComponent>();
-        foreach (var (entity, component) in listenerView)
+        foreach (var (entity, component, transform) in context.View<AudioListenerComponent, TransformComponent>())
         {
-            if (component.IsActive && entity.HasComponent<TransformComponent>())
-            {
-                activeListenerEntity = entity;
-                activeListener = component;
-                break;
-            }
-        }
+            if (!component.IsActive)
+                continue;
 
-        // Early exit if no active listener found
-        if (activeListenerEntity == null)
+            var pos = transform.Translation;
+
+            audioEngine.SetListenerPosition(pos);
+
+            var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
+            var forward = Vector3.Transform(-Vector3.UnitZ, quaternion);
+            var up = Vector3.Transform(Vector3.UnitY, quaternion);
+
+            audioEngine.SetListenerOrientation(forward, up);
             return;
-
-        var transform = activeListenerEntity.GetComponent<TransformComponent>();
-        var pos = transform.Translation;
-
-        // Set listener position
-        audioEngine.SetListenerPosition(pos);
-
-        // Set listener orientation based on transform rotation
-        var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
-        var forward = Vector3.Transform(-Vector3.UnitZ, quaternion);
-        var up = Vector3.Transform(Vector3.UnitY, quaternion);
-
-        audioEngine.SetListenerOrientation(forward, up);
+        }
     }
 
     /// <summary>
@@ -222,14 +201,10 @@ internal sealed class AudioSystem(
 
                 TrySyncClip(component, runtimeState, entity);
 
-                if (component.Is3D && entity.HasComponent<TransformComponent>())
-                {
-                    var transform = entity.GetComponent<TransformComponent>();
-                    runtimeState.Source.SetPosition(transform.Translation);
-                }
-
                 runtimeState.IsPlaying = runtimeState.Source.IsPlaying;
                 SyncEffects(runtimeState.Source, component);
+                if (component.Is3D && entity.TryGetComponent<TransformComponent>(out var transform))
+                    runtimeState.Source.SetPosition(transform.Translation);
             }
             catch (Exception ex)
             {

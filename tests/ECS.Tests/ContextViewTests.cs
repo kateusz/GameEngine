@@ -251,4 +251,94 @@ public class ContextViewTests : IDisposable
         Assert.Equal(results1[0].Entity.Id, results2[0].Entity.Id);
         Assert.Equal(results2[0].Entity.Id, results3[0].Entity.Id);
     }
+
+    [Fact]
+    public void View_AfterComponentRemoved_ExcludesEntity()
+    {
+        var entity = Entity.Create(1, "Entity");
+        entity.AddComponent<TestComponentA>();
+        _context.Register(entity);
+
+        entity.RemoveComponent<TestComponentA>();
+
+        Assert.Empty(_context.View<TestComponentA>());
+    }
+
+    [Fact]
+    public void View_AfterComponentAddedAfterRegister_IncludesEntity()
+    {
+        var entity = Entity.Create(1, "Entity");
+        _context.Register(entity);
+        entity.AddComponent<TestComponentA>().Value = 7;
+
+        var results = _context.View<TestComponentA>().ToList();
+
+        Assert.Single(results);
+        Assert.Equal(7, results[0].Component.Value);
+    }
+
+    [Fact]
+    public void View_TwoComponents_ReturnsOnlyEntitiesWithBoth()
+    {
+        var withBoth = Entity.Create(1, "Both");
+        withBoth.AddComponent<TestComponentA>().Value = 1;
+        withBoth.AddComponent<TestComponentB>().Data = "x";
+
+        var onlyA = Entity.Create(2, "OnlyA");
+        onlyA.AddComponent<TestComponentA>().Value = 2;
+
+        _context.Register(withBoth);
+        _context.Register(onlyA);
+
+        var results = _context.View<TestComponentA, TestComponentB>().ToList();
+
+        Assert.Single(results);
+        Assert.Equal(1, results[0].Entity.Id);
+        Assert.Equal(1, results[0].Component1.Value);
+        Assert.Equal("x", results[0].Component2.Data);
+    }
+
+    [Fact]
+    public void View_ThreeComponents_ReturnsOnlyEntitiesWithAll()
+    {
+        var complete = Entity.Create(1, "All");
+        complete.AddComponent<TestComponentA>();
+        complete.AddComponent<TestComponentB>();
+        complete.AddComponent<TestComponentC>().Flag = true;
+
+        var partial = Entity.Create(2, "Partial");
+        partial.AddComponent<TestComponentA>();
+        partial.AddComponent<TestComponentB>();
+
+        _context.Register(complete);
+        _context.Register(partial);
+
+        var results = _context.View<TestComponentA, TestComponentB>()
+            .Where(tuple => tuple.Entity.HasComponent<TestComponentC>())
+            .ToList();
+
+        Assert.Single(results);
+        Assert.Equal(1, results[0].Entity.Id);
+        Assert.True(results[0].Entity.GetComponent<TestComponentC>().Flag);
+    }
+
+    [Fact]
+    public void View_SparseComponentType_DoesNotScanUnrelatedEntities()
+    {
+        const int total = 500;
+        const int withA = 5;
+
+        for (var i = 0; i < total; i++)
+        {
+            var entity = Entity.Create(i, $"Entity{i}");
+            if (i < withA)
+                entity.AddComponent<TestComponentA>().Value = i;
+            else
+                entity.AddComponent<TestComponentB>().Data = "b";
+
+            _context.Register(entity);
+        }
+
+        Assert.Equal(withA, _context.View<TestComponentA>().Count());
+    }
 }

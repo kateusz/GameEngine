@@ -2,29 +2,22 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
-using SceneComponents;
-using SceneComponents.Audio;
-using SceneComponents.Camera;
-using SceneComponents.Lights;
-using SceneComponents.Physics;
-using SceneComponents.Rendering;
 
 namespace Engine.Scene.Serializer;
 
 [SuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.")]
 [SuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
 internal sealed class PrefabSerializer(
-    ComponentDeserializer componentDeserializer,
+    ComponentSerializerRegistry registry,
     SerializerOptions serializerOptions) : IPrefabSerializer
 {
     private const string PrefabKey = "Prefab";
     private const string PrefabVersion = "1.0";
     private const string ComponentsKey = "Components";
-    private const string NameKey = "Name";
     private const string VersionKey = "Version";
     private const string PrefabAssetsDirectory = "assets/prefabs";
 
-    private readonly JsonSerializerOptions _defaultSerializerOptions = serializerOptions.Options;
+    private readonly JsonSerializerOptions _options = serializerOptions.Options;
 
     public void SerializeToPrefab(Entity entity, string prefabName, string projectPath)
     {
@@ -33,16 +26,16 @@ internal sealed class PrefabSerializer(
 
         var prefabPath = Path.Combine(prefabDir, $"{prefabName}.prefab");
 
+        var componentsArray = new JsonArray();
+        registry.SerializeEntity(entity, componentsArray, _options);
+
         var jsonObj = new JsonObject
         {
             [PrefabKey] = prefabName,
             [VersionKey] = PrefabVersion,
             ["OriginalName"] = entity.Name,
-            [ComponentsKey] = new JsonArray()
+            [ComponentsKey] = componentsArray
         };
-
-        var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
-        SerializeEntityComponents(entity, componentsArray);
 
         var jsonString = jsonObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(prefabPath, jsonString);
@@ -58,11 +51,7 @@ internal sealed class PrefabSerializer(
                       throw new InvalidSceneJsonException($"Invalid prefab JSON in {prefabPath}");
 
         ClearEntityComponents(entity);
-
-        var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
-        foreach (var componentNode in componentsArray)
-            componentDeserializer.DeserializeComponentLenient(entity,
-                componentNode ?? throw new InvalidSceneJsonException("Got null JSON Component in prefab"));
+        DeserializeComponents(entity, GetJsonArray(jsonObj, ComponentsKey), strict: false);
     }
 
     public Entity CreateEntityFromPrefab(string prefabPath, string entityName, int entityId)
@@ -75,64 +64,25 @@ internal sealed class PrefabSerializer(
                       throw new InvalidSceneJsonException($"Invalid prefab JSON in {prefabPath}");
 
         var entity = Entity.Create(entityId, entityName);
-
-        var componentsArray = GetJsonArray(jsonObj, ComponentsKey);
-        foreach (var componentNode in componentsArray)
-            componentDeserializer.DeserializeComponentLenient(entity,
-                componentNode ?? throw new InvalidSceneJsonException("Got null JSON Component in prefab"));
-
+        DeserializeComponents(entity, GetJsonArray(jsonObj, ComponentsKey), strict: false);
         return entity;
     }
 
-    private void SerializeEntityComponents(Entity entity, JsonArray componentsArray)
+    private void DeserializeComponents(Entity entity, JsonArray componentsArray, bool strict)
     {
-        SerializeComponent<TransformComponent>(entity, componentsArray, nameof(TransformComponent));
-        SerializeComponent<CameraComponent>(entity, componentsArray, nameof(CameraComponent));
-        SerializeComponent<SpriteRendererComponent>(entity, componentsArray, nameof(SpriteRendererComponent));
-        SerializeComponent<SubTextureRendererComponent>(entity, componentsArray, nameof(SubTextureRendererComponent));
-        SerializeComponent<RigidBody2DComponent>(entity, componentsArray, nameof(RigidBody2DComponent));
-        SerializeComponent<BoxCollider2DComponent>(entity, componentsArray, nameof(BoxCollider2DComponent));
-        SerializeComponent<MeshComponent>(entity, componentsArray, nameof(MeshComponent));
-        SerializeComponent<ModelRendererComponent>(entity, componentsArray, nameof(ModelRendererComponent));
-        SerializeComponent<AudioListenerComponent>(entity, componentsArray, nameof(AudioListenerComponent));
-        SerializeComponent<AudioSourceComponent>(entity, componentsArray, nameof(AudioSourceComponent));
-        SerializeComponent<PointLightComponent>(entity, componentsArray, nameof(PointLightComponent));
-        SerializeComponent<DirectionalLightComponent>(entity, componentsArray, nameof(DirectionalLightComponent));
-        SerializeComponent<AmbientLightComponent>(entity, componentsArray, nameof(AmbientLightComponent));
-        componentDeserializer.SerializeNativeScriptComponentToArray(entity, componentsArray);
-    }
-
-    private void SerializeComponent<T>(Entity entity, JsonArray componentsArray, string componentName)
-        where T : IComponent
-    {
-        if (!entity.HasComponent<T>())
-            return;
-
-        var component = entity.GetComponent<T>();
-        var element = JsonSerializer.SerializeToNode(component, _defaultSerializerOptions);
-        if (element != null)
+        foreach (var componentNode in componentsArray)
         {
-            element[NameKey] = componentName;
-            componentsArray.Add(element);
+            if (componentNode is not JsonObject componentObj)
+                throw new InvalidSceneJsonException("Got null JSON Component in prefab");
+
+            registry.DeserializeComponent(entity, componentObj, _options, strict);
         }
     }
 
     private static void ClearEntityComponents(Entity entity)
     {
-        if (entity.HasComponent<TransformComponent>()) entity.RemoveComponent<TransformComponent>();
-        if (entity.HasComponent<CameraComponent>()) entity.RemoveComponent<CameraComponent>();
-        if (entity.HasComponent<SpriteRendererComponent>()) entity.RemoveComponent<SpriteRendererComponent>();
-        if (entity.HasComponent<SubTextureRendererComponent>()) entity.RemoveComponent<SubTextureRendererComponent>();
-        if (entity.HasComponent<RigidBody2DComponent>()) entity.RemoveComponent<RigidBody2DComponent>();
-        if (entity.HasComponent<BoxCollider2DComponent>()) entity.RemoveComponent<BoxCollider2DComponent>();
-        if (entity.HasComponent<MeshComponent>()) entity.RemoveComponent<MeshComponent>();
-        if (entity.HasComponent<ModelRendererComponent>()) entity.RemoveComponent<ModelRendererComponent>();
-        if (entity.HasComponent<AudioListenerComponent>()) entity.RemoveComponent<AudioListenerComponent>();
-        if (entity.HasComponent<AudioSourceComponent>()) entity.RemoveComponent<AudioSourceComponent>();
-        if (entity.HasComponent<NativeScriptComponent>()) entity.RemoveComponent<NativeScriptComponent>();
-        if (entity.HasComponent<PointLightComponent>()) entity.RemoveComponent<PointLightComponent>();
-        if (entity.HasComponent<DirectionalLightComponent>()) entity.RemoveComponent<DirectionalLightComponent>();
-        if (entity.HasComponent<AmbientLightComponent>()) entity.RemoveComponent<AmbientLightComponent>();
+        foreach (var component in entity.GetAllComponents().ToList())
+            entity.RemoveComponent(component.GetType());
     }
 
     private static JsonArray GetJsonArray(JsonObject jsonObject, string key)

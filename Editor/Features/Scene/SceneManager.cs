@@ -17,7 +17,8 @@ public class SceneManager(
     IGameAssemblySystemsBridge gameAssemblySystemsBridge,
     IProjectManager projectManager,
     IGameAssemblyBuilder gameAssemblyBuilder,
-    IScriptEngine scriptEngine)
+    IScriptEngine scriptEngine,
+    IComponentSerializerRegistry componentSerializerRegistry)
     : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
@@ -142,9 +143,11 @@ public class SceneManager(
             if (!gameAssemblySystemsBridge.EnsureRegistered(key))
             {
                 Logger.Warning("Game assembly at {Key} has no types marked with [Register]", key);
-                return;
             }
-            
+
+            var assembly = GameAssemblyContainerRegistration.Load(key);
+            componentSerializerRegistry.RegisterFromAssembly(assembly);
+
             _gameAssemblyRegistered = true;
             _registeredAssemblyName = key;
             Logger.Information("Registered game assembly: {Key}", key);
