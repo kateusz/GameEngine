@@ -3,6 +3,7 @@ using Engine.Core;
 using Engine.Core.DI;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
+using Ui.ImGui.DI;
 
 namespace Sandbox;
 
@@ -59,7 +60,9 @@ public class Program
 
     private static void ConfigureContainer(Container container)
     {
-        EngineIoCContainer.Register(container);
+        EngineIoCContainer.RegisterCore(container);
+        EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Sandbox", 1280, 720));
+        ImGuiIoCContainer.Register(container);
 
         container.Register<SandboxApplication>(Reuse.Singleton);
         container.Register<ILayer, Sandbox3DLayer>(Reuse.Singleton);

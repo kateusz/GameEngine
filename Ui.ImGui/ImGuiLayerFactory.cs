@@ -1,6 +1,12 @@
 using Engine.Renderer;
+using Ui.ImGui.Platform.SilkNet;
 
-namespace Engine.ImGuiNet;
+namespace Ui.ImGui;
+
+public interface IImGuiLayerFactory
+{
+    IImGuiLayer Create();
+}
 
 internal sealed class ImGuiLayerFactory(IRendererApiConfig apiConfig) : IImGuiLayerFactory
 {
@@ -8,7 +14,7 @@ internal sealed class ImGuiLayerFactory(IRendererApiConfig apiConfig) : IImGuiLa
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new Platform.SilkNet.SilkNetImGuiLayer(),
+            ApiType.SilkNet => new SilkNetImGuiLayer(),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

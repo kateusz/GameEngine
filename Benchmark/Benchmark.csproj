@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Engine/Engine.csproj" />
+        <ProjectReference Include="../Ui.ImGui/Ui.ImGui.csproj" />
     </ItemGroup>
 
     <ItemGroup>

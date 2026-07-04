@@ -2,6 +2,7 @@
 using ECS;
 using Engine.Core.DI;
 using Serilog;
+using Ui.ImGui.DI;
 
 namespace Benchmark;
 
@@ -13,7 +14,9 @@ public class Program
         
         try
         {
-            EngineIoCContainer.Register(container);
+            EngineIoCContainer.RegisterCore(container);
+            EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Benchmark", 1280, 720));
+            ImGuiIoCContainer.Register(container);
             container.Register<BenchmarkLayer>(Reuse.Singleton);
             container.Register<BenchmarkApplication>(Reuse.Singleton);
             container.ValidateAndThrow();

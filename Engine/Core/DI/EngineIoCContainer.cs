@@ -1,11 +1,9 @@
-using System.Runtime.CompilerServices;
 using Audio;
 using DryIoc;
 using ECS;
 using Engine.Audio;
 using Engine.Core.Input;
 using Engine.Core.Window;
-using Engine.ImGuiNet;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
 using Silk.NET.OpenAL;
@@ -22,21 +20,12 @@ using Engine.Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
-[assembly: InternalsVisibleTo("Engine.Tests")]
-[assembly: InternalsVisibleTo("Editor")]
-[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
-
 namespace Engine.Core.DI;
 
 public static class EngineIoCContainer
 {
-    public static void Register(Container container)
+    public static void RegisterCore(Container container)
     {
-        var props = new WindowProps("Editor", (int)DisplayConfig.DefaultWindowWidth, (int)DisplayConfig.DefaultWindowHeight);
-        var options = WindowOptions.Default;
-        options.Size = new Vector2D<int>(props.Width, props.Height);
-        options.Title = "Game Window";
-            
         container.Register<IRendererApiConfig>(Reuse.Singleton,
             made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))
         );
@@ -46,35 +35,13 @@ public static class EngineIoCContainer
                 f => f.Create()
             )
         );
-        container.Register<IWindow>(Reuse.Singleton,
-            made: Made.Of(() => Silk.NET.Windowing.Window.Create(options)),
-            setup: Setup.With(preventDisposal: true)
-        );
-        container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
-        container.Register<IGameWindow>(
-            made: Made.Of(
-                r => ServiceInfo.Of<IGameWindowFactory>(),
-                f => f.Create()
-            )
-        );
-        
-        container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>());
-        container.Register<IInputSystemFactory, InputSystemFactory>(Reuse.Singleton);
 
-        container.Register<IImGuiLayerFactory, ImGuiLayerFactory>(Reuse.Singleton);
-        container.Register<IImGuiLayer>(
-            made: Made.Of(
-                r => ServiceInfo.Of<IImGuiLayerFactory>(),
-                f => f.Create()
-            )
-        );
-        
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
         container.Register<DebugSettings>(Reuse.Singleton);
-        
+
         RegisterFactories(container);
-        
+
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
@@ -89,19 +56,40 @@ public static class EngineIoCContainer
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
-        
+
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
 
-        // Game systems from GameAssembly resolve via DryIoc and read the active scene ECS context.
         container.RegisterDelegate<IContext>(
             r => r.Resolve<ISceneContext>().ActiveScene?.Context
                  ?? throw new InvalidOperationException("Cannot resolve IContext without an active scene."));
-        
+
         container.Register<SerializerOptions>(Reuse.Singleton);
         container.Register<ComponentSerializerRegistry>(Reuse.Singleton);
         container.RegisterMapping<IComponentSerializerRegistry, ComponentSerializerRegistry>();
         container.Register<IPrefabSerializer, PrefabSerializer>(Reuse.Singleton);
         container.Register<ISceneSerializer, SceneSerializer>(Reuse.Singleton);
+    }
+
+    public static void RegisterWindowing(Container container, EngineHostOptions hostOptions)
+    {
+        var windowOptions = WindowOptions.Default;
+        windowOptions.Size = new Vector2D<int>(hostOptions.WindowWidth, hostOptions.WindowHeight);
+        windowOptions.Title = hostOptions.WindowTitle;
+
+        container.Register<IWindow>(Reuse.Singleton,
+            made: Made.Of(() => Silk.NET.Windowing.Window.Create(windowOptions)),
+            setup: Setup.With(preventDisposal: true)
+        );
+        container.Register<IGameWindowFactory, GameWindowFactory>(Reuse.Singleton);
+        container.Register<IGameWindow>(
+            made: Made.Of(
+                r => ServiceInfo.Of<IGameWindowFactory>(),
+                f => f.Create()
+            )
+        );
+
+        container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>());
+        container.Register<IInputSystemFactory, InputSystemFactory>(Reuse.Singleton);
     }
 
     private static void RegisterFactories(Container container)

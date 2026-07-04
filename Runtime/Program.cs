@@ -103,7 +103,9 @@ public class Program
 
     private static void ConfigureContainer(Container container, GameConfiguration gameConfig)
     {
-        EngineIoCContainer.Register(container);
+        EngineIoCContainer.RegisterCore(container);
+        EngineIoCContainer.RegisterWindowing(container,
+            new EngineHostOptions(gameConfig.GameTitle, gameConfig.WindowWidth, gameConfig.WindowHeight));
         container.RegisterInstance(gameConfig);
         
         // todo: remove

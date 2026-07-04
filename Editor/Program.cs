@@ -6,12 +6,15 @@ using Serilog;
 using Editor.Logging;
 using Engine.Core.DI;
 using Serilog.Sinks.SystemConsole.Themes;
+using Ui.ImGui.DI;
 
 static void ConfigureContainer(Container container)
 {
-    EngineIoCContainer.Register(container);
+    EngineIoCContainer.RegisterCore(container);
+    EngineIoCContainer.RegisterWindowing(container, EngineHostOptions.EditorDefaults);
+    ImGuiIoCContainer.Register(container);
     EditorIoCContainer.Register(container);
-    
+
     container.ValidateAndThrow();
 }
 
