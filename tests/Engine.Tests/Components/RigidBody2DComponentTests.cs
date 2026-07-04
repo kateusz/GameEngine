@@ -14,6 +14,7 @@ public class RigidBody2DComponentTests
         // Assert
         component.BodyType.ShouldBe(RigidBodyType.Static);
         component.FixedRotation.ShouldBeFalse();
+        component.GravityScale.ShouldBe(1f);
     }
 
     [Fact]
@@ -49,7 +50,8 @@ public class RigidBody2DComponentTests
         var original = new RigidBody2DComponent
         {
             BodyType = RigidBodyType.Kinematic,
-            FixedRotation = true
+            FixedRotation = true,
+            GravityScale = 0.5f
         };
 
         // Act
@@ -59,6 +61,7 @@ public class RigidBody2DComponentTests
         clone.ShouldNotBeSameAs(original);
         clone.BodyType.ShouldBe(RigidBodyType.Kinematic);
         clone.FixedRotation.ShouldBeTrue();
+        clone.GravityScale.ShouldBe(0.5f);
     }
 
     [Theory]

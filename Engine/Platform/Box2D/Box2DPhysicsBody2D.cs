@@ -9,11 +9,7 @@ namespace Engine.Platform.Box2D;
 
 internal sealed class Box2DPhysicsBody2D(Body body) : IPhysicsBody2D
 {
-    public Entity? Entity
-    {
-        get => body.GetUserData<Entity>();
-        set => body.SetUserData(value);
-    }
+    public Entity? Entity { get; set; }
 
     public PhysicsBodyMotionType MotionType => body.Type() switch
     {

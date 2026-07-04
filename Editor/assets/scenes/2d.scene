@@ -40,10 +40,6 @@
         {
           "IsActive": true,
           "Name": "AudioListenerComponent"
-        },
-        {
-          "Name": "NativeScriptComponent",
-          "ScriptType": "CameraController"
         }
       ]
     },
@@ -156,98 +152,6 @@
           "RestitutionThreshold": 0.5,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
-        }
-      ]
-    },
-    {
-      "Id": 4,
-      "Name": "Audio Manager",
-      "Components": [
-        {
-          "AudioClipPath": "audio/Example.ogg",
-          "Volume": 1,
-          "Pitch": 1,
-          "Loop": false,
-          "PlayOnAwake": true,
-          "Is3D": false,
-          "MinDistance": 1,
-          "MaxDistance": 100,
-          "Effects": [
-            {
-              "Type": "Reverb",
-              "Enabled": true,
-              "Amount": 1
-            },
-            {
-              "Type": "Echo",
-              "Enabled": false,
-              "Amount": 0
-            },
-            {
-              "Type": "LowPass",
-              "Enabled": false,
-              "Amount": 0.5
-            }
-          ],
-          "Name": "AudioSourceComponent"
-        }
-      ]
-    },
-    {
-      "Id": 5,
-      "Name": "Animation",
-      "Components": [
-        {
-          "Translation": [
-            -4.488079,
-            -5.8954477,
-            0
-          ],
-          "Rotation": [
-            0,
-            0,
-            0
-          ],
-          "Scale": [
-            1,
-            1,
-            1
-          ],
-          "Name": "TransformComponent"
-        },
-        {
-          "Coords": [
-            0,
-            0
-          ],
-          "TexturePath": "textures/hero-attack.png",
-          "CellSize": [
-            16,
-            16
-          ],
-          "SpriteSize": [
-            1,
-            1
-          ],
-          "TexCoords": [
-            [
-              0.625,
-              0.25
-            ],
-            [
-              0.75,
-              0.25
-            ],
-            [
-              0.75,
-              0.5
-            ],
-            [
-              0.625,
-              0.5
-            ]
-          ],
-          "Name": "SubTextureRendererComponent"
         }
       ]
     },

@@ -1,4 +1,5 @@
 using System.Numerics;
+using ECS;
 using Engine.Physics;
 using Engine.Platform.Box2D;
 using Shouldly;
@@ -7,6 +8,43 @@ namespace Engine.Tests.Physics;
 
 public class Box2DPhysicsWorld2DTests
 {
+    [Fact]
+    public void Step_ContactBegin_ResolvesBodiesAfterEntityAssignment()
+    {
+        using var world = new Box2DPhysicsWorld2D(new Vector2(0, -20f));
+        var contactCount = 0;
+        world.SetContactListener(new RecordingContactListener(() => contactCount++));
+
+        var floor = world.CreateBody(new PhysicsBodyDef(
+            new Vector2(0, -2f),
+            0f,
+            PhysicsBodyMotionType.Static,
+            FixedRotation: false,
+            GravityScale: 0f));
+        floor.Entity = Entity.Create(1, "Floor");
+        floor.CreateBoxFixture(new PhysicsBoxFixtureDef(5f, 0.5f, Vector2.Zero, 0f, 0.5f, 0f, false));
+
+        var ball = world.CreateBody(new PhysicsBodyDef(
+            new Vector2(0, 2f),
+            0f,
+            PhysicsBodyMotionType.Dynamic,
+            FixedRotation: false,
+            GravityScale: 1f));
+        ball.Entity = Entity.Create(2, "Ball");
+        ball.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.3f, 0.7f, false));
+
+        for (var i = 0; i < 180; i++)
+            world.Step(1f / 60f, 6, 2);
+
+        contactCount.ShouldBeGreaterThan(0);
+    }
+
+    private sealed class RecordingContactListener(Action onContact) : IPhysicsContactListener
+    {
+        public void OnContactBegin(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger) => onContact();
+        public void OnContactEnd(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger) { }
+    }
+
     [Fact]
     public void CreateBody_Step_UpdatesDynamicBodyPosition()
     {
