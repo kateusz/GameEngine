@@ -73,4 +73,13 @@ public class Box2DPhysicsWorld2DTests
         body.Angle.ShouldBe(0.5f);
         body.MotionType.ShouldBe(PhysicsBodyMotionType.Static);
     }
+
+    [Fact]
+    public void Step_AfterDispose_ThrowsObjectDisposedException()
+    {
+        var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        world.Dispose();
+
+        Should.Throw<ObjectDisposedException>(() => world.Step(1f / 60f, 6, 2));
+    }
 }

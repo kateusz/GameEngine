@@ -46,13 +46,11 @@ public static class TextureDropTarget
 
     private static string ToAssetRelativePath(string path)
     {
-        if (Path.IsPathRooted(path))
-        {
-            var assetsPath = AssetsManager.AssetsPath;
-            if (path.StartsWith(assetsPath, StringComparison.OrdinalIgnoreCase))
-                return Path.GetRelativePath(assetsPath, path).Replace('\\', '/');
-            return path;
-        }
+        var fullPath = Path.GetFullPath(path);
+        var assetsPath = Path.GetFullPath(AssetsManager.AssetsPath);
+        var relative = Path.GetRelativePath(assetsPath, fullPath);
+        if (!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative))
+            return relative.Replace('\\', '/');
 
         return path.Replace('\\', '/');
     }

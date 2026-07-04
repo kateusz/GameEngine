@@ -60,7 +60,10 @@ public class Context : IContext
     {
         var snapshot = Snapshot<TComponent>();
         foreach (var entity in snapshot)
-            yield return (entity, entity.GetComponent<TComponent>());
+        {
+            if (entity.TryGetComponent<TComponent>(out var component))
+                yield return (entity, component);
+        }
     }
 
     public IEnumerable<(Entity Entity, T1 Component1, T2 Component2)> View<T1, T2>()
@@ -68,29 +71,19 @@ public class Context : IContext
         where T2 : IComponent
     {
         Entity[] snapshot;
-        var snapshotIsT1 = false;
         lock (_lock)
         {
-            snapshotIsT1 = Count<T1>() <= Count<T2>();
-            snapshot = snapshotIsT1 ? SnapshotUnlocked<T1>() : SnapshotUnlocked<T2>();
+            snapshot = Count<T1>() <= Count<T2>()
+                ? SnapshotUnlocked<T1>()
+                : SnapshotUnlocked<T2>();
         }
 
         foreach (var entity in snapshot)
         {
-            if (snapshotIsT1)
-            {
-                if (!entity.TryGetComponent<T2>(out var component2))
-                    continue;
+            if (!entity.TryGetComponent<T1>(out var component1) || !entity.TryGetComponent<T2>(out var component2))
+                continue;
 
-                yield return (entity, entity.GetComponent<T1>(), component2);
-            }
-            else
-            {
-                if (!entity.TryGetComponent<T1>(out var component1))
-                    continue;
-
-                yield return (entity, component1, entity.GetComponent<T2>());
-            }
+            yield return (entity, component1, component2);
         }
     }
 

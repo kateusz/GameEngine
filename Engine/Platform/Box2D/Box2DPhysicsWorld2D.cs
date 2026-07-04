@@ -18,11 +18,15 @@ internal sealed class Box2DPhysicsWorld2D : IPhysicsWorld2D
         _world.SetContactListener(_contactListenerAdapter);
     }
 
-    public void Step(float timeStep, int velocityIterations, int positionIterations) =>
+    public void Step(float timeStep, int velocityIterations, int positionIterations)
+    {
+        ThrowIfDisposed();
         _world.Step(timeStep, velocityIterations, positionIterations);
+    }
 
     public IPhysicsBody2D CreateBody(in PhysicsBodyDef def)
     {
+        ThrowIfDisposed();
         var bodyDef = new BodyDef
         {
             position = def.Position,
@@ -41,6 +45,7 @@ internal sealed class Box2DPhysicsWorld2D : IPhysicsWorld2D
 
     public void DestroyBody(IPhysicsBody2D body)
     {
+        ThrowIfDisposed();
         if (body is not Box2DPhysicsBody2D box2DBody)
             return;
 
@@ -49,8 +54,11 @@ internal sealed class Box2DPhysicsWorld2D : IPhysicsWorld2D
         _world.DestroyBody(box2DBody.NativeBody);
     }
 
-    public void SetContactListener(IPhysicsContactListener? listener) =>
+    public void SetContactListener(IPhysicsContactListener? listener)
+    {
+        ThrowIfDisposed();
         _contactListenerAdapter.SetListener(listener);
+    }
 
     public void Dispose()
     {
@@ -59,6 +67,12 @@ internal sealed class Box2DPhysicsWorld2D : IPhysicsWorld2D
 
         _disposed = true;
         GC.SuppressFinalize(this);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(Box2DPhysicsWorld2D));
     }
 
     private static BodyType ToNativeBodyType(PhysicsBodyMotionType motionType) =>

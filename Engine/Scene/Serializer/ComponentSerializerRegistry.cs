@@ -64,6 +64,9 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
             if (!_byName.TryGetValue(name, out var serializer))
                 continue;
 
+            if (serializer.ComponentType.Assembly != assembly)
+                continue;
+
             _byName.Remove(name);
             _byType.Remove(serializer.ComponentType);
         }

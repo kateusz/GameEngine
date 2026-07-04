@@ -76,6 +76,11 @@ internal sealed class Box2DPhysicsBody2D(Body body) : IPhysicsBody2D
         if (fixture == null)
             return;
 
+        if (fixture.Density == density &&
+            fixture.m_friction == friction &&
+            fixture.Restitution == restitution)
+            return;
+
         fixture.Density = density;
         fixture.m_friction = friction;
         fixture.Restitution = restitution;

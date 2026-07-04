@@ -159,9 +159,7 @@ public class SceneManager(
         try
         {
             if (!gameAssemblySystemsBridge.EnsureRegistered(key))
-            {
-                Logger.Warning("Game assembly at {Key} has no types marked with [Register]", key);
-            }
+                Logger.Debug("Game assembly at {Key} has no types marked with [Register]", key);
 
             var assembly = GameAssemblyContainerRegistration.Load(key);
             componentSerializerRegistry.RegisterFromAssembly(assembly);

@@ -26,7 +26,7 @@ public class GameComponentFactory(
 
         if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
         {
-            foreach (var type in assembly.GetTypes())
+            foreach (var type in AssemblyLoadTypes.From(assembly))
             {
                 if (type is { IsClass: true, IsAbstract: false } && typeof(IGameComponent).IsAssignableFrom(type))
                     names.Add(type.Name);

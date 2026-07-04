@@ -75,7 +75,6 @@ internal sealed class ScriptEngine : IScriptEngine
         if (!_suppressFileChangeRecompile)
             CheckForScriptChanges();
 
-        // TODO: check if ActiveScene could be null
         if (_sceneContext.ActiveScene == null)
             return;
 

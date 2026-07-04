@@ -40,6 +40,16 @@ public class SystemManagerTests
         }
     }
 
+    private sealed class CountingShutdownSystem : ISystem
+    {
+        public int Priority => 0;
+        public int ShutdownCount { get; private set; }
+
+        public void OnInit() { }
+        public void OnUpdate(TimeSpan deltaTime) { }
+        public void OnShutdown() => ShutdownCount++;
+    }
+
     [Fact]
     public void RegisterSystem_AddsSystemToManager()
     {
@@ -202,6 +212,20 @@ public class SystemManagerTests
         Assert.Equal(1, updateOrder[0]); // System with priority 1 called first
         Assert.Equal(2, updateOrder[1]); // System with priority 2 called second
         Assert.Equal(3, updateOrder[2]); // System with priority 3 called third
+    }
+
+    [Fact]
+    public void Shutdown_CalledTwice_OnlyInvokesOnShutdownOnce()
+    {
+        var manager = new SystemManager();
+        var system = new CountingShutdownSystem();
+        manager.RegisterSystem(system);
+        manager.Initialize();
+
+        manager.Shutdown();
+        manager.Shutdown();
+
+        Assert.Equal(1, system.ShutdownCount);
     }
 
     [Fact]

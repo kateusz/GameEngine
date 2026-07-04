@@ -25,6 +25,7 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 
 [assembly: InternalsVisibleTo("Engine.Tests")]
+[assembly: InternalsVisibleTo("Editor")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 
 namespace Engine.Core.DI;

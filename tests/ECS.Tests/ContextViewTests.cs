@@ -299,6 +299,21 @@ public class ContextViewTests : IDisposable
     }
 
     [Fact]
+    public void View_TwoComponents_SkipsEntityWhenComponentRemovedDuringIteration()
+    {
+        var entity = Entity.Create(1, "Both");
+        entity.AddComponent<TestComponentA>().Value = 1;
+        entity.AddComponent<TestComponentB>().Data = "x";
+        _context.Register(entity);
+
+        entity.RemoveComponent<TestComponentB>();
+
+        var results = _context.View<TestComponentA, TestComponentB>().ToList();
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
     public void View_ThreeComponents_ReturnsOnlyEntitiesWithAll()
     {
         var complete = Entity.Create(1, "All");

@@ -10,6 +10,7 @@ public class SystemManager : ISystemManager
     private readonly List<ISystem> _systems = [];
     private readonly HashSet<ISystem> _sharedSystems = [];
     private bool _disposed;
+    private bool _perSceneSystemsShutDown;
 
     public void RegisterSystem(ISystem system, bool isShared = false)
     {
@@ -33,6 +34,7 @@ public class SystemManager : ISystemManager
             throw new InvalidOperationException("SystemManager is already initialized.");
 
         IsInitialized = true;
+        _perSceneSystemsShutDown = false;
 
         foreach (var system in _systems)
             system.OnInit();
@@ -49,8 +51,12 @@ public class SystemManager : ISystemManager
 
     public void Shutdown()
     {
+        if (_perSceneSystemsShutDown)
+            return;
+
         ShutdownPerSceneSystems();
         IsInitialized = false;
+        _perSceneSystemsShutDown = true;
     }
 
     public void ShutdownAll()
@@ -72,7 +78,7 @@ public class SystemManager : ISystemManager
         if (_disposed)
             return;
 
-        if (IsInitialized)
+        if (!_perSceneSystemsShutDown)
             ShutdownPerSceneSystems();
 
         DisposePerSceneSystems();
