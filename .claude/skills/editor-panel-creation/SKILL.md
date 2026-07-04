@@ -188,68 +188,44 @@ private static void ConfigureServices(Container container)
 - Register interface → implementation mapping
 - Ensure all dependencies are registered before the panel
 
-### Step 4: Inject into EditorLayer
-**Location**: `Editor/EditorLayer.cs`
+### Step 4: Inject into EditorPanels
+**Location**: `Editor/EditorPanels.cs`
 
 **Constructor Injection**:
 ```csharp
-public class EditorLayer(
-    // ... existing parameters
-    ISceneHierarchyPanel sceneHierarchyPanel,
-    IPropertiesPanel propertiesPanel,
-    IConsolePanel consolePanel,
-    IMyNewPanel myNewPanel) : Layer
+public class EditorPanels(
+    // ... existing panels
+    IMyNewPanel myNewPanel)
 {
-    public override void OnImGuiRender()
-    {
-        // ... existing panel renders
-        sceneHierarchyPanel.OnImGuiRender();
-        propertiesPanel.OnImGuiRender();
-        consolePanel.OnImGuiRender();
-        myNewPanel.OnImGuiRender();
-    }
+  // ... existing properties
+
+  public void Draw(Entity? hoveredEntity, EditorCamera camera)
+  {
+      // ... existing panel renders
+      myNewPanel.Draw();
+  }
 }
 ```
+
+Register the panel in `Editor/DI/EditorIoCContainer.cs` and add it to `EditorPanels` constructor and `Draw()`.
 
 ### Step 5: Add Menu Integration
-**Location**: `Editor/EditorLayer.cs` (in menu bar rendering)
+**Location**: `Editor/Features/Shell/EditorMenuBar.cs`
 
-**Add Panel Toggle Menu**:
+**Add Panel Toggle Menu** (e.g. in View menu or add Window menu):
 ```csharp
-private void DrawMenuBar()
+private void RenderViewMenu()
 {
-    if (ImGui.BeginMenu("Window"))
-    {
-        // Existing menu items
-        if (ImGui.MenuItem("Scene Hierarchy", "", _sceneHierarchyPanel.IsOpen))
-            _sceneHierarchyPanel.IsOpen = !_sceneHierarchyPanel.IsOpen;
+    if (!ImGui.BeginMenu("View")) return;
 
-        if (ImGui.MenuItem("Properties", "", _propertiesPanel.IsOpen))
-            _propertiesPanel.IsOpen = !_propertiesPanel.IsOpen;
+    if (ImGui.MenuItem("My Panel", "", myNewPanel.IsVisible))
+        myNewPanel.IsVisible = !myNewPanel.IsVisible;
 
-        // New panel menu item
-        if (ImGui.MenuItem("My Panel", "", _myNewPanel.IsOpen))
-            _myNewPanel.IsOpen = !_myNewPanel.IsOpen;
-
-        ImGui.EndMenu();
-    }
+    ImGui.EndMenu();
 }
 ```
 
-**Keyboard Shortcut** (optional):
-```csharp
-private void HandleShortcuts()
-{
-    // Existing shortcuts
-    // Ctrl+Shift+M to toggle My Panel
-    if (ImGui.IsKeyDown(ImGuiKey.LeftCtrl) &&
-        ImGui.IsKeyDown(ImGuiKey.LeftShift) &&
-        ImGui.IsKeyPressed(ImGuiKey.M))
-    {
-        _myNewPanel.IsOpen = !_myNewPanel.IsOpen;
-    }
-}
-```
+**Keyboard Shortcut** (optional): register via `EditorShortcutRegistrar` in `Editor/Input/EditorShortcutRegistrar.cs`.
 
 ### Step 6: Use UI Infrastructure (MANDATORY)
 
@@ -467,8 +443,8 @@ container.Register<IMyPanel, MyPanel>(Reuse.Singleton);
 - [ ] ImGui widgets used for property editing (IFieldEditor not needed in most panels)
 - [ ] `EditorUIConstants` used throughout (no magic numbers)
 - [ ] Registered in `Program.cs` DI container
-- [ ] Injected into `EditorLayer`
-- [ ] Menu item added to Window menu
+- [ ] Injected into `EditorPanels` and called from `Draw()`
+- [ ] Menu item added in `EditorMenuBar` (if applicable)
 - [ ] Panel opens and closes correctly
 - [ ] Panel state persists during session
 - [ ] Panel works with docking system

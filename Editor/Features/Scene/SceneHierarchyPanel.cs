@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.Selection;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
@@ -8,23 +9,22 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityContextMenu entityContextMenu)
+public class SceneHierarchyPanel(
+    PrefabDropTarget prefabDropTarget,
+    IEntityContextMenu entityContextMenu,
+    IEditorSelection selection)
     : ISceneHierarchyPanel
 {
     private IScene _scene;
-    private Entity? _selectionContext;
 
-    // Search/Filter state
     private string _searchQuery = string.Empty;
     private readonly List<Entity> _filteredEntities = [];
     private bool _isFilterActive;
 
-    public Action<Entity> EntitySelected { get; set; } = null!;
-
     public void SetScene(IScene scene)
     {
         _scene = scene;
-        _selectionContext = null;
+        selection.Select(null, SelectionSource.Code);
     }
 
     public void Draw()
@@ -40,31 +40,27 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         RenderEntityHierarchy();
 
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
-            _selectionContext = null;
+            selection.Select(null, SelectionSource.Hierarchy);
 
         entityContextMenu.Render(_scene);
 
         ImGui.End();
     }
 
-    public void SetSelectedEntity(Entity entity) => _selectionContext = entity;
+    public void SetSelectedEntity(Entity entity) => selection.Select(entity, SelectionSource.Viewport);
 
-    public Entity? GetSelectedEntity() => _selectionContext;
+    public Entity? GetSelectedEntity() => selection.SelectedEntity;
 
     private void DrawEntityNode(Entity entity)
     {
         var tag = entity.Name;
-        var isSelected = _selectionContext?.Id == entity.Id;
+        var isSelected = selection.SelectedEntity?.Id == entity.Id;
         var entityDeleted = false;
 
         var opened = TreeDrawer.DrawSelectableTreeNode(
             label: tag,
             isSelected: isSelected,
-            onClicked: () =>
-            {
-                EntitySelected.Invoke(entity);
-                _selectionContext = entity;
-            },
+            onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
             onContextMenu: () =>
             {
                 if (ImGui.MenuItem("Delete Entity"))
@@ -73,19 +69,16 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             flags: ImGuiTreeNodeFlags.OpenOnArrow
         );
 
-        // Prefab drag & drop handling
         prefabDropTarget.HandleEntityDrop(entity);
 
         if (opened)
-        {
             ImGui.TreePop();
-        }
 
         if (entityDeleted)
         {
             _scene.DestroyEntity(entity);
-            if (Equals(_selectionContext, entity))
-                _selectionContext = null;
+            if (selection.SelectedEntity?.Id == entity.Id)
+                selection.Select(null, SelectionSource.Code);
         }
     }
 
@@ -117,16 +110,12 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             }
 
             foreach (var entity in _filteredEntities.ToList())
-            {
                 DrawEntityNodeFiltered(entity);
-            }
         }
         else
         {
             foreach (var entity in _scene?.Entities.ToList() ?? [])
-            {
                 DrawEntityNode(entity);
-            }
         }
     }
 
@@ -134,10 +123,9 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
     {
         var isDirectMatch = MatchesFilter(entity, _searchQuery);
         var tag = entity.Name;
-        var isSelected = _selectionContext?.Id == entity.Id;
+        var isSelected = selection.SelectedEntity?.Id == entity.Id;
         var entityDeleted = false;
 
-        // Highlight matched entities with colored tree node
         bool opened;
         if (isDirectMatch)
         {
@@ -145,11 +133,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
                 label: tag,
                 color: EditorUIConstants.InfoColor,
                 isSelected: isSelected,
-                onClicked: () =>
-                {
-                    EntitySelected.Invoke(entity);
-                    _selectionContext = entity;
-                },
+                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
                 onContextMenu: () =>
                 {
                     if (ImGui.MenuItem("Delete Entity"))
@@ -163,11 +147,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             opened = TreeDrawer.DrawSelectableTreeNode(
                 label: tag,
                 isSelected: isSelected,
-                onClicked: () =>
-                {
-                    EntitySelected.Invoke(entity);
-                    _selectionContext = entity;
-                },
+                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
                 onContextMenu: () =>
                 {
                     if (ImGui.MenuItem("Delete Entity"))
@@ -177,20 +157,17 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             );
         }
 
-        // Prefab drag & drop handling
         prefabDropTarget.HandleEntityDrop(entity);
 
         if (opened)
-        {
             ImGui.TreePop();
-        }
 
         if (entityDeleted)
         {
             _scene.DestroyEntity(entity);
             _filteredEntities.Remove(entity);
-            if (Equals(_selectionContext, entity))
-                _selectionContext = null;
+            if (selection.SelectedEntity?.Id == entity.Id)
+                selection.Select(null, SelectionSource.Code);
         }
     }
 
@@ -211,9 +188,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         foreach (var entity in _scene.Entities)
         {
             if (MatchesFilter(entity, normalizedQuery))
-            {
                 _filteredEntities.Add(entity);
-            }
         }
     }
 
@@ -222,13 +197,6 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         var entityName = entity.Name.ToLowerInvariant();
         var normalizedQuery = query.ToLowerInvariant();
         return entityName.Contains(normalizedQuery);
-    }
-
-    private void ClearFilter()
-    {
-        _searchQuery = string.Empty;
-        _isFilterActive = false;
-        _filteredEntities.Clear();
     }
 
     private int CountDirectMatches()

@@ -5,11 +5,13 @@ using Editor.ComponentEditors.Core;
 using Editor.Features.Components;
 using Editor.Features.Project;
 using Editor.Features.Scene;
+using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.Input;
 using Editor.Panels;
 using Editor.Publisher;
 using Editor.UI.Elements;
+using Editor.Features.Shell;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
@@ -23,6 +25,7 @@ public static class EditorIoCContainer
     public static void Register(Container container)
     {
         container.Register<ShortcutManager>(Reuse.Singleton);
+        container.Register<IEditorSelection, EditorSelection>(Reuse.Singleton);
         
         container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
         container.Register<IGameProjectScriptBootstrapper, GameProjectScriptBootstrapper>(Reuse.Singleton);
@@ -86,6 +89,14 @@ public static class EditorIoCContainer
         container.Register<RotateTool>(Reuse.Singleton);
         container.Register<RulerTool>(Reuse.Singleton);
         container.Register<ViewportToolManager>(Reuse.Singleton);
+
+        container.Register<IEditorCameraController, EditorCameraController>(Reuse.Singleton);
+        container.Register<IEditorViewport, EditorViewport>(Reuse.Singleton);
+        container.Register<EditorMenuBar>(Reuse.Singleton);
+        container.Register<EditorDockspace>(Reuse.Singleton);
+        container.Register<EditorInputHandler>(Reuse.Singleton);
+        container.Register<EditorShortcutRegistrar>(Reuse.Singleton);
+        container.Register<EditorLifecycle>(Reuse.Singleton);
         
         container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
 
