@@ -30,6 +30,7 @@ public class SceneManager(
     public void New(string sceneName)
     {
         sceneContext.ActiveScene?.Dispose();
+        EditorScenePath = null;
 
         sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
         Logger.Information("📄 New scene created");
@@ -83,6 +84,10 @@ public class SceneManager(
 
         EnsureGameAssemblyRegistered(dllPath);
         RegisterGameSystems();
+
+        if (!string.IsNullOrEmpty(EditorScenePath))
+            Save();
+
         sceneContext.SetState(SceneState.Play);
         sceneContext.ActiveScene.OnRuntimeStart();
         Logger.Information("▶️ Scene play started");
@@ -96,10 +101,8 @@ public class SceneManager(
         if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
             scriptEngine.SetScriptsDirectory(projectManager.ScriptsDir);
 
-        if (!string.IsNullOrEmpty(EditorScenePath))
-        {
+        if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
             Open(EditorScenePath);
-        }
 
         Logger.Information("⏹️ Scene play stopped");
     }
@@ -113,7 +116,6 @@ public class SceneManager(
         }
 
         Stop();
-        Open(EditorScenePath);
         Play();
         Logger.Information("🔄 Scene restarted");
     }

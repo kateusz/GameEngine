@@ -149,15 +149,10 @@ internal static class SceneRenderPipeline
         foreach (var (entity, spriteRendererComponent, transformComponent) in
                  context.View<SpriteRendererComponent, TransformComponent>())
         {
-            Texture2D? texture = null;
-            if (textureFactory != null && !string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath))
-                texture = textureFactory.Create(PathBuilder.Build(spriteRendererComponent.TexturePath));
-
-            if (texture is not null)
-                graphics2D.DrawQuad(transformComponent.GetTransform(), texture, DefaultTextureCoords,
-                    spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, entity.Id);
-            else
-                graphics2D.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color, entity.Id);
+            graphics2D.DrawSprite(
+                transformComponent.GetTransform(),
+                spriteRendererComponent,
+                entity.Id);
         }
 
         graphics2D.EndScene();
@@ -179,7 +174,7 @@ internal static class SceneRenderPipeline
             if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
                 continue;
 
-            var texture = textureFactory.Create(PathBuilder.Build(subtextureComponent.TexturePath));
+            var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
             if (texture == null)
                 continue;
 
@@ -238,11 +233,11 @@ internal static class SceneRenderPipeline
         in CameraBinding camera,
         bool useTransformFallbackWhenNoBody)
     {
-        RenderSprites(context, graphics2D, textureFactory, camera);
-        RenderSubTextures(context, graphics2D, textureFactory, camera);
         ApplyLighting(context, graphics3D);
         RenderModels(context, graphics3D, camera);
         RenderLightVisualization(context, graphics3D, camera);
+        RenderSprites(context, graphics2D, textureFactory, camera);
+        RenderSubTextures(context, graphics2D, textureFactory, camera);
         RenderPhysicsDebug(context, graphics2D, debugSettings, bodyStore, camera, useTransformFallbackWhenNoBody);
     }
 

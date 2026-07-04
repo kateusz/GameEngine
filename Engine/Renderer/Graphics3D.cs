@@ -214,11 +214,11 @@ internal sealed class Graphics3D(
         };
 
         if (!string.IsNullOrWhiteSpace(material.DiffuseTexturePath))
-            material.DiffuseTexture = textureFactory.Create(PathBuilder.Build(material.DiffuseTexturePath));
+            material.DiffuseTexture = textureFactory.Create(PathBuilder.Resolve(material.DiffuseTexturePath));
         if (!string.IsNullOrWhiteSpace(material.SpecularTexturePath))
-            material.SpecularTexture = textureFactory.Create(PathBuilder.Build(material.SpecularTexturePath));
+            material.SpecularTexture = textureFactory.Create(PathBuilder.Resolve(material.SpecularTexturePath));
         if (!string.IsNullOrWhiteSpace(material.NormalTexturePath))
-            material.NormalTexture = textureFactory.Create(PathBuilder.Build(material.NormalTexturePath));
+            material.NormalTexture = textureFactory.Create(PathBuilder.Resolve(material.NormalTexturePath));
 
         _runtimeMaterialCache[key] = material;
         return material;

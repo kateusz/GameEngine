@@ -37,8 +37,18 @@ public static class ComponentSelector
             });
 
             DrawComponentMenuItem<TransformComponent>("Transform", entity);
-            DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity);
-            DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity);
+            DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                entity.AddComponent<SpriteRendererComponent>();
+            });
+            DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                entity.AddComponent<SubTextureRendererComponent>();
+            });
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity);

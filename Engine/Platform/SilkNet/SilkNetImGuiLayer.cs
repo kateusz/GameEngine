@@ -5,6 +5,7 @@ using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.ImGuiNet;
 using ImGuiNET;
+using Silk.NET.Input;
 using Silk.NET.OpenGL.Extensions.ImGui;
 
 namespace Engine.Platform.SilkNet;
@@ -12,6 +13,7 @@ namespace Engine.Platform.SilkNet;
 internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 {
     private ImGuiController? _controller;
+    private IInputContext? _inputContext;
     private bool _disposed;
 
     public void OnDetach()
@@ -30,6 +32,7 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
     public void Begin(TimeSpan timeSpan)
     {
         _controller?.Update((float)timeSpan.TotalSeconds);
+        SyncModifierKeys();
     }
 
     public void End()
@@ -43,7 +46,25 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
         var inputContext = inputSystem.Context;
         var gl = SilkNetContext.GL;
 
+        _inputContext = inputContext;
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
+    }
+
+    private void SyncModifierKeys()
+    {
+        if (_inputContext?.Keyboards.Count is not > 0)
+            return;
+
+        var keyboard = _inputContext.Keyboards[0];
+        var io = ImGui.GetIO();
+        io.AddKeyEvent(ImGuiKey.ModCtrl,
+            keyboard.IsKeyPressed(Key.ControlLeft) || keyboard.IsKeyPressed(Key.ControlRight));
+        io.AddKeyEvent(ImGuiKey.ModShift,
+            keyboard.IsKeyPressed(Key.ShiftLeft) || keyboard.IsKeyPressed(Key.ShiftRight));
+        io.AddKeyEvent(ImGuiKey.ModAlt,
+            keyboard.IsKeyPressed(Key.AltLeft) || keyboard.IsKeyPressed(Key.AltRight));
+        io.AddKeyEvent(ImGuiKey.ModSuper,
+            keyboard.IsKeyPressed(Key.SuperLeft) || keyboard.IsKeyPressed(Key.SuperRight));
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)

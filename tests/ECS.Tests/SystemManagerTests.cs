@@ -205,6 +205,24 @@ public class SystemManagerTests
     }
 
     [Fact]
+    public void Shutdown_CallsOnShutdownButKeepsSystemsRegistered()
+    {
+        var manager = new SystemManager();
+        var system = new TestSystem { Priority = 1 };
+        manager.RegisterSystem(system);
+        manager.Initialize();
+
+        manager.Shutdown();
+
+        Assert.True(system.ShutdownCalled);
+        Assert.Equal(1, manager.SystemCount);
+        Assert.False(manager.IsInitialized);
+
+        manager.Initialize();
+        Assert.True(manager.IsInitialized);
+    }
+
+    [Fact]
     public void Shutdown_CallsOnShutdownOnAllSystems()
     {
         // Arrange
@@ -221,7 +239,7 @@ public class SystemManagerTests
         // Assert
         Assert.True(system1.ShutdownCalled);
         Assert.True(system2.ShutdownCalled);
-        Assert.Equal(0, manager.SystemCount);
+        Assert.Equal(2, manager.SystemCount);
         Assert.False(manager.IsInitialized);
     }
 

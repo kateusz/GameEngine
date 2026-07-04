@@ -385,6 +385,10 @@ public class EditorLayer(
         if (keyPressedEvent.IsRepeat)
             return;
 
+        var io = ImGui.GetIO();
+        if (io.WantCaptureKeyboard)
+            return;
+
         var control = _pressedKeys.Contains(KeyCodes.LeftControl) ||
                       _pressedKeys.Contains(KeyCodes.RightControl);
         var shift = _pressedKeys.Contains(KeyCodes.LeftShift) ||

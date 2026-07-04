@@ -8,23 +8,16 @@ public static class EntityNameEditor
 {
     public static void Draw(Entity entity)
     {
-        var tag = entity.Name;
-        var buffer = new byte[EditorUIConstants.MaxTextInputLength];
-        Array.Clear(buffer, 0, buffer.Length);
-        var tagBytes = System.Text.Encoding.UTF8.GetBytes(tag);
-        Array.Copy(tagBytes, buffer, System.Math.Min(tagBytes.Length, buffer.Length - 1));
+        var name = entity.Name;
 
         ImGui.Columns(2, "tag_columns", false);
         ImGui.SetColumnWidth(0, EditorUIConstants.DefaultColumnWidth);
         ImGui.Text("Tag");
         ImGui.NextColumn();
         ImGui.PushItemWidth(-1);
-        
-        if (ImGui.InputText("##TagInput", buffer, (uint)buffer.Length))
-        {
-            tag = System.Text.Encoding.UTF8.GetString(buffer).TrimEnd('\0');
-            entity.Name = tag;
-        }
+
+        if (ImGui.InputText("##TagInput", ref name, EditorUIConstants.MaxTextInputLength))
+            entity.Name = name;
 
         ImGui.PopItemWidth();
         ImGui.Columns(1);
