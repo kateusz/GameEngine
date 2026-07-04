@@ -1,6 +1,8 @@
+using System.Reflection;
 using System.Text.Json.Nodes;
 using ECS;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
 using SceneComponents;
 using SceneComponents.Rendering;
 using Shouldly;
@@ -68,6 +70,41 @@ public class ComponentSerializerRegistryTests
             _registry.DeserializeComponent(loaded, node!.AsObject(), _serializerOptions.Options, strict: true);
 
         loaded.GetComponent<TestScoreComponent>().Points.ShouldBe(42);
+    }
+
+    [Fact]
+    public void RegisterDiscoveredGameComponents_RegistersExploredTypesFromScriptsDir()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"ge-ser-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "ScoreComponent.cs"), """
+                using ECS;
+
+                [SerializableComponent]
+                public class ScoreComponent : IGameComponent
+                {
+                    public int Points { get; set; }
+                    public IComponent Clone() => new ScoreComponent { Points = Points };
+                }
+                """);
+
+            var outputPath = Path.Combine(Path.GetTempPath(), $"GameAssembly_{Guid.NewGuid():N}.dll");
+            GameAssemblyCompiler.TryCompile(dir, outputPath, emitPdb: false, useDebugOptimization: true, out _).ShouldBeTrue();
+            _registry.RegisterDiscoveredGameComponents(dir, Assembly.LoadFrom(outputPath));
+
+            var json = JsonNode.Parse("""{"Name":"ScoreComponent","Points":7}""")!.AsObject();
+            var entity = Entity.Create(1, "e");
+            _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: true);
+
+            entity.GetAllComponents().Single().GetType().Name.ShouldBe("ScoreComponent");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
     }
 
     [SerializableComponent]

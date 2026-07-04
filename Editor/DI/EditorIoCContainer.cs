@@ -2,6 +2,7 @@ using DryIoc;
 using ECS.Systems;
 using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
+using Editor.Features.Components;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
@@ -73,6 +74,8 @@ public static class EditorIoCContainer
         container.Register<RendererStatsPanel>(Reuse.Singleton);
         container.Register<KeyboardShortcutsPanel>(Reuse.Singleton);
         container.Register<ScriptComponentEditor>(Reuse.Singleton);
+        container.Register<GameComponentEditor>(Reuse.Singleton);
+        container.Register<IGameComponentFactory, GameComponentFactory>(Reuse.Singleton);
         container.Register<GameComponentInspector>(Reuse.Singleton);
     
         // Viewport infrastructure

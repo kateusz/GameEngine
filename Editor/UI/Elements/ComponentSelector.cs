@@ -1,4 +1,5 @@
 using ECS;
+using Editor.ComponentEditors;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Scene;
@@ -15,7 +16,7 @@ namespace Editor.UI.Elements;
 
 public static class ComponentSelector
 {
-    public static void Draw(Entity entity, IScene scene)
+    public static void Draw(Entity entity, IScene scene, GameComponentEditor gameComponentEditor)
     {
         ButtonDrawer.DrawButton("Add Component", () => ImGui.OpenPopup("AddComponent"));
 
@@ -58,6 +59,12 @@ public static class ComponentSelector
             DrawComponentMenuItem<PointLightComponent>("Point Light", entity);
             DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity);
             DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);
+
+            if (ImGui.MenuItem("Game Component"))
+            {
+                gameComponentEditor.RequestCreate(entity);
+                ImGui.CloseCurrentPopup();
+            }
 
             ImGui.EndPopup();
         }

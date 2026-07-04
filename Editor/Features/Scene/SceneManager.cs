@@ -46,6 +46,18 @@ public class SceneManager(
         
         EditorScenePath = path;
         sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));
+
+        if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
+        {
+            var scriptsDir = projectManager.ScriptsDir;
+            if (scriptEngine.GetLoadedGameAssembly() is null
+                && GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDir).Length > 0)
+                scriptEngine.TryCompileAllScripts();
+
+            componentSerializerRegistry.RegisterDiscoveredGameComponents(
+                scriptsDir, scriptEngine.GetLoadedGameAssembly());
+        }
+
         sceneSerializer.Deserialize(sceneContext.ActiveScene!, path);
         Logger.Information("📂 Scene opened: {Path}", path);
     }

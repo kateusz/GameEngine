@@ -54,6 +54,25 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
             _assemblyNames[assembly] = names;
     }
 
+    public void RegisterDiscoveredGameComponents(string scriptsDirectory, Assembly? gameAssembly = null)
+    {
+        if (string.IsNullOrWhiteSpace(scriptsDirectory) || !Directory.Exists(scriptsDirectory))
+            return;
+
+        if (GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDirectory).Length == 0)
+            return;
+
+        var assembly = gameAssembly ?? FindLoadedGameAssembly();
+        if (assembly is null)
+            return;
+
+        RegisterFromAssembly(assembly);
+    }
+
+    private static Assembly? FindLoadedGameAssembly() =>
+        AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(a => string.Equals(a.GetName().Name, GameAssemblyCompiler.AssemblyName, StringComparison.Ordinal));
+
     public void UnregisterAssembly(Assembly assembly)
     {
         if (!_assemblyNames.Remove(assembly, out var names))
@@ -103,11 +122,11 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
 
     private void RegisterSerializer(IComponentSerializer serializer)
     {
-        if (_byName.ContainsKey(serializer.ComponentName))
-            throw new InvalidOperationException($"Component serializer already registered: {serializer.ComponentName}");
-
         if (_byType.ContainsKey(serializer.ComponentType))
-            throw new InvalidOperationException($"Component type already registered: {serializer.ComponentType.Name}");
+            return;
+
+        if (_byName.TryGetValue(serializer.ComponentName, out var existing))
+            _byType.Remove(existing.ComponentType);
 
         _byName[serializer.ComponentName] = serializer;
         _byType[serializer.ComponentType] = serializer;

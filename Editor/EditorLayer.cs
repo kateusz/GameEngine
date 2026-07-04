@@ -40,6 +40,7 @@ public class EditorLayer(
     ShortcutManager shortcutManager,
     IScriptEngine scriptEngine,
     ScriptComponentEditor scriptComponentEditor,
+    GameComponentEditor gameComponentEditor,
     DebugSettings debugSettings,
     IFrameBufferFactory frameBufferFactory,
     IHdrToneMapper hdrToneMapper,
@@ -580,6 +581,7 @@ public class EditorLayer(
         panels.ConsolePanel.Draw();
 
         scriptComponentEditor.Draw();
+        gameComponentEditor.RenderPopups();
         panels.RecentProjectsPanel.Draw();
         panels.KeyboardShortcutsPanel.Draw();
 
