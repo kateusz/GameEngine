@@ -10,6 +10,11 @@ namespace Engine.Scene;
 /// </summary>
 public interface IScene : IDisposable
 {
+    /// <summary>
+    /// Scene-owned entity registry. Isolated from other scenes.
+    /// </summary>
+    IContext Context { get; }
+
     public string Name { get; }
     
     /// <summary>

@@ -1,7 +1,7 @@
 namespace ECS;
 
 /// <summary>
-/// Interface for managing the global entity registry.
+/// Interface for a scene-owned entity registry.
 /// Provides thread-safe access to entities and component queries.
 /// </summary>
 public interface IContext

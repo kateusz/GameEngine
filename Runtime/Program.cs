@@ -1,6 +1,5 @@
 using System.Text.Json;
 using DryIoc;
-using ECS;
 using Engine.Core;
 using Engine.Core.DI;
 using Engine.Scripting;
@@ -103,7 +102,6 @@ public class Program
     private static void ConfigureContainer(Container container, GameConfiguration gameConfig)
     {
         EngineIoCContainer.Register(container);
-        container.Register<IContext, Context>(Reuse.Singleton);
         container.RegisterInstance(gameConfig);
         
         // todo: remove

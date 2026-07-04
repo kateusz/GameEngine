@@ -49,7 +49,14 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
         }
     }
 
-    public void OnShutdown() { }
+    public void OnShutdown()
+    {
+        Camera = null;
+        Transform = Matrix4x4.Identity;
+        _cachedEntity = null;
+        _cachedCameraComponent = null;
+        _runtimeCameras.Clear();
+    }
 
     private SceneCamera ResolveRuntimeCamera(int entityId, CameraComponent component)
     {

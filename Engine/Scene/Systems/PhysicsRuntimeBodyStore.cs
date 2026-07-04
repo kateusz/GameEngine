@@ -2,7 +2,7 @@ using Box2D.NetStandard.Dynamics.Bodies;
 
 namespace Engine.Scene.Systems;
 
-internal sealed class PhysicsRuntimeBodyStore
+public sealed class PhysicsRuntimeBodyStore
 {
     private readonly Dictionary<int, Body> _bodiesByEntityId = [];
 

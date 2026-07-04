@@ -93,7 +93,6 @@ public static class EditorIoCContainer
         
         container.Register<IConsolePanel, ConsolePanel>(Reuse.Singleton);
         
-        container.Register<ECS.IContext, ECS.Context>(Reuse.Singleton);
         container.Register<EditorPanels>(Reuse.Singleton);
         container.Register<ViewportComponents>(Reuse.Singleton);
         container.Register<ILayer, EditorLayer>(Reuse.Singleton);

@@ -9,36 +9,27 @@ namespace Engine.Tests;
 
 public class SystemManagerFactoryTests
 {
-    private readonly ISceneSystemRegistry _mockSystemRegistry = Substitute.For<ISceneSystemRegistry>();
-    private readonly IContext _context = new Context();
-    private readonly PhysicsRuntimeBodyStore _bodyStore = new();
-    private readonly IPhysicsSimulationSystemFactory _physicsFactory;
+    private readonly ISceneSystemsFactory _mockSystemsFactory = Substitute.For<ISceneSystemsFactory>();
 
-    public SystemManagerFactoryTests()
+    [Fact]
+    public void Create_ShouldPopulateSystemsForContext()
     {
-        _physicsFactory = new PhysicsSimulationSystemFactory(_bodyStore, _context);
-        _mockSystemRegistry.PopulateSystemManager(Arg.Any<ISystemManager>())
-            .Returns([]);
+        var context = new Context();
+        var builder = new SystemManagerFactory(_mockSystemsFactory);
+
+        var build = builder.Create(context);
+
+        _mockSystemsFactory.Received(1).PopulateSystemManager(build.SystemManager, context, build.BodyStore);
+        build.BodyStore.ShouldNotBeNull();
     }
 
     [Fact]
-    public void Build_ShouldPopulateSharedSystemsAndPhysics()
+    public void Create_ShouldReturnNewSystemManagerPerCall()
     {
-        var builder = new SystemManagerFactory(_mockSystemRegistry, _physicsFactory);
+        var builder = new SystemManagerFactory(_mockSystemsFactory);
 
-        var systemManager = builder.Create();
-
-        _mockSystemRegistry.Received(1).PopulateSystemManager(systemManager);
-        systemManager.SystemCount.ShouldBe(1);
-    }
-
-    [Fact]
-    public void Build_ShouldReturnNewSystemManagerPerCall()
-    {
-        var builder = new SystemManagerFactory(_mockSystemRegistry, _physicsFactory);
-
-        var first = builder.Create();
-        var second = builder.Create();
+        var first = builder.Create(new Context()).SystemManager;
+        var second = builder.Create(new Context()).SystemManager;
 
         first.ShouldNotBeSameAs(second);
     }

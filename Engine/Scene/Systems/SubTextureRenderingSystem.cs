@@ -1,11 +1,8 @@
-using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
-using Engine.Scene.Serializer;
-using SceneComponents;
-using SceneComponents.Rendering;
+using Engine.Scene;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -22,65 +19,20 @@ internal sealed class SubTextureRenderingSystem(
     private static readonly ILogger Logger = Log.ForContext<SubTextureRenderingSystem>();
 
     public int Priority => SystemPriorities.SubTextureRenderSystem;
-    
+
     public void OnInit()
     {
         Logger.Debug("SubTextureRenderingSystem initialized with priority {Priority}", Priority);
     }
 
-    /// <summary>
-    /// Updates and renders all subtextures in the scene.
-    /// Finds the primary camera and renders all entities with subtexture components.
-    /// </summary>
-    /// <param name="deltaTime">Time elapsed since last frame.</param>
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (cameraProvider.Camera == null)
-            return;
-
-        renderer.BeginScene(cameraProvider.Camera, cameraProvider.Transform);
-        
-        var subtextureGroup = context.View<SubTextureRendererComponent>();
-        foreach (var (entity, subtextureComponent) in subtextureGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
-                continue;
-
-            var texture = textureFactory.Create(PathBuilder.Build(subtextureComponent.TexturePath));
-            if (texture == null)
-                continue;
-
-            // Use the transform component's matrix directly (same as SpriteRenderingSystem)
-            // The transform scale determines the world-space size of the rendered sprite
-            var transform = transformComponent.GetTransform();
-
-            // Use pre-calculated TexCoords if available (e.g., from animation system)
-            // Otherwise calculate from grid coordinates
-            Vector2[] texCoords;
-            if (subtextureComponent.TexCoords != null)
-            {
-                // Direct UV coordinates (used by animation system)
-                texCoords = subtextureComponent.TexCoords;
-            }
-            else
-            {
-                // Calculate from grid coordinates (traditional subtexture rendering)
-                var subTexture = SubTexture2D.CreateFromCoords(
-                    texture,
-                    subtextureComponent.Coords,
-                    subtextureComponent.CellSize,
-                    subtextureComponent.SpriteSize
-                );
-                texCoords = subTexture.TexCoords;
-            }
-            
-            // Draw the subtexture quad with entity ID for picking
-            renderer.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
-        }
-
-        renderer.EndScene();
+        SceneRenderPipeline.RenderSubTextures(
+            context,
+            renderer,
+            textureFactory,
+            SceneRenderPipeline.CameraBinding.FromProvider(cameraProvider));
     }
-    
-    public void OnShutdown() {}
+
+    public void OnShutdown() { }
 }

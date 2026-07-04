@@ -83,28 +83,10 @@ public static class EngineIoCContainer
         container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);
         container.Register<Engine.Audio.IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
 
-        // Register SceneSystemRegistry and systems
         container.Register<SceneFactory>(Reuse.Singleton);
-        container.Register<RenderingSystemsGroup>(Reuse.Singleton);
-        container.Register<ISceneSystemRegistry, SceneSystemRegistry>(Reuse.Singleton);
-
-        // Register ECS systems (all now use dependency injection)
+        container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
-        container.Register<SpriteRenderingSystem>(Reuse.Singleton);
-        container.Register<LightingSystem>(Reuse.Singleton);
-        container.Register<ModelRenderingSystem>(Reuse.Singleton);
-        container.Register<ScriptUpdateSystem>(Reuse.Singleton);
-        container.Register<SubTextureRenderingSystem>(Reuse.Singleton);
-        container.Register<PhysicsDebugRenderSystem>(Reuse.Singleton);
-        container.Register<AudioSystem>(Reuse.Singleton);
-        
-        container.Register<PhysicsRuntimeBodyStore>(Reuse.Singleton);
-        container.Register<PhysicsSimulationSystemFactory>(Reuse.Singleton);
-        container.RegisterMapping<IPhysicsSimulationSystemFactory, PhysicsSimulationSystemFactory>();
-        
-        container.Register<PrimaryCameraSystem>(Reuse.Singleton);
-        container.RegisterMapping<IPrimaryCameraProvider, PrimaryCameraSystem>();
         
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
         

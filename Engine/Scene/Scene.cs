@@ -1,17 +1,12 @@
-using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
-using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using SceneComponents;
 using SceneComponents.Camera;
-using SceneComponents.Lights;
-using SceneComponents.Physics;
-using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene;
@@ -19,14 +14,6 @@ namespace Engine.Scene;
 internal sealed class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
-
-    private static readonly Vector2[] DefaultTextureCoords =
-    [
-        new(0.0f, 0.0f),
-        new(1.0f, 0.0f),
-        new(1.0f, 1.0f),
-        new(0.0f, 1.0f)
-    ];
 
     private int _nextEntityId = 1;
     private bool _disposed;
@@ -39,6 +26,7 @@ internal sealed class Scene : IScene
     private readonly IContext _context;
     private readonly DebugSettings _debugSettings;
     private readonly ISystemManager _systemManager;
+    private readonly PhysicsRuntimeBodyStore _physicsRuntimeBodyStore;
 
     public Scene(string path,
         string sceneName,
@@ -47,7 +35,8 @@ internal sealed class Scene : IScene
         ITextureFactory textureFactory,
         IContext context,
         DebugSettings debugSettings,
-        ISystemManager systemManager)
+        ISystemManager systemManager,
+        PhysicsRuntimeBodyStore physicsRuntimeBodyStore)
     {
         _path = path;
         _sceneName = sceneName;
@@ -57,9 +46,12 @@ internal sealed class Scene : IScene
         _context = context;
         _debugSettings = debugSettings;
         _systemManager = systemManager;
+        _physicsRuntimeBodyStore = physicsRuntimeBodyStore;
     }
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
+
+    public IContext Context => _context;
 
     public string Name => _sceneName;
     public IEnumerable<Entity> Entities => _entities;
@@ -121,175 +113,15 @@ internal sealed class Scene : IScene
 
     public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
     {
-        var pointLights = _context.View<PointLightComponent>().ToList();
-        var directionalLights = _context.View<DirectionalLightComponent>().ToList();
-        var ambientLights = _context.View<AmbientLightComponent>().ToList();
-
-        if (directionalLights.Count > 0)
-        {
-            var (_, directionalLight) = directionalLights[0];
-            _graphics3D.SetDirectionalLight(
-                enabled: true,
-                direction: directionalLight.Direction,
-                color: directionalLight.Color,
-                strength: directionalLight.Strength);
-        }
-        else
-        {
-            _graphics3D.SetDirectionalLight(
-                enabled: false,
-                direction: default,
-                color: default,
-                strength: 0.0f);
-        }
-
-        if (ambientLights.Count > 0)
-        {
-            var (_, ambientLight) = ambientLights[0];
-            _graphics3D.SetAmbientLight(
-                enabled: true,
-                color: ambientLight.Color,
-                strength: ambientLight.Strength);
-        }
-        else
-        {
-            _graphics3D.SetAmbientLight(
-                enabled: false,
-                color: default,
-                strength: 0.0f);
-        }
-
-        var pointLightData = new List<PointLightData>(16);
-        foreach (var (entity, pointLight) in pointLights)
-        {
-            if (pointLightData.Count >= 16)
-                break;
-            if (!entity.TryGetComponent<TransformComponent>(out var lightTransform))
-                continue;
-
-            pointLightData.Add(new PointLightData(
-                lightTransform.Translation,
-                pointLight.Color,
-                pointLight.Intensity));
-        }
-
-        _graphics3D.SetPointLights(pointLightData);
-
-        _graphics3D.BeginScene(camera);
-
-        var modelGroup = _context.View<ModelRendererComponent>();
-
-        foreach (var (entity, modelRendererComponent) in modelGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var meshComponent = entity.GetComponent<MeshComponent>();
-
-            _graphics3D.DrawModel(transformComponent.GetTransform(), meshComponent, modelRendererComponent,
-                entity.Id);
-        }
-
-        _graphics3D.EndScene();
-
-        _graphics3D.BeginLightVisualization(camera);
-        foreach (var (e, _) in pointLights)
-        {
-            if (!e.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
-            _graphics3D.DrawLightVisualization(transform.Translation);
-        }
-
-        foreach (var (e, _) in directionalLights)
-        {
-            if (!e.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
-            _graphics3D.DrawLightVisualization(transform.Translation);
-        }
-
-        _graphics3D.EndLightVisualization();
-
-        _graphics2D.BeginScene(camera);
-
-        var spriteGroup = _context.View<SpriteRendererComponent>();
-        foreach (var (entity, spriteRendererComponent) in spriteGroup)
-        {
-            var transformComponent = entity.GetComponent<TransformComponent>();
-            var texture = ResolveTexture(spriteRendererComponent.TexturePath);
-            if (texture is not null)
-                _graphics2D.DrawQuad(transformComponent.GetTransform(), texture, DefaultTextureCoords,
-                    spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, entity.Id);
-            else
-                _graphics2D.DrawQuad(transformComponent.GetTransform(), spriteRendererComponent.Color, entity.Id);
-        }
-
-        var subtextureGroup = _context.View<SubTextureRendererComponent>();
-        foreach (var (entity, subtextureComponent) in subtextureGroup)
-        {
-            var texture = ResolveTexture(subtextureComponent.TexturePath);
-            if (texture is null)
-                continue;
-
-            // Use pre-calculated TexCoords if available (e.g., from animation system)
-            // Otherwise calculate from grid coordinates (same as SubTextureRenderingSystem)
-            Vector2[] texCoords;
-            if (subtextureComponent.TexCoords != null)
-            {
-                // Direct UV coordinates (used by animation system)
-                texCoords = subtextureComponent.TexCoords;
-            }
-            else
-            {
-                // Calculate from grid coordinates (traditional subtexture rendering)
-                var subTexture = SubTexture2D.CreateFromCoords(
-                    texture,
-                    subtextureComponent.Coords,
-                    subtextureComponent.CellSize,
-                    subtextureComponent.SpriteSize
-                );
-                texCoords = subTexture.TexCoords;
-            }
-
-            // Use transform directly without additional scaling (same as runtime)
-            var transform = entity.GetComponent<TransformComponent>().GetTransform();
-            _graphics2D.DrawQuad(transform, texture, texCoords, entityId: entity.Id);
-        }
-
-        if (_debugSettings.ShowColliderBounds)
-        {
-            foreach (var (entity, boxCollider) in _context.View<BoxCollider2DComponent>())
-            {
-                var transform = entity.GetComponent<TransformComponent>();
-                var size = new Vector2(
-                    boxCollider.Size.X * 2.0f * transform.Scale.X,
-                    boxCollider.Size.Y * 2.0f * transform.Scale.Y
-                );
-                var color = GetEditorColliderColor(entity);
-                var rotation = transform.Rotation.Z;
-                var cos = MathF.Cos(rotation);
-                var sin = MathF.Sin(rotation);
-                var scaledOffset = new Vector2(
-                    boxCollider.Offset.X * transform.Scale.X,
-                    boxCollider.Offset.Y * transform.Scale.Y
-                );
-                var rotatedOffset = new Vector2(
-                    scaledOffset.X * cos - scaledOffset.Y * sin,
-                    scaledOffset.X * sin + scaledOffset.Y * cos
-                );
-                var worldPos = new Vector3(
-                    transform.Translation.X + rotatedOffset.X,
-                    transform.Translation.Y + rotatedOffset.Y,
-                    0.0f
-                );
-
-                var trs = Matrix4x4.CreateTranslation(worldPos)
-                          * Matrix4x4.CreateRotationZ(rotation)
-                          * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
-                _graphics2D.DrawRect(trs, color, entity.Id);
-            }
-        }
-
-        _graphics2D.EndScene();
+        SceneRenderPipeline.RenderScene(
+            _context,
+            _graphics2D,
+            _graphics3D,
+            _textureFactory,
+            _debugSettings,
+            _physicsRuntimeBodyStore,
+            SceneRenderPipeline.CameraBinding.FromEditor(camera),
+            useTransformFallbackWhenNoBody: true);
     }
 
     public void OnViewportResize(uint width, uint height)
@@ -335,27 +167,6 @@ internal sealed class Scene : IScene
         }
     }
 
-    private static Vector4 GetEditorColliderColor(Entity entity)
-    {
-        if (!entity.TryGetComponent<RigidBody2DComponent>(out var rb))
-            return new Vector4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan (no rigid body)
-
-        return rb.BodyType switch
-        {
-            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f), // Bright green
-            RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f), // Orange
-            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f) // Magenta
-        };
-    }
-
-    private Texture2D? ResolveTexture(string? texturePath)
-    {
-        if (string.IsNullOrWhiteSpace(texturePath))
-            return null;
-
-        return _textureFactory?.Create(PathBuilder.Build(texturePath));
-    }
-
     /// <summary>
     /// Duplicates an entity by cloning all of its components.
     /// </summary>
@@ -389,8 +200,7 @@ internal sealed class Scene : IScene
 
         Logger.Debug("Disposing scene '{Path}'", _path);
 
-        // Dispose SystemManager which will dispose per-scene systems (PhysicsSimulationSystem)
-        // Singleton systems (rendering, scripts) are shared and won't be disposed
+        // Dispose SystemManager which shuts down per-scene systems and physics bodies.
         _systemManager.Dispose();
 
         // Clear entity storage

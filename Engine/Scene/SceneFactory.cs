@@ -9,14 +9,14 @@ public sealed class SceneFactory(
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
-    IContext context,
     DebugSettings debugSettings,
     ISystemManagerFactory systemManagerFactory)
 {
     public IScene Create(string path, string newSceneName)
     {
-        var systemManager = systemManagerFactory.Create();
+        var context = new Context();
+        var build = systemManagerFactory.Create(context);
         return new Scene(path, newSceneName, graphics2D, graphics3D, textureFactory, context, debugSettings,
-            systemManager);
+            build.SystemManager, build.BodyStore);
     }
 }

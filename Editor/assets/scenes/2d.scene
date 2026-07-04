@@ -248,14 +248,6 @@
             ]
           ],
           "Name": "SubTextureRendererComponent"
-        },
-        {
-          "AssetPath": "animations/hero-attack.anim",
-          "CurrentClipName": "Attack",
-          "Loop": true,
-          "PlaybackSpeed": 1,
-          "ShowDebugInfo": false,
-          "Name": "AnimationComponent"
         }
       ]
     },

@@ -1,16 +1,16 @@
+using ECS;
 using ECS.Systems;
+using Engine.Scene.Systems;
 
 namespace Engine.Scene;
 
-internal sealed class SystemManagerFactory(
-    ISceneSystemRegistry sceneSystemRegistry,
-    IPhysicsSimulationSystemFactory physicsSimulationSystemFactory) : ISystemManagerFactory
+internal sealed class SystemManagerFactory(ISceneSystemsFactory sceneSystemsFactory) : ISystemManagerFactory
 {
-    public ISystemManager Create()
+    public SceneBuildResult Create(IContext context)
     {
+        var bodyStore = new PhysicsRuntimeBodyStore();
         var systemManager = new SystemManager();
-        sceneSystemRegistry.PopulateSystemManager(systemManager);
-        systemManager.RegisterSystem(physicsSimulationSystemFactory.Create());
-        return systemManager;
+        sceneSystemsFactory.PopulateSystemManager(systemManager, context, bodyStore);
+        return new SceneBuildResult(systemManager, bodyStore);
     }
 }
