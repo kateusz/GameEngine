@@ -6,7 +6,7 @@ using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors;
 
-public class RigidBody2DComponentEditor : IComponentEditor
+public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     private static readonly string[] BodyTypeStrings =
         [nameof(RigidBodyType.Static), nameof(RigidBodyType.Dynamic), nameof(RigidBodyType.Kinematic)];
@@ -29,9 +29,9 @@ public class RigidBody2DComponentEditor : IComponentEditor
                     };
                 });
 
-            UIPropertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
+            propertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
                 newValue => component.FixedRotation = (bool)newValue);
-            UIPropertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
+            propertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
                 newValue => component.GravityScale = (float)newValue);
         });
     }

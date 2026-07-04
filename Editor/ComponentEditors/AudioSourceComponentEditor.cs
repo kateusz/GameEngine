@@ -9,7 +9,10 @@ using ZLinq;
 
 namespace Editor.ComponentEditors;
 
-public class AudioSourceComponentEditor(IAudioPlayback audioPlayback, AudioDropTarget audioDropTarget) : IComponentEditor
+public class AudioSourceComponentEditor(
+    IAudioPlayback audioPlayback,
+    AudioDropTarget audioDropTarget,
+    UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -21,25 +24,25 @@ public class AudioSourceComponentEditor(IAudioPlayback audioPlayback, AudioDropT
                 component.AudioClipPath = relativePath;
             });
 
-            UIPropertyRenderer.DrawPropertyField("Volume", component.Volume,
+            propertyRenderer.DrawPropertyField("Volume", component.Volume,
                 newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));
-            UIPropertyRenderer.DrawPropertyField("Pitch", component.Pitch,
+            propertyRenderer.DrawPropertyField("Pitch", component.Pitch,
                 newValue => component.Pitch = System.Math.Clamp((float)newValue, 0.1f, 3.0f));
-            UIPropertyRenderer.DrawPropertyField("Loop", component.Loop,
+            propertyRenderer.DrawPropertyField("Loop", component.Loop,
                 newValue => component.Loop = (bool)newValue);
-            UIPropertyRenderer.DrawPropertyField("Play On Awake", component.PlayOnAwake,
+            propertyRenderer.DrawPropertyField("Play On Awake", component.PlayOnAwake,
                 newValue => component.PlayOnAwake = (bool)newValue);
-            UIPropertyRenderer.DrawPropertyField("Is 3D", component.Is3D,
+            propertyRenderer.DrawPropertyField("Is 3D", component.Is3D,
                 newValue => component.Is3D = (bool)newValue);
 
             if (component.Is3D)
             {
                 LayoutDrawer.DrawIndentedSection(() =>
                 {
-                    UIPropertyRenderer.DrawPropertyField("Min Distance", component.MinDistance,
+                    propertyRenderer.DrawPropertyField("Min Distance", component.MinDistance,
                         newValue => component.MinDistance = System.Math.Max((float)newValue, 0.1f));
 
-                    UIPropertyRenderer.DrawPropertyField("Max Distance", component.MaxDistance,
+                    propertyRenderer.DrawPropertyField("Max Distance", component.MaxDistance,
                         newValue => component.MaxDistance = System.Math.Max((float)newValue, component.MinDistance));
                 });
             }

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using ImGuiNET;
@@ -8,7 +9,7 @@ namespace Editor.Input;
 /// <summary>
 /// Panel that displays all available keyboard shortcuts grouped by category.
 /// </summary>
-public class KeyboardShortcutsPanel(ShortcutManager shortcutManager)
+public class KeyboardShortcutsPanel(ShortcutManager shortcutManager) : IEditorPanel
 {
     private bool _isVisible;
     private string _filterText = string.Empty;

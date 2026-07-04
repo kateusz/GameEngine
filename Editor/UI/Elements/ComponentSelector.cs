@@ -9,7 +9,6 @@ using SceneComponents.Audio;
 using SceneComponents.Camera;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
-using CameraController = Editor.assets.scripts.CameraController;
 
 namespace Editor.UI.Elements;
 
@@ -30,10 +29,6 @@ public static class ComponentSelector
                 if (!entity.HasComponent<TransformComponent>())
                     entity.AddComponent<TransformComponent>();
                 entity.AddComponent<CameraComponent>(c);
-                entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
-                {
-                    ScriptTypeName = nameof(CameraController)
-                });
             });
 
             DrawComponentMenuItem<TransformComponent>("Transform", entity);

@@ -5,7 +5,7 @@ using SceneComponents.Audio;
 
 namespace Editor.ComponentEditors;
 
-public class AudioListenerComponentEditor : IComponentEditor
+public class AudioListenerComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -13,7 +13,7 @@ public class AudioListenerComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<AudioListenerComponent>();
 
-            UIPropertyRenderer.DrawPropertyField("Is Active", component.IsActive,
+            propertyRenderer.DrawPropertyField("Is Active", component.IsActive,
                 newValue => component.IsActive = (bool)newValue);
         });
     }

@@ -2,12 +2,12 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Editor.UI.FieldEditors;
 using Engine.Scene;
+using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
-public class GameComponentInspector : IComponentEditor
+public class GameComponentInspector(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -22,7 +22,7 @@ public class GameComponentInspector : IComponentEditor
         }
     }
 
-    private static void DrawComponentFields(IComponent component, string componentId)
+    private void DrawComponentFields(IComponent component, string componentId)
     {
         var fields = ExposedMemberAccessor.GetExposedMembers(component).ToList();
         if (fields.Count == 0)
@@ -36,23 +36,11 @@ public class GameComponentInspector : IComponentEditor
             UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
             {
                 var inputLabel = $"{fieldName}##{componentId}_{fieldName}";
-                if (!TryDrawFieldEditor(inputLabel, fieldType, fieldValue, out var newValue))
+                if (!propertyRenderer.TryDrawFieldEditor(inputLabel, fieldType, fieldValue, out var newValue))
                     return;
 
                 ExposedMemberAccessor.SetMemberValue(component, fieldName, newValue);
             });
         }
-    }
-
-    private static bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
-    {
-        newValue = value;
-
-        var editor = FieldEditorRegistry.GetEditor(type);
-        if (editor != null)
-            return editor.Draw(label, value, out newValue);
-
-        ImGuiNET.ImGui.TextDisabled($"Unsupported type: {type.Name}");
-        return false;
     }
 }

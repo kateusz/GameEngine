@@ -1,8 +1,6 @@
 using System.Numerics;
 using System.Text.RegularExpressions;
-using Editor.Features.Components;
 using Engine.Core;
-using Editor.Features.Scripting;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
@@ -12,7 +10,7 @@ using Serilog;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel : IContentBrowserPanel
+public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
 {
     private enum CreateAssetKind { Script, Component, System }
 
@@ -22,8 +20,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     private readonly ITextureFactory _textureFactory;
     private readonly IProjectContext _projectContext;
-    private readonly GameScriptWorkspace _scriptWorkspace;
-    private readonly IGameComponentFactory _gameComponentFactory;
+    private readonly ContentBrowserActions _actions;
     private string _assetPath;
     private string _currentDirectory;
     private Texture2D _directoryIcon = null!;
@@ -43,13 +40,11 @@ public class ContentBrowserPanel : IContentBrowserPanel
     public ContentBrowserPanel(
         ITextureFactory textureFactory,
         IProjectContext projectContext,
-        GameScriptWorkspace scriptWorkspace,
-        IGameComponentFactory gameComponentFactory)
+        ContentBrowserActions actions)
     {
         _textureFactory = textureFactory;
         _projectContext = projectContext;
-        _scriptWorkspace = scriptWorkspace;
-        _gameComponentFactory = gameComponentFactory;
+        _actions = actions;
         _currentDirectory = Environment.CurrentDirectory;
         _assetPath = Path.Combine(_currentDirectory, "assets");
         _currentDirectory = _assetPath;
@@ -274,9 +269,9 @@ public class ContentBrowserPanel : IContentBrowserPanel
         {
             var (success, error) = _pendingCreateKind switch
             {
-                CreateAssetKind.Script => await CreateScriptAsync(_newAssetName),
-                CreateAssetKind.Component => await _gameComponentFactory.CreateFileAsync(_newAssetName),
-                CreateAssetKind.System => await CreateSystemAsync(_newAssetName),
+                CreateAssetKind.Script => await _actions.CreateScriptAsync(_newAssetName),
+                CreateAssetKind.Component => await _actions.CreateComponentAsync(_newAssetName),
+                CreateAssetKind.System => await _actions.CreateSystemAsync(_newAssetName),
                 _ => (false, "Unknown asset type.")
             };
 
@@ -297,33 +292,6 @@ public class ContentBrowserPanel : IContentBrowserPanel
             _queueCreateAssetModal = true;
             _showNameModal = true;
         }
-    }
-
-    private async Task<(bool Success, string? Error)> CreateScriptAsync(string scriptName)
-    {
-        if (_projectContext.ScriptsDir is null)
-            return (false, "Open a project first.");
-
-        var template = _scriptWorkspace.GenerateScriptTemplate(scriptName);
-        var (success, errors) = await _scriptWorkspace.CreateOrUpdateScriptAsync(scriptName, template);
-        return success ? (true, null) : (false, string.Join('\n', errors.Take(5)));
-    }
-
-    private async Task<(bool Success, string? Error)> CreateSystemAsync(string baseName)
-    {
-        if (_projectContext.ScriptsDir is not { } scriptsDir)
-            return (false, "Open a project first.");
-
-        var className = GameSystemTemplates.ToClassName(baseName);
-        var filePath = Path.Combine(scriptsDir, $"{className}.cs");
-        if (File.Exists(filePath))
-            return (false, "System file already exists.");
-
-        await File.WriteAllTextAsync(filePath, GameSystemTemplates.Generate(className));
-        Logger.Information("Created game system file {Path}", filePath);
-
-        var (compiled, errors) = _scriptWorkspace.TryCompileAllScripts();
-        return compiled ? (true, null) : (false, string.Join('\n', errors.Take(5)));
     }
 
     private void DrawContentGrid()

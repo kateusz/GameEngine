@@ -5,7 +5,7 @@ using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors;
 
-public class ModelRendererComponentEditor : IComponentEditor
+public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -13,7 +13,7 @@ public class ModelRendererComponentEditor : IComponentEditor
         {
             var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
 
-            UIPropertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
+            propertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
                 newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);
         });
     }

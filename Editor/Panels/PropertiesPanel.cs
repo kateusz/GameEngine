@@ -16,7 +16,7 @@ public class PropertiesPanel(
     ISceneContext sceneContext,
     GameComponentEditor gameComponentEditor,
     IEditorSelection selection)
-    : IPropertiesPanel
+    : IPropertiesPanel, IEditorPanel
 {
     public void Draw()
     {

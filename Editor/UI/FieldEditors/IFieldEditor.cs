@@ -6,6 +6,8 @@ namespace Editor.UI.FieldEditors;
 /// </summary>
 public interface IFieldEditor
 {
+    Type ValueType { get; }
+
     /// <summary>
     /// Draws the editor UI for the field and returns true if the value was changed.
     /// </summary>

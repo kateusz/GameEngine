@@ -5,7 +5,7 @@ using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors;
 
-public class BoxCollider2DComponentEditor : IComponentEditor
+public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -13,19 +13,19 @@ public class BoxCollider2DComponentEditor : IComponentEditor
         {
             var component = entity.GetComponent<BoxCollider2DComponent>();
 
-            UIPropertyRenderer.DrawPropertyField("Offset", component.Offset,
+            propertyRenderer.DrawPropertyField("Offset", component.Offset,
                 newValue => component.Offset = (System.Numerics.Vector2)newValue);
 
-            UIPropertyRenderer.DrawPropertyField("Size", component.Size,
+            propertyRenderer.DrawPropertyField("Size", component.Size,
                 newValue => component.Size = (System.Numerics.Vector2)newValue);
 
-            UIPropertyRenderer.DrawPropertyField("Density", component.Density,
+            propertyRenderer.DrawPropertyField("Density", component.Density,
                 newValue => component.Density = (float)newValue);
 
-            UIPropertyRenderer.DrawPropertyField("Friction", component.Friction,
+            propertyRenderer.DrawPropertyField("Friction", component.Friction,
                 newValue => component.Friction = (float)newValue);
 
-            UIPropertyRenderer.DrawPropertyField("Restitution", component.Restitution,
+            propertyRenderer.DrawPropertyField("Restitution", component.Restitution,
                 newValue => component.Restitution = (float)newValue);
         });
     }

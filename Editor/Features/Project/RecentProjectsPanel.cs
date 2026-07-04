@@ -1,5 +1,6 @@
 using System.Numerics;
 using Editor.Features.Settings;
+using Editor.Panels;
 using Editor.UI.Drawers;
 using Engine.Core;
 using ImGuiNET;
@@ -10,7 +11,7 @@ namespace Editor.Features.Project;
 public class RecentProjectsPanel(
     IEditorPreferences editorPreferences,
     IProjectManager projectManager,
-    NewProjectPopup newProjectPopup)
+    NewProjectPopup newProjectPopup) : IEditorPanel
 {
     private static readonly ILogger Logger = Log.ForContext<RecentProjectsPanel>();
 

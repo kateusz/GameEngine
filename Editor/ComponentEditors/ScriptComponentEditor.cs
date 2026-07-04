@@ -79,7 +79,6 @@ public class ScriptComponentEditor(
 
     private void DrawAttachedScript(Entity entity, NativeScriptComponent component)
     {
-        ImGui.TextDisabled("Per-entity glue — put data in Game Components, batch logic in Game Systems.");
         DrawScriptHeader(entity, component.ScriptTypeName!);
     }
 

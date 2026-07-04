@@ -1,4 +1,5 @@
 using ECS;
+using Engine.Events.Input;
 using Engine.Renderer.Cameras;
 
 namespace Editor.Features.Viewport;
@@ -11,4 +12,5 @@ public interface IEditorViewport : IDisposable
     void Initialize();
     void LayoutAndRender(TimeSpan deltaTime);
     void DrawOverlays();
+    void HandleWindowInput(InputEvent windowEvent);
 }

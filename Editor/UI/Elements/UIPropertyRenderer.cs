@@ -3,8 +3,11 @@ using ImGuiNET;
 
 namespace Editor.UI.Elements;
 
-public static class UIPropertyRenderer
+public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
 {
+    private readonly Dictionary<Type, IFieldEditor> _editors =
+        editors.ToDictionary(editor => editor.ValueType);
+
     public static void DrawPropertyRow(string label, Action inputControl)
     {
         ImGui.Columns(2);
@@ -15,29 +18,28 @@ public static class UIPropertyRenderer
         ImGui.Columns(1);
     }
 
-    /// <summary>
-    /// Draws a property field using the FieldEditorRegistry for type-specific rendering.
-    /// Automatically handles common types (int, float, bool, string, Vector2/3/4) without boilerplate.
-    /// </summary>
-    /// <param name="label">Label to display for the property</param>
-    /// <param name="value">Current value of the property</param>
-    /// <param name="onValueChanged">Callback invoked when the value changes</param>
-    /// <returns>True if the value was changed</returns>
-    public static bool DrawPropertyField(string label, object? value, Action<object> onValueChanged)
+    public bool TryDrawFieldEditor(string label, Type type, object value, out object newValue)
+    {
+        newValue = value;
+
+        if (!_editors.TryGetValue(type, out var editor))
+        {
+            ImGui.TextDisabled($"Unsupported type: {type.Name}");
+            return false;
+        }
+
+        return editor.Draw(label, value, out newValue);
+    }
+
+    public bool DrawPropertyField(string label, object? value, Action<object> onValueChanged)
     {
         if (value == null)
             return false;
 
         var valueType = value.GetType();
-        var editor = FieldEditorRegistry.GetEditor(valueType);
-
-        if (editor == null)
+        if (!_editors.TryGetValue(valueType, out var editor))
         {
-            // Fallback: display unsupported type message
-            DrawPropertyRow(label, () =>
-            {
-                ImGui.TextDisabled($"Unsupported type: {valueType.Name}");
-            });
+            DrawPropertyRow(label, () => ImGui.TextDisabled($"Unsupported type: {valueType.Name}"));
             return false;
         }
 

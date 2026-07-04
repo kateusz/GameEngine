@@ -8,7 +8,9 @@ using SceneComponents.Camera;
 
 namespace Editor.ComponentEditors;
 
-public class CameraComponentEditor(ISceneContext sceneContext) : IComponentEditor
+public class CameraComponentEditor(
+    ISceneContext sceneContext,
+    UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     private static readonly string[] ProjectionTypeStrings = ["Perspective", "Orthographic"];
 
@@ -18,7 +20,7 @@ public class CameraComponentEditor(ISceneContext sceneContext) : IComponentEdito
         {
             var cameraComponent = entity.GetComponent<CameraComponent>();
 
-            UIPropertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,
+            propertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,
                 newValue =>
                 {
                     if ((bool)newValue)
@@ -42,27 +44,27 @@ public class CameraComponentEditor(ISceneContext sceneContext) : IComponentEdito
             if (cameraComponent.ProjectionType == CameraProjectionTypeData.Perspective)
             {
                 var verticalFov = MathHelpers.RadiansToDegrees(cameraComponent.PerspectiveFOV);
-                UIPropertyRenderer.DrawPropertyField("Vertical FOV", verticalFov,
+                propertyRenderer.DrawPropertyField("Vertical FOV", verticalFov,
                     newValue => cameraComponent.PerspectiveFOV = MathHelpers.DegreesToRadians((float)newValue));
 
-                UIPropertyRenderer.DrawPropertyField("Near", cameraComponent.PerspectiveNear,
+                propertyRenderer.DrawPropertyField("Near", cameraComponent.PerspectiveNear,
                     newValue => cameraComponent.PerspectiveNear = (float)newValue);
 
-                UIPropertyRenderer.DrawPropertyField("Far", cameraComponent.PerspectiveFar,
+                propertyRenderer.DrawPropertyField("Far", cameraComponent.PerspectiveFar,
                     newValue => cameraComponent.PerspectiveFar = (float)newValue);
             }
             else if (cameraComponent.ProjectionType == CameraProjectionTypeData.Orthographic)
             {
-                UIPropertyRenderer.DrawPropertyField("Size", cameraComponent.OrthographicSize,
+                propertyRenderer.DrawPropertyField("Size", cameraComponent.OrthographicSize,
                     newValue => cameraComponent.OrthographicSize = (float)newValue);
 
-                UIPropertyRenderer.DrawPropertyField("Near", cameraComponent.OrthographicNear,
+                propertyRenderer.DrawPropertyField("Near", cameraComponent.OrthographicNear,
                     newValue => cameraComponent.OrthographicNear = (float)newValue);
 
-                UIPropertyRenderer.DrawPropertyField("Far", cameraComponent.OrthographicFar,
+                propertyRenderer.DrawPropertyField("Far", cameraComponent.OrthographicFar,
                     newValue => cameraComponent.OrthographicFar = (float)newValue);
 
-                UIPropertyRenderer.DrawPropertyField("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio,
+                propertyRenderer.DrawPropertyField("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio,
                     newValue => cameraComponent.FixedAspectRatio = (bool)newValue);
             }
         });

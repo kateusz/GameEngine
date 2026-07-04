@@ -4,6 +4,8 @@ namespace Editor.UI.FieldEditors;
 
 public class IntFieldEditor : IFieldEditor
 {
+    public Type ValueType => typeof(int);
+
     public bool Draw(string label, object value, out object newValue)
     {
         var v = (int)value;

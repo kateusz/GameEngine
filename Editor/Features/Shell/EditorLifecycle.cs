@@ -6,6 +6,7 @@ using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
 using Editor.Input;
+using Editor.Panels;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Scene;
@@ -27,7 +28,9 @@ public class EditorLifecycle(
     EditorShortcutRegistrar shortcutRegistrar,
     IEditorSelection selection,
     IEditorViewport editorViewport,
-    EditorPanels panels,
+    ISceneHierarchyPanel sceneHierarchyPanel,
+    IContentBrowserPanel contentBrowserPanel,
+    IConsolePanel consolePanel,
     ViewportComponents viewport)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLifecycle>();
@@ -56,11 +59,11 @@ public class EditorLifecycle(
         };
 
         _projectOpenedHandler = () =>
-            panels.ContentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
+            contentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
 
         _projectClosedHandler = () =>
         {
-            panels.ContentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
+            contentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
             sceneManager.New("");
         };
 
@@ -68,7 +71,7 @@ public class EditorLifecycle(
         projectManager.ProjectOpened += _projectOpenedHandler;
         projectManager.ProjectClosed += _projectClosedHandler;
 
-        _sceneChangedHandler = newScene => panels.SceneHierarchyPanel.SetScene(newScene);
+        _sceneChangedHandler = newScene => sceneHierarchyPanel.SetScene(newScene);
         _playSceneHandler = sceneManager.Play;
         _stopSceneHandler = sceneManager.Stop;
         _restartSceneHandler = sceneManager.Restart;
@@ -84,7 +87,7 @@ public class EditorLifecycle(
 
         sceneManager.New("");
 
-        panels.ContentBrowserPanel.Init();
+        contentBrowserPanel.Init();
         viewport.SceneToolbar.Init();
 
         debugSettings.ShowColliderBounds = editorPreferences.ShowColliderBounds;
@@ -111,7 +114,7 @@ public class EditorLifecycle(
 
         sceneContext.ActiveScene?.Dispose();
         editorViewport.Dispose();
-        panels.ConsolePanel?.Dispose();
+        consolePanel?.Dispose();
     }
 
     private void OnSelectionChanged(Entity? entity, SelectionSource source)

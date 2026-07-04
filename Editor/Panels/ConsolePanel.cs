@@ -5,7 +5,7 @@ using Editor.UI.Drawers;
 
 namespace Editor.Panels;
 
-public class ConsolePanel : IConsolePanel
+public class ConsolePanel : IConsolePanel, IEditorPanel
 {
     private volatile List<LogMessage> _logMessages = new();
     private readonly Lock _writeSync = new();

@@ -2,6 +2,8 @@ using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
+using Editor.Input;
+using Editor.Panels;
 using Editor.Publisher;
 using Engine.Core;
 using ImGuiNET;
@@ -17,7 +19,9 @@ public class EditorMenuBar(
     NewProjectPopup newProjectPopup,
     SceneSettingsPopup sceneSettingsPopup,
     PublishSettingsUI publishSettingsUI,
-    EditorPanels panels,
+    RecentProjectsPanel recentProjectsPanel,
+    RendererStatsPanel rendererStatsPanel,
+    KeyboardShortcutsPanel keyboardShortcutsPanel,
     ViewportComponents viewport,
     IEditorCameraController cameraController)
 {
@@ -49,7 +53,7 @@ public class EditorMenuBar(
         ImGui.Separator();
 
         if (ImGui.MenuItem("Show Recent Projects"))
-            panels.RecentProjectsPanel.Show();
+            recentProjectsPanel.Show();
 
         if (ImGui.BeginMenu("Recent Projects"))
         {
@@ -114,8 +118,8 @@ public class EditorMenuBar(
             viewport.SceneToolbar.ShowGrid = !viewport.SceneToolbar.ShowGrid;
         if (ImGui.MenuItem("Show 3D Grid", null, viewport.SceneToolbar.ShowGrid3D))
             viewport.SceneToolbar.ShowGrid3D = !viewport.SceneToolbar.ShowGrid3D;
-        if (ImGui.MenuItem("Show Stats", null, panels.RendererStatsPanel.IsVisible))
-            panels.RendererStatsPanel.IsVisible = !panels.RendererStatsPanel.IsVisible;
+        if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
+            rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
         ImGui.EndMenu();
     }
 
@@ -133,7 +137,7 @@ public class EditorMenuBar(
         if (!ImGui.BeginMenu("Help")) return;
 
         if (ImGui.MenuItem("Keyboard Shortcuts"))
-            panels.KeyboardShortcutsPanel.Show();
+            keyboardShortcutsPanel.Show();
         ImGui.EndMenu();
     }
 

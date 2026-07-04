@@ -6,6 +6,7 @@ using Editor.Features.Settings;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Events.Input;
 using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -40,6 +41,7 @@ public sealed class EditorViewport(
     private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
     private readonly Dictionary<int, Entity> _entityById = [];
+    private readonly HashSet<int> _pressedMouseButtons = [];
 
     private Action<IScene> _sceneChangedHandler = null!;
 
@@ -101,6 +103,40 @@ public sealed class EditorViewport(
         DrawOverlays();
 
         ImGui.End();
+    }
+
+    public void HandleWindowInput(InputEvent windowEvent)
+    {
+        if (sceneContext.State != SceneState.Edit)
+            return;
+
+        switch (windowEvent)
+        {
+            case MouseButtonPressedEvent mbpe:
+                _pressedMouseButtons.Add(mbpe.Button);
+                break;
+            case MouseButtonReleasedEvent mbre:
+                _pressedMouseButtons.Remove(mbre.Button);
+                break;
+        }
+
+        if (!IsHovered)
+            return;
+
+        if (windowEvent is MouseScrolledEvent scrollEvent)
+            _editorCamera.OnMouseScroll(scrollEvent.YOffset);
+
+        if (windowEvent is MouseButtonPressedEvent)
+            _editorCamera.SetPreviousMousePosition(GetMousePosition());
+        else if (windowEvent is MouseMovedEvent moveEvent && ImGui.GetIO().KeyAlt)
+        {
+            var currentPos = new Vector2(moveEvent.X, moveEvent.Y);
+            var leftDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Left);
+            var middleDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Middle);
+            var rightDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Right);
+
+            _editorCamera.OnMouseMove(currentPos, pan: middleDown, orbit: leftDown, zoomDrag: rightDown);
+        }
     }
 
     public void DrawOverlays()
@@ -240,5 +276,11 @@ public sealed class EditorViewport(
         _entityById.Clear();
         foreach (var entity in scene.Entities)
             _entityById[entity.Id] = entity;
+    }
+
+    private static Vector2 GetMousePosition()
+    {
+        var pos = ImGui.GetMousePos();
+        return new Vector2(pos.X, pos.Y);
     }
 }

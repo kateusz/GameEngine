@@ -5,6 +5,8 @@ namespace Editor.UI.FieldEditors;
 
 public class StringFieldEditor : IFieldEditor
 {
+    public Type ValueType => typeof(string);
+
     public bool Draw(string label, object value, out object newValue)
     {
         var v = (string)value ?? string.Empty;

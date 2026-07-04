@@ -1,4 +1,3 @@
-using System.Numerics;
 using Editor.Features.Viewport;
 using Engine.Core.Input;
 using Engine.Events.Input;
@@ -17,7 +16,6 @@ public class EditorInputHandler(
     IEditorViewport editorViewport)
 {
     private readonly HashSet<KeyCodes> _pressedKeys = [];
-    private readonly HashSet<int> _pressedMouseButtons = [];
 
     public void Handle(InputEvent windowEvent)
     {
@@ -30,33 +28,10 @@ public class EditorInputHandler(
             case KeyReleasedEvent kre:
                 _pressedKeys.Remove(kre.KeyCode);
                 break;
-            case MouseButtonPressedEvent mbpe:
-                _pressedMouseButtons.Add(mbpe.Button);
-                break;
-            case MouseButtonReleasedEvent mbre:
-                _pressedMouseButtons.Remove(mbre.Button);
-                break;
         }
 
-        if (sceneContext.State == SceneState.Edit && editorViewport.IsHovered)
-        {
-            if (windowEvent is MouseScrolledEvent scrollEvent)
-                editorViewport.Camera.OnMouseScroll(scrollEvent.YOffset);
-
-            var alt = _pressedKeys.Contains(KeyCodes.LeftAlt) || _pressedKeys.Contains(KeyCodes.RightAlt);
-
-            if (windowEvent is MouseButtonPressedEvent)
-                editorViewport.Camera.SetPreviousMousePosition(GetMousePosition());
-            else if (windowEvent is MouseMovedEvent moveEvent && alt)
-            {
-                var currentPos = new Vector2(moveEvent.X, moveEvent.Y);
-                var leftDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Left);
-                var middleDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Middle);
-                var rightDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Right);
-
-                editorViewport.Camera.OnMouseMove(currentPos, pan: middleDown, orbit: leftDown, zoomDrag: rightDown);
-            }
-        }
+        if (sceneContext.State == SceneState.Edit)
+            editorViewport.HandleWindowInput(windowEvent);
         else if (sceneContext.State == SceneState.Play)
         {
             if (keyboardInput is KeyboardInputState state)
@@ -65,12 +40,6 @@ public class EditorInputHandler(
             if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
                 scriptEngine.ProcessEvent(windowEvent, scene.Context, store);
         }
-    }
-
-    private static Vector2 GetMousePosition()
-    {
-        var pos = ImGui.GetMousePos();
-        return new Vector2(pos.X, pos.Y);
     }
 
     private void OnKeyPressed(KeyPressedEvent keyPressedEvent)

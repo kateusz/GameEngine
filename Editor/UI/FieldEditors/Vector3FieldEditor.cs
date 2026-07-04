@@ -5,6 +5,8 @@ namespace Editor.UI.FieldEditors;
 
 public class Vector3FieldEditor : IFieldEditor
 {
+    public Type ValueType => typeof(Vector3);
+
     public bool Draw(string label, object value, out object newValue)
     {
         var v = (Vector3)value;

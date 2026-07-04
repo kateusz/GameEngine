@@ -4,6 +4,8 @@ namespace Editor.UI.FieldEditors;
 
 public class FloatFieldEditor : IFieldEditor
 {
+    public Type ValueType => typeof(float);
+
     public bool Draw(string label, object value, out object newValue)
     {
         var v = (float)value;

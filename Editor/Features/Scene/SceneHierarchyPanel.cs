@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Editor.Features.Selection;
+using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
@@ -13,7 +14,7 @@ public class SceneHierarchyPanel(
     PrefabDropTarget prefabDropTarget,
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection)
-    : ISceneHierarchyPanel
+    : ISceneHierarchyPanel, IEditorPanel
 {
     private IScene _scene;
 

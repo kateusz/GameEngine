@@ -7,7 +7,9 @@ using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors;
 
-public class SubTextureRendererComponentEditor(ITextureFactory textureFactory)
+public class SubTextureRendererComponentEditor(
+    ITextureFactory textureFactory,
+    UIPropertyRenderer propertyRenderer)
     : IComponentEditor
 {
     public void DrawComponent(Entity entity)
@@ -20,15 +22,15 @@ public class SubTextureRendererComponentEditor(ITextureFactory textureFactory)
             {
                 component.TexturePath = relativePath;
             }, textureFactory);
-            UIPropertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
+            propertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
                 newValue => component.Coords = (System.Numerics.Vector2)newValue);
 
             ImGui.Separator();
             ImGui.Text("Atlas Settings");
 
-            UIPropertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
+            propertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
                 newValue => component.CellSize = (System.Numerics.Vector2)newValue);
-            UIPropertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
+            propertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
                 newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
 
             ImGui.EndDisabled();

@@ -4,6 +4,8 @@ namespace Editor.UI.FieldEditors;
 
 public class BoolFieldEditor : IFieldEditor
 {
+    public Type ValueType => typeof(bool);
+
     public bool Draw(string label, object value, out object newValue)
     {
         var v = (bool)value;
