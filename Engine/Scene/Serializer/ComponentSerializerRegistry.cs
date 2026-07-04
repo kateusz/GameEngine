@@ -132,6 +132,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<AudioSourceComponent>();
         Register<ModelRendererComponent>();
         Register<AmbientLightComponent>();
+        Register<DirectionalLightComponent>();
         RegisterSerializer(new NativeScriptComponentSerializer());
     }
 

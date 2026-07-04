@@ -58,6 +58,8 @@ internal static class SceneRenderPipeline
         Begin3DScene(graphics3D, camera);
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
+        var (lightDirection, lightColor) = ResolveDirectional(context);
+        graphics3D.SetDirectionalLight(lightDirection, lightColor);
 
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
@@ -175,4 +177,15 @@ internal static class SceneRenderPipeline
 
         return (Vector3.One, 0.1f);
     }
+
+    private static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
+    {
+        foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
+            return (NormalizeDirection(dlc.Direction), dlc.Color);
+
+        return (new Vector3(0, -1, 0), Vector3.Zero);
+    }
+
+    private static Vector3 NormalizeDirection(Vector3 direction) =>
+        direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
 }

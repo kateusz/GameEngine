@@ -59,6 +59,25 @@
       ]
     },
     {
+      "Id": 4,
+      "Name": "Directional Light",
+      "Components": [
+        {
+          "Direction": [
+            0.3,
+            -1,
+            0.2
+          ],
+          "Color": [
+            1,
+            1,
+            1
+          ],
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
       "Id": 3,
       "Name": "3D Entity",
       "Components": [

@@ -55,9 +55,9 @@ internal sealed class Graphics3D(
     {
         _meshShader.Bind();
         _meshShader.SetMat4("u_Model", transform);
+        _meshShader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
         _meshShader.SetFloat4("u_Color", color);
         _meshShader.SetInt("u_EntityID", entityId);
-        
 
         _cubeMesh.Bind();
         rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
@@ -70,6 +70,16 @@ internal sealed class Graphics3D(
         _meshShader.SetFloat3("lightColor", color);
         _meshShader.SetFloat("strength", strength);
     }
+
+    public void SetDirectionalLight(Vector3 direction, Vector3 color)
+    {
+        _meshShader.Bind();
+        _meshShader.SetFloat3("u_LightDirection", direction);
+        _meshShader.SetFloat3("u_LightColor", color);
+    }
+
+    private static Matrix4x4 ComputeNormalMatrix(Matrix4x4 model) =>
+        Matrix4x4.Invert(model, out var inv) ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
 
     public void ResetStats()
     {
