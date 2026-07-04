@@ -1,6 +1,7 @@
 using System.Reflection;
 using ECS;
 using Engine.Scene;
+using Engine.Scene.Systems;
 using Engine.Scripting;
 using Scripting;
 using Serilog;
@@ -191,11 +192,11 @@ public sealed class GameScriptWorkspace(
 
     public Assembly? GetLoadedGameAssembly() => scriptEngine.GetLoadedGameAssembly();
 
-    public void ForceRecompile(ScriptRuntimeStore store)
+    public void ForceRecompile(IContext context, ScriptRuntimeStore store)
     {
         Logger.Information("Force recompiling scripts...");
         CompileAllScripts();
-        scriptEngine.RefreshScriptInstances(store);
+        NativeScriptIteration.Refresh(context, scriptEngine, store);
     }
 
     public string[] GetAvailableScriptNames()

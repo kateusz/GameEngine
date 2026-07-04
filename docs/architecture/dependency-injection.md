@@ -128,7 +128,7 @@ graph TD
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `EventBus` | `EventBus` | Singleton | Global pub-sub messaging |
-| `IScriptEngine` | `ScriptEngine` | Singleton | Runtime: load assembly, script lifecycle, events |
+| `IScriptEngine` | `ScriptEngine` | Singleton | Runtime: load assembly, create instances, hot-reload, event dispatch |
 | `GameScriptWorkspace` | `GameScriptWorkspace` | Singleton (Editor) | Editor: compile, file CRUD, templates, debug symbols |
 | `DebugSettings` | `DebugSettings` | Singleton | Runtime debug toggles |
 | `IAssetsManager` | `AssetsManager` | Singleton | Asset path tracking |
@@ -152,7 +152,7 @@ graph TD
 | `SpriteRenderingSystem` | - | Singleton | 2D sprite batching |
 | `SubTextureRenderingSystem` | - | Singleton | Atlas sub-texture rendering |
 | `ModelRenderingSystem` | - | Singleton | 3D model rendering |
-| `ScriptUpdateSystem` | - | Singleton | Calls script OnUpdate |
+| `ScriptUpdateSystem` | - | Per-scene | Iterates `IContext` via `NativeScriptIteration` |
 | `PhysicsDebugRenderSystem` | - | Singleton | Physics wireframe overlay |
 | `AudioSystem` | - | Singleton | Audio source management |
 | `AnimationSystem` | - | Singleton | Sprite animation playback |

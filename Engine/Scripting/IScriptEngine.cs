@@ -1,4 +1,5 @@
 using CSharpFunctionalExtensions;
+using ECS;
 using Engine.Events;
 using Engine.Scene;
 using Scripting;
@@ -12,11 +13,9 @@ public interface IScriptEngine
 
     void SetSuppressFileChangeRecompile(bool suppress);
 
-    void OnUpdate(TimeSpan deltaTime, ScriptRuntimeStore store);
+    void TryHotReload();
 
-    void OnRuntimeStop(ScriptRuntimeStore store);
-
-    void ProcessEvent(Event @event, ScriptRuntimeStore store);
+    void ProcessEvent(Event @event, IContext context, ScriptRuntimeStore store);
 
     Type? GetScriptType(string scriptName);
 
@@ -25,6 +24,4 @@ public interface IScriptEngine
     Assembly? GetLoadedGameAssembly();
 
     void UnloadGameAssembly();
-
-    void RefreshScriptInstances(ScriptRuntimeStore store);
 }

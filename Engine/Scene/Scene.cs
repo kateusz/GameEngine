@@ -14,13 +14,10 @@ internal sealed class Scene : IScene
     private int _nextEntityId = 1;
     private bool _disposed;
     private readonly string _path;
-    private readonly string _sceneName;
-    private readonly IContext _context;
     private readonly ISystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
-    private readonly ScriptRuntimeStore _scriptRuntimeStore;
 
-    internal ScriptRuntimeStore ScriptRuntimeStore => _scriptRuntimeStore;
+    internal ScriptRuntimeStore ScriptRuntimeStore { get; }
 
     public Scene(string path,
         string sceneName,
@@ -31,12 +28,12 @@ internal sealed class Scene : IScene
         ScriptRuntimeStore scriptRuntimeStore)
     {
         _path = path;
-        _sceneName = sceneName;
-        _context = context;
+        Name = sceneName;
+        Context = context;
         _systemManager = systemManager;
         PhysicsBodies = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
-        _scriptRuntimeStore = scriptRuntimeStore;
+        ScriptRuntimeStore = scriptRuntimeStore;
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
@@ -45,15 +42,16 @@ internal sealed class Scene : IScene
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 
-    public IContext Context => _context;
+    public IContext Context { get; }
 
-    public string Name => _sceneName;
-    public IEnumerable<Entity> Entities => _context.Entities;
+    public string Name { get; }
+
+    public IEnumerable<Entity> Entities => Context.Entities;
 
     public Entity CreateEntity(string name)
     {
         var entity = Entity.Create(_nextEntityId++, name);
-        _context.Register(entity);
+        Context.Register(entity);
 
         return entity;
     }
@@ -67,7 +65,7 @@ internal sealed class Scene : IScene
         if (entity.Id >= _nextEntityId)
             _nextEntityId = entity.Id + 1;
 
-        _context.Register(entity);
+        Context.Register(entity);
 
         // Normalize primary camera flags to ensure at most one primary camera
         if (entity.HasComponent<CameraComponent>() && entity.GetComponent<CameraComponent>().Primary)
@@ -76,7 +74,7 @@ internal sealed class Scene : IScene
 
     public void DestroyEntity(Entity entity)
     {
-        if (_scriptRuntimeStore.TryGet(entity.Id, out var script))
+        if (ScriptRuntimeStore.TryGet(entity.Id, out var script))
         {
             try
             {
@@ -86,10 +84,10 @@ internal sealed class Scene : IScene
             {
                 Logger.Error(ex, "Error in script OnDestroy for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
             }
-            _scriptRuntimeStore.Remove(entity.Id);
+            ScriptRuntimeStore.Remove(entity.Id);
         }
 
-        _context.Remove(entity.Id);
+        Context.Remove(entity.Id);
     }
 
     public void OnRuntimeStart()
@@ -103,7 +101,7 @@ internal sealed class Scene : IScene
         if (GetPrimaryCameraEntity() is not null)
             return;
 
-        foreach (var (entity, _) in _context.View<CameraComponent>())
+        foreach (var (entity, _) in Context.View<CameraComponent>())
         {
             SetPrimaryCamera(entity);
             Logger.Warning(
@@ -133,7 +131,7 @@ internal sealed class Scene : IScene
     {
         Logger.Information("Scene.OnViewportResize called: {Width}x{Height}", width, height);
 
-        var group = _context.View<CameraComponent>();
+        var group = Context.View<CameraComponent>();
         foreach (var (entity, cameraComponent) in group)
         {
             if (!cameraComponent.FixedAspectRatio)
@@ -147,7 +145,7 @@ internal sealed class Scene : IScene
 
     public Entity? GetPrimaryCameraEntity()
     {
-        var view = _context.View<CameraComponent>();
+        var view = Context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             if (component.Primary)
@@ -159,13 +157,13 @@ internal sealed class Scene : IScene
 
     public void SetPrimaryCamera(Entity cameraEntity)
     {
-        if (!_context.Contains(cameraEntity.Id))
+        if (!Context.Contains(cameraEntity.Id))
             throw new ArgumentException("Entity does not belong to this scene", nameof(cameraEntity));
 
         if (!cameraEntity.HasComponent<CameraComponent>())
             throw new ArgumentException("Entity must have a CameraComponent", nameof(cameraEntity));
 
-        var view = _context.View<CameraComponent>();
+        var view = Context.View<CameraComponent>();
         foreach (var (entity, component) in view)
         {
             component.Primary = entity.Id == cameraEntity.Id;
@@ -209,7 +207,7 @@ internal sealed class Scene : IScene
         _systemManager.Dispose();
 
         // Clear entity storage
-        _context.Clear();
+        Context.Clear();
 
         _disposed = true;
         GC.SuppressFinalize(this);

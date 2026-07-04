@@ -3,19 +3,14 @@ using Audio;
 using CSharpFunctionalExtensions;
 using ECS;
 using Engine.Events;
-using Engine.Events.Input;
 using Engine.Scene;
-using SceneComponents;
+using Engine.Scene.Systems;
 using Scripting;
 using Serilog;
-using ZLinq;
 
 namespace Engine.Scripting;
 
-internal sealed class ScriptEngine(
-    ISceneContext sceneContext,
-    IAudio audio,
-    IAudioPlayback audioPlayback) : IScriptEngine
+internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) : IScriptEngine
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
@@ -52,128 +47,14 @@ internal sealed class ScriptEngine(
 
     public void SetSuppressFileChangeRecompile(bool suppress) => _suppressFileChangeRecompile = suppress;
 
-    public void OnUpdate(TimeSpan deltaTime, ScriptRuntimeStore store)
+    public void TryHotReload()
     {
         if (!_suppressFileChangeRecompile)
             CheckForScriptChanges();
-
-        if (sceneContext.ActiveScene == null)
-            return;
-
-        var scriptEntities = sceneContext.ActiveScene.Entities
-            .AsValueEnumerable()
-            .Where(e => e.HasComponent<NativeScriptComponent>());
-
-        foreach (var entity in scriptEntities)
-        {
-            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            var scriptableEntity = GetOrCreateRuntimeScript(store, entity, scriptComponent);
-            if (scriptableEntity == null) continue;
-
-            if (!scriptableEntity.IsInitialized)
-            {
-                scriptableEntity.SetEntity(entity);
-                try
-                {
-                    scriptableEntity.OnCreate();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Error initializing script on entity {EntityName}", entity.Name);
-                }
-            }
-
-            try
-            {
-                scriptableEntity.OnUpdate(deltaTime);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error updating script on entity {EntityName}", entity.Name);
-            }
-        }
     }
 
-    public void OnRuntimeStop(ScriptRuntimeStore store)
-    {
-        if (sceneContext.ActiveScene == null)
-            return;
-
-        var scriptEntities = sceneContext.ActiveScene.Entities
-            .AsValueEnumerable()
-            .Where(e => e.HasComponent<NativeScriptComponent>());
-
-        var errorCount = 0;
-
-        foreach (var entity in scriptEntities)
-        {
-            if (store.TryGet(entity.Id, out var scriptableEntity))
-            {
-                try
-                {
-                    scriptableEntity.OnDestroy();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Error in script OnDestroy for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
-                    errorCount++;
-                }
-            }
-            store.Remove(entity.Id);
-        }
-
-        if (errorCount > 0)
-        {
-            Logger.Warning(
-                "Scene stopped with {ErrorsCount} script error(s) during OnDestroy. Check logs above for details.",
-                errorCount);
-        }
-    }
-
-    public void ProcessEvent(Event @event, ScriptRuntimeStore store)
-    {
-        if (sceneContext.ActiveScene == null)
-            return;
-
-        var scriptEntities = sceneContext.ActiveScene.Entities
-            .AsValueEnumerable()
-            .Where(e => e.HasComponent<NativeScriptComponent>());
-
-        foreach (var entity in scriptEntities)
-        {
-            if (!store.TryGet(entity.Id, out var scriptableEntity))
-                continue;
-
-            try
-            {
-                switch (@event)
-                {
-                    case KeyPressedEvent kpe:
-                        scriptableEntity.OnKeyPressed(kpe.KeyCode);
-                        break;
-                    case KeyReleasedEvent kpe:
-                        scriptableEntity.OnKeyReleased(kpe.KeyCode);
-                        break;
-                    case MouseButtonPressedEvent mbpe:
-                        scriptableEntity.OnMouseButtonPressed(mbpe.Button);
-                        break;
-                    case MouseMovedEvent mme:
-                        scriptableEntity.OnMouseMoved(mme.X, mme.Y);
-                        break;
-                    case MouseButtonReleasedEvent mbre:
-                        scriptableEntity.OnMouseButtonReleased(mbre.Button);
-                        break;
-                    case MouseScrolledEvent mse:
-                        scriptableEntity.OnMouseScrolled(mse.XOffSet, mse.YOffset);
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error processing event in script on entity {EntityName}", entity.Name);
-            }
-        }
-    }
+    public void ProcessEvent(Event @event, IContext context, ScriptRuntimeStore store) =>
+        NativeScriptIteration.ProcessEvent(context, store, @event);
 
     public Type? GetScriptType(string scriptName) => _scriptTypes.TryGetValue(scriptName, out var type) ? type : null;
 
@@ -209,31 +90,6 @@ internal sealed class ScriptEngine(
         _loadedDllPath = null;
         _scriptTypes.Clear();
         _scriptLastModified.Clear();
-    }
-
-    public void RefreshScriptInstances(ScriptRuntimeStore store)
-    {
-        if (sceneContext.ActiveScene == null)
-            return;
-
-        var scriptEntities = sceneContext.ActiveScene.Entities
-            .AsValueEnumerable()
-            .Where(e => e.HasComponent<NativeScriptComponent>());
-
-        foreach (var entity in scriptEntities)
-        {
-            var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName) || !_scriptTypes.ContainsKey(scriptComponent.ScriptTypeName))
-                continue;
-
-            var newInstance = CreateScriptInstance(scriptComponent.ScriptTypeName);
-            if (!newInstance.IsSuccess)
-                continue;
-
-            store.Set(entity.Id, newInstance.Value);
-            newInstance.Value.SetEntity(entity);
-            newInstance.Value.OnCreate();
-        }
     }
 
     private void CheckForScriptChanges()
@@ -305,21 +161,5 @@ internal sealed class ScriptEngine(
                 Logger.Debug("Registered script type: {TypeName}", type.Name);
             }
         }
-    }
-
-    private ScriptableEntity? GetOrCreateRuntimeScript(ScriptRuntimeStore store, ECS.Entity entity, NativeScriptComponent scriptComponent)
-    {
-        if (store.TryGet(entity.Id, out var existing))
-            return existing;
-
-        if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName))
-            return null;
-
-        var result = CreateScriptInstance(scriptComponent.ScriptTypeName);
-        if (!result.IsSuccess)
-            return null;
-
-        store.Set(entity.Id, result.Value);
-        return result.Value;
     }
 }

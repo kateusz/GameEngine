@@ -5,7 +5,7 @@ Hot-reloadable C# scripts compile into a `GameAssembly` DLL. The engine supports
 | Tier | Types | Integration |
 |------|-------|-------------|
 | Data | `IGameComponent`, `[SerializableComponent]` | Scene JSON via `ComponentSerializerRegistry` |
-| Glue | `ScriptableEntity`, `NativeScriptComponent` | `IScriptEngine` lifecycle + event fan-out (editor authoring via `GameScriptWorkspace`) |
+| Glue | `ScriptableEntity`, `NativeScriptComponent` | `ScriptUpdateSystem` iterates `IContext`; `IScriptEngine` is factory/registry + hot-reload (editor authoring via `GameScriptWorkspace`) |
 | Logic | `IGameSystem`, `[Register]` | DryIoc + `SceneManager.RegisterGameSystems()` |
 
 ## Component Diagram
@@ -23,8 +23,8 @@ graph TD
     IPhysicsContacts["IPhysicsContacts"]
 
     GameAssemblyCompiler -->|Roslyn emit| GameAssembly["GameAssembly.dll"]
-    ScriptUpdateSystem -->|OnUpdate| ScriptEngine
-    ScriptEngine -->|entities with| NativeScriptComponent
+    ScriptUpdateSystem -->|View NativeScriptComponent| NativeScriptIteration
+    NativeScriptIteration -->|CreateScriptInstance| ScriptEngine
     NativeScriptComponent -->|ScriptTypeName| ScriptableEntity
     SceneContactListener -->|callbacks| ScriptableEntity
     SceneContactListener -->|enqueue| PhysicsContactQueue
@@ -74,4 +74,4 @@ File timestamps are checked each frame (unless suppressed during editor play). A
 
 ## ECS integration
 
-`ScriptUpdateSystem` (priority 110) delegates to `IScriptEngine.OnUpdate`. Editor compile/file operations use `GameScriptWorkspace` (calls `GameAssemblyCompiler` + `LoadGameAssemblyFromFile`). Game systems register at play time with priorities defined on each `IGameSystem` implementation.
+`ScriptUpdateSystem` (priority 110) iterates `context.View<NativeScriptComponent>()` via `NativeScriptIteration`; calls `IScriptEngine` only for instance creation and hot-reload. Editor compile/file operations use `GameScriptWorkspace`. Game systems register at play time with priorities defined on each `IGameSystem` implementation.

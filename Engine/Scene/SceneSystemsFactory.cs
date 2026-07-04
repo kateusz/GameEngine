@@ -43,7 +43,7 @@ internal sealed class SceneSystemsFactory(
         ISystem[] systems =
         [
             new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
-            new ScriptUpdateSystem(scriptEngine, scriptStore),
+            new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
             new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera),

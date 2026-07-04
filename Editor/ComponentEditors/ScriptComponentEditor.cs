@@ -65,8 +65,8 @@ public class ScriptComponentEditor(
             if (ImGui.MenuItem("Remove"))
             {
                 entity.RemoveComponent<NativeScriptComponent>();
-                if (sceneContext.ActiveScriptRuntimeStore is { } store)
-                    scriptWorkspace.ForceRecompile(store);
+                if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
+                    scriptWorkspace.ForceRecompile(scene.Context, store);
             }
 
             ImGui.EndPopup();

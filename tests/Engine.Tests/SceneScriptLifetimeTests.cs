@@ -16,17 +16,18 @@ public class SceneScriptLifetimeTests
 {
     private readonly ISystemManager _systemManager = Substitute.For<ISystemManager>();
 
-    private EngineScene CreateScene(out ScriptRuntimeStore store)
+    private EngineScene CreateScene(out ScriptRuntimeStore store, out Context context)
     {
         store = new ScriptRuntimeStore();
-        return new EngineScene("test", "test", new Context(),
+        context = new Context();
+        return new EngineScene("test", "test", context,
             _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store);
     }
 
     [Fact]
     public void DestroyEntity_RemovesScriptFromStore_AndCallsOnDestroy()
     {
-        using var scene = CreateScene(out var store);
+        using var scene = CreateScene(out var store, out _);
         var entity = scene.CreateEntity("scripted");
         entity.AddComponent(new NativeScriptComponent { ScriptTypeName = "Test" });
         var script = new TrackingScript();
@@ -41,7 +42,7 @@ public class SceneScriptLifetimeTests
     [Fact]
     public void DestroyEntity_IdReuse_DoesNotReturnStaleScript()
     {
-        using var scene = CreateScene(out var store);
+        using var scene = CreateScene(out var store, out _);
         var entity = scene.CreateEntity("original");
         var staleScript = new TrackingScript();
         store.Set(entity.Id, staleScript);
@@ -57,16 +58,21 @@ public class SceneScriptLifetimeTests
     }
 
     [Fact]
-    public void ScriptUpdateSystem_OnShutdown_CallsOnRuntimeStopAndClearsStore()
+    public void ScriptUpdateSystem_OnShutdown_CallsOnDestroyAndClearsStore()
     {
         var scriptEngine = Substitute.For<IScriptEngine>();
+        var context = new Context();
         var store = new ScriptRuntimeStore();
-        store.Set(1, new TrackingScript());
-        var system = new ScriptUpdateSystem(scriptEngine, store);
+        var entity = Entity.Create(1, "scripted");
+        entity.AddComponent(new NativeScriptComponent { ScriptTypeName = "Test" });
+        context.Register(entity);
+        var script = new TrackingScript();
+        store.Set(entity.Id, script);
+        var system = new ScriptUpdateSystem(context, scriptEngine, store);
 
         system.OnShutdown();
 
-        scriptEngine.Received(1).OnRuntimeStop(store);
+        script.DestroyCalled.ShouldBeTrue();
         store.TryGet(1, out _).ShouldBeFalse();
     }
 
