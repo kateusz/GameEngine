@@ -1,4 +1,4 @@
-using Engine.Audio;
+using Audio;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
@@ -17,19 +17,19 @@ public abstract class Application : IApplication
     private readonly IGraphics2D _graphics2D;
     private readonly IGraphics3D _graphics3D;
     private readonly IImGuiLayer? _imGuiLayer;
-    private readonly IAudioEngine _audioEngine;
+    private readonly IAudio _audio;
     private readonly IMeshFactory _meshFactory;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
 
     private const double MaxDeltaTime = 0.25; // 250ms = 4 FPS minimum
 
-    protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IAudioEngine audioEngine, IMeshFactory meshFactory, IImGuiLayer? imGuiLayer = null)
+    protected Application(IGameWindow gameWindow, IGraphics2D graphics2D,  IGraphics3D graphics3D, IAudio audio, IMeshFactory meshFactory, IImGuiLayer? imGuiLayer = null)
     {
         _gameWindow = gameWindow;
         _graphics2D = graphics2D;
         _graphics3D = graphics3D;
-        _audioEngine = audioEngine;
+        _audio = audio;
         _meshFactory = meshFactory;
 
         _gameWindow.OnWindowEvent += HandleWindowEvent;
@@ -59,7 +59,7 @@ public abstract class Application : IApplication
         // Initialize core graphics and audio subsystems - owned by Application
         _graphics2D.Init();
         _graphics3D.Init();
-        _audioEngine.Initialize();
+        _audio.Initialize();
 
         _inputSystem = inputSystem;
 
@@ -192,7 +192,7 @@ public abstract class Application : IApplication
         _layersStack.Clear();
         _graphics2D?.Dispose();
         _graphics3D?.Dispose();
-        _audioEngine.Dispose();
+        _audio.Dispose();
         _meshFactory.Clear();
     }
 }

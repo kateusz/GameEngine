@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -7,9 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Audio\Audio.csproj" />
-      <ProjectReference Include="..\ECS\ECS.csproj" />
-      <ProjectReference Include="..\Input\Input.csproj" />
+      <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />
     </ItemGroup>
 
 </Project>

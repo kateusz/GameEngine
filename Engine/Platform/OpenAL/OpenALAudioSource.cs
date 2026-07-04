@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Audio;
 using Engine.Audio;
 using Engine.Platform.OpenAL.Effects;
 using SceneComponents.Audio;
@@ -21,6 +22,7 @@ internal sealed class OpenALAudioSource : IAudioSource
     private const int MaxAuxiliarySends = 4;
     
     private readonly AL _al;
+    private readonly IAudioEffectFactory _effectFactory;
     private readonly Action<OpenALAudioSource> _onDispose;
     private readonly AlSource3iDelegate? _source3i;
     private readonly AlSourceiDelegate? _sourcei;
@@ -29,9 +31,10 @@ internal sealed class OpenALAudioSource : IAudioSource
     private IAudioClip _clip;
     private bool _disposed = false;
 
-    public OpenALAudioSource(AL al, Action<OpenALAudioSource> onDispose)
+    public OpenALAudioSource(AL al, IAudioEffectFactory effectFactory, Action<OpenALAudioSource> onDispose)
     {
         _al = al;
+        _effectFactory = effectFactory;
         _onDispose = onDispose;
         _sourceId = _al.GenSource();
 
@@ -176,18 +179,18 @@ internal sealed class OpenALAudioSource : IAudioSource
         }
     }
 
-    public void AddEffect(IAudioEffect effect)
+    public void AddEffect(AudioEffectType type, float amount = 0.5f)
     {
-        ArgumentNullException.ThrowIfNull(effect);
-
-        if (!_effects.TryAdd(effect.Type, effect))
+        if (!_effects.TryAdd(type, _effectFactory.CreateEffect(type)))
         {
-            Logger.Warning("Effect {Type} already exists on source {SourceId}", effect.Type, _sourceId);
+            Logger.Warning("Effect {Type} already exists on source {SourceId}", type, _sourceId);
             return;
         }
 
+        var effect = _effects[type];
+        effect.Apply(amount);
         ConnectEffect(effect);
-        Logger.Debug("Added {Type} effect to source {SourceId}", effect.Type, _sourceId);
+        Logger.Debug("Added {Type} effect to source {SourceId}", type, _sourceId);
     }
 
     public void RemoveEffect(AudioEffectType type)

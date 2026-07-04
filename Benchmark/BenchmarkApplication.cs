@@ -1,4 +1,4 @@
-using Engine.Audio;
+using Audio;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.ImGuiNet;
@@ -10,7 +10,7 @@ public class BenchmarkApplication(
     IGameWindow gameWindow,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
-    IAudioEngine audioEngine,
+    IAudio audio,
     IMeshFactory meshFactory,
     IImGuiLayer imGuiLayer)
-    : Application(gameWindow, graphics2D, graphics3D, audioEngine, meshFactory, imGuiLayer);
+    : Application(gameWindow, graphics2D, graphics3D, audio, meshFactory, imGuiLayer);

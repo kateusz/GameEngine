@@ -1,4 +1,5 @@
 using System.Reflection;
+using Audio;
 using CSharpFunctionalExtensions;
 using ECS;
 using Engine.Events;
@@ -19,6 +20,7 @@ internal sealed class ScriptEngine : IScriptEngine
     private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
     private readonly ISceneContext _sceneContext;
+    private readonly IAudio _audio;
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
 
@@ -26,9 +28,10 @@ internal sealed class ScriptEngine : IScriptEngine
     private bool _debugMode = true;
     private bool _suppressFileChangeRecompile;
 
-    public ScriptEngine(ISceneContext sceneContext)
+    public ScriptEngine(ISceneContext sceneContext, IAudio audio)
     {
         _sceneContext = sceneContext;
+        _audio = audio;
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
     }
@@ -230,7 +233,7 @@ internal sealed class ScriptEngine : IScriptEngine
         try
         {
             var componentAccessor = new ComponentAccessor();
-            return Activator.CreateInstance(scriptType, componentAccessor) is ScriptableEntity instance
+            return Activator.CreateInstance(scriptType, componentAccessor, _audio) is ScriptableEntity instance
                 ? Result.Success(instance)
                 : Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}");
         }
@@ -597,7 +600,7 @@ internal sealed class ScriptEngine : IScriptEngine
     public string GenerateScriptTemplate(string scriptName)
     {
         return $$"""
-                 using System.Numerics;
+                 using Audio;
                  using ECS;
                  using Input;
                  using Math;
@@ -607,7 +610,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
                  public class {{scriptName}} : ScriptableEntity
                  {
-                    public {{scriptName}}(IComponentAccessor componentAccessor) : base(componentAccessor) {}
+                    public {{scriptName}}(IComponentAccessor componentAccessor, IAudio audio) : base(componentAccessor, audio) {}
                  
                      public override void OnCreate()
                      {

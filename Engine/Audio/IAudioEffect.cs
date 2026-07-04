@@ -2,7 +2,7 @@ using SceneComponents.Audio;
 
 namespace Engine.Audio;
 
-public interface IAudioEffect : IDisposable
+internal interface IAudioEffect : IDisposable
 {
     AudioEffectType Type { get; }
     uint SlotId { get; }

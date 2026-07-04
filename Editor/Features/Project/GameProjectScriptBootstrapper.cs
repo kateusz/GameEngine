@@ -133,6 +133,9 @@ public sealed class GameProjectScriptBootstrapper : IGameProjectScriptBootstrapp
         sb.AppendLine("        <Reference Include=\"Input\">");
         sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Input.dll</HintPath>");
         sb.AppendLine("        </Reference>");
+        sb.AppendLine("        <Reference Include=\"Audio\">");
+        sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Audio.dll</HintPath>");
+        sb.AppendLine("        </Reference>");
         sb.AppendLine("        <Reference Include=\"SceneComponents\">");
         sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/SceneComponents.dll</HintPath>");
         sb.AppendLine("        </Reference>");

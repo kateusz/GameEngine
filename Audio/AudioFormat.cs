@@ -1,4 +1,4 @@
-namespace Engine.Audio;
+namespace Audio;
 
 public enum AudioFormat
 {

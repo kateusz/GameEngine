@@ -1,5 +1,7 @@
+using Audio;
 using ECS;
 using Input;
+using Scripting;
 
 namespace Scripting;
 
@@ -15,10 +17,13 @@ public abstract class ScriptableEntity
     /// </summary>
     private IEntity? _entity;
 
-    protected ScriptableEntity(IComponentAccessor componentAccessor)
+    protected ScriptableEntity(IComponentAccessor componentAccessor, IAudio audio)
     {
         _componentAccessor = componentAccessor;
+        Audio = audio;
     }
+
+    protected IAudio Audio { get; }
 
     public void SetEntity(Entity entity)
     {

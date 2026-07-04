@@ -1,11 +1,12 @@
 using System.Numerics;
+using Audio;
 using Engine.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
 
 namespace Engine.Platform.OpenAL;
 
-internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEngine
+internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffectFactory effectFactory) : IAudio
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioEngine>();
 
@@ -111,7 +112,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc) : IAudioEng
         if (!_isAvailable)
             return new NoOpAudioSource();
 
-        var source = new OpenALAudioSource(al, UnregisterSource);
+        var source = new OpenALAudioSource(al, effectFactory, UnregisterSource);
         _activeSources.Add(source);
         return source;
     }

@@ -1,11 +1,11 @@
-namespace Engine.Audio;
+namespace Audio;
 
 public static class AudioClipFactory
 {
     public static AudioFormat DetectFormat(string path)
     {
         var extension = Path.GetExtension(path).ToLowerInvariant();
-            
+
         return extension switch
         {
             ".wav" => AudioFormat.WAV,

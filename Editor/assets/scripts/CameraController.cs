@@ -1,4 +1,5 @@
 using System.Numerics;
+using Audio;
 using ECS;
 using Input;
 using Math;
@@ -30,7 +31,7 @@ public class CameraController : ScriptableEntity
     // Orthographic movement accumulator
     private Vector3 _orthoInput = Vector3.Zero;
 
-    public CameraController(IComponentAccessor componentAccessor) : base(componentAccessor)
+    public CameraController(IComponentAccessor componentAccessor, IAudio audio) : base(componentAccessor, audio)
     {
     }
 

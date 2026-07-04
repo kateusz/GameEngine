@@ -1,6 +1,8 @@
+using Audio;
+
 namespace Engine.Audio;
 
-public readonly record struct AudioData(
+internal readonly record struct AudioData(
     byte[] Data,
     int SampleRate,
     int Channels,

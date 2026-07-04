@@ -1,8 +1,8 @@
 using System.Numerics;
 
-namespace Engine.Audio;
+namespace Audio;
 
-public interface IAudioEngine : IDisposable
+public interface IAudio : IDisposable
 {
     void Initialize();
     IAudioSource CreateAudioSource();

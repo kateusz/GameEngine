@@ -1,8 +1,8 @@
+using Audio;
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Engine.Audio;
 using Engine.Scene.Serializer;
 using ImGuiNET;
 using SceneComponents.Audio;
@@ -10,7 +10,7 @@ using ZLinq;
 
 namespace Editor.ComponentEditors;
 
-public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarget audioDropTarget) : IComponentEditor
+public class AudioSourceComponentEditor(IAudio audio, AudioDropTarget audioDropTarget) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -51,7 +51,7 @@ public class AudioSourceComponentEditor(IAudioEngine audioEngine, AudioDropTarge
             ButtonDrawer.DrawButton("Play", () =>
             {
                 if (!string.IsNullOrWhiteSpace(component.AudioClipPath))
-                    audioEngine.PlayOneShot(PathBuilder.Build(component.AudioClipPath), volume: 0.5f);
+                    audio.PlayOneShot(PathBuilder.Build(component.AudioClipPath), volume: 0.5f);
             });
 
             DrawEffectsSection(component);

@@ -14,6 +14,7 @@ internal static class ScriptCompilationReferences
 
     private static readonly string[] GameScriptSupportAssemblyNames =
     [
+        "Audio",
         "Scripting",
         "SceneComponents",
         "Input",

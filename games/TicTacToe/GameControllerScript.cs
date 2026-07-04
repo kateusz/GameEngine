@@ -1,4 +1,5 @@
-﻿using ECS;
+﻿using Audio;
+using ECS;
 using Input;
 using Scripting;
 
@@ -6,7 +7,7 @@ namespace TicTacToe;
 
 public class GameControllerScript : ScriptableEntity
 {
-    public GameControllerScript(IComponentAccessor accessor) : base(accessor) { }
+    public GameControllerScript(IComponentAccessor accessor, IAudio audio) : base(accessor, audio) { }
 
     public override void OnKeyPressed(KeyCodes key)
     {
@@ -14,6 +15,7 @@ public class GameControllerScript : ScriptableEntity
 
         if (key == KeyCodes.R)
         {
+            Audio.PlayOneShot("assets/sounds/car-horn.wav");
             board.ResetRequested = true;
             return;
         }

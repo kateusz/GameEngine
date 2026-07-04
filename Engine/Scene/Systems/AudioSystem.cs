@@ -1,7 +1,7 @@
 using System.Numerics;
+using Audio;
 using ECS;
 using ECS.Systems;
-using Engine.Audio;
 using Engine.Scene.Serializer;
 using Math;
 using SceneComponents;
@@ -15,8 +15,7 @@ namespace Engine.Scene.Systems;
 /// Handles audio source lifecycle, updates 3D positions, and manages the audio listener.
 /// </summary>
 internal sealed class AudioSystem(
-    IAudioEngine audioEngine,
-    IAudioEffectFactory effectFactory,
+    IAudio audio,
     IContext context) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
@@ -170,13 +169,13 @@ internal sealed class AudioSystem(
 
             var pos = transform.Translation;
 
-            audioEngine.SetListenerPosition(pos);
+            audio.SetListenerPosition(pos);
 
             var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
             var forward = Vector3.Transform(-Vector3.UnitZ, quaternion);
             var up = Vector3.Transform(Vector3.UnitY, quaternion);
 
-            audioEngine.SetListenerOrientation(forward, up);
+            audio.SetListenerOrientation(forward, up);
             return;
         }
     }
@@ -231,7 +230,7 @@ internal sealed class AudioSystem(
         try
         {
             var fullPath = PathBuilder.Build(clipPath);
-            var clip = audioEngine.LoadAudioClip(fullPath);
+            var clip = audio.LoadAudioClip(fullPath);
             runtimeState.Clip = clip;
             runtimeState.LoadedClipPath = clipPath;
             runtimeState.Source.Clip = clip;
@@ -266,11 +265,9 @@ internal sealed class AudioSystem(
         foreach (var config in desiredEffects.Values)
         {
             if (!source.HasEffect(config.Type))
-            {
-                var effect = effectFactory.CreateEffect(config.Type);
-                source.AddEffect(effect);
-            }
-            source.UpdateEffect(config.Type, config.Amount);
+                source.AddEffect(config.Type, config.Amount);
+            else
+                source.UpdateEffect(config.Type, config.Amount);
         }
     }
 
@@ -279,7 +276,7 @@ internal sealed class AudioSystem(
         if (_runtimeByEntityId.TryGetValue(entity.Id, out var runtimeState))
             return runtimeState;
 
-        runtimeState = new AudioRuntimeState(audioEngine.CreateAudioSource());
+        runtimeState = new AudioRuntimeState(audio.CreateAudioSource());
         _runtimeByEntityId[entity.Id] = runtimeState;
         return runtimeState;
     }

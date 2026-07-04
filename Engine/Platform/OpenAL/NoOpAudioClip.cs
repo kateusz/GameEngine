@@ -1,4 +1,4 @@
-﻿using Engine.Audio;
+﻿using Audio;
 
 namespace Engine.Platform.OpenAL;
 

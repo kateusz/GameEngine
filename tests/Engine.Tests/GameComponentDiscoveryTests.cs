@@ -23,11 +23,12 @@ public class GameComponentDiscoveryTests
                 """);
 
             File.WriteAllText(Path.Combine(dir, "PlayerScript.cs"), """
+                using Audio;
                 using Scripting;
 
                 public class PlayerScript : ScriptableEntity
                 {
-                    public PlayerScript(IComponentAccessor a) : base(a) {}
+                    public PlayerScript(IComponentAccessor a, IAudio audio) : base(a, audio) {}
                 }
                 """);
 

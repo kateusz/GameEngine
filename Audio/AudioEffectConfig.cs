@@ -1,6 +1,6 @@
 using SceneComponents.Audio;
 
-namespace Engine.Audio;
+namespace Audio;
 
 public class AudioEffectConfig
 {

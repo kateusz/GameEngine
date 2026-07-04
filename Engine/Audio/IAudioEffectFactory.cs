@@ -2,7 +2,7 @@ using SceneComponents.Audio;
 
 namespace Engine.Audio;
 
-public interface IAudioEffectFactory
+internal interface IAudioEffectFactory
 {
     IAudioEffect CreateEffect(AudioEffectType type);
 }

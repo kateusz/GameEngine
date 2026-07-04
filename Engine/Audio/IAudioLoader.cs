@@ -3,7 +3,7 @@ namespace Engine.Audio;
 /// <summary>
 /// Interface for audio file loaders that can decode audio files into a standardized format.
 /// </summary>
-public interface IAudioLoader
+internal interface IAudioLoader
 {
     /// <summary>
     /// Determines whether this loader can handle the specified audio file.

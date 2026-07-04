@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Audio\Audio.csproj" />
         <ProjectReference Include="..\ECS\ECS.csproj" />
         <ProjectReference Include="..\Input\Input.csproj" />
         <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />

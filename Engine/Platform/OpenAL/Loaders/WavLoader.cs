@@ -1,10 +1,11 @@
 using System.Text;
+using Audio;
 using Engine.Audio;
 using Serilog;
 
 namespace Engine.Platform.OpenAL.Loaders;
 
-public class WavLoader : IAudioLoader
+internal sealed class WavLoader : IAudioLoader
 {
     private static readonly ILogger Logger = Log.ForContext<WavLoader>();
 

@@ -1,7 +1,7 @@
 using System.Numerics;
+using Audio;
 using ECS;
 using ECS.Systems;
-using Engine.Audio;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer;
@@ -18,8 +18,7 @@ internal sealed class SceneSystemsFactory(
     ITextureFactory textureFactory,
     DebugSettings debugSettings,
     IScriptEngine scriptEngine,
-    IAudioEngine audioEngine,
-    IAudioEffectFactory effectFactory,
+    IAudio audio,
     IPhysicsWorld2DFactory physicsWorld2DFactory) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
@@ -36,7 +35,7 @@ internal sealed class SceneSystemsFactory(
         [
             new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
             new ScriptUpdateSystem(scriptEngine),
-            new AudioSystem(audioEngine, effectFactory, context),
+            new AudioSystem(audio, context),
             primaryCamera,
             new SpriteRenderingSystem(graphics2D, textureFactory, context, primaryCamera),
             new SubTextureRenderingSystem(graphics2D, textureFactory, context, primaryCamera),

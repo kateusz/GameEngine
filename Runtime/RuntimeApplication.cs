@@ -1,4 +1,4 @@
-using Engine.Audio;
+using Audio;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.Renderer;
@@ -11,8 +11,8 @@ namespace Runtime;
 public class RuntimeApplication : Application
 {
     public RuntimeApplication(IGameWindow gameWindow, IGraphics2D graphics2D, IGraphics3D graphics3D,
-        IAudioEngine audioEngine, IMeshFactory meshFactory)
-        : base(gameWindow, graphics2D, graphics3D, audioEngine, meshFactory)
+        IAudio audio, IMeshFactory meshFactory)
+        : base(gameWindow, graphics2D, graphics3D, audio, meshFactory)
     {
     }
 }

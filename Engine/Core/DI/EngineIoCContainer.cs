@@ -1,10 +1,10 @@
 using System.Runtime.CompilerServices;
+using Audio;
 using DryIoc;
 using ECS;
-using ECS.Systems;
+using Engine.Audio;
 using Engine.Core.Input;
 using Engine.Core.Window;
-using Engine.Events;
 using Engine.ImGuiNet;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
@@ -18,7 +18,6 @@ using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
 using Engine.Scene;
 using Engine.Scene.Serializer;
-using Engine.Scene.Systems;
 using Engine.Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
@@ -80,8 +79,8 @@ public static class EngineIoCContainer
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
-        container.Register<Engine.Audio.IAudioEngine, OpenALAudioEngine>(Reuse.Singleton);
-        container.Register<Engine.Audio.IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
+        container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);
+        container.Register<IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
 
         container.Register<SceneFactory>(Reuse.Singleton);
         container.Register<IPhysicsBackendConfig>(Reuse.Singleton,
