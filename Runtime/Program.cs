@@ -104,6 +104,7 @@ public class Program
     private static void ConfigureContainer(Container container, GameConfiguration gameConfig)
     {
         EngineIoCContainer.RegisterCore(container);
+        container.Resolve<IProjectContext>().Apply(AppContext.BaseDirectory);
         EngineIoCContainer.RegisterWindowing(container,
             new EngineHostOptions(gameConfig.GameTitle, gameConfig.WindowWidth, gameConfig.WindowHeight));
         container.RegisterInstance(gameConfig);

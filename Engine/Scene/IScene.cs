@@ -1,3 +1,4 @@
+using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Scripting;
@@ -18,7 +19,9 @@ public interface IScene : IDisposable
     IPhysicsContacts PhysicsContacts { get; }
 
     public string Name { get; }
-    
+
+    Vector4 BackgroundColor { get; set; }
+
     /// <summary>
     /// Gets all entities in the scene.
     /// </summary>

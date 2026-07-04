@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
@@ -12,6 +13,7 @@ internal sealed class SceneSerializer(
     SerializerOptions serializerOptions) : ISceneSerializer
 {
     private const string SceneKey = "Scene";
+    private const string BackgroundColorKey = "BackgroundColor";
     private const string EntitiesKey = "Entities";
     private const string ComponentsKey = "Components";
     private const string NameKey = "Name";
@@ -25,6 +27,7 @@ internal sealed class SceneSerializer(
         var jsonObj = new JsonObject
         {
             [SceneKey] = sceneName,
+            [BackgroundColorKey] = JsonSerializer.SerializeToNode(scene.BackgroundColor, _options),
             [EntitiesKey] = new JsonArray()
         };
 
@@ -86,6 +89,9 @@ internal sealed class SceneSerializer(
 
         var jsonObj = parsedNode?.AsObject() ??
                       throw new InvalidSceneJsonException("Invalid JSON format - could not parse as JSON object");
+
+        if (jsonObj.TryGetPropertyValue(BackgroundColorKey, out var backgroundColorNode) && backgroundColorNode != null)
+            scene.BackgroundColor = backgroundColorNode.Deserialize<Vector4>(_options)!;
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
         foreach (var jsonEntity in jsonEntities)

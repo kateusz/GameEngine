@@ -3,6 +3,7 @@ using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.VertexArray;
+using Engine.Scene.Serializer;
 using System.Numerics;
 using Math;
 
@@ -384,13 +385,15 @@ internal sealed class Graphics2D(
         for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
             samplers[i] = i;
 
-        _data.QuadShader = shaderFactory.Create("assets/shaders/OpenGL/textureShader.vert",
-            "assets/shaders/OpenGL/textureShader.frag");
+        _data.QuadShader = shaderFactory.Create(
+            PathBuilder.Resolve("assets/shaders/OpenGL/textureShader.vert"),
+            PathBuilder.Resolve("assets/shaders/OpenGL/textureShader.frag"));
         _data.QuadShader.Bind();
         _data.QuadShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
 
-        _data.LineShader = shaderFactory.Create("assets/shaders/OpenGL/lineShader.vert",
-            "assets/shaders/OpenGL/lineShader.frag");
+        _data.LineShader = shaderFactory.Create(
+            PathBuilder.Resolve("assets/shaders/OpenGL/lineShader.vert"),
+            PathBuilder.Resolve("assets/shaders/OpenGL/lineShader.frag"));
         _data.LineShader.Bind();
     }
 

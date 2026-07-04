@@ -1,4 +1,3 @@
-using System.Numerics;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Core.Input;
@@ -74,7 +73,7 @@ public class GameLayer(
         if (sceneContext.ActiveScene == null)
             return;
 
-        graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+        graphics2D.SetClearColor(sceneContext.ActiveScene.BackgroundColor);
         graphics2D.Clear();
 
         sceneContext.ActiveScene.OnUpdateRuntime(timeSpan);

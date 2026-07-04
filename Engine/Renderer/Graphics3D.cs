@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Shaders;
+using Engine.Scene.Serializer;
 
 namespace Engine.Renderer;
 
@@ -18,8 +19,9 @@ internal sealed class Graphics3D(
 
     public void Init()
     {
-        _meshShader = shaderFactory.Create("assets/shaders/OpenGL/flatColorShader.vert",
-            "assets/shaders/OpenGL/flatColorShader.frag");
+        _meshShader = shaderFactory.Create(
+            PathBuilder.Resolve("assets/shaders/OpenGL/flatColorShader.vert"),
+            PathBuilder.Resolve("assets/shaders/OpenGL/flatColorShader.frag"));
         _cubeMesh = meshFactory.CreateCube();
     }
 

@@ -3,7 +3,7 @@ namespace Engine.Core;
 public sealed class ProjectContext : IProjectContext
 {
     private static readonly string DefaultAssetsPath =
-        Path.Combine(Environment.CurrentDirectory, "assets");
+        Path.Combine(AppContext.BaseDirectory, "assets");
 
     public string? Root { get; private set; }
     public string AssetsPath { get; private set; } = DefaultAssetsPath;

@@ -1,3 +1,4 @@
+using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Scene.Systems;
@@ -45,6 +46,8 @@ internal sealed class Scene : IScene
     public IContext Context { get; }
 
     public string Name { get; }
+
+    public Vector4 BackgroundColor { get; set; } = new(0.1f, 0.1f, 0.1f, 1.0f);
 
     public IEnumerable<Entity> Entities => Context.Entities;
 

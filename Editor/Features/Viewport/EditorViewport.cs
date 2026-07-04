@@ -174,7 +174,9 @@ public sealed class EditorViewport(
         graphics2D.ResetStats();
         _frameBuffer.Bind();
 
-        graphics2D.SetClearColor(editorSettingsUI.GetBackgroundColor());
+        var clearColor = sceneContext.ActiveScene?.BackgroundColor
+            ?? editorSettingsUI.GetBackgroundColor();
+        graphics2D.SetClearColor(clearColor);
         graphics2D.Clear();
         _frameBuffer.ClearAttachment(1, -1);
 
