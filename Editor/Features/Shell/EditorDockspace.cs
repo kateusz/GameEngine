@@ -34,7 +34,7 @@ public class EditorDockspace(
             ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), ImGuiDockNodeFlags.None);
 
             menuBar.Render();
-            panels.Draw(editorViewport.HoveredEntity, editorViewport.Camera);
+            panels.Draw(editorViewport.HoveredEntity, editorViewport.Camera, deltaTime);
 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             editorViewport.LayoutAndRender(deltaTime);

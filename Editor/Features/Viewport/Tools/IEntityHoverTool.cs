@@ -9,7 +9,7 @@ public interface IEntityHoverTool : IViewportTool
 {
     /// <summary>
     /// Gets or sets the currently hovered entity.
-    /// Updated by EditorLayer based on mouse picking.
+    /// Updated by EditorViewport during mouse picking.
     /// </summary>
     Entity? HoveredEntity { get; set; }
 }

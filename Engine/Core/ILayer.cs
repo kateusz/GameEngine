@@ -67,5 +67,5 @@ public interface ILayer
     /// Events are processed in layer order.
     /// </summary>
     /// <param name="windowEvent">The window event to handle.</param>
-    void HandleWindowEvent(WindowEvent windowEvent);
+    void HandleWindowEvent(WindowEvent windowEvent) { }
 }

@@ -60,7 +60,7 @@ public class ViewportToolManager(
 
     /// <summary>
     /// Updates the hovered entity for the selection tool.
-    /// Called by EditorLayer based on mouse picking.
+    /// Called by EditorViewport during mouse picking.
     /// </summary>
     public void SetHoveredEntity(Entity? entity)
     {

@@ -8,16 +8,6 @@ namespace ECS.Systems;
 public interface ISystemManager : IDisposable
 {
     /// <summary>
-    /// Gets the number of registered systems.
-    /// </summary>
-    int SystemCount { get; }
-
-    /// <summary>
-    /// Gets whether the SystemManager has been initialized.
-    /// </summary>
-    bool IsInitialized { get; }
-
-    /// <summary>
     /// Registers a system with the manager, optionally marking it as shared across scenes.
     /// Shared systems have application-wide lifetime and will not be shut down when individual scenes stop.
     /// </summary>
@@ -48,19 +38,7 @@ public interface ISystemManager : IDisposable
     /// Systems remain registered and can be started again via <see cref="Initialize"/>.
     /// </summary>
     /// <remarks>
-    /// Use <see cref="ShutdownAll"/> for global cleanup when the application is closing.
     /// Unregistration and disposal happen in <see cref="IDisposable.Dispose"/>.
     /// </remarks>
     void Shutdown();
-
-    /// <summary>
-    /// Shuts down ALL registered systems, including shared singleton systems.
-    /// Should only be called during application-wide cleanup, not per-scene cleanup.
-    /// Systems are shut down in reverse priority order.
-    /// </summary>
-    /// <remarks>
-    /// This method is intended for global cleanup when the application is closing.
-    /// For per-scene cleanup, use Shutdown() instead, which only shuts down per-scene systems.
-    /// </remarks>
-    void ShutdownAll();
 }

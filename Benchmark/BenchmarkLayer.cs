@@ -110,10 +110,6 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             _cameraController?.OnMouseScroll(scrollEvent.YOffset);
     }
 
-    public void HandleWindowEvent(WindowEvent windowEvent)
-    {
-    }
-
     private void LoadTestAssets()
     {
         // Use shared white test texture

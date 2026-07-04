@@ -16,8 +16,10 @@ public class EditorPanels(
     ScriptComponentEditor scriptComponentEditor,
     GameComponentEditor gameComponentEditor)
 {
-    public void Draw(Entity? hoveredEntity, EditorCamera camera)
+    public void Draw(Entity? hoveredEntity, EditorCamera camera, TimeSpan deltaTime)
     {
+        performanceMonitor.Update(deltaTime);
+
         foreach (var panel in panels)
             panel.Draw();
 
