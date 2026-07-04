@@ -14,7 +14,8 @@ public class SceneManager(
     ISceneContext sceneContext,
     ISceneSerializer sceneSerializer,
     SceneFactory sceneFactory,
-    IGameAssemblySystemsBridge gameAssemblySystemsBridge,
+    Func<string, bool> ensureGameAssemblyRegistered,
+    Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IProjectManager projectManager,
     IGameAssemblyBuilder gameAssemblyBuilder,
     IScriptEngine scriptEngine,
@@ -105,7 +106,7 @@ public class SceneManager(
         RuntimeSceneStarter.Start(
             sceneContext.ActiveScene!,
             sceneContext,
-            gameAssemblySystemsBridge.ResolveSystems());
+            resolveGameSystems());
         Logger.Information("▶️ Scene play started");
     }
 
@@ -158,7 +159,7 @@ public class SceneManager(
 
         try
         {
-            if (!gameAssemblySystemsBridge.EnsureRegistered(key))
+            if (!ensureGameAssemblyRegistered(key))
                 Logger.Debug("Game assembly at {Key} has no types marked with [Register]", key);
 
             var assembly = GameAssemblyContainerRegistration.Load(key);

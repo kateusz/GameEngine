@@ -57,10 +57,12 @@ public static class EditorIoCContainer
         container.Register<ISceneHierarchyPanel, SceneHierarchyPanel>(Reuse.Singleton);
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         
-        container.RegisterDelegate<IGameAssemblySystemsBridge>(
-            _ => new GameAssemblySystemsBridge(
-                assemblyName => RegisterGameAssembly(container, assemblyName),
-                () => container.ResolveMany<IGameSystem>()),
+        container.RegisterDelegate<Func<string, bool>>(
+            _ => assemblyName => RegisterGameAssembly(container, assemblyName),
+            Reuse.Singleton);
+
+        container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
+            r => () => r.ResolveMany<IGameSystem>(),
             Reuse.Singleton);
 
         container.RegisterMany<SceneManager>(Reuse.Singleton);
