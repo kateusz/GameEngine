@@ -56,7 +56,7 @@ Injected services available to game systems:
 | `IPhysicsContacts` | `DrainContacts()` — collision/trigger events for the frame |
 | `IAudio` | Play sounds |
 
-`KeyboardInputState` is updated from input events in play mode; `AdvanceFrame()` clears edge-triggered keys after each frame.
+`KeyboardInputState` is updated from input events in play mode; `EndFrame()` clears edge-triggered keys after each frame.
 
 ## Compilation
 
