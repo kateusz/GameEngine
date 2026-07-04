@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Engine.csproj" />
+    <ProjectReference Include="..\..\games\TicTacToe\TicTacToe.csproj" />
   </ItemGroup>
 
 </Project>
