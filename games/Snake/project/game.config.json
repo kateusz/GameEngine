@@ -1,0 +1,9 @@
+{
+  "GameAssemblyPath": "GameAssembly.dll",
+  "StartupScenePath": "assets/scenes/snake.scene",
+  "WindowWidth": 1280,
+  "WindowHeight": 720,
+  "Fullscreen": false,
+  "GameTitle": "Snake",
+  "TargetFrameRate": 60
+}

@@ -28,7 +28,8 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
             return false;
         }
 
-        return editor.Draw(label, value, out newValue);
+        editor.Draw(label, value, out newValue);
+        return true;
     }
 
     public bool DrawPropertyField(string label, object? value, Action<object> onValueChanged)
@@ -47,7 +48,8 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
         DrawPropertyRow(label, () =>
         {
             var inputLabel = $"##{label}";
-            if (editor.Draw(inputLabel, value, out var newValue))
+            editor.Draw(inputLabel, value, out var newValue);
+            if (!EqualityComparer<object>.Default.Equals(value, newValue))
             {
                 onValueChanged(newValue);
                 changed = true;

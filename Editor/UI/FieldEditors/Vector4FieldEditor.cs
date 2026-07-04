@@ -10,10 +10,10 @@ public class Vector4FieldEditor : IFieldEditor
     public bool Draw(string label, object value, out object newValue)
     {
         var v = (Vector4)value;
-        var changed = ImGui.ColorEdit4(label, ref v,
+        ImGui.ColorEdit4(label, ref v,
             ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
             ImGuiColorEditFlags.NoOptions);
         newValue = v;
-        return changed;
+        return !v.Equals((Vector4)value);
     }
 }

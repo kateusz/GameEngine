@@ -3,7 +3,6 @@ using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
-using ImGuiNET;
 
 namespace Editor.ComponentEditors;
 
@@ -39,7 +38,8 @@ public class GameComponentInspector(UIPropertyRenderer propertyRenderer) : IComp
                 if (!propertyRenderer.TryDrawFieldEditor(inputLabel, fieldType, fieldValue, out var newValue))
                     return;
 
-                ExposedMemberAccessor.SetMemberValue(component, fieldName, newValue);
+                if (!EqualityComparer<object>.Default.Equals(fieldValue, newValue))
+                    ExposedMemberAccessor.SetMemberValue(component, fieldName, newValue);
             });
         }
     }

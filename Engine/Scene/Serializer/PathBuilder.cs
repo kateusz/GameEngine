@@ -25,6 +25,11 @@ public static class PathBuilder
         if (Path.IsPathRooted(path))
             return Path.GetFullPath(path);
 
+        if (path.Length > 7
+            && path.StartsWith("assets", StringComparison.OrdinalIgnoreCase)
+            && (path[6] == '/' || path[6] == '\\'))
+            path = path[7..];
+
         return Path.GetFullPath(Path.Combine(AssetsPath, path));
     }
 

@@ -21,8 +21,8 @@ public class ComponentEditorRegistry(IEnumerable<IComponentEditor> editors) : IC
         if (!entity.TryGetComponent<T>(out _))
             return;
 
-        DrawComponentTree(name, entity, typeof(T).GetHashCode().ToString(),
-            () => entity.RemoveComponent<T>(), uiFunction, () => entity.TryGetComponent<T>(out _));
+        DrawComponentTree(name, entity, $"{typeof(T).FullName}_{entity.Id}",
+            entity.RemoveComponent<T>, uiFunction, () => entity.TryGetComponent<T>(out _));
     }
 
     public static void DrawComponent(string name, Entity entity, Type componentType, Action uiFunction)
