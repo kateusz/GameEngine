@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="ECS">
+            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/ECS.dll</HintPath>
+        </Reference>
+        <Reference Include="Input">
+            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Input.dll</HintPath>
+        </Reference>
+        <Reference Include="SceneComponents">
+            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/SceneComponents.dll</HintPath>
+        </Reference>
+        <Reference Include="Scripting">
+            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Scripting.dll</HintPath>
+        </Reference>
+        <Reference Include="Math">
+            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Math.dll</HintPath>
+        </Reference>
+        <Reference Include="Box2D.NetStandard">
+            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Box2D.NetStandard.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+</Project>
+

@@ -14,8 +14,4 @@
         <ProjectReference Include="..\..\SceneComponents\SceneComponents.csproj" />
         <ProjectReference Include="..\..\Scripting\Scripting.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-        <Compile Remove="project/**" />
-    </ItemGroup>
 </Project>

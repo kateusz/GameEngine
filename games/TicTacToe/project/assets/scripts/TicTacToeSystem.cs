@@ -1,15 +1,13 @@
 ﻿using System.Numerics;
-using Audio;
 using ECS;
 using ECS.Systems;
-using Input;
 using SceneComponents.Rendering;
 using Scripting;
 
 namespace TicTacToe;
 
 [Register(typeof(IGameSystem))]
-public class TicTacToeSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
+public class TicTacToeSystem(IContext context) : IGameSystem
 {
     private static readonly int[][] WinLines =
     [
@@ -28,20 +26,16 @@ public class TicTacToeSystem(IContext context, IKeyboardInput keyboardInput, IAu
         if (board == null)
             return;
 
-        if (keyboardInput.WasKeyPressed(KeyCodes.R))
+        if (board.ResetRequested)
         {
-            audio.PlayOneShot("assets/sounds/car-horn.wav");
             board.Reset();
             Console.WriteLine("Board reset. X's turn.");
         }
 
-        for (var key = KeyCodes.D1; key <= KeyCodes.D9; key++)
+        if (board.PendingCellIndex >= 0)
         {
-            if (!keyboardInput.WasKeyPressed(key))
-                continue;
-
-            var index = key - KeyCodes.D1;
-            TryPlace(board, index);
+            TryPlace(board, board.PendingCellIndex);
+            board.PendingCellIndex = -1;
         }
 
         SyncCellVisuals(board);
@@ -57,7 +51,7 @@ public class TicTacToeSystem(IContext context, IKeyboardInput keyboardInput, IAu
         return null;
     }
 
-    public static void TryPlace(BoardComponent board, int index)
+    private static void TryPlace(BoardComponent board, int index)
     {
         if (board.GameOver || board.Cells[index] != BoardComponent.Empty)
             return;
@@ -107,7 +101,7 @@ public class TicTacToeSystem(IContext context, IKeyboardInput keyboardInput, IAu
                     break;
                 default:
                     sprite.TexturePath = null;
-                    sprite.Color = new Vector4(0.8935698f, 0.7945044f, 0.7945044f, 1f);
+                    sprite.Color =  Vector4.One;
                     break;
             }
         }
