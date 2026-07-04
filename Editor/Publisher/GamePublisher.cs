@@ -1,20 +1,13 @@
-using System.Diagnostics;
-using System.Text.Json;
 using Engine.Core;
 using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Publisher;
 
-public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder gameAssemblyBuilder) : IGamePublisher
+public partial class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder gameAssemblyBuilder)
+    : IGamePublisher
 {
     private static readonly ILogger Logger = Log.ForContext<GamePublisher>();
-
-    private static readonly HashSet<string> SupportedRuntimeIdentifiers = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "win-x64", "win-x86", "win-arm64",
-        "osx-x64", "osx-arm64"
-    };
 
     public void Publish()
     {
@@ -24,38 +17,17 @@ public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder 
             RuntimeIdentifier = PlatformDetection.DetectCurrentPlatform()
         };
 
-        var gameConfig = new GameConfiguration
-        {
-            GameAssemblyPath = "GameAssembly.dll",
-            StartupScenePath = "assets/scenes/Scene.scene",
-            WindowWidth = 1920,
-            WindowHeight = 1080
-        };
-
-        var result = PublishAsync(settings, gameConfig).GetAwaiter().GetResult();
+        var result = PublishAsync(settings, CreateDefaultGameConfig()).GetAwaiter().GetResult();
 
         if (!result.Success)
-        {
             Logger.Error("Publish failed: {Error}", result.ErrorMessage);
-        }
     }
 
     public Task<PublishResult> PublishAsync(
         PublishSettings settings,
         IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default)
-    {
-        var defaultGameConfig = new GameConfiguration
-        {
-            GameAssemblyPath = "GameAssembly.dll",
-            StartupScenePath = "assets/scenes/Scene.scene",
-            WindowWidth = 1920,
-            WindowHeight = 1080,
-            GameTitle = "My Game"
-        };
-
-        return PublishAsync(settings, defaultGameConfig, progress, cancellationToken);
-    }
+        CancellationToken cancellationToken = default) =>
+        PublishAsync(settings, CreateDefaultGameConfig(), progress, cancellationToken);
 
     public async Task<PublishResult> PublishAsync(
         PublishSettings settings,
@@ -70,21 +42,15 @@ public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder 
         {
             var validationResult = ValidateProject();
             if (!validationResult.Success)
-            {
                 return validationResult;
-            }
 
             var settingsValidation = ValidateSettings(settings);
             if (!settingsValidation.Success)
-            {
                 return settingsValidation;
-            }
 
             var startupSceneValidation = ValidateStartupScene(gameConfig);
             if (!startupSceneValidation.Success)
-            {
                 return startupSceneValidation;
-            }
 
             progress?.Report("Preparing build directory...");
             Logger.Information("Starting publish with settings: OutputPath={OutputPath}, Runtime={Runtime}",
@@ -94,7 +60,6 @@ public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder 
                 ? GetDefaultOutputPath()
                 : settings.OutputPath;
 
-            // Build to temporary directory for atomicity
             tempOutputPath = Path.Combine(Path.GetTempPath(), $"GameBuild_{Guid.NewGuid()}");
 
             try
@@ -151,16 +116,7 @@ public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder 
             }
 
             ReportProgress(progress, "Creating game configuration...", 0.8f);
-            var mergedConfig = new GameConfiguration
-            {
-                GameAssemblyPath = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath) ? "GameAssembly.dll" : gameConfig.GameAssemblyPath,
-                StartupScenePath = gameConfig.StartupScenePath,
-                WindowWidth = gameConfig.WindowWidth,
-                WindowHeight = gameConfig.WindowHeight,
-                Fullscreen = gameConfig.Fullscreen,
-                GameTitle = gameConfig.GameTitle,
-                TargetFrameRate = gameConfig.TargetFrameRate
-            };
+            var mergedConfig = MergeGameConfig(gameConfig);
             var configResult = CreateGameConfig(tempOutputPath, mergedConfig);
             if (!configResult.Success)
             {
@@ -176,17 +132,14 @@ public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder 
                 return validationCheck;
             }
 
-            // Move from temp to final location (atomic operation)
             ReportProgress(progress, "Finalizing build...", 0.95f);
             try
             {
                 if (Directory.Exists(outputPath))
-                {
                     Directory.Delete(outputPath, recursive: true);
-                }
 
                 Directory.Move(tempOutputPath, outputPath);
-                tempOutputPath = null; // Prevent cleanup
+                tempOutputPath = null;
             }
             catch (Exception ex)
             {
@@ -230,397 +183,52 @@ public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder 
         }
     }
 
+    private static GameConfiguration CreateDefaultGameConfig(string title = "My Game") => new()
+    {
+        GameAssemblyPath = "GameAssembly.dll",
+        StartupScenePath = "assets/scenes/Scene.scene",
+        WindowWidth = 1920,
+        WindowHeight = 1080,
+        GameTitle = title
+    };
+
+    private static GameConfiguration MergeGameConfig(GameConfiguration gameConfig) => new()
+    {
+        GameAssemblyPath = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
+            ? "GameAssembly.dll"
+            : gameConfig.GameAssemblyPath,
+        StartupScenePath = gameConfig.StartupScenePath,
+        WindowWidth = gameConfig.WindowWidth,
+        WindowHeight = gameConfig.WindowHeight,
+        Fullscreen = gameConfig.Fullscreen,
+        GameTitle = gameConfig.GameTitle,
+        TargetFrameRate = gameConfig.TargetFrameRate
+    };
+
+    private string GetDefaultOutputPath()
+        => Path.Combine(projectContext.Root ?? Environment.CurrentDirectory, "Builds");
+
     private static void ReportProgress(IProgress<string>? progress, string message, float percentage)
     {
         progress?.Report(message);
 
         if (progress is PublishProgress publishProgress)
-        {
             publishProgress.SetProgress(percentage);
-        }
     }
 
     private static void CleanupTempDirectory(string? tempPath)
     {
-        if (tempPath != null && Directory.Exists(tempPath))
-        {
-            try
-            {
-                Directory.Delete(tempPath, recursive: true);
-                Logger.Debug("Cleaned up temporary directory: {Path}", tempPath);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex, "Failed to clean up temporary directory: {Path}", tempPath);
-            }
-        }
-    }
-
-    private PublishResult ValidateProject()
-    {
-        if (projectContext.ScriptsDir is null || projectContext.ScenesDir is null)
-        {
-            const string error = "No project is currently loaded. Please open a project before publishing.";
-            Logger.Warning(error);
-            return PublishResult.Failed(error);
-        }
-
-        return new PublishResult { Success = true };
-    }
-
-    private static PublishResult ValidateSettings(PublishSettings settings)
-    {
-        if (!SupportedRuntimeIdentifiers.Contains(settings.RuntimeIdentifier))
-        {
-            var error = $"Unsupported runtime identifier '{settings.RuntimeIdentifier}'. " +
-                        $"Supported values: {string.Join(", ", SupportedRuntimeIdentifiers)}";
-            Logger.Warning(error);
-            return PublishResult.Failed(error);
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.Configuration))
-            return PublishResult.Failed("Build configuration cannot be empty.");
-
-        return new PublishResult { Success = true };
-    }
-
-    private PublishResult ValidateStartupScene(GameConfiguration gameConfig)
-    {
-        var startupScenePath = Path.Combine(projectContext.Root!, gameConfig.StartupScenePath);
-        if (File.Exists(startupScenePath))
-            return new PublishResult { Success = true };
-
-        var error = $"Startup scene not found: {startupScenePath}";
-        Logger.Error(error);
-        return PublishResult.Failed(error);
-    }
-
-    private string GetDefaultOutputPath()
-        => Path.Combine(projectContext.Root ?? Environment.CurrentDirectory, "Builds");
-
-    private async Task<PublishResult> BuildRuntimeAsync(
-        PublishSettings settings,
-        string outputPath,
-        List<string> buildOutput,
-        IProgress<string>? progress,
-        CancellationToken cancellationToken)
-    {
-        var runtimeProjectPath = FindRuntimeProject();
-        if (runtimeProjectPath is null)
-        {
-            const string error = "Could not find Runtime.csproj. Ensure the Runtime project exists in the solution.";
-            Logger.Error(error);
-            return PublishResult.Failed(error);
-        }
-
-        var arguments = BuildDotnetPublishArguments(settings, runtimeProjectPath, outputPath);
-
-        Logger.Information("Running: dotnet {Arguments}", arguments);
-        progress?.Report($"Compiling runtime executable...");
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = "dotnet",
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        if (tempPath is null || !Directory.Exists(tempPath))
+            return;
 
         try
         {
-            using var process = new Process { StartInfo = psi };
-
-            process.OutputDataReceived += (_, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    buildOutput.Add(e.Data);
-                    Logger.Debug("{BuildOutput}", e.Data);
-                    progress?.Report(e.Data);
-                }
-            };
-
-            process.ErrorDataReceived += (_, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    buildOutput.Add($"ERROR: {e.Data}");
-                    Logger.Error("Build error: {ErrorData}", e.Data);
-                    progress?.Report($"ERROR: {e.Data}");
-                }
-            };
-
-            if (!process.Start())
-            {
-                return PublishResult.Failed("Failed to start dotnet process.");
-            }
-
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            await process.WaitForExitAsync(cancellationToken);
-
-            if (process.ExitCode != 0)
-            {
-                var error = $"Build failed with exit code {process.ExitCode}. Check build output for details.";
-                Logger.Error(error);
-                return new PublishResult
-                {
-                    Success = false,
-                    ErrorMessage = error,
-                    BuildOutput = buildOutput
-                };
-            }
-
-            return new PublishResult { Success = true, BuildOutput = buildOutput };
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            var error = $"Failed to execute dotnet publish: {ex.Message}";
-            Logger.Error(ex, "dotnet publish execution failed");
-            return new PublishResult
-            {
-                Success = false,
-                ErrorMessage = error,
-                BuildOutput = buildOutput
-            };
-        }
-    }
-
-    private static string BuildDotnetPublishArguments(PublishSettings settings, string projectPath, string outputPath)
-    {
-        var args = $"publish \"{projectPath}\" " +
-                   $"-c {settings.Configuration} " +
-                   $"-r {settings.RuntimeIdentifier} " +
-                   $"-o \"{outputPath}\" " +
-                   $"--self-contained {settings.SelfContained.ToString().ToLowerInvariant()}";
-
-        if (settings.SingleFile)
-        {
-            args += " /p:PublishSingleFile=true";
-        }
-
-        return args;
-    }
-
-    private string? FindRuntimeProject()
-    {
-        // First, try to find the solution file
-        var solutionPath = FindSolutionFile();
-        if (solutionPath != null)
-        {
-            var solutionDir = Path.GetDirectoryName(solutionPath)!;
-            var runtimeCsproj = Path.Combine(solutionDir, "Runtime", "Runtime.csproj");
-
-            if (File.Exists(runtimeCsproj))
-            {
-                Logger.Debug("Found Runtime project at {Path} (via solution file)", runtimeCsproj);
-                return runtimeCsproj;
-            }
-        }
-
-        // Fallback: try relative paths from current directory
-        var possiblePaths = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Runtime", "Runtime.csproj"),
-            Path.Combine(Environment.CurrentDirectory, "Runtime", "Runtime.csproj"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Runtime", "Runtime.csproj"))
-        };
-
-        foreach (var path in possiblePaths)
-        {
-            var fullPath = Path.GetFullPath(path);
-            if (File.Exists(fullPath))
-            {
-                Logger.Debug("Found Runtime project at {Path} (via relative path)", fullPath);
-                return fullPath;
-            }
-        }
-
-        Logger.Error("Could not find Runtime.csproj in any known location");
-        return null;
-    }
-
-    private string? FindSolutionFile()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (dir != null)
-        {
-            var sln = dir.GetFiles("*.sln").FirstOrDefault();
-            if (sln != null)
-            {
-                Logger.Debug("Found solution file: {Path}", sln.FullName);
-                return sln.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        Logger.Warning("Could not find .sln file");
-        return null;
-    }
-
-    private PublishResult CopyAssets(string buildOutput, PublishSettings settings)
-    {
-        if (projectContext.Root is null)
-        {
-            Logger.Warning("No project directory available for asset copying");
-            return new PublishResult { Success = true };
-        }
-
-        var assetsSource = Path.Combine(projectContext.Root, "assets");
-        if (!Directory.Exists(assetsSource))
-        {
-            Logger.Information("No assets directory found at {Path}, skipping asset copy", assetsSource);
-            return new PublishResult { Success = true };
-        }
-
-        var assetsTarget = Path.Combine(buildOutput, "assets");
-        var includeScripts = string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase);
-
-        try
-        {
-            CopyDirectory(assetsSource, assetsTarget, includeScripts);
-            Logger.Information("Copied assets from {Source} to {Target}", assetsSource, assetsTarget);
-            return new PublishResult { Success = true };
+            Directory.Delete(tempPath, recursive: true);
+            Logger.Debug("Cleaned up temporary directory: {Path}", tempPath);
         }
         catch (Exception ex)
         {
-            var error = $"Failed to copy assets: {ex.Message}";
-            Logger.Error(ex, "Failed to copy assets from {Source} to {Target}", assetsSource, assetsTarget);
-            return PublishResult.Failed(error);
+            Logger.Warning(ex, "Failed to clean up temporary directory: {Path}", tempPath);
         }
-    }
-
-    private PublishResult CopyScripts(string buildOutput)
-    {
-        var scriptsSource = projectContext.ScriptsDir;
-        if (scriptsSource is null || !Directory.Exists(scriptsSource))
-        {
-            Logger.Information("No scripts directory found, skipping script copy");
-            return new PublishResult { Success = true };
-        }
-
-        var scriptsTarget = Path.Combine(buildOutput, "assets", "scripts");
-
-        try
-        {
-            CopyDirectory(scriptsSource, scriptsTarget);
-            Logger.Information("Copied scripts from {Source} to {Target}", scriptsSource, scriptsTarget);
-            return new PublishResult { Success = true };
-        }
-        catch (Exception ex)
-        {
-            var error = $"Failed to copy scripts: {ex.Message}";
-            Logger.Error(ex, "Failed to copy scripts from {Source} to {Target}", scriptsSource, scriptsTarget);
-            return PublishResult.Failed(error);
-        }
-    }
-
-    private static PublishResult CreateGameConfig(string buildOutput, GameConfiguration gameConfig)
-    {
-        try
-        {
-            var configPath = Path.Combine(buildOutput, "game.config.json");
-            var json = JsonSerializer.Serialize(gameConfig, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-            File.WriteAllText(configPath, json);
-            Logger.Information("Created game configuration at {Path}", configPath);
-            return PublishResult.Succeeded(configPath);
-        }
-        catch (Exception ex)
-        {
-            var error = $"Failed to create game configuration: {ex.Message}";
-            Logger.Error(ex, "Failed to create game.config.json");
-            return PublishResult.Failed(error);
-        }
-    }
-
-    private static PublishResult ValidatePublishedBuild(
-        string outputPath,
-        string runtimeIdentifier,
-        GameConfiguration gameConfig)
-    {
-        var exeName = PlatformDetection.GetExecutableName(runtimeIdentifier);
-        var exePath = Path.Combine(outputPath, exeName);
-
-        if (!File.Exists(exePath))
-        {
-            var error = $"Published executable not found at {exePath}";
-            Logger.Error(error);
-            return PublishResult.Failed(error);
-        }
-
-        var exeInfo = new FileInfo(exePath);
-        if (exeInfo.Length < 1024 * 100)
-        {
-            var error = $"Executable suspiciously small: {exeInfo.Length} bytes";
-            Logger.Warning(error);
-        }
-
-        var configPath = Path.Combine(outputPath, "game.config.json");
-        if (!File.Exists(configPath))
-        {
-            var error = $"Game configuration not found at {configPath}";
-            Logger.Error(error);
-            return PublishResult.Failed(error);
-        }
-
-        var relDll = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
-            ? "GameAssembly.dll"
-            : gameConfig.GameAssemblyPath;
-        var gameAssemblyPath = Path.Combine(outputPath, relDll);
-        if (!File.Exists(gameAssemblyPath))
-        {
-            var err = $"GameAssembly not found at {gameAssemblyPath}";
-            Logger.Error(err);
-            return PublishResult.Failed(err);
-        }
-
-        var startupScenePath = Path.Combine(outputPath, gameConfig.StartupScenePath);
-        if (!File.Exists(startupScenePath))
-        {
-            var error = $"Startup scene not found: {startupScenePath}";
-            Logger.Error(error);
-            return PublishResult.Failed(error);
-        }
-
-        Logger.Information("Published build validation passed");
-        return PublishResult.Succeeded("Validation passed");
-    }
-
-    private static void CopyDirectory(string sourceDir, string targetDir, bool includeScripts = true)
-    {
-        Directory.CreateDirectory(targetDir);
-
-        foreach (var file in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
-        {
-            var relativePath = Path.GetRelativePath(sourceDir, file);
-            if (!includeScripts && IsUnderScriptsFolder(relativePath))
-                continue;
-
-            var destPath = Path.Combine(targetDir, relativePath);
-            var destDirectory = Path.GetDirectoryName(destPath);
-
-            if (!string.IsNullOrEmpty(destDirectory))
-            {
-                Directory.CreateDirectory(destDirectory);
-            }
-
-            File.Copy(file, destPath, overwrite: true);
-        }
-    }
-
-    private static bool IsUnderScriptsFolder(string relativePath)
-    {
-        var normalized = relativePath.Replace('\\', '/');
-        return normalized.StartsWith("scripts/", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(normalized, "scripts", StringComparison.OrdinalIgnoreCase);
     }
 }
