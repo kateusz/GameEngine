@@ -572,13 +572,13 @@ internal sealed class ScriptEngine : IScriptEngine
     public string GenerateScriptTemplate(string scriptName)
     {
         return $$"""
-                 using System;
-                 using System.Collections.Generic;
                  using System.Numerics;
                  using ECS;
-                 using Engine.Scene;
-                 using Engine.Core.Input;
-                 using Engine.Scene.Components;
+                 using Input;
+                 using Math;
+                 using SceneComponents;
+                 using SceneComponents.Camera;
+                 using Scripting;
 
                  public class {{scriptName}} : ScriptableEntity
                  {
