@@ -296,6 +296,43 @@ Estimate severity.
 
 ---
 
+# REQUIRED INSTRUCTION — Ponytail Challenge
+
+For **every issue** you identify, you MUST run the **ponytail-review** skill
+(`.cursor/skills/ponytail-review/SKILL.md`) against your own **Recommended
+redesign** before including that issue in the final report.
+
+Do not skip this step. Do not batch it at the end. Apply it per issue, in
+order, as you write each finding.
+
+## What to do
+
+1. Draft the issue and its Recommended redesign as usual.
+2. Read and follow ponytail-review. Treat the redesign as the diff under
+   review — hunt for over-engineering in **your proposed fix**, not just the
+   existing code.
+3. Challenge the issue itself:
+   - Is this a real architectural problem, or premature abstraction hunting?
+   - Does the fix add layers, interfaces, or patterns with one caller?
+   - Would a smaller change (delete, inline, stdlib, shrink) solve enough?
+   - Is the redesign YAGNI — solving a problem that does not exist yet?
+4. Revise, downgrade severity, or **drop** the issue based on the challenge.
+   A finding that survives must have a lean recommendation.
+
+## Per-issue ponytail output
+
+After challenging, record the result under **Ponytail challenge** (see Output
+Format). Use ponytail-review tags where they apply: `delete:`, `stdlib:`,
+`native:`, `yagni:`, `shrink:`.
+
+If the redesign fails the challenge, state what you cut from the proposal and
+what replaces it — or conclude `Lean already. Ship.` and omit the issue.
+
+If ponytail-review finds nothing to cut in your proposal, say so explicitly:
+`Proposal lean. Keep.`
+
+---
+
 # Output Format
 
 For every issue provide:
@@ -324,7 +361,15 @@ Describe how the issue will affect future development.
 
 Describe the architectural solution.
 
-Do not focus on implementation details.
+Do not focus on implementation details. This section must already reflect the
+ponytail challenge — no speculative abstractions, no fix bigger than the
+problem warrants.
+
+## Ponytail challenge
+
+Mandatory. Summarize how ponytail-review was applied to this finding and its
+redesign. Include tags and line-level cuts where relevant. State whether the
+issue survived, was revised, downgraded, or dropped — and why.
 
 ## Expected benefits
 
@@ -366,6 +411,9 @@ Identify root causes rather than symptoms.
 If a fundamental redesign is significantly better than incremental fixes, recommend the redesign.
 
 Do not hesitate to challenge existing architecture if a different design would substantially improve the engine.
+
+Challenge your own recommendations with the same rigor. Every proposed
+redesign must pass the ponytail-review skill before it ships in the report.
 
 Assume this engine will eventually support multiple shipped games and years of continued development.
 
