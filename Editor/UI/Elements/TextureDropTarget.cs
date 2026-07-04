@@ -19,11 +19,16 @@ public static class TextureDropTarget
     /// <param name="label">Label to display for the property</param>
     /// <param name="onTexturePathChanged">Callback invoked with an asset-relative path when a texture is dropped</param>
     /// <param name="textureFactory">Texture factory for creating textures</param>
-    public static void Draw(string label, Action<string> onTexturePathChanged, ITextureFactory textureFactory)
+    /// <param name="currentTexturePath">Currently assigned texture path (can be null)</param>
+    public static void Draw(string label, Action<string> onTexturePathChanged, ITextureFactory textureFactory, string? currentTexturePath = null)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
-            ButtonDrawer.DrawFullWidthButton(label, () =>
+            var buttonLabel = !string.IsNullOrEmpty(currentTexturePath)
+                ? Path.GetFileName(currentTexturePath)
+                : label;
+
+            ButtonDrawer.DrawFullWidthButton(buttonLabel, () =>
             {
                 // Optional: Handle button click logic if needed
             });

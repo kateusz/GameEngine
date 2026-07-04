@@ -22,7 +22,7 @@ public class SpriteRendererComponentEditor(
             TextureDropTarget.Draw("Texture", relativePath =>
             {
                 component.TexturePath = relativePath;
-            }, textureFactory);
+            }, textureFactory, component.TexturePath);
             propertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
                 newValue => component.TilingFactor = (float)newValue);
         });
