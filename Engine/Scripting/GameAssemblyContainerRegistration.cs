@@ -92,7 +92,7 @@ public static class GameAssemblyContainerRegistration
             _ => throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null)
         };
 
-        container.Register(serviceType, implementationType, reuse);
+        container.Register(serviceType, implementationType, reuse, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
     }
 
     private readonly record struct IocRegistrationItem(

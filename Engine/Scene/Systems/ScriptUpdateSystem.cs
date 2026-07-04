@@ -20,11 +20,8 @@ internal sealed class ScriptUpdateSystem(
         Logger.Debug("ScriptUpdateSystem initialized with priority {Priority}", Priority);
     }
 
-    public void OnUpdate(TimeSpan deltaTime)
-    {
-        scriptEngine.TryHotReload();
+    public void OnUpdate(TimeSpan deltaTime) =>
         NativeScriptIteration.Update(context, scriptEngine, scriptStore, deltaTime);
-    }
 
     public void OnShutdown()
     {

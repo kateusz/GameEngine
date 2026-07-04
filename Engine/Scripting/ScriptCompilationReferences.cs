@@ -21,7 +21,7 @@ internal static class ScriptCompilationReferences
         "Math"
     ];
 
-    public static MetadataReference[] GetMetadataReferences()
+    public static MetadataReference[] GetMetadataReferences(string? scriptsDirectory = null)
     {
         Logger.Debug("=== LOADING REFERENCES FOR SCRIPT COMPILATION ===");
         var references = new List<MetadataReference>();
@@ -29,6 +29,14 @@ internal static class ScriptCompilationReferences
         var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
         Logger.Debug("Runtime directory: {RuntimeDir}", runtimeDir);
         LoadEssentialAssemblies(references, addedPaths, runtimeDir);
+
+        if (!string.IsNullOrWhiteSpace(scriptsDirectory))
+        {
+            var sdkDir = Path.Combine(scriptsDirectory, ".engine", "sdk");
+            if (Directory.Exists(sdkDir))
+                LoadSdkAssemblies(references, addedPaths, sdkDir);
+        }
+
         LoadEngineAssembliesFromDomain(references, addedPaths);
         TryAddEcsAssembly(references, addedPaths);
         TryAddGameScriptSupportAssembliesFromDisk(references, addedPaths);
@@ -77,6 +85,12 @@ internal static class ScriptCompilationReferences
             addedPaths.Remove(full);
             return false;
         }
+    }
+
+    private static void LoadSdkAssemblies(List<MetadataReference> references, HashSet<string> addedPaths, string sdkDir)
+    {
+        foreach (var dllPath in Directory.EnumerateFiles(sdkDir, "*.dll"))
+            TryAddReference(references, addedPaths, dllPath);
     }
 
     private static void LoadEssentialAssemblies(

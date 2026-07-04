@@ -9,11 +9,7 @@ namespace Engine.Scripting;
 
 public interface IScriptEngine
 {
-    void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory);
-
-    void SetSuppressFileChangeRecompile(bool suppress);
-
-    void TryHotReload();
+    void LoadGameAssemblyFromFile(string dllPath);
 
     void ProcessEvent(Event @event, IContext context, ScriptRuntimeStore store);
 

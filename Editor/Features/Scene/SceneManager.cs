@@ -16,7 +16,6 @@ public class SceneManager(
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IProjectContext projectContext,
     IGameAssemblyBuilder gameAssemblyBuilder,
-    IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace)
     : ISceneManager
 {
@@ -82,7 +81,7 @@ public class SceneManager(
             var engineDir = Path.Combine(projectContext.Root, ".engine");
             Directory.CreateDirectory(engineDir);
             var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
-            if (!gameAssemblyBuilder.TryBuild(projectContext.ScriptsDir, dllPath, emitPdb: true, out var buildErrors))
+            if (!gameAssemblyBuilder.TryBuild(projectContext.ScriptsDir, dllPath, emitPdb: true, useDebugOptimization: true, out var buildErrors))
             {
                 foreach (var e in buildErrors)
                     Logger.Error("Game script build: {Error}", e);
@@ -90,7 +89,6 @@ public class SceneManager(
             }
 
             scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
-            scriptEngine.SetSuppressFileChangeRecompile(true);
 
             ReloadEntitiesFromSnapshot(scene, snapshotPath);
 
@@ -107,11 +105,15 @@ public class SceneManager(
     public void Stop()
     {
         sceneContext.SetState(SceneState.Edit);
-        sceneContext.ActiveScene.OnRuntimeStop();
-        scriptEngine.SetSuppressFileChangeRecompile(false);
+        sceneContext.ActiveScene?.OnRuntimeStop();
 
         if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
             Open(EditorScenePath);
+        else
+        {
+            sceneContext.ActiveScene?.Dispose();
+            scriptWorkspace.RestoreEditAssembly();
+        }
 
         Logger.Information("⏹️ Scene play stopped");
     }

@@ -86,7 +86,7 @@ public static class GameAssemblyCompiler
                 Encoding.UTF8));
         }
 
-        var references = ScriptCompilationReferences.GetMetadataReferences();
+        var references = ScriptCompilationReferences.GetMetadataReferences(scriptsDirectory);
         var validation = ScriptCompilationReferences.ValidateReferences(references);
         if (!validation.Success)
         {

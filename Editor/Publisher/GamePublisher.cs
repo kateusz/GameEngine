@@ -103,7 +103,7 @@ public partial class GamePublisher(IProjectContext projectContext, IGameAssembly
             ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
             var scriptsSource = projectContext.ScriptsDir!;
             var gameDllPath = Path.Combine(tempOutputPath, "GameAssembly.dll");
-            if (!gameAssemblyBuilder.TryBuild(scriptsSource, gameDllPath, emitPdb: false, out var scriptBuildErrors))
+            if (!gameAssemblyBuilder.TryBuild(scriptsSource, gameDllPath, emitPdb: false, useDebugOptimization: false, out var scriptBuildErrors))
             {
                 foreach (var line in scriptBuildErrors)
                 {

@@ -15,45 +15,30 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
     private readonly Dictionary<string, Type> _scriptTypes = new();
-    private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private Assembly? _dynamicAssembly;
     private GameAssemblyLoadContext? _loadContext;
-    private string _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
-    private string? _loadedDllPath;
-    private bool _suppressFileChangeRecompile;
 
-    public void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory)
+    public void LoadGameAssemblyFromFile(string dllPath)
     {
-        _scriptsDirectory = scriptsDirectory;
-        Directory.CreateDirectory(_scriptsDirectory);
-        _loadedDllPath = Path.GetFullPath(dllPath);
-        if (!File.Exists(_loadedDllPath))
+        var loadedDllPath = Path.GetFullPath(dllPath);
+        if (!File.Exists(loadedDllPath))
         {
-            Logger.Error("Game assembly not found: {Path}", _loadedDllPath);
+            Logger.Error("Game assembly not found: {Path}", loadedDllPath);
             return;
         }
 
         try
         {
             UnloadLoadContext();
-            _loadContext = new GameAssemblyLoadContext(_loadedDllPath);
+            _loadContext = new GameAssemblyLoadContext(loadedDllPath);
             _dynamicAssembly = _loadContext.LoadAssembly();
-            IndexScriptLastModifiedFromDisk();
             UpdateScriptTypes();
-            Logger.Information("Loaded game assembly from {Path}", _loadedDllPath);
+            Logger.Information("Loaded game assembly from {Path}", loadedDllPath);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed to load game assembly from {Path}", _loadedDllPath);
+            Logger.Error(ex, "Failed to load game assembly from {Path}", loadedDllPath);
         }
-    }
-
-    public void SetSuppressFileChangeRecompile(bool suppress) => _suppressFileChangeRecompile = suppress;
-
-    public void TryHotReload()
-    {
-        if (!_suppressFileChangeRecompile)
-            CheckForScriptChanges();
     }
 
     public void ProcessEvent(Event @event, IContext context, ScriptRuntimeStore store) =>
@@ -87,12 +72,7 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
 
     public Assembly? GetLoadedGameAssembly() => _dynamicAssembly;
 
-    public void UnloadGameAssembly()
-    {
-        UnloadLoadContext();
-        _loadedDllPath = null;
-        _scriptLastModified.Clear();
-    }
+    public void UnloadGameAssembly() => UnloadLoadContext();
 
     private void UnloadLoadContext()
     {
@@ -104,60 +84,6 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
 
         _loadContext.Unload();
         _loadContext = null;
-    }
-
-    private void CheckForScriptChanges()
-    {
-        if (string.IsNullOrEmpty(_loadedDllPath))
-            return;
-
-        var needsRecompile = false;
-
-        foreach (var (scriptName, lastModified) in _scriptLastModified)
-        {
-            var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-            if (!File.Exists(scriptPath))
-                continue;
-
-            if (File.GetLastWriteTime(scriptPath) > lastModified)
-            {
-                needsRecompile = true;
-                break;
-            }
-        }
-
-        if (!needsRecompile)
-            return;
-
-        Logger.Information("Script changes detected, recompiling...");
-        if (!GameAssemblyCompiler.TryCompile(_scriptsDirectory, _loadedDllPath, emitPdb: false, useDebugOptimization: false, out var errors))
-        {
-            foreach (var err in errors ?? [])
-                Logger.Error("Script hot-reload: {Error}", err);
-            return;
-        }
-
-        LoadGameAssemblyFromFile(_loadedDllPath, _scriptsDirectory);
-    }
-
-    private void IndexScriptLastModifiedFromDisk()
-    {
-        _scriptLastModified.Clear();
-        if (!Directory.Exists(_scriptsDirectory))
-            return;
-
-        foreach (var scriptPath in GameAssemblyCompiler.EnumerateGameScriptFiles(_scriptsDirectory))
-        {
-            var scriptName = Path.GetFileNameWithoutExtension(scriptPath);
-            try
-            {
-                _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Failed to index script file {Path}", scriptPath);
-            }
-        }
     }
 
     private void UpdateScriptTypes()

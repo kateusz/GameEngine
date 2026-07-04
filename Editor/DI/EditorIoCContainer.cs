@@ -65,6 +65,10 @@ public static class EditorIoCContainer
             _ => assembly => RegisterGameAssembly(container, assembly),
             Reuse.Singleton);
 
+        container.RegisterDelegate<Action<Assembly>>(
+            _ => assembly => GameAssemblyContainerRegistration.UnregisterRegistrationsFromGameAssembly(container, assembly),
+            Reuse.Singleton);
+
         container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
             r => () => r.ResolveMany<IGameSystem>(),
             Reuse.Singleton);

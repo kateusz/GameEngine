@@ -132,9 +132,8 @@ public class Program
             throw new InvalidOperationException(
                 $"Game assembly not found: {path}. Build scripts (publish) or add GameAssembly.dll next to the executable.");
 
-        var scriptsDir = Path.Combine(AppContext.BaseDirectory, "assets", "scripts");
         var scriptEngine = container.Resolve<IScriptEngine>();
-        scriptEngine.LoadGameAssemblyFromFile(path, scriptsDir);
+        scriptEngine.LoadGameAssemblyFromFile(path);
 
         var assembly = scriptEngine.GetLoadedGameAssembly()
             ?? throw new InvalidOperationException($"Failed to load game assembly from {path}.");

@@ -22,7 +22,6 @@ public class EditorLifecycle(
     DebugSettings debugSettings,
     ISceneContext sceneContext,
     ISceneManager sceneManager,
-    IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace,
     ShortcutManager shortcutManager,
     EditorShortcutRegistrar shortcutRegistrar,
@@ -50,8 +49,10 @@ public class EditorLifecycle(
         {
             if (sceneContext.State == SceneState.Play)
                 sceneManager.Stop();
-            scriptEngine.UnloadGameAssembly();
-            scriptWorkspace.ClearAppliedAssembly();
+            else
+                sceneContext.ActiveScene?.Dispose();
+
+            scriptWorkspace.RevokeAndUnload();
         };
 
         _projectOpenedHandler = () =>
@@ -67,22 +68,7 @@ public class EditorLifecycle(
         projectManager.ProjectOpened += _projectOpenedHandler;
         projectManager.ProjectClosed += _projectClosedHandler;
 
-        _sceneChangedHandler = newScene =>
-        {
-            panels.SceneHierarchyPanel.SetScene(newScene);
-
-            if (string.IsNullOrWhiteSpace(newScene.Name))
-                return;
-
-#if DEBUG
-            scriptWorkspace.EnableHybridDebugging(true);
-
-            var symbolsPath = Path.Combine(Environment.CurrentDirectory, "DebugSymbols", "Scripts");
-            Directory.CreateDirectory(symbolsPath);
-            scriptWorkspace.SaveDebugSymbols(Path.Combine(symbolsPath, "GameAssembly"), "GameAssembly");
-            scriptWorkspace.PrintDebugInfo();
-#endif
-        };
+        _sceneChangedHandler = newScene => panels.SceneHierarchyPanel.SetScene(newScene);
         _playSceneHandler = sceneManager.Play;
         _stopSceneHandler = sceneManager.Stop;
         _restartSceneHandler = sceneManager.Restart;

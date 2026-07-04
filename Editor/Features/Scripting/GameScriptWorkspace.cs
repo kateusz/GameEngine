@@ -13,19 +13,17 @@ public sealed class GameScriptWorkspace(
     IGameAssemblyBuilder builder,
     IScriptEngine scriptEngine,
     IComponentSerializerRegistry componentSerializerRegistry,
-    Func<Assembly, bool> ensureGameAssemblyRegistered)
+    Func<Assembly, bool> ensureGameAssemblyRegistered,
+    Action<Assembly> revokeGameAssemblyRegistrations)
 {
     private static readonly ILogger Logger = Log.ForContext<GameScriptWorkspace>();
 
+    private Assembly? _appliedAssembly;
     private string? _appliedAssemblyKey;
-    private readonly Dictionary<string, DateTime> _scriptLastModified = new();
     private readonly Dictionary<string, string> _scriptSources = new();
-    private readonly Dictionary<string, byte[]> _debugSymbols = new();
     private string _scriptsDirectory = string.Empty;
     private string _outputDllPath = string.Empty;
-    private bool _debugMode = true;
-
-    public void ClearAppliedAssembly() => _appliedAssemblyKey = null;
+    private const bool DebugMode = true;
 
     public static string ResolveEditorDllPath(string projectDir) =>
         Path.Combine(projectDir, ".engine", "GameAssembly.dll");
@@ -47,7 +45,6 @@ public sealed class GameScriptWorkspace(
         {
             await File.WriteAllTextAsync(scriptPath, scriptContent);
             _scriptSources[scriptName] = scriptContent;
-            _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
 
             var (success, errors) = TryCompileAllScripts();
             if (success)
@@ -76,8 +73,6 @@ public sealed class GameScriptWorkspace(
                 File.Delete(scriptPath);
 
             _scriptSources.Remove(scriptName);
-            _scriptLastModified.Remove(scriptName);
-
             CompileAllScripts();
             return true;
         }
@@ -86,64 +81,6 @@ public sealed class GameScriptWorkspace(
             Logger.Error(ex, "Error deleting script '{ScriptName}'", scriptName);
             return false;
         }
-    }
-
-    public void EnableHybridDebugging(bool enable = true)
-    {
-        _debugMode = enable;
-
-        if (enable)
-        {
-            Logger.Information("Hybrid debugging enabled - engine + scripts");
-            CompileAllScripts();
-        }
-    }
-
-    public bool SaveDebugSymbols(string outputPath, string assemblyName = "GameAssembly")
-    {
-        try
-        {
-            if (!_debugSymbols.TryGetValue(assemblyName, out var symbols))
-                return false;
-
-            File.WriteAllBytes($"{outputPath}.pdb", symbols);
-
-            var assembly = scriptEngine.GetLoadedGameAssembly();
-            if (assembly is not null && !string.IsNullOrEmpty(assembly.Location))
-                File.Copy(assembly.Location, $"{outputPath}.dll", true);
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to save debug symbols to {OutputPath}", outputPath);
-            return false;
-        }
-    }
-
-    public void PrintDebugInfo()
-    {
-        var assembly = scriptEngine.GetLoadedGameAssembly();
-        var scriptCount = assembly?.GetTypes()
-            .Count(t => typeof(ScriptableEntity).IsAssignableFrom(t) && !t.IsAbstract) ?? 0;
-
-        Logger.Debug("=== SCRIPT WORKSPACE DEBUG INFO === DebugMode: {DebugMode}, ScriptsDirectory: {ScriptsDirectory}, Loaded Scripts: {ScriptCount}",
-            _debugMode, _scriptsDirectory, scriptCount);
-
-        if (assembly is not null)
-        {
-            foreach (var type in assembly.GetTypes())
-            {
-                if (typeof(ScriptableEntity).IsAssignableFrom(type) && !type.IsAbstract)
-                    Logger.Debug("  - {ScriptName}: {TypeFullName}", type.Name, type.FullName);
-            }
-
-            Logger.Debug("Assembly Location: {AssemblyLocation}", assembly.Location);
-            Logger.Debug("Assembly Full Name: {AssemblyFullName}", assembly.FullName);
-        }
-
-        Logger.Debug("Debug Symbols Available: {DebugSymbolsAvailable}", _debugSymbols.Count > 0);
-        Logger.Debug("===================================");
     }
 
     public void CompileAllScripts()
@@ -161,7 +98,6 @@ public sealed class GameScriptWorkspace(
         if (string.IsNullOrEmpty(_scriptsDirectory) || string.IsNullOrEmpty(_outputDllPath))
             return (false, ["Scripts directory not configured"]);
 
-        Logger.Information("Compiling all scripts to {GameAssembly}...", GameAssemblyCompiler.AssemblyName);
         if (!Directory.Exists(_scriptsDirectory))
         {
             var error = $"Scripts directory does not exist: {_scriptsDirectory}";
@@ -169,19 +105,7 @@ public sealed class GameScriptWorkspace(
             return (false, [error]);
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(_outputDllPath)!);
-        if (!builder.TryBuild(_scriptsDirectory, _outputDllPath, _debugMode, out var errors))
-            return (false, errors);
-
-        if (_debugMode && File.Exists(Path.ChangeExtension(_outputDllPath, ".pdb")))
-            _debugSymbols[GameAssemblyCompiler.AssemblyName] = File.ReadAllBytes(Path.ChangeExtension(_outputDllPath, ".pdb")!);
-
-        IndexScriptSourcesFromDisk();
-        LoadGameAssemblyFromFile(_outputDllPath, _scriptsDirectory);
-
-        return scriptEngine.GetLoadedGameAssembly() is null
-            ? (false, ["Failed to load compiled game assembly"])
-            : (true, []);
+        return ReloadGameAssembly(compile: true, dllPath: _outputDllPath);
     }
 
     public Type? GetLoadedGameType(string typeName)
@@ -200,17 +124,41 @@ public sealed class GameScriptWorkspace(
 
     public void EnsureScriptsCompiledAndApplied()
     {
-        if (GetLoadedGameAssembly() is null)
-            TryCompileAllScripts();
-        else if (GetLoadedGameAssembly() is { } assembly)
+        if (GetLoadedGameAssembly() is { } assembly && IsCurrentProjectAssembly(assembly))
             ApplyLoadedAssembly(assembly);
+        else
+            TryCompileAllScripts();
+    }
+
+    public void RestoreEditAssembly()
+    {
+        if (string.IsNullOrEmpty(_scriptsDirectory))
+            return;
+
+        TryCompileAllScripts();
     }
 
     public void LoadGameAssemblyFromFile(string dllPath, string scriptsDirectory)
     {
-        scriptEngine.LoadGameAssemblyFromFile(dllPath, scriptsDirectory);
-        if (scriptEngine.GetLoadedGameAssembly() is { } assembly)
-            ApplyLoadedAssembly(assembly);
+        _scriptsDirectory = scriptsDirectory;
+        ReloadGameAssembly(compile: false, dllPath: Path.GetFullPath(dllPath));
+    }
+
+    public void RevokeAppliedAssembly()
+    {
+        if (_appliedAssembly is null)
+            return;
+
+        componentSerializerRegistry.UnregisterAssembly(_appliedAssembly);
+        revokeGameAssemblyRegistrations(_appliedAssembly);
+        _appliedAssembly = null;
+        _appliedAssemblyKey = null;
+    }
+
+    public void RevokeAndUnload()
+    {
+        RevokeAppliedAssembly();
+        scriptEngine.UnloadGameAssembly();
     }
 
     public void ApplyLoadedAssembly(Assembly assembly)
@@ -234,6 +182,7 @@ public sealed class GameScriptWorkspace(
                 Logger.Debug("Game assembly at {Key} has no types marked with [Register]", key);
 
             componentSerializerRegistry.RegisterFromAssembly(assembly);
+            _appliedAssembly = assembly;
             _appliedAssemblyKey = key;
             Logger.Information("Applied loaded game assembly: {Key}", key);
         }
@@ -246,8 +195,7 @@ public sealed class GameScriptWorkspace(
     public void ForceRecompile(IContext context, ScriptRuntimeStore store)
     {
         Logger.Information("Force recompiling scripts...");
-        CompileAllScripts();
-        NativeScriptIteration.Refresh(context, scriptEngine, store);
+        ReloadGameAssembly(compile: true, dllPath: _outputDllPath, context: context, store: store);
     }
 
     public string[] GetAvailableScriptNames()
@@ -321,10 +269,61 @@ public sealed class GameScriptWorkspace(
           }
           """;
 
+    private (bool Success, string[] Errors) ReloadGameAssembly(
+        bool compile,
+        string dllPath,
+        IContext? context = null,
+        ScriptRuntimeStore? store = null)
+    {
+        if (context is not null && store is not null)
+        {
+            NativeScriptIteration.Shutdown(context, store);
+            store.Clear();
+        }
+
+        RevokeAppliedAssembly();
+        scriptEngine.UnloadGameAssembly();
+
+        if (compile)
+        {
+            Logger.Information("Compiling all scripts to {GameAssembly}...", GameAssemblyCompiler.AssemblyName);
+            var engineDir = Path.GetDirectoryName(dllPath)!;
+            Directory.CreateDirectory(engineDir);
+            dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
+            if (!builder.TryBuild(_scriptsDirectory, dllPath, DebugMode, DebugMode, out var errors))
+                return (false, errors);
+
+            IndexScriptSourcesFromDisk();
+        }
+
+        scriptEngine.LoadGameAssemblyFromFile(dllPath);
+        if (scriptEngine.GetLoadedGameAssembly() is not { } assembly)
+            return (false, ["Failed to load compiled game assembly"]);
+
+        ApplyLoadedAssembly(assembly);
+
+        if (context is not null && store is not null)
+            NativeScriptIteration.Refresh(context, scriptEngine, store);
+
+        return (true, []);
+    }
+
+    private bool IsCurrentProjectAssembly(Assembly assembly)
+    {
+        if (string.IsNullOrEmpty(assembly.Location) || string.IsNullOrEmpty(_outputDllPath))
+            return false;
+
+        var engineDir = Path.GetDirectoryName(_outputDllPath);
+        if (string.IsNullOrEmpty(engineDir))
+            return false;
+
+        var loadedDir = Path.GetDirectoryName(Path.GetFullPath(assembly.Location));
+        return string.Equals(loadedDir, Path.GetFullPath(engineDir), StringComparison.OrdinalIgnoreCase);
+    }
+
     private void IndexScriptSourcesFromDisk()
     {
         _scriptSources.Clear();
-        _scriptLastModified.Clear();
         if (!Directory.Exists(_scriptsDirectory))
             return;
 
@@ -334,7 +333,6 @@ public sealed class GameScriptWorkspace(
             try
             {
                 _scriptSources[scriptName] = File.ReadAllText(scriptPath, System.Text.Encoding.UTF8);
-                _scriptLastModified[scriptName] = File.GetLastWriteTime(scriptPath);
             }
             catch (Exception ex)
             {
