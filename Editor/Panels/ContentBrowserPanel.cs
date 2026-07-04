@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Editor.Features.Components;
-using Editor.Features.Project;
+using Engine.Core;
 using Editor.Features.Scripting;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -21,7 +21,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
     private static readonly ILogger Logger = Log.ForContext<ContentBrowserPanel>();
 
     private readonly ITextureFactory _textureFactory;
-    private readonly IProjectManager _projectManager;
+    private readonly IProjectContext _projectContext;
     private readonly GameScriptWorkspace _scriptWorkspace;
     private readonly IGameComponentFactory _gameComponentFactory;
     private string _assetPath;
@@ -42,12 +42,12 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     public ContentBrowserPanel(
         ITextureFactory textureFactory,
-        IProjectManager projectManager,
+        IProjectContext projectContext,
         GameScriptWorkspace scriptWorkspace,
         IGameComponentFactory gameComponentFactory)
     {
         _textureFactory = textureFactory;
-        _projectManager = projectManager;
+        _projectContext = projectContext;
         _scriptWorkspace = scriptWorkspace;
         _gameComponentFactory = gameComponentFactory;
         _currentDirectory = Environment.CurrentDirectory;
@@ -145,7 +145,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     private bool CanCreateScriptAssets(string directoryPath)
     {
-        if (_projectManager.ScriptsDir is not { } scriptsDir)
+        if (_projectContext.ScriptsDir is not { } scriptsDir)
             return false;
 
         var fullDir = Path.GetFullPath(directoryPath);
@@ -301,7 +301,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     private async Task<(bool Success, string? Error)> CreateScriptAsync(string scriptName)
     {
-        if (_projectManager.ScriptsDir is null)
+        if (_projectContext.ScriptsDir is null)
             return (false, "Open a project first.");
 
         var template = _scriptWorkspace.GenerateScriptTemplate(scriptName);
@@ -311,7 +311,7 @@ public class ContentBrowserPanel : IContentBrowserPanel
 
     private async Task<(bool Success, string? Error)> CreateSystemAsync(string baseName)
     {
-        if (_projectManager.ScriptsDir is not { } scriptsDir)
+        if (_projectContext.ScriptsDir is not { } scriptsDir)
             return (false, "Open a project first.");
 
         var className = GameSystemTemplates.ToClassName(baseName);

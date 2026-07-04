@@ -120,7 +120,6 @@ public class Program
             Reuse.Singleton);
 
         container.ValidateAndThrow();
-        PathBuilder.UseProjectContext(container.Resolve<IProjectContext>());
     }
 
     private static void RegisterGameAssembly(Container container, GameConfiguration gameConfig)

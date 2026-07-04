@@ -1,5 +1,5 @@
 using ECS;
-using Editor.Features.Project;
+using Engine.Core;
 using Editor.Features.Scripting;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
@@ -8,7 +8,7 @@ using Serilog;
 namespace Editor.Features.Components;
 
 public class GameComponentFactory(
-    IProjectManager projectManager,
+    IProjectContext projectContext,
     GameScriptWorkspace scriptWorkspace,
     IComponentSerializerRegistry serializerRegistry)
     : IGameComponentFactory
@@ -19,7 +19,7 @@ public class GameComponentFactory(
     {
         var names = new HashSet<string>(StringComparer.Ordinal);
 
-        if (projectManager.ScriptsDir is { } scriptsDir)
+        if (projectContext.ScriptsDir is { } scriptsDir)
         {
             foreach (var name in GameComponentDiscovery.DiscoverFromScriptsDir(scriptsDir))
                 names.Add(name);
@@ -39,7 +39,7 @@ public class GameComponentFactory(
 
     public async Task<(bool Success, string? Error)> CreateFileAsync(string baseName)
     {
-        var scriptsDir = projectManager.ScriptsDir;
+        var scriptsDir = projectContext.ScriptsDir;
         if (scriptsDir is null)
             return (false, "Open a project first.");
 
@@ -88,7 +88,7 @@ public class GameComponentFactory(
 
     public (bool Success, string? Error) AttachExisting(Entity entity, string typeName)
     {
-        if (projectManager.ScriptsDir is null)
+        if (projectContext.ScriptsDir is null)
             return (false, "Open a project first.");
 
         if (!DiscoverComponentNames().Contains(typeName))

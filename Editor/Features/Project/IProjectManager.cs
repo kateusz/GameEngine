@@ -2,15 +2,9 @@ namespace Editor.Features.Project;
 
 public interface IProjectManager
 {
-    string? CurrentProjectDirectory { get; }
+    event Action? ProjectOpened;
 
-    string? ScriptsDir { get; }
-
-    string? ScenesDir { get; }
-
-    bool IsProjectLoaded { get; }
-
-    event Action<ProjectPaths>? ProjectOpened;
+    event Action? ProjectClosing;
 
     event Action? ProjectClosed;
 

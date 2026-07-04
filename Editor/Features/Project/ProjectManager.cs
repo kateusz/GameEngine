@@ -1,9 +1,6 @@
-using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Scripting;
 using Engine.Core;
-using Engine.Scene;
-using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Features.Project;
@@ -12,10 +9,7 @@ public class ProjectManager(
     IEditorPreferences editorPreferences,
     IProjectContext projectContext,
     GameScriptWorkspace scriptWorkspace,
-    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper,
-    IScriptEngine scriptEngine,
-    ISceneContext sceneContext,
-    Lazy<ISceneManager> sceneManager)
+    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper)
     : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
@@ -29,16 +23,9 @@ public class ProjectManager(
         Path.Combine("assets", "prefabs")
     ];
 
-    public event Action<ProjectPaths>? ProjectOpened;
+    public event Action? ProjectOpened;
+    public event Action? ProjectClosing;
     public event Action? ProjectClosed;
-
-    public string? CurrentProjectDirectory => projectContext.Root;
-
-    public string? ScriptsDir => projectContext.ScriptsDir;
-
-    public string? ScenesDir => projectContext.ScenesDir;
-
-    public bool IsProjectLoaded => projectContext.HasProject;
 
     public bool IsValidProjectName(string? name)
     {
@@ -167,10 +154,7 @@ public class ProjectManager(
         if (!projectContext.HasProject)
             return;
 
-        if (sceneContext.State == SceneState.Play)
-            sceneManager.Value.Stop();
-
-        scriptEngine.UnloadGameAssembly();
+        ProjectClosing?.Invoke();
         projectContext.Clear();
         ProjectClosed?.Invoke();
     }
@@ -178,12 +162,7 @@ public class ProjectManager(
     private void ApplyProjectPaths(string projectDir)
     {
         projectContext.Apply(projectDir);
-        var paths = new ProjectPaths(
-            projectContext.Root!,
-            projectContext.AssetsPath,
-            projectContext.ScriptsDir!,
-            projectContext.ScenesDir!);
-        ProjectOpened?.Invoke(paths);
+        ProjectOpened?.Invoke();
     }
 
     private void InitializeScripts()

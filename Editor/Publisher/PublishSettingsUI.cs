@@ -1,4 +1,3 @@
-using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -9,7 +8,7 @@ namespace Editor.Publisher;
 
 public class PublishSettingsUI(
     IGamePublisher gamePublisher,
-    IProjectManager projectManager,
+    IProjectContext projectContext,
     ISceneManager sceneManager)
 {
     private bool _showPublishModal;
@@ -203,7 +202,7 @@ public class PublishSettingsUI(
 
     private async Task StartPublish()
     {
-        if (projectManager.CurrentProjectDirectory == null)
+        if (projectContext.Root == null)
         {
             _errorMessage = "No project is currently loaded.";
             return;
@@ -223,7 +222,7 @@ public class PublishSettingsUI(
         // Create publish settings
         var settings = new PublishSettings
         {
-            OutputPath = ResolveOutputPath(projectManager.CurrentProjectDirectory),
+            OutputPath = ResolveOutputPath(projectContext.Root),
             RuntimeIdentifier = _selectedPlatform,
             SelfContained = _selfContained,
             SingleFile = _singleFile,
@@ -233,8 +232,8 @@ public class PublishSettingsUI(
         // Create game configuration
         var gameConfig = new GameConfiguration
         {
-            GameTitle = new DirectoryInfo(projectManager.CurrentProjectDirectory).Name,
-            StartupScenePath = Path.GetRelativePath(projectManager.CurrentProjectDirectory, currentScene)
+            GameTitle = new DirectoryInfo(projectContext.Root).Name,
+            StartupScenePath = Path.GetRelativePath(projectContext.Root, currentScene)
                 .Replace('\\', '/'),
             WindowWidth = 1920,
             WindowHeight = 1080

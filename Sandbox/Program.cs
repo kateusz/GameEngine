@@ -1,7 +1,6 @@
 ﻿using DryIoc;
 using Engine.Core;
 using Engine.Core.DI;
-using Engine.Scene.Serializer;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
 using Ui.ImGui.DI;
@@ -69,6 +68,5 @@ public class Program
         container.Register<ILayer, Sandbox3DLayer>(Reuse.Singleton);
 
         container.ValidateAndThrow();
-        PathBuilder.UseProjectContext(container.Resolve<IProjectContext>());
     }
 }

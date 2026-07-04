@@ -1,7 +1,7 @@
 using ECS;
+using Editor.Features.Scripting;
 using Editor.Features.Project;
 using Editor.Features.Scene;
-using Editor.Features.Scripting;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
@@ -22,6 +22,7 @@ public class EditorLifecycle(
     DebugSettings debugSettings,
     ISceneContext sceneContext,
     ISceneManager sceneManager,
+    IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace,
     ShortcutManager shortcutManager,
     EditorShortcutRegistrar shortcutRegistrar,
@@ -37,15 +38,23 @@ public class EditorLifecycle(
     private Action _stopSceneHandler = null!;
     private Action _restartSceneHandler = null!;
     private Action<Entity?, SelectionSource> _selectionChangedHandler = null!;
-    private Action<ProjectPaths> _projectOpenedHandler = null!;
+    private Action _projectOpenedHandler = null!;
+    private Action _projectClosingHandler = null!;
     private Action _projectClosedHandler = null!;
 
     public void Attach(IInputSystem inputSystem)
     {
         Logger.Debug("EditorLifecycle Attach.");
 
-        _projectOpenedHandler = paths =>
-            panels.ContentBrowserPanel.SetRootDirectory(paths.AssetsDir);
+        _projectClosingHandler = () =>
+        {
+            if (sceneContext.State == SceneState.Play)
+                sceneManager.Stop();
+            scriptEngine.UnloadGameAssembly();
+        };
+
+        _projectOpenedHandler = () =>
+            panels.ContentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
 
         _projectClosedHandler = () =>
         {
@@ -53,6 +62,7 @@ public class EditorLifecycle(
             sceneManager.New("");
         };
 
+        projectManager.ProjectClosing += _projectClosingHandler;
         projectManager.ProjectOpened += _projectOpenedHandler;
         projectManager.ProjectClosed += _projectClosedHandler;
 
@@ -62,9 +72,6 @@ public class EditorLifecycle(
 
             if (string.IsNullOrWhiteSpace(newScene.Name))
                 return;
-
-            if (projectManager.CurrentProjectDirectory is { } projectDir && projectManager.ScriptsDir is { } scriptsDir)
-                scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
 
 #if DEBUG
             scriptWorkspace.EnableHybridDebugging(true);
@@ -106,6 +113,7 @@ public class EditorLifecycle(
     {
         Logger.Debug("EditorLifecycle Detach.");
 
+        projectManager.ProjectClosing -= _projectClosingHandler;
         projectManager.ProjectOpened -= _projectOpenedHandler;
         projectManager.ProjectClosed -= _projectClosedHandler;
         sceneContext.SceneChanged -= _sceneChangedHandler;

@@ -1,7 +1,6 @@
 using System.Text.Json;
 using ECS;
 using ECS.Systems;
-using Editor.Features.Project;
 using Editor.Features.Scripting;
 using Engine.Core;
 using Engine.Scene;
@@ -17,7 +16,7 @@ public class SceneManager(
     SceneFactory sceneFactory,
     Func<string, bool> ensureGameAssemblyRegistered,
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
-    IProjectManager projectManager,
+    IProjectContext projectContext,
     IGameAssemblyBuilder gameAssemblyBuilder,
     IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace,
@@ -50,7 +49,7 @@ public class SceneManager(
         EditorScenePath = path;
         sceneContext.SetScene(sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path)));
 
-        if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
+        if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
         {
             if (scriptWorkspace.GetLoadedGameAssembly() is null)
                 scriptWorkspace.TryCompileAllScripts();
@@ -78,23 +77,23 @@ public class SceneManager(
 
     public void Play()
     {
-        if (string.IsNullOrEmpty(projectManager.CurrentProjectDirectory) || projectManager.ScriptsDir is null)
+        if (string.IsNullOrEmpty(projectContext.Root) || projectContext.ScriptsDir is null)
         {
             Logger.Warning("No project or scripts directory — open a project before Play.");
             return;
         }
 
-        var engineDir = Path.Combine(projectManager.CurrentProjectDirectory, ".engine");
+        var engineDir = Path.Combine(projectContext.Root, ".engine");
         Directory.CreateDirectory(engineDir);
         var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
-        if (!gameAssemblyBuilder.TryBuild(projectManager.ScriptsDir, dllPath, emitPdb: true, out var buildErrors))
+        if (!gameAssemblyBuilder.TryBuild(projectContext.ScriptsDir, dllPath, emitPdb: true, out var buildErrors))
         {
             foreach (var e in buildErrors)
                 Logger.Error("Game script build: {Error}", e);
             return;
         }
 
-        scriptEngine.LoadGameAssemblyFromFile(dllPath, projectManager.ScriptsDir);
+        scriptEngine.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
         scriptEngine.SetSuppressFileChangeRecompile(true);
 
         EnsureGameAssemblyRegistered(dllPath);
@@ -117,8 +116,8 @@ public class SceneManager(
         sceneContext.SetState(SceneState.Edit);
         sceneContext.ActiveScene.OnRuntimeStop();
         scriptEngine.SetSuppressFileChangeRecompile(false);
-        if (!string.IsNullOrEmpty(projectManager.ScriptsDir) && projectManager.CurrentProjectDirectory is { } projectDir)
-            scriptWorkspace.SetScriptsDirectory(projectManager.ScriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
+        if (projectContext.ScriptsDir is { } scriptsDir && projectContext.Root is { } projectDir)
+            scriptWorkspace.SetScriptsDirectory(scriptsDir, GameScriptWorkspace.ResolveEditorDllPath(projectDir));
 
         if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
             Open(EditorScenePath);
@@ -181,11 +180,11 @@ public class SceneManager(
     {
         try
         {
-            var projectDir = projectManager.CurrentProjectDirectory;
+            var projectDir = projectContext.Root;
             if (string.IsNullOrWhiteSpace(projectDir))
                 return string.Empty;
 
-            if (!string.IsNullOrEmpty(projectManager.ScriptsDir))
+            if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
             {
                 var engineDir = Path.Combine(projectDir, ".engine");
                 if (Directory.Exists(engineDir))

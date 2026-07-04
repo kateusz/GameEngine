@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Editor.Features.Project;
 using Engine.Core;
 using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Publisher;
 
-public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder gameAssemblyBuilder) : IGamePublisher
+public class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder gameAssemblyBuilder) : IGamePublisher
 {
     private static readonly ILogger Logger = Log.ForContext<GamePublisher>();
 
@@ -137,7 +136,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
             }
 
             ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
-            var scriptsSource = projectManager.ScriptsDir!;
+            var scriptsSource = projectContext.ScriptsDir!;
             var gameDllPath = Path.Combine(tempOutputPath, "GameAssembly.dll");
             if (!gameAssemblyBuilder.TryBuild(scriptsSource, gameDllPath, emitPdb: false, out var scriptBuildErrors))
             {
@@ -259,7 +258,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
 
     private PublishResult ValidateProject()
     {
-        if (projectManager.ScriptsDir is null || projectManager.ScenesDir is null)
+        if (projectContext.ScriptsDir is null || projectContext.ScenesDir is null)
         {
             const string error = "No project is currently loaded. Please open a project before publishing.";
             Logger.Warning(error);
@@ -287,7 +286,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
 
     private PublishResult ValidateStartupScene(GameConfiguration gameConfig)
     {
-        var startupScenePath = Path.Combine(projectManager.CurrentProjectDirectory!, gameConfig.StartupScenePath);
+        var startupScenePath = Path.Combine(projectContext.Root!, gameConfig.StartupScenePath);
         if (File.Exists(startupScenePath))
             return new PublishResult { Success = true };
 
@@ -297,7 +296,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
     }
 
     private string GetDefaultOutputPath()
-        => Path.Combine(projectManager.CurrentProjectDirectory ?? Environment.CurrentDirectory, "Builds");
+        => Path.Combine(projectContext.Root ?? Environment.CurrentDirectory, "Builds");
 
     private async Task<PublishResult> BuildRuntimeAsync(
         PublishSettings settings,
@@ -466,13 +465,13 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
 
     private PublishResult CopyAssets(string buildOutput, PublishSettings settings)
     {
-        if (projectManager.CurrentProjectDirectory is null)
+        if (projectContext.Root is null)
         {
             Logger.Warning("No project directory available for asset copying");
             return new PublishResult { Success = true };
         }
 
-        var assetsSource = Path.Combine(projectManager.CurrentProjectDirectory, "assets");
+        var assetsSource = Path.Combine(projectContext.Root, "assets");
         if (!Directory.Exists(assetsSource))
         {
             Logger.Information("No assets directory found at {Path}, skipping asset copy", assetsSource);
@@ -498,7 +497,7 @@ public class GamePublisher(IProjectManager projectManager, IGameAssemblyBuilder 
 
     private PublishResult CopyScripts(string buildOutput)
     {
-        var scriptsSource = projectManager.ScriptsDir;
+        var scriptsSource = projectContext.ScriptsDir;
         if (scriptsSource is null || !Directory.Exists(scriptsSource))
         {
             Logger.Information("No scripts directory found, skipping script copy");

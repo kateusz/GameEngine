@@ -1,8 +1,6 @@
 ﻿using DryIoc;
 using ECS;
-using Engine.Core;
 using Engine.Core.DI;
-using Engine.Scene.Serializer;
 using Serilog;
 using Ui.ImGui.DI;
 
@@ -22,7 +20,6 @@ public class Program
             container.Register<BenchmarkLayer>(Reuse.Singleton);
             container.Register<BenchmarkApplication>(Reuse.Singleton);
             container.ValidateAndThrow();
-            PathBuilder.UseProjectContext(container.Resolve<IProjectContext>());
 
             var layer = container.Resolve<BenchmarkLayer>();
             var app = container.Resolve<BenchmarkApplication>();
