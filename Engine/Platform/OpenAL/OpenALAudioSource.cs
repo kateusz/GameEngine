@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using Audio;
 using Engine.Audio;
 using Engine.Platform.OpenAL.Effects;
-using SceneComponents.Audio;
 using Serilog;
 using Silk.NET.OpenAL;
 

@@ -127,6 +127,8 @@ public abstract class Application : IApplication
         for (var index = _layersStack.Count - 1; index >= 0; index--)
             _layersStack[index].OnUpdate(elapsed);
 
+        _audio.Update(elapsed);
+
         _frameCompositor?.BeginFrame(elapsed);
 
         for (var index = _layersStack.Count - 1; index >= 0; index--)

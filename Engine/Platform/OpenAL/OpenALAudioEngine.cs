@@ -10,7 +10,9 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioEngine>();
 
-    private readonly Dictionary<string, IAudioClip> _loadedClips = new();
+    private readonly Dictionary<string, WeakReference<IAudioClip>> _loadedClips = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Lock _cacheLock = new();
+    private readonly List<IAudioSource> _oneShots = [];
 
     private Device* _device;
     private Context* _context;
@@ -29,7 +31,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
                 _isAvailable = false;
                 return;
             }
-            
+
             _context = alc.CreateContext(_device, null);
             if (_context == null)
             {
@@ -42,16 +44,14 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
             alc.MakeContextCurrent(_context);
 
-            // Set basic parameters
             al.SetListenerProperty(ListenerFloat.Gain, 1.0f);
             al.SetListenerProperty(ListenerVector3.Position, 0.0f, 0.0f, 0.0f);
             al.SetListenerProperty(ListenerVector3.Velocity, 0.0f, 0.0f, 0.0f);
 
-            // Set listener orientation (forward vector and up vector)
             var orientation = new[]
             {
-                0.0f, 0.0f, -1.0f, // Forward
-                0.0f, 1.0f, 0.0f // Up
+                0.0f, 0.0f, -1.0f,
+                0.0f, 1.0f, 0.0f
             };
 
             fixed (float* ptr = orientation)
@@ -73,6 +73,19 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
         }
     }
 
+    public void Update(TimeSpan deltaTime)
+    {
+        for (var i = _oneShots.Count - 1; i >= 0; i--)
+        {
+            var source = _oneShots[i];
+            if (source.IsPlaying)
+                continue;
+
+            source.Dispose();
+            _oneShots.RemoveAt(i);
+        }
+    }
+
     private void Shutdown()
     {
         if (!_isAvailable)
@@ -80,10 +93,13 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
         try
         {
-            foreach (var source in _activeSources.ToArray())
-            {
+            foreach (var source in _oneShots.ToArray())
                 source.Dispose();
-            }
+
+            _oneShots.Clear();
+
+            foreach (var source in _activeSources.ToArray())
+                source.Dispose();
 
             _activeSources.Clear();
             if (_context != null)
@@ -98,7 +114,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
                 alc.CloseDevice(_device);
                 _device = null;
             }
-            
+
             Logger.Information("SilkNet AudioEngine shut down");
         }
         catch (Exception ex)
@@ -126,24 +142,55 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
     }
 
     private void UnregisterSource(OpenALAudioSource source) => _activeSources.Remove(source);
-    
+
     public IAudioClip LoadAudioClip(string path)
     {
-        if (_loadedClips.TryGetValue(path, out var existingClip))
-            return existingClip;
+        var normalizedPath = Path.GetFullPath(path);
 
-        var clip = CreateAudioClip(path);
-        clip.Load();
-        _loadedClips[path] = clip;
-        return clip;
+        lock (_cacheLock)
+        {
+            if (_loadedClips.TryGetValue(normalizedPath, out var weakRef))
+            {
+                if (weakRef.TryGetTarget(out var cachedClip))
+                    return cachedClip;
+
+                _loadedClips.Remove(normalizedPath);
+            }
+
+            var clip = CreateAudioClip(normalizedPath);
+            clip.Load();
+            _loadedClips[normalizedPath] = new WeakReference<IAudioClip>(clip);
+            return clip;
+        }
     }
 
     public void UnloadAudioClip(string path)
     {
-        if (_loadedClips.TryGetValue(path, out var clip))
+        var normalizedPath = Path.GetFullPath(path);
+
+        lock (_cacheLock)
         {
-            clip.Unload();
-            _loadedClips.Remove(path);
+            if (!_loadedClips.TryGetValue(normalizedPath, out var weakRef))
+                return;
+
+            if (weakRef.TryGetTarget(out var clip))
+                clip.Unload();
+
+            _loadedClips.Remove(normalizedPath);
+        }
+    }
+
+    public void ClearClipCache()
+    {
+        lock (_cacheLock)
+        {
+            foreach (var weakRef in _loadedClips.Values)
+            {
+                if (weakRef.TryGetTarget(out var clip))
+                    clip.Unload();
+            }
+
+            _loadedClips.Clear();
         }
     }
 
@@ -158,18 +205,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
         source.Clip = clip;
         source.Volume = volume;
         source.Play();
-
-        // Automatically remove source after playback finishes
-        Timer timer = null!;
-        timer = new Timer(
-            callback: _ => {
-                source.Dispose();
-                timer?.Dispose();
-            },
-            state: null,
-            dueTime: TimeSpan.FromSeconds(clip.Duration),
-            period: Timeout.InfiniteTimeSpan
-        );
+        _oneShots.Add(source);
     }
 
     public void SetListenerPosition(Vector3 position)
@@ -180,7 +216,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
         al.SetListenerProperty(ListenerVector3.Position, position.X, position.Y, position.Z);
     }
 
-    public void SetListenerOrientation(Vector3 forward, System.Numerics.Vector3 up)
+    public void SetListenerOrientation(Vector3 forward, Vector3 up)
     {
         if (!_isAvailable)
             return;
@@ -195,26 +231,16 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
         al.SetListenerProperty(ListenerFloatArray.Orientation, orientation);
     }
-    
+
     public void Dispose()
     {
         if (_disposed)
             return;
-        
-        ClearLoadedClips();
+
+        ClearClipCache();
         Shutdown();
 
         _disposed = true;
         GC.SuppressFinalize(this);
-    }
-    
-    private void ClearLoadedClips()
-    {
-        foreach (var clip in _loadedClips.Values)
-        {
-            clip.Unload();
-        }
-
-        _loadedClips.Clear();
     }
 }

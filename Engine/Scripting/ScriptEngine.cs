@@ -21,6 +21,7 @@ internal sealed class ScriptEngine : IScriptEngine
     private readonly Dictionary<string, string> _scriptSources = new();
     private readonly ISceneContext _sceneContext;
     private readonly IAudio _audio;
+    private readonly IAudioPlayback _audioPlayback;
     private string _scriptsDirectory;
     private Assembly? _dynamicAssembly;
 
@@ -28,10 +29,11 @@ internal sealed class ScriptEngine : IScriptEngine
     private bool _debugMode = true;
     private bool _suppressFileChangeRecompile;
 
-    public ScriptEngine(ISceneContext sceneContext, IAudio audio)
+    public ScriptEngine(ISceneContext sceneContext, IAudio audio, IAudioPlayback audioPlayback)
     {
         _sceneContext = sceneContext;
         _audio = audio;
+        _audioPlayback = audioPlayback;
         _scriptsDirectory = Path.Combine(Environment.CurrentDirectory, "assets", "scripts");
         Directory.CreateDirectory(_scriptsDirectory);
     }
@@ -233,7 +235,7 @@ internal sealed class ScriptEngine : IScriptEngine
         try
         {
             var componentAccessor = new ComponentAccessor();
-            return Activator.CreateInstance(scriptType, componentAccessor, _audio) is ScriptableEntity instance
+            return Activator.CreateInstance(scriptType, componentAccessor, _audio, _audioPlayback) is ScriptableEntity instance
                 ? Result.Success(instance)
                 : Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}");
         }
@@ -610,7 +612,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
                  public class {{scriptName}} : ScriptableEntity
                  {
-                    public {{scriptName}}(IComponentAccessor componentAccessor, IAudio audio) : base(componentAccessor, audio) {}
+                    public {{scriptName}}(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback) : base(componentAccessor, audio, audioPlayback) {}
                  
                      public override void OnCreate()
                      {

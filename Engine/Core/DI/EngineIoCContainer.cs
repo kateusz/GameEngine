@@ -48,6 +48,8 @@ public static class EngineIoCContainer
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);
         container.Register<IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
+        container.Register<AudioPlaybackService>(Reuse.Singleton);
+        container.RegisterMapping<IAudioPlayback, AudioPlaybackService>();
 
         container.Register<SceneFactory>(Reuse.Singleton);
         container.Register<IPhysicsBackendConfig>(Reuse.Singleton,

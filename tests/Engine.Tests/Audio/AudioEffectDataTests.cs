@@ -5,20 +5,20 @@ using Shouldly;
 
 namespace Engine.Tests.Audio;
 
-public class AudioEffectConfigTests
+public class AudioEffectDataTests
 {
     [Fact]
-    public void AudioEffectConfig_Serializes_RoundTrip()
+    public void AudioEffectData_Serializes_RoundTrip()
     {
-        var config = new AudioEffectConfig
+        var data = new AudioEffectData
         {
             Type = AudioEffectType.Reverb,
             Enabled = true,
             Amount = 0.7f
         };
 
-        var json = JsonSerializer.Serialize(config);
-        var deserialized = JsonSerializer.Deserialize<AudioEffectConfig>(json);
+        var json = JsonSerializer.Serialize(data);
+        var deserialized = JsonSerializer.Deserialize<AudioEffectData>(json);
 
         deserialized.ShouldNotBeNull();
         deserialized.Type.ShouldBe(AudioEffectType.Reverb);
@@ -27,13 +27,13 @@ public class AudioEffectConfigTests
     }
 
     [Fact]
-    public void AudioEffectConfig_DefaultValues_AreCorrect()
+    public void AudioEffectData_DefaultValues_AreCorrect()
     {
-        var config = new AudioEffectConfig();
+        var data = new AudioEffectData();
 
-        config.Type.ShouldBe(AudioEffectType.Reverb);
-        config.Enabled.ShouldBeTrue();
-        config.Amount.ShouldBe(0.5f);
+        data.Type.ShouldBe(AudioEffectType.Reverb);
+        data.Enabled.ShouldBeTrue();
+        data.Amount.ShouldBe(0.5f);
     }
 
     [Fact]
@@ -51,11 +51,9 @@ public class AudioEffectConfigTests
 
         var clone = (AudioSourceComponent)original.Clone();
 
-        // Modify clone's effects
         clone.Effects[0].Amount = 0.1f;
         clone.Effects.RemoveAt(1);
 
-        // Original should be unchanged
         clone.Effects[0].Amount.ShouldBe(0.1f);
         clone.Effects.Count.ShouldBe(1);
         original.Effects[0].Amount.ShouldBe(0.7f);

@@ -7,7 +7,7 @@ namespace TicTacToe;
 
 public class GameControllerScript : ScriptableEntity
 {
-    public GameControllerScript(IComponentAccessor accessor, IAudio audio) : base(accessor, audio) { }
+    public GameControllerScript(IComponentAccessor accessor, IAudio audio, IAudioPlayback audioPlayback) : base(accessor, audio, audioPlayback) { }
 
     public override void OnKeyPressed(KeyCodes key)
     {

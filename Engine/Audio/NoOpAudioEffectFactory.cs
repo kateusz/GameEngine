@@ -1,4 +1,4 @@
-using SceneComponents.Audio;
+using Audio;
 
 namespace Engine.Audio;
 

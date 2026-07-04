@@ -17,13 +17,15 @@ public abstract class ScriptableEntity
     /// </summary>
     private IEntity? _entity;
 
-    protected ScriptableEntity(IComponentAccessor componentAccessor, IAudio audio)
+    protected ScriptableEntity(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback)
     {
         _componentAccessor = componentAccessor;
         Audio = audio;
+        AudioPlayback = audioPlayback;
     }
 
     protected IAudio Audio { get; }
+    protected IAudioPlayback AudioPlayback { get; }
 
     public void SetEntity(Entity entity)
     {

@@ -3,14 +3,13 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Engine.Scene.Serializer;
 using ImGuiNET;
 using SceneComponents.Audio;
 using ZLinq;
 
 namespace Editor.ComponentEditors;
 
-public class AudioSourceComponentEditor(IAudio audio, AudioDropTarget audioDropTarget) : IComponentEditor
+public class AudioSourceComponentEditor(IAudioPlayback audioPlayback, AudioDropTarget audioDropTarget) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -48,11 +47,7 @@ public class AudioSourceComponentEditor(IAudio audio, AudioDropTarget audioDropT
             LayoutDrawer.DrawSeparatorWithSpacing();
             ImGui.Text("Playback Controls:");
 
-            ButtonDrawer.DrawButton("Play", () =>
-            {
-                if (!string.IsNullOrWhiteSpace(component.AudioClipPath))
-                    audio.PlayOneShot(PathBuilder.Build(component.AudioClipPath), volume: 0.5f);
-            });
+            ButtonDrawer.DrawButton("Play", () => audioPlayback.Play(entity));
 
             DrawEffectsSection(component);
         });

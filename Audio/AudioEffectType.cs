@@ -1,4 +1,4 @@
-namespace SceneComponents.Audio;
+namespace Audio;
 
 public enum AudioEffectType
 {

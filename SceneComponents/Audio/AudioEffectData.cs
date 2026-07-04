@@ -1,3 +1,5 @@
+using Audio;
+
 namespace SceneComponents.Audio;
 
 public class AudioEffectData

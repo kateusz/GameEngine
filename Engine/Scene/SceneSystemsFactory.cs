@@ -19,6 +19,7 @@ internal sealed class SceneSystemsFactory(
     DebugSettings debugSettings,
     IScriptEngine scriptEngine,
     IAudio audio,
+    AudioPlaybackService playbackService,
     IPhysicsWorld2DFactory physicsWorld2DFactory) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
@@ -31,11 +32,14 @@ internal sealed class SceneSystemsFactory(
         var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity);
         physicsWorld.SetContactListener(new SceneContactListener());
 
+        var audioSystem = new AudioSystem(audio, context, playbackService);
+        playbackService.Bind(audioSystem);
+
         ISystem[] systems =
         [
             new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
             new ScriptUpdateSystem(scriptEngine),
-            new AudioSystem(audio, context),
+            audioSystem,
             primaryCamera,
             new SpriteRenderingSystem(graphics2D, textureFactory, context, primaryCamera),
             new SubTextureRenderingSystem(graphics2D, textureFactory, context, primaryCamera),
