@@ -1,6 +1,5 @@
 using System.Reflection;
 using ECS;
-using Editor.Features.Project;
 using Engine.Scene;
 using Engine.Scripting;
 using Scripting;
@@ -10,8 +9,7 @@ namespace Editor.Features.Scripting;
 
 public sealed class GameScriptWorkspace(
     IGameAssemblyBuilder builder,
-    IScriptEngine scriptEngine,
-    IProjectManager projectManager)
+    IScriptEngine scriptEngine)
 {
     private static readonly ILogger Logger = Log.ForContext<GameScriptWorkspace>();
 
@@ -154,14 +152,7 @@ public sealed class GameScriptWorkspace(
     public (bool Success, string[] Errors) TryCompileAllScripts()
     {
         if (string.IsNullOrEmpty(_scriptsDirectory) || string.IsNullOrEmpty(_outputDllPath))
-        {
-            var projectDir = projectManager.CurrentProjectDirectory;
-            if (string.IsNullOrEmpty(projectDir) || projectManager.ScriptsDir is null)
-                return (false, ["Scripts directory not configured"]);
-
-            _scriptsDirectory = projectManager.ScriptsDir;
-            _outputDllPath = Path.GetFullPath(ResolveEditorDllPath(projectDir));
-        }
+            return (false, ["Scripts directory not configured"]);
 
         Logger.Information("Compiling all scripts to {GameAssembly}...", GameAssemblyCompiler.AssemblyName);
         if (!Directory.Exists(_scriptsDirectory))

@@ -1,8 +1,6 @@
 using Audio;
 using ECS;
 using ECS.Systems;
-using Engine.Renderer;
-using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Systems;
 using Engine.Scripting;
@@ -16,16 +14,13 @@ namespace Engine.Tests;
 
 public class SceneScriptLifetimeTests
 {
-    private readonly IGraphics2D _mockGraphics2D = Substitute.For<IGraphics2D>();
-    private readonly IGraphics3D _mockGraphics3D = Substitute.For<IGraphics3D>();
-    private readonly ITextureFactory _mockTextureFactory = Substitute.For<ITextureFactory>();
     private readonly ISystemManager _systemManager = Substitute.For<ISystemManager>();
 
     private EngineScene CreateScene(out ScriptRuntimeStore store)
     {
         store = new ScriptRuntimeStore();
-        return new EngineScene("test", "test", _mockGraphics2D, _mockGraphics3D, _mockTextureFactory, new Context(),
-            new Core.DebugSettings(), _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store);
+        return new EngineScene("test", "test", new Context(),
+            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store);
     }
 
     [Fact]

@@ -4,10 +4,12 @@ using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.UI.Drawers;
+using Engine.Core;
 using Engine.Core.Window;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Cameras;
+using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using ImGuiNET;
@@ -19,6 +21,9 @@ public sealed class EditorViewport(
     ISceneContext sceneContext,
     ISceneManager sceneManager,
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
+    ITextureFactory textureFactory,
+    DebugSettings debugSettings,
     EditorSettingsUI editorSettingsUI,
     IFrameBufferFactory frameBufferFactory,
     IContentScaleProvider contentScaleProvider,
@@ -139,7 +144,18 @@ public sealed class EditorViewport(
         switch (sceneContext.State)
         {
             case SceneState.Edit:
-                sceneContext.ActiveScene?.OnUpdateEditor(deltaTime, _editorCamera);
+                if (sceneContext.ActiveScene is { } scene)
+                {
+                    SceneRenderPipeline.RenderScene(
+                        scene.Context,
+                        graphics2D,
+                        graphics3D,
+                        textureFactory,
+                        debugSettings,
+                        scene.PhysicsBodies,
+                        SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera),
+                        useTransformFallbackWhenNoBody: true);
+                }
                 break;
             case SceneState.Play:
                 sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime);

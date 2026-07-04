@@ -41,7 +41,7 @@ internal static class SceneRenderPipeline
             new() { ViewCamera = camera };
     }
 
-    public static void RenderCubes(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
+    private static void RenderCubes(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -59,7 +59,7 @@ internal static class SceneRenderPipeline
         graphics3D.EndScene();
     }
 
-    public static void RenderSpritesAndSubTextures(
+    private static void RenderSpritesAndSubTextures(
         IContext context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory,
@@ -74,7 +74,7 @@ internal static class SceneRenderPipeline
         graphics2D.EndScene();
     }
 
-    public static void RenderPhysicsDebug(
+    private static void RenderPhysicsDebug(
         IContext context,
         IGraphics2D graphics2D,
         DebugSettings debugSettings,
@@ -100,8 +100,8 @@ internal static class SceneRenderPipeline
         in CameraBinding camera,
         bool useTransformFallbackWhenNoBody)
     {
-        RenderCubes(context, graphics3D, camera);
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
+        RenderCubes(context, graphics3D, camera);
         RenderPhysicsDebug(context, graphics2D, debugSettings, bodyStore, camera, useTransformFallbackWhenNoBody);
     }
 

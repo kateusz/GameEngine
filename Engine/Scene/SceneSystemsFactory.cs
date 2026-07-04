@@ -46,9 +46,7 @@ internal sealed class SceneSystemsFactory(
             new ScriptUpdateSystem(scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
-            new Scene2DRenderSystem(graphics2D, textureFactory, context, primaryCamera),
-            new ModelRenderingSystem(graphics3D, context, primaryCamera),
-            new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, primaryCamera, bodyStore)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, debugSettings, bodyStore, primaryCamera)
         ];
 
         foreach (var system in systems)

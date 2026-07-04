@@ -1,6 +1,6 @@
 using ECS;
 using ECS.Systems;
-using Engine.Renderer.Cameras;
+using Engine.Scene.Systems;
 using Scripting;
 
 namespace Engine.Scene;
@@ -17,6 +17,8 @@ public interface IScene : IDisposable
     IContext Context { get; }
 
     IPhysicsContacts PhysicsContacts { get; }
+
+    PhysicsRuntimeBodyStore PhysicsBodies { get; }
 
     public string Name { get; }
     
@@ -67,12 +69,6 @@ public interface IScene : IDisposable
     /// <param name="ts">Time elapsed since last update</param>
     void OnUpdateRuntime(TimeSpan ts);
 
-    /// <summary>
-    /// Updates the scene in editor mode (without running physics or scripts).
-    /// </summary>
-    /// <param name="ts">Time elapsed since last update</param>
-    /// <param name="camera">The editor viewport camera</param>
-    void OnUpdateEditor(TimeSpan ts, EditorCamera camera);
     /// <summary>
     /// Called when the viewport is resized.
     /// Updates camera aspect ratios.

@@ -1,13 +1,12 @@
 using Bogus;
 using ECS;
 using ECS.Systems;
-using Engine.Renderer;
-using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
 using SceneComponents.Camera;
+using Scripting;
 using Shouldly;
 using EngineScene = Engine.Scene.Scene;
 
@@ -16,22 +15,16 @@ namespace Engine.Tests;
 public class SceneTests
 {
     private readonly Faker _faker = new();
-    private readonly IGraphics2D _mockGraphics2D;
-    private readonly IGraphics3D _mockGraphics3D;
-    private readonly ITextureFactory _mockTextureFactory;
     private readonly ISystemManager _systemManager;
 
     public SceneTests()
     {
-        _mockGraphics2D = Substitute.For<IGraphics2D>();
-        _mockGraphics3D = Substitute.For<IGraphics3D>();
-        _mockTextureFactory = Substitute.For<ITextureFactory>();
         _systemManager = Substitute.For<ISystemManager>();
     }
 
     private EngineScene CreateScene() =>
-        new("test-scene", "test-scene", _mockGraphics2D, _mockGraphics3D, _mockTextureFactory, new Context(),
-            new Core.DebugSettings(), _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
+        new("test-scene", "test-scene", new Context(),
+            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
             new ScriptRuntimeStore());
 
     #region Constructor Tests

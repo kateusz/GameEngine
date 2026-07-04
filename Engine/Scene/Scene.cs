@@ -1,9 +1,5 @@
 using ECS;
 using ECS.Systems;
-using Engine.Core;
-using Engine.Renderer;
-using Engine.Renderer.Cameras;
-using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using SceneComponents.Camera;
 using Scripting;
@@ -19,11 +15,7 @@ internal sealed class Scene : IScene
     private bool _disposed;
     private readonly string _path;
     private readonly string _sceneName;
-    private readonly IGraphics2D _graphics2D;
-    private readonly IGraphics3D _graphics3D;
-    private readonly ITextureFactory? _textureFactory;
     private readonly IContext _context;
-    private readonly DebugSettings _debugSettings;
     private readonly ISystemManager _systemManager;
     private readonly PhysicsRuntimeBodyStore _physicsRuntimeBodyStore;
     private readonly PhysicsContactQueue _physicsContactQueue;
@@ -33,11 +25,7 @@ internal sealed class Scene : IScene
 
     public Scene(string path,
         string sceneName,
-        IGraphics2D graphics2D,
-        IGraphics3D graphics3D,
-        ITextureFactory textureFactory,
         IContext context,
-        DebugSettings debugSettings,
         ISystemManager systemManager,
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
@@ -45,11 +33,7 @@ internal sealed class Scene : IScene
     {
         _path = path;
         _sceneName = sceneName;
-        _graphics2D = graphics2D;
-        _graphics3D = graphics3D;
-        _textureFactory = textureFactory;
         _context = context;
-        _debugSettings = debugSettings;
         _systemManager = systemManager;
         _physicsRuntimeBodyStore = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
@@ -57,6 +41,8 @@ internal sealed class Scene : IScene
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
+
+    public PhysicsRuntimeBodyStore PhysicsBodies => _physicsRuntimeBodyStore;
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 
@@ -135,28 +121,12 @@ internal sealed class Scene : IScene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        // Update all systems in priority order:
         // 100: PhysicsSimulationSystem
-        // 150: ScriptUpdateSystem
-        // 200: SpriteRenderingSystem
-        // 205: SubTextureRenderingSystem
-        // 210: ModelRenderingSystem
-        // 500: PhysicsDebugRenderSystem
+        // 110: ScriptUpdateSystem
+        // 120: AudioSystem
+        // 145: PrimaryCameraSystem
+        // 150: SceneRenderSystem
         _systemManager.Update(ts);
-    }
-
-
-    public void OnUpdateEditor(TimeSpan ts, EditorCamera camera)
-    {
-        SceneRenderPipeline.RenderScene(
-            _context,
-            _graphics2D,
-            _graphics3D,
-            _textureFactory,
-            _debugSettings,
-            _physicsRuntimeBodyStore,
-            SceneRenderPipeline.CameraBinding.FromEditor(camera),
-            useTransformFallbackWhenNoBody: true);
     }
 
     public void OnViewportResize(uint width, uint height)
