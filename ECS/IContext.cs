@@ -34,6 +34,16 @@ public interface IContext
     void Clear();
 
     /// <summary>
+    /// All registered entities in insertion order.
+    /// </summary>
+    IEnumerable<Entity> Entities { get; }
+
+    /// <summary>
+    /// Returns whether an entity with the given ID is registered.
+    /// </summary>
+    bool Contains(int entityId);
+
+    /// <summary>
     /// Entities with <typeparamref name="TComponent"/> (indexed; O(matches) not O(all entities)).
     /// </summary>
     IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent;

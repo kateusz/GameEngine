@@ -356,4 +356,73 @@ public class ContextViewTests : IDisposable
 
         Assert.Equal(withA, _context.View<TestComponentA>().Count());
     }
+
+    [Fact]
+    public void Entities_WithNoEntities_ReturnsEmpty()
+    {
+        Assert.Empty(_context.Entities);
+    }
+
+    [Fact]
+    public void Entities_PreservesRegistrationOrder()
+    {
+        var entity1 = Entity.Create(1, "First");
+        var entity2 = Entity.Create(2, "Second");
+        var entity3 = Entity.Create(3, "Third");
+        _context.Register(entity1);
+        _context.Register(entity2);
+        _context.Register(entity3);
+
+        var ids = _context.Entities.Select(e => e.Id).ToList();
+
+        Assert.Equal([1, 2, 3], ids);
+    }
+
+    [Fact]
+    public void Entities_AfterRemove_ExcludesRemovedEntity()
+    {
+        var entity1 = Entity.Create(1, "Keep");
+        var entity2 = Entity.Create(2, "Remove");
+        _context.Register(entity1);
+        _context.Register(entity2);
+
+        _context.Remove(entity2.Id);
+
+        var ids = _context.Entities.Select(e => e.Id).ToList();
+        Assert.Equal([1], ids);
+    }
+
+    [Fact]
+    public void Entities_AfterClear_ReturnsEmpty()
+    {
+        _context.Register(Entity.Create(1, "Entity"));
+        _context.Clear();
+
+        Assert.Empty(_context.Entities);
+    }
+
+    [Fact]
+    public void Contains_ReturnsTrueForRegisteredEntity()
+    {
+        var entity = Entity.Create(42, "Entity");
+        _context.Register(entity);
+
+        Assert.True(_context.Contains(42));
+    }
+
+    [Fact]
+    public void Contains_ReturnsFalseForUnregisteredEntity()
+    {
+        Assert.False(_context.Contains(99));
+    }
+
+    [Fact]
+    public void Contains_ReturnsFalseAfterRemove()
+    {
+        var entity = Entity.Create(1, "Entity");
+        _context.Register(entity);
+        _context.Remove(entity.Id);
+
+        Assert.False(_context.Contains(entity.Id));
+    }
 }

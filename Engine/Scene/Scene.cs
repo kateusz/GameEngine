@@ -5,7 +5,6 @@ using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
-using SceneComponents;
 using SceneComponents.Camera;
 using Serilog;
 
@@ -17,7 +16,6 @@ internal sealed class Scene : IScene
 
     private int _nextEntityId = 1;
     private bool _disposed;
-    private readonly List<Entity> _entities = [];
     private readonly string _path;
     private readonly string _sceneName;
     private readonly IGraphics2D _graphics2D;
@@ -54,13 +52,12 @@ internal sealed class Scene : IScene
     public IContext Context => _context;
 
     public string Name => _sceneName;
-    public IEnumerable<Entity> Entities => _entities;
+    public IEnumerable<Entity> Entities => _context.Entities;
 
     public Entity CreateEntity(string name)
     {
         var entity = Entity.Create(_nextEntityId++, name);
         _context.Register(entity);
-        _entities.Add(entity);
 
         return entity;
     }
@@ -75,18 +72,13 @@ internal sealed class Scene : IScene
             _nextEntityId = entity.Id + 1;
 
         _context.Register(entity);
-        _entities.Add(entity);
 
         // Normalize primary camera flags to ensure at most one primary camera
         if (entity.HasComponent<CameraComponent>() && entity.GetComponent<CameraComponent>().Primary)
             SetPrimaryCamera(entity);
     }
 
-    public void DestroyEntity(Entity entity)
-    {
-        _context.Remove(entity.Id);
-        _entities.Remove(entity);
-    }
+    public void DestroyEntity(Entity entity) => _context.Remove(entity.Id);
 
     public void OnRuntimeStart()
     {
@@ -170,7 +162,7 @@ internal sealed class Scene : IScene
 
     public void SetPrimaryCamera(Entity cameraEntity)
     {
-        if (!_entities.Contains(cameraEntity))
+        if (!_context.Contains(cameraEntity.Id))
             throw new ArgumentException("Entity does not belong to this scene", nameof(cameraEntity));
 
         if (!cameraEntity.HasComponent<CameraComponent>())

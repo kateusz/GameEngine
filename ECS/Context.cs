@@ -56,6 +56,25 @@ public class Context : IContext
 
     public Entity GetByName(string name) => _entitiesList.FirstOrDefault(e => e.Name == name);
 
+    public IEnumerable<Entity> Entities
+    {
+        get
+        {
+            Entity[] snapshot;
+            lock (_lock)
+                snapshot = _entitiesList.ToArray();
+
+            foreach (var entity in snapshot)
+                yield return entity;
+        }
+    }
+
+    public bool Contains(int entityId)
+    {
+        lock (_lock)
+            return _entitiesById.ContainsKey(entityId);
+    }
+
     public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent
     {
         var snapshot = Snapshot<TComponent>();
