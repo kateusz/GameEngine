@@ -39,7 +39,7 @@ graph TD
 
 Lifecycle: `OnCreate`, `OnUpdate`, `OnDestroy`. Input and physics via virtual overrides. Component access via `GetComponent<T>()` etc. on the host entity.
 
-Runtime instances are tracked in `ScriptRuntimeStore` (keyed by entity id). Only `ScriptTypeName` is persisted on `NativeScriptComponent` — script fields are not serialized; use `IGameComponent` for data.
+Runtime instances are tracked in a per-scene `ScriptRuntimeStore` (keyed by entity id), created with the scene and cleared on destroy or play-mode stop. Only `ScriptTypeName` is persisted on `NativeScriptComponent` — script fields are not serialized; use `IGameComponent` for data.
 
 ## Game systems (logic tier)
 

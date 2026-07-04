@@ -29,12 +29,13 @@ internal sealed class SceneSystemsFactory(
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
-        PhysicsContactQueue contactQueue)
+        PhysicsContactQueue contactQueue,
+        ScriptRuntimeStore scriptStore)
     {
         var primaryCamera = new PrimaryCameraSystem(context);
 
         var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity);
-        physicsWorld.SetContactListener(new SceneContactListener(contactQueue));
+        physicsWorld.SetContactListener(new SceneContactListener(contactQueue, scriptStore));
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);
@@ -42,7 +43,7 @@ internal sealed class SceneSystemsFactory(
         ISystem[] systems =
         [
             new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
-            new ScriptUpdateSystem(scriptEngine),
+            new ScriptUpdateSystem(scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
             new Scene2DRenderSystem(graphics2D, textureFactory, context, primaryCamera),

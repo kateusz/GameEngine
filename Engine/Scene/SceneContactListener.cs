@@ -1,14 +1,13 @@
 using ECS;
 using Engine.Physics;
 using Engine.Scene.Systems;
-using Engine.Scripting;
 using SceneComponents;
 using Scripting;
 using Serilog;
 
 namespace Engine.Scene;
 
-internal sealed class SceneContactListener(PhysicsContactQueue contactQueue) : IPhysicsContactListener
+internal sealed class SceneContactListener(PhysicsContactQueue contactQueue, ScriptRuntimeStore scriptStore) : IPhysicsContactListener
 {
     private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
 
@@ -80,12 +79,12 @@ internal sealed class SceneContactListener(PhysicsContactQueue contactQueue) : I
         NotifyEntityCollision(entity, otherEntity, isBegin);
     }
 
-    private static void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)
+    private void NotifyEntityTrigger(Entity entity, Entity otherEntity, bool isEnter)
     {
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
 
-        if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
+        if (!scriptStore.TryGet(entity.Id, out var scriptableEntity))
             return;
 
         try
@@ -101,12 +100,12 @@ internal sealed class SceneContactListener(PhysicsContactQueue contactQueue) : I
         }
     }
 
-    private static void NotifyEntityCollision(Entity entity, Entity otherEntity, bool isBegin)
+    private void NotifyEntityCollision(Entity entity, Entity otherEntity, bool isBegin)
     {
         if (!entity.HasComponent<NativeScriptComponent>())
             return;
 
-        if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
+        if (!scriptStore.TryGet(entity.Id, out var scriptableEntity))
             return;
 
         try

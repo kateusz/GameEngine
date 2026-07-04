@@ -1,5 +1,6 @@
 using CSharpFunctionalExtensions;
 using Engine.Events;
+using Engine.Scene;
 using Scripting;
 using System.Reflection;
 
@@ -27,15 +28,16 @@ public interface IScriptEngine
     /// Checks for script file changes and triggers hot reload if needed.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since last update</param>
-    void OnUpdate(TimeSpan deltaTime);
+    void OnUpdate(TimeSpan deltaTime, ScriptRuntimeStore store);
 
-    void OnRuntimeStop();
+    void OnRuntimeStop(ScriptRuntimeStore store);
 
     /// <summary>
     /// Forwards events to all script components for processing.
     /// </summary>
     /// <param name="event">Event to process (keyboard, mouse, etc.)</param>
-    void ProcessEvent(Event @event);
+    /// <param name="store">Per-scene script instance store</param>
+    void ProcessEvent(Event @event, ScriptRuntimeStore store);
 
     /// <summary>
     /// Gets the names of all successfully compiled scripts.
@@ -129,7 +131,7 @@ public interface IScriptEngine
     /// Forces recompilation of all scripts and reloads existing script instances.
     /// Used for hot-reloading during development.
     /// </summary>
-    void ForceRecompile();
+    void ForceRecompile(ScriptRuntimeStore store);
 
     /// <summary>
     /// Generates a script template with the given name.

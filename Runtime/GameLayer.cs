@@ -85,7 +85,8 @@ public class GameLayer(
         if (keyboardInput is KeyboardInputState state)
             state.Apply(windowEvent);
 
-        scriptEngine.ProcessEvent(windowEvent);
+        if (sceneContext.ActiveScriptRuntimeStore is { } store)
+            scriptEngine.ProcessEvent(windowEvent, store);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)

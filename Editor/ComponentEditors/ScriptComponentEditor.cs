@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Scene;
 using Engine.Scripting;
 using ImGuiNET;
 using SceneComponents;
@@ -11,7 +12,7 @@ using Serilog;
 
 namespace Editor.ComponentEditors;
 
-public class ScriptComponentEditor(IScriptEngine scriptEngine)
+public class ScriptComponentEditor(IScriptEngine scriptEngine, ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentEditor));
 
@@ -60,7 +61,8 @@ public class ScriptComponentEditor(IScriptEngine scriptEngine)
             if (ImGui.MenuItem("Remove"))
             {
                 entity.RemoveComponent<NativeScriptComponent>();
-                scriptEngine.ForceRecompile();
+                if (sceneContext.ActiveScriptRuntimeStore is { } store)
+                    scriptEngine.ForceRecompile(store);
             }
 
             ImGui.EndPopup();

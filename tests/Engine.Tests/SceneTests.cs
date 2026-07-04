@@ -31,7 +31,8 @@ public class SceneTests
 
     private EngineScene CreateScene() =>
         new("test-scene", "test-scene", _mockGraphics2D, _mockGraphics3D, _mockTextureFactory, new Context(),
-            new Core.DebugSettings(), _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue());
+            new Core.DebugSettings(), _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
+            new ScriptRuntimeStore());
 
     #region Constructor Tests
 

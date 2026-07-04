@@ -10,5 +10,6 @@ public interface ISceneSystemsFactory
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
-        PhysicsContactQueue contactQueue);
+        PhysicsContactQueue contactQueue,
+        ScriptRuntimeStore scriptStore);
 }

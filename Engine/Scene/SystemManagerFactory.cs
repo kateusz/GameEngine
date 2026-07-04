@@ -10,8 +10,9 @@ internal sealed class SystemManagerFactory(ISceneSystemsFactory sceneSystemsFact
     {
         var bodyStore = new PhysicsRuntimeBodyStore();
         var contactQueue = new PhysicsContactQueue();
+        var scriptStore = new ScriptRuntimeStore();
         var systemManager = new SystemManager();
-        sceneSystemsFactory.PopulateSystemManager(systemManager, context, bodyStore, contactQueue);
-        return new SceneBuildResult(systemManager, bodyStore, contactQueue);
+        sceneSystemsFactory.PopulateSystemManager(systemManager, context, bodyStore, contactQueue, scriptStore);
+        return new SceneBuildResult(systemManager, bodyStore, contactQueue, scriptStore);
     }
 }

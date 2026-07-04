@@ -4,6 +4,9 @@ public class SceneContext : ISceneContext
 {
     public IScene? ActiveScene { get; private set; }
 
+    public ScriptRuntimeStore? ActiveScriptRuntimeStore =>
+        ActiveScene as Scene is { } scene ? scene.ScriptRuntimeStore : null;
+
     public SceneState State { get; private set; } = SceneState.Edit;
 
     public event Action<IScene> SceneChanged;

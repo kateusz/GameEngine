@@ -7,7 +7,8 @@ namespace Engine.Scene;
 public sealed record SceneBuildResult(
     ISystemManager SystemManager,
     PhysicsRuntimeBodyStore BodyStore,
-    PhysicsContactQueue ContactQueue);
+    PhysicsContactQueue ContactQueue,
+    ScriptRuntimeStore ScriptStore);
 
 public interface ISystemManagerFactory
 {

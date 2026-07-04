@@ -1,4 +1,5 @@
 using ECS.Systems;
+using Engine.Scene;
 using Engine.Scripting;
 using Serilog;
 
@@ -8,7 +9,7 @@ namespace Engine.Scene.Systems;
 /// System responsible for updating all script components in the scene.
 /// Operates on entities with NativeScriptComponent.
 /// </summary>
-internal sealed class ScriptUpdateSystem(IScriptEngine scriptEngine) : ISystem
+internal sealed class ScriptUpdateSystem(IScriptEngine scriptEngine, ScriptRuntimeStore scriptStore) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptUpdateSystem>();
 
@@ -34,7 +35,7 @@ internal sealed class ScriptUpdateSystem(IScriptEngine scriptEngine) : ISystem
         // - Script initialization (OnCreate)
         // - Script updates (OnUpdate)
         // - Error handling and logging
-        scriptEngine.OnUpdate(deltaTime);
+        scriptEngine.OnUpdate(deltaTime, scriptStore);
     }
 
     /// <summary>
@@ -48,6 +49,7 @@ internal sealed class ScriptUpdateSystem(IScriptEngine scriptEngine) : ISystem
         // Delegate to ScriptEngine which handles:
         // - Script destruction (OnDestroy)
         // - Error handling and logging
-        scriptEngine.OnRuntimeStop();
+        scriptEngine.OnRuntimeStop(scriptStore);
+        scriptStore.Clear();
     }
 }

@@ -75,7 +75,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
     public void SetSuppressFileChangeRecompile(bool suppress) => _suppressFileChangeRecompile = suppress;
 
-    public void OnUpdate(TimeSpan deltaTime)
+    public void OnUpdate(TimeSpan deltaTime, ScriptRuntimeStore store)
     {
         if (!_suppressFileChangeRecompile)
             CheckForScriptChanges();
@@ -90,7 +90,7 @@ internal sealed class ScriptEngine : IScriptEngine
         foreach (var entity in scriptEntities)
         {
             var scriptComponent = entity.GetComponent<NativeScriptComponent>();
-            var scriptableEntity = GetOrCreateRuntimeScript(entity, scriptComponent);
+            var scriptableEntity = GetOrCreateRuntimeScript(store, entity, scriptComponent);
             if (scriptableEntity == null) continue;
 
             if (!scriptableEntity.IsInitialized)
@@ -117,7 +117,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    public void OnRuntimeStop()
+    public void OnRuntimeStop(ScriptRuntimeStore store)
     {
         if (_sceneContext.ActiveScene == null)
             return;
@@ -130,7 +130,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
         foreach (var entity in scriptEntities)
         {
-            if (ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
+            if (store.TryGet(entity.Id, out var scriptableEntity))
             {
                 try
                 {
@@ -142,7 +142,7 @@ internal sealed class ScriptEngine : IScriptEngine
                     errorCount++;
                 }
             }
-            ScriptRuntimeStore.Remove(entity.Id);
+            store.Remove(entity.Id);
         }
 
         if (errorCount > 0)
@@ -153,7 +153,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
 
-    public void ProcessEvent(Event @event)
+    public void ProcessEvent(Event @event, ScriptRuntimeStore store)
     {
         if (_sceneContext.ActiveScene == null)
             return;
@@ -164,7 +164,7 @@ internal sealed class ScriptEngine : IScriptEngine
 
         foreach (var entity in scriptEntities)
         {
-            if (!ScriptRuntimeStore.TryGet(entity.Id, out var scriptableEntity))
+            if (!store.TryGet(entity.Id, out var scriptableEntity))
                 continue;
 
             try
@@ -556,7 +556,7 @@ internal sealed class ScriptEngine : IScriptEngine
         }
     }
     
-    public void ForceRecompile()
+    public void ForceRecompile(ScriptRuntimeStore store)
     {
         Logger.Information("Force recompiling scripts for debugging...");
         CompileAllScripts();
@@ -576,16 +576,16 @@ internal sealed class ScriptEngine : IScriptEngine
             var newInstance = CreateScriptInstance(scriptComponent.ScriptTypeName);
             if (newInstance.IsSuccess)
             {
-                ScriptRuntimeStore.Set(entity.Id, newInstance.Value);
+                store.Set(entity.Id, newInstance.Value);
                 newInstance.Value.SetEntity(entity);
                 newInstance.Value.OnCreate();
             }
         }
     }
 
-    private ScriptableEntity? GetOrCreateRuntimeScript(ECS.Entity entity, NativeScriptComponent scriptComponent)
+    private ScriptableEntity? GetOrCreateRuntimeScript(ScriptRuntimeStore store, ECS.Entity entity, NativeScriptComponent scriptComponent)
     {
-        if (ScriptRuntimeStore.TryGet(entity.Id, out var existing))
+        if (store.TryGet(entity.Id, out var existing))
             return existing;
 
         if (string.IsNullOrWhiteSpace(scriptComponent.ScriptTypeName))
@@ -595,7 +595,7 @@ internal sealed class ScriptEngine : IScriptEngine
         if (!result.IsSuccess)
             return null;
 
-        ScriptRuntimeStore.Set(entity.Id, result.Value);
+        store.Set(entity.Id, result.Value);
         return result.Value;
     }
     

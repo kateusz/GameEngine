@@ -27,6 +27,9 @@ internal sealed class Scene : IScene
     private readonly ISystemManager _systemManager;
     private readonly PhysicsRuntimeBodyStore _physicsRuntimeBodyStore;
     private readonly PhysicsContactQueue _physicsContactQueue;
+    private readonly ScriptRuntimeStore _scriptRuntimeStore;
+
+    internal ScriptRuntimeStore ScriptRuntimeStore => _scriptRuntimeStore;
 
     public Scene(string path,
         string sceneName,
@@ -37,7 +40,8 @@ internal sealed class Scene : IScene
         DebugSettings debugSettings,
         ISystemManager systemManager,
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
-        PhysicsContactQueue physicsContactQueue)
+        PhysicsContactQueue physicsContactQueue,
+        ScriptRuntimeStore scriptRuntimeStore)
     {
         _path = path;
         _sceneName = sceneName;
@@ -49,6 +53,7 @@ internal sealed class Scene : IScene
         _systemManager = systemManager;
         _physicsRuntimeBodyStore = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
+        _scriptRuntimeStore = scriptRuntimeStore;
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
@@ -84,7 +89,23 @@ internal sealed class Scene : IScene
             SetPrimaryCamera(entity);
     }
 
-    public void DestroyEntity(Entity entity) => _context.Remove(entity.Id);
+    public void DestroyEntity(Entity entity)
+    {
+        if (_scriptRuntimeStore.TryGet(entity.Id, out var script))
+        {
+            try
+            {
+                script.OnDestroy();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error in script OnDestroy for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
+            }
+            _scriptRuntimeStore.Remove(entity.Id);
+        }
+
+        _context.Remove(entity.Id);
+    }
 
     public void OnRuntimeStart()
     {
