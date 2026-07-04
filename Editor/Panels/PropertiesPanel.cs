@@ -16,13 +16,13 @@ public class PropertiesPanel(
     GameComponentEditor gameComponentEditor)
     : IPropertiesPanel
 {
-    private Entity? _selectedEntity;
+    private IReadOnlyList<Entity> _selectedEntities = [];
 
-    public void SetSelectedEntity(Entity? entity)
-    {
-        if (_selectedEntity?.Id != entity?.Id)
-            _selectedEntity = entity;
-    }
+    public void SetSelectedEntity(Entity? entity) =>
+        _selectedEntities = entity is null ? [] : [entity];
+
+    public void SetSelectedEntities(IReadOnlyList<Entity> entities) =>
+        _selectedEntities = entities;
 
     public void Draw()
     {
@@ -36,21 +36,27 @@ public class PropertiesPanel(
 
     private void DrawEntityProperties()
     {
-        if (_selectedEntity is null) return;
+        if (_selectedEntities.Count == 0)
+            return;
 
-        // Entity name/tag editing
-        EntityNameEditor.Draw(_selectedEntity);
+        if (_selectedEntities.Count == 1)
+        {
+            var entity = _selectedEntities[0];
+            EntityNameEditor.Draw(entity);
+            ImGui.Spacing();
+
+            ComponentSelector.Draw(entity, sceneContext.ActiveScene, gameComponentEditor);
+            ImGui.SameLine();
+
+            ButtonDrawer.DrawButton("Save as Prefab",
+                () => prefabManager.ShowSavePrefabPopup(entity));
+
+            componentEditors.DrawAllComponents(entity);
+            return;
+        }
+
+        ImGui.TextUnformatted($"{_selectedEntities.Count} entities selected");
         ImGui.Spacing();
-
-        // Add component button and popup
-        ComponentSelector.Draw(_selectedEntity, sceneContext.ActiveScene, gameComponentEditor);
-        ImGui.SameLine();
-
-        // Save as prefab button
-        ButtonDrawer.DrawButton("Save as Prefab",
-            () => prefabManager.ShowSavePrefabPopup(_selectedEntity));
-
-        // Render all components
-        componentEditors.DrawAllComponents(_selectedEntity);
+        componentEditors.DrawCommonComponents(_selectedEntities);
     }
 }

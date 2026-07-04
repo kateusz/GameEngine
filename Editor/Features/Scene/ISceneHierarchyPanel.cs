@@ -20,16 +20,26 @@ public interface ISceneHierarchyPanel
     void SetScene(IScene scene);
 
     /// <summary>
-    /// Gets the currently selected entity.
+    /// Gets the currently selected entity (primary / last selected).
     /// </summary>
     /// <returns>Selected entity, or null if none selected</returns>
     Entity? GetSelectedEntity();
 
     /// <summary>
-    /// Sets the currently selected entity.
+    /// Gets all currently selected entities.
+    /// </summary>
+    IReadOnlyList<Entity> GetSelectedEntities();
+
+    /// <summary>
+    /// Sets the currently selected entity, replacing any existing selection.
     /// </summary>
     /// <param name="entity">Entity to select</param>
     void SetSelectedEntity(Entity entity);
-    
+
+    /// <summary>
+    /// Clears all selected entities.
+    /// </summary>
+    void ClearSelection();
+
     Action<Entity> EntitySelected { get; set; }
 }

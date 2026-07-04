@@ -568,8 +568,7 @@ public class EditorLayer(
         panels.RecentProjectsPanel.Draw();
         panels.KeyboardShortcutsPanel.Draw();
 
-        var selectedEntity = panels.SceneHierarchyPanel.GetSelectedEntity();
-        panels.PropertiesPanel.SetSelectedEntity(selectedEntity);
+        panels.PropertiesPanel.SetSelectedEntities(panels.SceneHierarchyPanel.GetSelectedEntities());
 
         var hoveredEntityName = _hoveredEntity?.Name ?? "None";
         var camPos = _editorCamera.GetPosition();

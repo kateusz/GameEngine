@@ -6,4 +6,5 @@ public interface IPropertiesPanel
 {
     void Draw();
     void SetSelectedEntity(Entity? entity);
+    void SetSelectedEntities(IReadOnlyList<Entity> entities);
 }

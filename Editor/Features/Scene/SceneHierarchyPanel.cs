@@ -12,7 +12,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
     : ISceneHierarchyPanel
 {
     private IScene _scene;
-    private Entity? _selectionContext;
+    private readonly List<Entity> _selectedEntities = [];
 
     // Search/Filter state
     private string _searchQuery = string.Empty;
@@ -24,7 +24,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
     public void SetScene(IScene scene)
     {
         _scene = scene;
-        _selectionContext = null;
+        _selectedEntities.Clear();
     }
 
     public void Draw()
@@ -39,32 +39,66 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
 
         RenderEntityHierarchy();
 
-        if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
-            _selectionContext = null;
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered())
+            ClearSelection();
 
         entityContextMenu.Render(_scene);
 
         ImGui.End();
     }
 
-    public void SetSelectedEntity(Entity entity) => _selectionContext = entity;
+    public void SetSelectedEntity(Entity entity)
+    {
+        _selectedEntities.Clear();
+        _selectedEntities.Add(entity);
+    }
 
-    public Entity? GetSelectedEntity() => _selectionContext;
+    public Entity? GetSelectedEntity() => _selectedEntities.Count > 0 ? _selectedEntities[^1] : null;
+
+    public IReadOnlyList<Entity> GetSelectedEntities() => _selectedEntities;
+
+    public void ClearSelection() => _selectedEntities.Clear();
+
+    private bool IsSelected(Entity entity) => _selectedEntities.Any(e => e.Id == entity.Id);
+
+    private void HandleEntityClick(Entity entity)
+    {
+        if (IsCtrlHeld())
+        {
+            var index = _selectedEntities.FindIndex(e => e.Id == entity.Id);
+            if (index >= 0)
+                _selectedEntities.RemoveAt(index);
+            else
+                _selectedEntities.Add(entity);
+            return;
+        }
+
+        SelectOnly(entity);
+        EntitySelected.Invoke(entity);
+    }
+
+    private static bool IsCtrlHeld() =>
+        ImGui.GetIO().KeyCtrl || ImGui.IsKeyDown(ImGuiKey.ModCtrl);
+
+    private void SelectOnly(Entity entity)
+    {
+        _selectedEntities.Clear();
+        _selectedEntities.Add(entity);
+    }
+
+    private void RemoveFromSelection(Entity entity) =>
+        _selectedEntities.RemoveAll(e => e.Id == entity.Id);
 
     private void DrawEntityNode(Entity entity)
     {
         var tag = entity.Name;
-        var isSelected = _selectionContext?.Id == entity.Id;
+        var isSelected = IsSelected(entity);
         var entityDeleted = false;
 
         var opened = TreeDrawer.DrawSelectableTreeNode(
             label: tag,
             isSelected: isSelected,
-            onClicked: () =>
-            {
-                EntitySelected.Invoke(entity);
-                _selectionContext = entity;
-            },
+            onClicked: () => HandleEntityClick(entity),
             onContextMenu: () =>
             {
                 if (ImGui.MenuItem("Delete Entity"))
@@ -73,19 +107,15 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             flags: ImGuiTreeNodeFlags.OpenOnArrow
         );
 
-        // Prefab drag & drop handling
         prefabDropTarget.HandleEntityDrop(entity);
 
         if (opened)
-        {
             ImGui.TreePop();
-        }
 
         if (entityDeleted)
         {
             _scene.DestroyEntity(entity);
-            if (Equals(_selectionContext, entity))
-                _selectionContext = null;
+            RemoveFromSelection(entity);
         }
     }
 
@@ -117,16 +147,12 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             }
 
             foreach (var entity in _filteredEntities.ToList())
-            {
                 DrawEntityNodeFiltered(entity);
-            }
         }
         else
         {
             foreach (var entity in _scene?.Entities.ToList() ?? [])
-            {
                 DrawEntityNode(entity);
-            }
         }
     }
 
@@ -134,10 +160,9 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
     {
         var isDirectMatch = MatchesFilter(entity, _searchQuery);
         var tag = entity.Name;
-        var isSelected = _selectionContext?.Id == entity.Id;
+        var isSelected = IsSelected(entity);
         var entityDeleted = false;
 
-        // Highlight matched entities with colored tree node
         bool opened;
         if (isDirectMatch)
         {
@@ -145,11 +170,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
                 label: tag,
                 color: EditorUIConstants.InfoColor,
                 isSelected: isSelected,
-                onClicked: () =>
-                {
-                    EntitySelected.Invoke(entity);
-                    _selectionContext = entity;
-                },
+                onClicked: () => HandleEntityClick(entity),
                 onContextMenu: () =>
                 {
                     if (ImGui.MenuItem("Delete Entity"))
@@ -163,11 +184,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             opened = TreeDrawer.DrawSelectableTreeNode(
                 label: tag,
                 isSelected: isSelected,
-                onClicked: () =>
-                {
-                    EntitySelected.Invoke(entity);
-                    _selectionContext = entity;
-                },
+                onClicked: () => HandleEntityClick(entity),
                 onContextMenu: () =>
                 {
                     if (ImGui.MenuItem("Delete Entity"))
@@ -177,20 +194,16 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
             );
         }
 
-        // Prefab drag & drop handling
         prefabDropTarget.HandleEntityDrop(entity);
 
         if (opened)
-        {
             ImGui.TreePop();
-        }
 
         if (entityDeleted)
         {
             _scene.DestroyEntity(entity);
             _filteredEntities.Remove(entity);
-            if (Equals(_selectionContext, entity))
-                _selectionContext = null;
+            RemoveFromSelection(entity);
         }
     }
 
@@ -211,9 +224,7 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         foreach (var entity in _scene.Entities)
         {
             if (MatchesFilter(entity, normalizedQuery))
-            {
                 _filteredEntities.Add(entity);
-            }
         }
     }
 
@@ -222,13 +233,6 @@ public class SceneHierarchyPanel(PrefabDropTarget prefabDropTarget, IEntityConte
         var entityName = entity.Name.ToLowerInvariant();
         var normalizedQuery = query.ToLowerInvariant();
         return entityName.Contains(normalizedQuery);
-    }
-
-    private void ClearFilter()
-    {
-        _searchQuery = string.Empty;
-        _isFilterActive = false;
-        _filteredEntities.Clear();
     }
 
     private int CountDirectMatches()
