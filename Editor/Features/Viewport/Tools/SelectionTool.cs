@@ -1,49 +1,30 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.Selection;
 using Engine.Renderer.Cameras;
 
 namespace Editor.Features.Viewport.Tools;
 
-/// <summary>
-/// This is the default tool that allows clicking to select entities without manipulation.
-/// </summary>
-public class SelectionTool : IEntityHoverTool
+public class SelectionTool(IEditorSelection selection) : IEntityHoverTool
 {
-    public event Action<Entity>? OnEntitySelected;
-
     public EditorMode Mode => EditorMode.Select;
-    public bool IsActive => false; // not needed in this scenario
-    
+    public bool IsActive => false;
+
     public Entity? HoveredEntity { get; set; }
 
-    public void OnActivate()
-    {
-    }
+    public void OnActivate() { }
 
-    public void OnDeactivate()
-    {
-    }
+    public void OnDeactivate() { }
 
     public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
         if (HoveredEntity != null)
-        {
-            OnEntitySelected?.Invoke(HoveredEntity);
-        }
+            selection.Select(HoveredEntity, SelectionSource.Viewport);
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
-    {
-        // Selection tool doesn't need mouse move handling
-    }
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera) { }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
-    {
-        // No action needed on mouse up for selection tool
-    }
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera) { }
 
-    public void Render(Vector2[] viewportBounds, IViewCamera camera)
-    {
-        // SelectionTool doesn't render any overlays
-    }
+    public void Render(Vector2[] viewportBounds, IViewCamera camera) { }
 }

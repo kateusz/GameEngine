@@ -47,10 +47,6 @@ public class SceneHierarchyPanel(
         ImGui.End();
     }
 
-    public void SetSelectedEntity(Entity entity) => selection.Select(entity, SelectionSource.Viewport);
-
-    public Entity? GetSelectedEntity() => selection.SelectedEntity;
-
     private void DrawEntityNode(Entity entity)
     {
         var tag = entity.Name;

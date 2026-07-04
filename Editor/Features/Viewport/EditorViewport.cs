@@ -203,8 +203,12 @@ public sealed class EditorViewport(
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
         {
             viewport.ViewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
-            if (HoveredEntity != null && currentMode != EditorMode.Ruler)
+            if (HoveredEntity != null
+                && currentMode != EditorMode.Ruler
+                && currentMode != EditorMode.Select)
+            {
                 selection.Select(HoveredEntity, SelectionSource.Viewport);
+            }
         }
 
         if (ImGui.IsMouseDown(ImGuiMouseButton.Left))

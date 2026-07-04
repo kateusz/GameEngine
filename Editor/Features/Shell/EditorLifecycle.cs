@@ -34,7 +34,6 @@ public class EditorLifecycle(
     private Action _playSceneHandler = null!;
     private Action _stopSceneHandler = null!;
     private Action _restartSceneHandler = null!;
-    private Action<Entity> _entitySelectionHandler = null!;
     private Action<Entity?, SelectionSource> _selectionChangedHandler = null!;
 
     public void Attach(IInputSystem inputSystem)
@@ -64,7 +63,6 @@ public class EditorLifecycle(
         _playSceneHandler = sceneManager.Play;
         _stopSceneHandler = sceneManager.Stop;
         _restartSceneHandler = sceneManager.Restart;
-        _entitySelectionHandler = entity => selection.Select(entity, SelectionSource.Viewport);
         _selectionChangedHandler = OnSelectionChanged;
 
         sceneContext.SceneChanged += _sceneChangedHandler;
@@ -76,8 +74,6 @@ public class EditorLifecycle(
         editorViewport.Initialize();
 
         sceneManager.New("");
-
-        viewport.ViewportToolManager.SubscribeToEntitySelection(_entitySelectionHandler);
 
         panels.ContentBrowserPanel.Init();
         viewport.SceneToolbar.Init();
@@ -100,7 +96,6 @@ public class EditorLifecycle(
         viewport.SceneToolbar.OnPlayScene -= _playSceneHandler;
         viewport.SceneToolbar.OnStopScene -= _stopSceneHandler;
         viewport.SceneToolbar.OnRestartScene -= _restartSceneHandler;
-        viewport.ViewportToolManager.UnsubscribeFromEntitySelection(_entitySelectionHandler);
 
         sceneContext.ActiveScene?.Dispose();
         editorViewport.Dispose();
