@@ -1,7 +1,7 @@
 using System.Numerics;
-using Box2D.NetStandard.Dynamics.Bodies;
 using ECS;
 using Engine.Core;
+using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
@@ -275,10 +275,10 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         Entity entity,
         BoxCollider2DComponent boxCollider,
-        Body body)
+        IPhysicsBody2D body)
     {
-        var bodyPosition = body.GetPosition();
-        var angle = body.GetAngle();
+        var bodyPosition = body.Position;
+        var angle = body.Angle;
         var transform = entity.GetComponent<TransformComponent>();
         var color = GetRuntimeBodyDebugColor(body);
         var size = new Vector2(
@@ -347,15 +347,15 @@ internal static class SceneRenderPipeline
         };
     }
 
-    private static Vector4 GetRuntimeBodyDebugColor(Body body)
+    private static Vector4 GetRuntimeBodyDebugColor(IPhysicsBody2D body)
     {
         if (!body.IsEnabled())
             return new Vector4(0.5f, 0.5f, 0.0f, 1.0f);
 
-        return body.Type() switch
+        return body.MotionType switch
         {
-            BodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
-            BodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+            PhysicsBodyMotionType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+            PhysicsBodyMotionType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
             _ => body.IsAwake()
                 ? new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
                 : new Vector4(0.5f, 0.5f, 0.5f, 1.0f)

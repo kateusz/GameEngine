@@ -1,9 +1,9 @@
 using System.Numerics;
-using Box2D.NetStandard.Dynamics.World;
 using ECS;
 using ECS.Systems;
 using Engine.Audio;
 using Engine.Core;
+using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
@@ -19,17 +19,18 @@ internal sealed class SceneSystemsFactory(
     DebugSettings debugSettings,
     IScriptEngine scriptEngine,
     IAudioEngine audioEngine,
-    IAudioEffectFactory effectFactory) : ISceneSystemsFactory
+    IAudioEffectFactory effectFactory,
+    IPhysicsWorld2DFactory physicsWorld2DFactory) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
+    private static readonly Vector2 DefaultGravity = new(0, -9.8f);
 
     public void PopulateSystemManager(ISystemManager systemManager, IContext context, PhysicsRuntimeBodyStore bodyStore)
     {
         var primaryCamera = new PrimaryCameraSystem(context);
 
-        var physicsWorld = new World(new Vector2(0, -9.8f));
-        var contactListener = new SceneContactListener();
-        physicsWorld.SetContactListener(contactListener);
+        var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity);
+        physicsWorld.SetContactListener(new SceneContactListener());
 
         ISystem[] systems =
         [

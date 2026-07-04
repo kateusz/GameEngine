@@ -9,6 +9,7 @@ using Engine.ImGuiNet;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
 using Silk.NET.OpenAL;
+using Engine.Physics;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
@@ -84,6 +85,9 @@ public static class EngineIoCContainer
         container.Register<Engine.Audio.IAudioEffectFactory, OpenALAudioEffectFactory>(Reuse.Singleton);
 
         container.Register<SceneFactory>(Reuse.Singleton);
+        container.Register<IPhysicsBackendConfig>(Reuse.Singleton,
+            made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D)));
+        container.Register<IPhysicsWorld2DFactory, PhysicsWorld2DFactory>(Reuse.Singleton);
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
