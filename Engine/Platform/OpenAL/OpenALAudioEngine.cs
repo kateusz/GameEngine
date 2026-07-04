@@ -1,6 +1,7 @@
 using System.Numerics;
 using Audio;
 using Engine.Audio;
+using Engine.Scene.Serializer;
 using Serilog;
 using Silk.NET.OpenAL;
 
@@ -145,7 +146,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
     public IAudioClip LoadAudioClip(string path)
     {
-        var normalizedPath = Path.GetFullPath(path);
+        var normalizedPath = PathBuilder.Build(path);
 
         lock (_cacheLock)
         {
@@ -166,7 +167,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
     public void UnloadAudioClip(string path)
     {
-        var normalizedPath = Path.GetFullPath(path);
+        var normalizedPath = PathBuilder.Build(path);
 
         lock (_cacheLock)
         {
