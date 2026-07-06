@@ -1,7 +1,9 @@
 using System.Reflection;
+using Engine.Core;
 
 namespace Engine.Scripting;
 
+[SkipUnitTests]
 internal static class AssemblyLoadTypes
 {
     internal static IEnumerable<Type> From(Assembly assembly)

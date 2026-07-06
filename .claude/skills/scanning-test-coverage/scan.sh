@@ -29,6 +29,18 @@ if [[ ! -d "$TEST_DIR" ]]; then
   exit 1
 fi
 
+# Determine test project name from TEST_DIR (e.g., "tests/Engine.Tests" → "Engine.Tests")
+TEST_PROJECT_NAME="${TEST_DIR##*/}"
+
+# Check if InternalsVisibleTo is configured for the test project
+INTERNALS_VISIBLE=false
+if [[ -f "$SOURCE_ROOT/AssemblyInfo.cs" ]] && rg -q "InternalsVisibleTo\(\"${TEST_PROJECT_NAME//\./\\.}\"\)" "$SOURCE_ROOT/AssemblyInfo.cs" 2>/dev/null; then
+  INTERNALS_VISIBLE=true
+fi
+if ! $INTERNALS_VISIBLE && rg -q "InternalsVisibleTo\(\"${TEST_PROJECT_NAME//\./\\.}\"\)" "$SOURCE_ROOT" -g '*.cs' 2>/dev/null; then
+  INTERNALS_VISIBLE=true
+fi
+
 # Strip source-project prefix; Engine/Scene/* flattens to tests/Engine.Tests/{module}/
 rel="${SOURCE_DIR#"$SOURCE_ROOT"/}"
 rel="${rel#"$SOURCE_ROOT"}"
@@ -46,11 +58,19 @@ covered=0
 grouped=0
 skipped=0
 
+if $INTERNALS_VISIBLE; then
+  REGEX='(?:public|internal)\ ([A-Za-z_]+\ )*(class|record|struct)\ ([A-Za-z_][A-Za-z0-9_]*)'
+  RG_PATTERN='(?:public|internal) (?:\w+ )*(class|record|struct) '
+else
+  REGEX='public\ ([A-Za-z_]+\ )*(class|record|struct)\ ([A-Za-z_][A-Za-z0-9_]*)'
+  RG_PATTERN='public (?:\w+ )*(class|record|struct) '
+fi
+
 while IFS= read -r line; do
   file="${line%%:*}"
   rest="${line#*:}"
 
-  if ! [[ "$rest" =~ public\ ([A-Za-z_]+\ )*(class|record|struct)\ ([A-Za-z_][A-Za-z0-9_]*) ]]; then
+  if ! [[ "$rest" =~ $REGEX ]]; then
     continue
   fi
 
@@ -79,7 +99,7 @@ while IFS= read -r line; do
 
   echo "missing|${file}|${type_name}|${expected}"
   ((missing++)) || true
-done < <(rg --no-heading -n "public (?:\w+ )*(class|record|struct) " "$SOURCE_DIR" -g '*.cs' 2>/dev/null || true)
+done < <(rg --no-heading -n "$RG_PATTERN" "$SOURCE_DIR" -g '*.cs' 2>/dev/null || true)
 
 echo "---"
 echo "summary|missing=${missing}|covered=${covered}|grouped=${grouped}|skipped=${skipped}"

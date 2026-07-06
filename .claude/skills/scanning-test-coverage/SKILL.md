@@ -55,24 +55,38 @@ If no `.csproj` matches or the path is outside known projects, stop and ask the 
 
 ### Step 2: Discover Source Types
 
-Scan the given source directory for public types that should have tests. Include:
+Scan the given source directory for testable types. Include:
 
 - Public classes and records (components, systems, services)
 - Public structs used as data types
 - Static utility/service classes
+- **Internal types** — only if the source project has `InternalsVisibleTo` for the test project
 
 Exclude (no test needed):
 
 - Interfaces (tested via implementations)
 - Enum types (tested implicitly if used)
-- Private/internal types
+- Private types
 - Pure data-only records without logic (e.g., `VelocityComponent(Vector2 Velocity)`)
 - Editor-only UI code (manual verification, not unit-testable)
 - Types marked with `[SkipUnitTests]` attribute (defined in `Engine.Core`)
+- Internal types when `InternalsVisibleTo` is NOT configured for the test project
+
+**Check InternalsVisibleTo** — determine whether the source project exposes internals to the test project:
+
+```bash
+# Replace {TestProjectName} with the test assembly name (e.g., "Engine.Tests")
+rg -q 'InternalsVisibleTo\("Engine\.Tests"\)' <source-root>/ -g '*.cs'
+```
+
+If exit code is 0, the source project makes internals visible to the test project — include them in the scan.
 
 **Source of truth** (cross-platform, requires `rg` on PATH):
 
 ```bash
+# When InternalsVisibleTo is set: include internal types
+rg "(?:public|internal) (?:\w+ )*(class|record|struct) " <source-dir>/ -g '*.cs'
+# When not set: public types only
 rg "public (?:\w+ )*(class|record|struct) " <source-dir>/ -g '*.cs'
 ```
 
@@ -159,7 +173,7 @@ Produce a structured report:
 - `Interface` — tested via implementations (if somehow matched by the search pattern)
 - `Enum` — tested implicitly (if somehow matched by the search pattern)
 - `Editor-only UI code` — not unit-testable (manual verification)
-- `Internal type` — not discoverable by the `public` search pattern
+- `Internal type (no InternalsVisibleTo)` — source project does not expose internals to the test project
 
 ### Step 6: Generate Test Stubs (Optional)
 

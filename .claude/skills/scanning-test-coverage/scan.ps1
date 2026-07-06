@@ -33,6 +33,23 @@ if ([string]::IsNullOrEmpty($SourceRoot)) {
     $SourceRoot = ($SourceDir -split '/')[0]
 }
 
+# Determine test project name from TestDir (e.g., "tests/Engine.Tests" → "Engine.Tests")
+$testProjectName = ($TestDir -split '/')[-1]
+
+# Check if InternalsVisibleTo is configured for the test project
+$internalsVisible = $false
+$assemblyInfo = Join-Path -Path $SourceRoot -ChildPath "AssemblyInfo.cs"
+if (Test-Path -LiteralPath $assemblyInfo) {
+    $content = Get-Content -LiteralPath $assemblyInfo -Raw
+    if ($content -match [regex]::Escape("InternalsVisibleTo(`"$testProjectName`")")) {
+        $internalsVisible = $true
+    }
+}
+if (-not $internalsVisible) {
+    $ivtMatch = rg -l "InternalsVisibleTo\(""$testProjectName""\)" $SourceRoot -g "*.cs" 2>$null
+    if ($ivtMatch) { $internalsVisible = $true }
+}
+
 $rel = $SourceDir
 if ($rel.StartsWith("$SourceRoot/")) {
     $rel = $rel.Substring($SourceRoot.Length + 1)
@@ -51,7 +68,12 @@ $covered = 0
 $grouped = 0
 $skipped = 0
 
-$matches = rg --no-heading -n "public (?:\w+ )*(class|record|struct) " $SourceDir -g "*.cs" 2>$null
+if ($internalsVisible) {
+    $pattern = "(?:public|internal) (?:\w+ )*(class|record|struct) "
+} else {
+    $pattern = "public (?:\w+ )*(class|record|struct) "
+}
+$matches = rg --no-heading -n $pattern $SourceDir -g "*.cs" 2>$null
 if (-not $matches) { $matches = @() }
 
 foreach ($line in $matches) {
@@ -62,7 +84,8 @@ foreach ($line in $matches) {
         continue
     }
 
-    if ($rest -notmatch 'public (?:\w+ )*(class|record|struct) (?<type>[A-Za-z_][A-Za-z0-9_]*)') {
+    $reType = if ($internalsVisible) { '(?:public|internal) (?:\w+ )*(class|record|struct) (?<type>[A-Za-z_][A-Za-z0-9_]*)' } else { 'public (?:\w+ )*(class|record|struct) (?<type>[A-Za-z_][A-Za-z0-9_]*)' }
+    if ($rest -notmatch $reType) {
         continue
     }
 
