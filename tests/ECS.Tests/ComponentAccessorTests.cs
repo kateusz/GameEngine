@@ -109,7 +109,7 @@ public class ComponentAccessorTests
         var accessor = new ComponentAccessor();
         accessor.SetEntity(entity);
 
-        Should.Throw<InvalidOperationException>(() => accessor.GetComponent<TestComponent>());
+        Should.Throw<InvalidOperationException>(accessor.GetComponent<TestComponent>);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class ComponentAccessorTests
         accessor.SetEntity(entity);
         accessor.AddComponent<TestComponent>();
 
-        Should.Throw<InvalidOperationException>(() => accessor.AddComponent<TestComponent>());
+        Should.Throw<InvalidOperationException>(accessor.AddComponent<TestComponent>);
     }
 
     [Fact]

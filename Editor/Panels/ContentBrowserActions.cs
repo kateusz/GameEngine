@@ -18,7 +18,7 @@ public class ContentBrowserActions(
         if (projectContext.ScriptsDir is null)
             return (false, "Open a project first.");
 
-        var template = scriptWorkspace.GenerateScriptTemplate(scriptName);
+        var template = ScriptableEntityTemplates.Generate(scriptName);
         var (success, errors) = await scriptWorkspace.CreateOrUpdateScriptAsync(scriptName, template);
         return success ? (true, null) : (false, string.Join('\n', errors.Take(5)));
     }

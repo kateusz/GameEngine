@@ -171,7 +171,7 @@ public class ScriptComponentEditor(
 
                 try
                 {
-                    var scriptTemplate = scriptWorkspace.GenerateScriptTemplate(_newScriptName);
+                    var scriptTemplate = ScriptableEntityTemplates.Generate(_newScriptName);
                     var (success, errors) = await scriptWorkspace.CreateOrUpdateScriptAsync(_newScriptName, scriptTemplate);
 
                     if (!success)

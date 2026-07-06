@@ -4,7 +4,7 @@ using Serilog;
 
 namespace Editor.Publisher;
 
-public partial class GamePublisher(IProjectContext projectContext, IGameAssemblyBuilder gameAssemblyBuilder)
+public partial class GamePublisher(IProjectContext projectContext)
     : IGamePublisher
 {
     private static readonly ILogger Logger = Log.ForContext<GamePublisher>();
@@ -103,7 +103,7 @@ public partial class GamePublisher(IProjectContext projectContext, IGameAssembly
             ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
             var scriptsSource = projectContext.ScriptsDir!;
             var gameDllPath = Path.Combine(tempOutputPath, "GameAssembly.dll");
-            if (!gameAssemblyBuilder.TryBuild(scriptsSource, gameDllPath, emitPdb: false, useDebugOptimization: false, out var scriptBuildErrors))
+            if (!GameAssemblyCompiler.TryCompile(scriptsSource, gameDllPath, emitPdb: false, useDebugOptimization: false, out var scriptBuildErrors))
             {
                 foreach (var line in scriptBuildErrors)
                 {

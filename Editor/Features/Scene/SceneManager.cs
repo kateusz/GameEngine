@@ -15,7 +15,6 @@ public class SceneManager(
     SceneFactory sceneFactory,
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IProjectContext projectContext,
-    IGameAssemblyBuilder gameAssemblyBuilder,
     GameScriptWorkspace scriptWorkspace)
     : ISceneManager
 {
@@ -81,8 +80,8 @@ public class SceneManager(
 
             var engineDir = Path.Combine(projectContext.Root, ".engine");
             Directory.CreateDirectory(engineDir);
-            var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
-            if (!gameAssemblyBuilder.TryBuild(projectContext.ScriptsDir, dllPath, emitPdb: true, useDebugOptimization: true, out var buildErrors))
+            var dllPath = Path.Combine(engineDir, $"GameAssembly_{Guid.NewGuid():N}.dll");
+            if (!GameAssemblyCompiler.TryCompile(projectContext.ScriptsDir, dllPath, emitPdb: true, useDebugOptimization: true, out var buildErrors))
             {
                 foreach (var e in buildErrors)
                     Logger.Error("Game script build: {Error}", e);
