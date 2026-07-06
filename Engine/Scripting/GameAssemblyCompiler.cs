@@ -35,6 +35,9 @@ public static class GameAssemblyCompiler
                                                   }
                                                   """;
 
+    public static string GetNextEditorBuildPath(string outputDirectory) =>
+        Path.Combine(outputDirectory, $"GameAssembly_{Guid.NewGuid():N}.dll");
+
     public static bool TryCompile(
         string scriptsDirectory,
         string outputDllPath,
@@ -168,6 +171,9 @@ public static class GameAssemblyCompiler
         var fileName = Path.GetFileName(fullPath);
         if (fileName.EndsWith(".AssemblyInfo.cs", StringComparison.OrdinalIgnoreCase) ||
             fileName.Contains("AssemblyAttributes", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (fileName.Equals("GameAssembly.Placeholder.cs", StringComparison.OrdinalIgnoreCase))
             return false;
 
         return true;

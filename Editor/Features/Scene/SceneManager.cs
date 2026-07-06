@@ -80,7 +80,7 @@ public class SceneManager(
 
             var engineDir = Path.Combine(projectContext.Root, ".engine");
             Directory.CreateDirectory(engineDir);
-            var dllPath = Path.Combine(engineDir, $"GameAssembly_{Guid.NewGuid():N}.dll");
+            var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
             if (!GameAssemblyCompiler.TryCompile(projectContext.ScriptsDir, dllPath, emitPdb: true, useDebugOptimization: true, out var buildErrors))
             {
                 foreach (var e in buildErrors)

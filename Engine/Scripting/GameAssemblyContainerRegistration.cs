@@ -51,7 +51,7 @@ public static class GameAssemblyContainerRegistration
 
     private static List<(Type ImplementationType, Type ServiceType, GameIocLifetime Lifetime)> DiscoverIocRegistrations(Assembly assembly)
     {
-        var list = new List<(Type, Type, GameIocLifetime)>();
+        var list = new List<(Type ImplementationType, Type ServiceType, GameIocLifetime Lifetime)>();
         foreach (var type in AssemblyLoadTypes.From(assembly))
         {
             if (type is not { IsClass: true, IsAbstract: false })
@@ -63,7 +63,7 @@ public static class GameAssemblyContainerRegistration
 
             if (attr.ServiceType.IsAssignableFrom(type))
             {
-                list.Add((type, attr.ServiceType, attr.Lifetime));
+                list.Add((ImplementationType: type, ServiceType: attr.ServiceType, Lifetime: attr.Lifetime));
                 continue;
             }
 

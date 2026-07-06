@@ -29,6 +29,7 @@ internal static class ScriptCompilationReferences
 
     public static MetadataReference[] GetMetadataReferences(string? scriptsDirectory = null)
     {
+        Logger.Debug("Loading script compilation references...");
         var references = new List<MetadataReference>();
         var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var addedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -46,7 +47,7 @@ internal static class ScriptCompilationReferences
             EnsureReference(references, addedPaths, addedNames, assemblyName);
 
         AddBox2D(references, addedPaths, addedNames);
-        Logger.Debug("Script compilation references loaded: {ReferenceCount}", references.Count);
+        Logger.Debug("Loaded {ReferenceCount} script compilation references", references.Count);
         return references.ToArray();
     }
 
@@ -63,10 +64,11 @@ internal static class ScriptCompilationReferences
                 referenceNames.Add(Path.GetFileNameWithoutExtension(filePath));
         }
 
-        if (!referenceNames.Contains("ECS"))
-            return (false, ["Missing required assembly: ECS"]);
-
-        return (true, []);
+        var required = new[] { "System.Private.CoreLib", "System.Runtime", "System.Numerics.Vectors", "ECS" };
+        var missing = required.Where(r => !referenceNames.Contains(r)).ToArray();
+        return missing.Length == 0
+            ? (true, [])
+            : (false, missing.Select(m => $"Missing required assembly: {m}").ToArray());
     }
 
     private static void LoadRuntimeAssemblies(
@@ -198,12 +200,19 @@ internal static class ScriptCompilationReferences
     {
         var dll = $"{assemblyName}.dll";
         var engineDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        foreach (var path in new[]
-                 {
-                     engineDir is not null ? Path.Combine(engineDir, dll) : null,
-                     Path.Combine(AppContext.BaseDirectory, dll),
-                     Path.Combine(Environment.CurrentDirectory, dll)
-                 })
+        var candidates = new List<string?>();
+
+        if (engineDir is not null)
+            candidates.Add(Path.Combine(engineDir, dll));
+
+        candidates.Add(Path.Combine(AppContext.BaseDirectory, dll));
+
+        var currentDir = Environment.CurrentDirectory;
+        candidates.Add(Path.Combine(currentDir, dll));
+        candidates.Add(Path.Combine(currentDir, "bin", "Debug", "net10.0", dll));
+        candidates.Add(Path.Combine(currentDir, "..", assemblyName, "bin", "Debug", "net10.0", dll));
+
+        foreach (var path in candidates)
         {
             if (path is not null && File.Exists(path))
                 return path;

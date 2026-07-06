@@ -134,8 +134,6 @@ public sealed class GameScriptWorkspace(
         ReloadGameAssembly(compile: false, dllPath: Path.GetFullPath(dllPath));
     }
 
-
-
     public void RevokeAndUnload()
     {
         RevokeAppliedAssembly();
@@ -238,7 +236,7 @@ public sealed class GameScriptWorkspace(
             Logger.Information("Compiling all scripts to {GameAssembly}...", GameAssemblyCompiler.AssemblyName);
             var engineDir = Path.GetDirectoryName(dllPath)!;
             Directory.CreateDirectory(engineDir);
-            dllPath = Path.Combine(engineDir, $"GameAssembly_{Guid.NewGuid():N}.dll");
+            dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
             if (!GameAssemblyCompiler.TryCompile(_scriptsDirectory, dllPath, DebugMode, DebugMode, out var errors))
                 return (false, errors);
 
