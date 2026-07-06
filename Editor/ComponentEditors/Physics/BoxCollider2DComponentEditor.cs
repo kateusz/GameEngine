@@ -3,7 +3,7 @@ using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
 using SceneComponents.Physics;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Physics;
 
 public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {

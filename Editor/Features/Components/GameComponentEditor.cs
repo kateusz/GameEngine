@@ -1,12 +1,11 @@
 using ECS;
-using Editor.Features.Components;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Scripting;
 using ImGuiNET;
 using Serilog;
 
-namespace Editor.ComponentEditors;
+namespace Editor.Features.Components;
 
 public class GameComponentEditor(IGameComponentFactory gameComponentFactory)
 {

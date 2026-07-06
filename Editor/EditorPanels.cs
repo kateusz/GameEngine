@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors;
+using Editor.Features.Components;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Input;

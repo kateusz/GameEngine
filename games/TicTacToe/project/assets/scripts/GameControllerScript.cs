@@ -3,7 +3,7 @@ using ECS;
 using Input;
 using Scripting;
 
-namespace TicTacToe;
+namespace TicTacToe.project.assets.scripts;
 
 public class GameControllerScript : ScriptableEntity
 {

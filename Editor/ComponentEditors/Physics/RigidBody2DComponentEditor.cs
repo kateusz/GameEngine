@@ -4,7 +4,7 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using SceneComponents.Physics;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Physics;
 
 public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {

@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
+using Editor.Features.Components;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.UI.Drawers;

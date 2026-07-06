@@ -4,6 +4,7 @@ using Input;
 using NSubstitute;
 using Shouldly;
 using Snake;
+using Snake.project.assets.scripts;
 
 namespace Engine.Tests;
 

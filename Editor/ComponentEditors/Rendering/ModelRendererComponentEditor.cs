@@ -3,7 +3,7 @@ using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
 using SceneComponents.Rendering;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Rendering;
 
 public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {

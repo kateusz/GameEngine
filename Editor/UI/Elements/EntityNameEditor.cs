@@ -2,7 +2,7 @@ using ECS;
 using Editor.UI.Constants;
 using ImGuiNET;
 
-namespace Editor.ComponentEditors;
+namespace Editor.UI.Elements;
 
 public static class EntityNameEditor
 {

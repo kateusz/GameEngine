@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors;
+using Editor.Features.Components;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Scene;

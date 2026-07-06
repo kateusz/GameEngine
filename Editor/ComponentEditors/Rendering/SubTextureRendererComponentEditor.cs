@@ -5,7 +5,7 @@ using Engine.Renderer.Textures;
 using ImGuiNET;
 using SceneComponents.Rendering;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Rendering;
 
 public class SubTextureRendererComponentEditor(
     ITextureFactory textureFactory,

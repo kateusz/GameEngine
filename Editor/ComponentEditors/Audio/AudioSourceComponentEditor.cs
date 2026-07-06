@@ -7,7 +7,7 @@ using ImGuiNET;
 using SceneComponents.Audio;
 using ZLinq;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Audio;
 
 public class AudioSourceComponentEditor(
     IAudioPlayback audioPlayback,

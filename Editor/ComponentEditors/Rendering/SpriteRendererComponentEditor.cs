@@ -4,7 +4,7 @@ using Editor.UI.Elements;
 using Engine.Renderer.Textures;
 using SceneComponents.Rendering;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Rendering;
 
 public class SpriteRendererComponentEditor(
     ITextureFactory textureFactory,

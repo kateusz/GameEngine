@@ -131,9 +131,6 @@ internal static class SceneRenderPipeline
                 continue;
 
             var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
-            if (texture == null)
-                continue;
-
             var transform = transformComponent.GetTransform();
             Vector2[] texCoords;
             if (subtextureComponent.TexCoords != null)

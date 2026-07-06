@@ -4,7 +4,7 @@ using ECS.Systems;
 using SceneComponents.Rendering;
 using Scripting;
 
-namespace TicTacToe;
+namespace TicTacToe.project.assets.scripts;
 
 [Register(typeof(IGameSystem))]
 public class TicTacToeSystem(IContext context) : IGameSystem

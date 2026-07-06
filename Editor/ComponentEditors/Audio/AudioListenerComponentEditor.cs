@@ -3,7 +3,7 @@ using Editor.ComponentEditors.Core;
 using Editor.UI.Elements;
 using SceneComponents.Audio;
 
-namespace Editor.ComponentEditors;
+namespace Editor.ComponentEditors.Audio;
 
 public class AudioListenerComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {

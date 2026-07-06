@@ -1,6 +1,6 @@
 ﻿using ECS;
 
-namespace TicTacToe;
+namespace TicTacToe.project.assets.scripts;
 
 [SerializableComponent]
 public class CellComponent : IGameComponent
