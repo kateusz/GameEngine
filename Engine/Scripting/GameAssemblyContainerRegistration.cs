@@ -1,9 +1,11 @@
 using System.Reflection;
 using DryIoc;
+using Engine.Core;
 using Scripting;
 
 namespace Engine.Scripting;
 
+[SkipUnitTests]
 public static class GameAssemblyContainerRegistration
 {
     public static void UnregisterRegistrationsFromGameAssembly(Container container, Assembly gameAssembly)

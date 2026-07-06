@@ -68,6 +68,7 @@ Exclude (no test needed):
 - Private/internal types
 - Pure data-only records without logic (e.g., `VelocityComponent(Vector2 Velocity)`)
 - Editor-only UI code (manual verification, not unit-testable)
+- Types marked with `[SkipUnitTests]` attribute (defined in `Engine.Core`)
 
 **Source of truth** (cross-platform, requires `rg` on PATH):
 

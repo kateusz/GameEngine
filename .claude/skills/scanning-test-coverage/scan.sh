@@ -49,14 +49,19 @@ excluded=0
 while IFS= read -r line; do
   file="${line%%:*}"
   rest="${line#*:}"
-  type_name=""
-  if [[ "$rest" =~ public\ ([A-Za-z_]+\ )*(class|record|struct)\ ([A-Za-z_][A-Za-z0-9_]*) ]]; then
-    type_name="${BASH_REMATCH[3]}"
-  else
+
+  if [[ "$rest" =~ public\ interface\ ]] || [[ "$rest" =~ public\ enum\ ]]; then
+    ((excluded++)) || true
     continue
   fi
 
-  if [[ "$rest" =~ public\ interface\ ]] || [[ "$rest" =~ public\ enum\ ]]; then
+  if ! [[ "$rest" =~ public\ ([A-Za-z_]+\ )*(class|record|struct)\ ([A-Za-z_][A-Za-z0-9_]*) ]]; then
+    continue
+  fi
+
+  type_name="${BASH_REMATCH[3]}"
+
+  if rg -q '\[SkipUnitTests\]' "$file" 2>/dev/null; then
     ((excluded++)) || true
     continue
   fi

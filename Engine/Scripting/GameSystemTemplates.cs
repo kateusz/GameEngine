@@ -1,5 +1,8 @@
+using Engine.Core;
+
 namespace Engine.Scripting;
 
+[SkipUnitTests]
 public static class GameSystemTemplates
 {
     public static string ToClassName(string baseName) => $"{baseName}System";

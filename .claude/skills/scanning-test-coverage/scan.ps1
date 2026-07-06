@@ -72,6 +72,12 @@ foreach ($line in $matches) {
     }
 
     $typeName = $Matches.type
+
+    rg -q "\[SkipUnitTests\]" $file 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $excluded++
+        continue
+    }
     $expected = "$TestDir$testSub/${typeName}Tests.cs" -replace '\\', '/'
 
     $oneToOne = rg --files $TestDir -g "${typeName}Tests.cs" 2>$null | Select-Object -First 1

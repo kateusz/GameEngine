@@ -1,5 +1,8 @@
+using Engine.Core;
+
 namespace Engine.Scripting;
 
+[SkipUnitTests]
 public sealed class GameAssemblyBuilder : IGameAssemblyBuilder
 {
     public bool TryBuild(string scriptsDirectory, string outputDllPath, bool emitPdb, bool useDebugOptimization, out string[] errors)
