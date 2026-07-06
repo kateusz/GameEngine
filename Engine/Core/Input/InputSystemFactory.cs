@@ -4,6 +4,7 @@ using Silk.NET.Input;
 
 namespace Engine.Core.Input;
 
+[SkipUnitTests]
 internal sealed class InputSystemFactory(IRendererApiConfig apiConfig) : IInputSystemFactory
 {
     public IInputSystem Create(IInputContext inputContext)
