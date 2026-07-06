@@ -1,4 +1,6 @@
-﻿namespace ECS.Tests;
+﻿using Shouldly;
+
+namespace ECS.Tests;
 
 public class EntityEqualityTests
 {
@@ -10,8 +12,8 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(1, "Entity2");
 
         // Act & Assert
-        Assert.True(entity1.Equals(entity2));
-        Assert.True(entity1.Equals((object)entity2));
+        entity1.Equals(entity2).ShouldBeTrue();
+        entity1.Equals((object)entity2).ShouldBeTrue();
     }
 
     [Fact]
@@ -22,8 +24,8 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(2, "Entity1");
 
         // Act & Assert
-        Assert.False(entity1.Equals(entity2));
-        Assert.False(entity1.Equals((object)entity2));
+        entity1.Equals(entity2).ShouldBeFalse();
+        entity1.Equals((object)entity2).ShouldBeFalse();
     }
 
     [Fact]
@@ -33,8 +35,8 @@ public class EntityEqualityTests
         var entity = Entity.Create(1, "Entity");
 
         // Act & Assert
-        Assert.False(entity.Equals((Entity?)null));
-        Assert.False(entity.Equals((object?)null));
+        entity.Equals((Entity?)null).ShouldBeFalse();
+        entity.Equals((object?)null).ShouldBeFalse();
     }
 
     [Fact]
@@ -45,7 +47,7 @@ public class EntityEqualityTests
         var notAnEntity = "not an entity";
 
         // Act & Assert
-        Assert.False(entity.Equals(notAnEntity));
+        entity.Equals(notAnEntity).ShouldBeFalse();
     }
 
     [Fact]
@@ -60,7 +62,7 @@ public class EntityEqualityTests
         var hashAfterAdd = entity.GetHashCode();
 
         // Assert - Hash should remain the same
-        Assert.Equal(hashBeforeAdd, hashAfterAdd);
+        hashAfterAdd.ShouldBe(hashBeforeAdd);
     }
 
     [Fact]
@@ -76,7 +78,7 @@ public class EntityEqualityTests
         var hashAfterRemove = entity.GetHashCode();
 
         // Assert - Hash should remain the same
-        Assert.Equal(hashBeforeRemove, hashAfterRemove);
+        hashAfterRemove.ShouldBe(hashBeforeRemove);
     }
 
     [Fact]
@@ -91,7 +93,7 @@ public class EntityEqualityTests
         var hashAfterNameChange = entity.GetHashCode();
 
         // Assert - Hash should remain the same
-        Assert.Equal(hashBeforeNameChange, hashAfterNameChange);
+        hashAfterNameChange.ShouldBe(hashBeforeNameChange);
     }
 
     [Fact]
@@ -106,7 +108,7 @@ public class EntityEqualityTests
         var hash2 = entity2.GetHashCode();
 
         // Assert - Different entities should (likely) have different hashes
-        Assert.NotEqual(hash1, hash2);
+        hash2.ShouldNotBe(hash1);
     }
 
     [Fact]
@@ -121,7 +123,7 @@ public class EntityEqualityTests
         entity.AddComponent<TestComponent>();
 
         // Assert - Entity should still be found in HashSet
-        Assert.Contains(entity, entitySet);
+        entitySet.ShouldContain(entity);
     }
 
     [Fact]
@@ -136,8 +138,8 @@ public class EntityEqualityTests
         entity.AddComponent<TestComponent>();
 
         // Assert - Entity should still be a valid key
-        Assert.True(entityDict.ContainsKey(entity));
-        Assert.Equal("test value", entityDict[entity]);
+        entityDict.ContainsKey(entity).ShouldBeTrue();
+        entityDict[entity].ShouldBe("test value");
     }
 
     [Fact]
@@ -148,7 +150,7 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(1, "Entity2");
 
         // Act & Assert - Equals method should be used for comparisons
-        Assert.True(entity1.Equals(entity2));
+        entity1.Equals(entity2).ShouldBeTrue();
     }
 
     [Fact]
@@ -159,7 +161,7 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(1, "Entity2");
 
         // Act & Assert
-        Assert.True(entity1 == entity2);
+        (entity1 == entity2).ShouldBeTrue();
     }
 
     [Fact]
@@ -170,7 +172,7 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(2, "Entity1");
 
         // Act & Assert
-        Assert.False(entity1 == entity2);
+        (entity1 == entity2).ShouldBeFalse();
     }
 
     [Fact]
@@ -181,7 +183,7 @@ public class EntityEqualityTests
         Entity? entity2 = null;
 
         // Act & Assert
-        Assert.True(entity1 == entity2);
+        (entity1 == entity2).ShouldBeTrue();
     }
 
     [Fact]
@@ -192,8 +194,8 @@ public class EntityEqualityTests
         Entity? nullEntity = null;
 
         // Act & Assert
-        Assert.False(entity == nullEntity);
-        Assert.False(nullEntity == entity);
+        (entity == nullEntity).ShouldBeFalse();
+        (nullEntity == entity).ShouldBeFalse();
     }
 
     [Fact]
@@ -203,7 +205,7 @@ public class EntityEqualityTests
         var entity = Entity.Create(1, "Entity");
 
         // Act & Assert
-        Assert.True(entity == entity);
+        (entity == entity).ShouldBeTrue();
     }
 
     [Fact]
@@ -214,7 +216,7 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(1, "Entity2");
 
         // Act & Assert
-        Assert.False(entity1 != entity2);
+        (entity1 != entity2).ShouldBeFalse();
     }
 
     [Fact]
@@ -225,7 +227,7 @@ public class EntityEqualityTests
         var entity2 = Entity.Create(2, "Entity1");
 
         // Act & Assert
-        Assert.True(entity1 != entity2);
+        (entity1 != entity2).ShouldBeTrue();
     }
 
     [Fact]
@@ -236,7 +238,7 @@ public class EntityEqualityTests
         Entity? entity2 = null;
 
         // Act & Assert
-        Assert.False(entity1 != entity2);
+        (entity1 != entity2).ShouldBeFalse();
     }
 
     [Fact]
@@ -247,8 +249,8 @@ public class EntityEqualityTests
         Entity? nullEntity = null;
 
         // Act & Assert
-        Assert.True(entity != nullEntity);
-        Assert.True(nullEntity != entity);
+        (entity != nullEntity).ShouldBeTrue();
+        (nullEntity != entity).ShouldBeTrue();
     }
 
     [Fact]
@@ -260,8 +262,8 @@ public class EntityEqualityTests
         var entity3 = Entity.Create(2, "Entity3");
 
         // Act & Assert - == should match Equals()
-        Assert.Equal(entity1.Equals(entity2), entity1 == entity2);
-        Assert.Equal(entity1.Equals(entity3), entity1 == entity3);
+        (entity1 == entity2).ShouldBe(entity1.Equals(entity2));
+        (entity1 == entity3).ShouldBe(entity1.Equals(entity3));
     }
 
     // Test component for validation

@@ -1,3 +1,5 @@
+using Shouldly;
+
 namespace ECS.Tests;
 
 /// <summary>
@@ -15,8 +17,8 @@ public class EntityComponentTests
         var component = entity.AddComponent<TestComponent>();
 
         // Assert
-        Assert.NotNull(component);
-        Assert.True(entity.HasComponent<TestComponent>());
+        component.ShouldNotBeNull();
+        entity.HasComponent<TestComponent>().ShouldBeTrue();
     }
 
     [Fact]
@@ -30,11 +32,11 @@ public class EntityComponentTests
         var result = entity.AddComponent(component);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Same(component, result);
-        Assert.True(entity.HasComponent<TestComponentWithParams>());
-        Assert.Equal("TestValue", result.Name);
-        Assert.Equal(42, result.Value);
+        result.ShouldNotBeNull();
+        result.ShouldBeSameAs(component);
+        entity.HasComponent<TestComponentWithParams>().ShouldBeTrue();
+        result.Name.ShouldBe("TestValue");
+        result.Value.ShouldBe(42);
     }
 
     [Fact]
@@ -48,11 +50,11 @@ public class EntityComponentTests
         var result = entity.AddComponent<TestComponentWithParams>(component);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Same(component, result);
-        Assert.True(entity.HasComponent<TestComponentWithParams>());
-        Assert.Equal("TestValue", result.Name);
-        Assert.Equal(42, result.Value);
+        result.ShouldNotBeNull();
+        result.ShouldBeSameAs(component);
+        entity.HasComponent<TestComponentWithParams>().ShouldBeTrue();
+        result.Name.ShouldBe("TestValue");
+        result.Value.ShouldBe(42);
     }
 
     [Fact]
@@ -63,13 +65,13 @@ public class EntityComponentTests
         entity.AddComponent<TestComponent>();
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => 
+        var exception = Should.Throw<InvalidOperationException>(() => 
             entity.AddComponent<TestComponent>());
         
-        Assert.Contains("Entity 1", exception.Message);
-        Assert.Contains("TestEntity", exception.Message);
-        Assert.Contains("TestComponent", exception.Message);
-        Assert.Contains("already has component", exception.Message);
+        exception.Message.ShouldContain("Entity 1");
+        exception.Message.ShouldContain("TestEntity");
+        exception.Message.ShouldContain("TestComponent");
+        exception.Message.ShouldContain("already has component");
     }
 
     [Fact]
@@ -80,13 +82,13 @@ public class EntityComponentTests
         entity.AddComponent(new TestComponent());
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => 
+        var exception = Should.Throw<InvalidOperationException>(() => 
             entity.AddComponent(new TestComponent()));
         
-        Assert.Contains("Entity 1", exception.Message);
-        Assert.Contains("TestEntity", exception.Message);
-        Assert.Contains("TestComponent", exception.Message);
-        Assert.Contains("already has component", exception.Message);
+        exception.Message.ShouldContain("Entity 1");
+        exception.Message.ShouldContain("TestEntity");
+        exception.Message.ShouldContain("TestComponent");
+        exception.Message.ShouldContain("already has component");
     }
 
     [Fact]
@@ -97,13 +99,13 @@ public class EntityComponentTests
         entity.AddComponent<TestComponent>(new TestComponent());
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => 
+        var exception = Should.Throw<InvalidOperationException>(() => 
             entity.AddComponent<TestComponent>(new TestComponent()));
         
-        Assert.Contains("Entity 1", exception.Message);
-        Assert.Contains("TestEntity", exception.Message);
-        Assert.Contains("TestComponent", exception.Message);
-        Assert.Contains("already has component", exception.Message);
+        exception.Message.ShouldContain("Entity 1");
+        exception.Message.ShouldContain("TestEntity");
+        exception.Message.ShouldContain("TestComponent");
+        exception.Message.ShouldContain("already has component");
     }
 
     [Fact]
@@ -114,10 +116,10 @@ public class EntityComponentTests
         entity.AddComponent<TestComponent>();
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => 
+        var exception = Should.Throw<InvalidOperationException>(() => 
             entity.AddComponent(new TestComponent()));
         
-        Assert.Contains("already has component", exception.Message);
+        exception.Message.ShouldContain("already has component");
     }
 
     [Fact]
@@ -128,10 +130,10 @@ public class EntityComponentTests
         entity.AddComponent(new TestComponent());
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => 
+        var exception = Should.Throw<InvalidOperationException>(() => 
             entity.AddComponent<TestComponent>());
         
-        Assert.Contains("already has component", exception.Message);
+        exception.Message.ShouldContain("already has component");
     }
 
     [Fact]
@@ -145,8 +147,8 @@ public class EntityComponentTests
         entity.AddComponent<AnotherTestComponent>();
 
         // Assert
-        Assert.True(entity.HasComponent<TestComponent>());
-        Assert.True(entity.HasComponent<AnotherTestComponent>());
+        entity.HasComponent<TestComponent>().ShouldBeTrue();
+        entity.HasComponent<AnotherTestComponent>().ShouldBeTrue();
     }
     
     [Fact]
@@ -161,8 +163,8 @@ public class EntityComponentTests
         var component = entity.AddComponent<TestComponent>();
 
         // Assert
-        Assert.NotNull(component);
-        Assert.True(entity.HasComponent<TestComponent>());
+        component.ShouldNotBeNull();
+        entity.HasComponent<TestComponent>().ShouldBeTrue();
     }
 
     [Fact]
@@ -175,9 +177,9 @@ public class EntityComponentTests
         var component = entity.AddComponent(new TestComponentWithParams("FluentTest", 100));
 
         // Assert
-        Assert.Equal("FluentTest", component.Name);
-        Assert.Equal(100, component.Value);
-        Assert.True(entity.HasComponent<TestComponentWithParams>());
+        component.Name.ShouldBe("FluentTest");
+        component.Value.ShouldBe(100);
+        entity.HasComponent<TestComponentWithParams>().ShouldBeTrue();
     }
 
     [Fact]
@@ -191,8 +193,8 @@ public class EntityComponentTests
         entity.AddComponent<BaseTestComponent>(derivedComponent);
 
         // Assert
-        Assert.True(entity.HasComponent<BaseTestComponent>());
-        Assert.False(entity.HasComponent<DerivedTestComponent>());
+        entity.HasComponent<BaseTestComponent>().ShouldBeTrue();
+        entity.HasComponent<DerivedTestComponent>().ShouldBeFalse();
     }
 
     [Fact]
@@ -206,8 +208,8 @@ public class EntityComponentTests
         entity.AddComponent<DerivedTestComponent>(new DerivedTestComponent());
 
         // Assert
-        Assert.True(entity.HasComponent<BaseTestComponent>());
-        Assert.True(entity.HasComponent<DerivedTestComponent>());
+        entity.HasComponent<BaseTestComponent>().ShouldBeTrue();
+        entity.HasComponent<DerivedTestComponent>().ShouldBeTrue();
     }
 
     [Fact]
@@ -218,11 +220,11 @@ public class EntityComponentTests
         entity.AddComponent<BaseTestComponent>(new DerivedTestComponent());
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Should.Throw<InvalidOperationException>(() =>
             entity.AddComponent<BaseTestComponent>(new DerivedTestComponent()));
 
-        Assert.Contains("already has component", exception.Message);
-        Assert.Contains("BaseTestComponent", exception.Message);
+        exception.Message.ShouldContain("already has component");
+        exception.Message.ShouldContain("BaseTestComponent");
     }
 
     // Test components

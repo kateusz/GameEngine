@@ -1,4 +1,5 @@
 using ECS.Systems;
+using Shouldly;
 
 namespace ECS.Tests;
 
@@ -61,7 +62,7 @@ public class SystemManagerTests
         manager.RegisterSystem(system);
 
         // Assert
-        Assert.Equal(1, manager.SystemCount);
+        manager.SystemCount.ShouldBe(1);
     }
 
     [Fact]
@@ -71,7 +72,7 @@ public class SystemManagerTests
         var manager = new SystemManager();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => manager.RegisterSystem(null!));
+        Should.Throw<ArgumentNullException>(() => manager.RegisterSystem(null!));
     }
 
     [Fact]
@@ -83,7 +84,7 @@ public class SystemManagerTests
         manager.RegisterSystem(system);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => manager.RegisterSystem(system));
+        Should.Throw<InvalidOperationException>(() => manager.RegisterSystem(system));
     }
 
     [Fact]
@@ -100,9 +101,9 @@ public class SystemManagerTests
         manager.Initialize();
 
         // Assert
-        Assert.True(system1.InitCalled);
-        Assert.True(system2.InitCalled);
-        Assert.True(manager.IsInitialized);
+        system1.InitCalled.ShouldBeTrue();
+        system2.InitCalled.ShouldBeTrue();
+        manager.IsInitialized.ShouldBeTrue();
     }
 
     [Fact]
@@ -113,7 +114,7 @@ public class SystemManagerTests
         manager.Initialize();
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => manager.Initialize());
+        Should.Throw<InvalidOperationException>(() => manager.Initialize());
     }
 
     [Fact]
@@ -136,15 +137,15 @@ public class SystemManagerTests
         manager.Initialize();
 
         // Assert - All systems should have been initialized in priority order (1, 2, 3)
-        Assert.True(system1.InitCalled);
-        Assert.True(system2.InitCalled);
-        Assert.True(system3.InitCalled);
+        system1.InitCalled.ShouldBeTrue();
+        system2.InitCalled.ShouldBeTrue();
+        system3.InitCalled.ShouldBeTrue();
 
         // Verify they were initialized in ascending priority order
-        Assert.Equal(3, initOrder.Count);
-        Assert.Equal(1, initOrder[0]); // System with priority 1 initialized first
-        Assert.Equal(2, initOrder[1]); // System with priority 2 initialized second
-        Assert.Equal(3, initOrder[2]); // System with priority 3 initialized third
+        initOrder.Count.ShouldBe(3);
+        initOrder[0].ShouldBe(1); // System with priority 1 initialized first
+        initOrder[1].ShouldBe(2); // System with priority 2 initialized second
+        initOrder[2].ShouldBe(3); // System with priority 3 initialized third
     }
 
     [Fact]
@@ -164,10 +165,10 @@ public class SystemManagerTests
         manager.Update(deltaTime);
 
         // Assert
-        Assert.True(system1.UpdateCalled);
-        Assert.True(system2.UpdateCalled);
-        Assert.Equal(deltaTime, system1.LastDeltaTime);
-        Assert.Equal(deltaTime, system2.LastDeltaTime);
+        system1.UpdateCalled.ShouldBeTrue();
+        system2.UpdateCalled.ShouldBeTrue();
+        system1.LastDeltaTime.ShouldBe(deltaTime);
+        system2.LastDeltaTime.ShouldBe(deltaTime);
     }
 
     [Fact]
@@ -179,7 +180,7 @@ public class SystemManagerTests
         manager.RegisterSystem(system);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => manager.Update(TimeSpan.Zero));
+        Should.Throw<InvalidOperationException>(() => manager.Update(TimeSpan.Zero));
     }
 
     [Fact]
@@ -203,15 +204,15 @@ public class SystemManagerTests
         manager.Update(TimeSpan.FromSeconds(0.016));
 
         // Assert - All systems should have been called in priority order (1, 2, 3)
-        Assert.True(system1.UpdateCalled);
-        Assert.True(system2.UpdateCalled);
-        Assert.True(system3.UpdateCalled);
+        system1.UpdateCalled.ShouldBeTrue();
+        system2.UpdateCalled.ShouldBeTrue();
+        system3.UpdateCalled.ShouldBeTrue();
 
         // Verify they were called in ascending priority order
-        Assert.Equal(3, updateOrder.Count);
-        Assert.Equal(1, updateOrder[0]); // System with priority 1 called first
-        Assert.Equal(2, updateOrder[1]); // System with priority 2 called second
-        Assert.Equal(3, updateOrder[2]); // System with priority 3 called third
+        updateOrder.Count.ShouldBe(3);
+        updateOrder[0].ShouldBe(1); // System with priority 1 called first
+        updateOrder[1].ShouldBe(2); // System with priority 2 called second
+        updateOrder[2].ShouldBe(3); // System with priority 3 called third
     }
 
     [Fact]
@@ -225,7 +226,7 @@ public class SystemManagerTests
         manager.Shutdown();
         manager.Shutdown();
 
-        Assert.Equal(1, system.ShutdownCount);
+        system.ShutdownCount.ShouldBe(1);
     }
 
     [Fact]
@@ -238,12 +239,12 @@ public class SystemManagerTests
 
         manager.Shutdown();
 
-        Assert.True(system.ShutdownCalled);
-        Assert.Equal(1, manager.SystemCount);
-        Assert.False(manager.IsInitialized);
+        system.ShutdownCalled.ShouldBeTrue();
+        manager.SystemCount.ShouldBe(1);
+        manager.IsInitialized.ShouldBeFalse();
 
         manager.Initialize();
-        Assert.True(manager.IsInitialized);
+        manager.IsInitialized.ShouldBeTrue();
     }
 
     [Fact]
@@ -261,10 +262,10 @@ public class SystemManagerTests
         manager.Shutdown();
 
         // Assert
-        Assert.True(system1.ShutdownCalled);
-        Assert.True(system2.ShutdownCalled);
-        Assert.Equal(2, manager.SystemCount);
-        Assert.False(manager.IsInitialized);
+        system1.ShutdownCalled.ShouldBeTrue();
+        system2.ShutdownCalled.ShouldBeTrue();
+        manager.SystemCount.ShouldBe(2);
+        manager.IsInitialized.ShouldBeFalse();
     }
 
     [Fact]
@@ -287,15 +288,15 @@ public class SystemManagerTests
         manager.Shutdown();
 
         // Assert - All systems should have been shut down in reverse priority order (3, 2, 1)
-        Assert.True(system1.ShutdownCalled);
-        Assert.True(system2.ShutdownCalled);
-        Assert.True(system3.ShutdownCalled);
+        system1.ShutdownCalled.ShouldBeTrue();
+        system2.ShutdownCalled.ShouldBeTrue();
+        system3.ShutdownCalled.ShouldBeTrue();
 
         // Verify they were shut down in descending priority order (reverse of update order)
-        Assert.Equal(3, shutdownOrder.Count);
-        Assert.Equal(3, shutdownOrder[0]); // System with priority 3 shut down first
-        Assert.Equal(2, shutdownOrder[1]); // System with priority 2 shut down second
-        Assert.Equal(1, shutdownOrder[2]); // System with priority 1 shut down last
+        shutdownOrder.Count.ShouldBe(3);
+        shutdownOrder[0].ShouldBe(3); // System with priority 3 shut down first
+        shutdownOrder[1].ShouldBe(2); // System with priority 2 shut down second
+        shutdownOrder[2].ShouldBe(1); // System with priority 1 shut down last
     }
 
     [Fact]
@@ -311,7 +312,7 @@ public class SystemManagerTests
         manager.Update(TimeSpan.FromSeconds(0.016));
 
         // Assert
-        Assert.Equal(new[] { "Init", "Update" }, system.CallOrder);
+        system.CallOrder.ShouldBe(new[] { "Init", "Update" });
     }
 
     [Fact]
@@ -325,8 +326,8 @@ public class SystemManagerTests
 
         manager.Dispose();
 
-        Assert.False(shared.DisposeCalled);
-        Assert.True(perScene.DisposeCalled);
+        shared.DisposeCalled.ShouldBeFalse();
+        perScene.DisposeCalled.ShouldBeTrue();
     }
 
     private sealed class DisposableTestSystem : ISystem, IDisposable
@@ -347,7 +348,7 @@ public class SystemManagerTests
         var manager = new SystemManager();
 
         // Assert
-        Assert.False(manager.IsInitialized);
+        manager.IsInitialized.ShouldBeFalse();
     }
 
     [Fact]
@@ -360,7 +361,7 @@ public class SystemManagerTests
         manager.Initialize();
 
         // Assert
-        Assert.True(manager.IsInitialized);
+        manager.IsInitialized.ShouldBeTrue();
     }
 
     [Fact]
@@ -374,6 +375,6 @@ public class SystemManagerTests
         manager.Shutdown();
 
         // Assert
-        Assert.False(manager.IsInitialized);
+        manager.IsInitialized.ShouldBeFalse();
     }
 }

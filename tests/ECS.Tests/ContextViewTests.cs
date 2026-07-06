@@ -1,3 +1,5 @@
+using Shouldly;
+
 namespace ECS.Tests;
 
 /// <summary>
@@ -45,7 +47,7 @@ public class ContextViewTests : IDisposable
         var view = _context.View<TestComponentA>();
 
         // Assert
-        Assert.Empty(view);
+        view.ShouldBeEmpty();
     }
 
     [Fact]
@@ -63,7 +65,7 @@ public class ContextViewTests : IDisposable
         var view = _context.View<TestComponentA>();
         
         // Assert
-        Assert.Empty(view);
+        view.ShouldBeEmpty();
     }
 
     [Fact]
@@ -91,17 +93,17 @@ public class ContextViewTests : IDisposable
         var results = view.ToList();
         
         // Assert
-        Assert.Equal(2, results.Count);
+        results.Count.ShouldBe(2);
         
         // Verify entity1 and component are returned
         var result1 = results.FirstOrDefault(r => r.Entity.Id == 1);
-        Assert.Equal(entity1.Id, result1.Entity.Id);
-        Assert.Equal(10, result1.Component.Value);
+        result1.Entity.Id.ShouldBe(entity1.Id);
+        result1.Component.Value.ShouldBe(10);
         
         // Verify entity2 and component are returned
         var result2 = results.FirstOrDefault(r => r.Entity.Id == 2);
-        Assert.Equal(entity2.Id, result2.Entity.Id);
-        Assert.Equal(20, result2.Component.Value);
+        result2.Entity.Id.ShouldBe(entity2.Id);
+        result2.Component.Value.ShouldBe(20);
     }
 
     [Fact]
@@ -123,18 +125,18 @@ public class ContextViewTests : IDisposable
         var resultsA = viewA.ToList();
         
         // Assert - Should get ComponentA
-        Assert.Single(resultsA);
-        Assert.Equal(entity.Id, resultsA[0].Entity.Id);
-        Assert.Equal(42, resultsA[0].Component.Value);
+        resultsA.Count.ShouldBe(1);
+        resultsA[0].Entity.Id.ShouldBe(entity.Id);
+        resultsA[0].Component.Value.ShouldBe(42);
         
         // Act - Query for ComponentB
         var viewB = _context.View<TestComponentB>();
         var resultsB = viewB.ToList();
         
         // Assert - Should get ComponentB
-        Assert.Single(resultsB);
-        Assert.Equal(entity.Id, resultsB[0].Entity.Id);
-        Assert.Equal("test", resultsB[0].Component.Data);
+        resultsB.Count.ShouldBe(1);
+        resultsB[0].Entity.Id.ShouldBe(entity.Id);
+        resultsB[0].Component.Data.ShouldBe("test");
     }
 
     [Fact]
@@ -154,7 +156,7 @@ public class ContextViewTests : IDisposable
         result.Component.Value = 200;
         
         // Assert - Changes should be reflected in original component
-        Assert.Equal(200, component.Value);
+        component.Value.ShouldBe(200);
     }
 
     [Fact]
@@ -174,9 +176,9 @@ public class ContextViewTests : IDisposable
         var secondPass = view.ToList();
         
         // Assert - Both passes should return same results
-        Assert.Equal(2, firstPass.Count);
-        Assert.Equal(2, secondPass.Count);
-        Assert.Equal(firstPass.Select(r => r.Entity.Id).OrderBy(id => id), 
+        firstPass.Count.ShouldBe(2);
+        secondPass.Count.ShouldBe(2);
+        firstPass.Select(r => r.Entity.Id).OrderBy(id => id).ShouldBe(
                      secondPass.Select(r => r.Entity.Id).OrderBy(id => id));
     }
 
@@ -199,13 +201,13 @@ public class ContextViewTests : IDisposable
         var results = view.ToList();
         
         // Assert
-        Assert.Equal(entityCount, results.Count);
+        results.Count.ShouldBe(entityCount);
         
         // Verify all entities are present and have correct values
         for (var i = 0; i < entityCount; i++)
         {
             var result = results.FirstOrDefault(r => r.Entity.Id == i);
-            Assert.Equal(i, result.Component.Value);
+            result.Component.Value.ShouldBe(i);
         }
     }
 
@@ -222,8 +224,8 @@ public class ContextViewTests : IDisposable
         var view = _context.View<TestComponentA>();
         foreach (var (e, c) in view)
         {
-            Assert.Equal(entity.Id, e.Id);
-            Assert.Equal(42, c.Value);
+            e.Id.ShouldBe(entity.Id);
+            c.Value.ShouldBe(42);
         }
     }
 
@@ -245,11 +247,11 @@ public class ContextViewTests : IDisposable
         var results3 = view3.ToList();
         
         // Assert - All calls should return same data
-        Assert.Single(results1);
-        Assert.Single(results2);
-        Assert.Single(results3);
-        Assert.Equal(results1[0].Entity.Id, results2[0].Entity.Id);
-        Assert.Equal(results2[0].Entity.Id, results3[0].Entity.Id);
+        results1.Count.ShouldBe(1);
+        results2.Count.ShouldBe(1);
+        results3.Count.ShouldBe(1);
+        results1[0].Entity.Id.ShouldBe(results2[0].Entity.Id);
+        results2[0].Entity.Id.ShouldBe(results3[0].Entity.Id);
     }
 
     [Fact]
@@ -261,7 +263,7 @@ public class ContextViewTests : IDisposable
 
         entity.RemoveComponent<TestComponentA>();
 
-        Assert.Empty(_context.View<TestComponentA>());
+        _context.View<TestComponentA>().ShouldBeEmpty();
     }
 
     [Fact]
@@ -273,8 +275,8 @@ public class ContextViewTests : IDisposable
 
         var results = _context.View<TestComponentA>().ToList();
 
-        Assert.Single(results);
-        Assert.Equal(7, results[0].Component.Value);
+        results.Count.ShouldBe(1);
+        results[0].Component.Value.ShouldBe(7);
     }
 
     [Fact]
@@ -292,10 +294,10 @@ public class ContextViewTests : IDisposable
 
         var results = _context.View<TestComponentA, TestComponentB>().ToList();
 
-        Assert.Single(results);
-        Assert.Equal(1, results[0].Entity.Id);
-        Assert.Equal(1, results[0].Component1.Value);
-        Assert.Equal("x", results[0].Component2.Data);
+        results.Count.ShouldBe(1);
+        results[0].Entity.Id.ShouldBe(1);
+        results[0].Component1.Value.ShouldBe(1);
+        results[0].Component2.Data.ShouldBe("x");
     }
 
     [Fact]
@@ -310,7 +312,7 @@ public class ContextViewTests : IDisposable
 
         var results = _context.View<TestComponentA, TestComponentB>().ToList();
 
-        Assert.Empty(results);
+        results.ShouldBeEmpty();
     }
 
     [Fact]
@@ -332,9 +334,9 @@ public class ContextViewTests : IDisposable
             .Where(tuple => tuple.Entity.HasComponent<TestComponentC>())
             .ToList();
 
-        Assert.Single(results);
-        Assert.Equal(1, results[0].Entity.Id);
-        Assert.True(results[0].Entity.GetComponent<TestComponentC>().Flag);
+        results.Count.ShouldBe(1);
+        results[0].Entity.Id.ShouldBe(1);
+        results[0].Entity.GetComponent<TestComponentC>().Flag.ShouldBeTrue();
     }
 
     [Fact]
@@ -354,13 +356,13 @@ public class ContextViewTests : IDisposable
             _context.Register(entity);
         }
 
-        Assert.Equal(withA, _context.View<TestComponentA>().Count());
+        _context.View<TestComponentA>().Count().ShouldBe(withA);
     }
 
     [Fact]
     public void Entities_WithNoEntities_ReturnsEmpty()
     {
-        Assert.Empty(_context.Entities);
+        _context.Entities.ShouldBeEmpty();
     }
 
     [Fact]
@@ -375,7 +377,7 @@ public class ContextViewTests : IDisposable
 
         var ids = _context.Entities.Select(e => e.Id).ToList();
 
-        Assert.Equal([1, 2, 3], ids);
+        ids.ShouldBe([1, 2, 3]);
     }
 
     [Fact]
@@ -389,7 +391,7 @@ public class ContextViewTests : IDisposable
         _context.Remove(entity2.Id);
 
         var ids = _context.Entities.Select(e => e.Id).ToList();
-        Assert.Equal([1], ids);
+        ids.ShouldBe([1]);
     }
 
     [Fact]
@@ -398,7 +400,7 @@ public class ContextViewTests : IDisposable
         _context.Register(Entity.Create(1, "Entity"));
         _context.Clear();
 
-        Assert.Empty(_context.Entities);
+        _context.Entities.ShouldBeEmpty();
     }
 
     [Fact]
@@ -407,13 +409,13 @@ public class ContextViewTests : IDisposable
         var entity = Entity.Create(42, "Entity");
         _context.Register(entity);
 
-        Assert.True(_context.Contains(42));
+        _context.Contains(42).ShouldBeTrue();
     }
 
     [Fact]
     public void Contains_ReturnsFalseForUnregisteredEntity()
     {
-        Assert.False(_context.Contains(99));
+        _context.Contains(99).ShouldBeFalse();
     }
 
     [Fact]
@@ -423,6 +425,6 @@ public class ContextViewTests : IDisposable
         _context.Register(entity);
         _context.Remove(entity.Id);
 
-        Assert.False(_context.Contains(entity.Id));
+        _context.Contains(entity.Id).ShouldBeFalse();
     }
 }
