@@ -6,32 +6,30 @@ using SceneComponents;
 
 namespace Editor.ComponentEditors;
 
-public class TransformComponentEditor : IComponentEditor
+public class TransformComponentEditor : ComponentEditor<TransformComponent>
 {
-    public void DrawComponent(Entity entity)
+    protected override string DisplayName => "Transform";
+
+    protected override void DrawContent(TransformComponent component, Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<TransformComponent>("Transform", entity, () =>
-        {
-            var tc = entity.GetComponent<TransformComponent>();
-            var newTranslation = tc.Translation;
-            VectorPanel.DrawVec3Control("Translation", ref newTranslation);
+        var newTranslation = component.Translation;
+        VectorPanel.DrawVec3Control("Translation", ref newTranslation);
 
-            if (newTranslation != tc.Translation)
-                tc.Translation = newTranslation;
+        if (newTranslation != component.Translation)
+            component.Translation = newTranslation;
 
-            var rotationRadians = tc.Rotation;
-            var rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
-            VectorPanel.DrawVec3Control("Rotation", ref rotationDegrees);
-            var newRotationRadians = MathHelpers.ToRadians(rotationDegrees);
+        var rotationRadians = component.Rotation;
+        var rotationDegrees = MathHelpers.ToDegrees(rotationRadians);
+        VectorPanel.DrawVec3Control("Rotation", ref rotationDegrees);
+        var newRotationRadians = MathHelpers.ToRadians(rotationDegrees);
 
-            if (newRotationRadians != tc.Rotation)
-                tc.Rotation = newRotationRadians;
+        if (newRotationRadians != component.Rotation)
+            component.Rotation = newRotationRadians;
 
-            var newScale = tc.Scale;
-            VectorPanel.DrawVec3Control("Scale", ref newScale, 1.0f);
+        var newScale = component.Scale;
+        VectorPanel.DrawVec3Control("Scale", ref newScale, 1.0f);
 
-            if (newScale != tc.Scale)
-                tc.Scale = newScale;
-        });
+        if (newScale != component.Scale)
+            component.Scale = newScale;
     }
 }

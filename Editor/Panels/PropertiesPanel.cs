@@ -9,6 +9,7 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
 using ImGuiNET;
+using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
 
 namespace Editor.Panels;
 

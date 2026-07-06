@@ -12,48 +12,47 @@ namespace Editor.ComponentEditors.Audio;
 public class AudioSourceComponentEditor(
     IAudioPlayback audioPlayback,
     AudioDropTarget audioDropTarget,
-    UIPropertyRenderer propertyRenderer) : IComponentEditor
+    UIPropertyRenderer propertyRenderer)
+    : ComponentEditor<AudioSourceComponent>
 {
-    public void DrawComponent(Entity entity)
+    protected override string DisplayName => "Audio Source";
+
+    protected override void DrawContent(AudioSourceComponent component, Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<AudioSourceComponent>("Audio Source", entity, () =>
+        audioDropTarget.Draw("Audio Clip", null, (_, relativePath) =>
         {
-            var component = entity.GetComponent<AudioSourceComponent>();
-            audioDropTarget.Draw("Audio Clip", null, (_, relativePath) =>
-            {
-                component.AudioClipPath = relativePath;
-            });
-
-            propertyRenderer.DrawPropertyField("Volume", component.Volume,
-                newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));
-            propertyRenderer.DrawPropertyField("Pitch", component.Pitch,
-                newValue => component.Pitch = System.Math.Clamp((float)newValue, 0.1f, 3.0f));
-            propertyRenderer.DrawPropertyField("Loop", component.Loop,
-                newValue => component.Loop = (bool)newValue);
-            propertyRenderer.DrawPropertyField("Play On Awake", component.PlayOnAwake,
-                newValue => component.PlayOnAwake = (bool)newValue);
-            propertyRenderer.DrawPropertyField("Is 3D", component.Is3D,
-                newValue => component.Is3D = (bool)newValue);
-
-            if (component.Is3D)
-            {
-                LayoutDrawer.DrawIndentedSection(() =>
-                {
-                    propertyRenderer.DrawPropertyField("Min Distance", component.MinDistance,
-                        newValue => component.MinDistance = System.Math.Max((float)newValue, 0.1f));
-
-                    propertyRenderer.DrawPropertyField("Max Distance", component.MaxDistance,
-                        newValue => component.MaxDistance = System.Math.Max((float)newValue, component.MinDistance));
-                });
-            }
-
-            LayoutDrawer.DrawSeparatorWithSpacing();
-            ImGui.Text("Playback Controls:");
-
-            ButtonDrawer.DrawButton("Play", () => audioPlayback.Play(entity));
-
-            DrawEffectsSection(component);
+            component.AudioClipPath = relativePath;
         });
+
+        propertyRenderer.DrawPropertyField("Volume", component.Volume,
+            newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));
+        propertyRenderer.DrawPropertyField("Pitch", component.Pitch,
+            newValue => component.Pitch = System.Math.Clamp((float)newValue, 0.1f, 3.0f));
+        propertyRenderer.DrawPropertyField("Loop", component.Loop,
+            newValue => component.Loop = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Play On Awake", component.PlayOnAwake,
+            newValue => component.PlayOnAwake = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Is 3D", component.Is3D,
+            newValue => component.Is3D = (bool)newValue);
+
+        if (component.Is3D)
+        {
+            LayoutDrawer.DrawIndentedSection(() =>
+            {
+                propertyRenderer.DrawPropertyField("Min Distance", component.MinDistance,
+                    newValue => component.MinDistance = System.Math.Max((float)newValue, 0.1f));
+
+                propertyRenderer.DrawPropertyField("Max Distance", component.MaxDistance,
+                    newValue => component.MaxDistance = System.Math.Max((float)newValue, component.MinDistance));
+            });
+        }
+
+        LayoutDrawer.DrawSeparatorWithSpacing();
+        ImGui.Text("Playback Controls:");
+
+        ButtonDrawer.DrawButton("Play", () => audioPlayback.Play(entity));
+
+        DrawEffectsSection(component);
     }
 
     private static void DrawEffectsSection(AudioSourceComponent component)

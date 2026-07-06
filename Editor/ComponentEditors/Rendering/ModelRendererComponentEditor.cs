@@ -5,16 +5,14 @@ using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
 
-public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
+public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer)
+    : ComponentEditor<ModelRendererComponent>
 {
-    public void DrawComponent(Entity entity)
-    {
-        ComponentEditorRegistry.DrawComponent<ModelRendererComponent>("Model Renderer", entity, () =>
-        {
-            var modelRendererComponent = entity.GetComponent<ModelRendererComponent>();
+    protected override string DisplayName => "Model Renderer";
 
-            propertyRenderer.DrawPropertyField("Color", modelRendererComponent.Color,
-                newValue => modelRendererComponent.Color = (System.Numerics.Vector4)newValue);
-        });
+    protected override void DrawContent(ModelRendererComponent component, Entity entity)
+    {
+        propertyRenderer.DrawPropertyField("Color", component.Color,
+            newValue => component.Color = (System.Numerics.Vector4)newValue);
     }
 }

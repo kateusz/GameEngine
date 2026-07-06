@@ -11,6 +11,7 @@ using SceneComponents.Camera;
 using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
+using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
 
 namespace Editor.UI.Elements;
 

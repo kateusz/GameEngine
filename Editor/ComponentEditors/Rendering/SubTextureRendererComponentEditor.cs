@@ -10,30 +10,27 @@ namespace Editor.ComponentEditors.Rendering;
 public class SubTextureRendererComponentEditor(
     ITextureFactory textureFactory,
     UIPropertyRenderer propertyRenderer)
-    : IComponentEditor
+    : ComponentEditor<SubTextureRendererComponent>
 {
-    public void DrawComponent(Entity entity)
+    protected override string DisplayName => "Sub Texture Renderer";
+
+    protected override void DrawContent(SubTextureRendererComponent component, Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<SubTextureRendererComponent>("Sub Texture Renderer", entity, () =>
+        TextureDropTarget.Draw("Texture", relativePath =>
         {
-            var component = entity.GetComponent<SubTextureRendererComponent>();
+            component.TexturePath = relativePath;
+        }, textureFactory);
+        propertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
+            newValue => component.Coords = (System.Numerics.Vector2)newValue);
 
-            TextureDropTarget.Draw("Texture", relativePath =>
-            {
-                component.TexturePath = relativePath;
-            }, textureFactory);
-            propertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
-                newValue => component.Coords = (System.Numerics.Vector2)newValue);
+        ImGui.Separator();
+        ImGui.Text("Atlas Settings");
 
-            ImGui.Separator();
-            ImGui.Text("Atlas Settings");
+        propertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
+            newValue => component.CellSize = (System.Numerics.Vector2)newValue);
+        propertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
+            newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
 
-            propertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
-                newValue => component.CellSize = (System.Numerics.Vector2)newValue);
-            propertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
-                newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
-
-            ImGui.EndDisabled();
-        });
+        ImGui.EndDisabled();
     }
 }

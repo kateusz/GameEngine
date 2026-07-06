@@ -5,16 +5,14 @@ using SceneComponents.Audio;
 
 namespace Editor.ComponentEditors.Audio;
 
-public class AudioListenerComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
+public class AudioListenerComponentEditor(UIPropertyRenderer propertyRenderer)
+    : ComponentEditor<AudioListenerComponent>
 {
-    public void DrawComponent(Entity entity)
-    {
-        ComponentEditorRegistry.DrawComponent<AudioListenerComponent>("Audio Listener", entity, () =>
-        {
-            var component = entity.GetComponent<AudioListenerComponent>();
+    protected override string DisplayName => "Audio Listener";
 
-            propertyRenderer.DrawPropertyField("Is Active", component.IsActive,
-                newValue => component.IsActive = (bool)newValue);
-        });
+    protected override void DrawContent(AudioListenerComponent component, Entity entity)
+    {
+        propertyRenderer.DrawPropertyField("Is Active", component.IsActive,
+            newValue => component.IsActive = (bool)newValue);
     }
 }

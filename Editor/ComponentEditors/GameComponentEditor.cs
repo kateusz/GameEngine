@@ -6,7 +6,7 @@ using Engine.Scene;
 
 namespace Editor.ComponentEditors;
 
-public class GameComponentInspector(UIPropertyRenderer propertyRenderer) : IComponentEditor
+public class GameComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {

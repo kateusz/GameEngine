@@ -6,27 +6,25 @@ using SceneComponents.Lighting;
 
 namespace Editor.ComponentEditors;
 
-public class DirectionalLightComponentEditor : IComponentEditor
+public class DirectionalLightComponentEditor : ComponentEditor<DirectionalLightComponent>
 {
-    public void DrawComponent(Entity entity)
+    protected override string DisplayName => "Directional Light";
+
+    protected override void DrawContent(DirectionalLightComponent component, Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<DirectionalLightComponent>("Directional Light", entity, () =>
+        var direction = component.Direction;
+        var color = component.Color;
+        VectorPanel.DrawVec3Control("Direction", ref direction);
+
+        if (direction != component.Direction)
+            component.Direction = direction;
+
+        UIPropertyRenderer.DrawPropertyRow("Color", () =>
         {
-            var dlc = entity.GetComponent<DirectionalLightComponent>();
-            var direction = dlc.Direction;
-            var color = dlc.Color;
-            VectorPanel.DrawVec3Control("Direction", ref direction);
-
-            if (direction != dlc.Direction)
-                dlc.Direction = direction;
-
-            UIPropertyRenderer.DrawPropertyRow("Color", () =>
-            {
-                if (ImGui.ColorEdit3("##Color", ref color,
-                        ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
-                        ImGuiColorEditFlags.NoOptions))
-                    dlc.Color = color;
-            });
+            if (ImGui.ColorEdit3("##Color", ref color,
+                    ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
+                    ImGuiColorEditFlags.NoOptions))
+                component.Color = color;
         });
     }
 }

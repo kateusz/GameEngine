@@ -10,63 +10,61 @@ namespace Editor.ComponentEditors;
 
 public class CameraComponentEditor(
     ISceneContext sceneContext,
-    UIPropertyRenderer propertyRenderer) : IComponentEditor
+    UIPropertyRenderer propertyRenderer)
+    : ComponentEditor<CameraComponent>
 {
     private static readonly string[] ProjectionTypeStrings = ["Perspective", "Orthographic"];
 
-    public void DrawComponent(Entity entity)
+    protected override string DisplayName => "Camera";
+
+    protected override void DrawContent(CameraComponent component, Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<CameraComponent>("Camera", entity, () =>
+        propertyRenderer.DrawPropertyField("Primary", component.Primary,
+            newValue =>
+            {
+                if ((bool)newValue)
+                    sceneContext.ActiveScene.SetPrimaryCamera(entity);
+                else
+                    component.Primary = false;
+            });
+
+        LayoutDrawer.DrawComboBox("Projection", ProjectionTypeStrings[(int)component.ProjectionType],
+            ProjectionTypeStrings,
+            selectedType =>
+            {
+                component.ProjectionType = selectedType switch
+                {
+                    "Perspective" => CameraProjectionTypeData.Perspective,
+                    "Orthographic" => CameraProjectionTypeData.Orthographic,
+                    _ => component.ProjectionType
+                };
+            });
+
+        if (component.ProjectionType == CameraProjectionTypeData.Perspective)
         {
-            var cameraComponent = entity.GetComponent<CameraComponent>();
+            var verticalFov = MathHelpers.RadiansToDegrees(component.PerspectiveFOV);
+            propertyRenderer.DrawPropertyField("Vertical FOV", verticalFov,
+                newValue => component.PerspectiveFOV = MathHelpers.DegreesToRadians((float)newValue));
 
-            propertyRenderer.DrawPropertyField("Primary", cameraComponent.Primary,
-                newValue =>
-                {
-                    if ((bool)newValue)
-                        sceneContext.ActiveScene.SetPrimaryCamera(entity);
-                    else
-                        cameraComponent.Primary = false;
-                });
+            propertyRenderer.DrawPropertyField("Near", component.PerspectiveNear,
+                newValue => component.PerspectiveNear = (float)newValue);
 
-            LayoutDrawer.DrawComboBox("Projection", ProjectionTypeStrings[(int)cameraComponent.ProjectionType],
-                ProjectionTypeStrings,
-                selectedType =>
-                {
-                    cameraComponent.ProjectionType = selectedType switch
-                    {
-                        "Perspective" => CameraProjectionTypeData.Perspective,
-                        "Orthographic" => CameraProjectionTypeData.Orthographic,
-                        _ => cameraComponent.ProjectionType
-                    };
-                });
+            propertyRenderer.DrawPropertyField("Far", component.PerspectiveFar,
+                newValue => component.PerspectiveFar = (float)newValue);
+        }
+        else if (component.ProjectionType == CameraProjectionTypeData.Orthographic)
+        {
+            propertyRenderer.DrawPropertyField("Size", component.OrthographicSize,
+                newValue => component.OrthographicSize = (float)newValue);
 
-            if (cameraComponent.ProjectionType == CameraProjectionTypeData.Perspective)
-            {
-                var verticalFov = MathHelpers.RadiansToDegrees(cameraComponent.PerspectiveFOV);
-                propertyRenderer.DrawPropertyField("Vertical FOV", verticalFov,
-                    newValue => cameraComponent.PerspectiveFOV = MathHelpers.DegreesToRadians((float)newValue));
+            propertyRenderer.DrawPropertyField("Near", component.OrthographicNear,
+                newValue => component.OrthographicNear = (float)newValue);
 
-                propertyRenderer.DrawPropertyField("Near", cameraComponent.PerspectiveNear,
-                    newValue => cameraComponent.PerspectiveNear = (float)newValue);
+            propertyRenderer.DrawPropertyField("Far", component.OrthographicFar,
+                newValue => component.OrthographicFar = (float)newValue);
 
-                propertyRenderer.DrawPropertyField("Far", cameraComponent.PerspectiveFar,
-                    newValue => cameraComponent.PerspectiveFar = (float)newValue);
-            }
-            else if (cameraComponent.ProjectionType == CameraProjectionTypeData.Orthographic)
-            {
-                propertyRenderer.DrawPropertyField("Size", cameraComponent.OrthographicSize,
-                    newValue => cameraComponent.OrthographicSize = (float)newValue);
-
-                propertyRenderer.DrawPropertyField("Near", cameraComponent.OrthographicNear,
-                    newValue => cameraComponent.OrthographicNear = (float)newValue);
-
-                propertyRenderer.DrawPropertyField("Far", cameraComponent.OrthographicFar,
-                    newValue => cameraComponent.OrthographicFar = (float)newValue);
-
-                propertyRenderer.DrawPropertyField("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio,
-                    newValue => cameraComponent.FixedAspectRatio = (bool)newValue);
-            }
-        });
+            propertyRenderer.DrawPropertyField("Fixed Aspect Ratio", component.FixedAspectRatio,
+                newValue => component.FixedAspectRatio = (bool)newValue);
+        }
     }
 }

@@ -6,33 +6,31 @@ using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors.Physics;
 
-public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
+public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer)
+    : ComponentEditor<RigidBody2DComponent>
 {
     private static readonly string[] BodyTypeStrings =
         [nameof(RigidBodyType.Static), nameof(RigidBodyType.Dynamic), nameof(RigidBodyType.Kinematic)];
 
-    public void DrawComponent(Entity entity)
+    protected override string DisplayName => "Rigidbody 2D";
+
+    protected override void DrawContent(RigidBody2DComponent component, Entity entity)
     {
-        ComponentEditorRegistry.DrawComponent<RigidBody2DComponent>("Rigidbody 2D", entity, () =>
-        {
-            var component = entity.GetComponent<RigidBody2DComponent>();
-
-            LayoutDrawer.DrawComboBox("Body Type", component.BodyType.ToString(), BodyTypeStrings,
-                selectedType =>
+        LayoutDrawer.DrawComboBox("Body Type", component.BodyType.ToString(), BodyTypeStrings,
+            selectedType =>
+            {
+                component.BodyType = selectedType switch
                 {
-                    component.BodyType = selectedType switch
-                    {
-                        nameof(RigidBodyType.Static) => RigidBodyType.Static,
-                        nameof(RigidBodyType.Dynamic) => RigidBodyType.Dynamic,
-                        nameof(RigidBodyType.Kinematic) => RigidBodyType.Kinematic,
-                        _ => component.BodyType
-                    };
-                });
+                    nameof(RigidBodyType.Static) => RigidBodyType.Static,
+                    nameof(RigidBodyType.Dynamic) => RigidBodyType.Dynamic,
+                    nameof(RigidBodyType.Kinematic) => RigidBodyType.Kinematic,
+                    _ => component.BodyType
+                };
+            });
 
-            propertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
-                newValue => component.FixedRotation = (bool)newValue);
-            propertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
-                newValue => component.GravityScale = (float)newValue);
-        });
+        propertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
+            newValue => component.FixedRotation = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
+            newValue => component.GravityScale = (float)newValue);
     }
 }

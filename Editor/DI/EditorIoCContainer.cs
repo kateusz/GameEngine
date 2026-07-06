@@ -23,6 +23,7 @@ using Editor.Features.Viewport.Tools;
 using Engine.Core;
 using Engine.Scene;
 using Engine.Scripting;
+using GameComponentEditor = Editor.ComponentEditors.GameComponentEditor;
 
 namespace Editor.DI;
 
@@ -65,7 +66,7 @@ public static class EditorIoCContainer
         container.RegisterMany<SubTextureRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioSourceComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioListenerComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<GameComponentInspector>(Reuse.Singleton);
+        container.RegisterMany<GameComponentEditor>(Reuse.Singleton);
         container.RegisterMany<ScriptComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AmbientLightComponentEditor>(Reuse.Singleton);
         container.RegisterMany<DirectionalLightComponentEditor>(Reuse.Singleton);
@@ -101,7 +102,7 @@ public static class EditorIoCContainer
         container.Register<SceneSettingsPopup>(Reuse.Singleton);
         container.Register<SceneToolbar>(Reuse.Singleton);
         container.Register<RendererStatsPanel>(Reuse.Singleton);
-        container.Register<GameComponentEditor>(Reuse.Singleton);
+        container.Register<Features.Components.GameComponentEditor>(Reuse.Singleton);
         container.Register<IGameComponentFactory, GameComponentFactory>(Reuse.Singleton);
     
         // Viewport infrastructure
