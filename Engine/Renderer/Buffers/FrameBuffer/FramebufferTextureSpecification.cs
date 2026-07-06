@@ -1,10 +1,10 @@
 namespace Engine.Renderer.Buffers.FrameBuffer;
 
-public struct FramebufferTextureSpecification
+public struct FrameBufferTextureSpecification
 {
-    public readonly FramebufferTextureFormat TextureFormat = FramebufferTextureFormat.None;
+    public readonly FrameBufferTextureFormat TextureFormat = FrameBufferTextureFormat.None;
 
-    public FramebufferTextureSpecification(FramebufferTextureFormat textureFormat)
+    public FrameBufferTextureSpecification(FrameBufferTextureFormat textureFormat)
     {
         TextureFormat = textureFormat;
     }

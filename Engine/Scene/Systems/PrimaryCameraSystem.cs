@@ -1,7 +1,7 @@
 using System.Numerics;
 using ECS;
 using ECS.Systems;
-using Engine.Renderer.Cameras;
+using Engine.Scene.Cameras;
 using SceneComponents;
 using SceneComponents.Camera;
 

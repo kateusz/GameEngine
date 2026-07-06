@@ -1,3 +1,5 @@
+using Engine.Renderer.Primitives;
+
 namespace Engine.Renderer.Buffers;
 
 public interface IVertexBuffer : IBindable

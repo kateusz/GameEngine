@@ -12,10 +12,10 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     private uint _rendererId;
     private bool _disposed;
     private readonly int[] _previousViewport = new int[4];
-    private readonly List<FramebufferTextureSpecification> _colorAttachmentSpecs = [];
+    private readonly List<FrameBufferTextureSpecification> _colorAttachmentSpecs = [];
     private uint[] _colorAttachments;
     private uint _depthAttachment;
-    private readonly FramebufferTextureSpecification _depthAttachmentSpec;
+    private readonly FrameBufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
 
     public OpenGLFrameBuffer(FrameBufferSpecification spec)
@@ -178,7 +178,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
             AttachColorTexture(i);
         }
 
-        if (_depthAttachmentSpec.TextureFormat != FramebufferTextureFormat.None)
+        if (_depthAttachmentSpec.TextureFormat != FrameBufferTextureFormat.None)
         {
             _depthAttachment = SilkNetContext.GL.GenTexture();
             OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture (depth)");
@@ -187,7 +187,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
 
             switch (_depthAttachmentSpec.TextureFormat)
             {
-                case FramebufferTextureFormat.DEPTH24STENCIL8:
+                case FrameBufferTextureFormat.DEPTH24STENCIL8:
                     AttachDepthTexture(_depthAttachment, _specification.Samples, GLEnum.Depth24Stencil8, FramebufferAttachment.DepthStencilAttachment, _specification.Width, _specification.Height);
                     break;
             }
@@ -249,17 +249,17 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         PixelType pixelType;
         switch (_colorAttachmentSpecs[attachmentIndex].TextureFormat)
         {
-            case FramebufferTextureFormat.RGBA8:
+            case FrameBufferTextureFormat.RGBA8:
                 internalFormat = InternalFormat.Rgba8;
                 format = PixelFormat.Rgba;
                 pixelType = PixelType.UnsignedByte;
                 break;
-            case FramebufferTextureFormat.RGBA16F:
+            case FrameBufferTextureFormat.RGBA16F:
                 internalFormat = InternalFormat.Rgba16f;
                 format = PixelFormat.Rgba;
                 pixelType = PixelType.Float;
                 break;
-            case FramebufferTextureFormat.RED_INTEGER:
+            case FrameBufferTextureFormat.RED_INTEGER:
                 internalFormat = InternalFormat.R32i;
                 format = PixelFormat.RedInteger;
                 pixelType = PixelType.Int;
@@ -287,22 +287,22 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         OpenGLDebug.CheckError(SilkNetContext.GL, $"FramebufferTexture2D (color attachment {attachmentIndex})");
     }
 
-    private static bool IsDepthFormat(FramebufferTextureFormat format)
+    private static bool IsDepthFormat(FrameBufferTextureFormat format)
     {
         return format switch
         {
-            FramebufferTextureFormat.DEPTH24STENCIL8 => true,
+            FrameBufferTextureFormat.DEPTH24STENCIL8 => true,
             _ => false
         };
     }
     
-    private static GLEnum TextureFormatToGL(FramebufferTextureFormat format)
+    private static GLEnum TextureFormatToGL(FrameBufferTextureFormat format)
     {
         switch (format)
         {
-            case FramebufferTextureFormat.RGBA8:       return GLEnum.Rgba8;
-            case FramebufferTextureFormat.RGBA16F:     return GLEnum.Rgba16f;
-            case FramebufferTextureFormat.RED_INTEGER: return GLEnum.RedInteger;
+            case FrameBufferTextureFormat.RGBA8:       return GLEnum.Rgba8;
+            case FrameBufferTextureFormat.RGBA16F:     return GLEnum.Rgba16f;
+            case FrameBufferTextureFormat.RED_INTEGER: return GLEnum.RedInteger;
             default:
                 throw new NotSupportedException($"Unsupported texture format: {format}");
         }

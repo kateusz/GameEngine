@@ -2,7 +2,7 @@ using System.Numerics;
 using Engine.Core;
 using Math;
 
-namespace Engine.Renderer.Cameras;
+namespace Engine.Scene.Cameras;
 
 public class EditorCamera : Camera, IViewCamera
 {

@@ -1,7 +1,6 @@
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Renderer.Textures;
-using Engine.Scene.Serializer;
 
 namespace Editor.UI.Elements;
 

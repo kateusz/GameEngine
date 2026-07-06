@@ -1,6 +1,6 @@
 using Engine.Platform.OpenGL;
 
-namespace Engine.Renderer.VertexArray;
+namespace Engine.Renderer.Buffers.VertexArray;
 
 internal sealed class VertexArrayFactory(IRendererApiConfig apiConfig) : IVertexArrayFactory
 {

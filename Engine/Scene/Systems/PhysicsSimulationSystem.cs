@@ -2,7 +2,6 @@ using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Engine.Physics;
-using Engine.Renderer.Cameras;
 using SceneComponents;
 using SceneComponents.Physics;
 using Serilog;
@@ -46,17 +45,17 @@ internal sealed class PhysicsSimulationSystem(
         CleanupOrphanedBodies();
 
         var stepCount = 0;
-        while (_physicsAccumulator >= CameraConfig.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
+        while (_physicsAccumulator >= PhysicsConstants.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
         {
             SyncKinematicTransformsToBodies();
             SyncVelocitiesToBodies();
-            physicsWorld.Step(CameraConfig.PhysicsTimestep, velocityIterations, positionIterations);
-            _physicsAccumulator -= CameraConfig.PhysicsTimestep;
+            physicsWorld.Step(PhysicsConstants.PhysicsTimestep, velocityIterations, positionIterations);
+            _physicsAccumulator -= PhysicsConstants.PhysicsTimestep;
             stepCount++;
         }
 
-        if (_physicsAccumulator >= CameraConfig.PhysicsTimestep)
-            _physicsAccumulator = CameraConfig.PhysicsTimestep * 0.5f;
+        if (_physicsAccumulator >= PhysicsConstants.PhysicsTimestep)
+            _physicsAccumulator = PhysicsConstants.PhysicsTimestep * 0.5f;
 
         foreach (var (entity, component, transform) in
                  context.View<RigidBody2DComponent, TransformComponent>())

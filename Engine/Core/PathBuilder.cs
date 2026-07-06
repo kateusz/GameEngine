@@ -1,7 +1,6 @@
-using Engine.Core;
 using Engine.Platform;
 
-namespace Engine.Scene.Serializer;
+namespace Engine.Core;
 
 public static class PathBuilder
 {

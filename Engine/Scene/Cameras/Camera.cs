@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Renderer.Cameras;
+namespace Engine.Scene.Cameras;
 
 /// <summary>
 /// Abstract base class for all camera types in the engine.

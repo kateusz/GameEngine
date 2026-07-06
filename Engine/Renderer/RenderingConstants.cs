@@ -82,9 +82,4 @@ public static class RenderingConstants
     /// </summary>
     public const int MaxIndices = DefaultMaxQuads * QuadIndexCount;
 
-    // Viewport grid / ruler
-    public const float GridMinorLineOpacity = 0.30f;
-    public const float GridMajorLineOpacity = 0.55f;
-    public const int GridMajorStep = 10;
-    public const float TargetPixelSpacing = 50.0f;
 }

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
-using Engine.Renderer.VertexArray;
+using Engine.Renderer.Buffers.VertexArray;
 
 namespace Engine.Platform.OpenGL;
 

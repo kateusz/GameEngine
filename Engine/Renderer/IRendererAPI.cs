@@ -1,4 +1,4 @@
-using Engine.Renderer.VertexArray;
+using Engine.Renderer.Buffers.VertexArray;
 using System.Numerics;
 
 namespace Engine.Renderer;

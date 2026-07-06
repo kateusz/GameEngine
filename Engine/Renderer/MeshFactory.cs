@@ -1,7 +1,7 @@
 using System.Numerics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Textures;
-using Engine.Renderer.VertexArray;
+using Engine.Renderer.Buffers.VertexArray;
 using Serilog;
 
 namespace Engine.Renderer;
@@ -22,7 +22,7 @@ internal sealed class MeshFactory(
             return _cubeMesh;
 
         var mesh = new Mesh("Cube", textureFactory);
-        var size = 0.5f;
+        const float size = 0.5f;
 
         var tangentX = Vector3.UnitX;
         var tangentNegX = -Vector3.UnitX;

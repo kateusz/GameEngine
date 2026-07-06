@@ -1,7 +1,6 @@
 using System.Numerics;
 using ECS;
 using Engine.Physics;
-using Engine.Renderer.Cameras;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
@@ -39,7 +38,7 @@ public class PhysicsSimulationSystemTests
     {
         var (system, _, world, _) = CreateFullSystem();
         system.OnUpdate(TimeSpan.FromSeconds(0.017));
-        world.Received(1).Step(CameraConfig.PhysicsTimestep, 6, 2);
+        world.Received(1).Step(PhysicsConstants.PhysicsTimestep, 6, 2);
     }
 
     [Fact]
@@ -47,7 +46,7 @@ public class PhysicsSimulationSystemTests
     {
         var (system, _, world, _) = CreateFullSystem();
         system.OnUpdate(TimeSpan.FromSeconds(0.051));
-        world.Received(3).Step(CameraConfig.PhysicsTimestep, 6, 2);
+        world.Received(3).Step(PhysicsConstants.PhysicsTimestep, 6, 2);
     }
 
     [Fact]

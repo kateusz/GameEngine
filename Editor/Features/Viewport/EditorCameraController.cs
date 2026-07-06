@@ -1,5 +1,5 @@
 using System.Numerics;
-using Engine.Renderer.Cameras;
+using Engine.Scene.Cameras;
 
 namespace Editor.Features.Viewport;
 

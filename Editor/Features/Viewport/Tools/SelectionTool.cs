@@ -1,7 +1,7 @@
 using System.Numerics;
 using ECS;
 using Editor.Features.Selection;
-using Engine.Renderer.Cameras;
+using Engine.Scene.Cameras;
 
 namespace Editor.Features.Viewport.Tools;
 

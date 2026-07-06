@@ -1,7 +1,7 @@
 using System.Numerics;
-using Engine.Renderer.Cameras;
+using Engine.Core;
+using Engine.Scene.Cameras;
 using Engine.Renderer.Shaders;
-using Engine.Scene.Serializer;
 
 namespace Engine.Renderer;
 

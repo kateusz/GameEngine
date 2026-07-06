@@ -3,13 +3,12 @@ using ECS;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer;
-using Engine.Renderer.Cameras;
 using Engine.Scene;
+using Engine.Scene.Cameras;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
 using SceneComponents.Physics;
-using Shouldly;
 
 namespace Engine.Tests.Systems;
 

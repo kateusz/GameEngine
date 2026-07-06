@@ -11,10 +11,10 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
             DisplayConfig.DefaultEditorViewportWidth,
             DisplayConfig.DefaultEditorViewportHeight)
         {
-            AttachmentsSpec = new FramebufferAttachmentSpecification([
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RGBA16F),
-                new FramebufferTextureSpecification(FramebufferTextureFormat.RED_INTEGER),
-                new FramebufferTextureSpecification(FramebufferTextureFormat.Depth),
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA16F),
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RED_INTEGER),
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.Depth),
             ])
         };
 

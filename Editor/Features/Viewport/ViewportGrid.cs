@@ -1,5 +1,5 @@
 using System.Numerics;
-using Engine.Renderer;
+using Editor.UI.Constants;
 using ImGuiNET;
 
 namespace Editor.Features.Viewport;
@@ -24,8 +24,8 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
         var drawList = ImGui.GetWindowDrawList();
         var viewportSize = viewportMax - viewportMin;
         var tickSpacing = viewportScaleHelper.CalculateTickSpacing(zoom);
-        var minorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, RenderingConstants.GridMinorLineOpacity));
-        var majorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, RenderingConstants.GridMajorLineOpacity));
+        var minorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, EditorUIConstants.GridMinorLineOpacity));
+        var majorColor = ImGui.GetColorU32(new Vector4(0.6f, 0.6f, 0.6f, EditorUIConstants.GridMajorLineOpacity));
 
         var ctx = new GridDrawContext(drawList, viewportMin, viewportMax, viewportSize, cameraPosition, zoom, tickSpacing, minorColor, majorColor);
         DrawVerticalLines(ctx);
@@ -46,7 +46,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
             if (screenX < ctx.ViewportMin.X || screenX > ctx.ViewportMax.X)
                 continue;
 
-            var isMajor = (int)System.Math.Round(worldX / ctx.TickSpacing) % RenderingConstants.GridMajorStep == 0;
+            var isMajor = (int)System.Math.Round(worldX / ctx.TickSpacing) % EditorUIConstants.GridMajorStep == 0;
             var color = isMajor ? ctx.MajorColor : ctx.MinorColor;
 
             ctx.DrawList.AddLine(
@@ -70,7 +70,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
             if (screenY < ctx.ViewportMin.Y || screenY > ctx.ViewportMax.Y)
                 continue;
 
-            var isMajor = (int)System.Math.Round(worldY / ctx.TickSpacing) % RenderingConstants.GridMajorStep == 0;
+            var isMajor = (int)System.Math.Round(worldY / ctx.TickSpacing) % EditorUIConstants.GridMajorStep == 0;
             var color = isMajor ? ctx.MajorColor : ctx.MinorColor;
 
             ctx.DrawList.AddLine(

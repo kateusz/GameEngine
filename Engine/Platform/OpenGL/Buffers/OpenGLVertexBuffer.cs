@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Primitives;
 using Serilog;
 using Silk.NET.OpenGL;
 

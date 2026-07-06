@@ -6,7 +6,7 @@ public sealed class FrameBufferSpecification(uint width, uint height, uint sampl
     public uint Height { get; internal set; } = height;
     public uint Samples { get; } = samples;
     public bool SwapChainTarget { get; } = swapChainTarget;
-    public FramebufferAttachmentSpecification AttachmentsSpec { get; init; } = null!;
+    public FrameBufferAttachmentSpecification AttachmentsSpec { get; init; } = null!;
 
     public void Deconstruct(out uint width, out uint height, out uint samples, out bool swapChainTarget)
     {

@@ -1,7 +1,7 @@
 using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
-using Engine.Renderer.VertexArray;
+using Engine.Renderer.Buffers.VertexArray;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.OpenGL;

@@ -1,4 +1,4 @@
-using Engine.Renderer;
+using Editor.UI.Constants;
 
 namespace Editor.Features.Viewport;
 
@@ -16,14 +16,14 @@ public class ViewportScaleHelper : IViewportScaleHelper
 {
     /// <summary>
     /// Calculates a "nice" tick interval (1, 2, 5, 10, ...) such that
-    /// ticks appear roughly <see cref="RenderingConstants.TargetPixelSpacing"/> pixels apart at the given zoom.
+    /// ticks appear roughly <see cref="Editor.UI.Constants.EditorUIConstants.TargetPixelSpacing"/> pixels apart at the given zoom.
     /// </summary>
     public float CalculateTickSpacing(float zoom)
     {
         if (zoom <= 0)
-            return RenderingConstants.TargetPixelSpacing;
+            return EditorUIConstants.TargetPixelSpacing;
 
-        var rawSpacing = RenderingConstants.TargetPixelSpacing / zoom;
+        var rawSpacing = EditorUIConstants.TargetPixelSpacing / zoom;
         var magnitude = (float)System.Math.Pow(10, System.Math.Floor(System.Math.Log10(rawSpacing)));
         var normalizedSpacing = rawSpacing / magnitude;
 

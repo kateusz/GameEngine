@@ -4,8 +4,8 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
-using Engine.Renderer.Cameras;
 using Engine.Renderer.Textures;
+using Engine.Scene.Cameras;
 using Serilog;
 
 namespace Sandbox;

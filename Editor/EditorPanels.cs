@@ -5,7 +5,7 @@ using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Input;
 using Editor.Panels;
-using Engine.Renderer.Cameras;
+using Engine.Scene.Cameras;
 using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
 
 namespace Editor;

@@ -165,4 +165,10 @@ public static class EditorUIConstants
     public static readonly Vector2 PublishProgressModalSize = new(600f, 400f);
 
     public const float DefaultButtonWidth = 100;
+
+    // Viewport grid / ruler
+    public const float GridMinorLineOpacity = 0.30f;
+    public const float GridMajorLineOpacity = 0.55f;
+    public const int GridMajorStep = 10;
+    public const float TargetPixelSpacing = 50.0f;
 }

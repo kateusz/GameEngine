@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Renderer.Cameras;
+namespace Engine.Scene.Cameras;
 
 /// <summary>
 /// Interface for cameras that own their view matrix.

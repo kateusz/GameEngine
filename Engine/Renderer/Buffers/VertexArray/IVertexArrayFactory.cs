@@ -1,4 +1,4 @@
-namespace Engine.Renderer.VertexArray;
+namespace Engine.Renderer.Buffers.VertexArray;
 
 /// <summary>
 /// Factory interface for creating vertex array instances.

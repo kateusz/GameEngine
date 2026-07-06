@@ -49,7 +49,6 @@
 
     <ItemGroup>
       <Folder Include="Lighting\" />
-      <Folder Include="Scene\Components\" />
     </ItemGroup>
 
     <!-- No asset directories needed for Engine project -->

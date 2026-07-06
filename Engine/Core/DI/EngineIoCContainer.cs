@@ -13,7 +13,7 @@ using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Engine.Renderer.VertexArray;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;

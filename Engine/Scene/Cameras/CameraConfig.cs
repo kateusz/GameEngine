@@ -1,4 +1,4 @@
-namespace Engine.Renderer.Cameras;
+namespace Engine.Scene.Cameras;
 
 /// <summary>
 /// Centralized camera configuration constants.
@@ -124,10 +124,4 @@ public static class CameraConfig
     // Camera position defaults
     public const float DefaultCameraZPosition = 3.0f;
 
-    // Physics simulation
-    /// <summary>
-    /// Target physics timestep in seconds (60 FPS).
-    /// Used for fixed timestep physics simulation.
-    /// </summary>
-    public const float PhysicsTimestep = 1.0f / 60.0f;
 }

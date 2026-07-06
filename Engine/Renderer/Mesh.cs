@@ -2,7 +2,7 @@ using System.Numerics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Engine.Renderer.VertexArray;
+using Engine.Renderer.Buffers.VertexArray;
 
 namespace Engine.Renderer;
 
