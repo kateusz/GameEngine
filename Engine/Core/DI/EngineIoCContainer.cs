@@ -40,7 +40,6 @@ public static class EngineIoCContainer
         );
 
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
-        container.Register<IGameAssemblyBuilder, GameAssemblyBuilder>(Reuse.Singleton);
         container.Register<IProjectContext, ProjectContext>(Reuse.Singleton);
         container.RegisterInitializer<IProjectContext>((ctx, _) => PathBuilder.UseProjectContext(ctx));
         container.Register<KeyboardInputState>(Reuse.Singleton);

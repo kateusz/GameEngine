@@ -10,7 +10,6 @@ using Serilog;
 namespace Editor.Features.Scripting;
 
 public sealed class GameScriptWorkspace(
-    IGameAssemblyBuilder builder,
     IScriptEngine scriptEngine,
     IComponentSerializerRegistry componentSerializerRegistry,
     Func<Assembly, bool> ensureGameAssemblyRegistered,
@@ -37,7 +36,8 @@ public sealed class GameScriptWorkspace(
         CompileAllScripts();
     }
 
-    public async Task<(bool Success, string[] Errors)> CreateOrUpdateScriptAsync(string scriptName, string scriptContent)
+    public async Task<(bool Success, string[] Errors)> CreateOrUpdateScriptAsync(string scriptName,
+        string scriptContent)
     {
         var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
 
@@ -81,16 +81,6 @@ public sealed class GameScriptWorkspace(
             Logger.Error(ex, "Error deleting script '{ScriptName}'", scriptName);
             return false;
         }
-    }
-
-    public void CompileAllScripts()
-    {
-        var (success, errors) = TryCompileAllScripts();
-        if (success)
-            return;
-
-        foreach (var err in errors)
-            Logger.Error("Script compilation: {Error}", err);
     }
 
     public (bool Success, string[] Errors) TryCompileAllScripts()
@@ -144,7 +134,47 @@ public sealed class GameScriptWorkspace(
         ReloadGameAssembly(compile: false, dllPath: Path.GetFullPath(dllPath));
     }
 
-    public void RevokeAppliedAssembly()
+    public void RevokeAndUnload()
+    {
+        RevokeAppliedAssembly();
+        scriptEngine.UnloadGameAssembly();
+    }
+
+    public void ForceRecompile(IContext context, ScriptRuntimeStore store)
+    {
+        Logger.Information("Force recompiling scripts...");
+        ReloadGameAssembly(compile: true, dllPath: _outputDllPath, context: context, store: store);
+    }
+
+    public string[] GetAvailableScriptNames()
+    {
+        var assembly = scriptEngine.GetLoadedGameAssembly();
+        if (assembly is null)
+            return [];
+
+        return assembly.GetTypes()
+            .Where(t => typeof(ScriptableEntity).IsAssignableFrom(t) && !t.IsAbstract)
+            .Select(t => t.Name)
+            .ToArray();
+    }
+
+    public string? GetScriptFilePath(string scriptName)
+    {
+        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
+        return File.Exists(scriptPath) ? scriptPath : null;
+    }
+
+    private void CompileAllScripts()
+    {
+        var (success, errors) = TryCompileAllScripts();
+        if (success)
+            return;
+
+        foreach (var err in errors)
+            Logger.Error("Script compilation: {Error}", err);
+    }
+    
+    private void RevokeAppliedAssembly()
     {
         if (_appliedAssembly is null)
             return;
@@ -154,14 +184,8 @@ public sealed class GameScriptWorkspace(
         _appliedAssembly = null;
         _appliedAssemblyKey = null;
     }
-
-    public void RevokeAndUnload()
-    {
-        RevokeAppliedAssembly();
-        scriptEngine.UnloadGameAssembly();
-    }
-
-    public void ApplyLoadedAssembly(Assembly assembly)
+    
+    private void ApplyLoadedAssembly(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
@@ -192,83 +216,6 @@ public sealed class GameScriptWorkspace(
         }
     }
 
-    public void ForceRecompile(IContext context, ScriptRuntimeStore store)
-    {
-        Logger.Information("Force recompiling scripts...");
-        ReloadGameAssembly(compile: true, dllPath: _outputDllPath, context: context, store: store);
-    }
-
-    public string[] GetAvailableScriptNames()
-    {
-        var assembly = scriptEngine.GetLoadedGameAssembly();
-        if (assembly is null)
-            return [];
-
-        return assembly.GetTypes()
-            .Where(t => typeof(ScriptableEntity).IsAssignableFrom(t) && !t.IsAbstract)
-            .Select(t => t.Name)
-            .ToArray();
-    }
-
-    public string? GetScriptFilePath(string scriptName)
-    {
-        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-        return File.Exists(scriptPath) ? scriptPath : null;
-    }
-
-    public string GetScriptSource(string scriptName)
-    {
-        if (_scriptSources.TryGetValue(scriptName, out var source))
-            return source;
-
-        var scriptPath = Path.Combine(_scriptsDirectory, $"{scriptName}.cs");
-        if (!File.Exists(scriptPath))
-            return string.Empty;
-
-        var src = File.ReadAllText(scriptPath);
-        _scriptSources[scriptName] = src;
-        return src;
-    }
-
-    public string GenerateScriptTemplate(string scriptName) =>
-        $$"""
-          using Audio;
-          using ECS;
-          using Input;
-          using Math;
-          using SceneComponents;
-          using SceneComponents.Camera;
-          using Scripting;
-
-          public class {{scriptName}} : ScriptableEntity
-          {
-             public {{scriptName}}(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback) : base(componentAccessor, audio, audioPlayback) {}
-          
-              public override void OnCreate()
-              {
-                  Console.WriteLine("{{scriptName}} created!");
-              }
-
-              public override void OnUpdate(TimeSpan ts)
-              {
-                  // Your update logic here
-              }
-
-              public override void OnDestroy()
-              {
-                  Console.WriteLine("{{scriptName}} destroyed!");
-              }
-              
-              public override void OnKeyPressed(KeyCodes key)
-              {
-                  if (key == KeyCodes.Space)
-                  {
-                      Console.WriteLine("{{scriptName}} action triggered!");
-                  }
-              }
-          }
-          """;
-
     private (bool Success, string[] Errors) ReloadGameAssembly(
         bool compile,
         string dllPath,
@@ -290,7 +237,7 @@ public sealed class GameScriptWorkspace(
             var engineDir = Path.GetDirectoryName(dllPath)!;
             Directory.CreateDirectory(engineDir);
             dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
-            if (!builder.TryBuild(_scriptsDirectory, dllPath, DebugMode, DebugMode, out var errors))
+            if (!GameAssemblyCompiler.TryCompile(_scriptsDirectory, dllPath, DebugMode, DebugMode, out var errors))
                 return (false, errors);
 
             IndexScriptSourcesFromDisk();

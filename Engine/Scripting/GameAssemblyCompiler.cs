@@ -27,9 +27,6 @@ public static class GameAssemblyCompiler
         global using System.Threading.Tasks;
         """;
 
-    public static string GetNextEditorBuildPath(string outputDirectory) =>
-        Path.Combine(outputDirectory, $"GameAssembly_{Guid.NewGuid():N}.dll");
-
     private const string EmptyPlaceholderSource = """
                                                   namespace GameAssembly;
 
@@ -37,6 +34,9 @@ public static class GameAssemblyCompiler
                                                   {
                                                   }
                                                   """;
+
+    public static string GetNextEditorBuildPath(string outputDirectory) =>
+        Path.Combine(outputDirectory, $"GameAssembly_{Guid.NewGuid():N}.dll");
 
     public static bool TryCompile(
         string scriptsDirectory,
@@ -64,10 +64,6 @@ public static class GameAssemblyCompiler
 
         foreach (var scriptPath in scriptFiles)
         {
-            if (string.Equals(Path.GetFileName(scriptPath), "GameAssembly.Placeholder.cs",
-                    StringComparison.OrdinalIgnoreCase))
-                continue;
-
             var scriptContent = File.ReadAllText(scriptPath, Encoding.UTF8);
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 text: scriptContent,
@@ -109,13 +105,10 @@ public static class GameAssemblyCompiler
             references,
             compilationOptions);
 
-        var preErrors = compilation.GetDiagnostics()
-            .AsValueEnumerable()
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .ToArray();
+        var preErrors = ToErrorStrings(compilation.GetDiagnostics());
         if (preErrors.Length > 0)
         {
-            errors = preErrors.AsValueEnumerable().Select(d => d.ToString()).ToArray();
+            errors = preErrors;
             return false;
         }
 
@@ -131,25 +124,12 @@ public static class GameAssemblyCompiler
         var pdbPath = emitPdb ? Path.ChangeExtension(outputDllPath, ".pdb") : null;
 
         using var peStream = File.Create(outputDllPath);
-        EmitResult emitResult;
-        if (emitPdb && pdbPath != null)
-        {
-            using var pdbStream = File.Create(pdbPath);
-            emitResult = compilation.Emit(peStream, pdbStream, options: emitOptions);
-        }
-        else
-        {
-            emitResult = compilation.Emit(peStream, pdbStream: null, options: emitOptions);
-        }
+        using var pdbStream = emitPdb && pdbPath is not null ? File.Create(pdbPath) : null;
+        var emitResult = compilation.Emit(peStream, pdbStream, options: emitOptions);
 
         if (!emitResult.Success)
         {
-            errors = emitResult.Diagnostics
-                .AsValueEnumerable()
-                .Where(d => d.Severity == DiagnosticSeverity.Error)
-                .Select(d => d.ToString())
-                .Distinct()
-                .ToArray();
+            errors = ToErrorStrings(emitResult.Diagnostics, distinct: true);
             return false;
         }
 
@@ -167,7 +147,7 @@ public static class GameAssemblyCompiler
             .Where(path => ShouldIncludeGameScriptFile(path, scriptsDirectory));
     }
 
-    public static bool ShouldIncludeGameScriptFile(string filePath, string scriptsDirectory)
+    private static bool ShouldIncludeGameScriptFile(string filePath, string scriptsDirectory)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             return false;
@@ -178,9 +158,6 @@ public static class GameAssemblyCompiler
             return false;
 
         var relative = Path.GetRelativePath(root, fullPath);
-        if (relative.StartsWith("..", StringComparison.Ordinal))
-            return false;
-
         foreach (var segment in relative.Split(
                      [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
                      StringSplitOptions.RemoveEmptyEntries))
@@ -196,6 +173,18 @@ public static class GameAssemblyCompiler
             fileName.Contains("AssemblyAttributes", StringComparison.OrdinalIgnoreCase))
             return false;
 
+        if (fileName.Equals("GameAssembly.Placeholder.cs", StringComparison.OrdinalIgnoreCase))
+            return false;
+
         return true;
+    }
+
+    private static string[] ToErrorStrings(IEnumerable<Diagnostic> diagnostics, bool distinct = false)
+    {
+        var query = diagnostics
+            .AsValueEnumerable()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .Select(d => d.ToString());
+        return distinct ? query.Distinct().ToArray() : query.ToArray();
     }
 }

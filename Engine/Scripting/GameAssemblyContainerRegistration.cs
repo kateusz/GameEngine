@@ -37,16 +37,6 @@ public static class GameAssemblyContainerRegistration
         return registration.Factory.ImplementationType;
     }
 
-    public static Assembly Load(string assemblyNameOrFilePath)
-    {
-        if (string.IsNullOrWhiteSpace(assemblyNameOrFilePath))
-            throw new ArgumentException("Assembly name or path is required.", nameof(assemblyNameOrFilePath));
-        if (assemblyNameOrFilePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
-            File.Exists(assemblyNameOrFilePath))
-            return Assembly.LoadFrom(Path.GetFullPath(assemblyNameOrFilePath));
-        return Assembly.Load(assemblyNameOrFilePath);
-    }
-
     public static bool TryRegisterContainer(Container container, Assembly assembly)
     {
         var items = DiscoverIocRegistrations(assembly);
@@ -54,14 +44,14 @@ public static class GameAssemblyContainerRegistration
             return false;
 
         UnregisterRegistrationsFromGameAssembly(container, assembly);
-        foreach (var item in items)
-            Register(container, item.ImplementationType, item.ServiceType, item.Lifetime);
+        foreach (var (implementationType, serviceType, lifetime) in items)
+            Register(container, implementationType, serviceType, lifetime);
         return true;
     }
 
-    private static IReadOnlyList<IocRegistrationItem> DiscoverIocRegistrations(Assembly assembly)
+    private static List<(Type ImplementationType, Type ServiceType, GameIocLifetime Lifetime)> DiscoverIocRegistrations(Assembly assembly)
     {
-        var list = new List<IocRegistrationItem>();
+        var list = new List<(Type ImplementationType, Type ServiceType, GameIocLifetime Lifetime)>();
         foreach (var type in AssemblyLoadTypes.From(assembly))
         {
             if (type is not { IsClass: true, IsAbstract: false })
@@ -73,7 +63,7 @@ public static class GameAssemblyContainerRegistration
 
             if (attr.ServiceType.IsAssignableFrom(type))
             {
-                list.Add(new IocRegistrationItem(type, attr.ServiceType, attr.Lifetime));
+                list.Add((ImplementationType: type, ServiceType: attr.ServiceType, Lifetime: attr.Lifetime));
                 continue;
             }
 
@@ -96,9 +86,4 @@ public static class GameAssemblyContainerRegistration
 
         container.Register(serviceType, implementationType, reuse, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
     }
-
-    private readonly record struct IocRegistrationItem(
-        Type ImplementationType,
-        Type ServiceType,
-        GameIocLifetime Lifetime);
 }
