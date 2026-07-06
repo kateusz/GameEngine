@@ -141,10 +141,25 @@ Produce a structured report:
 |------------|------------|----------|
 | Engine/Renderer/ShaderDataTypeExtensions.cs | ShaderDataTypeExtensions | tests/Engine.Tests/Renderer/ShaderDataTypeExtensionsTests.cs |
 
+## Skipped ({count})
+| Source File | Source Type | Reason |
+|------------|------------|--------|
+| Engine/Scene/ISystemManagerFactory.cs | SceneBuildResult | Data-only record, no logic |
+| Engine/Scene/Systems/SystemPriorities.cs | SystemPriorities | Marked [SkipUnitTests] |
+
 ## Notes
-- {count} types excluded (interfaces, enums, data-only records)
-- {count} types grouped into existing test files
+- {count} types have dedicated test files (covered)
+- {count} types exercised within other test files (grouped)
+- {count} types skipped — see Skipped section for reasons
 ```
+
+**Skip reasons**:
+- `Data-only record, no logic` — record with only constructor parameters, no methods/logic
+- `Marked [SkipUnitTests]` — type has `[SkipUnitTests]` attribute
+- `Interface` — tested via implementations (if somehow matched by the search pattern)
+- `Enum` — tested implicitly (if somehow matched by the search pattern)
+- `Editor-only UI code` — not unit-testable (manual verification)
+- `Internal type` — not discoverable by the `public` search pattern
 
 ### Step 6: Generate Test Stubs (Optional)
 
@@ -154,7 +169,7 @@ Run `dotnet build` in the test project directory. If the build fails, fix namesp
 
 ## Automated scan script
 
-For repeatable scans, run from the repo root. Both scripts emit the same `covered|`, `grouped|`, `missing|`, and `summary|` lines for Step 5.
+For repeatable scans, run from the repo root. Both scripts emit the same `covered|`, `grouped|`, `missing|`, `skipped|`, and `summary|` lines for Step 5.
 
 **Unix / Git Bash**:
 
@@ -168,7 +183,9 @@ bash .claude/skills/scanning-test-coverage/scan.sh <source-dir> <test-dir> [sour
 powershell -File .claude/skills/scanning-test-coverage/scan.ps1 -SourceDir Engine/Scene/Systems -TestDir tests/Engine.Tests -SourceRoot Engine
 ```
 
-Example output line: `missing|Engine/Scene/Systems/Foo.cs|Foo|tests/Engine.Tests/Systems/FooTests.cs`
+Example output lines:
+- `missing|Engine/Scene/Systems/Foo.cs|Foo|tests/Engine.Tests/Systems/FooTests.cs`
+- `skipped|Engine/Scene/Systems/SystemPriorities.cs|SystemPriorities|[SkipUnitTests]`
 
 Map script output into the Step 5 report. Scripts exit non-zero if `rg` is missing or directories are invalid.
 
@@ -198,11 +215,10 @@ powershell -File .claude/skills/scanning-test-coverage/scan.ps1 -SourceDir Engin
 ```
 # Test Coverage Report: Engine/Scene/Systems
 
-## Missing Tests (2)
+## Missing Tests (1)
 | Source File | Source Type | Expected Test File |
 |------------|------------|-------------------|
 | Engine/Scene/Systems/LightingSystem.cs | LightingSystem | tests/Engine.Tests/Systems/LightingSystemTests.cs |
-| Engine/Scene/Systems/SystemPriorities.cs | SystemPriorities | tests/Engine.Tests/Systems/SystemPrioritiesTests.cs |
 
 ## Covered (1)
 | Source File | Source Type | Test File |
@@ -213,4 +229,9 @@ powershell -File .claude/skills/scanning-test-coverage/scan.ps1 -SourceDir Engin
 | Source File | Source Type | Test File |
 |------------|------------|----------|
 | Engine/Scene/Systems/PhysicsRuntimeBodyStore.cs | PhysicsRuntimeBodyStore | tests/Engine.Tests/SceneTests.cs |
+
+## Skipped (1)
+| Source File | Source Type | Reason |
+|------------|------------|--------|
+| Engine/Scene/Systems/SystemPriorities.cs | SystemPriorities | Marked [SkipUnitTests] |
 ```

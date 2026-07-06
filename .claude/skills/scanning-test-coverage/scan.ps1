@@ -49,7 +49,7 @@ if ($rel) { $testSub = "/$rel" }
 $missing = 0
 $covered = 0
 $grouped = 0
-$excluded = 0
+$skipped = 0
 
 $matches = rg --no-heading -n "public (?:\w+ )*(class|record|struct) " $SourceDir -g "*.cs" 2>$null
 if (-not $matches) { $matches = @() }
@@ -62,11 +62,6 @@ foreach ($line in $matches) {
         continue
     }
 
-    if ($rest -match 'public interface ' -or $rest -match 'public enum ') {
-        $excluded++
-        continue
-    }
-
     if ($rest -notmatch 'public (?:\w+ )*(class|record|struct) (?<type>[A-Za-z_][A-Za-z0-9_]*)') {
         continue
     }
@@ -75,7 +70,8 @@ foreach ($line in $matches) {
 
     rg -q "\[SkipUnitTests\]" $file 2>$null
     if ($LASTEXITCODE -eq 0) {
-        $excluded++
+        Write-Output "skipped|$file|$typeName|[SkipUnitTests]"
+        $skipped++
         continue
     }
     $expected = "$TestDir$testSub/${typeName}Tests.cs" -replace '\\', '/'
@@ -102,4 +98,4 @@ foreach ($line in $matches) {
 }
 
 Write-Output "---"
-Write-Output "summary|missing=$missing|covered=$covered|grouped=$grouped|excluded=$excluded"
+Write-Output "summary|missing=$missing|covered=$covered|grouped=$grouped|skipped=$skipped"

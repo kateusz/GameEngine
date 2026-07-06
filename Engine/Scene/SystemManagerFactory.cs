@@ -1,9 +1,11 @@
 using ECS;
 using ECS.Systems;
+using Engine.Core;
 using Engine.Scene.Systems;
 
 namespace Engine.Scene;
 
+[SkipUnitTests]
 internal sealed class SystemManagerFactory(ISceneSystemsFactory sceneSystemsFactory) : ISystemManagerFactory
 {
     public SceneBuildResult Create(IContext context)

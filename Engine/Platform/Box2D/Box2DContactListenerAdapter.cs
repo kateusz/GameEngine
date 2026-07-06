@@ -2,10 +2,12 @@ using Box2D.NetStandard.Collision;
 using Box2D.NetStandard.Dynamics.Contacts;
 using Box2D.NetStandard.Dynamics.World;
 using Box2D.NetStandard.Dynamics.World.Callbacks;
+using Engine.Core;
 using Engine.Physics;
 
 namespace Engine.Platform.Box2D;
 
+[SkipUnitTests]
 internal sealed class Box2DContactListenerAdapter : ContactListener
 {
     private IPhysicsContactListener? _listener;

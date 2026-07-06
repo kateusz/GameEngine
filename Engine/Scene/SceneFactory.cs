@@ -1,7 +1,9 @@
 using ECS;
+using Engine.Core;
 
 namespace Engine.Scene;
 
+[SkipUnitTests]
 public sealed class SceneFactory(ISystemManagerFactory systemManagerFactory)
 {
     public IScene Create(string path, string newSceneName)

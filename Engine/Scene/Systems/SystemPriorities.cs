@@ -1,8 +1,8 @@
+using Engine.Core;
+
 namespace Engine.Scene.Systems;
 
-/// <summary>
-/// 
-/// </summary>
+[SkipUnitTests]
 public static class SystemPriorities
 {
     public const int PhysicsSimulationSystem = 100;

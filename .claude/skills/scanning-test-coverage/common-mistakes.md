@@ -12,11 +12,11 @@
 
 **Fix**: Match the relative path under the source project root.
 
-### Writing tests for data-only components
+### Writing tests for IComponent implementations
 
 **Problem**: Components like `VelocityComponent(Vector2 Velocity)` have no logic to test.
 
-**Fix**: Skip record structs that are purely data. Only test components with behavior (computed properties, validation, serialization logic).
+**Fix**: Skip all types implementing `ECS.IComponent` — they are data-only by architectural convention. Logic belongs in Systems, not components. Even components with `Clone()` or dirty tracking are simple property manipulation, not behavior that warrants separate unit tests.
 
 ### Using xUnit Assert instead of Shouldly
 

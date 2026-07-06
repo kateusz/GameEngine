@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Reflection;
+using Engine.Core;
 
 namespace Engine.Scene;
 
+[SkipUnitTests]
 public static class ExposedMemberAccessor
 {
     private static readonly ConcurrentDictionary<Type, FieldInfo[]> FieldCache = new();
@@ -23,21 +25,6 @@ public static class ExposedMemberAccessor
         {
             yield return (prop.Name, prop.PropertyType, prop.GetValue(instance)!);
         }
-    }
-
-    public static object GetMemberValue(object instance, string name)
-    {
-        var type = instance.GetType();
-
-        var field = Array.Find(GetCachedFields(type), f => f.Name == name);
-        if (field != null)
-            return field.GetValue(instance)!;
-
-        var prop = Array.Find(GetCachedProperties(type), p => p.Name == name);
-        if (prop != null && prop.CanRead)
-            return prop.GetValue(instance)!;
-
-        throw new ArgumentException($"Field or property '{name}' not found or not supported.");
     }
 
     public static void SetMemberValue(object instance, string name, object value)

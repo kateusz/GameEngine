@@ -44,16 +44,11 @@ fi
 missing=0
 covered=0
 grouped=0
-excluded=0
+skipped=0
 
 while IFS= read -r line; do
   file="${line%%:*}"
   rest="${line#*:}"
-
-  if [[ "$rest" =~ public\ interface\ ]] || [[ "$rest" =~ public\ enum\ ]]; then
-    ((excluded++)) || true
-    continue
-  fi
 
   if ! [[ "$rest" =~ public\ ([A-Za-z_]+\ )*(class|record|struct)\ ([A-Za-z_][A-Za-z0-9_]*) ]]; then
     continue
@@ -62,7 +57,8 @@ while IFS= read -r line; do
   type_name="${BASH_REMATCH[3]}"
 
   if rg -q '\[SkipUnitTests\]' "$file" 2>/dev/null; then
-    ((excluded++)) || true
+    echo "skipped|${file}|${type_name}|[SkipUnitTests]"
+    ((skipped++)) || true
     continue
   fi
 
@@ -86,4 +82,4 @@ while IFS= read -r line; do
 done < <(rg --no-heading -n "public (?:\w+ )*(class|record|struct) " "$SOURCE_DIR" -g '*.cs' 2>/dev/null || true)
 
 echo "---"
-echo "summary|missing=${missing}|covered=${covered}|grouped=${grouped}|excluded=${excluded}"
+echo "summary|missing=${missing}|covered=${covered}|grouped=${grouped}|skipped=${skipped}"
