@@ -1,67 +1,82 @@
 # Audio System
 
-Audio playback via OpenAL (`IAudioEngine`). Supports 3D spatial audio with distance attenuation. `AudioSystem` runs at priority 120 (after scripts at 110).
+OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports 3D spatial audio, WAV/Ogg loading, optional EFX (reverb, echo, low-pass), and one-shot playback. `AudioSystem` runs at priority 120 (after `ScriptUpdateSystem` at 110).
+
+---
 
 ## Component Diagram
 
 ```mermaid
 graph TD
-    AS[AudioSystem<br/>Priority: 120] -->|creates/manages| IAE[IAudioEngine]
+    AS[AudioSystem<br/>Priority: 120] -->|owns runtime state| RS[AudioRuntimeState per entity]
+    AS -->|uses| IA[IAudio]
     AS -->|reads| ASC[AudioSourceComponent]
     AS -->|reads| ALC[AudioListenerComponent]
     AS -->|reads| TC[TransformComponent]
-    AS -->|uses| IAEF[IAudioEffectFactory]
+    AS -->|implements| IAP[IAudioPlayback]
+    APS[AudioPlaybackService] -->|delegates to| IAP
 
-    IAE -->|impl| OALE[OpenALAudioEngine<br/>Silk.NET.OpenAL]
-    IAEF -->|impl| OALEF[OpenALAudioEffectFactory]
-    IAEF -->|fallback| NoOp[NoOpAudioEffectFactory]
+    IA -->|impl| OALE[OpenALAudioEngine<br/>Silk.NET.OpenAL]
+    IAEF[IAudioEffectFactory] -->|impl| OALEF[OpenALAudioEffectFactory]
+    IAEF -->|fallback| NoOpEF[NoOpAudioEffectFactory]
 
     OALE -->|creates| OALS[OpenALAudioSource]
     OALE -->|loads/caches| OALC[OpenALAudioClip]
+    OALE -->|no device| NoOp[NoOpAudioSource / NoOpAudioClip]
 
-    ASC -->|stores runtime| IAS[IAudioSource]
-    ASC -->|references| IAC[IAudioClip]
-    ASC -->|contains| AEC[AudioEffectConfig]
+    ALR[AudioLoaderRegistry] -->|WAV| Wav[WavLoader]
+    ALR -->|Ogg| Ogg[OggLoader]
+    OALC -->|decode| ALR
+
+    RS -->|wraps| IAS[IAudioSource]
+    ASC -->|AudioClipPath| AS
+    ASC -->|Effects| AED[AudioEffectData]
 
     style AS fill:#4a90d9,color:#fff
     style ASC fill:#5cb85c,color:#fff
     style ALC fill:#5cb85c,color:#fff
-    style IAE fill:#f0ad4e,color:#fff
+    style IA fill:#f0ad4e,color:#fff
     style IAEF fill:#f0ad4e,color:#fff
 ```
 
-## Components
+---
+
+## ECS Components
+
+Components live in the `SceneComponents.Audio` namespace. `AudioSystem` reads the following properties each frame.
 
 ### AudioSourceComponent
 
-| Property | Type | Default | Serialized | Description |
-|---|---|---|---|---|
-| `AudioClip` | `IAudioClip?` | null | No | Runtime clip reference |
-| `AudioClipPath` | `string?` | null | Yes | Path to audio file |
-| `Volume` | `float` | 1.0 | Yes | 0.0 to 1.0 |
-| `Pitch` | `float` | 1.0 | Yes | 0.5 to 2.0 typical |
-| `Loop` | `bool` | false | Yes | Loop playback |
-| `PlayOnAwake` | `bool` | false | Yes | Auto-play on scene start |
-| `Is3D` | `bool` | true | Yes | Enable spatial audio |
-| `MinDistance` | `float` | 1.0 | Yes | Full volume radius |
-| `MaxDistance` | `float` | 100.0 | Yes | Max attenuation distance |
-| `Effects` | `List<AudioEffectConfig>` | [] | Yes | Effect chain (type, enabled, amount) |
-| `IsPlaying` | `bool` | false | No | Current playback state |
-| `RuntimeAudioSource` | `IAudioSource?` | null | No | Internal OpenAL source handle |
+| Property | Used by AudioSystem | Notes |
+|---|---|---|
+| `AudioClipPath` | Yes | Serialized path; clip loaded via `IAudio.LoadAudioClip` |
+| `Volume` | Yes | Synced to `IAudioSource.Volume` |
+| `Pitch` | Yes | Synced to `IAudioSource.Pitch` |
+| `Loop` | Yes | Synced to `IAudioSource.Loop` |
+| `PlayOnAwake` | Yes | Triggers `Play()` on init when clip loads |
+| `Is3D` | Yes | Passed to `SetSpatialMode` |
+| `MinDistance` | Yes | Reference distance for 3D attenuation |
+| `MaxDistance` | Yes | Max attenuation distance |
+| `Effects` | Yes | `List<AudioEffectData>` — effect chain sync |
+| `IsPlaying` | Written | Updated from `IAudioSource.IsPlaying` each frame |
+
+Runtime OpenAL sources are **not** stored on the component. `AudioSystem` keeps an `AudioRuntimeState` dictionary keyed by entity ID.
 
 ### AudioListenerComponent
 
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `IsActive` | `bool` | true | Marks entity as the audio listener (typically camera). Only one active at a time. |
-
-### AudioEffectConfig
-
-| Property | Type | Default |
+| Property | Used by AudioSystem | Notes |
 |---|---|---|
-| `Type` | `AudioEffectType` | - |
-| `Enabled` | `bool` | true |
-| `Amount` | `float` | 0.5 |
+| `IsActive` | Yes | First active listener with a `TransformComponent` wins |
+
+### AudioEffectData
+
+| Property | Used by AudioSystem | Notes |
+|---|---|---|
+| `Type` | Yes | `AudioEffectType` — Reverb, LowPass, Echo |
+| `Enabled` | Yes | Disabled effects are removed from the runtime chain |
+| `Amount` | Yes | Passed to `AddEffect` / `UpdateEffect` |
+
+---
 
 ## Audio Pipeline
 
@@ -70,80 +85,100 @@ sequenceDiagram
     participant Loop as Game Loop
     participant AS as AudioSystem
     participant Ctx as IContext
-    participant AE as IAudioEngine
-    participant EF as IAudioEffectFactory
+    participant A as IAudio
+    participant Src as IAudioSource
 
     Loop->>AS: OnUpdate(deltaTime)
 
-    Note over AS: Phase 1 - Update Listener
-    AS->>Ctx: View<AudioListenerComponent>()
-    Ctx-->>AS: (entity, listener) pairs
-    AS->>AS: Find first active listener with TransformComponent
-    AS->>AE: SetListenerPosition(transform.Translation)
-    AS->>AS: Compute forward/up from euler rotation
-    AS->>AE: SetListenerOrientation(forward, up)
+    Note over AS: Phase 1 — Listener
+    AS->>Ctx: View AudioListenerComponent + TransformComponent
+    AS->>A: SetListenerPosition(translation)
+    AS->>A: SetListenerOrientation(forward, up)
 
-    Note over AS: Phase 2 - Update Sources
-    AS->>Ctx: View<AudioSourceComponent>()
-    Ctx-->>AS: (entity, source) pairs
-    alt RuntimeAudioSource == null
-        AS->>AE: CreateAudioSource()
-        AE-->>AS: IAudioSource
-        AS->>AS: InitializeAudioSource (set clip, volume, pitch, spatial mode)
-        opt PlayOnAwake && AudioClip != null
-            AS->>AS: source.Play()
+    Note over AS: Phase 2 — Sources
+    AS->>Ctx: View AudioSourceComponent
+    alt No runtime state yet
+        AS->>A: CreateAudioSource()
+        AS->>AS: ApplyComponentToSource(force)
+        opt PlayOnAwake and clip loaded
+            AS->>Src: Play()
         end
-    else Already initialized
-        AS->>AS: Sync volume, pitch, loop, clip
+    else Existing runtime state
+        AS->>AS: ApplyComponentToSource (dirty-check sync)
         opt Is3D
-            AS->>AS: Update position from TransformComponent
-            AS->>AS: Update spatial mode (minDist, maxDist)
+            AS->>Src: SetPosition(transform.Translation)
         end
-        AS->>AS: Sync IsPlaying from RuntimeAudioSource
-        AS->>EF: SyncEffects (add/remove/update via factory)
+        AS->>AS: SyncEffects from Effects list
     end
+    AS->>AS: CleanupOrphanedRuntime
 ```
 
 ### OnInit
 
-Creates `RuntimeAudioSource` via `IAudioEngine.CreateAudioSource()` for all existing `AudioSourceComponent` entities. Sets initial properties (clip, volume, pitch, spatial mode, position). Triggers `Play()` if `PlayOnAwake` is true.
+Iterates all `AudioSourceComponent` entities and calls `InitializeAudioSource` (creates runtime state, syncs properties, plays if `PlayOnAwake`).
 
 ### OnShutdown
 
-Disposes all `RuntimeAudioSource` instances and nulls the references.
+Unbinds from `AudioPlaybackService`, disposes all runtime sources, clears the entity state dictionary, and calls `IAudio.ClearClipCache()`.
 
-### Static Control Methods
+### Playback control
 
-`AudioSystem.Play(entity)`, `Pause(entity)`, `Stop(entity)` -- static methods for direct playback control from scripts.
+`AudioSystem` implements `IAudioPlayback` (`Play`, `Pause`, `Stop`). Scripts and other systems inject `IAudioPlayback`, which `AudioPlaybackService` forwards to the active `AudioSystem` instance.
+
+---
 
 ## Spatial Audio
 
-- **Listener**: Position and orientation set from the active `AudioListenerComponent` entity's `TransformComponent`. Orientation derived from euler rotation via quaternion (forward = -Z, up = +Y).
-- **Sources**: 3D position updated each frame from entity's `TransformComponent.Translation`.
-- **Attenuation**: OpenAL handles distance-based attenuation between `MinDistance` (full volume) and `MaxDistance` (near-silent).
-- **2D fallback**: Sources with `Is3D = false` play at constant volume regardless of position.
+- **Listener**: Position and orientation from the first active `AudioListenerComponent` entity's `TransformComponent`. Orientation uses euler → quaternion (forward = −Z, up = +Y).
+- **Sources**: 3D position updated each frame from `TransformComponent.Translation` when `Is3D` is true.
+- **Attenuation**: OpenAL `ReferenceDistance` / `MaxDistance` / `RolloffFactor` set in `OpenALAudioSource.SetSpatialMode`.
+- **2D fallback**: `Is3D = false` sets `SourceRelative` so volume is independent of world position.
+
+---
+
+## Clip Loading
+
+| Step | Detail |
+|---|---|
+| Path resolution | `AudioClipPath` resolved via `PathBuilder.Build` |
+| Load | `IAudio.LoadAudioClip(fullPath)` |
+| Cache | Weak-reference dictionary keyed by normalized path (`OpenALAudioEngine`) |
+| Decode | `AudioLoaderRegistry` dispatches to `WavLoader` (`.wav`) or `OggLoader` (`.ogg`, NVorbis) |
+| Upload | `OpenALAudioClip` uploads 16-bit PCM to an OpenAL buffer |
+
+`OpenALAudioEngine.PlayOneShot(clipPath, volume)` creates a disposable source for non-ECS playback.
+
+---
 
 ## Effect System
 
-`AudioSystem.SyncEffects()` synchronizes the runtime effect chain with `AudioSourceComponent.Effects`:
-1. Removes active effects not in the config (or disabled).
-2. Adds new effects via `IAudioEffectFactory.CreateEffect(type)`.
-3. Updates `Amount` parameter on existing effects.
+`AudioSystem.SyncEffects` keeps the runtime chain aligned with `AudioSourceComponent.Effects`:
 
-## DI Registration
+1. Remove active effects not in the enabled config.
+2. Add missing effects via `IAudioSource.AddEffect(type, amount)`.
+3. Update `Amount` on existing effects via `UpdateEffect`.
 
-- `IAudioEngine` -> `OpenALAudioEngine` (singleton, registered in `EngineIoCContainer`)
-- `IAudioEffectFactory` -> `OpenALAudioEffectFactory` (singleton)
-- `AudioSystem` registered as `ISystem` in `SceneSystemRegistry`
+`OpenALAudioEffectFactory` creates OpenAL EFX effects when the extension is available (`Reverb`, `LowPass`, `Echo`). Otherwise it returns `NoOpAudioEffect`. Low-pass uses a direct filter; reverb and echo use auxiliary send slots (max 4 sends per source).
+
+---
+
+## No-Op Fallback
+
+When OpenAL device/context creation fails, `OpenALAudioEngine` sets `_isAvailable = false`. `CreateAudioSource` and clip creation return `NoOpAudioSource` / `NoOpAudioClip` so the engine continues without audio hardware.
+
+---
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `Engine/Scene/Systems/AudioSystem.cs` | ECS system (priority 120) |
-| `Engine/Scene/Components/AudioSourceComponent.cs` | Source component |
-| `Engine/Scene/Components/AudioListenerComponent.cs` | Listener component |
-| `Engine/Audio/IAudioEngine.cs` | Audio engine interface |
-| `Engine/Platform/OpenAL/OpenALAudioEngine.cs` | OpenAL implementation |
+| `Engine/Scene/Systems/AudioSystem.cs` | ECS system (priority 120), runtime state, effect sync |
+| `Engine/Platform/OpenAL/OpenALAudioEngine.cs` | `IAudio` implementation, clip cache, one-shots |
+| `Engine/Platform/OpenAL/OpenALAudioSource.cs` | OpenAL source, spatial mode, EFX routing |
+| `Engine/Platform/OpenAL/OpenALAudioClip.cs` | Buffer upload from decoded PCM |
+| `Engine/Audio/AudioLoaderRegistry.cs` | Loader dispatch (WAV, Ogg) |
+| `Engine/Platform/OpenAL/Loaders/WavLoader.cs` | RIFF/WAV decoder |
+| `Engine/Platform/OpenAL/Loaders/OggLoader.cs` | Ogg Vorbis decoder (NVorbis) |
 | `Engine/Audio/IAudioEffectFactory.cs` | Effect factory interface |
-| `Engine/Audio/AudioEffectConfig.cs` | Serializable effect configuration |
+| `Engine/Platform/OpenAL/Effects/OpenALAudioEffectFactory.cs` | EFX-backed effect creation |
+| `Engine/Audio/NoOpAudioEffectFactory.cs` | No-op effect fallback |

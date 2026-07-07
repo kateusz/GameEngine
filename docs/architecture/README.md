@@ -83,7 +83,7 @@ GameEngine/
 │   ├── Renderer/        # Graphics2D/3D, IRendererAPI, batching, cameras
 │   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
 │   ├── Scripting/       # IScriptEngine, Roslyn compilation, hot-reload
-│   ├── Audio/           # IAudioEngine, OpenAL integration
+│   ├── Audio/           # IAudio loaders/utils, OpenAL integration
 │   └── Animation/       # AnimationAsset, clips, frame management
 ├── Editor/              # Visual editor (ImGui panels, component editors)
 ├── Runtime/             # Standalone game player

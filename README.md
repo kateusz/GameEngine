@@ -34,11 +34,11 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Event System** - Event-driven architecture for input and game events
 
 ### 🎧 Audio System
-- **OpenAL Integration** - Positional audio support
-- **Multiple Formats** - WAV and Ogg Vorbis support via NVorbis
-- **Sound Management** - Factory-based audio loading with format detection
-- **Multiple Sources** - Support for simultaneous audio playback
-- **ECS Integration** - AudioSourceComponent and AudioListenerComponent
+- **OpenAL Integration** - 3D spatial audio with listener orientation
+- **Multiple Formats** - WAV and Ogg Vorbis via `AudioLoaderRegistry` (NVorbis)
+- **Clip Caching** - Weak-reference cache in `OpenALAudioEngine`
+- **Audio Effects** - Reverb, echo, and low-pass via OpenAL EFX (with no-op fallback)
+- **ECS Integration** - `AudioSourceComponent` and `AudioListenerComponent`; runtime sources managed by `AudioSystem`
 
 ## 📸 Screenshots
 
@@ -144,7 +144,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **ECS Systems** - Priority-based system execution with dependency injection ([docs](docs/specifications/ecs-systems-integration.md))
 - **Event System** - Event-driven input handling with layer-based propagation ([docs](docs/modules/input-system-architecture.md))
 - **Camera System** - Orthographic camera with optimized matrix calculation ([docs](docs/architecture/rendering-pipeline.md#camera-system))
-- **Audio System** - OpenAL-based audio playback with Ogg Vorbis support ([docs](docs/modules/audio/quick-start.md))
+- **Audio System** - OpenAL-based spatial audio with WAV/Ogg loading and EFX ([docs](docs/architecture/audio-system.md))
 - **Asset Pipeline** - Factory-based texture loading with resource management ([docs](docs/modules/resource-management.md))
 
 ## 💻 Usage Examples
@@ -277,8 +277,7 @@ The engine has undergone significant architectural improvements and optimization
 Comprehensive documentation for each major system in the engine (17 modules):
 
 **Audio:**
-- [Audio Quick Start](docs/modules/audio/quick-start.md) - Getting started with audio
-- [Audio System Documentation](docs/modules/audio/README.md) - Complete audio system guide
+- [Audio System](docs/architecture/audio-system.md) - OpenAL engine, spatial audio, loaders, and effects
 
 **Core Systems:**
 - [Input System Architecture](docs/modules/input-system-architecture.md) - Event-driven input handling
