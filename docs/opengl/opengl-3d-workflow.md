@@ -1,5 +1,7 @@
 # OpenGL 3D Rendering Workflow
 
+> **Prototype status:** 3D rendering is intentionally minimal — lit unit cubes only. There is no mesh import (no Assimp, `.obj`, or `.fbx`), no textured 3D geometry, and no draw batching. Use for blockout and pipeline validation; not for shipping 3D art.
+
 **File**: `Engine/Renderer/Graphics3D.cs` — implements `IGraphics3D`
 
 ## Overview

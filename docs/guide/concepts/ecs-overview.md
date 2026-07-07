@@ -30,7 +30,7 @@ As a game developer using this engine:
 
 - **You create entities** in the editor's Scene Hierarchy panel (or from scripts with `CreateEntity`)
 - **You attach components** via the Properties panel's "Add Component" button
-- **Systems run automatically** -- the engine handles physics, rendering, audio, and animation
+- **Systems run automatically** -- the engine handles physics, rendering, and audio
 - **For custom logic, you write scripts** -- subclass `ScriptableEntity` and override lifecycle methods
 
 You write scripts, not systems. Scripts are the user-facing API for game logic.

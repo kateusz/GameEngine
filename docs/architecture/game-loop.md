@@ -221,7 +221,7 @@ public void OnUpdateRuntime(TimeSpan ts)
 }
 ```
 
-Systems execute in priority order (100→180), covering physics, scripting, audio, animation, and rendering.
+Systems execute in priority order (100→151), covering physics, scripting, audio, and rendering.
 
 ### OnUpdateEditor
 

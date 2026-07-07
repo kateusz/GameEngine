@@ -1,6 +1,6 @@
 # Pareto Analysis: Missing Features in GameEngine
 
-**Analysis Date**: 2025-12-17
+**Analysis Date**: 2025-12-17 (capabilities corrected 2026-07-07)
 **Engine Version**: .NET 10.0 | OpenGL 3.3+ | ECS Architecture
 **Total Files Analyzed**: 313 C# files (191 Engine, 122 Editor)
 
@@ -12,16 +12,19 @@ This Pareto analysis identifies the **critical 20% of missing features** that wi
 
 ### Current Maturity Assessment
 
-**Strong Foundation (70% complete)**:
+**Strong Foundation (~70% complete for 2D)**:
 - Solid ECS architecture with priority-based systems
-- Robust 2D rendering (batched, 10K quads, texture atlasing)
-- Basic 3D rendering (mesh/model support with Phong lighting)
+- Robust 2D rendering (batched, 10K quads, texture atlasing via `SubTextureRendererComponent`)
+- **Prototype 3D** — lit unit cubes only (`ModelRendererComponent`); no mesh import
 - Functional physics (Box2D integration, RigidBody2D, BoxCollider2D)
 - Hot-reloadable C# scripting with Roslyn compilation
-- Professional editor (12 panels, viewport tools, prefab system)
-- Animation system (sprite sheets, event bus, timeline panel)
-- Audio system (OpenAL, 3D spatial audio, sources/listeners)
-- Tilemap system (layers, rotation, editor tools)
+- Functional editor (panels, viewport tools, prefab save/apply)
+- Audio system (OpenAL, 3D spatial audio, sources/listeners, basic effects)
+
+**Not implemented (despite older doc claims)**:
+- Tilemap system (layers, editor tools)
+- 3D model loading (Assimp, `.obj`/`.fbx`)
+- Editor undo/redo
 
 **Critical Gaps (30% missing)**:
 The engine lacks key features that prevent shipping complete 2D games and limit productivity. These gaps cluster around runtime UI, advanced physics, rendering effects, debugging tools, and workflow optimizations.
@@ -42,7 +45,7 @@ Based on impact analysis weighing developer time saved, game capabilities unlock
 
 3. **2D Particle System** (Impact Score: 85/100)
    - Blocks: Explosions, magic effects, weather, feedback polish
-   - Saves: 30-50 hours of manual sprite animation
+   - Saves: 30-50 hours of manual per-frame sprite work
    - Current: Zero particle support
 
 4. **Additional Collider Shapes** (Impact Score: 80/100)
@@ -63,19 +66,19 @@ Based on impact analysis weighing developer time saved, game capabilities unlock
 **Implemented (2D)**:
 - Batched quad rendering (10K quads, 16 texture slots)
 - Sprite rendering (SpriteRendererComponent, SubTextureRendererComponent)
-- Texture atlasing (SubTexture2D, animation frames)
+- Texture atlasing (`SubTextureRendererComponent` — manual frame switching from scripts)
 - Line rendering (physics debug, wireframes)
-- Tilemap rendering (multi-layer, rotation support)
 - Framebuffer system (viewport rendering, render-to-texture)
 - Shader abstraction (IShader, ShaderFactory with caching)
 
-**Implemented (3D)**:
-- Mesh rendering (ModelRendererComponent, MeshComponent)
-- Model loading (Assimp integration, .obj/.fbx support)
-- Phong lighting (single light, diffuse/specular/ambient)
-- Basic 3D camera (perspective projection)
+**Implemented (3D — prototype only)**:
+- Lit unit cube rendering (`ModelRendererComponent` + shared `MeshFactory.CreateCube()` mesh)
+- Ambient + directional diffuse lighting (no specular, no textures)
+- Perspective and orthographic 3D cameras
 
 **Missing (Critical)**:
+- No tilemap rendering
+- No 3D model import (Assimp, `.obj`, `.fbx`)
 - No particle systems (2D or 3D)
 - No 2D lighting (point lights, ambient, shadows)
 - No post-processing effects (bloom, blur, color grading)
@@ -103,25 +106,7 @@ Based on impact analysis weighing developer time saved, game capabilities unlock
 - No PolygonCollider2D (blocks irregular terrain, custom shapes)
 - No physics layers/collision matrix (all objects collide with all)
 - No joints (distance, hinge, spring, rope constraints)
-- No collision callbacks in scripts (OnCollisionEnter, OnTriggerEnter)
 - No continuous collision detection (CCD for fast-moving objects)
-
-### Animation System
-**Implemented**:
-- Sprite sheet animation (AnimationComponent, AnimationAsset)
-- Frame-based playback (frame timing, looping)
-- Animation events (AnimationFrameEvent, AnimationCompleteEvent)
-- Event bus integration (publish-subscribe pattern)
-- Animation timeline panel (editor playback, frame scrubbing)
-- Multi-clip support (switching between animations)
-- Playback speed control
-
-**Missing (Critical)**:
-- No state machine (transition graphs, blend parameters)
-- No animation blending (crossfade, additive blending)
-- No skeletal animation (bones, skinning, inverse kinematics)
-- No animation retargeting
-- No procedural animation helpers (tweening, easing functions)
 
 ### Scripting System
 **Implemented**:
@@ -174,19 +159,18 @@ Based on impact analysis weighing developer time saved, game capabilities unlock
 
 ### Editor Features
 **Implemented**:
-- 12 specialized panels (Hierarchy, Properties, Console, ContentBrowser, etc.)
-- Viewport with 5 tools (Select, Move, Scale, Ruler, TileMap)
-- Component editors (14 editors for all components)
-- Prefab system (save/load entity templates)
+- Core panels (Hierarchy, Properties, Console, ContentBrowser, etc.)
+- Viewport with 5 tools (Select, Move, Scale, Rotate, Ruler)
+- Component editors for built-in components
+- Prefab system (save + apply to existing entity)
 - Scene serialization (JSON-based)
 - Project management (new/open/recent projects)
-- Undo/redo system (limited scope)
-- Drag-drop asset handling (textures, audio, meshes)
+- Drag-drop asset handling (textures, audio)
 - Viewport rulers and grid
 - Performance monitoring panel
 
 **Missing (Critical)**:
-- No rotation tool (gizmo for entity rotation)
+- No undo/redo
 - No snap-to-grid (alignment helpers)
 - No multi-entity selection/editing (bulk operations)
 - No asset preview generation (thumbnails)
@@ -199,13 +183,12 @@ Based on impact analysis weighing developer time saved, game capabilities unlock
 **Implemented**:
 - Texture loading (PNG, JPG via StbImageSharp)
 - Audio loading (WAV, OGG)
-- Model loading (OBJ, FBX via Assimp)
-- Animation asset loading (JSON)
-- Tileset configuration (JSON)
 - Shader loading (GLSL vertex/fragment)
 - Factory pattern with caching (TextureFactory, ShaderFactory, AudioClipFactory)
 
 **Missing (Critical)**:
+- No 3D model loading (OBJ, FBX via Assimp)
+- No tileset configuration
 - No asset database (GUID tracking, dependency graph)
 - No asset import pipeline (custom importers, metadata)
 - No asset compression (texture compression, audio compression)
@@ -350,7 +333,7 @@ Without particles, games feel unpolished. Creating effects with sprites is extre
 - Particle emitter shapes (point, circle, box, cone)
 - Particle modules (velocity, color gradient, size over lifetime, rotation)
 - Particle rendering system (instanced rendering for 1000s of particles)
-- Texture sheet animation (flipbook for particle textures)
+- Texture sheet flipbook frames (for particle textures)
 - Emission bursts (spawn N particles at once)
 - Sub-emitters (particles spawning particles)
 - Particle pooling (performance optimization)
@@ -361,7 +344,7 @@ Without particles, games feel unpolished. Creating effects with sprites is extre
 3. Build ParticleEmissionSystem (spawn particles, update physics)
 4. Create ParticleRenderingSystem (instanced quad rendering)
 5. Add particle modules (velocity over time, color gradients, size curves)
-6. Implement texture sheet animation
+6. Implement texture sheet flipbook playback
 7. Add editor for particle system (preview, curve editors)
 
 **Rendering Strategy**:
@@ -518,17 +501,6 @@ Implementation: Create RotateTool implementing IViewportTool. Draw circular gizm
 
 ---
 
-#### 11. Animation State Machine
-**Impact Score: 63/100** | **Effort**: High (2-3 weeks)
-
-Missing: Finite state machine for animation transitions, blend parameters, transition conditions.
-
-Why Important: Complex characters need smooth transitions (idle → walk → run → jump). Current system requires manual clip switching in scripts.
-
-Implementation: Create AnimatorComponent with state graph. Add AnimatorControllerAsset (JSON). Implement state transitions with blend times. Build visual state machine editor panel.
-
----
-
 #### 12. Physics Joints
 **Impact Score: 62/100** | **Effort**: Medium (1-2 weeks)
 
@@ -584,25 +556,22 @@ Z-ordering for 2D sprites (background, objects, characters, UI). Currently relie
 #### 18. Coroutine System (Score: 48/100)
 Async script execution (yield WaitForSeconds, yield WaitUntil). Currently, time delays require manual timers.
 
-#### 19. Skeletal Animation (Score: 45/100)
-Bone hierarchies, skinning, IK. Needed for advanced character animation. High implementation cost.
-
-#### 20. Visual Scripting (Score: 43/100)
+#### 19. Visual Scripting (Score: 43/100)
 Node-based programming for designers. Very high implementation cost, moderate value (C# scripting exists).
 
-#### 21. Terrain System (Score: 40/100)
+#### 20. Terrain System (Score: 40/100)
 Heightmap-based terrain, painting textures, foliage placement. Specialized feature for specific game types.
 
-#### 22. Navmesh & Pathfinding (Score: 40/100)
+#### 21. Navmesh & Pathfinding (Score: 40/100)
 A* pathfinding, navmesh generation, AI navigation. Critical for AI-heavy games, niche otherwise.
 
-#### 23. Asset Bundles (Score: 38/100)
+#### 22. Asset Bundles (Score: 38/100)
 Runtime asset loading, compressed bundles, DLC support. Needed for large games, not early-stage projects.
 
-#### 24. Scene Streaming (Score: 35/100)
+#### 23. Scene Streaming (Score: 35/100)
 Load/unload scene chunks, open-world support. Needed for massive worlds, not typical 2D games.
 
-#### 25. Profiler Integration (Score: 33/100)
+#### 24. Profiler Integration (Score: 33/100)
 In-editor frame time breakdown, memory profiler, GPU profiler. Helpful for optimization, not daily development.
 
 ---
@@ -651,7 +620,6 @@ In-editor frame time breakdown, memory profiler, GPU profiler. Helpful for optim
 1. **Gamepad Support** (1 week)
 2. **2D Lighting** (2 weeks)
 3. **Audio Mixer** (1 week)
-4. **Animation State Machine** (2 weeks)
 
 ### Phase 4: Long-Term Enhancements (Weeks 19+)
 1. Multi-entity selection, asset database, advanced tools
@@ -714,7 +682,7 @@ These features deliver immediate productivity gains with minimal implementation 
 **Without Top 5 Features**:
 - Cannot ship menu-driven games (no UI)
 - Cannot implement shooting mechanics (no raycasting)
-- Visual effects require manual sprite animation (10x slower)
+- Visual effects require manual per-frame sprite work (10x slower)
 - Limited to box-based physics (awkward for many game types)
 - Composite objects require manual transform math
 

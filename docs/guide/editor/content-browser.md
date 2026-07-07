@@ -16,10 +16,10 @@ Files are displayed in a grid using an icon appropriate for each asset type. The
 |-----------|------|---------|
 | `.png`, `.jpg` | Texture | Thumbnail (actual image preview) |
 | `.wav`, `.ogg` | Audio Clip | File icon |
-| `.obj` | 3D Model | File icon |
-| `.anim` | Animation | File icon |
 | `.scene` | Scene | File icon |
 | `.prefab` | Prefab | Special prefab icon |
+
+> **Not supported yet:** `.obj`, `.fbx` (no 3D mesh import). These may appear as generic file icons if present in `assets/`.
 
 Any file type not listed above also displays a generic file icon.
 
@@ -33,8 +33,7 @@ All drop targets accept only files with matching extensions — dropping an inco
 |-------------|-------------|--------|
 | `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture |
 | `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
-| `.obj` mesh file | MeshComponent mesh field | Assigns the mesh |
-| `.prefab` prefab file | Scene Hierarchy panel | Instantiates the prefab as a new entity |
+| `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
 
 The Content Browser passes the asset's path relative to the `assets` directory as the drag-and-drop payload. Drop targets resolve the full path by combining this relative path with the project's assets root.
 
@@ -70,4 +69,4 @@ Use **Ctrl+N** to create a new scene (a name prompt appears). Use **Ctrl+S** to 
 ## Next Steps
 
 - [Component Inspector](component-inspector.md) — view and edit component properties, including drag-and-drop targets
-- [Animation Timeline](animation-timeline.md) — create and edit `.anim` animation clips
+- [Roadmap](../roadmap.md) — planned tilemap and 3D model import features

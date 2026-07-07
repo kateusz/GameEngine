@@ -13,7 +13,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Cross-Platform** - Windows, macOS support
 
 ### 🛠️ Editor
-- **Visual Scene Editor** - Drag-and-drop scene composition with hierarchical entities
+- **Visual Scene Editor** - Drag-and-drop scene composition with flat entity list
 - **Asset Browser** - Integrated asset management
 - **Live Console** - Real-time logging and debugging with Serilog integration
 - **Component Inspector** - Visual component editing with 17 editor panels
@@ -23,7 +23,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 
 ### 🎨 Rendering
 - **2D Sprite Rendering** - Batched quad rendering with texture atlasing (10,000 quads per batch)
-- **3D Cube Rendering** - Lit unit cubes via `ModelRendererComponent` with ambient and directional lights
+- **3D Cube Rendering (prototype)** - Lit unit cubes via `ModelRendererComponent`; no mesh import
 - **Shader System** - OpenGL shader management with caching
 - **Camera System** - Orthographic and perspective cameras with optimized matrix calculation
 - **Framebuffer Support** - Multi-attachment render-to-texture (RGBA16F color, entity ID, depth) for editor viewports

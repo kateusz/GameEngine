@@ -52,14 +52,15 @@ A prefab is a reusable entity template saved to disk as a `.prefab` file. Think 
 
 ## Creating Prefabs
 
-1. Set up an entity in the editor with all the components and settings you want
-2. Right-click the entity in the Scene Hierarchy
-3. Select "Save as Prefab"
-4. The prefab is saved to your project's `assets/prefabs/` directory
+1. Select an entity with the components and settings you want
+2. Click **Save as Prefab** in the Properties panel
+3. Enter a name — the prefab is saved to `assets/prefabs/{name}.prefab`
 
 ## Using Prefabs
 
-Drag a `.prefab` file from the Content Browser into the Scene Hierarchy to instantiate it as a new entity.
+Drag a `.prefab` file from the Content Browser onto an **existing entity** in the Scene Hierarchy to apply the prefab's component data to that entity.
+
+> **Planned:** Dragging a prefab to empty hierarchy space to spawn a new entity (`CreateEntityFromPrefab`). See [Roadmap](../roadmap.md).
 
 Prefab instantiation is currently an editor-only feature. There is no scripting API for spawning prefabs at runtime yet.
 

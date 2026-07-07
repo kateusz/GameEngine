@@ -6,7 +6,7 @@ Reference for every component available in the engine.
 
 The **Properties** panel displays all components attached to the currently selected entity. To add a component, click the **Add Component** button at the bottom of the panel and select from the dropdown. To remove a component, right-click its header and choose **Remove Component**.
 
-Each entity can hold any combination of components. The engine uses these components to drive rendering, physics, audio, scripting, and animation through its system pipeline.
+Each entity can hold any combination of components. The engine uses these components to drive rendering, physics, audio, and scripting through its system pipeline.
 
 ---
 
@@ -51,7 +51,7 @@ Renders a rectangular region of a texture atlas (sprite sheet) rather than the w
 | `CellSize` | Vector2 | (16, 16) | Pixel dimensions of each cell in the atlas. |
 | `SpriteSize` | Vector2 | (1, 1) | Size of the sprite in cells. Use (2, 2) for a sprite that spans four cells. |
 
-**When to use:** Sprite sheets and tile-based graphics where multiple frames or tiles are packed into a single texture. Required by AnimationComponent — place both on the same entity.
+**When to use:** Sprite sheets where multiple frames are packed into a single texture. Update `Coords` from scripts to switch frames manually.
 
 ---
 
@@ -233,29 +233,9 @@ Acts as the ears of the scene for 3D spatial audio. The audio system calculates 
 
 ---
 
-## AnimationComponent
-
-Drives frame-by-frame sprite animation using a texture atlas. The AnimationSystem advances frames based on elapsed time and writes UV coordinates to the SubTextureRendererComponent on the same entity.
-
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `AssetPath` | string | — | Path to the animation asset file (`.anim`). |
-| `CurrentClipName` | string | — | Name of the animation clip to play from the asset. |
-| `Loop` | bool | true | Repeat the animation when it reaches the last frame. |
-| `PlaybackSpeed` | float | 1.0 | Speed multiplier. 2.0 = double speed; 0.5 = half speed. |
-| `ShowDebugInfo` | bool | false | Overlay debug information on the entity in the viewport. |
-
-**Requirement:** A SubTextureRendererComponent must be present on the same entity. The animation system writes frame UV coordinates directly to it.
-
-**When to use:** Animated characters, environmental animations, effects, and any sprite that cycles through multiple frames.
-
-See also: [Animation Timeline](animation-timeline.md)
-
----
-
 ## ModelRendererComponent
 
-Renders a lit unit cube at the entity's transform. The engine uses one shared cube mesh for all `ModelRendererComponent` entities — there is no per-entity model file.
+Renders a lit unit cube at the entity's transform. **3D rendering is prototype-only** — the engine uses one shared cube mesh for all `ModelRendererComponent` entities. There is no per-entity model file and no mesh import (no Assimp, `.obj`, or `.fbx` support).
 
 **Add in editor:** Properties panel → **Add Component** → **Model Renderer** (adds `TransformComponent` automatically if missing)
 
@@ -287,6 +267,7 @@ Stores a string label on the entity for identification and grouping. Tags are pe
 
 The following components are planned and will be documented when available:
 
+- **TileMapComponent** — tile-based level rendering and editor tools
 - **CircleCollider2D** — circular collision shape for physics.
 - **ParticleSystemComponent** — GPU-accelerated particle effects.
 - **UI components** — canvas, text, button, and image elements for in-game interfaces.

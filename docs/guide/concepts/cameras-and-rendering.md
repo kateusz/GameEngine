@@ -39,9 +39,11 @@ For 2D visuals, the engine provides two components:
 
 **SpriteRendererComponent** renders a textured quad. Assign a texture by dragging an image from the Content Browser, or set `TexturePath` directly. Use the `Color` property to tint the sprite. If no texture is set, a solid colored quad is rendered.
 
-**SubTextureRendererComponent** renders a portion of a texture atlas. This is used for sprite sheet animations and tile-based graphics. You specify grid coordinates (`Coords`) and cell size (`CellSize`) to select which part of the atlas to display.
+**SubTextureRendererComponent** renders a portion of a texture atlas (sprite sheet). You specify grid coordinates (`Coords`) and cell size (`CellSize`) to select which part of the atlas to display. Update `Coords` from scripts to switch frames manually.
 
-## 3D Rendering
+## 3D Rendering (Prototype)
+
+> **Prototype only** — no mesh import, no textured models, no Assimp integration. Every `ModelRendererComponent` draws the same shared unit cube.
 
 For 3D visuals, add these components to an entity:
 

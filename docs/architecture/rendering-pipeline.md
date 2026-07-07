@@ -80,7 +80,9 @@ graph TB
 
 ---
 
-## 3D Cube Rendering
+## 3D Cube Rendering (Prototype)
+
+> **Prototype only** — shared unit cube mesh, ambient + directional diffuse lighting. No model import, no 3D textures, no batching. See [OpenGL 3D Workflow](../opengl/opengl-3d-workflow.md).
 
 **Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/MeshFactory.cs`
 

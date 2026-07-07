@@ -1,16 +1,17 @@
 # Game Engine Developer Guide
 
-This is a C# game engine built on an Entity Component System (ECS) architecture, offering 2D and 3D rendering via OpenGL, a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers the full range of common game development needs: physics simulation, spatial audio, and sprite animation.
+This is a C# game engine built on an Entity Component System (ECS) architecture, offering production-ready **2D** rendering via OpenGL, a **prototype 3D** path (lit unit cubes only — no model import), a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers core game development needs: physics simulation, spatial audio, and sprite atlasing.
 
 ## Features
 
 - **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
-- **2D and 3D rendering** — OpenGL 3.3+ renderer with sprite batching, framebuffers, and a flexible camera system
+- **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
+- **3D rendering (prototype)** — lit unit cubes via `ModelRendererComponent`; no mesh import or textured models yet
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
 - **Audio support** — audio via OpenAL
-- **Sprite animation** — frame-based animation system integrated with the ECS component pipeline
-- **Visual editor** — full-featured ImGui editor with scene hierarchy, properties panel, content browser, and console
+- **Sprite atlasing** — `SubTextureRendererComponent` for sprite sheets with manual frame selection via grid coordinates
+- **Visual editor** — ImGui editor with flat entity list, properties panel, content browser, and console
 
 ## Prerequisites
 

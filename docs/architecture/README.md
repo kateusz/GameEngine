@@ -42,8 +42,8 @@ C4Container
 
     System_Boundary(engine_boundary, "Game Engine") {
         Container(ecs, "ECS", "C# Library", "Pure Entity-Component-System framework: Entity, IComponent, Context, ISystem, SystemManager")
-        Container(core, "Engine", "C# Library", "Runtime core: rendering, physics, audio, scripting, animation, serialization, scene management")
-        Container(editor, "Editor", "C# Application", "ImGui-based visual editor with scene hierarchy, properties, content browser, animation timeline")
+        Container(core, "Engine", "C# Library", "Runtime core: rendering, physics, audio, scripting, serialization, scene management")
+        Container(editor, "Editor", "C# Application", "ImGui-based visual editor with scene hierarchy, properties, content browser")
         Container(runtime, "Runtime", "C# Application", "Standalone game player — loads published scenes and runs them without editor overhead")
     }
 
@@ -83,8 +83,7 @@ GameEngine/
 │   ├── Renderer/        # Graphics2D/3D, IRendererAPI, batching, cameras
 │   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
 │   ├── Scripting/       # IScriptEngine, Roslyn compilation, hot-reload
-│   ├── Audio/           # IAudio loaders/utils, OpenAL integration
-│   └── Animation/       # AnimationAsset, clips, frame management
+│   └── Audio/           # IAudio loaders/utils, OpenAL integration
 ├── Editor/              # Visual editor (ImGui panels, component editors)
 ├── Runtime/             # Standalone game player
 └── tests/               # Unit tests (ECS.Tests, Engine.Tests)
@@ -102,7 +101,6 @@ GameEngine/
 | [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, ScriptableEntity, editor vs runtime |
 | [Physics System](physics-system.md) | `IPhysicsWorld2D` abstraction, Box2D backend, fixed timestep, contact queue, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |
-| [Animation System](animation-system.md) | Animation assets, clips, frame progression |
 | [Serialization](serialization.md) | Scene/prefab JSON, ComponentSerializerRegistry, custom converters |
 | [Dependency Injection](dependency-injection.md) | DryIoc setup, service lifetimes, factory pattern |
 
