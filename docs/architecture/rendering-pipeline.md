@@ -10,15 +10,17 @@ The rendering pipeline flows from ECS rendering systems through a batched 2D/3D 
 graph TB
     subgraph "ECS Rendering Systems"
         PCS["PrimaryCameraSystem (145)<br/><i>Resolves active camera</i>"]
-        SRS["SpriteRenderingSystem (150)"]
-        STRS["SubTextureRenderingSystem (160)"]
-        MRS["ModelRenderingSystem (170)"]
-        PDRS["PhysicsDebugRenderSystem (180)"]
+        SRS["SceneRenderSystem (150)<br/><i>SceneRenderPipeline</i>"]
+        PDRS["PhysicsDebugRenderSystem (151)<br/><i>Collider debug lines</i>"]
+    end
+
+    subgraph "Scene Render Pipeline"
+        SRP["SceneRenderPipeline<br/><i>Sprites, subtextures, 3D cubes</i>"]
     end
 
     subgraph "Graphics Layer"
         G2D["Graphics2D (IGraphics2D)<br/><i>Batched 2D: quads + lines</i>"]
-        G3D["Graphics3D (IGraphics3D)<br/><i>3D mesh rendering</i>"]
+        G3D["Graphics3D (IGraphics3D)<br/><i>3D cube rendering</i>"]
     end
 
     subgraph "Resource Factories"
@@ -41,9 +43,9 @@ graph TB
     end
 
     PCS --> SRS
-    SRS --> G2D
-    STRS --> G2D
-    MRS --> G3D
+    SRS --> SRP
+    SRP --> G2D
+    SRP --> G3D
     PDRS --> G2D
     G2D --> API
     G3D --> API
@@ -60,6 +62,22 @@ graph TB
 
 ---
 
+## SceneRenderPipeline
+
+**File**: `Engine/Scene/SceneRenderPipeline.cs`
+
+`SceneRenderSystem` (priority 150) calls `SceneRenderPipeline.RenderScene`, which batches all drawable entities in one pass:
+
+| Pass | Components queried | Graphics API |
+|------|-------------------|--------------|
+| 2D sprites | `SpriteRendererComponent` + `TransformComponent` | `IGraphics2D.DrawQuad` |
+| 2D subtextures | `SubTextureRendererComponent` + `TransformComponent` | `IGraphics2D.DrawQuad` with atlas coords |
+| 3D cubes | `ModelRendererComponent` + `TransformComponent` | `IGraphics3D.DrawCube` with ambient/directional light |
+
+`PhysicsDebugRenderSystem` (priority 151) draws collider outlines via `PhysicsDebugDrawer` when `DebugSettings.ShowColliderBounds` is enabled.
+
+---
+
 ## IRendererAPI
 
 **File**: `Engine/Renderer/IRendererAPI.cs`
@@ -71,9 +89,12 @@ Platform-agnostic rendering interface. All OpenGL calls are isolated behind this
 | `Init()` | Enable blending (SRC_ALPHA, ONE_MINUS_SRC_ALPHA), depth test (LEQUAL) |
 | `SetClearColor(Vector4)` | Set framebuffer clear color |
 | `Clear()` | Clear color + depth buffers |
+| `BindTexture2D(uint textureId, int slot)` | Bind a 2D texture to a sampler slot |
 | `DrawIndexed(IVertexArray, uint count)` | Draw triangles via `glDrawElements` |
-| `DrawLines(IVertexArray, uint count)` | Draw lines via `glDrawArrays` |
+| `DrawLines(IVertexArray, uint vertexCount)` | Draw lines via `glDrawArrays` |
 | `SetLineWidth(float)` | Set line width (clamped to 1.0 on modern OpenGL) |
+| `SetDepthTest(bool enabled)` | Enable or disable depth testing |
+| `GetError()` | Return OpenGL error code (0 = no error) |
 
 **OpenGL implementation**: `Engine/Platform/OpenGL/OpenGLRendererApi.cs` — all calls wrapped with `OpenGLDebug.CheckError()` in DEBUG builds.
 
@@ -88,7 +109,7 @@ Platform-agnostic rendering interface. All OpenGL calls are isolated behind this
 | **QuadVertex** | 44 bytes | Position (Vec3), Color (Vec4), TexCoord (Vec2), TexIndex (float), TilingFactor (float), EntityId (int) |
 | **LineVertex** | 32 bytes | Position (Vec3), Color (Vec4), EntityId (int) |
 
-**Files**: `Engine/Renderer/QuadVertex.cs`, `Engine/Renderer/LineVertex.cs`
+**Files**: `Engine/Renderer/Primitives/QuadVertex.cs`, `Engine/Renderer/Primitives/LineVertex.cs`
 
 ### Batch Limits
 
@@ -96,7 +117,7 @@ Defined in `Engine/Renderer/RenderingConstants.cs` and `Renderer2DData.cs`:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| MaxQuads | 10,000 | Quads per batch |
+| DefaultMaxQuads | 10,000 | Quads per batch |
 | MaxVertices | 40,000 | 10K quads × 4 vertices |
 | MaxIndices | 60,000 | 10K quads × 6 indices (2 triangles) |
 | MaxTextureSlots | 16 | OpenGL minimum guaranteed texture units |
@@ -242,6 +263,8 @@ classDiagram
     IViewCamera <|.. EditorCamera
 ```
 
+**Base class**: `Engine/Scene/Cameras/Camera.cs`
+
 ### SceneCamera (Runtime)
 
 **File**: `Engine/Scene/SceneCamera.cs`
@@ -253,7 +276,7 @@ classDiagram
 
 ### EditorCamera
 
-**File**: `Engine/Renderer/Cameras/EditorCamera.cs`
+**File**: `Engine/Scene/Cameras/EditorCamera.cs`
 
 - Always perspective — orbits around a focal point
 - Controls: **Pan** (lateral), **Orbit** (yaw/pitch around focal point), **Zoom** (distance from focal point)

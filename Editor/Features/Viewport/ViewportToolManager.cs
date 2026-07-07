@@ -35,10 +35,6 @@ public class ViewportToolManager(
     {
         if (_currentMode == mode)
             return;
-
-        // Don't switch to Tilemap mode - it's handled by TileMapPanel
-        if (mode == EditorMode.Tilemap)
-            return;
         
         _activeTool.OnDeactivate();
         _currentMode = mode;

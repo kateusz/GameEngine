@@ -28,10 +28,5 @@ public enum EditorMode
     /// <summary>
     /// Ruler mode - measure distances between points in the viewport
     /// </summary>
-    Ruler,
-
-    /// <summary>
-    /// Tilemap mode - paint tiles on a tilemap
-    /// </summary>
-    Tilemap
+    Ruler
 }

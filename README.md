@@ -1,12 +1,12 @@
 # Game Engine
 
-A modern, component-based game engine built with C# and .NET 9, featuring a comprehensive editor, hot-reloadable scripting system, and support for both 2D and 3D game development.
+A modern, component-based game engine built with C# and .NET 9, featuring a comprehensive editor, hot-reloadable scripting system, and 2D game development support.
 
 ## ✨ Features
 
 ### 🎮 Core Engine
 - **Entity Component System (ECS)** - Flexible, data-driven architecture with priority-based system execution
-- **2D & 3D Rendering** - OpenGL-based rendering pipeline via Silk.NET with batching (10,000 quads/batch)
+- **2D Rendering** - OpenGL-based rendering pipeline via Silk.NET with batching (10,000 quads/batch)
 - **Physics Integration** - Box2D physics simulation with debug visualization
 - **Hot-Reloadable Scripting** - C# scripting with real-time compilation via Roslyn
 - **Dependency Injection** - DryIoc IoC container for clean architecture
@@ -14,8 +14,6 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 
 ### 🛠️ Editor
 - **Visual Scene Editor** - Drag-and-drop scene composition with hierarchical entities
-- **Animation Timeline** - Visual sprite animation editor with frame events
-- **TileMap Editor** - Multi-layer tilemap editing with visual tools
 - **Asset Browser** - Integrated asset management
 - **Live Console** - Real-time logging and debugging with Serilog integration
 - **Component Inspector** - Visual component editing with 17 editor panels
@@ -24,11 +22,8 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 
 ### 🎨 Rendering
 - **2D Sprite Rendering** - Batched quad rendering with texture atlasing (10,000 quads per batch)
-- **Sprite Animation** - Complete 2D sprite animation system with timeline editor and frame events
-- **TileMap Rendering** - Multi-layer tilemap system with auto-batching
-- **3D Model Support** - OBJ model loading via Assimp
 - **Shader System** - OpenGL shader management with caching
-- **Camera System** - Orthographic and perspective cameras with optimized matrix calculation
+- **Camera System** - Orthographic cameras with optimized matrix calculation
 - **Framebuffer Support** - Render-to-texture capabilities for editor viewports
 - **GPU Entity Picking** - Efficient entity selection in editor
 
@@ -39,7 +34,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Event System** - Event-driven architecture for input and game events
 
 ### 🎧 Audio System
-- **OpenAL Integration** - 3D positional audio support
+- **OpenAL Integration** - Positional audio support
 - **Multiple Formats** - WAV and Ogg Vorbis support via NVorbis
 - **Sound Management** - Factory-based audio loading with format detection
 - **Multiple Sources** - Support for simultaneous audio playback
@@ -101,7 +96,6 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 ### Project Structure
 ```
 ├── Engine/              # Core engine runtime
-│   ├── Animation/      # 2D sprite animation system with events
 │   ├── Audio/          # OpenAL audio system (Ogg, WAV support)
 │   ├── Core/           # Application framework, layer system
 │   ├── Events/         # Event system (input, window)
@@ -127,7 +121,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 │   ├── Systems/        # EditorCameraSystem
 │   ├── UI/             # EditorUIConstants for styling
 │   ├── Utilities/      # Helper classes
-│   ├── Windows/        # AnimationTimelineWindow, RecentProjectsWindow
+│   ├── Windows/        # RecentProjectsWindow
 │   └── Resources/      # Editor-specific assets
 ├── Runtime/            # Standalone game runtime
 ├── Sandbox/            # Testing and experimentation
@@ -144,16 +138,14 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 
 ### Key Systems
 
-- **Renderer2D/3D** - Batched rendering with automatic state management and shader/texture caching ([docs](docs/opengl-rendering/opengl-2d-workflow.md))
-- **Animation System** - Complete 2D sprite animation with timeline editor and frame events ([docs](docs/modules/animation-event-system.md))
-- **TileMap System** - Multi-layer tilemap support with visual editor ([docs](docs/modules/tilemap-quick-start.md))
+- **Renderer2D** - Batched rendering with automatic state management and shader/texture caching ([docs](docs/architecture/rendering-pipeline.md))
 - **ScriptEngine** - Roslyn-based C# compilation with hot-reload and debugging support
 - **Scene System** - Hierarchical entity management with JSON serialization ([docs](docs/modules/scene-management.md))
 - **ECS Systems** - Priority-based system execution with dependency injection ([docs](docs/specifications/ecs-systems-integration.md))
 - **Event System** - Event-driven input handling with layer-based propagation ([docs](docs/modules/input-system-architecture.md))
-- **Camera System** - Flexible camera system with orthographic and perspective projections ([docs](docs/modules/camera-system.md))
-- **Audio System** - OpenAL-based 3D audio playback with Ogg Vorbis support ([docs](docs/modules/audio/quick-start.md))
-- **Asset Pipeline** - Factory-based texture and model loading with resource management ([docs](docs/modules/resource-management.md))
+- **Camera System** - Orthographic camera with optimized matrix calculation ([docs](docs/architecture/rendering-pipeline.md#camera-system))
+- **Audio System** - OpenAL-based audio playback with Ogg Vorbis support ([docs](docs/modules/audio/quick-start.md))
+- **Asset Pipeline** - Factory-based texture loading with resource management ([docs](docs/modules/resource-management.md))
 
 ## 💻 Usage Examples
 
@@ -223,24 +215,6 @@ public class PlayerController : ScriptableEntity
 }
 ```
 
-### 3D Model Rendering
-
-```csharp
-// Add mesh component
-var meshComponent = new MeshComponent();
-var mesh = MeshFactory.Create("assets/models/character.obj");
-meshComponent.SetMesh(mesh);
-entity.AddComponent(meshComponent);
-
-// Add model renderer
-var renderer = new ModelRendererComponent
-{
-    Color = new Vector4(1, 1, 1, 1),
-    CastShadows = true
-};
-entity.AddComponent(renderer);
-```
-
 ## 🎯 Sample Projects
 
 TBD
@@ -260,7 +234,7 @@ TBD
 ## 📦 Dependencies
 
 ### Core Dependencies
-- **Silk.NET (2.22.0)** - OpenGL bindings, windowing, OpenAL audio, and Assimp model loading
+- **Silk.NET (2.22.0)** - OpenGL bindings, windowing, and OpenAL audio
 - **ImGui.NET** - Editor user interface with ImGui integration
 - **Box2D.NetStandard (2.4.7-alpha)** - 2D physics simulation
 - **StbImageSharp (2.30.15)** - Image loading
@@ -285,18 +259,15 @@ The engine has undergone significant architectural improvements and optimization
 - **Shader & Texture Caching** - ShaderFactory and TextureFactory implement smart caching
 - **Optimized Matrix Math** - Improved OrthographicCamera matrix calculations
 - **Dictionary-based Lookups** - Graphics2D uses O(1) texture lookups instead of linear search
-- **Removed Lazy Initialization** - Simplified Mesh class for better performance
 
 ### Architectural Enhancements
-- **Priority-Based ECS** - Systems execute in configurable priority order (ScriptUpdateSystem: 100, AnimationSystem: 198, TileMapRenderSystem: 200)
+- **Priority-Based ECS** - Systems execute in configurable priority order (ScriptUpdateSystem: 100)
 - **Dependency Injection** - Full DryIoc integration with 50+ service registrations
 - **Factory Pattern** - Consistent factory-based resource creation throughout
 - **IDisposable Patterns** - Proper resource cleanup for all unmanaged resources
 - **Unified Error Handling** - Consistent GL error checking across rendering system
 
 ### New Major Features
-- **Complete Animation System** - Timeline editor, frame events, ECS integration
-- **TileMap System** - Multi-layer editing with visual tools
 - **Ogg Vorbis Support** - Extended audio format support via NVorbis
 - **Editor Enhancements** - Shortcuts manager, 17 specialized panels, constants-driven UI
 
@@ -305,15 +276,8 @@ The engine has undergone significant architectural improvements and optimization
 ### Module Documentation
 Comprehensive documentation for each major system in the engine (17 modules):
 
-**Animation & Graphics:**
-- [Animation Event System](docs/modules/animation-event-system.md) - Complete 2D sprite animation with events
-- [Animation System Usage Guide](docs/modules/animation-system-usage-guide.md) - Getting started with animations
-- [TileMap Quick Start](docs/modules/tilemap-quick-start.md) - Multi-layer tilemap basics
-- [TileMap Usage Guide](docs/modules/tilemap-usage-guide.md) - Advanced tilemap features
-- [TileMap TileSet Configs](docs/modules/tilemap-tileset-configs.md) - TileSet configuration
-
 **Audio:**
-- [Audio Quick Start](docs/modules/audio/quick-start.md) - Getting started with 3D audio
+- [Audio Quick Start](docs/modules/audio/quick-start.md) - Getting started with audio
 - [Audio System Documentation](docs/modules/audio/README.md) - Complete audio system guide
 
 **Core Systems:**
@@ -324,9 +288,9 @@ Comprehensive documentation for each major system in the engine (17 modules):
 - [Game Loop](docs/modules/game-loop.md) - Core engine execution cycle
 
 **Rendering:**
-- [Frame Buffers](docs/modules/frame-buffers.md) - Render-to-texture capabilities
-- [Rendering Pipeline](docs/modules/rendering-pipeline.md) - OpenGL rendering pipeline overview
-- [Viewport Rulers](docs/modules/viewport-rulers.md) - Editor viewport features
+- [Rendering Pipeline](docs/architecture/rendering-pipeline.md) - OpenGL rendering pipeline overview
+- [OpenGL 2D Workflow](docs/opengl/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
+- [Frame Buffers](docs/opengl/frame-buffers.md) - Render-to-texture capabilities
 
 **Tools & Publishing:**
 - [Editor Tools](docs/modules/editor.md) - Visual editor features and workflow
@@ -336,13 +300,11 @@ Comprehensive documentation for each major system in the engine (17 modules):
 ### OpenGL Rendering Workflows
 Detailed guides on the OpenGL rendering implementation:
 
-- [OpenGL 2D Rendering Workflow](docs/opengl-rendering/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
-- [OpenGL 3D Rendering Workflow](docs/opengl-rendering/opengl-3d-workflow.md) - 3D model rendering and pipeline
+- [OpenGL 2D Rendering Workflow](docs/opengl/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
 
 ### Technical Specifications
 Design documents for major features:
 
-- [2D Animation System](docs/specifications/2d-animation-system.md) - Animation system architecture
 - [ECS Systems Integration](docs/specifications/ecs-systems-integration.md) - Priority-based ECS design
 - [Entity Search Filter](docs/specifications/entity-search-filter.md) - Scene hierarchy filtering
 - [Ogg Audio Format Support](docs/specifications/ogg-audio-format-support.md) - Ogg Vorbis integration
@@ -354,9 +316,9 @@ Design documents for major features:
 The engine includes comprehensive testing infrastructure:
 
 - **Unit Tests** - ECS.Tests and Engine.Tests projects with 30+ test files
-- **Integration Tests** - Scene serialization, animation system, tilemap rendering
+- **Integration Tests** - Scene serialization and rendering
 - **Performance Benchmarks** - BenchmarkDotNet-based performance testing
-- **Test Coverage** - Animation, Audio, Components, Serialization, and more
+- **Test Coverage** - Audio, Components, Serialization, and more
 
 Run tests with:
 ```bash
@@ -367,11 +329,10 @@ dotnet test
 
 ### Entity Component System (18 Built-in Components)
 - **Core**: IDComponent, TagComponent, TransformComponent
-- **Rendering**: SpriteRendererComponent, SubTextureRendererComponent, MeshComponent, ModelRendererComponent, CameraComponent
+- **Rendering**: SpriteRendererComponent, SubTextureRendererComponent, CameraComponent
 - **Physics**: RigidBody2DComponent, BoxCollider2DComponent
 - **Scripting**: NativeScriptComponent
 - **Audio**: AudioSourceComponent, AudioListenerComponent
-- **Advanced**: AnimationComponent, TileMapComponent, TileMapLayer, TileSet, TileComponent
 
 ### Design Patterns
 - **Dependency Injection** - DryIoc IoC container throughout

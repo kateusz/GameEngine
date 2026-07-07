@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Engine.Scene.Serializer;
 
 /// <summary>
-/// Shared JSON serializer options for all scene/prefab/animation serializers.
+/// Shared JSON serializer options for all scene/prefab serializers.
 /// Registered as a singleton via DI.
 /// </summary>
 internal sealed class SerializerOptions
