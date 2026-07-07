@@ -22,7 +22,10 @@ Override these to handle player input.
 |--------|------------|
 | `void OnKeyPressed(KeyCodes key)` | Key pressed down |
 | `void OnKeyReleased(KeyCodes keyCode)` | Key released |
-| `void OnMouseButtonPressed(int button)` | Mouse button clicked (0=left, 1=right, 2=middle) |
+| `void OnMouseButtonPressed(int button)` | Mouse button pressed (0=left, 1=right, 2=middle) |
+| `void OnMouseButtonReleased(int button)` | Mouse button released |
+| `void OnMouseMoved(float x, float y)` | Cursor moved (window coordinates) |
+| `void OnMouseScrolled(float xOffset, float yOffset)` | Scroll wheel moved |
 
 See [Input Handling](input.md) for examples and the KeyCodes reference.
 
@@ -53,6 +56,8 @@ These protected methods let you work with components on the script's entity.
 
 **Type constraint:** `T` must implement `IComponent`.
 
+Use `GetComponent<TransformComponent>()` for position, rotation, and scale — there are no `GetPosition` / `SetPosition` helpers on `ScriptableEntity`.
+
 **Example:**
 
 ```csharp
@@ -63,72 +68,23 @@ if (HasComponent<SpriteRendererComponent>())
 }
 ```
 
-## Entity Access
+## Audio
 
-These protected methods let you find, create, and destroy entities in the scene.
-
-| Method | Description |
-|--------|-------------|
-| `Entity? FindEntity(string name)` | Find an entity by name. Returns `null` if not found. |
-| `Entity CreateEntity(string name)` | Create a new entity in the scene. |
-| `void DestroyEntity(Entity entity)` | Destroy an entity and remove it from the scene. |
-
-**Example:**
-
-```csharp
-var enemy = FindEntity("Boss");
-if (enemy != null)
-{
-    DestroyEntity(enemy);
-}
-```
-
-## Transform Helpers
-
-These protected methods provide convenient access to the entity's `TransformComponent`.
+Scripts receive `IAudio` and `IAudioPlayback` via the constructor scaffold (`ScriptableEntityTemplates`). Use the protected `AudioPlayback` property for per-entity play/pause/stop:
 
 | Method | Description |
 |--------|-------------|
-| `Vector3 GetPosition()` | Get world position. |
-| `void SetPosition(Vector3 position)` | Set world position. |
-| `Vector3 GetRotation()` | Get rotation in **radians** (X=pitch, Y=yaw, Z=roll). |
-| `void SetRotation(Vector3 rotation)` | Set rotation in **radians**. |
-| `Vector3 GetScale()` | Get scale. |
-| `void SetScale(Vector3 scale)` | Set scale. |
-| `Vector3 GetForward()` | Calculate forward direction vector from current rotation. |
-| `Vector3 GetRight()` | Calculate right direction vector. |
-| `Vector3 GetUp()` | Calculate up direction vector. |
+| `AudioPlayback.Play(Entity entity)` | Play `AudioSourceComponent` on the entity |
+| `AudioPlayback.Pause(Entity entity)` | Pause playback |
+| `AudioPlayback.Stop(Entity entity)` | Stop playback |
 
-**Important:** Rotation values are in **radians**, not degrees. To convert degrees to radians:
+Clip selection and source settings remain on `AudioSourceComponent` in the editor.
 
-```csharp
-float radians = MathF.PI / 180f * degrees;
-```
+## Serialized Data
 
-## Audio Control
-
-Audio playback is currently controlled through component properties in the editor (`PlayOnAwake`, `Loop`, `Volume`, etc.). Programmatic Play/Pause/Stop from scripts is not yet available as a public API.
-
-## Exposed Field Types
-
-Public fields and properties with public get/set of these types are automatically shown in the editor inspector:
-
-`int`, `float`, `double`, `bool`, `string`, `Vector2`, `Vector3`, `Vector4`
-
-**Example:**
-
-```csharp
-public class MyScript : ScriptableEntity
-{
-    public float speed = 5.0f;       // Editable in inspector
-    public bool isEnabled = true;    // Editable in inspector
-    public Vector3 offset;           // Editable in inspector
-    private float _timer;            // NOT shown (private)
-}
-```
+Script fields are **not** persisted in scene JSON. Put tunable values on `[SerializableComponent]` game components (`GameComponentTemplates` scaffolds new types). See [Getting Started](getting-started.md#data-and-the-inspector).
 
 ## Coming Soon
 
 - Coroutine support for time-delayed execution
-- Script-accessible audio playback API (Play/Pause/Stop)
 - Physics raycasting queries

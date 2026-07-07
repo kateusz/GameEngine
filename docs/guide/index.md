@@ -38,6 +38,6 @@ Choose a path based on what you want to do:
 
 - **New to the engine?** Start with the [Editor Setup Guide](editor/project-setup.md) to create your first project and get oriented in the editor UI.
 - **Want to write game scripts?** See [Scripting Getting Started](scripting/getting-started.md) for an introduction to the C# scripting API and hot-reload workflow.
-- **Need to understand the architecture?** Read the [ECS Overview](concepts/ecs-overview.md) for a deep dive into entities, components, and systems.
+- **Need to understand the architecture?** Read the [ECS Overview](concepts/ecs-overview.md) for entities, components, and systems, then [Game Loop](../architecture/game-loop.md) for application lifecycle and the frame tick.
 
 For a look at what is planned, see the [Roadmap](roadmap.md).

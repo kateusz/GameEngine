@@ -53,7 +53,7 @@ var player = FindEntity("Player");
 
 Components are added via the Properties panel. Select an entity, click "Add Component," and choose from the dropdown. Each entity can have at most one component of each type.
 
-The engine provides 13 built-in component types covering transforms, rendering, physics, audio, animation, scripting, and more. See the [Component Inspector](../editor/component-inspector.md) for the full reference.
+The engine provides 14 built-in component types covering transforms, rendering, lighting, physics, audio, scripting, and identification. See the [Component Inspector](../editor/component-inspector.md) for the full reference.
 
 ## Next Steps
 

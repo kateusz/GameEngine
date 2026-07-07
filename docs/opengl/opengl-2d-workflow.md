@@ -1,5 +1,7 @@
 # OpenGL 2D Rendering Workflow
 
+**File**: `Engine/Renderer/Graphics2D.cs` — implements `IGraphics2D`
+
 ## Overview
 
 The OpenGL 2D rendering system transforms game entities and sprites into pixels on screen through an efficient batched rendering pipeline.
@@ -43,7 +45,7 @@ Each frame follows a strict sequence: **BeginScene → Draw Calls → EndScene**
 - Clears all batch state (vertex counters, texture slots)
 
 **Draw Calls**:
-- Application code calls drawing methods (DrawQuad, DrawSprite, DrawLine)
+- Application code calls `DrawQuad`, `DrawLine`, or `DrawRect` on `IGraphics2D`
 - Each draw call adds vertices to the current batch
 - If batch limits are reached, a flush occurs automatically
 - New textures are assigned to available slots; duplicates reuse existing slots
@@ -82,7 +84,7 @@ sequenceDiagram
     Graphics->>Batch: Clear vertex buffers and counters
 
     loop For each entity
-        App->>Graphics: DrawQuad/DrawSprite(transform, texture, color)
+        App->>Graphics: DrawQuad(transform, texture, color)
         Graphics->>Batch: Add 4 vertices to buffer
         Graphics->>Batch: Check texture slot availability
 
@@ -156,7 +158,7 @@ sequenceDiagram
     Scene->>Graphics: BeginScene(camera)
 
     loop For each visible entity
-        Scene->>Graphics: DrawSprite(entity)
+        Scene->>Graphics: DrawQuad(...)
     end
 
     Scene->>Graphics: EndScene()
@@ -190,15 +192,16 @@ Each vertex includes an entity ID attribute for editor picking:
 
 ### Dynamic Batching Strategy
 
-**Batch Size Limits** (from `RenderingConstants`):
-- Maximum vertices per batch: 40,000
-- Maximum indices per batch: 60,000
-- Maximum texture slots: 16
+**Batch Size Limits** (from `RenderingConstants` / `Renderer2DData`):
 
-**Additional Constants**:
-- `DefaultTilingFactor`: 1.0f
-- `DefaultTileScale`: 1.0f
-- `TileLayerZSpacing`: 0.01f (Z-depth between tilemap layers)
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| DefaultMaxQuads | 10,000 | Quads per batch |
+| MaxVertices | 40,000 | DefaultMaxQuads × 4 |
+| MaxIndices | 60,000 | DefaultMaxQuads × 6 |
+| MaxTextureSlots | 16 | Sampler units in quad shader |
+| DefaultLineWidth | 1.0f | Line width passed to `IRendererAPI.SetLineWidth` |
+| MaxFramebufferSize | 8,192 | Max framebuffer dimension (px) |
 
 Automatic flushing is transparent to application code.
 
@@ -211,13 +214,13 @@ Quads without textures use the white texture in slot 0:
 
 ## OpenGL State Configuration
 
-**Blending**: Source alpha and one-minus-source-alpha for transparency
+**Blending**: Enabled at `IRendererAPI.Init()` — `SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`
 
-**Depth Testing**: Enabled for correct Z-ordering
+**Depth testing**: Enabled globally; **disabled only while drawing the quad batch** in `Flush()`, then re-enabled before line drawing
 
-**Shader Binding**: Quad shader for rectangles/sprites, line shader for wireframes
+**Shader binding**: `textureShader` for quads/sprites, `lineShader` for wireframes (`assets/shaders/OpenGL/`)
 
-**Vertex Array Objects**: Encapsulate buffer binding state for quads and lines
+**Vertex array objects**: Separate VAOs for quad and line vertex layouts
 
 ## Performance Characteristics
 
@@ -249,10 +252,8 @@ Geometry flows through multiple coordinate spaces:
 1. **Local Space**: Model-relative coordinates
 2. **World Space**: Scene position after transformation
 3. **View Space**: Camera-relative coordinates
-4. **Clip Space**: After projection matrix
-5. **Screen Space**: Final pixel coordinates
-
-**Platform Differences**: Matrix multiplication order differs between platforms; the engine detects and adjusts automatically.
+4. **Clip Space**: After view-projection matrix (`u_ViewProjection`)
+5. **Screen Space**: Final pixel coordinates after GPU rasterization
 
 ## Complete Frame Rendering Flow
 
@@ -263,7 +264,7 @@ flowchart TD
 
     BeginScene --> Loop{More Entities?}
 
-    Loop -->|Yes| DrawCall[DrawQuad/DrawSprite]
+    Loop -->|Yes| DrawCall[DrawQuad / DrawLine / DrawRect]
     DrawCall --> CheckBatch{Batch Full?}
 
     CheckBatch -->|No| AddVerts[Add Vertices to Batch]
@@ -360,29 +361,33 @@ The line rendering system supports debug visualization:
 
 ```mermaid
 sequenceDiagram
-    participant Scene as Scene
-    participant ECS as Entity System
+    participant Scene as SceneRenderPipeline
+    participant ECS as Context
     participant Graphics as Graphics2D
 
-    Scene->>Graphics: BeginScene(camera, transform)
-    Scene->>ECS: GetGroup([Transform, SpriteRenderer])
+    Scene->>Graphics: BeginScene(camera)
+    Scene->>ECS: View<SpriteRendererComponent, TransformComponent>()
 
-    loop For each entity in group
-        ECS->>Scene: Return entity
-        Scene->>ECS: GetComponent<Transform>()
-        Scene->>ECS: GetComponent<SpriteRenderer>()
-        Scene->>Graphics: DrawSprite(transform, sprite, entityId)
+    loop For each entity in view
+        ECS->>Scene: entity + components
+        Scene->>Graphics: DrawQuad(transform, texture, coords, tiling, color, entityId)
     end
 
     Scene->>Graphics: EndScene()
 ```
 
+`SceneRenderSystem` (priority 150) drives this path. `PhysicsDebugRenderSystem` (priority 151) issues a **separate** `BeginScene` / `DrawRect` / `EndScene` pass for collider outlines when debug drawing is enabled.
+
 ### Component-Based Rendering
 
-Entities with rendering components are automatically rendered:
-- **TransformComponent**: World position, rotation, scale
-- **SpriteRendererComponent**: Texture, color, tiling factor
-- **CameraComponent**: Marks the active camera
+Entities with rendering components are automatically rendered by `SceneRenderPipeline`:
+
+| Component | Role |
+|-----------|------|
+| `TransformComponent` | World position, rotation, scale via `GetTransform()` |
+| `SpriteRendererComponent` | `TexturePath`, `Color`, `TilingFactor` |
+| `SubTextureRendererComponent` | Atlas `TexturePath`, cell `Coords`, or explicit `TexCoords` |
+| `CameraComponent` | Marks primary camera; resolved by `PrimaryCameraSystem` (145) |
 
 ### Editor vs Runtime Rendering
 
@@ -401,6 +406,6 @@ The OpenGL 2D rendering workflow is a batching system that balances ease of use 
 - **Two separate batches**: Quads and lines are rendered independently with different shaders
 - **Camera-driven**: All rendering is relative to the active camera's view-projection matrix
 - **Deferred execution**: Draw calls accumulate data; actual GPU work happens during flush
-- **Resource ownership**: Graphics2D owns shaders and buffers; textures are owned by TextureFactory
+- **Resource ownership**: `Graphics2D` owns VAOs/VBOs; shaders come from `ShaderFactory`; textures from `TextureFactory`
 
 This architecture supports dynamic scenes with thousands of sprites while maintaining high frame rates.

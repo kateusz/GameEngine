@@ -1,5 +1,9 @@
 # Frame Buffers
 
+Off-screen render targets (FBOs) with multi-attachment support for editor viewports, entity picking, and render-to-texture workflows.
+
+---
+
 ## Overview
 
 **Purpose**: Frame buffers provide off-screen rendering targets that allow the engine to render scenes to textures instead of directly to the screen. This enables advanced rendering techniques like post-processing effects, editor viewports, and custom rendering pipelines.
@@ -16,6 +20,52 @@
 - **Render-to-Texture**: Instead of rendering directly to the screen, content is rendered to texture buffers that can be read, displayed, or processed
 - **Multiple Render Targets (MRT)**: A single frame buffer can have multiple color attachments, allowing shaders to output to multiple textures simultaneously
 - **Invalidation**: When frame buffer properties change (like size), the underlying GPU resources must be recreated through an invalidation process
+
+### Key Types
+
+| Type | File |
+|------|------|
+| `IFrameBuffer` | `Engine/Renderer/Buffers/FrameBuffer/IFrameBuffer.cs` |
+| `IFrameBufferFactory` | `Engine/Renderer/Buffers/FrameBuffer/IFrameBufferFactory.cs` |
+| `FrameBufferSpecification` | `Engine/Renderer/Buffers/FrameBuffer/FrameBufferSpecification.cs` |
+| `FrameBufferTextureFormat` | `Engine/Renderer/Buffers/FrameBuffer/FramebufferTextureFormat.cs` |
+| `OpenGLFrameBuffer` (SilkNet/OpenGL) | `Engine/Platform/OpenGL/Buffers/OpenGLFrameBuffer.cs` |
+
+### `IFrameBuffer` API
+
+| Method | Purpose |
+|--------|---------|
+| `Bind()` / `Unbind()` | Set or restore the active render target (saves/restores viewport on bind) |
+| `GetColorAttachmentRendererId()` | OpenGL texture ID of color attachment 0 (0 if none) |
+| `GetSpecification()` | Current width, height, samples, and attachment list |
+| `Resize(uint width, uint height)` | Recreate GPU resources at new size (clamped to 8192×8192; no-op on 0 or out of range) |
+| `ReadPixel(int attachmentIndex, int x, int y)` | Read one pixel from a color attachment (`RED_INTEGER` → entity ID); returns `-1` on invalid index or coordinates |
+| `ClearAttachment(int attachmentIndex, int value)` | `glClearBuffer` on a color attachment (entity ID buffer cleared to `-1` each frame) |
+
+### Texture Formats
+
+| `FrameBufferTextureFormat` | OpenGL internal format | Role |
+|---------------------------|------------------------|------|
+| `RGBA8` | `GL_RGBA8` | Standard 8-bit color |
+| `RGBA16F` | `GL_RGBA16F` | HDR half-float color |
+| `RED_INTEGER` | `GL_R32I` | 32-bit integer per pixel (entity picking) |
+| `Depth` / `DEPTH24STENCIL8` | `GL_DEPTH24_STENCIL8` | Combined depth/stencil |
+
+Color attachments use nearest filtering. Depth uses linear filtering and clamp-to-edge wrapping. At most **4** color attachments per framebuffer.
+
+### Default Factory Specification
+
+**File**: `Engine/Renderer/Buffers/FrameBuffer/FrameBufferFactory.cs`
+
+`IFrameBufferFactory.Create()` (no arguments) builds a framebuffer at `DisplayConfig.DefaultEditorViewportWidth` × `DisplayConfig.DefaultEditorViewportHeight` (**1280×720**) with:
+
+| Index | Format | Purpose |
+|-------|--------|---------|
+| 0 | `RGBA16F` | Scene color — displayed in the ImGui viewport |
+| 1 | `RED_INTEGER` | Entity ID buffer for mouse picking |
+| 2 | `Depth` | Depth testing |
+
+Custom specs are created via `Create(FrameBufferSpecification specification)`. The factory selects `OpenGLFrameBuffer` when `IRendererApiConfig.Type` is `ApiType.SilkNet`.
 
 ## Architecture Flow
 
@@ -81,9 +131,9 @@ sequenceDiagram
 
 ### 1. Specification & Creation
 
-Frame buffer specifications define the structure before creation, including dimensions (up to 8192x8192), attachment types and formats, multi-sampling level, and whether it targets the swap chain.
+`FrameBufferSpecification` defines width, height, optional `Samples` (multisample depth path when > 1), `SwapChainTarget`, and `AttachmentsSpec` before creation. Dimensions are clamped to **8192×8192** in the OpenGL implementation.
 
-Common attachment formats include RGBA8 for standard color output, RED_INTEGER for entity ID encoding (mouse picking), and DEPTH24STENCIL8 for combined depth and stencil buffers.
+Supported color formats: `RGBA8`, `RGBA16F`, `RED_INTEGER`. Depth/stencil uses `Depth` (`DEPTH24STENCIL8`). Depth attachments are separated from color attachments during setup — depth formats are not counted toward the four color-attachment limit.
 
 ### 2. Binding & Rendering
 
@@ -93,10 +143,10 @@ This pattern enables rendering scenes to textures for display in editor viewport
 
 ### 3. Attachment Access
 
-Frame buffers expose their attachments for different purposes:
-- **Color Attachment 0**: Primary visual output, typically displayed in viewport
-- **Color Attachment 1**: Entity ID buffer for pixel-perfect mouse picking
-- **Depth Attachment**: Depth information for 3D rendering and effects
+With the default factory spec, attachments are used as follows:
+- **Color attachment 0** (`RGBA16F`): Primary visual output displayed in the editor viewport
+- **Color attachment 1** (`RED_INTEGER`): Entity ID buffer for pixel-perfect mouse picking (`ReadPixel(1, x, y)`)
+- **Depth attachment** (`DEPTH24STENCIL8`): Depth testing for 3D and layered 2D draws
 
 ### 4. Dynamic Resizing
 
@@ -117,7 +167,7 @@ graph TB
     end
 
     subgraph "Platform Layer"
-        SilkNetFB[SilkNet<br/>FrameBuffer]
+        OpenGLFB[OpenGLFrameBuffer<br/>SilkNet/OpenGL]
         OtherFB[Other Platform<br/>Implementations]
     end
 
@@ -135,10 +185,10 @@ graph TB
 
     FBSpec-->FBFactory
     FBFactory-->|Creates|IFB
-    IFB-.Implements.->SilkNetFB
+    IFB-.Implements.->OpenGLFB
     IFB-.Implements.->OtherFB
 
-    SilkNetFB-->FBO
+    OpenGLFB-->FBO
     FBO-->ColorTex
     FBO-->DepthTex
 
@@ -149,7 +199,7 @@ graph TB
     style FBSpec fill:#e1f5ff
     style IFB fill:#e1f5ff
     style FBFactory fill:#e1f5ff
-    style SilkNetFB fill:#fff4e1
+    style OpenGLFB fill:#fff4e1
     style Editor fill:#f0ffe1
     style Renderer fill:#f0ffe1
     style Picker fill:#f0ffe1
@@ -203,13 +253,13 @@ Scene rendering systems integrate with frame buffers through the camera system (
 
 ### Multi-Target Rendering Strategy
 
-Frame buffers coordinate multiple render targets: Attachment 0 (RGBA8) for visual output with color information, Attachment 1 (RED_INTEGER) for entity ID encoded as integer value, and Depth/Stencil for depth testing and stencil operations. Shaders output to multiple attachments simultaneously by declaring multiple output variables that route to corresponding attachments.
+The default editor framebuffer coordinates three render targets: attachment 0 (`RGBA16F`) for visual output, attachment 1 (`RED_INTEGER`) for per-pixel entity IDs, and a depth/stencil buffer for depth testing. Shaders declare multiple fragment outputs (`layout(location = N)`) that map to color attachments 0–3.
 
 ## Common Usage Patterns
 
 ### Editor Viewport Pattern
 
-The editor creates a frame buffer with viewport panel dimensions containing RGBA8 for visual output, RED_INTEGER for entity picking, and DEPTH24STENCIL8 for depth. Each frame follows the bind-clear-render-unbind cycle, displays the color attachment in UI, reads entity ID on mouse click, and invalidates/recreates on viewport resize.
+The editor creates a frame buffer (via `IFrameBufferFactory.Create()`) at viewport dimensions with `RGBA16F`, `RED_INTEGER`, and `Depth` attachments. Each frame: bind → `ClearAttachment(1, -1)` on the entity ID buffer → render scene → unbind → display color attachment 0 in ImGui. Mouse clicks call `ReadPixel(1, x, y)`. Viewport resize calls `Resize()` to invalidate and recreate GPU resources.
 
 ### Post-Processing Pattern
 
@@ -223,7 +273,7 @@ A depth-only frame buffer at shadow map resolution (e.g., 2048x2048) with no col
 
 ### Memory Usage
 
-Frame buffers consume GPU memory proportional to resolution, attachment count, and pixel format precision. A typical editor frame buffer at 1920x1080 with RGBA8 color, R32I entity ID, and DEPTH24STENCIL8 uses approximately 25 MB total.
+Frame buffers consume GPU memory proportional to resolution, attachment count, and pixel format precision. A default-spec framebuffer at 1920×1080 (`RGBA16F` + `RED_INTEGER` + `DEPTH24STENCIL8`) uses roughly 32 MB (8 + 4 + 4 bytes per pixel across the three attachments).
 
 ### Invalidation Cost
 
@@ -237,9 +287,10 @@ Frame buffer binding/unbinding has minimal overhead - just a single GPU state ch
 
 ### Validation Checks
 
-- **Size Limits**: Maximum frame buffer size enforced (8192x8192) to prevent GPU memory exhaustion
-- **Completeness Verification**: Validates attachment configuration, format compatibility, and throws exception if invalid
-- **Bounds Checking**: Pixel read operations validate coordinates to prevent out-of-bounds GPU memory access
+- **Size limits**: `OpenGLFrameBuffer` rejects resize to 0 or above `MaxFramebufferSize` (8192) — logs and no-ops
+- **Attachment count**: More than four color attachments throws `InvalidOperationException`
+- **Completeness**: `glCheckFramebufferStatus` must return `GL_FRAMEBUFFER_COMPLETE` after creation or `Invalidate()` throws
+- **Bounds checking**: `ReadPixel` returns `-1` for out-of-range attachment index or pixel coordinates
 
 ### Common Issues
 
@@ -264,4 +315,4 @@ Abstraction enables platform independence (same interface for OpenGL, Vulkan, Di
 
 ## Future Enhancements
 
-Potential improvements include multi-sampling support for anti-aliasing, automatic mipmap generation, cube map frame buffers for environment mapping, layered rendering for geometry shader techniques, asynchronous pixel reading via PBOs to avoid GPU stalls, and HDR format support (RGBA16F, RGBA32F) for physically-based rendering.
+`FrameBufferSpecification.Samples` and multisampled depth attachment paths exist in `OpenGLFrameBuffer`, but color attachments are not multisampled yet. Other potential improvements: automatic mipmap generation, cube-map framebuffers, layered rendering, asynchronous pixel readback via PBOs, and additional float formats (e.g. `RGBA32F`).

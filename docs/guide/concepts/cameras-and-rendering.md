@@ -43,12 +43,21 @@ For 2D visuals, the engine provides two components:
 
 ## 3D Rendering
 
-For 3D visuals, combine two components:
+For 3D visuals, add these components to an entity:
 
-- **MeshComponent** -- references a 3D model file (OBJ format). Set `MeshPath` to the model file.
-- **ModelRendererComponent** -- controls rendering properties: `Color` tint, `OverrideTexturePath` for custom textures, shadow settings.
+- **ModelRendererComponent** — `Color` tint for the drawn cube (default white)
+- **TransformComponent** — position, rotation, and scale (the engine draws a 1×1×1 unit cube scaled by transform)
 
-The engine uses Phong lighting (ambient, diffuse, specular) for 3D models.
+Optional scene lighting components (one of each is enough; the pipeline uses the first match):
+
+- **AmbientLightComponent** — `Color` and `Strength` for base fill (default strength `0.1`)
+- **DirectionalLightComponent** — `Direction` and `Color` for diffuse shading
+
+Use **Perspective** projection on the primary camera for depth. Without a `DirectionalLightComponent`, cubes only receive ambient light.
+
+Editor property reference: [AmbientLightComponent](../editor/component-inspector.md#ambientlightcomponent), [DirectionalLightComponent](../editor/component-inspector.md#directionallightcomponent), [ModelRendererComponent](../editor/component-inspector.md#modelrenderercomponent)
+
+See [OpenGL 3D Rendering Workflow](../../opengl/opengl-3d-workflow.md) for shader and pipeline details.
 
 ## Render Order
 

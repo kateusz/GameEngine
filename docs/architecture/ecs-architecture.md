@@ -1,6 +1,6 @@
 # ECS Architecture
 
-The engine uses a custom Entity-Component-System framework. The `ECS/` project provides the pure framework (no engine dependencies), while `Engine/Scene/` implements game-specific components and systems.
+The engine uses a custom Entity-Component-System framework. The `ECS/` project provides the pure framework (no engine dependencies). Built-in game components live in the `SceneComponents/` project; system implementations that query them live in `Engine/Scene/Systems/`.
 
 ---
 
@@ -16,9 +16,12 @@ graph TB
         SystemManager["SystemManager<br/><i>Priority-sorted execution</i>"]
     end
 
-    subgraph "Engine/Scene/ (Game Implementation)"
-        Components["14 Components<br/><i>Transform, Sprite, Physics, etc.</i>"]
-        Systems["10 Systems<br/><i>Physics, Scripting, Rendering, etc.</i>"]
+    subgraph "SceneComponents/ (Built-in Components)"
+        Components["14 Components<br/><i>Transform, Sprite, Physics, Lights, etc.</i>"]
+    end
+
+    subgraph "Engine/Scene/ (Game Systems)"
+        Systems["Systems<br/><i>Physics, Scripting, Rendering, etc.</i>"]
         Scene["Scene<br/><i>Owns Context + SystemManager</i>"]
         SceneSystemRegistry["SceneSystemRegistry<br/><i>Singleton system registration</i>"]
     end
@@ -52,8 +55,10 @@ classDiagram
         +AddComponent~T~()
         +AddComponentDynamic(IComponent)
         +RemoveComponent~T~()
+        +RemoveComponent(Type)
         +GetComponent~T~() T
         +TryGetComponent~T~(out T) bool
+        +TryGetComponent(Type, out IComponent) bool
         +HasComponent~T~() bool
         +HasComponents(Type[]) bool
         +GetAllComponents() IEnumerable
@@ -64,36 +69,45 @@ classDiagram
 - **Storage**: `Dictionary<Type, IComponent>` — one component per type per entity
 - **Equality**: Based solely on `Id` — stable in collections regardless of name changes
 - **Validation**: `AddComponent` throws if a component of that type already exists
+- **Hooks**: Internal `ComponentAdded` / `ComponentRemoved` callbacks wire entities into `Context` component indexing on register
 - **Cloning**: `DuplicateEntity()` in Scene calls `Clone()` on every component
 
 ---
 
 ## Components
 
-All components implement `IComponent` (defined in `ECS/Component.cs`), which requires a `Clone()` method for entity duplication.
+All components implement `IComponent` (defined in `ECS/Component.cs`), which requires a `Clone()` method for entity duplication. Custom script components may implement `IGameComponent` (`ECS/IGameComponent.cs`), a marker interface extending `IComponent`.
 
 **Design rule**: Components are data-only. Matrix calculations (e.g., `TransformComponent.GetTransform()` with dirty-flag caching) are allowed, but game logic belongs in Systems.
+
+Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponentAttribute.cs`) to control persisted component type names.
 
 ### Component Types
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| **TransformComponent** | `Engine/Scene/Components/` | Position, rotation, scale with cached transform matrix (dirty flag) |
-| **SpriteRendererComponent** | | Color, texture path, tiling factor for 2D sprite rendering |
-| **SubTextureRendererComponent** | | Sprite atlas region: coords, cell size, UV coordinates |
-| **CameraComponent** | | Wraps SceneCamera (orthographic/perspective), `Primary` flag |
-| **RigidBody2DComponent** | | Box2D body type (Static/Dynamic/Kinematic), `RuntimeBody` (runtime-only) |
-| **BoxCollider2DComponent** | | Collision shape: size, offset, density, friction, restitution, trigger flag |
-| **AnimationComponent** | | Animation state: asset path, current clip, frame tracking, playback speed |
-| **AudioSourceComponent** | | Audio clip path, volume, pitch, loop, 3D spatial settings |
-| **AudioListenerComponent** | | Marks entity as the audio listener (typically on camera entity) |
-| **MeshComponent** | | 3D mesh reference by path |
-| **ModelRendererComponent** | | 3D rendering settings: color, override texture, shadow flags |
-| **NativeScriptComponent** | | Script type name (persisted) + `ScriptableEntity` instance (runtime-only) |
-| **TagComponent** | | String tag for entity identification |
-| **IdComponent** | | Unique long ID for serialization cross-references |
+| **IdComponent** | `SceneComponents/IDComponent.cs` | Unique long ID for serialization cross-references |
+| **TagComponent** | `SceneComponents/TagComponent.cs` | String tag for entity identification |
+| **TransformComponent** | `SceneComponents/TransformComponent.cs` | Position, rotation, scale with cached transform matrix (dirty flag) |
+| **SpriteRendererComponent** | `SceneComponents/Rendering/SpriteRendererComponent.cs` | Color, texture path, tiling factor for 2D sprite rendering |
+| **SubTextureRendererComponent** | `SceneComponents/Rendering/SubTextureRendererComponent.cs` | Sprite atlas region: coords, cell size, optional precomputed UVs |
+| **ModelRendererComponent** | `SceneComponents/Rendering/ModelRendererComponent.cs` | Lit unit-cube color for 3D rendering |
+| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic/perspective projection settings, `Primary` flag |
+| **AmbientLightComponent** | `SceneComponents/Lighting/AmbientLightComponent.cs` | Scene-wide ambient light color and strength |
+| **DirectionalLightComponent** | `SceneComponents/Lighting/DirectionalLightComponent.cs` | Directional light direction and color |
+| **RigidBody2DComponent** | `SceneComponents/Physics/RigidBody2DComponent.cs` | Body type (Static/Dynamic/Kinematic), velocity, gravity scale |
+| **BoxCollider2DComponent** | `SceneComponents/Physics/BoxCollider2DComponent.cs` | Collision shape: size, offset, density, friction, restitution, trigger flag |
+| **NativeScriptComponent** | `SceneComponents/NativeScriptComponent.cs` | Persisted script type name (`ScriptTypeName`) for runtime instantiation |
+| **AudioSourceComponent** | `SceneComponents/Audio/AudioSourceComponent.cs` | Audio clip path, volume, pitch, loop, 3D spatial settings, effects |
+| **AudioListenerComponent** | `SceneComponents/Audio/AudioListenerComponent.cs` | Active flag marking the scene audio listener |
 
-Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `RigidBody2DComponent.RuntimeBody`, `NativeScriptComponent.ScriptableEntity`, `AnimationComponent.IsPlaying`).
+Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `CameraComponent.CameraViewTransform`, `BoxCollider2DComponent.IsDirty`).
+
+### ComponentAccessor
+
+**File**: `ECS/IComponentAccessor.cs`
+
+`IComponentAccessor` / `ComponentAccessor` provide a thin proxy for reading and mutating components on a bound `Entity`. Used where code needs component access without holding the entity directly (e.g., script glue).
 
 ---
 
@@ -101,43 +115,54 @@ Components with runtime-only fields use `[JsonIgnore]` to exclude them from seri
 
 **File**: `ECS/Context.cs`
 
-The Context is a thread-safe entity registry that stores entities and provides single-component-type queries.
+The Context is a thread-safe entity registry with a per-component-type index for efficient queries.
 
 ```mermaid
 graph LR
     Context -->|"Register(entity)"| Storage["Dictionary&lt;int, Entity&gt;<br/>+ List&lt;Entity&gt;"]
-    Context -->|"View&lt;T&gt;()"| Snapshot["Thread-safe snapshot"]
+    Context -->|"ComponentAdded/Removed"| Index["Dictionary&lt;Type, HashSet&lt;Entity&gt;&gt;"]
+    Context -->|"View&lt;T&gt;()"| Snapshot["Indexed snapshot"]
     Snapshot -->|yields| Tuples["(Entity, T) tuples"]
 ```
 
-### Storage
+### Storage and Lookup
 
 - `Dictionary<int, Entity>` — O(1) lookup by ID
-- `List<Entity>` — efficient iteration
+- `List<Entity>` — efficient iteration in insertion order
+- `Dictionary<Type, HashSet<Entity>>` — component-type index maintained via entity hooks
 - `Lock` object — thread-safe access for all operations
+- `Register`, `Remove`, `Clear`, `Contains`, `GetById`, `GetByName`, `Entities`
 
 ### View Queries
 
 ```csharp
 public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>()
     where TComponent : IComponent
+
+public IEnumerable<(Entity Entity, T1 Component1, T2 Component2)> View<T1, T2>()
+    where T1 : IComponent where T2 : IComponent
 ```
 
-- **Single-component filtering** — no archetype/signature queries
-- **Snapshot isolation** — takes a thread-safe copy of the entity list before iterating
+- **Indexed filtering** — `View<T>()` iterates only entities with `T` (O(matches), not O(all entities))
+- **Two-component queries** — `View<T1, T2>()` iterates the smaller of the two component indices
+- **Snapshot isolation** — copies the matching entity set under lock before yielding
 - **Lazy evaluation** — returns `IEnumerable` for deferred execution
 - **Returns references** — modifications to yielded components affect the originals
 
-Systems that need multiple component types issue separate `View<T>()` calls and cross-reference entities:
+Systems can use either multi-component views or separate `View<T>()` calls with `TryGetComponent`:
 
 ```csharp
-// SpriteRenderingSystem needs both Transform and SpriteRenderer
+// Option A: indexed two-component view
+foreach (var (entity, transform, sprite) in context.View<TransformComponent, SpriteRendererComponent>())
+{
+    renderer.DrawSprite(transform, sprite);
+}
+
+// Option B: single view + TryGetComponent
 foreach (var (entity, sprite) in context.View<SpriteRendererComponent>())
 {
     if (entity.TryGetComponent<TransformComponent>(out var transform))
-    {
         renderer.DrawSprite(transform, sprite);
-    }
 }
 ```
 
@@ -158,6 +183,8 @@ public interface ISystem
     void OnShutdown();                       // Called on scene stop
 }
 ```
+
+`IGameSystem` (`ECS/Systems/IGameSystem.cs`) is a marker interface extending `ISystem` for custom script-defined systems registered via `[Register]`.
 
 ### SystemManager
 
@@ -201,7 +228,7 @@ sequenceDiagram
 
 | Lifetime | Systems | Managed By |
 |----------|---------|------------|
-| **Shared (singleton)** | ScriptUpdate, PrimaryCamera, SpriteRendering, SubTextureRendering, ModelRendering, PhysicsDebugRender, Audio, Animation | `SceneSystemRegistry` — registered with `isShared: true`, survive scene changes |
+| **Shared (singleton)** | ScriptUpdate, PrimaryCamera, SpriteRendering, SubTextureRendering, ModelRendering, PhysicsDebugRender, Audio | `SceneSystemRegistry` — registered with `isShared: true`, survive scene changes |
 | **Per-scene** | PhysicsSimulation | Created fresh per scene with its own Box2D `World`, disposed on scene unload |
 
 `SceneSystemRegistry` (`Engine/Scene/SceneSystemRegistry.cs`) populates the SystemManager with all shared singleton systems when a new scene initializes.
@@ -214,14 +241,13 @@ sequenceDiagram
 | 110 | ScriptUpdateSystem | `View<NativeScriptComponent>()`, script OnCreate/OnUpdate via `NativeScriptIteration` |
 | 120 | AudioSystem | Audio listener position, source playback |
 | 130 | *(TileMapRenderSystem)* | *(Reserved, not yet implemented)* |
-| 140 | AnimationSystem | Advances animation frames, updates SubTexture UV coords |
 | 145 | PrimaryCameraSystem | Finds entity with `CameraComponent { Primary = true }`, caches for renderers |
 | 150 | SpriteRenderingSystem | Renders all SpriteRendererComponent entities |
 | 160 | SubTextureRenderingSystem | Renders all SubTextureRendererComponent entities |
-| 170 | ModelRenderingSystem | Renders all MeshComponent + ModelRendererComponent entities |
+| 170 | ModelRenderingSystem | Renders all ModelRendererComponent entities |
 | 180 | PhysicsDebugRenderSystem | Wireframe collider visualization (color-coded by body type) |
 
-The ordering ensures: **physics runs first** → **scripts see updated positions** → **animation updates visuals** → **camera is resolved** → **rendering reads final state**.
+The ordering ensures: **physics runs first** → **scripts see updated positions** → **camera is resolved** → **rendering reads final state**.
 
 ---
 
@@ -232,15 +258,13 @@ graph LR
     Physics["PhysicsSimulation<br/>(100)"]
     Scripts["ScriptUpdate<br/>(110)"]
     Audio["Audio<br/>(120)"]
-    Animation["Animation<br/>(140)"]
     Camera["PrimaryCamera<br/>(145)"]
     Render["Sprite/SubTexture/Model<br/>Rendering (150-170)"]
     Debug["PhysicsDebug<br/>(180)"]
 
     Physics -->|"updates TransformComponent"| Scripts
     Scripts -->|"may modify any component"| Audio
-    Audio --> Animation
-    Animation -->|"updates SubTexture UVs"| Camera
+    Audio --> Camera
     Camera -->|"provides camera + transform"| Render
     Render --> Debug
 ```
@@ -248,5 +272,5 @@ graph LR
 Each system reads/writes components on entities via the shared `Context`. Systems communicate through three mechanisms:
 
 1. **Shared component state** (primary) — systems write components that downstream systems read in the same frame, ordered by priority
-2. **EventBus** — global pub/sub for decoupled notifications (e.g., `AnimationCompleteEvent`, `AnimationFrameEvent`)
+2. **EventBus** — global pub/sub for decoupled notifications across engine subsystems
 3. **Shared service interfaces** — DI-injected services like `IPrimaryCameraProvider` allow systems to expose computed state without direct coupling

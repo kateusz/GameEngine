@@ -90,6 +90,50 @@ See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md)
 
 ---
 
+## AmbientLightComponent
+
+Provides scene-wide fill lighting for 3D cube rendering. The renderer uses the **first** `AmbientLightComponent` found in the scene each frame.
+
+**Add in editor:** Properties panel → **Add Component** → **Ambient Light**
+
+**File**: `Editor/ComponentEditors/AmbientLightComponentEditor.cs`
+
+| Property | Type | Default | Editor control | Description |
+|---|---|---|---|---|
+| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Ambient light color multiplied into the final shaded result |
+| `Strength` | float | 0.1 | Float field | Intensity of ambient fill. Higher values brighten shadowed areas |
+
+**When to use:** Add to a dedicated entity (e.g. "Ambient Light") in any 3D scene. Tune `Strength` for base visibility; pair with `DirectionalLightComponent` for readable shading on `ModelRendererComponent` cubes.
+
+**Runtime behavior:** `SceneRenderPipeline` uploads `Color` and `Strength` to the `flatColorShader` ambient uniforms. If no ambient light entity exists, defaults are white color at strength `0.1`.
+
+See also: [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [DirectionalLightComponent](#directionallightcomponent)
+
+---
+
+## DirectionalLightComponent
+
+Provides a single directional diffuse light for 3D cube rendering (like sunlight). The renderer uses the **first** `DirectionalLightComponent` found in the scene each frame.
+
+**Add in editor:** Properties panel → **Add Component** → **Directional Light**
+
+**File**: `Editor/ComponentEditors/DirectionalLightComponentEditor.cs`
+
+| Property | Type | Default | Editor control | Description |
+|---|---|---|---|---|
+| `Direction` | Vector3 | (0, -1, 0) | XYZ vector control (axis-colored) | World-space direction the light travels **from**. Does not need to be normalized — the pipeline normalizes it at render time |
+| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Diffuse light color. Set to non-zero RGB or cubes appear flat/black aside from ambient |
+
+**When to use:** Add to a dedicated entity (e.g. "Directional Light") in any 3D scene with `ModelRendererComponent` entities. Adjust `Direction` to change highlight angle; `(0, -1, 0)` shines from above.
+
+**Runtime behavior:** `SceneRenderPipeline` uploads normalized direction and `Color` to `u_LightDirection` / `u_LightColor`. If no directional light exists, diffuse contribution is zero — cubes only show ambient fill.
+
+**Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent` cube.
+
+See also: [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [AmbientLightComponent](#ambientlightcomponent)
+
+---
+
 ## RigidBody2DComponent
 
 Registers the entity with the 2D physics simulation. The physics system reads this component each frame to apply forces, velocity, and collision response.
@@ -209,30 +253,21 @@ See also: [Animation Timeline](animation-timeline.md)
 
 ---
 
-## MeshComponent
-
-Holds a reference to a 3D mesh asset. The component stores the asset path for serialization; the mesh resource itself is loaded at runtime. Used together with ModelRendererComponent.
-
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `MeshPath` | string | — | Path to the model file. OBJ format is supported. |
-
-**When to use:** Any entity that requires a 3D mesh. Pair with ModelRendererComponent for full 3D rendering with lighting.
-
----
-
 ## ModelRendererComponent
 
-Renders the mesh referenced by MeshComponent using Phong shading and supports shadow casting and receiving.
+Renders a lit unit cube at the entity's transform. The engine uses one shared cube mesh for all `ModelRendererComponent` entities — there is no per-entity model file.
 
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Tint color applied to the model. White means no tint. |
-| `OverrideTexturePath` | string | — | Optional texture that replaces the model's embedded material texture. |
-| `CastShadows` | bool | true | Whether this model contributes to shadow maps. |
-| `ReceiveShadows` | bool | true | Whether this model displays shadows cast by other objects. |
+**Add in editor:** Properties panel → **Add Component** → **Model Renderer** (adds `TransformComponent` automatically if missing)
 
-**When to use:** Any 3D visual object in the scene. Requires a MeshComponent on the same entity. Use `OverrideTexturePath` to apply a custom texture without modifying the source model file.
+**File**: `Editor/ComponentEditors/Rendering/ModelRendererComponentEditor.cs`
+
+| Property | Type | Default | Editor control | Description |
+|---|---|---|---|---|
+| `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Color field | Albedo tint for the cube. White means no tint |
+
+**When to use:** Any 3D placeholder or blockout geometry. Requires `TransformComponent` for position, rotation, and scale. Add `AmbientLightComponent` and `DirectionalLightComponent` entities to the scene for shading.
+
+See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md)
 
 ---
 

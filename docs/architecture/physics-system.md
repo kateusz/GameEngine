@@ -1,101 +1,151 @@
 # Physics System
 
-2D physics via Box2D (Box2D.NetStandard). Each scene owns its own Box2D `World` with a fixed timestep accumulator. Runs at priority 100 (first system to execute), ensuring scripts (110) and rendering (150+) see updated positions.
+2D physics via a platform-abstracted `IPhysicsWorld2D` API (Box2D backend in `Engine/Platform/Box2D/`). Each scene owns its own physics world, body store, and contact queue. `PhysicsSimulationSystem` runs at priority 100 so scripts (110) and rendering (150+) see updated transforms.
 
-## C4 Level 3 -- Component Diagram
+---
+
+## C4 Level 3 — Component Diagram
 
 ```mermaid
 graph TB
-    subgraph "Per-Scene (created fresh for each scene)"
+    subgraph "Per-Scene (SceneSystemsFactory)"
         PSS[PhysicsSimulationSystem<br/>Priority 100]
-        BW[Box2D World<br/>Gravity: 0, -9.8]
-        SCL[SceneContactListener<br/>ContactListener]
+        PDR[PhysicsDebugRenderSystem<br/>Priority 151]
+        PW[IPhysicsWorld2D<br/>Box2DPhysicsWorld2D]
+        BS[PhysicsRuntimeBodyStore]
+        CQ[PhysicsContactQueue]
+        SCL[SceneContactListener]
+        CLA[Box2DContactListenerAdapter]
     end
 
-    subgraph "Shared Components (on entities)"
-        RB[RigidBody2DComponent<br/>BodyType, FixedRotation, RuntimeBody]
-        BC[BoxCollider2DComponent<br/>Size, Offset, Density, Friction,<br/>Restitution, IsTrigger, IsDirty]
-        TC[TransformComponent<br/>Translation, Rotation, Scale]
+    subgraph "ECS Components"
+        RB[RigidBody2DComponent<br/>BodyType, FixedRotation,<br/>GravityScale, Velocity]
+        BC[BoxCollider2DComponent<br/>Size, Offset, Density,<br/>Friction, Restitution, IsTrigger]
+        TC[TransformComponent]
+        NSC[NativeScriptComponent]
     end
 
     subgraph "Script Layer"
-        NSC[NativeScriptComponent<br/>ScriptableEntity]
+        SRS[ScriptRuntimeStore]
+        SE[ScriptableEntity]
     end
 
-    PSS -->|"Step()"| BW
-    BW -->|collision events| SCL
-    SCL -->|"OnTriggerEnter/Exit<br/>OnCollisionBegin/End"| NSC
-    PSS -->|"read body position/angle"| RB
+    PSS -->|"Step()"| PW
+    PW --> CLA
+    CLA --> SCL
+    SCL -->|"Enqueue"| CQ
+    SCL -->|"OnTrigger*/OnCollision*"| SRS
+    SRS --> SE
+    PSS <-->|"entityId ↔ IPhysicsBody2D"| BS
+    PSS -->|"read/write position, angle, velocity"| RB
     PSS -->|"write X, Y, Rotation.Z"| TC
-    PSS -->|"read Density, Friction, Restitution"| BC
-    BW -->|"owns bodies referenced by"| RB
+    PSS -->|"fixture material"| BC
+    PDR --> BS
 ```
 
-## Components
+---
+
+## Platform Abstraction
+
+The engine core depends on interfaces in `Engine/Physics/`; Box2D types stay in `Engine/Platform/Box2D/`.
+
+| Type | File | Role |
+|---|---|---|
+| `IPhysicsWorld2D` | `Engine/Physics/IPhysicsWorld2D.cs` | `Step`, `CreateBody`, `DestroyBody`, `SetContactListener`, `IDisposable` |
+| `IPhysicsBody2D` | `Engine/Physics/IPhysicsBody2D.cs` | Position, angle, velocity, fixture creation/material updates |
+| `IPhysicsContactListener` | `Engine/Physics/IPhysicsContactListener.cs` | `OnContactBegin` / `OnContactEnd` with `isTrigger` flag |
+| `IPhysicsWorld2DFactory` | `Engine/Physics/IPhysicsWorld2DFactory.cs` | Creates backend world for a gravity vector |
+| `PhysicsWorld2DFactory` | `Engine/Physics/PhysicsWorld2DFactory.cs` | Selects backend from `IPhysicsBackendConfig` (currently `Box2D` only) |
+| `Box2DPhysicsWorld2D` | `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs` | Wraps Box2D `World` |
+| `Box2DPhysicsBody2D` | `Engine/Platform/Box2D/Box2DPhysicsBody2D.cs` | Wraps Box2D `Body`; stores `Entity` on wrapper |
+| `Box2DContactListenerAdapter` | `Engine/Platform/Box2D/Box2DContactListenerAdapter.cs` | Bridges Box2D `ContactListener` to `IPhysicsContactListener` |
+
+Body and fixture creation use value-type defs:
+
+| Struct | File | Fields |
+|---|---|---|
+| `PhysicsBodyDef` | `Engine/Physics/PhysicsBodyDef.cs` | `Position`, `Angle`, `MotionType`, `FixedRotation`, `GravityScale` |
+| `PhysicsBoxFixtureDef` | `Engine/Physics/PhysicsBoxFixtureDef.cs` | `HalfWidth`, `HalfHeight`, `CenterOffset`, `Density`, `Friction`, `Restitution`, `IsSensor` |
+| `PhysicsBodyMotionType` | `Engine/Physics/PhysicsBodyMotionType.cs` | `Static`, `Dynamic`, `Kinematic` |
+
+Dynamic bodies are created with `bullet = true` in the Box2D backend to reduce tunneling.
+
+---
+
+## ECS Components
+
+Physics systems read `RigidBody2DComponent`, `BoxCollider2DComponent`, and `TransformComponent`. Component types live under `SceneComponents/Physics/`.
+
+Properties referenced by `PhysicsSimulationSystem`:
 
 ### RigidBody2DComponent
 
-**File**: `Engine/Scene/Components/RigidBody2DComponent.cs`
-
-| Property | Type | Notes |
-|---|---|---|
-| `BodyType` | `RigidBodyType` enum | Static, Dynamic, Kinematic |
-| `FixedRotation` | `bool` | Prevents angular rotation |
-| `RuntimeBody` | `Body` | Box2D body instance. `[JsonIgnore]` -- created at runtime during `OnRuntimeStart` |
-
-`Clone()` copies `BodyType` and `FixedRotation` only. `RuntimeBody` is set to `null` (owned by the physics world, not the component).
+| Property | Used for |
+|---|---|
+| `BodyType` | Maps to `PhysicsBodyMotionType` at body creation |
+| `FixedRotation` | Passed to `PhysicsBodyDef` |
+| `GravityScale` | Passed to `PhysicsBodyDef` |
+| `Velocity` | Written to body before each step (Dynamic/Kinematic); read back after sync |
 
 ### BoxCollider2DComponent
 
-**File**: `Engine/Scene/Components/BoxCollider2DComponent.cs`
+| Property | Used for |
+|---|---|
+| `Size` | Half-extents; multiplied by transform scale at fixture creation |
+| `Offset` | Center offset; multiplied by transform scale at fixture creation |
+| `Density`, `Friction`, `Restitution` | Initial fixture + per-frame `UpdateFixtureMaterial` |
+| `IsTrigger` | Fixture sensor flag |
 
-| Property | Type | Default | Notes |
-|---|---|---|---|
-| `Size` | `Vector2` | `(0.5, 0.5)` | Half-extents for `SetAsBox` |
-| `Offset` | `Vector2` | `(0, 0)` | Center offset from body origin |
-| `Density` | `float` | `1.0` | Sets `IsDirty` on change |
-| `Friction` | `float` | `0.5` | Sets `IsDirty` on change |
-| `Restitution` | `float` | `0.7` | Sets `IsDirty` on change |
-| `RestitutionThreshold` | `float` | `0.5` | |
-| `IsTrigger` | `bool` | `false` | Marks fixture as sensor |
-| `IsDirty` | `bool` | `true` | `[JsonIgnore]`, initially dirty for first-time setup |
+Collider size and offset are multiplied by `TransformComponent.Scale` when the body is first created. Scale changes after that are not reflected in the collider shape.
 
-`Density`, `Friction`, and `Restitution` use backing fields with dirty-tracking setters. `ClearDirtyFlag()` resets after sync.
+Bodies are **not** stored on the component. Runtime mapping is `PhysicsRuntimeBodyStore` keyed by entity ID.
 
-## Physics World Initialization
+---
+
+## Scene Wiring
+
+**File**: `Engine/Scene/SceneSystemsFactory.cs`
 
 ```mermaid
 sequenceDiagram
-    participant S as Scene
-    participant W as Box2D World
+    participant SMF as SystemManagerFactory
+    participant SSF as SceneSystemsFactory
+    participant F as IPhysicsWorld2DFactory
+    participant W as IPhysicsWorld2D
     participant CL as SceneContactListener
-    participant SM as SystemManager
     participant PSS as PhysicsSimulationSystem
 
-    Note over S: Scene constructor calls Initialize()
-    S->>W: new World(gravity: 0, -9.8)
-    S->>CL: new SceneContactListener()
-    S->>W: SetContactListener(contactListener)
-    S->>PSS: new PhysicsSimulationSystem(world, context)
-    S->>SM: RegisterSystem(physicsSimulationSystem)
-
-    Note over S: Scene.OnRuntimeStart()
-    S->>SM: Initialize() -- calls OnInit() on all systems
-
-    loop For each entity with RigidBody2DComponent
-        S->>W: CreateBody(bodyDef)<br/>position from Transform.Translation(X,Y)<br/>angle from Transform.Rotation.Z<br/>type mapped from RigidBodyType enum<br/>bullet = true if Dynamic
-        S->>W: body.SetFixedRotation(component.FixedRotation)
-        S->>W: body.SetUserData(entity)
-        Note over S: Store body reference back in component.RuntimeBody
-
-        alt Entity has BoxCollider2DComponent
-            S->>W: PolygonShape.SetAsBox(<br/>size * scale, offset * scale)
-            S->>W: body.CreateFixture(FixtureDef)<br/>density, friction, restitution<br/>isSensor = IsTrigger
-        end
-    end
+    SMF->>SMF: new PhysicsRuntimeBodyStore, PhysicsContactQueue
+    SMF->>SSF: PopulateSystemManager(...)
+    SSF->>F: Create(gravity: 0, -9.8)
+    F-->>W: Box2DPhysicsWorld2D
+    SSF->>W: SetContactListener(SceneContactListener)
+    SSF->>PSS: new PhysicsSimulationSystem(world, context, bodyStore)
+    SSF->>SMF: Register PhysicsSimulationSystem, ScriptUpdateSystem,<br/>AudioSystem, PrimaryCameraSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
 ```
 
-Key detail: collider size and offset are multiplied by `TransformComponent.Scale` at creation time. This means scale changes after runtime start are not reflected in the collider shape.
+Default gravity is `(0, -9.8)` in `SceneSystemsFactory.DefaultGravity`.
+
+`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for tier-2 `IGameSystem` scripts. When no scene is active, DI resolves `NullPhysicsContacts.Instance`.
+
+---
+
+## Body Lifecycle
+
+**File**: `Engine/Scene/Systems/PhysicsSimulationSystem.cs`
+
+Bodies are created lazily in `EnsureBodiesCreated()` — called from `OnInit` and every `OnUpdate`. An entity with `RigidBody2DComponent` + `TransformComponent` gets a body when it enters the store's view; if it also has `BoxCollider2DComponent`, a box fixture is added immediately.
+
+`CleanupOrphanedBodies()` destroys bodies whose entity no longer has `RigidBody2DComponent`.
+
+| Event | What happens |
+|---|---|
+| `OnInit` | Reset accumulator; `EnsureBodiesCreated()` |
+| `OnUpdate` | Fixed timestep steps; sync transforms and velocities; `CleanupOrphanedBodies()` |
+| `OnShutdown` | `DestroyBody` for every entry in `PhysicsRuntimeBodyStore`; `Clear()` |
+| `Dispose` | `physicsWorld.Dispose()` |
+
+---
 
 ## Fixed Timestep Simulation
 
@@ -103,95 +153,109 @@ Key detail: collider size and offset are multiplied by `TransformComponent.Scale
 
 | Constant | Value | Source |
 |---|---|---|
-| `PhysicsTimestep` | `1/60s` (16.67ms) | `CameraConfig.PhysicsTimestep` |
-| `MaxPhysicsStepsPerFrame` | `5` | Caps catch-up at ~83ms |
+| `PhysicsTimestep` | `1/60` s | `PhysicsConstants.PhysicsTimestep` |
+| `MaxPhysicsStepsPerFrame` | `5` | `PhysicsSimulationSystem` |
 | Velocity iterations | `6` | Hardcoded in `OnUpdate` |
 | Position iterations | `2` | Hardcoded in `OnUpdate` |
 
 ```mermaid
 flowchart TD
-    A[OnUpdate called with deltaTime] --> B[accumulator += deltaTime]
-    B --> C{accumulator >= PhysicsTimestep<br/>AND stepCount < 5?}
-    C -->|Yes| D["World.Step(1/60s, 6, 2)"]
-    D --> E[accumulator -= PhysicsTimestep<br/>stepCount++]
-    E --> C
-    C -->|No| F{accumulator >= PhysicsTimestep?<br/>hit max steps}
-    F -->|Yes| G["Clamp: accumulator = PhysicsTimestep * 0.5<br/>(preserve half timestep debt)"]
-    F -->|No| H[Sync transforms]
-    G --> H
-    H --> I[For each RigidBody2DComponent entity]
-    I --> J["Update fixture: Density, Friction, Restitution"]
-    J --> K["Transform.Translation = (body.X, body.Y, 0)"]
-    K --> L["Transform.Rotation.Z = body.GetAngle()"]
-    L --> M[Done]
+    A[OnUpdate deltaTime] --> B[accumulator += deltaTime]
+    B --> C[EnsureBodiesCreated + CleanupOrphanedBodies]
+    C --> D{accumulator >= timestep AND steps < 5?}
+    D -->|Yes| E[SyncKinematicTransformsToBodies]
+    E --> F[SyncVelocitiesToBodies]
+    F --> G["World.Step(1/60, 6, 2)"]
+    G --> H[accumulator -= timestep; stepCount++]
+    H --> D
+    D -->|No| I{accumulator still >= timestep?}
+    I -->|Yes| J["Clamp: accumulator = timestep * 0.5"]
+    I -->|No| K[Sync transforms + fixture material]
+    J --> K
+    K --> L[Update Velocity on Dynamic/Kinematic bodies]
 ```
 
-The spiral-of-death prevention clamps to half a timestep rather than zero, preserving partial time debt for smoother recovery.
+Before each physics step, kinematic bodies copy transform position/angle into the body. Dynamic and kinematic bodies copy `RigidBody2DComponent.Velocity` into the body.
 
-## Transform Synchronization
+After all steps, for each entity with rigidbody, collider, and a stored body:
 
-After all physics steps complete, `PhysicsSimulationSystem.OnUpdate` iterates every entity with `RigidBody2DComponent`:
+1. `UpdateFixtureMaterial` for density, friction, restitution (no-op inside backend when unchanged).
+2. `Transform.Translation` ← body position (X, Y; Z set to `0`).
+3. `Transform.Rotation.Z` ← body angle (X/Y rotation preserved via `with`).
+4. `RigidBody2DComponent.Velocity` ← body linear velocity (Dynamic/Kinematic only).
 
-1. Reads fixture properties from `BoxCollider2DComponent` and writes them to the Box2D fixture (runtime property sync for Density, Friction, Restitution).
-2. Reads Box2D body position and writes to `TransformComponent.Translation` -- **X and Y only**. Z is set to `0` (not preserved from the original transform).
-3. Reads Box2D body angle and writes to `TransformComponent.Rotation.Z` only (via `with` expression, preserving X and Y rotation).
+---
 
-Because this runs at priority 100, all downstream systems see the physics-updated positions:
-- ScriptUpdateSystem (110) -- scripts read correct positions
-- AudioSystem (120) -- spatial audio uses correct positions
-- AnimationSystem (140) -- animations layer on top
-- SpriteRenderSystem (150) / SubTextureRenderSystem (160) -- render at correct positions
-- PhysicsDebugRenderSystem (180) -- debug overlay matches
+## System Priorities
+
+**File**: `Engine/Scene/Systems/SystemPriorities.cs`
+
+| Priority | System |
+|---|---|
+| 100 | `PhysicsSimulationSystem` |
+| 110 | `ScriptUpdateSystem` |
+| 120 | `AudioSystem` |
+| 145 | `PrimaryCameraSystem` |
+| 150 | `SceneRenderSystem` |
+| 151 | `PhysicsDebugRenderSystem` |
+
+---
 
 ## Collision Callbacks
 
-**File**: `Engine/Scene/SceneContactListener.cs`
+**Files**: `Engine/Scene/SceneContactListener.cs`, `Engine/Platform/Box2D/Box2DContactListenerAdapter.cs`
 
-Extends Box2D `ContactListener`. Called by the Box2D world during `World.Step()`.
+Box2D fires during `World.Step()`. The adapter resolves `IPhysicsBody2D` wrappers and whether **either** fixture is a sensor.
+
+`SceneContactListener` then:
+
+1. Enqueues a `PhysicsContact` record on `PhysicsContactQueue` (for `IPhysicsContacts.DrainContacts()`).
+2. Notifies `ScriptableEntity` via `ScriptRuntimeStore` when the entity has `NativeScriptComponent`.
 
 ```mermaid
 sequenceDiagram
     participant W as Box2D World
+    participant A as Box2DContactListenerAdapter
     participant CL as SceneContactListener
+    participant Q as PhysicsContactQueue
     participant SE as ScriptableEntity
 
-    W->>CL: BeginContact(contact)
-    CL->>CL: Get fixtureA, fixtureB from contact
-    CL->>CL: Get entityA, entityB from body UserData
+    W->>A: BeginContact / EndContact
+    A->>CL: OnContactBegin / OnContactEnd(bodyA, bodyB, isTrigger)
 
-    alt Either entity is null
-        CL-->>W: return (skip)
+    alt isTrigger
+        CL->>Q: Enqueue(PhysicsContact)
+        CL->>SE: OnTriggerEnter / OnTriggerExit (both entities)
+    else solid collision
+        CL->>Q: Enqueue(PhysicsContact)
+        CL->>SE: OnCollisionBegin / OnCollisionEnd (both entities)
     end
-
-    alt fixtureA.IsSensor OR fixtureB.IsSensor
-        CL->>SE: entityA.script.OnTriggerEnter(entityB)
-        CL->>SE: entityB.script.OnTriggerEnter(entityA)
-    else Normal collision
-        CL->>SE: entityA.script.OnCollisionBegin(entityB)
-        CL->>SE: entityB.script.OnCollisionBegin(entityA)
-    end
-
-    Note over CL: EndContact follows same pattern<br/>with OnTriggerExit / OnCollisionEnd
-
-    Note over CL: All callbacks wrapped in try-catch.<br/>Errors logged via Serilog, never crash.
 ```
 
-Callback details:
-- Both entities are notified (bidirectional). Entity A is told about B, and B is told about A.
-- Only entities with `NativeScriptComponent` and a non-null `ScriptableEntity` receive callbacks.
-- `PreSolve` and `PostSolve` are implemented as no-ops (overridden but empty).
-- Trigger detection checks if **either** fixture is a sensor, not both.
+Callbacks are bidirectional (A notified about B and B about A). Errors are logged via Serilog and do not propagate. `PreSolve` and `PostSolve` in the adapter are no-ops.
 
-## Per-Scene Lifecycle
+**File**: `Scripting/IPhysicsContacts.cs`
 
-`PhysicsSimulationSystem` is the **only** per-scene system. All other systems (rendering, scripting, audio, animation) are shared singletons registered via `ISceneSystemRegistry`.
+```csharp
+public readonly record struct PhysicsContact(Entity Self, Entity Other, bool IsTrigger, bool IsBegin);
+```
+
+---
+
+## Debug Visualization
+
+**File**: `Engine/Scene/Systems/PhysicsDebugRenderSystem.cs`
+
+When `DebugSettings.ShowColliderBounds` is true, draws collider rectangles via `PhysicsDebugDrawer` (`Engine/Physics/PhysicsDebugDrawer.cs`) using live body positions from `PhysicsRuntimeBodyStore`. Colors reflect body type and awake state.
+
+---
+
+## Per-Scene Lifecycle Summary
 
 | Event | What happens |
 |---|---|
-| Scene constructor | `Initialize()` creates Box2D `World(0, -9.8)`, `SceneContactListener`, `PhysicsSimulationSystem`. Registers system in `SystemManager`. |
-| `OnRuntimeStart()` | `SystemManager.Initialize()` calls `OnInit()`. Then iterates entities to create Box2D bodies and fixtures. |
-| `OnUpdateRuntime(ts)` | `SystemManager.Update(ts)` runs all systems in priority order. Physics steps first (100). |
-| `OnRuntimeStop()` | `SystemManager.Shutdown()` calls `OnShutdown()`. Physics system destroys all Box2D bodies, clears `RuntimeBody` references, clears body UserData. |
-| Scene disposal | `SystemManager.Dispose()` calls `Dispose()` on `PhysicsSimulationSystem`. Box2D World is garbage collected (no `IDisposable`). |
-
-Each scene can have different gravity (currently hardcoded to `(0, -9.8)` in `Scene.Initialize()`). Shared singleton systems survive scene changes.
+| Scene construction | `SystemManagerFactory` creates body store, contact queue, script store; `SceneSystemsFactory` registers per-scene systems including physics world |
+| `OnRuntimeStart()` | `SystemManager.Initialize()` → `PhysicsSimulationSystem.OnInit()` creates initial bodies |
+| `OnUpdateRuntime(ts)` | `SystemManager.Update(ts)` — physics steps first (100) |
+| `OnRuntimeStop()` | `SystemManager.Shutdown()` destroys all bodies |
+| Scene `Dispose()` | `SystemManager.Dispose()` disposes `PhysicsSimulationSystem` and the physics world |

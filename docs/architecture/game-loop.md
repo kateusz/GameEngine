@@ -14,7 +14,8 @@ graph TB
     end
 
     subgraph "Application Layer"
-        App["Application (abstract)<br/><i>Layer stack, Graphics2D/3D, AudioEngine</i>"]
+        App["Application (abstract)<br/><i>Layer stack, Graphics2D/3D, IAudio</i>"]
+        Compositor["IFrameCompositor (optional)<br/><i>Wraps Draw phase (e.g. ImGui)</i>"]
         LayerStack["Layer Stack<br/><i>Processed in reverse order</i>"]
         EditorLayer["EditorLayer<br/><i>Framebuffer, scene states, mouse picking</i>"]
         GameLayer["GameLayer<br/><i>Direct rendering, always Play mode</i>"]
@@ -32,6 +33,7 @@ graph TB
     EditorProgram --> App
     RuntimeProgram --> App
     App -->|owns| LayerStack
+    App -.->|optional| Compositor
     LayerStack -->|contains| EditorLayer
     LayerStack -->|contains| GameLayer
     App -->|delegates to| GameWindow
@@ -57,24 +59,29 @@ sequenceDiagram
     Main->>App: Run()
     App->>Win: Run()
 
-    Win-->>App: OnWindowLoad
-    App->>Layers: OnAttach() for each layer
-    Note over Layers: GameLayer: loads startup scene, calls OnRuntimeStart()
+    Win-->>App: OnWindowLoad(inputSystem)
+    App->>App: Graphics2D/3D Init(), Audio.Initialize()
+    App->>Layers: OnAttach(inputSystem) for each layer
+    Note over Layers: GameLayer: loads startup scene via RuntimeSceneStarter.Start()
 
     loop Every Frame
         Win-->>App: OnUpdate(platformDeltaTime)
         App->>App: Clamp deltaTime to [0, 250ms]
         App->>App: InputSystem.Update(dt)
         App->>Layers: OnUpdate(dt) — reverse order
-        App->>Layers: ImGui Begin → Draw() → ImGui End
+        App->>App: Audio.Update(dt)
+        App->>App: IFrameCompositor.BeginFrame(dt) (if set)
+        App->>Layers: Draw() — reverse order
+        App->>App: IFrameCompositor.EndFrame() (if set)
+        App->>App: KeyboardInput.EndFrame() (if set)
     end
 
     Win-->>App: OnInputEvent / OnWindowEvent
     App->>Layers: HandleInputEvent() — reverse order (consumed on handled)
 
     Win-->>App: OnClose
-    App->>Layers: OnDetach() for each layer
-    App->>App: Dispose Graphics2D, Graphics3D, AudioEngine
+    App->>Layers: OnDetach() for each layer (reverse order)
+    App->>App: Dispose Graphics2D, Graphics3D, Audio; MeshFactory.Clear()
     Main->>Main: container.Dispose()
 ```
 
@@ -97,44 +104,55 @@ sequenceDiagram
 
 **File**: `Runtime/Program.cs`
 
-1. Loads `GameConfiguration` from `game.config.json` (window title, size, startup scene)
-2. Creates DryIoc container with `EngineIoCContainer.Register()` only (no editor features)
-3. Registers `RuntimeApplication`, `GameLayer`, `IContext`
-4. Calls `app.Run()`
+1. Configures Serilog (console + rolling file under `logs/`)
+2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, startup scene, game assembly path)
+3. Creates DryIoc container: `EngineIoCContainer.RegisterCore()` + `RegisterWindowing()` with host options from config
+4. Registers `GameConfiguration` instance and `RuntimeApplication`
+5. Loads the published game assembly (`GameAssembly.dll` by default) via `IScriptEngine`, registers `[Register]` types and component serializers from that assembly
+6. Resolves `ILayer` (defaults to `GameLayer` if the game assembly did not register one), `PushLayer`, then `Run()`
+7. `container.Dispose()` in `finally`
 
 ---
 
 ## Application Base Class
 
-**File**: `Engine/Core/Application.cs`
+**File**: `Engine/Core/Application.cs`  
+**Interface**: `Engine/Core/IApplication.cs` — `Run()`, `PushLayer()`, `PushOverlay()`
 
 The abstract `Application` class manages the core frame loop:
 
-- **Owns**: `IGraphics2D`, `IGraphics3D`, `IAudioEngine` (initialized in constructor)
-- **Manages**: Layer stack — layers pushed in order, processed in **reverse** (overlays first)
+- **Owns**: `IGraphics2D`, `IGraphics3D`, `IAudio`, `IMeshFactory`; optional `IFrameCompositor` and `IKeyboardInput`
+- **Initializes on window load**: `Graphics2D.Init()`, `Graphics3D.Init()`, `Audio.Initialize()` — before any `layer.OnAttach()`
+- **Manages**: Layer stack — `PushLayer` inserts at index 0, `PushOverlay` appends; all tick/event processing iterates in **reverse** (overlays first)
 - **Delegates**: Platform loop to `IGameWindow.Run()` (Silk.NET)
+- **Constructor**: Optionally `PushOverlay(inputOverlay)` for the input/UI overlay (editor passes `ImGuiLayer`)
+
+**File**: `Engine/Core/IFrameCompositor.cs` — `BeginFrame(TimeSpan)` / `EndFrame()` bracket the layer `Draw()` pass (editor registers an ImGui implementation; runtime omits it).
 
 ### Delta Time Clamping
 
 ```csharp
-var elapsed = TimeSpan.FromSeconds(Math.Min(deltaTime, 0.25));
+var deltaTime = Math.Clamp(platformDeltaTime, 0.0, MaxDeltaTime); // MaxDeltaTime = 0.25
+var elapsed = TimeSpan.FromSeconds(deltaTime);
 ```
 
-Caps frame delta at 250ms. This prevents physics explosions and large position jumps when the application resumes from a debugger breakpoint or system sleep.
+Caps frame delta at 250ms and logs a warning on spikes. This prevents physics explosions and large position jumps when the application resumes from a debugger breakpoint or system sleep.
 
 ### Layer Processing Order
 
-Layers are stored as a list where index 0 is the base layer (game/editor) and index N-1 is the topmost overlay (ImGui). All processing iterates in **reverse** — highest index first:
+`PushLayer` inserts at index 0; `PushOverlay` appends. A typical editor stack:
 
 ```
 Index 0: EditorLayer / GameLayer  ← processed last
-Index 1: ImGuiLayer               ← processed first
+Index 1: ImGuiLayer (overlay)     ← processed first
 ```
 
+All `OnUpdate`, `Draw`, and event handlers iterate in **reverse** — highest index first.
+
 This ensures:
-- **Input**: UI captures clicks before game logic; events stop propagating once `IsHandled = true`
-- **Update**: Overlays update before game state
-- **Draw**: ImGui renders on top of the scene
+- **Input**: UI captures clicks before game logic; propagation stops once `IsHandled = true`
+- **Update**: Overlays update before game state; `Audio.Update()` runs after all layer updates
+- **Draw**: Compositor + overlay layers render on top of scene content
 
 ---
 
@@ -145,9 +163,11 @@ graph TD
     A["Platform: OnUpdate(platformDeltaTime)"] --> B["Clamp dt to max 250ms"]
     B --> C["InputSystem.Update(dt)"]
     C --> D["For each layer (reverse order):<br/>layer.OnUpdate(dt)"]
-    D --> E["ImGuiLayer.Begin(dt)"]
-    E --> F["For each layer (reverse order):<br/>layer.Draw()"]
-    F --> G["ImGuiLayer.End()"]
+    D --> E["Audio.Update(dt)"]
+    E --> F["IFrameCompositor.BeginFrame(dt) (optional)"]
+    F --> G["For each layer (reverse order):<br/>layer.Draw()"]
+    G --> H["IFrameCompositor.EndFrame() (optional)"]
+    H --> I["IKeyboardInput.EndFrame() (optional)"]
 ```
 
 ### EditorLayer Frame Tick
@@ -173,15 +193,16 @@ graph TD
 
 ### GameLayer Frame Tick
 
-**File**: `Runtime/GameLayer.cs`
+**File**: `Runtime/GameLayer.cs`  
+**Application**: `Runtime/RuntimeApplication.cs` — extends `Application` with `keyboardInput` only (no compositor overlay)
 
 ```mermaid
 graph TD
-    A["OnUpdate(dt)"] --> B["Clear screen"]
+    A["OnUpdate(dt)"] --> B["Set clear color + Graphics2D.Clear()"]
     B --> C["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
 ```
 
-Simpler than the editor — no framebuffer indirection, no scene state branching, always runs full ECS.
+Simpler than the editor — no framebuffer indirection, no scene state branching, always runs full ECS. `Draw()` is a no-op; rendering is driven by ECS systems during `OnUpdateRuntime`. Input events update `KeyboardInputState` and forward to `IScriptEngine.ProcessEvent`; window resize calls `scene.OnViewportResize`.
 
 ---
 
@@ -244,19 +265,16 @@ sequenceDiagram
 
 ### Runtime Startup Sequence
 
-1. `GameLayer.OnAttach()` — sets scripts directory from config
-2. Loads startup scene via `SceneSerializer.Deserialize()`
-3. `scene.OnRuntimeStart()`:
-   - `SystemManager.Initialize()` → calls `OnInit()` on all systems
-   - Creates Box2D physics bodies for all `RigidBody2DComponent` entities
-   - Attaches colliders (`BoxCollider2DComponent`)
+**File**: `Runtime/GameLayer.cs`
+
+1. `GameLayer.OnAttach()` subscribes to `ISceneContext.SceneChanged`
+2. Resolves startup scene path from `GameConfiguration.StartupScenePath` (relative to `AppContext.BaseDirectory`)
+3. `SceneFactory.Create()` + `SceneSerializer.Deserialize()`
+4. `sceneContext.SetScene(scene)` then `RuntimeSceneStarter.Start(scene, sceneContext, gameSystems)` — registers `[Register]` `IGameSystem` instances and calls `scene.OnRuntimeStart()`
 
 ### Shutdown Sequence
 
-1. `layer.OnDetach()` called for each layer
-2. `scene.Dispose()`:
-   - `SystemManager.Shutdown()` — per-scene systems `OnShutdown()` in reverse order
-   - `SystemManager.Dispose()` — disposes `IDisposable` per-scene systems
-   - Clears entity context
-3. Application disposes Graphics2D, Graphics3D, AudioEngine
-4. DI container disposes all remaining singletons
+1. `Application.HandleGameWindowClose` — `OnDetach()` on each layer (reverse order, errors logged via `SafeDetachLayer`)
+2. `GameLayer.OnDetach()` — `scene.OnRuntimeStop()`, then `scene.Dispose()`
+3. Application disposes `Graphics2D`, `Graphics3D`, `Audio`; `IMeshFactory.Clear()`
+4. DI `container.Dispose()` in `Program.Main` `finally` block

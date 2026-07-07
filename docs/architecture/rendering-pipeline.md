@@ -76,6 +76,43 @@ graph TB
 
 `PhysicsDebugRenderSystem` (priority 151) draws collider outlines via `PhysicsDebugDrawer` when `DebugSettings.ShowColliderBounds` is enabled.
 
+**Render order within a frame**: 2D sprites and subtextures first, then 3D cubes. Both passes share the same `CameraBinding` from `PrimaryCameraSystem` (runtime) or `EditorCamera` (editor).
+
+---
+
+## 3D Cube Rendering
+
+**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/MeshFactory.cs`
+
+`Graphics3D` draws a shared unit cube for every entity with `ModelRendererComponent` + `TransformComponent`. Lighting comes from the first `AmbientLightComponent` and `DirectionalLightComponent` in the scene.
+
+### IGraphics3D API
+
+| Method | Purpose |
+|--------|---------|
+| `Init()` | Load `flatColorShader`, create shared cube via `MeshFactory.CreateCube()` |
+| `BeginScene(Camera, Matrix4x4)` / `BeginScene(IViewCamera)` | Upload `u_ViewProjection` |
+| `DrawCube(Matrix4x4 transform, Vector4 color, int entityId)` | Indexed draw of shared cube mesh |
+| `SetAmbientLight(Vector3 color, float strength)` | Scene ambient (`lightColor`, `strength` uniforms) |
+| `SetDirectionalLight(Vector3 direction, Vector3 color)` | Directional diffuse (`u_LightDirection`, `u_LightColor`) |
+| `EndScene()` | Unbind shader |
+
+There is no 3D batching — each cube is one `DrawIndexed` call. `GetStats()` tracks `DrawCalls` per frame.
+
+### Shaders and lighting
+
+**Shader**: `assets/shaders/OpenGL/flatColorShader.vert` / `.frag`
+
+Fragment output: `(ambient + diffuse) * albedo` where albedo is `ModelRendererComponent.Color`. No specular term; no texture sampling in the current 3D shader.
+
+### Mesh
+
+**File**: `Engine/Renderer/Mesh.cs`
+
+`Mesh.Vertex` holds position, normal, tex coords, tangents, and entity ID (60 bytes). `IMeshFactory` only implements `CreateCube()` today — the cube mesh is created once and reused.
+
+Detailed workflow: [OpenGL 3D Rendering Workflow](../opengl/opengl-3d-workflow.md).
+
 ---
 
 ## IRendererAPI
@@ -106,7 +143,7 @@ Platform-agnostic rendering interface. All OpenGL calls are isolated behind this
 
 | Struct | Size | Fields |
 |--------|------|--------|
-| **QuadVertex** | 44 bytes | Position (Vec3), Color (Vec4), TexCoord (Vec2), TexIndex (float), TilingFactor (float), EntityId (int) |
+| **QuadVertex** | 48 bytes | Position (Vec3), Color (Vec4), TexCoord (Vec2), TexIndex (float), TilingFactor (float), EntityId (int) |
 | **LineVertex** | 32 bytes | Position (Vec3), Color (Vec4), EntityId (int) |
 
 **Files**: `Engine/Renderer/Primitives/QuadVertex.cs`, `Engine/Renderer/Primitives/LineVertex.cs`
@@ -121,6 +158,7 @@ Defined in `Engine/Renderer/RenderingConstants.cs` and `Renderer2DData.cs`:
 | MaxVertices | 40,000 | 10K quads × 4 vertices |
 | MaxIndices | 60,000 | 10K quads × 6 indices (2 triangles) |
 | MaxTextureSlots | 16 | OpenGL minimum guaranteed texture units |
+| DefaultLineWidth | 1.0f | Line width for debug/wireframe drawing |
 | MaxFramebufferSize | 8,192 | Max framebuffer dimension (px) |
 
 ### Batch Lifecycle
@@ -139,7 +177,7 @@ sequenceDiagram
     G2D->>Batch: StartBatch() — reset counters
 
     loop For each entity
-        System->>G2D: DrawQuad(transform, sprite)
+        System->>G2D: DrawQuad(transform, texture, ...)
         G2D->>Batch: Allocate texture slot
         G2D->>Batch: Write 4 QuadVertices
 
@@ -168,11 +206,16 @@ sequenceDiagram
 5. Increment index count by 6
 
 **Flush()**: Uploads to GPU and draws:
-1. Bind shader and vertex array
+1. Bind quad shader and vertex array
 2. Upload only the used portion of the vertex buffer via `SetData()` (span slice)
-3. Bind all active textures to their sampler slots
-4. Issue `rendererApi.DrawIndexed()` or `DrawLines()`
-5. Increment draw call statistics
+3. Bind all active textures to their sampler slots (`TextureSlots[0..TextureSlotIndex)`)
+4. Disable depth test, issue `rendererApi.DrawIndexed()`, re-enable depth test
+5. If line vertices exist: bind line shader, upload line buffer, issue `DrawLines()` (depth test on)
+6. Increment draw call statistics per batch submitted
+
+**Shaders** (loaded via `ShaderFactory` in `Graphics2D.Init()`):
+- Quads: `assets/shaders/OpenGL/textureShader.vert` + `textureShader.frag` — `u_Textures[16]` sampler array, entity ID to attachment 1
+- Lines: `assets/shaders/OpenGL/lineShader.vert` + `lineShader.frag` — solid color, entity ID to attachment 1
 
 **NextBatch()**: Calls `Flush()` then `StartBatch()` — seamless batch boundary.
 
@@ -306,9 +349,11 @@ The editor framebuffer uses three attachments:
 
 | Attachment | Format | Purpose |
 |------------|--------|---------|
-| Color | RGBA8 | Scene rendering — displayed in ImGui viewport |
+| Color | RGBA16F | Scene rendering — displayed in ImGui viewport |
 | Entity ID | RED_INTEGER | 32-bit int per pixel — stores entity ID for mouse picking |
 | Depth | DEPTH24STENCIL8 | Depth testing for correct draw order |
+
+Default size: `DisplayConfig.DefaultEditorViewportWidth` × `DefaultEditorViewportHeight` (1280×720). See [Frame Buffers](../opengl/frame-buffers.md) for API and OpenGL details.
 
 ### Entity Picking
 
@@ -338,9 +383,11 @@ Framebuffers resize to match the viewport, clamped to `MaxFramebufferSize` (8192
 
 ## Rendering Statistics
 
-`Graphics2D` tracks per-frame statistics via `Renderer2DData.Statistics`:
+`Graphics2D` tracks per-frame statistics via `Renderer2DData.Statistics` (`Engine/Renderer/Statistics.cs`):
 
-- **DrawCalls**: Number of `Flush()` invocations (batch submissions)
-- **QuadCount**: Total quads drawn across all batches
+| Field | Meaning |
+|-------|---------|
+| **DrawCalls** | Number of `Flush()` invocations (quad and line batches count separately) |
+| **QuadCount** | Total quads drawn across all batches |
 
-These are exposed for the editor's stats panel and performance monitoring.
+`GetTotalVertexCount()` and `GetTotalIndexCount()` derive totals from `QuadCount`. Reset via `ResetStats()` before each frame. Exposed for the editor stats panel.

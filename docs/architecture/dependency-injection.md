@@ -1,47 +1,53 @@
 # Dependency Injection
 
-DryIoc container with primary constructor injection. Two-stage registration: `EngineIoCContainer` registers core runtime services, `EditorIoCContainer` adds editor-only services on top. No static singletons -- `EngineIoCContainer` and `EditorIoCContainer` are the only static classes (registration entry points). Nearly all services are singletons.
+DryIoc container with primary constructor injection. Engine services register in two stages (`RegisterCore`, then `RegisterWindowing`); the editor adds a third layer on top. `EngineIoCContainer` and `EditorIoCContainer` are the only static registration entry points in their respective projects. Nearly all services are singletons.
 
 ## Component Diagram
 
 ```mermaid
 graph TD
     subgraph "Engine Registrations (EngineIoCContainer)"
-        subgraph "Window & Rendering"
-            RAPI[IRendererAPI]
+        subgraph "Window & Input (RegisterWindowing)"
             WIN[IWindow / IGameWindow]
-            IMGUI[IImGuiLayer]
+            ISF[IInputSystemFactory]
+            CSP[IContentScaleProvider]
+        end
+
+        subgraph "Rendering & Graphics (RegisterCore)"
+            RAPI[IRendererAPI]
             G2D[IGraphics2D]
             G3D[IGraphics3D]
         end
 
         subgraph "Audio"
             AL[AL / ALContext]
-            AE[IAudioEngine]
+            AE[IAudio]
             AEF[IAudioEffectFactory]
+            APS[AudioPlaybackService / IAudioPlayback]
         end
 
-        subgraph "Scene & ECS Systems"
+        subgraph "Scene & ECS"
             SF[SceneFactory]
-            SSR[ISceneSystemRegistry]
-            SRS[SpriteRenderingSystem]
-            STRS[SubTextureRenderingSystem]
-            MRS[ModelRenderingSystem]
-            SUS[ScriptUpdateSystem]
-            PDRS[PhysicsDebugRenderSystem]
-            AS[AudioSystem]
-            ANS[AnimationSystem]
-            PCS[PrimaryCameraSystem / IPrimaryCameraProvider]
+            SSF[ISceneSystemsFactory]
+            SMF[ISystemManagerFactory]
             SC[ISceneContext]
+            CTX[IContext delegate]
+            PC[IPhysicsContacts delegate]
         end
 
-        subgraph "Scripting"
+        subgraph "Physics"
+            PBC[IPhysicsBackendConfig]
+            PWF[IPhysicsWorld2DFactory]
+        end
+
+        subgraph "Scripting & Project"
             SE[IScriptEngine]
+            PCtx[IProjectContext]
         end
 
         subgraph "Serialization"
             SO[SerializerOptions]
-            CD[ComponentDeserializer]
+            CSR[ComponentSerializerRegistry / IComponentSerializerRegistry]
             PSR[IPrefabSerializer]
             SSE[ISceneSerializer]
         end
@@ -56,122 +62,129 @@ graph TD
             VAF[IVertexArrayFactory]
         end
 
-        subgraph "Global Services"
-            EB[EventBus]
+        subgraph "Input & Debug"
+            KIS[KeyboardInputState / IKeyboardInput]
             DS[DebugSettings]
-            AM[IAssetsManager]
         end
     end
 
     subgraph "Editor Registrations (EditorIoCContainer)"
         subgraph "Core Editor"
             SM[ShortcutManager]
+            ES[IEditorSelection]
             PM[IProjectManager]
+            GSW[GameScriptWorkspace]
             GP[IGamePublisher]
             EP[IEditorPreferences]
         end
 
-        subgraph "Component Editors"
+        subgraph "Field & Component Editors"
+            FE[Field editors + UIPropertyRenderer]
             CER[IComponentEditorRegistry]
-            TCE[TransformComponentEditor]
-            CCE[CameraComponentEditor]
-            SRCE[SpriteRendererComponentEditor]
-            SCE["... 8 more editors"]
+            CE["Transform, Camera, Sprite, Model, Physics, Audio, Script, Light editors"]
         end
 
-        subgraph "Panels"
-            PP[IPropertiesPanel]
-            SHP[ISceneHierarchyPanel]
-            CBP[IContentBrowserPanel]
-            CP[IConsolePanel]
-            ATP[IAnimationTimelinePanel]
+        subgraph "Panels & Shell"
+            PAN[SceneHierarchy, Properties, ContentBrowser, Console, ...]
+            EMB[EditorMenuBar / EditorDockspace / EditorLifecycle]
         end
 
         subgraph "Scene & Viewport"
             SMG[SceneManager]
             VTM[ViewportToolManager]
-            VT["SelectionTool, MoveTool, ScaleTool, RulerTool"]
+            VT["Selection, Move, Scale, Rotate, Ruler tools"]
+            EV[IEditorViewport / IEditorCameraController]
         end
     end
 
-    SSE --> CD
-    PSR --> CD
-    CD --> SE
-    CD --> TF
-    CD --> MSF
-    CD --> AE
+    SSE --> CSR
+    PSR --> CSR
+    CSR --> SE
+    CSR --> TF
+    CSR --> MSF
+    CSR --> AE
     SSE --> SO
     PSR --> SO
-    CD --> SO
+    CSR --> SO
+    SSF --> SMF
 ```
 
 ## Engine Registrations
 
 **File:** `Engine/Core/DI/EngineIoCContainer.cs`
 
-### Window & Rendering
+Registration splits into `RegisterCore(Container)` (runtime services) and `RegisterWindowing(Container, EngineHostOptions)` (window title/size and input). Window options come from `EngineHostOptions` (`Engine/Core/DI/EngineHostOptions.cs`); the editor uses `EngineHostOptions.EditorDefaults`.
+
+### Window & Input (`RegisterWindowing`)
+
+| Service | Implementation | Lifetime | Notes |
+|---------|---------------|----------|-------|
+| `IWindow` | `Silk.NET.Windowing.Window.Create(windowOptions)` | Singleton | `preventDisposal: true`; size/title from `EngineHostOptions` |
+| `IGameWindowFactory` | `GameWindowFactory` | Singleton | Creates `IGameWindow` |
+| `IGameWindow` | Via `IGameWindowFactory.Create()` | Default | Factory-resolved |
+| `IContentScaleProvider` | Delegate to `IGameWindow` | Default | HiDPI support |
+| `IInputSystemFactory` | `InputSystemFactory` | Singleton | Creates input systems |
+
+### Rendering & Graphics (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `IRendererApiConfig` | `RendererApiConfig(ApiType.SilkNet)` | Singleton | Hardcoded to Silk.NET |
 | `IRendererAPI` | Via `IRendererApiFactory.Create()` | Singleton | Factory-resolved |
-| `IWindow` | `Silk.NET.Windowing.Window.Create()` | Singleton | Silk.NET window |
-| `IGameWindowFactory` | `GameWindowFactory` | Singleton | Creates IGameWindow |
-| `IGameWindow` | Via `IGameWindowFactory.Create()` | Default | Factory-resolved |
-| `IContentScaleProvider` | Delegate to `IGameWindow` | Default | For HiDPI support |
-| `IImGuiLayer` | Via `IImGuiLayerFactory.Create()` | Default | Factory-resolved |
 | `IGraphics2D` | `Graphics2D` | Singleton | 2D rendering API |
 | `IGraphics3D` | `Graphics3D` | Singleton | 3D rendering API |
 
-### Global Services
+### Global Services (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `EventBus` | `EventBus` | Singleton | Global pub-sub messaging |
-| `IScriptEngine` | `ScriptEngine` | Singleton | Load/unload game assembly ALC, type index, script instance factory, event dispatch |
-| `GameScriptWorkspace` | `GameScriptWorkspace` | Singleton (Editor) | Editor: compile orchestration, script file CRUD, apply/revoke DI and serializers |
+| `IScriptEngine` | `ScriptEngine` | Singleton | Load/unload game assembly ALC, type index, script instance factory |
+| `IProjectContext` | `ProjectContext` | Singleton | Initializer wires `PathBuilder.UseProjectContext` |
+| `KeyboardInputState` | `KeyboardInputState` | Singleton | Also mapped as `IKeyboardInput` |
 | `DebugSettings` | `DebugSettings` | Singleton | Runtime debug toggles |
-| `IAssetsManager` | `AssetsManager` | Singleton | Asset path tracking |
-| `IInputSystemFactory` | `InputSystemFactory` | Singleton | Creates input systems |
 
-### Audio
+### Audio (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `AL` | `AL.GetApi(true)` | Singleton | OpenAL function delegates |
 | `ALContext` | `ALContext.GetApi(true)` | Singleton | OpenAL context delegates |
-| `IAudioEngine` | `OpenALAudioEngine` | Singleton | Audio playback engine |
+| `IAudio` | `OpenALAudioEngine` | Singleton | Audio playback engine |
 | `IAudioEffectFactory` | `OpenALAudioEffectFactory` | Singleton | Audio effect creation |
+| `AudioPlaybackService` | `AudioPlaybackService` | Singleton | Also mapped as `IAudioPlayback` |
 
-### Scene & ECS Systems
+### Scene & ECS (`RegisterCore`)
+
+ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` builds the per-scene system set; `ISystemManagerFactory` wraps it for `SystemManager` creation.
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `SceneFactory` | `SceneFactory` | Singleton | Creates Scene instances |
-| `ISceneSystemRegistry` | `SceneSystemRegistry` | Singleton | Registers systems for scenes |
-| `SpriteRenderingSystem` | - | Singleton | 2D sprite batching |
-| `SubTextureRenderingSystem` | - | Singleton | Atlas sub-texture rendering |
-| `ModelRenderingSystem` | - | Singleton | 3D model rendering |
-| `ScriptUpdateSystem` | - | Per-scene | Iterates `IContext` via `NativeScriptIteration` |
-| `PhysicsDebugRenderSystem` | - | Singleton | Physics wireframe overlay |
-| `AudioSystem` | - | Singleton | Audio source management |
-| `AnimationSystem` | - | Singleton | Sprite animation playback |
-| `PrimaryCameraSystem` | - | Singleton | Also mapped as `IPrimaryCameraProvider` |
-| `IAnimationAssetManager` | `AnimationAssetManager` | Singleton | Animation asset loading |
+| `SceneFactory` | `SceneFactory` | Singleton | Creates `Scene` instances |
+| `ISceneSystemsFactory` | `SceneSystemsFactory` | Singleton | Factory for scene-bound systems |
+| `ISystemManagerFactory` | `SystemManagerFactory` | Singleton | Creates `SystemManager` from scene systems |
 | `ISceneContext` | `SceneContext` | Singleton | Active scene reference |
+| `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
+| `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |
 
-### Serialization
+### Physics (`RegisterCore`)
+
+| Service | Implementation | Lifetime | Notes |
+|---------|---------------|----------|-------|
+| `IPhysicsBackendConfig` | `PhysicsBackendConfig(PhysicsBackendType.Box2D)` | Singleton | Backend selection |
+| `IPhysicsWorld2DFactory` | `PhysicsWorld2DFactory` | Singleton | Creates per-scene Box2D worlds |
+
+### Serialization (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `SerializerOptions` | `SerializerOptions` | Singleton | Custom Vector/Rectangle/Enum converters |
-| `ComponentDeserializer` | `ComponentDeserializer` | Singleton | Polymorphic component dispatch |
+| `IComponentSerializerRegistry` | `ComponentSerializerRegistry` | Singleton | Polymorphic component dispatch |
 | `IPrefabSerializer` | `PrefabSerializer` | Singleton | Prefab save/load |
 | `ISceneSerializer` | `SceneSerializer` | Singleton | Scene save/load |
 
-### Resource Factories
+### Resource Factories (`RegisterCore`)
 
-All registered as Singletons. Manage caching and GPU resource lifecycles.
+All registered as singletons. Manage caching and GPU resource lifecycles.
 
 | Service | Implementation |
 |---------|---------------|
@@ -188,81 +201,112 @@ All registered as Singletons. Manage caching and GPU resource lifecycles.
 
 **File:** `Editor/DI/EditorIoCContainer.cs`
 
-Only loaded by the Editor project, not by Runtime.
+Only loaded by the Editor project, not by Runtime. Calls `EngineIoCContainer.RegisterCore` and `RegisterWindowing` first (see `Editor/Program.cs`).
 
 ### Core Editor Services
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `ShortcutManager` | - | Singleton | Keyboard shortcut handling |
+| `ShortcutManager` | `ShortcutManager` | Singleton | Keyboard shortcut handling |
+| `IEditorSelection` | `EditorSelection` | Singleton | Selected entity tracking |
 | `IProjectManager` | `ProjectManager` | Singleton | Project open/create/save |
+| `GameScriptWorkspace` | `GameScriptWorkspace` | Singleton | Script compile orchestration, file CRUD, serializer/DI apply |
+| `IGameProjectScriptBootstrapper` | `GameProjectScriptBootstrapper` | Singleton | Game project script setup |
 | `IGamePublisher` | `GamePublisher` | Singleton | Build & publish games |
-| `PublishSettingsUI` | - | Singleton | Publish settings panel |
+| `PublishSettingsUI` | `PublishSettingsUI` | Singleton | Publish settings panel |
 | `IEditorPreferences` | `EditorPreferences` | Singleton | Factory init via `EditorPreferences.Load()` |
-| `EditorSettingsUI` | - | Singleton | Settings panel |
-| `PerformanceMonitorPanel` | - | Singleton | FPS / frame time stats |
+| `EditorSettingsUI` | `EditorSettingsUI` | Singleton | Settings panel |
+| `AudioDropTarget` | `AudioDropTarget` | Singleton | Drag-drop audio into scene |
+| `PerformanceMonitorPanel` | `PerformanceMonitorPanel` | Singleton | FPS / frame time stats |
+
+### Field Editors
+
+All singletons via `RegisterMany`. Used by the script inspector for reflected field editing:
+
+`IntFieldEditor`, `FloatFieldEditor`, `DoubleFieldEditor`, `BoolFieldEditor`, `StringFieldEditor`, `Vector2FieldEditor`, `Vector3FieldEditor`, `Vector4FieldEditor`, plus `UIPropertyRenderer`.
 
 ### Component Editors
 
-All Singletons. Each component type has a dedicated editor registered in `IComponentEditorRegistry`:
+All singletons via `RegisterMany`. Registration order matches properties panel draw order:
 
 - `TransformComponentEditor`, `CameraComponentEditor`, `SpriteRendererComponentEditor`
-- `MeshComponentEditor`, `ModelRendererComponentEditor`, `SubTextureRendererComponentEditor`
-- `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`
-- `AudioSourceComponentEditor`, `AudioListenerComponentEditor`
-- `AnimationComponentEditor`, `ScriptComponentEditor`
+- `ModelRendererComponentEditor`, `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`
+- `SubTextureRendererComponentEditor`, `AudioSourceComponentEditor`, `AudioListenerComponentEditor`
+- `GameComponentEditor`, `ScriptComponentEditor`
+- `AmbientLightComponentEditor`, `DirectionalLightComponentEditor`
+
+Resolved through `IComponentEditorRegistry` → `ComponentEditorRegistry`.
 
 ### Panels
 
-| Service | Implementation | Lifetime |
-|---------|---------------|----------|
-| `IPropertiesPanel` | `PropertiesPanel` | Singleton |
-| `ISceneHierarchyPanel` | `SceneHierarchyPanel` | Singleton |
-| `IContentBrowserPanel` | `ContentBrowserPanel` | Singleton |
-| `IConsolePanel` | `ConsolePanel` | Singleton |
-| `IAnimationTimelinePanel` | `AnimationTimelinePanel` | Singleton |
-| `RendererStatsPanel` | - | Singleton |
-| `KeyboardShortcutsPanel` | - | Singleton |
-| `RecentProjectsPanel` | - | Singleton |
+Panel draw order (via `RegisterMany` on concrete panel types):
+
+| Registration | Lifetime | Notes |
+|--------------|----------|-------|
+| `SceneHierarchyPanel` | Singleton | |
+| `PropertiesPanel` | Singleton | |
+| `ContentBrowserPanel` | Singleton | |
+| `ContentBrowserActions` | Singleton | Separate from panel |
+| `ConsolePanel` | Singleton | |
+| `RecentProjectsPanel` | Singleton | |
+| `KeyboardShortcutsPanel` | Singleton | |
+| `RendererStatsPanel` | Singleton | |
+
+Shell types: `EditorMenuBar`, `EditorDockspace`, `EditorInputHandler`, `EditorShortcutRegistrar`, `EditorLifecycle`, `EditorPanels`.
 
 ### Scene & Viewport
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `SceneManager` | `RegisterMany` | Singleton | Implements multiple interfaces |
+| `SceneManager` | `RegisterMany` | Singleton | Implements multiple scene/editor interfaces |
 | `IViewportScaleHelper` | `ViewportScaleHelper` | Singleton | HiDPI coordinate mapping |
-| `ViewportRuler` | - | Singleton | Ruler overlay |
-| `ViewportGrid` | - | Singleton | Grid overlay |
-| `ViewportToolManager` | - | Singleton | Active tool management |
-| `SelectionTool` | - | Singleton | Entity picking |
-| `MoveTool` | - | Singleton | Translate gizmo |
-| `ScaleTool` | - | Singleton | Scale gizmo |
-| `RulerTool` | - | Singleton | Measurement tool |
+| `ViewportRuler` | `ViewportRuler` | Singleton | Ruler overlay |
+| `ViewportGrid` | `ViewportGrid` | Singleton | 2D grid overlay |
+| `ViewportGrid3D` | `ViewportGrid3D` | Singleton | 3D grid overlay |
+| `ViewportToolManager` | `ViewportToolManager` | Singleton | Active tool management |
+| `SelectionTool` | `SelectionTool` | Singleton | Entity picking |
+| `MoveTool` | `MoveTool` | Singleton | Translate gizmo |
+| `ScaleTool` | `ScaleTool` | Singleton | Scale gizmo |
+| `RotateTool` | `RotateTool` | Singleton | Rotate gizmo |
+| `RulerTool` | `RulerTool` | Singleton | Measurement tool |
+| `IEditorCameraController` | `EditorCameraController` | Singleton | Editor fly camera |
+| `IEditorViewport` | `EditorViewport` | Singleton | Main scene viewport |
+| `ViewportComponents` | `ViewportComponents` | Singleton | Viewport UI composition |
 
 ### Other
 
 | Service | Implementation | Lifetime |
 |---------|---------------|----------|
-| `EntityContextMenu` | - | Singleton |
-| `PrefabDropTarget` | - | Singleton |
-| `AudioDropTarget` | - | Singleton |
+| `IEntityContextMenu` | `EntityContextMenu` | Singleton |
+| `PrefabDropTarget` | `PrefabDropTarget` | Singleton |
 | `IPrefabManager` | `PrefabManager` | Singleton |
-| `NewProjectPopup` | - | Singleton |
-| `SceneSettingsPopup` | - | Singleton |
-| `SceneToolbar` | - | Singleton |
-| `ECS.IContext` | `ECS.Context` | Singleton |
+| `IGameComponentFactory` | `GameComponentFactory` | Singleton |
+| `NewProjectPopup` | `NewProjectPopup` | Singleton |
+| `SceneSettingsPopup` | `SceneSettingsPopup` | Singleton |
+| `SceneToolbar` | `SceneToolbar` | Singleton |
 | `ILayer` | `EditorLayer` | Singleton |
-| `Editor` | - | Singleton |
+| `Editor` | `Editor` | Singleton |
+
+### Game Assembly DI Extension
+
+The editor registers delegates for hot-reloadable game assembly types:
+
+| Delegate | Purpose |
+|----------|---------|
+| `Func<Assembly, bool>` | `GameAssemblyContainerRegistration.TryRegisterContainer` — registers `[Register]` types from game DLL |
+| `Action<Assembly>` | `GameAssemblyContainerRegistration.UnregisterRegistrationsFromGameAssembly` — cleanup on unload |
+| `Func<IEnumerable<IGameSystem>>` | Resolves all `IGameSystem` instances from the container |
+
+Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` after loading the published game DLL.
 
 ## Service Lifetimes
 
 | Lifetime | Usage | Examples |
 |----------|-------|----------|
-| Singleton | Most services -- shared across entire application lifetime | EventBus, IScriptEngine, all factories, all systems, all editors |
-| Default (Transient) | Factory-created services where DryIoc resolves once at startup | IGameWindow, IImGuiLayer, IContentScaleProvider |
-| Per-Scene | Services tied to a specific scene's lifetime (NOT DI-managed) | PhysicsSimulationSystem |
-
-**PhysicsSimulationSystem** is not registered in DI. It is created manually in `Scene.Initialize()` because each scene needs its own Box2D World instance. This is the only system that breaks the DI pattern.
+| Singleton | Most services — shared across entire application lifetime | `IScriptEngine`, all factories, `ISceneSystemsFactory`, all editors |
+| Default (Transient) | Factory-created services where DryIoc resolves once at startup | `IGameWindow`, `IContentScaleProvider` |
+| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts` |
+| Per-scene (not DI singletons) | Created by `ISceneSystemsFactory` per scene | Individual `ISystem` implementations (e.g. physics simulation) |
 
 ## Registration Flow
 
@@ -271,26 +315,28 @@ sequenceDiagram
     participant Main as Program.cs
     participant C as DryIoc Container
     participant EIC as EngineIoCContainer
+    participant IMG as ImGuiIoCContainer
     participant EDIC as EditorIoCContainer
 
     Main->>C: new Container()
-    Main->>EIC: Register(container)
-    EIC->>C: Register Window & Rendering
-    EIC->>C: Register Global Services
-    EIC->>C: Register Audio
-    EIC->>C: Register Scene & ECS Systems
-    EIC->>C: Register Serialization
-    EIC->>C: RegisterFactories (all resource factories)
+    Main->>EIC: RegisterCore(container)
+    EIC->>C: Register rendering, audio, scene factories, serialization, factories
+    Main->>EIC: RegisterWindowing(container, hostOptions)
+    EIC->>C: Register IWindow, IGameWindow, input factory
 
     alt Editor mode
+        Main->>IMG: Register(container)
         Main->>EDIC: Register(container)
-        EDIC->>C: Register Core Editor Services
-        EDIC->>C: Register Component Editors
-        EDIC->>C: Register Panels
-        EDIC->>C: Register Scene & Viewport Tools
+        EDIC->>C: Register editor services, editors, panels, viewport
     end
 
-    Main->>C: Resolve<Editor>() or Resolve<RuntimeApp>()
+    alt Runtime mode
+        Main->>C: Register RuntimeApplication, game config
+        Main->>C: Load game assembly + TryRegisterContainer
+    end
+
+    Main->>C: ValidateAndThrow()
+    Main->>C: Resolve Editor or RuntimeApplication
     Note over C: DryIoc resolves full dependency graph<br/>via primary constructor injection
 ```
 
@@ -333,13 +379,14 @@ internal sealed class SpriteRenderingSystem(
 }
 ```
 
-DryIoc resolves the full dependency graph at `Resolve<>()` time. If a dependency is missing, DryIoc throws at startup -- fail-fast behavior eliminates the need for runtime null checks.
+DryIoc resolves the full dependency graph at `Resolve<>()` time. If a dependency is missing, DryIoc throws at startup — fail-fast behavior eliminates the need for runtime null checks.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `Engine/Core/DI/EngineIoCContainer.cs` | Core runtime DI registrations |
+| `Engine/Core/DI/EngineIoCContainer.cs` | Core runtime DI registrations (`RegisterCore`, `RegisterWindowing`) |
+| `Engine/Core/DI/EngineHostOptions.cs` | Window title/size defaults for `RegisterWindowing` |
 | `Editor/DI/EditorIoCContainer.cs` | Editor-only DI registrations |
-| `Editor/Program.cs` | Container creation + both registrations |
-| `Runtime/Program.cs` | Container creation + engine registrations only |
+| `Editor/Program.cs` | Container creation, engine + ImGui + editor registration, `ValidateAndThrow` |
+| `Runtime/Program.cs` | Container creation, engine registration, game assembly DI extension |

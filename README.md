@@ -7,9 +7,9 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 ### 🎮 Core Engine
 - **Entity Component System (ECS)** - Flexible, data-driven architecture with priority-based system execution
 - **2D Rendering** - OpenGL-based rendering pipeline via Silk.NET with batching (10,000 quads/batch)
-- **Physics Integration** - Box2D physics simulation with debug visualization
+- **Physics Integration** - Platform-abstracted 2D physics (Box2D backend) with contact queue and debug visualization
 - **Hot-Reloadable Scripting** - C# scripting with real-time compilation via Roslyn
-- **Dependency Injection** - DryIoc IoC container for clean architecture
+- **Dependency Injection** - DryIoc IoC with staged engine registration (`RegisterCore` / `RegisterWindowing`) and editor overlay ([docs](docs/architecture/dependency-injection.md))
 - **Cross-Platform** - Windows, macOS support
 
 ### 🛠️ Editor
@@ -18,20 +18,22 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 - **Live Console** - Real-time logging and debugging with Serilog integration
 - **Component Inspector** - Visual component editing with 17 editor panels
 - **Project Management** - Create and manage game projects
-- **Keyboard Shortcuts** - Configurable shortcuts for improved workflow
+- **Game Publishing** - Build standalone executables via **Publish → Build & Publish** (`IGamePublisher` / `Editor/Publisher/`); Debug builds also copy source `.cs` files to `assets/scripts/`
+- **Keyboard Shortcuts** - Centralized shortcut registry with in-editor reference panel ([docs](docs/guide/editor/shortcuts.md))
 
 ### 🎨 Rendering
 - **2D Sprite Rendering** - Batched quad rendering with texture atlasing (10,000 quads per batch)
+- **3D Cube Rendering** - Lit unit cubes via `ModelRendererComponent` with ambient and directional lights
 - **Shader System** - OpenGL shader management with caching
-- **Camera System** - Orthographic cameras with optimized matrix calculation
-- **Framebuffer Support** - Render-to-texture capabilities for editor viewports
+- **Camera System** - Orthographic and perspective cameras with optimized matrix calculation
+- **Framebuffer Support** - Multi-attachment render-to-texture (RGBA16F color, entity ID, depth) for editor viewports
 - **GPU Entity Picking** - Efficient entity selection in editor
 
 ### 🔧 Scripting System
-- **Hot Reload** - Modify scripts without restarting
-- **Visual Debugging** - Debug symbols and breakpoint support
-- **Component Integration** - Direct access to ECS components
-- **Event System** - Event-driven architecture for input and game events
+- **Hot Reload** - Editor recompiles `assets/scripts/` to versioned `GameAssembly_{guid}.dll` and reloads via collectible `AssemblyLoadContext`
+- **Roslyn Compilation** - `GameAssemblyCompiler` emits game DLLs with optional portable PDBs for debugging
+- **Three Tiers** - `IGameComponent` (data), `ScriptableEntity` (per-entity glue), `IGameSystem` (batch logic via `[Register]`)
+- **Event Dispatch** - `IScriptEngine.ProcessEvent` forwards input events to `ScriptableEntity` instances via `NativeScriptIteration`
 
 ### 🎧 Audio System
 - **OpenAL Integration** - 3D spatial audio with listener orientation
@@ -104,13 +106,13 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 │   ├── Platform/       # Platform-specific abstractions (SilkNet)
 │   ├── Renderer/       # OpenGL rendering pipeline
 │   ├── Scene/          # Scene management, serialization
-│   │   ├── Components/ # All ECS component definitions (18 components)
 │   │   ├── Systems/    # ECS system implementations
-│   │   └── Serializer/ # JSON scene/prefab serialization
+│   │   └── Serializer/ # JSON scene/prefab serialization (ComponentSerializerRegistry)
 │   ├── Scripting/      # Roslyn-based script engine
 │   └── UI/             # UI system integration
-├── ECS/                # Pure ECS implementation
-│   └── System/         # ISystem interface, SystemManager
+├── ECS/                # Pure ECS framework (Entity, Context, ISystem, SystemManager)
+│   └── Systems/        # ISystem, IGameSystem, SystemManager
+├── SceneComponents/    # Built-in ECS component definitions (14 components)
 ├── Editor/             # Visual editor application
 │   ├── Input/          # Editor input handling
 │   ├── Logging/        # Console panel integration
@@ -138,11 +140,12 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 
 ### Key Systems
 
-- **Renderer2D** - Batched rendering with automatic state management and shader/texture caching ([docs](docs/architecture/rendering-pipeline.md))
-- **ScriptEngine** - Roslyn-based C# compilation with hot-reload and debugging support
+- **Graphics2D** (`IGraphics2D`) - Batched 2D rendering with automatic state management and shader/texture caching ([docs](docs/architecture/rendering-pipeline.md))
+- **Graphics3D** (`IGraphics3D`) - Per-entity lit cube rendering with ambient/directional ECS lights ([docs](docs/opengl/opengl-3d-workflow.md))
+- **ScriptEngine** - `GameAssemblyCompiler` (Roslyn emit) + `IScriptEngine` (collectible load, type index, instance factory) ([docs](docs/architecture/scripting-lifecycle.md))
 - **Scene System** - Hierarchical entity management with JSON serialization ([docs](docs/modules/scene-management.md))
-- **ECS Systems** - Priority-based system execution with dependency injection ([docs](docs/specifications/ecs-systems-integration.md))
-- **Event System** - Event-driven input handling with layer-based propagation ([docs](docs/modules/input-system-architecture.md))
+- **ECS Systems** - Priority-based system execution with dependency injection ([docs](docs/architecture/ecs-architecture.md))
+- **Event System** - Event-driven input handling with layer-based propagation ([docs](docs/guide/scripting/input.md))
 - **Camera System** - Orthographic camera with optimized matrix calculation ([docs](docs/architecture/rendering-pipeline.md#camera-system))
 - **Audio System** - OpenAL-based spatial audio with WAV/Ogg loading and EFX ([docs](docs/architecture/audio-system.md))
 - **Asset Pipeline** - Factory-based texture loading with resource management ([docs](docs/modules/resource-management.md))
@@ -261,8 +264,8 @@ The engine has undergone significant architectural improvements and optimization
 - **Dictionary-based Lookups** - Graphics2D uses O(1) texture lookups instead of linear search
 
 ### Architectural Enhancements
-- **Priority-Based ECS** - Systems execute in configurable priority order (ScriptUpdateSystem: 100)
-- **Dependency Injection** - Full DryIoc integration with 50+ service registrations
+- **Priority-Based ECS** - Systems execute in configurable priority order (PhysicsSimulationSystem: 100)
+- **Dependency Injection** - DryIoc with 80+ registrations; scene systems created via `ISceneSystemsFactory`, not as DI singletons
 - **Factory Pattern** - Consistent factory-based resource creation throughout
 - **IDisposable Patterns** - Proper resource cleanup for all unmanaged resources
 - **Unified Error Handling** - Consistent GL error checking across rendering system
@@ -280,31 +283,36 @@ Comprehensive documentation for each major system in the engine (17 modules):
 - [Audio System](docs/architecture/audio-system.md) - OpenAL engine, spatial audio, loaders, and effects
 
 **Core Systems:**
-- [Input System Architecture](docs/modules/input-system-architecture.md) - Event-driven input handling
+- [Input Handling](docs/guide/scripting/input.md) - Keyboard, mouse, and layer-based event propagation
 - [Scene Management](docs/modules/scene-management.md) - Hierarchical entity management
 - [Camera System](docs/modules/camera-system.md) - Camera system with optimizations
-- [ECS & GameObject Architecture](docs/modules/ecs-gameobject.md) - Entity Component System design
-- [Game Loop](docs/modules/game-loop.md) - Core engine execution cycle
+- [ECS Architecture](docs/architecture/ecs-architecture.md) - Entity Component System design
+- [Game Loop](docs/architecture/game-loop.md) - Application lifecycle, layer stack, and frame tick
 
 **Rendering:**
 - [Rendering Pipeline](docs/architecture/rendering-pipeline.md) - OpenGL rendering pipeline overview
 - [OpenGL 2D Workflow](docs/opengl/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
+- [OpenGL 3D Workflow](docs/opengl/opengl-3d-workflow.md) - Lit cube rendering with ECS lights
 - [Frame Buffers](docs/opengl/frame-buffers.md) - Render-to-texture capabilities
 
 **Tools & Publishing:**
 - [Editor Tools](docs/modules/editor.md) - Visual editor features and workflow
 - [Resource Management](docs/modules/resource-management.md) - Asset loading and management
-- [Game Publishing Workflow](docs/modules/game-publishing-workflow.md) - Build and export tools
+- **Game Publishing** — editor menu **Publish → Build & Publish** (`PublishSettingsUI`). Requires a loaded project and a saved scene. Builds `Runtime/Runtime.csproj` with `dotnet publish`, copies project `assets/`, compiles scripts to `GameAssembly.dll`, and writes `game.config.json`. Default output: `{project}/Builds/`. Targets: `win-x64`, `win-x86`, `win-arm64`, `osx-x64`, `osx-arm64`. Options: Release/Debug, self-contained .NET runtime, single-file executable.
+  - **Debug script copy** — when Configuration is `Debug`, `CopyScripts` copies project scripts into `assets/scripts/` in the build output; Release asset copy skips `assets/scripts/` from the project tree (`includeScripts: false` in `CopyAssets`).
+  - **Post-build validation** — `ValidatePublishedBuild` requires the platform executable (`Runtime.exe` / `Runtime`), `game.config.json`, `GameAssembly.dll`, and the startup scene. Logs a warning (non-fatal) if the executable is under 100 KB.
+  - Source: `Editor/Publisher/`, `Runtime/Program.cs`
 
 ### OpenGL Rendering Workflows
 Detailed guides on the OpenGL rendering implementation:
 
 - [OpenGL 2D Rendering Workflow](docs/opengl/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
+- [OpenGL 3D Rendering Workflow](docs/opengl/opengl-3d-workflow.md) - Lit cube rendering with ambient and directional lights
 
 ### Technical Specifications
 Design documents for major features:
 
-- [ECS Systems Integration](docs/specifications/ecs-systems-integration.md) - Priority-based ECS design
+- [ECS Architecture](docs/architecture/ecs-architecture.md) - Priority-based ECS design
 - [Entity Search Filter](docs/specifications/entity-search-filter.md) - Scene hierarchy filtering
 - [Ogg Audio Format Support](docs/specifications/ogg-audio-format-support.md) - Ogg Vorbis integration
 - [Physics Benchmark Design](docs/specifications/physics-benchmark-design.md) - Performance testing
@@ -326,15 +334,16 @@ dotnet test
 
 ## 🏗️ Architectural Highlights
 
-### Entity Component System (18 Built-in Components)
-- **Core**: IDComponent, TagComponent, TransformComponent
-- **Rendering**: SpriteRendererComponent, SubTextureRendererComponent, CameraComponent
+### Entity Component System (14 Built-in Components)
+- **Core**: IdComponent, TagComponent, TransformComponent
+- **Rendering**: SpriteRendererComponent, SubTextureRendererComponent, ModelRendererComponent, CameraComponent
+- **Lighting**: AmbientLightComponent, DirectionalLightComponent
 - **Physics**: RigidBody2DComponent, BoxCollider2DComponent
 - **Scripting**: NativeScriptComponent
 - **Audio**: AudioSourceComponent, AudioListenerComponent
 
 ### Design Patterns
-- **Dependency Injection** - DryIoc IoC container throughout
+- **Dependency Injection** - `EngineIoCContainer` + `EditorIoCContainer`; game assemblies extend the container via `[Register]` ([docs](docs/architecture/dependency-injection.md))
 - **Factory Pattern** - Resource creation via factories (TextureFactory, ShaderFactory, AudioClipFactory, etc.)
 - **Interface-Driven Design** - IGraphics2D, IRendererAPI, ISystem, etc.
 - **Constants Classes** - EditorUIConstants and RenderingConstants prevent magic numbers

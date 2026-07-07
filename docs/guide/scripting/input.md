@@ -1,8 +1,17 @@
 # Input Handling
 
-Handle keyboard and mouse input in your game scripts.
+Handle keyboard and mouse input in game scripts (`ScriptableEntity`) or in batch logic systems (`IGameSystem` via `IKeyboardInput`).
 
-## Input Callbacks
+## How input flows
+
+1. **File**: `Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs` — Silk.NET keyboard/mouse callbacks enqueue `InputEvent` records.
+2. Each frame, `IInputSystem.Update` dequeues events and raises `InputReceived`.
+3. **File**: `Engine/Core/Application.cs` — `HandleInputEvent` walks the layer stack top-down; a layer can set `event.IsHandled` to stop propagation.
+4. The active game layer updates `KeyboardInputState` and dispatches each `InputEvent` to every `ScriptableEntity` on the active scene.
+
+For global or shared input (turn order, menus), prefer `IKeyboardInput` in an `IGameSystem` — see [Scripting Tiers](scripting-tiers.md).
+
+## Script callbacks
 
 Override these methods in your `ScriptableEntity` subclass to respond to input:
 
@@ -10,7 +19,10 @@ Override these methods in your `ScriptableEntity` subclass to respond to input:
 |--------|------------|
 | `OnKeyPressed(KeyCodes key)` | A key is pressed down |
 | `OnKeyReleased(KeyCodes keyCode)` | A key is released |
-| `OnMouseButtonPressed(int button)` | A mouse button is clicked (0=left, 1=right, 2=middle) |
+| `OnMouseButtonPressed(int button)` | A mouse button is pressed (0=left, 1=right, 2=middle) |
+| `OnMouseButtonReleased(int button)` | A mouse button is released |
+| `OnMouseMoved(float x, float y)` | The cursor moves (window coordinates) |
+| `OnMouseScrolled(float xOffset, float yOffset)` | The scroll wheel moves |
 
 ## KeyCodes Reference
 
@@ -20,7 +32,7 @@ Override these methods in your `ScriptableEntity` subclass to respond to input:
 |----------|------|
 | Letters | `KeyCodes.A` through `KeyCodes.Z` |
 | Numbers (top row) | `KeyCodes.D0` through `KeyCodes.D9` |
-| Numpad | `KeyCodes.KeyPad0` through `KeyPad9` |
+| Numpad | `KeyCodes.KeyPad0` through `KeyCodes.KeyPad9` |
 
 ### Navigation and Special Keys
 
@@ -51,8 +63,8 @@ using System;
 using System.Numerics;
 using ECS;
 using Engine.Scene;
-using Engine.Core.Input;
 using Engine.Scene.Components;
+using Input;
 
 public class PlayerMovement : ScriptableEntity
 {
@@ -113,6 +125,27 @@ public override void OnMouseButtonPressed(int button)
 }
 ```
 
+## Example: Mouse scroll zoom
+
+```csharp
+public override void OnMouseScrolled(float xOffset, float yOffset)
+{
+    if (yOffset > 0) ZoomIn();
+    else if (yOffset < 0) ZoomOut();
+}
+```
+
+## Polling in game systems
+
+Inject `IKeyboardInput` into an `IGameSystem` to poll held or just-pressed keys without per-entity callbacks:
+
+| Method | Behavior |
+|--------|----------|
+| `IsKeyDown(KeyCodes key)` | Key is currently held |
+| `WasKeyPressed(KeyCodes key)` | Key went down this frame (cleared at end of frame) |
+
+**File**: `Engine/Core/Input/KeyboardInputState.cs` — singleton implementation registered in DI.
+
 ## Common Patterns
 
 **Velocity-based movement:** Accumulate velocity on key press, apply it in `OnUpdate`. This produces smoother movement and works well with physics simulation.
@@ -123,3 +156,4 @@ public override void OnMouseButtonPressed(int button)
 
 - [Physics](physics.md) -- collisions, triggers, and rigidbody interaction
 - [API Reference](api-reference.md) -- complete method listing
+- [Editor Keyboard Shortcuts](../editor/shortcuts.md) -- editor shortcut bindings and routing in Edit vs Play mode

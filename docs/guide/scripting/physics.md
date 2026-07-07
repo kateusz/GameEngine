@@ -19,6 +19,10 @@ Both are required. A rigidbody without a collider has no shape to collide with. 
 | **Dynamic** | Fully simulated by the physics engine (gravity, forces, collisions). | Players, enemies, projectiles |
 | **Kinematic** | Moved by your code. Pushes dynamic bodies but is not affected by forces or gravity. | Moving platforms, elevators |
 
+For **Dynamic** and **Kinematic** bodies, set `RigidBody2DComponent.Velocity` in `OnUpdate` to move via physics. The simulation copies velocity into the body before each step and writes the result back afterward. **Kinematic** bodies also follow transform changes you make in code before the step runs.
+
+Use `GravityScale` on `RigidBody2DComponent` to scale gravity per entity (1.0 = default).
+
 ## Collision Callbacks
 
 Override these methods to react when your entity physically collides with another:
@@ -131,7 +135,9 @@ public class DamageOnHit : ScriptableEntity
 
 ## Debug Tip
 
-Enable collider visualization in DebugSettings to see collider bounds in the viewport. This helps verify that your colliders are the right size and position.
+Enable **Show Collider Bounds** in debug settings to draw collider outlines in the play viewport (`PhysicsDebugRenderSystem`). This helps verify that your colliders are the right size and position.
+
+Tier-2 `IGameSystem` scripts can poll `IPhysicsContacts.DrainContacts()` for batched contact events instead of using `ScriptableEntity` callbacks.
 
 ## Next Steps
 

@@ -27,7 +27,7 @@ Input is handled in `TicTacToeSystem` with `IKeyboardInput.WasKeyPressed` — no
 - Anything saved in the scene JSON
 - Fields edited in the Properties panel
 
-Create via **Add Game Component** in the editor.
+Create via **Add Game Component** in the editor. New component types are scaffolded with `GameComponentTemplates` (`[SerializableComponent]`, `IGameComponent`, `Clone()`).
 
 ### Scripts (`ScriptableEntity`)
 
@@ -45,7 +45,7 @@ Scripts receive input through lifecycle overrides (`OnKeyPressed`, etc.). For ga
 - Systems that update many entities from one query
 - Input that affects global or shared state
 
-Register with `[Register(typeof(IGameSystem))]` and inject:
+Register with `[Register(typeof(IGameSystem))]` (optional `GameIocLifetime`: `Singleton` default, `Transient`, `Scoped`; editor scaffolds via `GameSystemTemplates`) and inject:
 
 - `IContext` — entity/component queries
 - `IKeyboardInput` — `IsKeyDown` / `WasKeyPressed`

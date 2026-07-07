@@ -19,12 +19,14 @@ Compilation and editor orchestration stay in the **Editor**. The **Engine** runt
 | Component | Project | Role |
 |-----------|---------|------|
 | `GameAssemblyCompiler` | Engine | Roslyn: parse `.cs` files, resolve references, emit PE (+ optional PDB) |
-| `IGameAssemblyBuilder` / `GameAssemblyBuilder` | Engine | Thin wrapper around `GameAssemblyCompiler.TryCompile` |
-| `ScriptCompilationReferences` | Engine | Metadata references for Roslyn (project SDK first, AppDomain fallback) |
+| `ScriptCompilationReferences` | Engine | Metadata references for Roslyn (`assets/scripts/.engine/sdk/` first, then AppDomain) |
 | `GameAssemblyLoadContext` | Engine | Collectible `AssemblyLoadContext`; loads one DLL path |
 | `IScriptEngine` / `ScriptEngine` | Engine | Load/unload ALC, type index, `CreateScriptInstance`, event dispatch |
-| `GameScriptWorkspace` | Editor | **Single orchestrator**: compile → revoke → unload → load → apply → refresh |
 | `GameAssemblyContainerRegistration` | Engine | Discover `[Register]` types; register/unregister in DryIoc |
+| `GameComponentDiscovery` | Engine | Regex scan of script sources for `IGameComponent` class names (editor tooling) |
+| `ScriptableEntityTemplates` / `GameSystemTemplates` / `GameComponentTemplates` | Engine | Scaffold new script, system, and component `.cs` files in the editor |
+| `AssemblyLoadTypes` | Engine | Safe `assembly.GetTypes()` when reflection load throws `ReflectionTypeLoadException` |
+| `GameScriptWorkspace` | Editor (`Editor/Features/Scripting/GameScriptWorkspace.cs`) | **Single orchestrator**: compile → revoke → unload → load → apply → refresh |
 
 ```mermaid
 graph LR
@@ -69,6 +71,25 @@ Script sources: `assets/scripts/**/*.cs` (excludes `bin`, `obj`, `.vs`, generate
 
 References for compilation: DLLs in `assets/scripts/.engine/sdk/` (copied per project by `GameProjectScriptBootstrapper`), plus core BCL and engine assemblies via `ScriptCompilationReferences`.
 
+**File:** `Engine/Scripting/ScriptCompilationReferences.cs`
+
+| Reference source | Assemblies |
+|------------------|------------|
+| BCL runtime dir | `System.Private.CoreLib`, `System.Runtime`, `System.Collections`, `System.Linq`, `System.Numerics`, `System.Numerics.Vectors`, and other essentials |
+| `assets/scripts/.engine/sdk/*.dll` | Project-copied SDK (when present) |
+| Loaded AppDomain | `Engine*`, `ECS*`, `Editor*` (when loaded), plus support assemblies below |
+| Support assemblies (by name) | `ECS`, `Audio`, `Scripting`, `SceneComponents`, `Input`, `Math` |
+| Physics | `Box2D.NetStandard.dll` (next to engine or cwd) |
+
+`ValidateReferences` fails the compile if `System.Private.CoreLib`, `System.Runtime`, `System.Numerics.Vectors`, or `ECS` are missing.
+
+**File:** `Engine/Scripting/GameAssemblyCompiler.cs`
+
+- `AssemblyName` = `"GameAssembly"`.
+- Injects a global-usings syntax tree (`System`, `System.Collections.Generic`, `System.Linq`, `System.Numerics`, etc.).
+- If no `.cs` files qualify, emits an internal `EmptyGameAssemblyPlaceholder` so the DLL is still valid.
+- `TryCompile(scriptsDirectory, outputDllPath, emitPdb, useDebugOptimization, out errors)` — PDB format is portable when `emitPdb` is true, embedded otherwise; `allowUnsafe: true`, deterministic emit.
+
 ---
 
 ## Unified reload pipeline
@@ -106,7 +127,7 @@ sequenceDiagram
 
 When a new assembly is loaded:
 
-1. `GameAssemblyContainerRegistration.TryRegisterContainer` — types with `[Register(typeof(IGameSystem))]` (and other services) registered in DryIoc; prior registrations from the same assembly name are replaced.
+1. `GameAssemblyContainerRegistration.TryRegisterContainer` — types with `[Register(typeof(TService), lifetime)]` registered in DryIoc (`GameIocLifetime`: `Singleton` default, `Transient`, `Scoped`); prior registrations from the same assembly name are replaced.
 2. `ComponentSerializerRegistry.RegisterFromAssembly` — types with `[SerializableComponent]` get JSON serializers; prior assembly entry is unregistered first.
 
 Tracks `_appliedAssembly` for symmetric revoke.
@@ -128,7 +149,7 @@ Called on **project close** and at the start of every reload.
 | Trigger | Who | Compile? | Load? |
 |---------|-----|----------|-------|
 | Open / create project | `ProjectManager.InitializeScripts` → `SetScriptsDirectory` | Yes | Yes |
-| Create / edit / delete script (content browser, inspector) | `GameScriptWorkspace` CRUD | Yes | Yes |
+| Create / edit / delete script (content browser, inspector) | `GameScriptWorkspace.CreateOrUpdateScriptAsync` / `DeleteScript` | Yes | Yes |
 | Open scene (edit mode) | `SceneManager.Open` → `EnsureScriptsCompiledAndApplied` | Only if no valid assembly for current project | Yes |
 | **Play** | `SceneManager.Play` | Yes (new GUID DLL) | Yes (`LoadGameAssemblyFromFile`, no second compile) |
 | **Stop** | `SceneManager.Stop` → `Open(saved scene)` | After scene dispose, if needed | Yes |
@@ -145,7 +166,7 @@ There is **no** per-frame hot-reload in the runtime `ScriptEngine`. Recompile ha
 ### Project open
 
 1. `ProjectManager.TryOpenProject` / `TryCreateNewProject` → `CloseProject` (if switching).
-2. `ProjectClosing`: if playing → `Stop`; else dispose scene → `RevokeAndUnload`.
+2. `EditorLifecycle` handles `ProjectClosing`: if playing → `Stop`; else dispose scene → `GameScriptWorkspace.RevokeAndUnload`.
 3. `InitializeScripts` → `SetScriptsDirectory` → full reload pipeline (compile + load + apply).
 
 ### Scene open (edit mode)
@@ -191,13 +212,18 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 
 ## ScriptEngine (runtime surface)
 
+**File:** `Engine/Scripting/IScriptEngine.cs`, `Engine/Scripting/ScriptEngine.cs`
+
 `IScriptEngine` is intentionally small:
 
-- `LoadGameAssemblyFromFile(string dllPath)`
-- `UnloadGameAssembly()`
-- `GetScriptType` / `CreateScriptInstance`
-- `GetLoadedGameAssembly()`
-- `ProcessEvent` — forwards to `NativeScriptIteration` for `ScriptableEntity` input
+| Method | Behavior |
+|--------|----------|
+| `LoadGameAssemblyFromFile(string dllPath)` | Unloads prior ALC, loads DLL via new `GameAssemblyLoadContext`, indexes concrete `ScriptableEntity` subclasses by type name |
+| `UnloadGameAssembly()` | Clears type index and unloads collectible ALC |
+| `GetScriptType(string scriptName)` | Lookup indexed script type |
+| `CreateScriptInstance(string scriptName)` | `Activator.CreateInstance` with `(ComponentAccessor, IAudio, IAudioPlayback)`; returns `Result<ScriptableEntity>` |
+| `GetLoadedGameAssembly()` | Current game assembly, or `null` |
+| `ProcessEvent(Event, IContext, ScriptRuntimeStore)` | Forwards to `NativeScriptIteration.ProcessEvent` |
 
 `GameAssemblyLoadContext` is collectible (`isCollectible: true`); `Load()` returns `null` so dependencies resolve from the default context. Each load uses a new ALC instance.
 
@@ -205,21 +231,31 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 
 ## ScriptableEntity (glue tier)
 
-**File:** `Scripting/ScriptableEntity.cs`
+**File:** `Scripting/ScriptableEntity.cs` (game-author SDK project at repo root, referenced by compiled `GameAssembly`)
 
-Lifecycle: `OnCreate`, `OnUpdate`, `OnDestroy`. Input and physics via virtual overrides.
+Constructor: `(IComponentAccessor, IAudio, IAudioPlayback)`. Lifecycle overrides: `OnCreate`, `OnUpdate`, `OnDestroy`; input via `OnKeyPressed` / mouse overrides; physics via `OnCollisionBegin` / `OnTriggerEnter` etc.
 
-Runtime instances live in per-scene `ScriptRuntimeStore` (keyed by entity id). Only `ScriptTypeName` is persisted on `NativeScriptComponent` — use `IGameComponent` for serialized data.
+Runtime instances live in a **per-scene** `ScriptRuntimeStore` (`Engine/Scene/ScriptRuntimeStore.cs`, created in `SystemManagerFactory`). Only `ScriptTypeName` is persisted on `NativeScriptComponent` — use `IGameComponent` for serialized data.
 
-`ScriptUpdateSystem` (priority 110) calls `NativeScriptIteration.Update`; creation goes through `IScriptEngine.CreateScriptInstance`.
+**File:** `Engine/Scene/Systems/NativeScriptIteration.cs`, `Engine/Scene/Systems/ScriptUpdateSystem.cs`
+
+| Step | Behavior |
+|------|----------|
+| Create | `IScriptEngine.CreateScriptInstance` on first `Update` for each `NativeScriptComponent` |
+| Init | `SetEntity` + `OnCreate` on first frame the instance is updated |
+| Update | `ScriptUpdateSystem` (priority 110, `SystemPriorities.ScriptUpdateSystem`) → `NativeScriptIteration.Update` |
+| Input | `EditorInputHandler` / `Runtime/GameLayer` → `IScriptEngine.ProcessEvent` → `NativeScriptIteration.ProcessEvent` |
+| Physics | `SceneContactListener` (`Engine/Scene/SceneContactListener.cs`) → collision/trigger overrides on stored instances |
+| Reload | `NativeScriptIteration.Refresh` after assembly reload when `ForceRecompile` or reload passes `context` + `store` |
+| Shutdown | `NativeScriptIteration.Shutdown` + `store.Clear()` from `ScriptUpdateSystem.OnShutdown` or reload pipeline |
 
 ---
 
 ## Game systems (logic tier)
 
-**Files:** `ECS/Systems/IGameSystem.cs`, `Scripting/RegisterAttribute.cs`
+**Files:** `ECS/Systems/IGameSystem.cs`, `Scripting/RegisterAttribute.cs`, `Scripting/GameIocLifetime.cs`, `Engine/Scene/RuntimeSceneStarter.cs`
 
-Discovered from loaded `GameAssembly` via `[Register(typeof(IGameSystem))]`. On play, `resolveGameSystems()` resolves from DryIoc and `RuntimeSceneStarter` registers them on the active scene's `SystemManager`.
+Discovered from loaded `GameAssembly` via `[Register(typeof(IGameSystem))]` (or other service types). `GameAssemblyContainerRegistration` uses `AssemblyLoadTypes.From` for safe reflection. On play, `resolveGameSystems()` resolves from DryIoc and `RuntimeSceneStarter.Start` calls `scene.RegisterRuntimeSystem` for each `IGameSystem`, then `scene.OnRuntimeStart`.
 
 Injected services include `IContext`, `IKeyboardInput`, `IPhysicsContacts`, `IAudio`.
 

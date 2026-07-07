@@ -8,6 +8,8 @@ A scene is a level, menu, or world. It contains all the entities that make up th
 
 You might have separate scenes for your main menu, each game level, and a game over screen.
 
+Scene files store `BackgroundColor`, `Dimension` (2D or 3D), and an `Entities` array. Each entity has an `Id`, `Name`, and a `Components` array. Prefabs use the same component JSON format without scene-level fields. See [Serialization](../../architecture/serialization.md) for the full schema.
+
 ## Scene Lifecycle
 
 Scenes operate in two modes:
