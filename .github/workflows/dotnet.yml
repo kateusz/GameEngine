@@ -34,7 +34,7 @@ jobs:
       run: dotnet test tests/ECS.Tests/ECS.Tests.csproj --no-build --verbosity normal
     - name: Test Engine.Tests
       id: engine_tests
-      run: dotnet test tests/Engine.Tests/Engine.Tests.csproj --no-build --verbosity normal
+      run: dotnet test tests/Engine.Tests/Engine.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=engine-tests.trx"
     - name: Test Engine.GraphicsTests
       id: graphics_tests
       if: hashFiles('tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj') != ''
@@ -45,3 +45,8 @@ jobs:
     - name: Test results
       if: always()
       run: echo "ECS.Tests=${{ steps.ecs_tests.outcome }} Engine.Tests=${{ steps.engine_tests.outcome }} Engine.GraphicsTests=${{ steps.graphics_tests.outcome }}"
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: test-results
+        path: "**/*.trx"
