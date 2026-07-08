@@ -45,16 +45,9 @@ jobs:
         LIBGL_ALWAYS_SOFTWARE: "1"
         GALLIUM_DRIVER: llvmpipe
       run: xvfb-run -a dotnet test tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj --no-build --verbosity normal
-    - name: Test summary
+    - name: Test results
       if: always()
-      shell: bash
-      run: |
-        ecs="${{ steps.ecs_tests.outcome }}"
-        engine="${{ steps.engine_tests.outcome }}"
-        graphics="${{ steps.graphics_tests.outcome }}"
-        echo "ECS.Tests:            $ecs"
-        echo "Engine.Tests:         $engine"
-        echo "Engine.GraphicsTests: $graphics"
-        if [ "$ecs" != "success" ] || [ "$engine" != "success" ]; then exit 1; fi
-        if [ "$graphics" != "skipped" ] && [ "$graphics" != "success" ]; then exit 1; fi
-        exit 0
+      run: echo "ECS.Tests=${{ steps.ecs_tests.outcome }} Engine.Tests=${{ steps.engine_tests.outcome }} Engine.GraphicsTests=${{ steps.graphics_tests.outcome }}"
+    - name: Fail if any test project failed
+      if: always() && (steps.ecs_tests.outcome != 'success' || steps.engine_tests.outcome != 'success' || (steps.graphics_tests.outcome != 'skipped' && steps.graphics_tests.outcome != 'success'))
+      run: echo "One or more test projects failed" && exit 1
