@@ -332,6 +332,12 @@ Run tests with:
 dotnet test
 ```
 
+Graphics integration tests (`Engine.GraphicsTests`) require a working OpenGL stack. They skip automatically on machines without one. To run unit tests only:
+
+```bash
+dotnet test --filter "Category!=GraphicsIntegration"
+```
+
 ## 🏗️ Architectural Highlights
 
 ### Entity Component System (14 Built-in Components)

@@ -2,16 +2,19 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
+using Engine.Renderer;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Input;
 
 namespace Engine.Platform.SilkNet;
 
-internal sealed class SilkNetGameWindow(IWindow window, IInputSystemFactory inputSystemFactory) : IGameWindow
+internal sealed class SilkNetGameWindow(
+    IWindow window,
+    IInputSystemFactory inputSystemFactory,
+    IGraphicsContext graphicsContext) : IGameWindow
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetGameWindow>();
 
@@ -47,13 +50,12 @@ internal sealed class SilkNetGameWindow(IWindow window, IInputSystemFactory inpu
     {
         OnClose(new WindowCloseEvent());
 
-        // Unload OpenGL
-        SilkNetContext.GL.Dispose();
+        graphicsContext.Dispose();
     }
 
     private void WindowOnLoad()
     {
-        SilkNetContext.GL = window.CreateOpenGL();
+        graphicsContext.Create(window);
         SilkNetContext.Window = window;
 
         Logger.Information("SilkNet window loaded");

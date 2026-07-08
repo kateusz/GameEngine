@@ -6,6 +6,7 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
+using Engine.Platform.SilkNet;
 using Silk.NET.OpenAL;
 using Engine.Physics;
 using Engine.Renderer;
@@ -38,6 +39,7 @@ public static class EngineIoCContainer
                 f => f.Create()
             )
         );
+        container.Register<IGraphicsContext, SilkNetGraphicsContext>(Reuse.Singleton);
 
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
         container.Register<IProjectContext, ProjectContext>(Reuse.Singleton);
