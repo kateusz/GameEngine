@@ -47,14 +47,14 @@ jobs:
       run: xvfb-run -a dotnet test tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj --no-build --verbosity normal
     - name: Test summary
       if: always()
+      shell: bash
       run: |
-        echo "ECS.Tests:          ${{ steps.ecs_tests.outcome }}"
-        echo "Engine.Tests:       ${{ steps.engine_tests.outcome }}"
-        echo "Engine.GraphicsTests: ${{ steps.graphics_tests.outcome }}"
-        failed=0
-        [ "${{ steps.ecs_tests.outcome }}" = "success" ] || failed=1
-        [ "${{ steps.engine_tests.outcome }}" = "success" ] || failed=1
-        if [ "${{ steps.graphics_tests.outcome }}" != "skipped" ] && [ "${{ steps.graphics_tests.outcome }}" != "success" ]; then
-          failed=1
-        fi
-        exit $failed
+        ecs="${{ steps.ecs_tests.outcome }}"
+        engine="${{ steps.engine_tests.outcome }}"
+        graphics="${{ steps.graphics_tests.outcome }}"
+        echo "ECS.Tests:            $ecs"
+        echo "Engine.Tests:         $engine"
+        echo "Engine.GraphicsTests: $graphics"
+        if [ "$ecs" != "success" ] || [ "$engine" != "success" ]; then exit 1; fi
+        if [ "$graphics" != "skipped" ] && [ "$graphics" != "success" ]; then exit 1; fi
+        exit 0
