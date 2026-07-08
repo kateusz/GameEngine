@@ -8,12 +8,13 @@ namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLVertexArray : IVertexArray
 {
-    private uint _vertexArrayObject;
     private bool _disposed;
+
+    internal uint RendererId { get; private set; }
 
     public OpenGLVertexArray()
     {
-        _vertexArrayObject = SilkNetContext.GL.GenVertexArray();
+        RendererId = SilkNetContext.GL.GenVertexArray();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenVertexArray");
         VertexBuffers = new List<IVertexBuffer>();
     }
@@ -24,7 +25,7 @@ internal sealed class OpenGLVertexArray : IVertexArray
 
     public void Bind()
     {
-        SilkNetContext.GL.BindVertexArray(_vertexArrayObject);
+        SilkNetContext.GL.BindVertexArray(RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindVertexArray");
     }
 
@@ -36,7 +37,7 @@ internal sealed class OpenGLVertexArray : IVertexArray
 
     public void AddVertexBuffer(IVertexBuffer vertexBuffer)
     {
-        SilkNetContext.GL.BindVertexArray(_vertexArrayObject);
+        SilkNetContext.GL.BindVertexArray(RendererId);
 
         vertexBuffer.Bind();
 
@@ -92,7 +93,7 @@ internal sealed class OpenGLVertexArray : IVertexArray
 
     public void SetIndexBuffer(IIndexBuffer indexBuffer)
     {
-        SilkNetContext.GL.BindVertexArray(_vertexArrayObject);
+        SilkNetContext.GL.BindVertexArray(RendererId);
         indexBuffer.Bind();
 
         IndexBuffer = indexBuffer;
@@ -105,10 +106,10 @@ internal sealed class OpenGLVertexArray : IVertexArray
 
         try
         {
-            if (_vertexArrayObject != 0)
+            if (RendererId != 0)
             {
-                SilkNetContext.GL.DeleteVertexArray(_vertexArrayObject);
-                _vertexArrayObject = 0;
+                SilkNetContext.GL.DeleteVertexArray(RendererId);
+                RendererId = 0;
             }
 
             foreach (var vertexBuffer in VertexBuffers)
@@ -118,7 +119,7 @@ internal sealed class OpenGLVertexArray : IVertexArray
         }
         catch (Exception e)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex array {_vertexArrayObject}: {e.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL vertex array {RendererId}: {e.Message}");
         }
 
         _disposed = true;
@@ -128,10 +129,10 @@ internal sealed class OpenGLVertexArray : IVertexArray
 #if DEBUG
     ~OpenGLVertexArray()
     {
-        if (!_disposed && _vertexArrayObject != 0)
+        if (!_disposed && RendererId != 0)
         {
             Debug.WriteLine(
-                $"GPU LEAK: VertexArray {_vertexArrayObject} not disposed! " +
+                $"GPU LEAK: VertexArray {RendererId} not disposed! " +
                 $"VBs: {VertexBuffers.Count}, IB: {(IndexBuffer != null ? "yes" : "no")}"
             );
         }
