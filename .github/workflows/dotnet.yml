@@ -29,8 +29,32 @@ jobs:
       run: dotnet build --no-restore
     - name: Install headless GL stack
       run: sudo apt-get update && sudo apt-get install -y xvfb mesa-utils libgl1-mesa-dri libglx-mesa0
-    - name: Test
+    - name: Test ECS.Tests
+      id: ecs_tests
+      continue-on-error: true
+      run: dotnet test tests/ECS.Tests/ECS.Tests.csproj --no-build --verbosity normal
+    - name: Test Engine.Tests
+      id: engine_tests
+      continue-on-error: true
+      run: dotnet test tests/Engine.Tests/Engine.Tests.csproj --no-build --verbosity normal
+    - name: Test Engine.GraphicsTests
+      id: graphics_tests
+      continue-on-error: true
+      if: hashFiles('tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj') != ''
       env:
         LIBGL_ALWAYS_SOFTWARE: "1"
         GALLIUM_DRIVER: llvmpipe
-      run: xvfb-run -a dotnet test --no-build --verbosity normal
+      run: xvfb-run -a dotnet test tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj --no-build --verbosity normal
+    - name: Test summary
+      if: always()
+      run: |
+        echo "ECS.Tests:          ${{ steps.ecs_tests.outcome }}"
+        echo "Engine.Tests:       ${{ steps.engine_tests.outcome }}"
+        echo "Engine.GraphicsTests: ${{ steps.graphics_tests.outcome }}"
+        failed=0
+        [ "${{ steps.ecs_tests.outcome }}" = "success" ] || failed=1
+        [ "${{ steps.engine_tests.outcome }}" = "success" ] || failed=1
+        if [ "${{ steps.graphics_tests.outcome }}" != "skipped" ] && [ "${{ steps.graphics_tests.outcome }}" != "success" ]; then
+          failed=1
+        fi
+        exit $failed
