@@ -31,15 +31,12 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y xvfb mesa-utils libgl1-mesa-dri libglx-mesa0
     - name: Test ECS.Tests
       id: ecs_tests
-      continue-on-error: true
       run: dotnet test tests/ECS.Tests/ECS.Tests.csproj --no-build --verbosity normal
     - name: Test Engine.Tests
       id: engine_tests
-      continue-on-error: true
       run: dotnet test tests/Engine.Tests/Engine.Tests.csproj --no-build --verbosity normal
     - name: Test Engine.GraphicsTests
       id: graphics_tests
-      continue-on-error: true
       if: hashFiles('tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj') != ''
       env:
         LIBGL_ALWAYS_SOFTWARE: "1"
@@ -48,6 +45,3 @@ jobs:
     - name: Test results
       if: always()
       run: echo "ECS.Tests=${{ steps.ecs_tests.outcome }} Engine.Tests=${{ steps.engine_tests.outcome }} Engine.GraphicsTests=${{ steps.graphics_tests.outcome }}"
-    - name: Fail if any test project failed
-      if: always() && (steps.ecs_tests.outcome != 'success' || steps.engine_tests.outcome != 'success' || (steps.graphics_tests.outcome != 'skipped' && steps.graphics_tests.outcome != 'success'))
-      run: echo "One or more test projects failed" && exit 1
