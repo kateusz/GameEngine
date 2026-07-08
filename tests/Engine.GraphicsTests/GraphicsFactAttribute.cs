@@ -16,6 +16,9 @@ public sealed class GraphicsFactAttribute : FactAttribute
 
     private static bool IsCiEnvironment()
     {
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS")))
+            return true;
+
         var ci = Environment.GetEnvironmentVariable("CI");
         return !string.IsNullOrEmpty(ci)
                && !string.Equals(ci, "false", StringComparison.OrdinalIgnoreCase);

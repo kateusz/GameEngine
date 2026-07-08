@@ -28,7 +28,7 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Install headless GL stack
-      run: sudo apt-get update && sudo apt-get install -y xvfb mesa-utils libgl1-mesa-dri libglx-mesa0
+      run: sudo apt-get update && sudo apt-get install -y xvfb mesa-utils libgl1-mesa-dri libglx-mesa0 libglfw3 libx11-6 libxcursor1 libxi6 libxrandr2 libxinerama1
     - name: Test ECS.Tests
       id: ecs_tests
       run: dotnet test tests/ECS.Tests/ECS.Tests.csproj --no-build --verbosity normal

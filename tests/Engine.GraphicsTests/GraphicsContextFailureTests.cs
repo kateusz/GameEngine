@@ -33,14 +33,7 @@ public class GraphicsContextFailureTests
     [GraphicsFact]
     public void Create_WhenAlreadyCreated_ThrowsInvalidOperationException()
     {
-        var options = WindowOptions.Default;
-        options.IsVisible = false;
-        options.Title = "Engine.GraphicsTests.DoubleCreate";
-        options.Size = new Vector2D<int>(1, 1);
-
-        var window = Silk.NET.Windowing.Window.Create(options);
-        window.Initialize();
-
+        var window = HeadlessWindow.Create("Engine.GraphicsTests.DoubleCreate", new Vector2D<int>(1, 1));
         var context = new SilkNetGraphicsContext();
         context.Create(window);
 

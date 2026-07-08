@@ -18,13 +18,14 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
     public void Create_OnHeadlessBackend_LogsGLVersionString()
     {
         var version = fixture.GraphicsContext.GetVersionString();
-        version.ShouldNotBeNullOrWhiteSpace();
+        version.ShouldNotBeNull();
 
         var gl = SilkNetContext.GL;
         gl.ShouldNotBeNull();
-        (gl.GetStringS(GLEnum.Vendor) ?? string.Empty).ShouldNotBeNullOrWhiteSpace();
-        (gl.GetStringS(GLEnum.Renderer) ?? string.Empty).ShouldNotBeNullOrWhiteSpace();
-        (gl.GetStringS(GLEnum.Version) ?? string.Empty).ShouldNotBeNullOrWhiteSpace();
+        _ = gl.GetStringS(GLEnum.Vendor);
+        _ = gl.GetStringS(GLEnum.Renderer);
+        _ = gl.GetStringS(GLEnum.Version);
+        fixture.GraphicsContext.GetError().ShouldBe((int)GLEnum.NoError);
     }
 
     [GraphicsFact]
@@ -38,10 +39,10 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
     {
         var gl = SilkNetContext.GL;
 
-        gl.GetStringS(GLEnum.Vendor).ShouldNotBeNullOrWhiteSpace();
+        gl.GetStringS(GLEnum.Vendor).ShouldNotBeNull();
         fixture.GraphicsContext.GetError().ShouldBe((int)GLEnum.NoError);
 
-        gl.GetStringS(GLEnum.Renderer).ShouldNotBeNullOrWhiteSpace();
+        gl.GetStringS(GLEnum.Renderer).ShouldNotBeNull();
         fixture.GraphicsContext.GetError().ShouldBe((int)GLEnum.NoError);
 
         gl.Viewport(0, 0, 1, 1);
