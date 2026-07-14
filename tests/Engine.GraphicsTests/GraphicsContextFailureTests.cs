@@ -8,7 +8,6 @@ using Silk.NET.Windowing;
 namespace Engine.GraphicsTests;
 
 [Trait("Category", "Unit")]
-[Collection("GraphicsIntegration")]
 public class GraphicsContextFailureTests
 {
     [Fact]

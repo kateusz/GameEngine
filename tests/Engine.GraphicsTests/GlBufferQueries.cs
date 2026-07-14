@@ -7,29 +7,17 @@ internal static class GlBufferQueries
 {
     private static GL Gl => SilkNetContext.GL;
 
-    public static int GetBufferSize(uint bufferId)
-    {
-        Gl.BindBuffer(GLEnum.ArrayBuffer, bufferId);
-        return (int)Gl.GetBufferParameter(GLEnum.ArrayBuffer, GLEnum.BufferSize);
-    }
+    public static int GetBufferSize(uint bufferId) =>
+        (int)QueryBuffer(bufferId, GLEnum.ArrayBuffer, GLEnum.BufferSize);
 
-    public static BufferUsageARB GetBufferUsage(uint bufferId)
-    {
-        Gl.BindBuffer(GLEnum.ArrayBuffer, bufferId);
-        return (BufferUsageARB)Gl.GetBufferParameter(GLEnum.ArrayBuffer, GLEnum.BufferUsage);
-    }
+    public static BufferUsageARB GetBufferUsage(uint bufferId) =>
+        (BufferUsageARB)QueryBuffer(bufferId, GLEnum.ArrayBuffer, GLEnum.BufferUsage);
 
-    public static int GetIndexBufferSize(uint bufferId)
-    {
-        Gl.BindBuffer(GLEnum.ElementArrayBuffer, bufferId);
-        return (int)Gl.GetBufferParameter(GLEnum.ElementArrayBuffer, GLEnum.BufferSize);
-    }
+    public static int GetIndexBufferSize(uint bufferId) =>
+        (int)QueryBuffer(bufferId, GLEnum.ElementArrayBuffer, GLEnum.BufferSize);
 
-    public static BufferUsageARB GetIndexBufferUsage(uint bufferId)
-    {
-        Gl.BindBuffer(GLEnum.ElementArrayBuffer, bufferId);
-        return (BufferUsageARB)Gl.GetBufferParameter(GLEnum.ElementArrayBuffer, GLEnum.BufferUsage);
-    }
+    public static BufferUsageARB GetIndexBufferUsage(uint bufferId) =>
+        (BufferUsageARB)QueryBuffer(bufferId, GLEnum.ElementArrayBuffer, GLEnum.BufferUsage);
 
     public static bool IsBufferAlive(uint id) => Gl.IsBuffer(id);
 
@@ -54,4 +42,10 @@ internal static class GlBufferQueries
 
     public static uint GetElementArrayBufferBinding() =>
         (uint)Gl.GetInteger(GLEnum.ElementArrayBufferBinding);
+
+    private static long QueryBuffer(uint bufferId, GLEnum target, GLEnum parameter)
+    {
+        Gl.BindBuffer(target, bufferId);
+        return Gl.GetBufferParameter(target, parameter);
+    }
 }

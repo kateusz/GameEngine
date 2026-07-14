@@ -10,40 +10,17 @@ public class IndexBufferIntegrationTests(HeadlessGraphicsContextFixture fixture)
     : IClassFixture<HeadlessGraphicsContextFixture>
 {
     [GraphicsFact]
-    public void Create_WithIndices_ReturnsNonZeroBufferId()
-    {
-        using var buffer = fixture.IndexBufferFactory.Create([0u, 1u, 2u], 3);
-        var glBuffer = (OpenGLIndexBuffer)buffer;
-
-        glBuffer.RendererId.ShouldNotBe(0u);
-        GlBufferQueries.IsBufferAlive(glBuffer.RendererId).ShouldBeTrue();
-    }
-
-    [GraphicsFact]
-    public void Create_UploadsStaticDrawUsage()
-    {
-        using var buffer = fixture.IndexBufferFactory.Create([0u, 1u, 2u], 3);
-        var glBuffer = (OpenGLIndexBuffer)buffer;
-
-        GlBufferQueries.GetIndexBufferUsage(glBuffer.RendererId).ShouldBe(BufferUsageARB.StaticDraw);
-    }
-
-    [GraphicsFact]
-    public void Create_BufferSizeMatchesIndexCountTimesUintSize()
+    public void Create_AllocatesValidStaticDrawBuffer()
     {
         const int count = 3;
         using var buffer = fixture.IndexBufferFactory.Create([0u, 1u, 2u], count);
         var glBuffer = (OpenGLIndexBuffer)buffer;
 
+        glBuffer.RendererId.ShouldNotBe(0u);
+        GlBufferQueries.IsBufferAlive(glBuffer.RendererId).ShouldBeTrue();
+        GlBufferQueries.GetIndexBufferUsage(glBuffer.RendererId).ShouldBe(BufferUsageARB.StaticDraw);
         GlBufferQueries.GetIndexBufferSize(glBuffer.RendererId).ShouldBe(count * sizeof(uint));
-    }
-
-    [GraphicsFact]
-    public void Create_CountPropertyMatchesProvidedCount()
-    {
-        using var buffer = fixture.IndexBufferFactory.Create([0u, 1u, 2u, 3u], 4);
-
-        buffer.Count.ShouldBe(4);
+        buffer.Count.ShouldBe(count);
     }
 
     [GraphicsFact]

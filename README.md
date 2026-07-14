@@ -338,6 +338,14 @@ Graphics integration tests (`Engine.GraphicsTests`) require a working OpenGL sta
 dotnet test --filter "Category!=GraphicsIntegration"
 ```
 
+Image regression baselines are raw RGBA blobs (`tests/Engine.GraphicsTests/Golden/*.rgba`, 64×64×4 bytes). After an intentional visual change, regenerate with:
+
+```bash
+UPDATE_GOLDENS=1 dotnet test tests/Engine.GraphicsTests --filter "Regression"
+```
+
+See `docs/specs/graphics-image-regression-tests/` for scene design, tolerances, and CI artifact details.
+
 ## 🏗️ Architectural Highlights
 
 ### Entity Component System (14 Built-in Components)

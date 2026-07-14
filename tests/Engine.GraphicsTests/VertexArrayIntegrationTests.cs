@@ -29,12 +29,12 @@ public class VertexArrayIntegrationTests(HeadlessGraphicsContextFixture fixture)
 
         GlBufferQueries.GetAttribEnabled(0).ShouldBe(1);
         GlBufferQueries.GetAttribSize(0).ShouldBe(3);
-        GlBufferQueries.GetAttribStride(0).ShouldBe(TestBufferLayouts.FloatOnlyStride);
+        GlBufferQueries.GetAttribStride(0).ShouldBe(TestBufferLayouts.FloatOnly.Stride);
         GlBufferQueries.GetAttribOffset(0).ShouldBe(0);
 
         GlBufferQueries.GetAttribEnabled(1).ShouldBe(1);
         GlBufferQueries.GetAttribSize(1).ShouldBe(4);
-        GlBufferQueries.GetAttribStride(1).ShouldBe(TestBufferLayouts.FloatOnlyStride);
+        GlBufferQueries.GetAttribStride(1).ShouldBe(TestBufferLayouts.FloatOnly.Stride);
         GlBufferQueries.GetAttribOffset(1).ShouldBe(12);
     }
 
@@ -49,12 +49,12 @@ public class VertexArrayIntegrationTests(HeadlessGraphicsContextFixture fixture)
 
         GlBufferQueries.GetAttribEnabled(0).ShouldBe(1);
         GlBufferQueries.GetAttribSize(0).ShouldBe(3);
-        GlBufferQueries.GetAttribStride(0).ShouldBe(TestBufferLayouts.MixedFloatIntStride);
+        GlBufferQueries.GetAttribStride(0).ShouldBe(TestBufferLayouts.MixedFloatInt.Stride);
         GlBufferQueries.GetAttribOffset(0).ShouldBe(0);
 
         GlBufferQueries.GetAttribEnabled(1).ShouldBe(1);
         GlBufferQueries.GetAttribSize(1).ShouldBe(1);
-        GlBufferQueries.GetAttribStride(1).ShouldBe(TestBufferLayouts.MixedFloatIntStride);
+        GlBufferQueries.GetAttribStride(1).ShouldBe(TestBufferLayouts.MixedFloatInt.Stride);
         GlBufferQueries.GetAttribOffset(1).ShouldBe(12);
     }
 

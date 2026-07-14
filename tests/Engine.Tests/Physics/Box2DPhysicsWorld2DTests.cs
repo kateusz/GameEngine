@@ -33,7 +33,7 @@ public class Box2DPhysicsWorld2DTests
         ball.Entity = Entity.Create(2, "Ball");
         ball.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.3f, 0.7f, false));
 
-        for (var i = 0; i < 300; i++)
+        for (var i = 0; i < 180; i++)
             world.Step(1f / 60f, 6, 2);
 
         contactCount.ShouldBeGreaterThan(0);

@@ -1,7 +1,12 @@
+using Engine.Platform.SilkNet;
+using Silk.NET.Maths;
+
 namespace Engine.GraphicsTests;
 
 public sealed class GraphicsFactAttribute : FactAttribute
 {
+    private static readonly Lazy<bool> GlAvailable = new(ProbeGl);
+
     private const string SkipMessage =
         "No headless GL stack available; see docs/specs/graphics-context-init-tests";
 
@@ -10,8 +15,25 @@ public sealed class GraphicsFactAttribute : FactAttribute
         if (IsCiEnvironment())
             return;
 
-        if (!HeadlessGlProbe.IsAvailable)
+        if (!GlAvailable.Value)
             Skip = SkipMessage;
+    }
+
+    private static bool ProbeGl()
+    {
+        try
+        {
+            var window = HeadlessWindow.Create("GL probe", new Vector2D<int>(1, 1));
+            var context = new SilkNetGraphicsContext();
+            context.Create(window);
+            context.Dispose();
+            window.Dispose();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool IsCiEnvironment()

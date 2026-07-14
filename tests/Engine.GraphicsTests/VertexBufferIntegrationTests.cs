@@ -13,21 +13,13 @@ public class VertexBufferIntegrationTests(HeadlessGraphicsContextFixture fixture
     private const uint MaxBufferSize = 256u * 1024 * 1024;
 
     [GraphicsFact]
-    public void Create_WithValidSize_ReturnsNonZeroBufferId()
+    public void Create_AllocatesValidDynamicDrawBuffer()
     {
         using var buffer = fixture.VertexBufferFactory.Create(1024);
         var glBuffer = (OpenGLVertexBuffer)buffer;
 
         glBuffer.RendererId.ShouldNotBe(0u);
         GlBufferQueries.IsBufferAlive(glBuffer.RendererId).ShouldBeTrue();
-    }
-
-    [GraphicsFact]
-    public void Create_WithValidSize_UploadsDynamicDrawUsage()
-    {
-        using var buffer = fixture.VertexBufferFactory.Create(1024);
-        var glBuffer = (OpenGLVertexBuffer)buffer;
-
         GlBufferQueries.GetBufferUsage(glBuffer.RendererId).ShouldBe(BufferUsageARB.DynamicDraw);
     }
 

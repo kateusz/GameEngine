@@ -10,12 +10,8 @@ internal static class TestBufferLayouts
         new BufferElement(ShaderDataType.Float4, "a_Color")
     ]);
 
-    public static int FloatOnlyStride => 28;
-
     public static BufferLayout MixedFloatInt { get; } = new([
         new BufferElement(ShaderDataType.Float3, "a_Position"),
         new BufferElement(ShaderDataType.Int, "a_EntityID")
     ]);
-
-    public static int MixedFloatIntStride => 16;
 }

@@ -41,18 +41,6 @@ internal sealed class SilkNetGraphicsContext : IGraphicsContext
         }
     }
 
-    public string GetVersionString()
-    {
-        EnsureCreated();
-        return _gl!.GetStringS(GLEnum.Version) ?? string.Empty;
-    }
-
-    public int GetError()
-    {
-        EnsureCreated();
-        return (int)_gl!.GetError();
-    }
-
     public void Dispose()
     {
         if (_gl is null)
@@ -64,11 +52,5 @@ internal sealed class SilkNetGraphicsContext : IGraphicsContext
 
         if (ReferenceEquals(SilkNetContext.GL, gl))
             SilkNetContext.GL = null!;
-    }
-
-    private void EnsureCreated()
-    {
-        if (!IsCreated)
-            throw new InvalidOperationException("Graphics context has not been created.");
     }
 }
