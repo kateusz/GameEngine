@@ -114,10 +114,6 @@ public class EditorMenuBar(
         ImGui.Separator();
         if (ImGui.MenuItem("Show Rulers", null, viewport.ViewportRuler.Enabled))
             viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled;
-        if (ImGui.MenuItem("Show 2D Grid", null, viewport.SceneToolbar.ShowGrid))
-            viewport.SceneToolbar.SetShowGrid(!viewport.SceneToolbar.ShowGrid);
-        if (ImGui.MenuItem("Show 3D Grid", null, viewport.SceneToolbar.ShowGrid3D))
-            viewport.SceneToolbar.SetShowGrid3D(!viewport.SceneToolbar.ShowGrid3D);
         if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
             rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
         ImGui.EndMenu();

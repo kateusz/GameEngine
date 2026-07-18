@@ -1,9 +1,8 @@
 using System.Numerics;
-#if WINDOWS
 using Editor.Platform;
-#endif
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Platform;
 using ImGuiNET;
 using Serilog;
 
@@ -17,11 +16,7 @@ public class NewProjectPopup(IProjectManager projectManager)
     private bool _showOpenProjectPopup;
 
     private string _newProjectParentPath =
-#if WINDOWS
-        string.Empty;
-#else
-        Environment.CurrentDirectory;
-#endif
+        OSInfo.IsWindows ? string.Empty : Environment.CurrentDirectory;
     private string _newProjectName = string.Empty;
     private string _newProjectError = string.Empty;
     private string _openProjectPath = string.Empty;
@@ -31,20 +26,21 @@ public class NewProjectPopup(IProjectManager projectManager)
 
     public bool ShowOpenProjectPopup()
     {
-#if WINDOWS
-        var path = WindowsFolderPicker.PickFolder("Select Project Folder", Environment.CurrentDirectory);
-        if (string.IsNullOrEmpty(path))
+        if (OSInfo.IsWindows)
+        {
+            var path = FolderPicker.PickFolder("Select Project Folder", Environment.CurrentDirectory);
+            if (string.IsNullOrEmpty(path))
+                return false;
+
+            if (projectManager.TryOpenProject(path, out var err))
+                return true;
+
+            Logger.Warning("Failed to open project {Path}: {Error}", path, err);
             return false;
+        }
 
-        if (projectManager.TryOpenProject(path, out var err))
-            return true;
-
-        Logger.Warning("Failed to open project {Path}: {Error}", path, err);
-        return false;
-#else
         _showOpenProjectPopup = true;
         return false;
-#endif
     }
 
     public void Render()
@@ -74,28 +70,31 @@ public class NewProjectPopup(IProjectManager projectManager)
 
         ImGui.Spacing();
 
-#if WINDOWS
-        ImGui.Text("Location:");
-        var locationLabel = string.IsNullOrWhiteSpace(_newProjectParentPath)
-            ? "(no folder selected)"
-            : _newProjectParentPath;
-        TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
-
-        ImGui.Spacing();
-        if (ImGui.Button("Select Folder..."))
+        if (OSInfo.IsWindows)
         {
-            var picked = WindowsFolderPicker.PickFolder(
-                "Select Folder Where Project Will Be Created",
-                string.IsNullOrWhiteSpace(_newProjectParentPath)
-                    ? Environment.CurrentDirectory
-                    : _newProjectParentPath);
-            if (!string.IsNullOrEmpty(picked))
-                _newProjectParentPath = picked;
+            ImGui.Text("Location:");
+            var locationLabel = string.IsNullOrWhiteSpace(_newProjectParentPath)
+                ? "(no folder selected)"
+                : _newProjectParentPath;
+            TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
+
+            ImGui.Spacing();
+            if (ImGui.Button("Select Folder..."))
+            {
+                var picked = FolderPicker.PickFolder(
+                    "Select Folder Where Project Will Be Created",
+                    string.IsNullOrWhiteSpace(_newProjectParentPath)
+                        ? Environment.CurrentDirectory
+                        : _newProjectParentPath);
+                if (!string.IsNullOrEmpty(picked))
+                    _newProjectParentPath = picked;
+            }
         }
-#else
-        ImGui.Text("Parent folder (project will be created inside this folder):");
-        ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
-#endif
+        else
+        {
+            ImGui.Text("Parent folder (project will be created inside this folder):");
+            ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
+        }
 
         ImGui.Separator();
 
@@ -183,11 +182,9 @@ public class NewProjectPopup(IProjectManager projectManager)
     private string? GetNewProjectValidationMessage()
     {
         if (string.IsNullOrWhiteSpace(_newProjectParentPath))
-#if WINDOWS
-            return "Select a folder where the project will be created.";
-#else
-            return "Parent folder path is required.";
-#endif
+            return OSInfo.IsWindows
+                ? "Select a folder where the project will be created."
+                : "Parent folder path is required.";
 
         var parentFull = Path.GetFullPath(Path.IsPathRooted(_newProjectParentPath.Trim())
             ? _newProjectParentPath.Trim()

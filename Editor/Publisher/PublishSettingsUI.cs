@@ -1,7 +1,10 @@
+using System.Numerics;
 using Editor.Features.Scene;
+using Editor.Platform;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Platform;
 using ImGuiNET;
 
 namespace Editor.Publisher;
@@ -73,11 +76,31 @@ public class PublishSettingsUI(
 
             ImGui.Spacing();
 
-            // Output path
             ImGui.Text("Output Path:");
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(300);
-            ImGui.InputText("##outputPath", ref _outputPath, 256);
+            if (OSInfo.IsWindows)
+            {
+                var locationLabel = string.IsNullOrWhiteSpace(_outputPath)
+                    ? "(no folder selected)"
+                    : _outputPath;
+                TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
+
+                ImGui.Spacing();
+                if (ImGui.Button("Select Folder..."))
+                {
+                    var initial = projectContext.Root is not null
+                        ? ResolveOutputPath(projectContext.Root)
+                        : Environment.CurrentDirectory;
+                    var picked = FolderPicker.PickFolder("Select Publish Output Folder", initial);
+                    if (!string.IsNullOrEmpty(picked))
+                        _outputPath = picked;
+                }
+            }
+            else
+            {
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(300);
+                ImGui.InputText("##outputPath", ref _outputPath, 256);
+            }
 
             ImGui.Spacing();
 

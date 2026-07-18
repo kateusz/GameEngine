@@ -20,6 +20,9 @@
     <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
         <Compile Remove="Platform\WindowsFolderPicker.cs" />
     </ItemGroup>
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <Compile Remove="Platform\WindowsFolderPicker.Unsupported.cs" />
+    </ItemGroup>
 
     <ItemGroup>
         <!-- Zawsze kopiuj imgui.ini -->
