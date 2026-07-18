@@ -74,9 +74,9 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             {
                 try
                 {
-                    ResolveMaterialTextures(submesh.Material);
+                    ResolveMaterialTextures(submesh.Material, submesh.Mesh.Name);
                     Logger.Debug(
-                        "Bound textures path={Path} mesh={MeshName} " +
+                        "PBR textures bound path={Path} mesh={MeshName} " +
                         "albedoBound={AlbedoBound} mrBound={MrBound} specularBound={SpecularBound} normalBound={NormalBound} " +
                         "metallic={Metallic:F3} roughness={Roughness:F3}",
                         normalizedPath, submesh.Mesh.Name,
@@ -110,10 +110,14 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             var withMr = initialized.Count(s => s.Material.HasMetallicRoughnessMap);
             var withSpecular = initialized.Count(s => s.Material.HasSpecularMap);
             var withNormal = initialized.Count(s => s.Material.HasNormalMap);
+            var pbrReady = initialized.Count(s =>
+                s.Material.HasAlbedoMap &&
+                (s.Material.HasMetallicRoughnessMap || s.Material.HasSpecularMap) &&
+                s.Material.HasNormalMap);
             Logger.Debug(
-                "Model loaded path={Path} submeshes={SubmeshCount} " +
+                "PBR model loaded path={Path} submeshes={SubmeshCount} pbrReadySubmeshes={PbrReady} " +
                 "withAlbedoMap={WithAlbedo} withMetallicRoughnessMap={WithMr} withSpecularMap={WithSpecular} withNormalMap={WithNormal}",
-                normalizedPath, initialized.Count, withAlbedo, withMr, withSpecular, withNormal);
+                normalizedPath, initialized.Count, pbrReady, withAlbedo, withMr, withSpecular, withNormal);
 
             return model;
         }
@@ -141,12 +145,27 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void ResolveMaterialTextures(MeshMaterial material)
+    private void ResolveMaterialTextures(MeshMaterial material, string meshName)
     {
-        material.AlbedoTexture = LoadTexture(material.AlbedoTexturePath);
-        material.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessTexturePath);
-        material.NormalTexture = LoadTexture(material.NormalTexturePath);
-        material.SpecularTexture = LoadTexture(material.SpecularTexturePath);
+        material.AlbedoTexture = LoadTextureSlot("albedo", meshName, material.AlbedoTexturePath);
+        material.MetallicRoughnessTexture = LoadTextureSlot("metallicRoughness", meshName, material.MetallicRoughnessTexturePath);
+        material.NormalTexture = LoadTextureSlot("normal", meshName, material.NormalTexturePath);
+        material.SpecularTexture = LoadTextureSlot("specular", meshName, material.SpecularTexturePath);
+    }
+
+    private Texture2D? LoadTextureSlot(string slot, string meshName, string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            Logger.Debug("PBR texture skipped slot={Slot} mesh={MeshName} reason=noPath", slot, meshName);
+            return null;
+        }
+
+        var texture = LoadTexture(path);
+        Logger.Debug(
+            "PBR texture loaded slot={Slot} mesh={MeshName} path={Path} success={Success}",
+            slot, meshName, path, texture != null);
+        return texture;
     }
 
     private Texture2D? LoadTexture(string? path)

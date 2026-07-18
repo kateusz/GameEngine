@@ -38,13 +38,15 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             for (uint i = 0; i < scene->MNumMeshes; i++)
             {
                 var aiMesh = scene->MMeshes[i];
-                var mesh = ExtractMesh(aiMesh);
+                var mesh = ExtractMesh(aiMesh, out var hasTexCoords, out var hasTangents);
                 var material = ExtractMaterial(scene, aiMesh->MMaterialIndex, directory, mesh.Name);
                 submeshes.Add(new ModelSubmesh(mesh, material));
 
                 Logger.Debug(
-                    "Imported submesh path={Path} mesh={MeshName} vertices={VertexCount} indices={IndexCount}",
-                    path, mesh.Name, mesh.Vertices.Count, mesh.Indices.Count);
+                    "PBR import submesh path={Path} mesh={MeshName} vertices={VertexCount} indices={IndexCount} " +
+                    "hasTexCoords={HasTexCoords} hasTangents={HasTangents} materialIndex={MaterialIndex}",
+                    path, mesh.Name, mesh.Vertices.Count, mesh.Indices.Count,
+                    hasTexCoords, hasTangents, aiMesh->MMaterialIndex);
             }
 
             assimp.ReleaseImport(scene);
@@ -54,12 +56,12 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         return submeshes;
     }
 
-    private unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh)
+    private unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh, out bool hasTexCoords, out bool hasTangents)
     {
         var mesh = new Mesh(aiMesh->MName.AsString);
 
-        var hasTexCoords = aiMesh->MTextureCoords[0] != null;
-        var hasTangents = aiMesh->MTangents != null;
+        hasTexCoords = aiMesh->MTextureCoords[0] != null;
+        hasTangents = aiMesh->MTangents != null;
 
         for (uint i = 0; i < aiMesh->MNumVertices; i++)
         {
@@ -130,6 +132,9 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         var metallicScalar = hasMetallic ? System.Math.Clamp(metallic, 0f, 1f) : 0f;
         var roughnessScalar = hasRoughness ? System.Math.Clamp(roughness, 0f, 1f) : 0.5f;
         var isPbr = mrPath != null || specularPath != null || (hasMetallic && metallicScalar > 0.001f);
+        var pbrMode = isPbr
+            ? mrPath != null ? "metallicRoughnessMap" : specularPath != null ? "specularMap" : "metallicFactor"
+            : "legacyPhong";
 
         if (isPbr)
         {
@@ -147,12 +152,12 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         }
 
         Logger.Debug(
-            "Material mesh={MeshName} materialIndex={MaterialIndex} isPbr={IsPbr} " +
-            "metallic={Metallic:F3} roughness={Roughness:F3} " +
+            "PBR material mesh={MeshName} materialIndex={MaterialIndex} mode={PbrMode} isPbr={IsPbr} " +
+            "metallic={Metallic:F3} roughness={Roughness:F3} hasMetallicFactor={HasMetallic} hasRoughnessFactor={HasRoughness} " +
             "hasAlbedoMap={HasAlbedo} hasMetallicRoughnessMap={HasMr} hasSpecularMap={HasSpecular} hasNormalMap={HasNormal} " +
             "albedoPath={AlbedoPath} mrPath={MrPath} specularPath={SpecularPath} normalPath={NormalPath}",
-            meshName, materialIndex, isPbr,
-            material.Metallic, material.Roughness,
+            meshName, materialIndex, pbrMode, isPbr,
+            material.Metallic, material.Roughness, hasMetallic, hasRoughness,
             albedoPath != null, mrPath != null, specularPath != null, normalPath != null,
             albedoPath ?? "(none)", mrPath ?? "(none)", specularPath ?? "(none)", normalPath ?? "(none)");
 
@@ -188,10 +193,15 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
         texturePath = texturePath.Replace('\\', '/');
         if (System.IO.File.Exists(texturePath))
+        {
+            Logger.Debug(
+                "PBR texture resolved type={TextureType} path={Path}",
+                textureType, texturePath);
             return texturePath;
+        }
 
         Logger.Debug(
-            "Texture file missing type={TextureType} resolvedPath={Path}",
+            "PBR texture missing type={TextureType} resolvedPath={Path}",
             textureType, texturePath);
         return null;
     }
