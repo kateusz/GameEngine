@@ -75,6 +75,10 @@ public static class EngineIoCContainer
             r.Resolve<ISceneContext>().ActiveScene?.PhysicsContacts
             ?? NullPhysicsContacts.Instance);
 
+        container.RegisterDelegate<IPhysicsQueries>(r =>
+            r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries
+            ?? NullPhysicsQueries.Instance);
+
         container.Register<SerializerOptions>(Reuse.Singleton);
         container.Register<ComponentSerializerRegistry>(Reuse.Singleton);
         container.RegisterMapping<IComponentSerializerRegistry, ComponentSerializerRegistry>();

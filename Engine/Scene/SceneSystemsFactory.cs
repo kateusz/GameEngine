@@ -25,7 +25,7 @@ internal sealed class SceneSystemsFactory(
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
     private static readonly Vector2 DefaultGravity = new(0, -9.8f);
 
-    public void PopulateSystemManager(
+    public IPhysicsWorld2D PopulateSystemManager(
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
@@ -55,5 +55,7 @@ internal sealed class SceneSystemsFactory(
             systemManager.RegisterSystem(system);
             Logger.Debug("Registered per-scene system: {SystemType}", system.GetType().Name);
         }
+
+        return physicsWorld;
     }
 }

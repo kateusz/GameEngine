@@ -13,7 +13,7 @@ public static class ScriptableEntityTemplates
 
         public class {{className}} : ScriptableEntity
         {
-            public {{className}}(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback) : base(componentAccessor, audio, audioPlayback) { }
+            public {{className}}(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback, IPhysicsQueries physicsQueries) : base(componentAccessor, audio, audioPlayback, physicsQueries) { }
 
             public override void OnCreate()
             {

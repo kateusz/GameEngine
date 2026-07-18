@@ -28,7 +28,7 @@ public class GameComponentDiscoveryTests
 
                 public class PlayerScript : ScriptableEntity
                 {
-                    public PlayerScript(IComponentAccessor a, IAudio audio, IAudioPlayback audioPlayback) : base(a, audio, audioPlayback) {}
+                    public PlayerScript(IComponentAccessor a, IAudio audio, IAudioPlayback audioPlayback, IPhysicsQueries physicsQueries) : base(a, audio, audioPlayback, physicsQueries) {}
                 }
                 """);
 

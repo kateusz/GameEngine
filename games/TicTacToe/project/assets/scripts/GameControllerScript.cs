@@ -7,7 +7,7 @@ namespace TicTacToe.project.assets.scripts;
 
 public class GameControllerScript : ScriptableEntity
 {
-    public GameControllerScript(IComponentAccessor accessor, IAudio audio, IAudioPlayback audioPlayback) : base(accessor, audio, audioPlayback) { }
+    public GameControllerScript(IComponentAccessor accessor, IAudio audio, IAudioPlayback audioPlayback, IPhysicsQueries physicsQueries) : base(accessor, audio, audioPlayback, physicsQueries) { }
 
     public override void OnKeyPressed(KeyCodes key)
     {

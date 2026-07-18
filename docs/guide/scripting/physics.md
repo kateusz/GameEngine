@@ -140,6 +140,37 @@ Enable **Show Collider Bounds** in debug settings to draw collider outlines in t
 
 Tier-2 `IGameSystem` scripts can poll `IPhysicsContacts.DrainContacts()` for batched contact events instead of using `ScriptableEntity` callbacks.
 
+## Queries
+
+Use raycasts and circle overlaps to probe the physics world from scripts. Queries are synchronous reads — they do not fire collision callbacks.
+
+`Raycast` returns the closest hit along a ray. `OverlapCircle` returns one overlapping collider (order is unspecified when several overlap). Both helpers automatically ignore this entity's colliders.
+
+```csharp
+using System.Numerics;
+using Scripting;
+
+public override void OnUpdate(TimeSpan ts)
+{
+    // Ground check: cast down from the entity
+    if (Raycast(new Vector2(0f, 0f), new Vector2(0f, -1f), 0.6f) is { } ground)
+        Console.WriteLine($"Standing on {ground.Entity.Name}");
+
+    // Proximity sensor
+    if (OverlapCircle(new Vector2(0f, 0f), 2f) is { } nearby)
+        Console.WriteLine($"Something nearby: {nearby.Entity.Name}");
+}
+```
+
+By default, queries hit solid colliders only. Pass `includeTriggers: true` to detect trigger zones:
+
+```csharp
+if (Raycast(origin, direction, distance, includeTriggers: true) is { IsTrigger: true } hit)
+    Console.WriteLine($"Hit trigger {hit.Entity.Name}");
+```
+
+Tier-2 `IGameSystem` scripts can call `IPhysicsQueries` directly from DI for world queries without going through `ScriptableEntity`.
+
 ## Next Steps
 
 - [API Reference](api-reference.md) -- complete ScriptableEntity method listing

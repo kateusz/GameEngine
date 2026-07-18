@@ -90,6 +90,19 @@ Use the protected `AudioPlayback` property for per-entity play/pause/stop:
 
 Clip selection and source settings remain on `AudioSourceComponent` in the editor.
 
+## Physics Queries
+
+Protected helpers for synchronous spatial queries. Both ignore this entity's colliders automatically.
+
+| Method | Description |
+|--------|-------------|
+| `RaycastHit2D? Raycast(Vector2 origin, Vector2 direction, float maxDistance, bool includeTriggers = false)` | Closest hit along a ray |
+| `RaycastHit2D? OverlapCircle(Vector2 center, float radius, bool includeTriggers = false)` | One overlapping collider in a circle |
+
+`RaycastHit2D` fields: `Entity`, `Point`, `Normal`, `Distance`, `IsTrigger`.
+
+See [Physics](physics.md#queries) for examples.
+
 ## Serialized Data
 
 Script fields are **not** persisted in scene JSON. Put tunable values on `[SerializableComponent]` game components (`GameComponentTemplates` scaffolds new types). See [Getting Started](getting-started.md#data-and-the-inspector).
@@ -97,4 +110,3 @@ Script fields are **not** persisted in scene JSON. Put tunable values on `[Seria
 ## Coming Soon
 
 - Coroutine support for time-delayed execution
-- Physics raycasting queries
