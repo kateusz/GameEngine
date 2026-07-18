@@ -134,7 +134,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a com
 ├── tests/              # Unit test projects
 │   ├── ECS.Tests/      # ECS unit tests
 │   └── Engine.Tests/   # Engine unit tests (30+ test files)
-├── games scripts/      # Sample game projects
+├── games/              # Demo games (Snake, TicTacToe, FlappyBird)
 └── docs/               # Technical documentation
     ├── modules/        # 17 module documentation files
     ├── opengl-rendering/ # OpenGL workflow guides
@@ -221,9 +221,23 @@ public class PlayerController : ScriptableEntity
 }
 ```
 
-## 🎯 Sample Projects
+## 🎯 Demo Games
 
-TBD
+Sample projects under [`games/`](games/) show how to build small 2D games with components, systems, and publishable scenes. Open a demo in the editor via **Open Project** and select the game’s `project/` folder.
+
+| Game | Project | Startup scene | What it shows |
+|------|---------|---------------|---------------|
+| **Snake** | [`games/Snake/`](games/Snake/) | [`snake.scene`](games/Snake/project/assets/scenes/snake.scene) | Grid arcade: `IGameSystem` + keyboard input, tick loop, sprite sync, one-shot audio |
+| **Tic Tac Toe** | [`games/TicTacToe/`](games/TicTacToe/) | [`main.scene`](games/TicTacToe/project/assets/scenes/main.scene) | Turn-based board: script mailboxes + rules system, win/draw banners |
+| **Flappy Bird** | [`games/FlappyBird/`](games/FlappyBird/) | [`flappybird.scene`](games/FlappyBird/project/assets/scenes/flappybird.scene) | Side-scroller: flap physics, scrolling pipes/ground, score digits, audio cues |
+
+**Snake highlights:** [`SnakeGameComponent`](games/Snake/project/assets/scripts/SnakeGameComponent.cs) (state), [`SnakeSystem`](games/Snake/project/assets/scripts/SnakeSystem.cs) (input, step, visuals, audio), [`game.config.json`](games/Snake/project/game.config.json).
+
+**Tic Tac Toe highlights:** [`BoardComponent`](games/TicTacToe/project/assets/scripts/BoardComponent.cs) + [`GameControllerScript`](games/TicTacToe/project/assets/scripts/GameControllerScript.cs) (input → mailboxes), [`TicTacToeSystem`](games/TicTacToe/project/assets/scripts/TicTacToeSystem.cs) (rules + sprites), [`game.config.json`](games/TicTacToe/project/game.config.json).
+
+**Flappy Bird highlights:** [`FlappyBirdGameComponent`](games/FlappyBird/project/assets/scripts/FlappyBirdGameComponent.cs) (phase, bird, pipes, tunables), [`FlappyBirdSystem`](games/FlappyBird/project/assets/scripts/FlappyBirdSystem.cs) (flap, scroll, collision, score UI, audio), [`game.config.json`](games/FlappyBird/project/game.config.json).
+
+Scripting tier patterns used by these demos: [Scripting tiers](docs/guide/scripting/scripting-tiers.md).
 
 ## 🔧 Configuration
 
