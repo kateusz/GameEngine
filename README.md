@@ -59,17 +59,24 @@ For a fuller walkthrough, see the [Developer Guide](docs/guide/index.md).
 
 ## Demo Games
 
-Open a demo in the editor via **Open Project** and select the game's `project/` folder.
+Open a demo in the editor via **Open Project** and select the game's folder under `games/`.
 
 ### Flappy Bird
-Side-scroller — physics, scrolling pipes, scoring. [`games/FlappyBird/project/`](games/FlappyBird/project/)
+Side-scroller — physics, scrolling pipes, scoring. [`games/FlappyBird/`](games/FlappyBird/)
 
 ![Flappy Bird](docs/images/demo-games/flappybird.png)
 
 ### Snake
-Grid arcade — movement, tick loop, sprites, audio. [`games/Snake/project/`](games/Snake/project/)
+Grid arcade — movement, tick loop, sprites, audio. [`games/Snake/`](games/Snake/)
 
 ![Snake](docs/images/demo-games/snake.png)
+
+### Arena Shooter
+Twin-stick arena — WASD move, mouse aim, hold LMB to shoot (hitscan raycast), chasing enemies, health and score HUD. [`games/ArenaShooter/`](games/ArenaShooter/)
+
+![Arena Shooter](docs/images/demo-games/arenashooter.png)
+
+Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game over.
 
 ## Documentation
 

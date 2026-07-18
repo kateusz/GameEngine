@@ -179,6 +179,8 @@ public class ArenaSystem(
         }
     }
 
+    private const int SpawnPerWave = 4;
+
     private void HandleSpawning(ArenaGameComponent game, float dt)
     {
         game.SpawnTimer -= dt;
@@ -188,30 +190,37 @@ public class ArenaSystem(
         game.SpawnTimer = game.SpawnInterval;
 
         var active = 0;
-        Entity? slot = null;
-        EnemyComponent? slotComponent = null;
-        foreach (var (entity, enemy) in context.View<EnemyComponent>())
+        foreach (var (_, enemy) in context.View<EnemyComponent>())
         {
             if (enemy.Alive)
-            {
                 active++;
-            }
-            else if (slot == null)
-            {
-                slot = entity;
-                slotComponent = enemy;
-            }
         }
 
-        if (active >= game.MaxActiveEnemies || slot == null)
-            return;
+        for (var i = 0; i < SpawnPerWave && active < game.MaxActiveEnemies; i++)
+        {
+            Entity? slot = null;
+            EnemyComponent? slotComponent = null;
+            foreach (var (entity, enemy) in context.View<EnemyComponent>())
+            {
+                if (enemy.Alive)
+                    continue;
+                slot = entity;
+                slotComponent = enemy;
+                break;
+            }
 
-        var spawn = EdgeSpawnPoint(game, _rng);
-        slotComponent!.Alive = true;
-        if (slot.TryGetComponent<TransformComponent>(out var transform))
-            transform.Translation = new Vector3(spawn.X, spawn.Y, 0f);
-        if (slot.TryGetComponent<RigidBody2DComponent>(out var body))
-            body.Velocity = Vector2.Zero;
+            if (slot == null || slotComponent == null)
+                break;
+
+            // One per side (top/bottom/left/right) so the wave spreads out.
+            var spawn = EdgeSpawnPoint(game, _rng, side: i % 4);
+            slotComponent.Alive = true;
+            if (slot.TryGetComponent<TransformComponent>(out var transform))
+                transform.Translation = new Vector3(spawn.X, spawn.Y, 0f);
+            if (slot.TryGetComponent<RigidBody2DComponent>(out var body))
+                body.Velocity = Vector2.Zero;
+            active++;
+        }
     }
 
     private static void KillEnemy(Entity entity, EnemyComponent enemy)
@@ -396,11 +405,11 @@ public class ArenaSystem(
     }
 
     /// <summary>Random point on the play-area rectangle's perimeter (enemy entry points).</summary>
-    public static Vector2 EdgeSpawnPoint(ArenaGameComponent game, Random rng)
+    public static Vector2 EdgeSpawnPoint(ArenaGameComponent game, Random rng, int? side = null)
     {
         var x = game.MinX + (float)rng.NextDouble() * (game.MaxX - game.MinX);
         var y = game.MinY + (float)rng.NextDouble() * (game.MaxY - game.MinY);
-        return rng.Next(4) switch
+        return (side ?? rng.Next(4)) switch
         {
             0 => new Vector2(x, game.MaxY),
             1 => new Vector2(x, game.MinY),

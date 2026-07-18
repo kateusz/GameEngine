@@ -46,6 +46,41 @@
       ]
     },
     {
+      "Id": 24,
+      "Name": "Background",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            -0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            18,
+            10,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "textures/UI/bg.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
       "Id": 2,
       "Name": "Game",
       "Components": [
@@ -987,7 +1022,7 @@
             1,
             0
           ],
-          "TexturePath": "textures/UI/gameover.jpg",
+          "TexturePath": "textures/UI/gameover.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }

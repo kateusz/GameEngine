@@ -33,7 +33,7 @@ public class ArenaGameComponent : IGameComponent
     // --- Tunables (editable in the inspector) ---
     public int MaxHealth { get; set; } = 3;
     public float MoveSpeed { get; set; } = 5f;
-    public float EnemySpeed { get; set; } = 2.2f;
+    public float EnemySpeed { get; set; } = 3.3f;
     public float FireInterval { get; set; } = 0.15f;
     public float SpawnInterval { get; set; } = 1.1f;
     public int MaxActiveEnemies { get; set; } = 6;
