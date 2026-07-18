@@ -14,10 +14,11 @@ Game logic in this engine uses three tiers, similar to Unity's components, `Mono
 
 ```
 BoardComponent / CellComponent  →  serializable board state (data)
-TicTacToeSystem                 →  rules, visuals, keyboard input (logic)
+GameControllerScript            →  per-entity input glue (ScriptableEntity)
+TicTacToeSystem                 →  rules, visuals, win detection (logic)
 ```
 
-Input is handled in `TicTacToeSystem` with `IKeyboardInput.WasKeyPressed` — no script shim forwarding keys into component mailboxes.
+Input is handled in `GameControllerScript` via `OnKeyPressed`. The script writes `BoardComponent.PendingCellIndex` or `ResetRequested`; `TicTacToeSystem` reads those fields each frame. For keyboard polling in a system instead, see `SnakeSystem` (`IKeyboardInput.WasKeyPressed`).
 
 ## When to use each tier
 

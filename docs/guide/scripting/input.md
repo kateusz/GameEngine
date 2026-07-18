@@ -7,7 +7,8 @@ Handle keyboard and mouse input in game scripts (`ScriptableEntity`) or in batch
 1. **File**: `Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs` — Silk.NET keyboard/mouse callbacks enqueue `InputEvent` records.
 2. Each frame, `IInputSystem.Update` dequeues events and raises `InputReceived`.
 3. **File**: `Engine/Core/Application.cs` — `HandleInputEvent` walks the layer stack top-down; a layer can set `event.IsHandled` to stop propagation.
-4. The active game layer updates `KeyboardInputState` and dispatches each `InputEvent` to every `ScriptableEntity` on the active scene.
+4. In the standalone **Runtime** player, the active game layer updates `KeyboardInputState` and dispatches each `InputEvent` to every `ScriptableEntity` on the active scene.
+5. In the **editor during Play mode**, `EditorInputHandler` applies the same keyboard state and script dispatch path before viewport tools run.
 
 For global or shared input (turn order, menus), prefer `IKeyboardInput` in an `IGameSystem` — see [Scripting Tiers](scripting-tiers.md).
 
@@ -38,21 +39,21 @@ Override these methods in your `ScriptableEntity` subclass to respond to input:
 
 | Category | Keys |
 |----------|------|
-| Arrows | `Up`, `Down`, `Left`, `Right` |
-| Special | `Space`, `Enter`, `Escape`, `Tab`, `Backspace`, `Delete`, `Insert` |
-| Navigation | `Home`, `End`, `PageUp`, `PageDown` |
-| Function | `F1` through `F25` |
+| Arrows | `KeyCodes.Up`, `KeyCodes.Down`, `KeyCodes.Left`, `KeyCodes.Right` |
+| Special | `KeyCodes.Space`, `KeyCodes.Enter`, `KeyCodes.Escape`, `KeyCodes.Tab`, `KeyCodes.Backspace`, `KeyCodes.Delete`, `KeyCodes.Insert` |
+| Navigation | `KeyCodes.Home`, `KeyCodes.End`, `KeyCodes.PageUp`, `KeyCodes.PageDown` |
+| Function | `KeyCodes.F1` through `KeyCodes.F25` |
 
 ### Modifier Keys
 
 | Category | Keys |
 |----------|------|
-| Left modifiers | `LeftShift`, `LeftControl`, `LeftAlt`, `LeftSuper` |
-| Right modifiers | `RightShift`, `RightControl`, `RightAlt`, `RightSuper` |
+| Left modifiers | `KeyCodes.LeftShift`, `KeyCodes.LeftControl`, `KeyCodes.LeftAlt`, `KeyCodes.LeftSuper` |
+| Right modifiers | `KeyCodes.RightShift`, `KeyCodes.RightControl`, `KeyCodes.RightAlt`, `KeyCodes.RightSuper` |
 
 ### Numpad Operations
 
-`KeyPadAdd`, `KeyPadSubtract`, `KeyPadMultiply`, `KeyPadDivide`, `KeyPadEnter`, `KeyPadDecimal`, `KeyPadEqual`
+`KeyCodes.KeyPadAdd`, `KeyCodes.KeyPadSubtract`, `KeyCodes.KeyPadMultiply`, `KeyCodes.KeyPadDivide`, `KeyCodes.KeyPadEnter`, `KeyCodes.KeyPadDecimal`, `KeyCodes.KeyPadEqual`
 
 ## Example: WASD Movement
 
@@ -61,10 +62,9 @@ A complete script for four-directional movement with velocity and damping:
 ```csharp
 using System;
 using System.Numerics;
-using ECS;
-using Engine.Scene;
-using Engine.Scene.Components;
 using Input;
+using SceneComponents;
+using Scripting;
 
 public class PlayerMovement : ScriptableEntity
 {
@@ -74,8 +74,8 @@ public class PlayerMovement : ScriptableEntity
     public override void OnUpdate(TimeSpan ts)
     {
         float dt = (float)ts.TotalSeconds;
-        var pos = GetPosition();
-        SetPosition(pos + _velocity * dt);
+        var transform = GetComponent<TransformComponent>();
+        transform.Translation += _velocity * dt;
         _velocity *= 0.9f; // Apply damping
     }
 
@@ -102,9 +102,8 @@ public override void OnKeyPressed(KeyCodes key)
 {
     if (key == KeyCodes.Space)
     {
-        var pos = GetPosition();
-        pos.Y += 2.0f;
-        SetPosition(pos);
+        var transform = GetComponent<TransformComponent>();
+        transform.Translation += new Vector3(0, 2.0f, 0);
     }
 }
 ```
@@ -127,11 +126,16 @@ public override void OnMouseButtonPressed(int button)
 
 ## Example: Mouse scroll zoom
 
+There are no `ZoomIn` / `ZoomOut` helpers on `ScriptableEntity`. Adjust the entity's transform or camera settings directly:
+
 ```csharp
 public override void OnMouseScrolled(float xOffset, float yOffset)
 {
-    if (yOffset > 0) ZoomIn();
-    else if (yOffset < 0) ZoomOut();
+    if (!HasComponent<CameraComponent>())
+        return;
+
+    var camera = GetComponent<CameraComponent>();
+    camera.OrthographicSize -= yOffset * 0.5f;
 }
 ```
 
@@ -142,9 +146,9 @@ Inject `IKeyboardInput` into an `IGameSystem` to poll held or just-pressed keys 
 | Method | Behavior |
 |--------|----------|
 | `IsKeyDown(KeyCodes key)` | Key is currently held |
-| `WasKeyPressed(KeyCodes key)` | Key went down this frame (cleared at end of frame) |
+| `WasKeyPressed(KeyCodes key)` | Key went down this frame (cleared when `EndFrame()` runs at end of update) |
 
-**File**: `Engine/Core/Input/KeyboardInputState.cs` — singleton implementation registered in DI.
+**File**: `Engine/Core/Input/KeyboardInputState.cs` — singleton implementation registered in DI. `Application.HandleUpdate` calls `EndFrame()` each frame so `WasKeyPressed` only returns true for one frame.
 
 ## Common Patterns
 

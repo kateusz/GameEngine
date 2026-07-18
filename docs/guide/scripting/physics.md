@@ -31,12 +31,8 @@ Override these methods to react when your entity physically collides with anothe
 public override void OnCollisionBegin(Entity other)
 {
     // Called when this entity collides with another
-    if (other.HasComponent<TagComponent>())
-    {
-        var tag = other.GetComponent<TagComponent>();
-        if (tag.Tag == "Enemy")
-            Console.WriteLine("Hit an enemy!");
-    }
+    if (other.Name == "Enemy")
+        Console.WriteLine("Hit an enemy!");
 }
 
 public override void OnCollisionEnd(Entity other)
@@ -45,7 +41,7 @@ public override void OnCollisionEnd(Entity other)
 }
 ```
 
-Both entities must have rigidbodies and colliders for collision callbacks to fire.
+Both entities need colliders for overlap detection. Collision callbacks fire when both sides have physics fixtures from `BoxCollider2DComponent` and at least one side has a `RigidBody2DComponent`.
 
 ## Trigger Callbacks
 
@@ -84,21 +80,29 @@ A complete script for an item that gets collected when the player touches it:
 
 ```csharp
 using System;
-using System.Numerics;
 using ECS;
-using Engine.Scene;
-using Engine.Core.Input;
-using Engine.Scene.Components;
+using SceneComponents;
+using SceneComponents.Rendering;
+using Scripting;
 
 public class Collectible : ScriptableEntity
 {
+    private bool _collected;
+
     public override void OnTriggerEnter(Entity other)
     {
-        if (other.HasComponent<TagComponent>() &&
-            other.GetComponent<TagComponent>().Tag == "Player")
+        if (_collected)
+            return;
+
+        if (other.Name == "Player")
         {
             Console.WriteLine("Item collected!");
-            DestroyEntity(Entity);
+            _collected = true;
+            // Scripts cannot destroy entities today — hide the pickup instead.
+            if (HasComponent<SpriteRendererComponent>())
+                RemoveComponent<SpriteRendererComponent>();
+            if (HasComponent<BoxCollider2DComponent>())
+                RemoveComponent<BoxCollider2DComponent>();
         }
     }
 }
@@ -110,17 +114,14 @@ public class Collectible : ScriptableEntity
 - `SpriteRendererComponent` (so you can see it)
 - `NativeScriptComponent` (set to "Collectible")
 
-The player entity needs a `TagComponent` with `Tag = "Player"`.
+Name the player entity **Player** in the Scene Hierarchy (or check a game component field instead).
 
 ## Example: Damage on Collision
 
 ```csharp
 using System;
-using System.Numerics;
 using ECS;
-using Engine.Scene;
-using Engine.Core.Input;
-using Engine.Scene.Components;
+using Scripting;
 
 public class DamageOnHit : ScriptableEntity
 {

@@ -1,6 +1,6 @@
 # Game Engine
 
-A modern, component-based game engine built with C# and .NET 9, featuring a comprehensive editor, hot-reloadable scripting system, and 2D game development support.
+A modern, component-based game engine built with C# and .NET 10, featuring a comprehensive editor, hot-reloadable scripting system, and 2D game development support.
 
 ## ✨ Features
 
@@ -49,7 +49,7 @@ A modern, component-based game engine built with C# and .NET 9, featuring a comp
 ## 🚀 Getting Started
 
 ### Prerequisites
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - OpenGL 3.3+ compatible graphics card
 
 ### Building from Source
@@ -249,7 +249,7 @@ TBD
 - **ZLinq (1.5.2)** - High-performance LINQ extensions
 
 ### Development Dependencies
-- **.NET 9 SDK** - Runtime and development tools
+- **.NET 10 SDK** - Runtime and development tools
 - **xUnit** - Unit testing framework (ECS.Tests, Engine.Tests)
 - **BenchmarkDotNet** - Performance benchmarking tools
 
@@ -316,7 +316,7 @@ Design documents for major features:
 - [Entity Search Filter](docs/specifications/entity-search-filter.md) - Scene hierarchy filtering
 - [Ogg Audio Format Support](docs/specifications/ogg-audio-format-support.md) - Ogg Vorbis integration
 - [Physics Benchmark Design](docs/specifications/physics-benchmark-design.md) - Performance testing
-- [Pareto Analysis](docs/pareto-analysis-missing-features.md) - Known gaps and priorities
+- [Readiness analysis](docs/readiness-analysis-2026-07.md) - Known gaps and alpha priorities
 
 ## 🧪 Testing
 

@@ -61,6 +61,8 @@ Use `GetComponent<TransformComponent>()` for position, rotation, and scale — t
 **Example:**
 
 ```csharp
+using SceneComponents.Rendering;
+
 if (HasComponent<SpriteRendererComponent>())
 {
     var sprite = GetComponent<SpriteRendererComponent>();
@@ -70,7 +72,15 @@ if (HasComponent<SpriteRendererComponent>())
 
 ## Audio
 
-Scripts receive `IAudio` and `IAudioPlayback` via the constructor scaffold (`ScriptableEntityTemplates`). Use the protected `AudioPlayback` property for per-entity play/pause/stop:
+Scripts receive `IAudio` and `IAudioPlayback` via the constructor scaffold (`ScriptableEntityTemplates`).
+
+Use the protected `Audio` property for one-shot clips and global playback:
+
+| Method | Description |
+|--------|-------------|
+| `Audio.PlayOneShot(string clipPath, float volume = 1.0f)` | Play a clip by asset path without an `AudioSourceComponent` |
+
+Use the protected `AudioPlayback` property for per-entity play/pause/stop:
 
 | Method | Description |
 |--------|-------------|

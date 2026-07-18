@@ -8,7 +8,7 @@ See [Scripting Tiers](scripting-tiers.md) for when to use scripts vs game compon
 
 A script is a C# class that extends `ScriptableEntity`. Scripts are **per-entity glue**: input on one object, wiring between components, small local behavior. Put shared state in `IGameComponent` types and batch logic in `IGameSystem` classes.
 
-Scripts compile into a versioned `GameAssembly_{guid}.dll` under your project's `.engine/` folder (`GameAssemblyCompiler.GetNextEditorBuildPath`). Saving or creating a script in the editor triggers a recompile and reload — see [Scripting Lifecycle](../../architecture/scripting-lifecycle.md) for the full pipeline.
+Scripts compile into a versioned `GameAssembly_{guid}.dll` under your project's `.engine/` folder (`GameAssemblyCompiler.GetNextEditorBuildPath`). The editor recompiles when you create, update, or delete scripts through editor workflows (Content Browser context menu, script component UI, project open) and again when you press **Play**. External saves to `.cs` files are not watched automatically — see [Scripting Lifecycle](../../architecture/scripting-lifecycle.md) for the full pipeline.
 
 New scripts use the `ScriptableEntity` scaffold from `ScriptableEntityTemplates` (constructor: `IComponentAccessor`, `IAudio`, `IAudioPlayback`).
 
@@ -41,7 +41,13 @@ For input that drives game rules across the scene, use `IGameSystem` with `IKeyb
 
 ## Hot Reload
 
-Save a `.cs` file under `assets/scripts/` and the editor recompiles to a new `GameAssembly_{guid}.dll` and reloads it. Use **Force Recompile** from the script component UI if needed.
+The editor recompiles `assets/scripts/` into a new `GameAssembly_{guid}.dll` when:
+
+- You create or edit scripts through the editor (Content Browser **Add Script**, script component **Create New Script**, etc.)
+- You open a project (scripts are compiled on load)
+- You press **Play** (scripts are recompiled before the simulation starts)
+
+Removing a script from an entity triggers a recompile via the script component editor. There is no separate **Force Recompile** button in the UI today.
 
 ## Data and the Inspector
 

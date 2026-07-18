@@ -10,13 +10,13 @@ Navigate to the `Editor` directory and run the editor using the .NET CLI:
 cd Editor && dotnet run
 ```
 
-On first launch, the editor displays the start screen, from which you can create a new project or open an existing one.
+On first launch, the editor displays the start screen. From there you can create a new project, continue without a project, or reopen a recent project.
 
 ## Creating a New Project
 
 1. Click **New Project** on the start screen, or use the **File** menu and select **New Project**.
 2. Enter a project name. Allowed characters are alphanumeric characters, spaces, dashes, and underscores.
-3. Choose the parent directory where the project folder will be created.
+3. Enter the parent directory path where the project folder will be created (text input — not a file browser).
 4. Click **Create**.
 
 The engine generates the following directory structure inside the new project folder:
@@ -35,14 +35,14 @@ ProjectName/
 To open a project that already exists on disk:
 
 1. Open the **File** menu and select **Open Project**.
-2. Browse to the root directory of the project (the folder that contains the `assets/` subdirectory).
+2. Enter the root directory path of the project (the folder that contains the `assets/` subdirectory).
 3. Confirm the selection.
 
 The editor will load the project and display its contents in the Content Browser.
 
 ## Recent Projects
 
-The **Recent Projects** panel on the start screen lists previously opened projects for quick access. Click any entry to reopen that project directly, without having to browse the filesystem.
+The **Recent Projects** panel on the start screen lists previously opened projects for quick access. **Double-click** any entry to reopen that project directly. Use **File → Show Recent Projects** or **File → Recent Projects** from the menu bar when a project is already open.
 
 ## Project Directory Structure
 

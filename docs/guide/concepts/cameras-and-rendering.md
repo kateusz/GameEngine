@@ -13,7 +13,7 @@ The engine renders what the active camera sees. Every scene needs at least one e
 3. Set `Primary` to `true`
 4. Position it with the `TransformComponent` (for 2D games, Z position is typically 0)
 
-Only one camera should be marked Primary at a time. If multiple cameras are primary, the engine uses the first one it finds.
+Only one camera should be marked Primary at a time. The editor enforces a single primary camera; at runtime the first primary camera in scene iteration order is used.
 
 ## Orthographic Projection (2D Games)
 
@@ -22,7 +22,7 @@ Orthographic projection renders a flat view with no depth perspective. Objects a
 - **Size** controls how much of the world is visible (larger = more zoomed out)
 - Best for: platformers, top-down games, puzzle games, 2D action games
 
-To configure: set `ProjectionType` to `Orthographic` on the `CameraComponent`, then adjust `Size`, `NearClip`, and `FarClip`.
+To configure: set `ProjectionType` to `Orthographic` on the `CameraComponent`, then adjust `OrthographicSize`, `OrthographicNear`, and `OrthographicFar` (the editor labels these **Size**, **Near**, and **Far**).
 
 ## Perspective Projection (3D Scenes)
 
@@ -31,7 +31,7 @@ Perspective projection renders with realistic depth. Distant objects appear smal
 - **PerspectiveFOV** controls the field of view (how wide the camera sees). Stored in radians internally; the editor displays degrees.
 - Best for: 3D environments, first-person views, 3D action games
 
-To configure: set `ProjectionType` to `Perspective`, then adjust `PerspectiveFOV`, `NearClip`, and `FarClip`.
+To configure: set `ProjectionType` to `Perspective`, then adjust `PerspectiveFOV`, `PerspectiveNear`, and `PerspectiveFar`.
 
 ## Sprite Rendering
 
@@ -63,19 +63,9 @@ See [OpenGL 3D Rendering Workflow](../../opengl/opengl-3d-workflow.md) for shade
 
 ## Render Order
 
-For 2D games, sprites are sorted by their Z position (`Translation.Z` on the `TransformComponent`):
+2D sprites are drawn in entity iteration order with depth testing disabled. **Z position does not currently control draw order.**
 
-- **Lower Z** = rendered behind (background)
-- **Higher Z** = rendered in front (foreground)
-
-A typical layer setup:
-
-| Layer | Z Position | Content |
-|-------|-----------|---------|
-| Background | -10 | Sky, distant scenery |
-| Midground | 0 | Platforms, terrain |
-| Characters | 1 | Player, enemies |
-| Foreground | 10 | Overlays, near objects |
+`SortingOrder` on sprite render components is planned (see [Roadmap](../roadmap.md)) but not implemented yet. Until then, rely on entity creation order or split content across layers/cameras if draw order matters.
 
 ## Next Steps
 

@@ -4,25 +4,23 @@ Reference for every component available in the engine.
 
 ## Overview
 
-The **Properties** panel displays all components attached to the currently selected entity. To add a component, click the **Add Component** button at the bottom of the panel and select from the dropdown. To remove a component, right-click its header and choose **Remove Component**.
+The **Properties** panel displays all components attached to the currently selected entity. To add a component, click the **Add Component** button at the bottom of the panel and select from the dropdown. To remove a component, click the **"-"** button on its header.
 
-Each entity can hold any combination of components. The engine uses these components to drive rendering, physics, audio, and scripting through its system pipeline.
+When no entity is selected, the panel shows scene-level settings (2D/3D dimension and background color). Selected entities can also be saved as prefabs via **Save as Prefab** at the top of the panel.
 
 ---
 
 ## TransformComponent
 
-Stores the position, rotation, and scale of an entity in world space. Every entity receives a TransformComponent automatically on creation; it cannot be removed.
+Stores the position, rotation, and scale of an entity in world space. Add it manually from **Add Component** if the entity does not have one yet.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `Translation` | Vector3 | (0, 0, 0) | World-space position |
-| `Rotation` | Vector3 | (0, 0, 0) | Euler angles in **radians** (X = pitch, Y = yaw, Z = roll) |
+| `Rotation` | Vector3 | (0, 0, 0) | Euler angles stored in **radians**; the editor displays and edits **degrees** (X = pitch, Y = yaw, Z = roll) |
 | `Scale` | Vector3 | (1, 1, 1) | Size multiplier per axis |
 
-> **Rotation is in radians.** To convert: degrees × (π / 180). A 90-degree rotation is approximately 1.5708 radians.
-
-**When to use:** Always present. Modify Translation, Rotation, and Scale to place and orient any entity in the scene.
+> **Rotation in the editor is shown in degrees.** Values are converted to radians internally when saved to the component.
 
 ---
 
@@ -73,8 +71,8 @@ Defines a viewpoint for rendering the scene. The scene is rendered from the pers
 | Property | Default | Description |
 |---|---|---|
 | `OrthographicSize` | 10.0 | Half-height of the view volume. Smaller values zoom in. |
-| `OrthographicNear` | -100.0 | Near clip plane. |
-| `OrthographicFar` | 100.0 | Far clip plane. |
+| `OrthographicNear` | -1.0 | Near clip plane. |
+| `OrthographicFar` | 1.0 | Far clip plane. |
 
 *Perspective:*
 
@@ -142,6 +140,8 @@ Registers the entity with the 2D physics simulation. The physics system reads th
 |---|---|---|---|
 | `BodyType` | enum | Static | Controls how physics acts on the body (see below). |
 | `FixedRotation` | bool | false | When enabled, physics cannot rotate this entity. Useful for top-down characters. |
+| `GravityScale` | float | 1.0 | Scales gravity for this body (1.0 = default). |
+| `Velocity` | Vector2 | (0, 0) | Linear velocity; written to the physics body each step for Dynamic/Kinematic bodies. |
 
 **BodyType values:**
 
@@ -215,7 +215,7 @@ Emits audio from the entity's world position. Supports both 2D (non-positional) 
 
 Each effect has an `Enabled` toggle and an `Amount` slider (default 0.5).
 
-**Note:** Programmatic Play, Pause, and Stop control from scripts is not yet available. Use `PlayOnAwake` and `Loop` to manage playback declaratively.
+**Note:** Use `PlayOnAwake` and `Loop` for declarative playback. The inspector also provides a **Play** button to preview the clip in the editor.
 
 **When to use:** Sound effects, music, ambient audio, and positional sounds in a 3D environment. Disable `Is3D` for UI sounds and background music that should not attenuate with distance.
 
@@ -251,15 +251,19 @@ See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md), [OpenGL
 
 ---
 
-## TagComponent
+## Entity Name (Hierarchy)
 
-Stores a string label on the entity for identification and grouping. Tags are persisted with the scene and can be queried from scripts.
+The Scene Hierarchy panel shows each entity's **name** in a field labeled **Tag**. This edits `entity.Name` for identification in the hierarchy and in scripts (`other.Name`, `context.GetByName(...)`). It is not a separate `TagComponent` in the Add Component menu.
 
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `Tag` | string | "" | The label assigned to this entity (e.g., `"Player"`, `"Enemy"`, `"Pickup"`). |
+`TagComponent` exists in the engine codebase but is not exposed in the editor or serialized in scene files today.
 
-**When to use:** Assign tags to categorize entities by role or type. Scripts can look up entities by tag to implement targeting, collision handling, or scene management logic.
+---
+
+## Game Components (`IGameComponent`)
+
+Custom serializable data components created from **Add Component → Game Component** (or the Content Browser **Add Component** action on the `scripts` folder). Fields on these types are saved in scene/prefab JSON and edited in the Properties panel.
+
+See [Scripting Tiers](../scripting/scripting-tiers.md) for when to use game components vs `ScriptableEntity` scripts vs `IGameSystem`.
 
 ---
 

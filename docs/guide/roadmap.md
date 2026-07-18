@@ -163,7 +163,7 @@ P1 (undo) can run in parallel with late P0 / early P2 if staffed.
 | Publish standalone build | Works on win-x64 without manual steps |
 | Script hot-reload | Edit script → see change in play mode |
 | Menu-driven game | Possible without custom quad UI code |
-| Test suite | 520+ unit tests green; publish smoke test in CI |
+| Test suite | 523 unit tests green; publish smoke test in CI |
 | Known crash on publish | 0 in Snake/TicTacToe template publish |
 
 ---
@@ -171,6 +171,5 @@ P1 (undo) can run in parallel with late P0 / early P2 if staffed.
 ## References
 
 - [Readiness analysis (2026-07)](../readiness-analysis-2026-07.md)
-- [Pareto missing features (detailed feature specs)](../pareto-analysis-missing-features.md)
 - [Architecture overview](../architecture/README.md)
 - [Game publishing](../architecture/README.md#tools--publishing) (via README)

@@ -24,6 +24,8 @@ Open **Help → Keyboard Shortcuts** to browse all registered bindings grouped b
 | Shift+E | Ruler tool |
 | Escape | Clear ruler measurement (when Ruler tool is active) |
 
+> **Rotate tool** is available on the viewport toolbar but has no keyboard shortcut.
+
 ### File Operations
 
 | Shortcut | Action |
@@ -119,5 +121,5 @@ Display strings (e.g. `Ctrl+S`) come from `KeyboardShortcut.GetDisplayString()`.
 
 ## Related
 
-- [Scene Editor](scene-editor.md) — viewport tools bound by Shift+Q/W/R/E
+- [Scene Editor](scene-editor.md) — viewport tools (Shift+Q/W/R/E; Rotate is toolbar-only)
 - [Input Handling](../scripting/input.md) — runtime game input in Play mode

@@ -28,32 +28,33 @@ This is composition over inheritance. You build game objects by mixing and match
 
 As a game developer using this engine:
 
-- **You create entities** in the editor's Scene Hierarchy panel (or from scripts with `CreateEntity`)
+- **You create entities** in the editor's Scene Hierarchy panel
 - **You attach components** via the Properties panel's "Add Component" button
 - **Systems run automatically** -- the engine handles physics, rendering, and audio
 - **For custom logic, you write scripts** -- subclass `ScriptableEntity` and override lifecycle methods
 
-You write scripts, not systems. Scripts are the user-facing API for game logic.
+You write scripts, not systems. Scripts are the user-facing API for per-entity game logic. Batch logic across many entities belongs in `IGameSystem` classes — see [Scripting Tiers](../scripting/scripting-tiers.md).
 
 ## Entities
 
-Entities are created in the Scene Hierarchy panel by right-clicking and selecting "Create Entity." Each entity has:
+Entities are created in the Scene Hierarchy panel by right-clicking and selecting **Create Empty Entity** or **Create 3D Entity**. Each entity has:
 
 - A **name** (e.g., "Player", "Enemy", "MainCamera") -- for identification
 - A **unique ID** -- assigned automatically, used internally
 
-From scripts, you can create and find entities:
+`ScriptableEntity` scripts operate on the entity they are attached to. Use `GetComponent<T>()` to read or modify that entity's components. There is no `CreateEntity` or `FindEntity` on scripts.
+
+To look up entities from batch logic, use `IContext.GetByName(string)` inside an `IGameSystem`:
 
 ```csharp
-var enemy = CreateEntity("Enemy");
-var player = FindEntity("Player");
+var player = context.GetByName("Player");
 ```
 
 ## Components
 
 Components are added via the Properties panel. Select an entity, click "Add Component," and choose from the dropdown. Each entity can have at most one component of each type.
 
-The engine provides 14 built-in component types covering transforms, rendering, lighting, physics, audio, scripting, and identification. See the [Component Inspector](../editor/component-inspector.md) for the full reference.
+The engine provides 14 built-in C# component types covering transforms, rendering, lighting, physics, audio, scripting, and identification. Twelve of these are serialized in `.scene` and `.prefab` files (`TagComponent` and `IdComponent` exist in code but are not persisted). See the [Component Inspector](../editor/component-inspector.md) for the full reference.
 
 ## Next Steps
 
