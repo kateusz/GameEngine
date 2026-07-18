@@ -11,8 +11,9 @@ namespace Engine.Platform.OpenGL.Buffers;
 internal sealed class OpenGLVertexBuffer : IVertexBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<OpenGLVertexBuffer>();
-    private uint _rendererId;
     private bool _disposed;
+
+    internal uint RendererId { get; private set; }
 
     // Maximum buffer size limit: 256 MB
     // This prevents accidental allocation of excessive GPU memory which could lead to:
@@ -32,8 +33,8 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
                 throw new ArgumentException($"Buffer size {size} bytes exceeds maximum {MaxBufferSize} bytes ({MaxBufferSize / (1024 * 1024)} MB)", nameof(size));
         }
 
-        _rendererId = SilkNetContext.GL.GenBuffer();
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, _rendererId);
+        RendererId = SilkNetContext.GL.GenBuffer();
+        SilkNetContext.GL.BindBuffer(BufferTargetARB.ArrayBuffer, RendererId);
 
         try
         {
@@ -45,7 +46,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         }
         catch
         {
-            SilkNetContext.GL.DeleteBuffer(_rendererId);
+            SilkNetContext.GL.DeleteBuffer(RendererId);
             throw;
         }
     }
@@ -57,15 +58,15 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
 
         try
         {
-            if (_rendererId != 0)
+            if (RendererId != 0)
             {
-                SilkNetContext.GL.DeleteBuffer(_rendererId);
-                _rendererId = 0;
+                SilkNetContext.GL.DeleteBuffer(RendererId);
+                RendererId = 0;
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Failed to delete OpenGL vertex buffer {RendererId}", _rendererId);
+            Logger.Error(e, "Failed to delete OpenGL vertex buffer {RendererId}", RendererId);
         }
 
         _disposed = true;
@@ -75,10 +76,10 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
 #if DEBUG
     ~OpenGLVertexBuffer()
     {
-        if (!_disposed && _rendererId != 0)
+        if (!_disposed && RendererId != 0)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"GPU LEAK: VertexBuffer {_rendererId} not disposed!"
+                $"GPU LEAK: VertexBuffer {RendererId} not disposed!"
             );
         }
     }
@@ -99,7 +100,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         if (vertices.Length == 0)
             return;
 
-        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
@@ -121,7 +122,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         if (vertices.Length == 0)
             return;
 
-        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
@@ -143,7 +144,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         if (vertices.Count == 0)
             return;
 
-        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
 
         unsafe
@@ -163,7 +164,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
     public void Bind()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, _rendererId);
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
     }
 

@@ -9,15 +9,16 @@ namespace Engine.Platform.OpenGL.Buffers;
 internal sealed class OpenGLIndexBuffer : IIndexBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<OpenGLIndexBuffer>();
-    private uint _rendererId;
     private bool _disposed;
+
+    internal uint RendererId { get; private set; }
 
     public OpenGLIndexBuffer(uint[] indices, int count)
     {
         Count = count;
 
-        _rendererId = SilkNetContext.GL.GenBuffer();
-        SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, _rendererId);
+        RendererId = SilkNetContext.GL.GenBuffer();
+        SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ElementArrayBuffer)");
 
         unsafe
@@ -35,7 +36,7 @@ internal sealed class OpenGLIndexBuffer : IIndexBuffer
     public void Bind()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, _rendererId);
+        SilkNetContext.GL.BindBuffer(GLEnum.ElementArrayBuffer, RendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ElementArrayBuffer)");
     }
 
@@ -53,15 +54,15 @@ internal sealed class OpenGLIndexBuffer : IIndexBuffer
 
         try
         {
-            if (_rendererId != 0)
+            if (RendererId != 0)
             {
-                SilkNetContext.GL.DeleteBuffer(_rendererId);
-                _rendererId = 0;
+                SilkNetContext.GL.DeleteBuffer(RendererId);
+                RendererId = 0;
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Failed to delete OpenGL index buffer {RendererId}", _rendererId);
+            Logger.Error(e, "Failed to delete OpenGL index buffer {RendererId}", RendererId);
         }
 
         _disposed = true;
@@ -71,10 +72,10 @@ internal sealed class OpenGLIndexBuffer : IIndexBuffer
 #if DEBUG
     ~OpenGLIndexBuffer()
     {
-        if (!_disposed && _rendererId != 0)
+        if (!_disposed && RendererId != 0)
         {
             Debug.WriteLine(
-                $"GPU LEAK: IndexBuffer {_rendererId} not disposed! Count: {Count}"
+                $"GPU LEAK: IndexBuffer {RendererId} not disposed! Count: {Count}"
             );
         }
     }

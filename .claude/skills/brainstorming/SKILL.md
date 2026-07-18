@@ -126,7 +126,6 @@ Simplified and developer-focused. Only what's needed to implement — no repetit
   - (User preferences for design doc location override this default)
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Keep language concise and precise in both documents
-- Commit both design documents to git
 
 **Design Doc Self-Review:**
 After writing both documents, look at them with fresh eyes:
@@ -143,7 +142,7 @@ Fix any issues inline. No need to re-review — just fix and move on.
 **User Review Gate:**
 After the self-review loop passes, ask the user to review the written design docs:
 
-> "Design docs written and committed to `docs/specs/{name_of_feature}/introduction.md` and `docs/specs/{name_of_feature}/developer-guide.md`. Please review them and let me know if you want to make any changes."
+> "Please review them and let me know if you want to make any changes."
 
 Wait for the user's response. If they request changes, make them and re-run the self-review loop. Once the user approves, this skill's work is done — do not proceed to planning or implementation.
 

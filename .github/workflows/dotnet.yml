@@ -8,6 +8,7 @@ on:
     branches: 
     - "main"
     - "dev"
+    - "CI-test"
   pull_request:
     branches: [ "main" ]
 
@@ -26,5 +27,26 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    - name: Install headless GL stack
+      run: sudo apt-get update && sudo apt-get install -y xvfb mesa-utils libgl1-mesa-dri libglx-mesa0 libglfw3 libx11-6 libxcursor1 libxi6 libxrandr2 libxinerama1
+    - name: Test ECS.Tests
+      id: ecs_tests
+      run: dotnet test tests/ECS.Tests/ECS.Tests.csproj --no-build --verbosity normal
+    - name: Test Engine.Tests
+      id: engine_tests
+      run: dotnet test tests/Engine.Tests/Engine.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=engine-tests.trx"
+    - name: Test Engine.GraphicsTests
+      id: graphics_tests
+      if: hashFiles('tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj') != ''
+      env:
+        LIBGL_ALWAYS_SOFTWARE: "1"
+        GALLIUM_DRIVER: llvmpipe
+      run: xvfb-run -a dotnet test tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj --no-build --verbosity normal --logger "trx;LogFileName=graphics-tests.trx"
+    - name: Test results
+      if: always()
+      run: echo "ECS.Tests=${{ steps.ecs_tests.outcome }} Engine.Tests=${{ steps.engine_tests.outcome }} Engine.GraphicsTests=${{ steps.graphics_tests.outcome }}"
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: test-results
+        path: "**/*.trx"
