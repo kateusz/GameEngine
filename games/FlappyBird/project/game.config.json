@@ -1,0 +1,9 @@
+{
+  "GameAssemblyPath": "GameAssembly.dll",
+  "StartupScenePath": "assets/scenes/flappybird.scene",
+  "WindowWidth": 1280,
+  "WindowHeight": 720,
+  "Fullscreen": false,
+  "GameTitle": "Flappy Bird",
+  "TargetFrameRate": 60
+}

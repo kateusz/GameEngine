@@ -1,0 +1,718 @@
+{
+  "Scene": "flappybird",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "Name": "CameraComponent",
+          "ProjectionType": "Orthographic",
+          "OrthographicSize": 2.56,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "Primary": true,
+          "FixedAspectRatio": false
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "GameManager",
+      "Components": [
+        {
+          "Name": "FlappyBirdGameComponent",
+          "Phase": 0,
+          "BirdY": 0.3,
+          "BirdVelocity": 0,
+          "BirdX": -1.2,
+          "PipeX": [
+            2.5,
+            5.7,
+            8.9
+          ],
+          "PipeGapY": [
+            0.4,
+            0.9,
+            0.2
+          ],
+          "PipeScored": [
+            false,
+            false,
+            false
+          ],
+          "Score": 0,
+          "GroundScroll": 0,
+          "FlapAnimT": 0,
+          "BobT": 0,
+          "Gravity": 14,
+          "FlapVelocity": 4.6,
+          "PipeSpeed": 1.35,
+          "PipeGap": 1.2,
+          "PipeSpacing": 3.2,
+          "GroundTopY": -1.44,
+          "CeilingY": 2.4,
+          "FirstPipeX": 2.5
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Background",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            0,
+            -0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            9.2,
+            5.12,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/background-day.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Ground0",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            -2,
+            0.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            3.36,
+            1.12,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/base.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Ground1",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            3.36,
+            -2,
+            0.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            3.36,
+            1.12,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/base.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "Ground2",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            6.72,
+            -2,
+            0.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            3.36,
+            1.12,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/base.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 19,
+      "Name": "Ground3",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            10.08,
+            -2,
+            0.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            3.36,
+            1.12,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/base.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "Bird",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            -1.2,
+            0.3,
+            0.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.34,
+            0.24,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/yellowbird-midflap.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "PipeTop0",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            2.5,
+            2,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            3.141592653589793
+          ],
+          "Scale": [
+            0.52,
+            3.2,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/pipe-green.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "PipePairComponent",
+          "Index": 0,
+          "IsTop": true
+        }
+      ]
+    },
+    {
+      "Id": 9,
+      "Name": "PipeBottom0",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            2.5,
+            -2,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.52,
+            3.2,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/pipe-green.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "PipePairComponent",
+          "Index": 0,
+          "IsTop": false
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "PipeTop1",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            4.6,
+            2,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            3.141592653589793
+          ],
+          "Scale": [
+            0.52,
+            3.2,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/pipe-green.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "PipePairComponent",
+          "Index": 1,
+          "IsTop": true
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "PipeBottom1",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            4.6,
+            -2,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.52,
+            3.2,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/pipe-green.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "PipePairComponent",
+          "Index": 1,
+          "IsTop": false
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "PipeTop2",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            6.7,
+            2,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            3.141592653589793
+          ],
+          "Scale": [
+            0.52,
+            3.2,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/pipe-green.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "PipePairComponent",
+          "Index": 2,
+          "IsTop": true
+        }
+      ]
+    },
+    {
+      "Id": 13,
+      "Name": "PipeBottom2",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            6.7,
+            -2,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.52,
+            3.2,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/Game Objects/pipe-green.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "PipePairComponent",
+          "Index": 2,
+          "IsTop": false
+        }
+      ]
+    },
+    {
+      "Id": 14,
+      "Name": "ScoreDigit0",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            2,
+            0.3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.24,
+            0.36,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": null,
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "ScoreDigitComponent",
+          "Place": 0
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "ScoreDigit1",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            2,
+            0.3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.24,
+            0.36,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": null,
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "ScoreDigitComponent",
+          "Place": 1
+        }
+      ]
+    },
+    {
+      "Id": 16,
+      "Name": "ScoreDigit2",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            2,
+            0.3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.24,
+            0.36,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": null,
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TilingFactor": 1
+        },
+        {
+          "Name": "ScoreDigitComponent",
+          "Place": 2
+        }
+      ]
+    },
+    {
+      "Id": 17,
+      "Name": "MessageBanner",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            0.35,
+            0.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.84,
+            2.67,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": "textures/UI/message.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    },
+    {
+      "Id": 18,
+      "Name": "GameOverBanner",
+      "Components": [
+        {
+          "Name": "TransformComponent",
+          "Translation": [
+            0,
+            0.8,
+            0.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.92,
+            0.42,
+            1
+          ]
+        },
+        {
+          "Name": "SpriteRendererComponent",
+          "TexturePath": null,
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TilingFactor": 1
+        }
+      ]
+    }
+  ]
+}
