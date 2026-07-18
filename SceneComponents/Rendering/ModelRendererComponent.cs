@@ -7,6 +7,8 @@ public class ModelRendererComponent : IComponent
 {
     public string? ModelPath { get; set; }
     public Vector4 Color { get; set; } = Vector4.One;
+    public float? MetallicOverride { get; set; }
+    public float? RoughnessOverride { get; set; }
 
     public ModelRendererComponent() { }
 
@@ -18,6 +20,8 @@ public class ModelRendererComponent : IComponent
     public IComponent Clone() => new ModelRendererComponent
     {
         ModelPath = ModelPath,
-        Color = Color
+        Color = Color,
+        MetallicOverride = MetallicOverride,
+        RoughnessOverride = RoughnessOverride
     };
 }

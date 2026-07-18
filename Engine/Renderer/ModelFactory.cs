@@ -75,6 +75,14 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
                 try
                 {
                     ResolveMaterialTextures(submesh.Material);
+                    Logger.Debug(
+                        "Bound textures path={Path} mesh={MeshName} " +
+                        "albedoBound={AlbedoBound} mrBound={MrBound} specularBound={SpecularBound} normalBound={NormalBound} " +
+                        "metallic={Metallic:F3} roughness={Roughness:F3}",
+                        normalizedPath, submesh.Mesh.Name,
+                        submesh.Material.HasAlbedoMap, submesh.Material.HasMetallicRoughnessMap,
+                        submesh.Material.HasSpecularMap, submesh.Material.HasNormalMap,
+                        submesh.Material.Metallic, submesh.Material.Roughness);
                     submesh.Mesh.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
                     initialized.Add(submesh);
                 }
@@ -97,6 +105,15 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             {
                 _cache[normalizedPath] = model;
             }
+
+            var withAlbedo = initialized.Count(s => s.Material.HasAlbedoMap);
+            var withMr = initialized.Count(s => s.Material.HasMetallicRoughnessMap);
+            var withSpecular = initialized.Count(s => s.Material.HasSpecularMap);
+            var withNormal = initialized.Count(s => s.Material.HasNormalMap);
+            Logger.Debug(
+                "Model loaded path={Path} submeshes={SubmeshCount} " +
+                "withAlbedoMap={WithAlbedo} withMetallicRoughnessMap={WithMr} withSpecularMap={WithSpecular} withNormalMap={WithNormal}",
+                normalizedPath, initialized.Count, withAlbedo, withMr, withSpecular, withNormal);
 
             return model;
         }
@@ -126,9 +143,10 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
     private void ResolveMaterialTextures(MeshMaterial material)
     {
-        material.DiffuseTexture = LoadTexture(material.DiffuseTexturePath);
-        material.SpecularTexture = LoadTexture(material.SpecularTexturePath);
+        material.AlbedoTexture = LoadTexture(material.AlbedoTexturePath);
+        material.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessTexturePath);
         material.NormalTexture = LoadTexture(material.NormalTexturePath);
+        material.SpecularTexture = LoadTexture(material.SpecularTexturePath);
     }
 
     private Texture2D? LoadTexture(string? path)

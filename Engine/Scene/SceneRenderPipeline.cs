@@ -86,7 +86,11 @@ internal static class SceneRenderPipeline
             }
 
             foreach (var submesh in model.Submeshes)
-                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, entity.Id);
+            {
+                var metallic = modelRenderer.MetallicOverride ?? submesh.Material.Metallic;
+                var roughness = modelRenderer.RoughnessOverride ?? submesh.Material.Roughness;
+                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, metallic, roughness, entity.Id);
+            }
         }
 
         graphics3D.EndScene();
