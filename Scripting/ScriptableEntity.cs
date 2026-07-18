@@ -17,7 +17,7 @@ public abstract class ScriptableEntity
     /// <summary>
     /// The entity this script is attached to
     /// </summary>
-    private IEntity? _entity;
+    private Entity? _entity;
 
     protected ScriptableEntity(
         IComponentAccessor componentAccessor,
@@ -39,6 +39,8 @@ public abstract class ScriptableEntity
         _entity = entity;
         _componentAccessor.SetEntity(entity);
     }
+
+    public IEntity GetEntity() => _entity;
 
     public bool IsInitialized => _entity is not null;
 

@@ -51,9 +51,9 @@
       "Components": [
         {
           "Translation": [
-            0,
-            0,
-            -0.5
+            0.15687704,
+            -0.07553673,
+            0
           ],
           "Rotation": [
             0,
@@ -105,6 +105,7 @@
             0
           ],
           "WalkPlaying": false,
+          "InWater": false,
           "MaxHealth": 3,
           "MoveSpeed": 5,
           "EnemySpeed": 2.2,
@@ -942,7 +943,7 @@
             0.42,
             1
           ],
-          "TexturePath": null,
+          "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }
@@ -977,7 +978,7 @@
             0.42,
             1
           ],
-          "TexturePath": null,
+          "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }
@@ -1012,7 +1013,7 @@
             0.42,
             1
           ],
-          "TexturePath": null,
+          "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }
@@ -1206,6 +1207,60 @@
         {
           "Place": 3,
           "Name": "ScoreDigitComponent"
+        }
+      ]
+    },
+    {
+      "Id": 25,
+      "Name": "Water",
+      "Components": [
+        {
+          "Translation": [
+            -6.5128074,
+            -3.1450121,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            3.3,
+            2.9435337,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": true,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Name": "NativeScriptComponent",
+          "ScriptType": "WaterScript"
         }
       ]
     }

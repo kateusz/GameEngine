@@ -55,6 +55,9 @@ public class SceneManager(
 
     public void Save()
     {
+        if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
+            scriptWorkspace.EnsureScriptsCompiledAndApplied();
+
         if (string.IsNullOrEmpty(EditorScenePath))
         {
             var sceneDir = PathBuilder.Build("scenes");

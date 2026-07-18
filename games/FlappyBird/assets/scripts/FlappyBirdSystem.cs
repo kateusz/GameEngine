@@ -261,8 +261,6 @@ public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IA
     private void SyncBird(FlappyBirdGameComponent game)
     {
         var bird = context.GetByName("Bird");
-        if (bird == null)
-            return;
 
         if (bird.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -343,16 +341,14 @@ public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IA
         if (_groundTiles != null)
             return _groundTiles;
 
-        var tiles = new List<Entity>();
-        for (var i = 0; ; i++)
-        {
-            var tile = context.GetByName($"Ground{i}");
-            if (tile == null)
-                break;
-            tiles.Add(tile);
-        }
-
-        _groundTiles = tiles.ToArray();
+        // Scene has Ground0..Ground3; GetByName throws if missing.
+        _groundTiles =
+        [
+            context.GetByName("Ground0"),
+            context.GetByName("Ground1"),
+            context.GetByName("Ground2"),
+            context.GetByName("Ground3"),
+        ];
         return _groundTiles;
     }
 
@@ -406,8 +402,6 @@ public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IA
     private void SetBanner(string entityName, string? texturePath, Vector3 visibleScale)
     {
         var entity = context.GetByName(entityName);
-        if (entity == null)
-            return;
 
         if (entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
         {

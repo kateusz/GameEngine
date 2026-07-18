@@ -33,6 +33,9 @@ public class ArenaGameComponent : IGameComponent
     /// <summary>Edge cache for looped walk AudioSource — Play restarts the clip, so only call on transitions.</summary>
     public bool WalkPlaying { get; set; }
 
+    /// <summary>True while the player overlaps a Water trigger (halves move speed).</summary>
+    public bool InWater { get; set; }
+
     // --- Tunables (editable in the inspector) ---
     public int MaxHealth { get; set; } = 3;
     public float MoveSpeed { get; set; } = 5f;
@@ -65,6 +68,7 @@ public class ArenaGameComponent : IGameComponent
         TracerStart = TracerStart,
         TracerEnd = TracerEnd,
         WalkPlaying = WalkPlaying,
+        InWater = InWater,
         MaxHealth = MaxHealth,
         MoveSpeed = MoveSpeed,
         EnemySpeed = EnemySpeed,

@@ -23,6 +23,7 @@ public class ArenaSystem(
     IMouseInput mouse,
     ICameraQueries cameraQueries,
     IPhysicsQueries physics,
+    IPhysicsContacts contacts,
     IAudioPlayback audioPlayback,
     IAudio audio) : IGameSystem
 {
@@ -41,6 +42,7 @@ public class ArenaSystem(
 
     private readonly Random _rng = new();
     private Entity _weaponEntity;
+    private float _zombieCooldown;
 
     public int Priority => 115;
 
@@ -66,7 +68,12 @@ public class ArenaSystem(
         if (dt > 0.05f)
             dt = 0.05f;
 
+        if (_zombieCooldown > 0f)
+            _zombieCooldown -= dt;
+
         var playerPos = new Vector2(playerTransform.Translation.X, playerTransform.Translation.Y);
+
+        SyncWaterContacts(game);
 
         if (game.Phase == ArenaGameComponent.Dead)
         {
@@ -109,12 +116,27 @@ public class ArenaSystem(
         return null;
     }
 
+    private void SyncWaterContacts(ArenaGameComponent game)
+    {
+        foreach (var contact in contacts.DrainContacts())
+        {
+            if (!contact.IsTrigger || !IsPlayerWaterContact(contact.Self, contact.Other))
+                continue;
+
+            game.InWater = contact.IsBegin;
+        }
+    }
+
+    private static bool IsPlayerWaterContact(Entity a, Entity b) =>
+        (a.Name == "Player" && b.Name == "Water") || (a.Name == "Water" && b.Name == "Player");
+
     private void HandleMovement(ArenaGameComponent game, Entity player)
     {
+        var speed = game.InWater ? game.MoveSpeed * 0.5f : game.MoveSpeed;
         var velocity = MoveVelocity(
             keyboard.IsKeyDown(KeyCodes.W), keyboard.IsKeyDown(KeyCodes.S),
             keyboard.IsKeyDown(KeyCodes.A), keyboard.IsKeyDown(KeyCodes.D),
-            game.MoveSpeed);
+            speed);
 
         if (player.TryGetComponent<RigidBody2DComponent>(out var body))
             body.Velocity = velocity;
@@ -265,8 +287,12 @@ public class ArenaSystem(
         if (entity.TryGetComponent<RigidBody2DComponent>(out var body))
             body.Velocity = Vector2.Zero;
         
-        if (playDeathSound && _rng.Next(8) == 0)
-            audio.PlayOneShot("assets/sounds/zombie.wav");
+        if (playDeathSound && _zombieCooldown <= 0f && _rng.Next(8) == 0)
+        {
+            const string zombiePath = "assets/sounds/zombie.wav";
+            _zombieCooldown = audio.LoadAudioClip(zombiePath).Duration;
+            audio.PlayOneShot(zombiePath);
+        }
     }
 
     private void StopAllEnemies()
@@ -294,6 +320,7 @@ public class ArenaSystem(
         game.SpawnTimer = 0f;
         game.InvulnTimer = 0f;
         game.TracerTimer = 0f;
+        game.InWater = false;
         StopWalk(game, player);
 
         foreach (var (entity, enemy) in context.View<EnemyComponent>())
