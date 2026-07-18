@@ -11,10 +11,9 @@ namespace Snake.project.assets.scripts;
 [Register(typeof(IGameSystem))]
 public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
 {
+    private const string TexApple = "textures/snake/apple.png";
+    private const string TexCell = "textures/cell.png";
     private static readonly Vector4 EmptyColor = new(0.08f, 0.12f, 0.08f, 1f);
-    private static readonly Vector4 HeadColor = new(0.2f, 0.95f, 0.25f, 1f);
-    private static readonly Vector4 BodyColor = new(0.1f, 0.65f, 0.15f, 1f);
-    private static readonly Vector4 FoodColor = Vector4.One;
 
     public int Priority => 115;
 
@@ -44,10 +43,15 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
             game.TickAccumulator -= game.TickInterval;
             var scoreBefore = game.Score;
             Step(game);
+            if (game.GameOver)
+            {
+                audio.PlayOneShot("assets/sounds/gameover.wav");
+                break;
+            }
             if (game.Score > scoreBefore)
                 audio.PlayOneShot("assets/sounds/eat.wav");
-            if (game.GameOver)
-                break;
+            else
+                audio.PlayOneShot("assets/sounds/move.wav");
         }
 
         SyncCellVisuals(game);
@@ -162,10 +166,7 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
 
     private void SyncCellVisuals(SnakeGameComponent game)
     {
-        var head = game.Body.Length > 0 ? game.Body[0] : -1;
-        var body = game.Body.Length > 1
-            ? new HashSet<int>(game.Body.AsSpan(1).ToArray())
-            : [];
+        var segmentTextures = BuildSegmentTextures(game);
 
         foreach (var (entity, cell) in context.View<GridCellComponent>())
         {
@@ -175,30 +176,89 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
             var index = cell.Index;
             if (index == game.FoodIndex)
             {
-                sprite.TexturePath = "textures/food.png";
-                sprite.Color = FoodColor;
+                sprite.TexturePath = TexApple;
+                sprite.Color = Vector4.One;
             }
-            else if (index == head)
+            else if (segmentTextures.TryGetValue(index, out var path))
             {
-                sprite.TexturePath = "textures/snake_head.png";
-                sprite.Color = HeadColor;
-            }
-            else if (body.Contains(index))
-            {
-                sprite.TexturePath = "textures/snake_body.png";
-                sprite.Color = BodyColor;
+                sprite.TexturePath = path;
+                sprite.Color = Vector4.One;
             }
             else
             {
-                sprite.TexturePath = "textures/cell.png";
+                sprite.TexturePath = TexCell;
                 sprite.Color = EmptyColor;
             }
         }
     }
 
+    // ponytail: O(n) dict per frame — fine for 16x12; upgrade to dirty-flag sync if grid grows a lot
+    public static Dictionary<int, string> BuildSegmentTextures(SnakeGameComponent game)
+    {
+        var body = game.Body;
+        var map = new Dictionary<int, string>(body.Length);
+        if (body.Length == 0)
+            return map;
+
+        map[body[0]] = HeadTexture(game.Direction);
+        if (body.Length == 1)
+            return map;
+
+        map[body[^1]] = TailTexture(game, body[^1], body[^2]);
+        for (var i = 1; i < body.Length - 1; i++)
+            map[body[i]] = MidTexture(game, body[i - 1], body[i], body[i + 1]);
+
+        return map;
+    }
+
+    public static string HeadTexture(int direction) => direction switch
+    {
+        SnakeGameComponent.Up => "textures/snake/head_up.png",
+        SnakeGameComponent.Down => "textures/snake/head_down.png",
+        SnakeGameComponent.Left => "textures/snake/head_left.png",
+        _ => "textures/snake/head_right.png"
+    };
+
+    public static string TailTexture(SnakeGameComponent game, int tip, int towardHead)
+    {
+        var (dx, dy) = Offset(game, tip, towardHead);
+        // Tip sprite points away from body; flat edge faces towardHead.
+        if (dy > 0) return "textures/snake/tail_up.png";
+        if (dy < 0) return "textures/snake/tail_down.png";
+        if (dx > 0) return "textures/snake/tail_left.png";
+        return "textures/snake/tail_right.png";
+    }
+
+    public static string MidTexture(SnakeGameComponent game, int prev, int curr, int next)
+    {
+        var (dx1, dy1) = Offset(game, curr, prev);
+        var (dx2, dy2) = Offset(game, curr, next);
+        var up = dy1 < 0 || dy2 < 0;
+        var down = dy1 > 0 || dy2 > 0;
+        var left = dx1 < 0 || dx2 < 0;
+        var right = dx1 > 0 || dx2 > 0;
+
+        if (up && down) return "textures/snake/body_vertical.png";
+        if (left && right) return "textures/snake/body_horizontal.png";
+        if (up && left) return "textures/snake/body_topleft.png";
+        if (up && right) return "textures/snake/body_topright.png";
+        if (down && left) return "textures/snake/body_bottomleft.png";
+        if (down && right) return "textures/snake/body_bottomright.png";
+        return "textures/snake/body_horizontal.png";
+    }
+
+    private static (int dx, int dy) Offset(SnakeGameComponent game, int from, int to)
+    {
+        var fx = from % game.GridWidth;
+        var fy = from / game.GridWidth;
+        var tx = to % game.GridWidth;
+        var ty = to / game.GridWidth;
+        return (tx - fx, ty - fy);
+    }
+
     private void SyncBanners(SnakeGameComponent game)
     {
-        SetBanner("GameOverBanner", game.GameOver ? "textures/game_over.png" : null);
+        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null);
         SetBanner("ResetHint", game.GameOver ? "textures/press_r.png" : null);
     }
 

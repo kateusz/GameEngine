@@ -14,6 +14,7 @@ public abstract class Application : IApplication
     private static readonly ILogger Logger = Log.ForContext<Application>();
 
     private readonly IGameWindow _gameWindow;
+    private readonly IRendererAPI _rendererApi;
     private readonly IGraphics2D _graphics2D;
     private readonly IGraphics3D _graphics3D;
     private readonly IFrameCompositor? _frameCompositor;
@@ -27,6 +28,7 @@ public abstract class Application : IApplication
 
     protected Application(
         IGameWindow gameWindow,
+        IRendererAPI rendererApi,
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         IAudio audio,
@@ -36,6 +38,7 @@ public abstract class Application : IApplication
         IKeyboardInput? keyboardInput = null)
     {
         _gameWindow = gameWindow;
+        _rendererApi = rendererApi;
         _graphics2D = graphics2D;
         _graphics3D = graphics3D;
         _audio = audio;
@@ -58,13 +61,15 @@ public abstract class Application : IApplication
     /// </summary>
     /// <remarks>
     /// INITIALIZATION OWNERSHIP: Application is responsible for initializing all core
-    /// graphics and audio subsystems (Graphics2D, Graphics3D, AudioEngine). Layers should
-    /// NOT call Init() on these subsystems - they are guaranteed to be initialized before
-    /// layer.OnAttach() is called. This prevents double initialization and ensures consistent
-    /// resource management across all application types (Editor, Runtime, Sandbox).
+    /// graphics and audio subsystems (RendererAPI, Graphics2D, Graphics3D, AudioEngine).
+    /// Layers should NOT call Init() on these subsystems - they are guaranteed to be
+    /// initialized before layer.OnAttach() is called. This prevents double initialization
+    /// and ensures consistent resource management across all application types
+    /// (Editor, Runtime, Sandbox).
     /// </remarks>
     private void HandleGameWindowOnLoad(IInputSystem inputSystem)
     {
+        _rendererApi.Init();
         _graphics2D.Init();
         _graphics3D.Init();
         _audio.Initialize();

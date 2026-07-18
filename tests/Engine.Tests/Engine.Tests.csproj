@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\Engine\Engine.csproj" />
     <ProjectReference Include="..\..\games\TicTacToe\TicTacToe.csproj" />
     <ProjectReference Include="..\..\games\Snake\Snake.csproj" />
+    <ProjectReference Include="..\..\games\FlappyBird\FlappyBird.csproj" />
   </ItemGroup>
 
   <ItemGroup>

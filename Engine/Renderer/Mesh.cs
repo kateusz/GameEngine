@@ -54,7 +54,8 @@ public class Mesh : IDisposable
             new BufferElement(ShaderDataType.Float3, "a_Normal"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Float3, "a_Tangent"),
-            new BufferElement(ShaderDataType.Float3, "a_Bitangent")
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]));
         _vertexArray.AddVertexBuffer(_vertexBuffer);
         _vertexBuffer.SetMeshData(Vertices, Vertices.Count * Vertex.GetSize());

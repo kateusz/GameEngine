@@ -224,7 +224,7 @@ public class TransformComponentTests
     [Fact]
     public void GetTransform_ComplexTransform_ShouldApplyInCorrectOrder()
     {
-        // Arrange - TRS order: Translation * Rotation * Scale
+        // Arrange - TRS order: Scale * Rotation * Translation (row-vector convention)
         var translation = new Vector3(5, 0, 0);
         var rotation = new Vector3(0, MathF.PI / 2, 0); // 90 degrees around Y
         var scale = new Vector3(2, 2, 2);
@@ -235,13 +235,30 @@ public class TransformComponentTests
         var testPoint = new Vector3(1, 0, 0);
         var transformedPoint = Vector3.Transform(testPoint, matrix);
 
-        // Assert - With T * R * S and row-vector multiplication (v * M), transformations apply left-to-right:
-        // (1,0,0) * T: (1,0,0) + (5,0,0) = (6,0,0)
-        // (6,0,0) * R(90°Y): rotate 90° around Y = (0,0,-6)
-        // (0,0,-6) * S(2): scale by 2 = (0,0,-12)
-        transformedPoint.X.ShouldBe(0f, 0.1f);
+        // Assert - With S * R * T and row-vector multiplication (v * M), transformations apply left-to-right:
+        // (1,0,0) * S(2): scale by 2 = (2,0,0)
+        // (2,0,0) * R(90°Y): rotate 90° around Y = (0,0,-2)
+        // (0,0,-2) * T(5,0,0): translate = (5,0,-2)  (translation is NOT scaled)
+        transformedPoint.X.ShouldBe(5f, 0.1f);
         transformedPoint.Y.ShouldBe(0f, 0.1f);
-        transformedPoint.Z.ShouldBe(-12f, 0.1f);
+        transformedPoint.Z.ShouldBe(-2f, 0.1f);
+    }
+
+    [Fact]
+    public void GetTransform_ScaledSprite_ShouldNotScaleTranslation()
+    {
+        // Regression: a sprite's rendered center must equal its translation regardless of scale.
+        // Previously T*R*S scaled the translation, so a ground at y=-2 with scale 5 rendered at y=-10.
+        var transform = new TransformComponent(
+            new Vector3(0, -2, 0),
+            Vector3.Zero,
+            new Vector3(10, 5, 1));
+
+        var center = Vector3.Transform(Vector3.Zero, transform.GetTransform());
+
+        center.X.ShouldBe(0f, 0.0001f);
+        center.Y.ShouldBe(-2f, 0.0001f);
+        center.Z.ShouldBe(0f, 0.0001f);
     }
 
     #endregion

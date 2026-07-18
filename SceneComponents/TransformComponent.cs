@@ -68,8 +68,7 @@ public class TransformComponent : IComponent
             var rotation = MathHelpers.MatrixFromQuaternion(quaternion);
             var translation = Matrix4x4.CreateTranslation(_translation);
             var scale = Matrix4x4.CreateScale(_scale);
-
-            _cachedTransform = translation * rotation * scale;
+            _cachedTransform = scale * rotation * translation;
             _isDirty = false;
         }
 
