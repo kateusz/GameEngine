@@ -67,9 +67,9 @@ internal static class PhysicsDebugDrawer
             bodyPosition.Y + rotatedOffset.Y,
             0.0f);
 
-        var trs = Matrix4x4.CreateTranslation(worldPos)
+        var trs = Matrix4x4.CreateScale(size.X, size.Y, 1.0f)
                   * Matrix4x4.CreateRotationZ(angle)
-                  * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+                  * Matrix4x4.CreateTranslation(worldPos);
         graphics2D.DrawRect(trs, color, entity.Id);
     }
 
@@ -97,9 +97,9 @@ internal static class PhysicsDebugDrawer
             transform.Translation.Y + rotatedOffset.Y,
             0.0f);
 
-        var trs = Matrix4x4.CreateTranslation(worldPos)
+        var trs = Matrix4x4.CreateScale(size.X, size.Y, 1.0f)
                   * Matrix4x4.CreateRotationZ(rotation)
-                  * Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+                  * Matrix4x4.CreateTranslation(worldPos);
         graphics2D.DrawRect(trs, color, entity.Id);
     }
 

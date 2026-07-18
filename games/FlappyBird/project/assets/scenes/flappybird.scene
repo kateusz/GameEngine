@@ -69,7 +69,7 @@
           "Gravity": 14,
           "FlapVelocity": 4.6,
           "PipeSpeed": 1.35,
-          "PipeGap": 1.2,
+          "PipeGap": 1.6,
           "PipeSpacing": 3.2,
           "GroundTopY": -1.44,
           "CeilingY": 2.4,

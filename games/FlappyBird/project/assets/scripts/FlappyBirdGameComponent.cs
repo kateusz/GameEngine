@@ -24,11 +24,11 @@ public class FlappyBirdGameComponent : IGameComponent
 
     // Tunables (shown in the editor inspector).
     public float Gravity { get; set; } = 14f;
-    public float FlapVelocity { get; set; } = 4.6f;
+    public float FlapVelocity { get; set; } = 2.6f;
     public float PipeSpeed { get; set; } = 1.35f;
-    public float PipeGap { get; set; } = 1.2f;
+    public float PipeGap { get; set; } = 1.6f;
     public float PipeSpacing { get; set; } = 3.2f;
-    public float GroundTopY { get; set; } = -1.44f;
+    public float GroundTopY { get; set; } = -2.5f;
     public float CeilingY { get; set; } = 2.4f;
     public float FirstPipeX { get; set; } = 2.5f;
 

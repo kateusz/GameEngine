@@ -379,13 +379,16 @@ public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IA
                 var x = (digit.Place - (digits - 1) * 0.5f) * DigitSpacing;
                 var p = transform.Translation;
                 transform.Translation = new Vector3(x, DigitY, p.Z);
+                transform.Scale = new Vector3(0.24f, 0.36f, 1f);
                 sprite.TexturePath = $"textures/UI/Numbers/{text[digit.Place]}.png";
                 sprite.Color = Vector4.One;
             }
             else
             {
+                // Hide unused places (Color.A=0 is skipped by the sprite renderer).
                 sprite.TexturePath = null;
                 sprite.Color = Vector4.Zero;
+                transform.Scale = Vector3.Zero;
             }
         }
     }
@@ -393,18 +396,26 @@ public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IA
     private void SyncBanners(FlappyBirdGameComponent game)
     {
         SetBanner("MessageBanner",
-            game.Phase == FlappyBirdGameComponent.Ready ? "textures/UI/message.png" : null);
+            game.Phase == FlappyBirdGameComponent.Ready ? "textures/UI/message.png" : null,
+            new Vector3(1.84f, 2.67f, 1f));
         SetBanner("GameOverBanner",
-            game.Phase == FlappyBirdGameComponent.Dead ? "textures/UI/gameover.png" : null);
+            game.Phase == FlappyBirdGameComponent.Dead ? "textures/UI/gameover.png" : null,
+            new Vector3(1.92f, 0.42f, 1f));
     }
 
-    private void SetBanner(string entityName, string? texturePath)
+    private void SetBanner(string entityName, string? texturePath, Vector3 visibleScale)
     {
         var entity = context.GetByName(entityName);
-        if (entity == null || !entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+        if (entity == null)
             return;
 
-        sprite.TexturePath = texturePath;
-        sprite.Color = texturePath == null ? Vector4.Zero : Vector4.One;
+        if (entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+        {
+            sprite.TexturePath = texturePath;
+            sprite.Color = texturePath == null ? Vector4.Zero : Vector4.One;
+        }
+
+        if (entity.TryGetComponent<TransformComponent>(out var transform))
+            transform.Scale = texturePath == null ? Vector3.Zero : visibleScale;
     }
 }

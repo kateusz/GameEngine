@@ -1,13 +1,11 @@
 using System.Numerics;
 using Engine.Renderer.Buffers;
-using Engine.Renderer.Textures;
 using Engine.Renderer.Buffers.VertexArray;
 using Serilog;
 
 namespace Engine.Renderer;
 
 internal sealed class MeshFactory(
-    ITextureFactory textureFactory,
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory) : IMeshFactory
@@ -21,7 +19,7 @@ internal sealed class MeshFactory(
         if (_cubeMesh != null)
             return _cubeMesh;
 
-        var mesh = new Mesh("Cube", textureFactory);
+        var mesh = new Mesh("Cube");
         const float size = 0.5f;
 
         var tangentX = Vector3.UnitX;

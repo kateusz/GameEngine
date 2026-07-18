@@ -38,9 +38,11 @@ public class FlappyBirdSystemTests
     [Fact]
     public void HitsGround_BirdBelowGroundTop_ReturnsTrue()
     {
-        var game = new FlappyBirdGameComponent { BirdY = -1.4f };
+        var game = new FlappyBirdGameComponent { BirdY = gameGroundY() - 0.5f };
 
         FlappyBirdSystem.HitsGround(game).ShouldBeTrue();
+
+        static float gameGroundY() => new FlappyBirdGameComponent().GroundTopY;
     }
 
     [Fact]
