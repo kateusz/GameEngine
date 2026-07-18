@@ -23,7 +23,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a com
 
 ### 🎨 Rendering
 - **2D Sprite Rendering** - Batched quad rendering with texture atlasing (10,000 quads per batch)
-- **3D Cube Rendering (prototype)** - Lit unit cubes via `ModelRendererComponent`; no mesh import
+- **3D Model Rendering** - Assimp FBX/glTF/GLB import with PBR metal/rough materials; unit-cube fallback when no model path is set
 - **Shader System** - OpenGL shader management with caching
 - **Camera System** - Orthographic and perspective cameras with optimized matrix calculation
 - **Framebuffer Support** - Multi-attachment render-to-texture (RGBA16F color, entity ID, depth) for editor viewports
@@ -141,7 +141,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a com
 ### Key Systems
 
 - **Graphics2D** (`IGraphics2D`) - Batched 2D rendering with automatic state management and shader/texture caching ([docs](docs/architecture/rendering-pipeline.md))
-- **Graphics3D** (`IGraphics3D`) - Per-entity lit cube rendering with ambient/directional ECS lights ([docs](docs/opengl/opengl-3d-workflow.md))
+- **Graphics3D** (`IGraphics3D`) - Per-entity 3D draws: PBR meshes via Assimp/`ModelFactory`, cube fallback, ambient/directional ECS lights ([docs](docs/opengl/opengl-3d-workflow.md))
 - **ScriptEngine** - `GameAssemblyCompiler` (Roslyn emit) + `IScriptEngine` (collectible load, type index, instance factory) ([docs](docs/architecture/scripting-lifecycle.md))
 - **Scene System** - Hierarchical entity management with JSON serialization ([docs](docs/modules/scene-management.md))
 - **ECS Systems** - Priority-based system execution with dependency injection ([docs](docs/architecture/ecs-architecture.md))
@@ -292,7 +292,7 @@ Comprehensive documentation for each major system in the engine (17 modules):
 **Rendering:**
 - [Rendering Pipeline](docs/architecture/rendering-pipeline.md) - OpenGL rendering pipeline overview
 - [OpenGL 2D Workflow](docs/opengl/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
-- [OpenGL 3D Workflow](docs/opengl/opengl-3d-workflow.md) - Lit cube rendering with ECS lights
+- [OpenGL 3D Workflow](docs/opengl/opengl-3d-workflow.md) - Model import, PBR shading, and ECS lights
 - [Frame Buffers](docs/opengl/frame-buffers.md) - Render-to-texture capabilities
 
 **Tools & Publishing:**
@@ -307,7 +307,7 @@ Comprehensive documentation for each major system in the engine (17 modules):
 Detailed guides on the OpenGL rendering implementation:
 
 - [OpenGL 2D Rendering Workflow](docs/opengl/opengl-2d-workflow.md) - Batched 2D rendering with multi-texture support
-- [OpenGL 3D Rendering Workflow](docs/opengl/opengl-3d-workflow.md) - Lit cube rendering with ambient and directional lights
+- [OpenGL 3D Rendering Workflow](docs/opengl/opengl-3d-workflow.md) - Assimp models, PBR materials, ambient and directional lights
 
 ### Technical Specifications
 Design documents for major features:

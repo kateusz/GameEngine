@@ -93,5 +93,6 @@ Rulers run along the top and left edges of the viewport and display coordinate p
 
 ## Next Steps
 
+- [3D Rendering](../concepts/3d-rendering.md) - models, lights, and perspective scenes.
 - [Component Inspector](component-inspector.md) - view and edit the components attached to a selected entity.
 - [Keyboard Shortcuts](shortcuts.md) - a complete reference of all editor keyboard shortcuts.

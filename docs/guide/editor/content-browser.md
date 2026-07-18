@@ -15,11 +15,10 @@ Files are displayed in a grid using an icon appropriate for each asset type. The
 | Extension | Type | Display |
 |-----------|------|---------|
 | `.png`, `.jpg` | Texture | Thumbnail (actual image preview) |
+| `.fbx`, `.gltf`, `.glb` | Model | File icon (labeled Type: Model) |
 | `.wav`, `.ogg` | Audio Clip | File icon |
 | `.scene` | Scene | File icon |
 | `.prefab` | Prefab | File icon (same as other data files) |
-
-> **Not supported yet:** `.obj`, `.fbx` (no 3D mesh import). These may appear as generic file icons if present in `assets/`.
 
 Any file type not listed above also displays a generic file icon.
 
@@ -32,6 +31,7 @@ All drop targets accept only files with matching extensions — dropping an inco
 | Drag source | Drop target | Result |
 |-------------|-------------|--------|
 | `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture |
+| `.fbx` / `.gltf` / `.glb` model | ModelRendererComponent model field | Assigns `ModelPath` |
 | `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
 | `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
 | `.scene` scene file | Viewport | Opens the scene |
@@ -70,4 +70,5 @@ Use **Ctrl+N** to create a new scene (a name prompt appears). Use **Ctrl+S** to 
 ## Next Steps
 
 - [Component Inspector](component-inspector.md) — view and edit component properties, including drag-and-drop targets
-- [Roadmap](../roadmap.md) — planned tilemap and 3D model import features
+- [3D Rendering](../concepts/3d-rendering.md) — placing models and lights
+- [Roadmap](../roadmap.md) — planned features
