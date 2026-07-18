@@ -164,6 +164,14 @@ public abstract class Application : IApplication
 
     private void HandleInputEvent(InputEvent windowEvent)
     {
+        // Releases must update held state before overlays can mark the event handled
+        // (ImGui WantCaptureKeyboard used to swallow KeyReleased → stuck WASD in Play).
+        if (windowEvent is KeyReleasedEvent or MouseButtonReleasedEvent)
+        {
+            (_keyboardInput as KeyboardInputState)?.Apply(windowEvent);
+            (_mouseInput as MouseInputState)?.Apply(windowEvent);
+        }
+
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {
             _layersStack[index].HandleInputEvent(windowEvent);

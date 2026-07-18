@@ -77,6 +77,10 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
+        // Never block key/button releases — held state (and scripts) must see key-up.
+        if (windowEvent is KeyReleasedEvent or MouseButtonReleasedEvent)
+            return;
+
         var io = ImGuiNET.ImGui.GetIO();
         if (windowEvent.IsInCategory(EventCategory.EventCategoryKeyboard) && io.WantCaptureKeyboard)
             windowEvent.IsHandled = true;

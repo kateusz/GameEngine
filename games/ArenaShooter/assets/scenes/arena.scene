@@ -38,7 +38,7 @@
           "PerspectiveFOV": 0.7853982,
           "PerspectiveNear": 0.01,
           "PerspectiveFar": 1000,
-          "AspectRatio": 1.7777778,
+          "AspectRatio": 1.8171946,
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
@@ -61,7 +61,7 @@
             0
           ],
           "Scale": [
-            18,
+            16.60683,
             10,
             1
           ],
