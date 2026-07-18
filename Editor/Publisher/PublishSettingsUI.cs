@@ -79,16 +79,16 @@ public class PublishSettingsUI(
             ImGui.Text("Output Path:");
             if (OSInfo.IsWindows)
             {
-                var locationLabel = string.IsNullOrWhiteSpace(_outputPath)
-                    ? "(no folder selected)"
-                    : _outputPath;
+                var locationLabel = projectContext.Root is not null
+                    ? ResolveOutputPath(projectContext.Root)
+                    : (string.IsNullOrWhiteSpace(_outputPath) ? "(no folder selected)" : _outputPath);
                 TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
 
                 ImGui.Spacing();
                 if (ImGui.Button("Select Folder..."))
                 {
                     var initial = projectContext.Root is not null
-                        ? ResolveOutputPath(projectContext.Root)
+                        ? ResolveParentPath(projectContext.Root)
                         : Environment.CurrentDirectory;
                     var picked = FolderPicker.PickFolder("Select Publish Output Folder", initial);
                     if (!string.IsNullOrEmpty(picked))
@@ -100,6 +100,13 @@ public class PublishSettingsUI(
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(300);
                 ImGui.InputText("##outputPath", ref _outputPath, 256);
+                if (projectContext.Root is not null)
+                {
+                    ImGui.Spacing();
+                    TextDrawer.DrawColoredText(
+                        ResolveOutputPath(projectContext.Root),
+                        new Vector4(0.7f, 0.7f, 0.7f, 1f));
+                }
             }
 
             ImGui.Spacing();
@@ -232,7 +239,6 @@ public class PublishSettingsUI(
             return;
         }
 
-        // Get the current scene path
         var currentScene = sceneManager.GetCurrentScenePath();
         if (string.IsNullOrEmpty(currentScene))
         {
@@ -240,20 +246,25 @@ public class PublishSettingsUI(
             return;
         }
 
+        var outputPath = ResolveOutputPath(projectContext.Root);
+        if (Directory.Exists(outputPath))
+        {
+            _errorMessage = $"Output folder already exists:\n{outputPath}";
+            return;
+        }
+
         _showPublishModal = false;
         _errorMessage = string.Empty;
 
-        // Create publish settings
         var settings = new PublishSettings
         {
-            OutputPath = ResolveOutputPath(projectContext.Root),
+            OutputPath = outputPath,
             RuntimeIdentifier = _selectedPlatform,
             SelfContained = _selfContained,
             SingleFile = _singleFile,
             Configuration = _configuration,
         };
-        
-        // Create game configuration
+
         var gameConfig = new GameConfiguration
         {
             GameTitle = new DirectoryInfo(projectContext.Root).Name,
@@ -263,7 +274,6 @@ public class PublishSettingsUI(
             WindowHeight = 1080
         };
 
-        // Start publishing in background
         _publishProgress = new PublishProgress();
         _publishCts = new CancellationTokenSource();
 
@@ -295,7 +305,7 @@ public class PublishSettingsUI(
         }
     }
 
-    private string ResolveOutputPath(string projectDirectory)
+    private string ResolveParentPath(string projectDirectory)
     {
         if (string.IsNullOrWhiteSpace(_outputPath))
             return Path.Combine(projectDirectory, "Builds");
@@ -303,4 +313,7 @@ public class PublishSettingsUI(
             return _outputPath;
         return Path.Combine(projectDirectory, _outputPath);
     }
+
+    private string ResolveOutputPath(string projectDirectory)
+        => Path.Combine(ResolveParentPath(projectDirectory), new DirectoryInfo(projectDirectory).Name);
 }
