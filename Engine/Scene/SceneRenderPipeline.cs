@@ -44,13 +44,14 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory? textureFactory,
+        IModelFactory? modelFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderCubes(context, graphics3D, camera);
+        RenderModels(context, graphics3D, modelFactory, camera);
     }
 
-    private static void RenderCubes(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
+    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory? modelFactory, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -64,10 +65,28 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
-            graphics3D.DrawCube(
-                transformComponent.GetTransform(),
-                modelRenderer.Color,
-                entity.Id);
+            var transform = transformComponent.GetTransform();
+            var tint = modelRenderer.Color;
+
+            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath) || modelFactory == null)
+            {
+                graphics3D.DrawCube(transform, tint, entity.Id);
+                continue;
+            }
+
+            var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+            var model = modelFactory.Create(resolvedPath);
+            if (model == null)
+            {
+                Logger.Warning(
+                    "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
+                    modelRenderer.ModelPath, resolvedPath);
+                graphics3D.DrawCube(transform, tint, entity.Id);
+                continue;
+            }
+
+            foreach (var submesh in model.Submeshes)
+                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, entity.Id);
         }
 
         graphics3D.EndScene();

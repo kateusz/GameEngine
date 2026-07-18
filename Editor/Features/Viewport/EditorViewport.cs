@@ -25,6 +25,7 @@ public sealed class EditorViewport(
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
+    IModelFactory modelFactory,
     DebugSettings debugSettings,
     EditorSettingsUI editorSettingsUI,
     IFrameBufferFactory frameBufferFactory,
@@ -191,6 +192,7 @@ public sealed class EditorViewport(
                         graphics2D,
                         graphics3D,
                         textureFactory,
+                        modelFactory,
                         camera);
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
