@@ -59,13 +59,25 @@ For a fuller walkthrough, see the [Developer Guide](docs/guide/index.md).
 
 ## Demo Games
 
-Open a demo in the editor via **Open Project** and select the game’s `project/` folder.
+Open a demo in the editor via **Open Project** and select the game's `project/` folder.
 
-| Game | Project | What it shows |
-|------|---------|---------------|
-| **Snake** | [`games/Snake/`](games/Snake/) | Grid arcade: movement, tick loop, sprites, audio |
-| **Tic Tac Toe** | [`games/TicTacToe/`](games/TicTacToe/) | Turn-based board, win/draw flow |
-| **Flappy Bird** | [`games/FlappyBird/`](games/FlappyBird/) | Side-scroller with physics, scrolling obstacles, scoring |
+### Snake
+
+![Snake](docs/images/demo-games/snake.png)
+
+Grid arcade — movement, tick loop, sprites, audio. [`games/Snake/project/`](games/Snake/project/)
+
+### Tic Tac Toe
+
+![Tic Tac Toe](docs/images/demo-games/tictactoe.png)
+
+Turn-based board, win/draw flow. [`games/TicTacToe/project/`](games/TicTacToe/project/)
+
+### Flappy Bird
+
+![Flappy Bird](docs/images/demo-games/flappybird.png)
+
+Side-scroller — physics, scrolling pipes, scoring. [`games/FlappyBird/project/`](games/FlappyBird/project/)
 
 ## Documentation
 
