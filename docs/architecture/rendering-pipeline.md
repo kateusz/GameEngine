@@ -82,9 +82,22 @@ graph TB
 | 2D subtextures | `SubTextureRendererComponent` + `TransformComponent` | `IGraphics2D.DrawQuad` with atlas coords |
 | 3D models / cubes | `ModelRendererComponent` + `TransformComponent` | `DrawMesh` per submesh, or `DrawCube` fallback |
 
-`PhysicsDebugRenderSystem` (priority 151) draws collider outlines via `PhysicsDebugDrawer` when `DebugSettings.ShowColliderBounds` is enabled.
+`PhysicsDebugRenderSystem` (priority 151) draws collider outlines via `PhysicsDebugDrawer` when `DebugSettings.ShowColliderBounds` is enabled. In the editor edit viewport, `EditorViewport` calls the same drawer after `RenderScene` when collider debug is on.
 
 **Render order within a frame**: 2D sprites and subtextures first, then 3D models. Both passes share the same `CameraBinding` from `PrimaryCameraSystem` (runtime) or `EditorCamera` (editor).
+
+### Scene lighting (3D)
+
+Before drawing models, `SceneRenderPipeline` resolves lights from ECS components (first match wins):
+
+| Component | File | Resolved into |
+|-----------|------|---------------|
+| `AmbientLightComponent` | `SceneComponents/Lighting/AmbientLightComponent.cs` | `IGraphics3D.SetAmbientLight(color, strength)` |
+| `DirectionalLightComponent` | `SceneComponents/Lighting/DirectionalLightComponent.cs` | `IGraphics3D.SetDirectionalLight(direction, color)` |
+
+Defaults when no component exists: ambient `(Vector3.One, 0.1f)`; directional direction `(0, -1, 0)` with **zero** color (no sun contribution).
+
+User-facing setup: [3D Rendering](../guide/concepts/3d-rendering.md).
 
 ---
 
@@ -98,7 +111,7 @@ graph TB
 
 | Condition | Call | Shader |
 |-----------|------|--------|
-| `ModelPath` empty / factory null / load fails | `DrawCube` | `flatColorShader` (ambient + diffuse tint) |
+| `ModelPath` empty or `modelFactory.Create` returns null | `DrawCube` | `flatColorShader` (ambient + diffuse tint) |
 | Model loaded | `DrawMesh` per submesh | `lightingShader` (metal/rough PBR) |
 
 Metallic/roughness for each draw: component override if set, else imported `MeshMaterial` scalars. Tint (`Color`) always multiplies albedo.
@@ -134,18 +147,18 @@ No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` track
 
 | Field | Role |
 |-------|------|
-| Albedo / metallic-roughness / normal / specular maps | Optional textures (slots 0–3) |
+| Albedo / metallic-roughness / normal maps | Optional textures (slots 0–2) |
 | `Metallic`, `Roughness` | Scalar fallbacks when maps absent (roughness default `0.5`) |
 
-Missing maps bind white (or flat normal for normals). Specular map is retained for legacy assets; primary workflow is packed metallic-roughness (G = roughness, B = metallic).
+Missing maps bind white (or flat normal for normals). Assimp import may map legacy specular textures into the metallic-roughness slot heuristically; the runtime material type exposes only albedo, MR, and normal.
 
 ### Mesh
 
 **File**: `Engine/Renderer/Mesh.cs`
 
-`Mesh.Vertex` holds position, normal, tex coords, tangents/bitangents, and entity ID (60 bytes). `IMeshFactory.CreateCube()` still builds the shared fallback cube.
+`Mesh.Vertex` holds position, normal, tex coords, tangents, and bitangents (56 bytes). Entity IDs for picking are **not** stored in mesh vertices — 3D draws pass `entityId` via the `u_EntityID` shader uniform in `Graphics3D.BindCommon`. `IMeshFactory.CreateCube()` builds the shared fallback cube.
 
-Detailed workflow: [OpenGL 3D Rendering Workflow](../opengl/opengl-3d-workflow.md).
+More detail: [3D Rendering](../guide/concepts/3d-rendering.md).
 
 ---
 
@@ -162,7 +175,8 @@ Platform-agnostic rendering interface. All OpenGL calls are isolated behind this
 | `Clear()` | Clear color + depth buffers |
 | `BindTexture2D(uint textureId, int slot)` | Bind a 2D texture to a sampler slot |
 | `DrawIndexed(IVertexArray, uint count)` | Draw triangles via `glDrawElements` |
-| `DrawLines(IVertexArray, uint vertexCount)` | Draw lines via `glDrawArrays` |
+| `DrawArrays(IVertexArray, uint vertexCount)` | Draw without index buffer via `glDrawArrays` (HDR tonemap fullscreen triangle) |
+| `DrawLines(IVertexArray, uint vertexCount)` | Draw lines via `glDrawArrays` with `GL_LINES` |
 | `SetLineWidth(float)` | Set line width (clamped to 1.0 on modern OpenGL) |
 | `SetDepthTest(bool enabled)` | Enable or disable depth testing |
 | `GetError()` | Return OpenGL error code (0 = no error) |
@@ -384,11 +398,24 @@ The editor framebuffer uses three attachments:
 
 | Attachment | Format | Purpose |
 |------------|--------|---------|
-| Color | RGBA16F | Scene rendering — displayed in ImGui viewport |
+| Color | RGBA16F | HDR scene rendering (tonemapped before ImGui display) |
 | Entity ID | RED_INTEGER | 32-bit int per pixel — stores entity ID for mouse picking |
 | Depth | DEPTH24STENCIL8 | Depth testing for correct draw order |
 
-Default size: `DisplayConfig.DefaultEditorViewportWidth` × `DefaultEditorViewportHeight` (1280×720). See [Frame Buffers](../opengl/frame-buffers.md) for API and OpenGL details.
+Default size: `DisplayConfig.DefaultEditorViewportWidth` x `DisplayConfig.DefaultEditorViewportHeight` (1280x720). Factory: `Engine/Renderer/Buffers/FrameBuffer/FrameBufferFactory.cs`; OpenGL implementation: `Engine/Platform/OpenGL/Buffers/OpenGLFrameBuffer.cs`.
+
+### HDR tonemap (editor viewport)
+
+**Files**: `Engine/Renderer/HdrTonemapPass.cs`, `Editor/Features/Viewport/EditorViewport.cs`
+
+The editor keeps two framebuffers:
+
+| Buffer | Color format | Purpose |
+|--------|--------------|---------|
+| Scene (`_frameBuffer`) | RGBA16F HDR | Scene draw + entity ID + depth |
+| Display (`_sdrFrameBuffer`) | RGBA8 | Tonemapped image shown in ImGui |
+
+After `SceneRenderPipeline` renders into the HDR buffer, `HdrTonemapPass.Apply(hdrColorId, sdrTarget, exposure)` binds the SDR target, samples the HDR color attachment, and draws a fullscreen triangle with `hdrTonemap.vert` / `hdrTonemap.frag` (ACES + gamma). Exposure comes from `IEditorPreferences.HdrExposure`.
 
 ### Entity Picking
 
@@ -418,11 +445,11 @@ Framebuffers resize to match the viewport, clamped to `MaxFramebufferSize` (8192
 
 ## Rendering Statistics
 
-`Graphics2D` tracks per-frame statistics via `Renderer2DData.Statistics` (`Engine/Renderer/Statistics.cs`):
+`Graphics2D` tracks per-frame 2D statistics via `Renderer2DData.Statistics` (`Engine/Renderer/Statistics.cs`). `Graphics3D` uses the same `Statistics` type for 3D **DrawCalls** only (one per cube or submesh draw).
 
-| Field | Meaning |
-|-------|---------|
-| **DrawCalls** | Number of `Flush()` invocations (quad and line batches count separately) |
-| **QuadCount** | Total quads drawn across all batches |
+| Field | Scope | Meaning |
+|-------|-------|---------|
+| **DrawCalls** | 2D + 3D | 2D: `Flush()` invocations (quad and line batches count separately). 3D: indexed draws in `DrawCube` / `DrawMesh`. |
+| **QuadCount** | 2D only | Total quads drawn across all batches |
 
-`GetTotalVertexCount()` and `GetTotalIndexCount()` derive totals from `QuadCount`. Reset via `ResetStats()` before each frame. Exposed for the editor stats panel.
+`GetTotalVertexCount()` and `GetTotalIndexCount()` derive totals from `QuadCount`. Reset via `ResetStats()` before each frame (editor viewport resets 2D stats at frame start). Exposed for the editor stats panel.

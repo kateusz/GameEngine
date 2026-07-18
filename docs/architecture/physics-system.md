@@ -51,12 +51,17 @@ The engine core depends on interfaces in `Engine/Physics/`; Box2D types stay in 
 
 | Type | File | Role |
 |---|---|---|
-| `IPhysicsWorld2D` | `Engine/Physics/IPhysicsWorld2D.cs` | `Step`, `CreateBody`, `DestroyBody`, `SetContactListener`, `IDisposable` |
-| `IPhysicsBody2D` | `Engine/Physics/IPhysicsBody2D.cs` | Position, angle, velocity, fixture creation/material updates |
+| `IPhysicsWorld2D` | `Engine/Physics/IPhysicsWorld2D.cs` | Extends `IPhysicsQueries`; `Step`, `CreateBody`, `DestroyBody`, `SetContactListener`, `IDisposable` |
+| `IPhysicsBody2D` | `Engine/Physics/IPhysicsBody2D.cs` | `Entity`, position, angle, velocity, `MotionType`, fixture create/material update, `IsAwake` / `IsEnabled` |
 | `IPhysicsContactListener` | `Engine/Physics/IPhysicsContactListener.cs` | `OnContactBegin` / `OnContactEnd` with `isTrigger` flag |
+| `IPhysicsQueries` | `Scripting/IPhysicsQueries.cs` | `Raycast`, `OverlapCircle` (optional `ignoreEntity`, `includeTriggers`) |
+| `RaycastHit2D` | `Scripting/RaycastHit2D.cs` | `Entity`, `Point`, `Normal`, `Distance`, `IsTrigger` |
 | `IPhysicsWorld2DFactory` | `Engine/Physics/IPhysicsWorld2DFactory.cs` | Creates backend world for a gravity vector |
-| `PhysicsWorld2DFactory` | `Engine/Physics/PhysicsWorld2DFactory.cs` | Selects backend from `IPhysicsBackendConfig` (currently `Box2D` only) |
-| `Box2DPhysicsWorld2D` | `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs` | Wraps Box2D `World` |
+| `PhysicsWorld2DFactory` | `Engine/Physics/PhysicsWorld2DFactory.cs` | Selects backend from `IPhysicsBackendConfig` |
+| `IPhysicsBackendConfig` | `Engine/Physics/IPhysicsBackendConfig.cs` | Exposes `PhysicsBackendType` |
+| `PhysicsBackendConfig` | `Engine/Physics/PhysicsBackendConfig.cs` | Default DI registration (`Box2D`) |
+| `PhysicsBackendType` | `Engine/Physics/PhysicsBackendType.cs` | `None`, `Box2D` |
+| `Box2DPhysicsWorld2D` | `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs` | Wraps Box2D `World`; implements queries via `World.RayCast` / `QueryAABB` |
 | `Box2DPhysicsBody2D` | `Engine/Platform/Box2D/Box2DPhysicsBody2D.cs` | Wraps Box2D `Body`; stores `Entity` on wrapper |
 | `Box2DContactListenerAdapter` | `Engine/Platform/Box2D/Box2DContactListenerAdapter.cs` | Bridges Box2D `ContactListener` to `IPhysicsContactListener` |
 
@@ -94,11 +99,14 @@ Properties referenced by `PhysicsSimulationSystem`:
 | `Size` | Half-extents; multiplied by transform scale at fixture creation |
 | `Offset` | Center offset; multiplied by transform scale at fixture creation |
 | `Density`, `Friction`, `Restitution` | Initial fixture + per-frame `UpdateFixtureMaterial` |
-| `IsTrigger` | Fixture sensor flag |
+| `IsTrigger` | Fixture sensor flag (`PhysicsBoxFixtureDef.IsSensor`) |
+| `RestitutionThreshold` | Serialized on component; not read by `PhysicsSimulationSystem` or the Box2D backend |
 
 Collider size and offset are multiplied by `TransformComponent.Scale` when the body is first created. Scale changes after that are not reflected in the collider shape.
 
 Bodies are **not** stored on the component. Runtime mapping is `PhysicsRuntimeBodyStore` keyed by entity ID.
+
+`BoxCollider2DComponent` is required for post-step transform and velocity sync — `PhysicsSimulationSystem` skips entities that have `RigidBody2DComponent` but no collider in its sync loop, even though a body may have been created for them.
 
 ---
 
@@ -126,7 +134,9 @@ sequenceDiagram
 
 Default gravity is `(0, -9.8)` in `SceneSystemsFactory.DefaultGravity`.
 
-`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for tier-2 `IGameSystem` scripts. When no scene is active, DI resolves `NullPhysicsContacts.Instance`.
+`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for tier-2 `IGameSystem` scripts. `Scene.PhysicsQueries` exposes the same scene's `IPhysicsWorld2D` as `IPhysicsQueries`.
+
+When no scene is active, DI resolves `NullPhysicsContacts.Instance` and `NullPhysicsQueries.Instance` (both return empty/null results).
 
 ---
 
@@ -239,6 +249,26 @@ Callbacks are bidirectional (A notified about B and B about A). Errors are logge
 ```csharp
 public readonly record struct PhysicsContact(Entity Self, Entity Other, bool IsTrigger, bool IsBegin);
 ```
+
+---
+
+## World Queries
+
+**Files**: `Scripting/IPhysicsQueries.cs`, `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs`, `Scripting/ScriptableEntity.cs`
+
+`IPhysicsWorld2D` extends `IPhysicsQueries`. Queries are synchronous reads during the current frame — they do not enqueue contacts or fire script callbacks.
+
+| Method | Behavior |
+|---|---|
+| `Raycast(origin, direction, maxDistance, ignoreEntity?, includeTriggers?)` | Closest hit along the ray; ignores triggers unless `includeTriggers` is true |
+| `OverlapCircle(center, radius, ignoreEntity?, includeTriggers?)` | First overlapping fixture in the AABB query (order unspecified when several overlap) |
+
+`Box2DPhysicsWorld2D` resolves fixtures through body `UserData` (`Box2DPhysicsBody2D.Entity`). Invalid rays/circles (non-finite values, zero length/radius) return null.
+
+Access paths:
+
+- **Tier 2** — inject `IPhysicsQueries` from DI (`Scene.PhysicsQueries` when a scene is active).
+- **Scripts** — `ScriptableEntity` protected `Raycast` / `OverlapCircle` forward to DI with `ignoreEntity` set to the script's entity.
 
 ---
 

@@ -15,8 +15,10 @@ graph TD
 
         subgraph "Rendering & Graphics (RegisterCore)"
             RAPI[IRendererAPI]
+            GCTX[IGraphicsContext]
             G2D[IGraphics2D]
             G3D[IGraphics3D]
+            HDR[HdrTonemapPass]
         end
 
         subgraph "Audio"
@@ -33,6 +35,7 @@ graph TD
             SC[ISceneContext]
             CTX[IContext delegate]
             PC[IPhysicsContacts delegate]
+            PQ[IPhysicsQueries delegate]
         end
 
         subgraph "Physics"
@@ -56,6 +59,7 @@ graph TD
             TF[ITextureFactory]
             SHF[IShaderFactory]
             MSF[IMeshFactory]
+            MDF[IModelFactory]
             VBF[IVertexBufferFactory]
             IBF[IIndexBufferFactory]
             FBF[IFrameBufferFactory]
@@ -131,8 +135,10 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 |---------|---------------|----------|-------|
 | `IRendererApiConfig` | `RendererApiConfig(ApiType.SilkNet)` | Singleton | Hardcoded to Silk.NET |
 | `IRendererAPI` | Via `IRendererApiFactory.Create()` | Singleton | Factory-resolved |
+| `IGraphicsContext` | `SilkNetGraphicsContext` | Singleton | OpenGL context wrapper |
 | `IGraphics2D` | `Graphics2D` | Singleton | 2D rendering API |
 | `IGraphics3D` | `Graphics3D` | Singleton | 3D rendering API |
+| `HdrTonemapPass` | `HdrTonemapPass` | Singleton | HDR → LDR tonemapping pass |
 
 ### Global Services (`RegisterCore`)
 
@@ -165,6 +171,7 @@ ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` bu
 | `ISceneContext` | `SceneContext` | Singleton | Active scene reference |
 | `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
 | `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |
+| `IPhysicsQueries` | Delegate from active scene, else `NullPhysicsQueries` | Default | Per-scene physics ray/overlap queries |
 
 ### Physics (`RegisterCore`)
 
@@ -192,6 +199,7 @@ All registered as singletons. Manage caching and GPU resource lifecycles.
 | `ITextureFactory` | `TextureFactory` |
 | `IShaderFactory` | `ShaderFactory` |
 | `IMeshFactory` | `MeshFactory` |
+| `IModelFactory` | `ModelFactory` |
 | `IVertexBufferFactory` | `VertexBufferFactory` |
 | `IIndexBufferFactory` | `IndexBufferFactory` |
 | `IFrameBufferFactory` | `FrameBufferFactory` |
@@ -275,17 +283,18 @@ Shell types: `EditorMenuBar`, `EditorDockspace`, `EditorInputHandler`, `EditorSh
 
 ### Other
 
-| Service | Implementation | Lifetime |
-|---------|---------------|----------|
-| `IEntityContextMenu` | `EntityContextMenu` | Singleton |
-| `PrefabDropTarget` | `PrefabDropTarget` | Singleton |
-| `IPrefabManager` | `PrefabManager` | Singleton |
-| `IGameComponentFactory` | `GameComponentFactory` | Singleton |
-| `NewProjectPopup` | `NewProjectPopup` | Singleton |
-| `SceneSettingsPopup` | `SceneSettingsPopup` | Singleton |
-| `SceneToolbar` | `SceneToolbar` | Singleton |
-| `ILayer` | `EditorLayer` | Singleton |
-| `Editor` | `Editor` | Singleton |
+| Service | Implementation | Lifetime | Notes |
+|---------|---------------|----------|-------|
+| `IEntityContextMenu` | `EntityContextMenu` | Singleton | |
+| `PrefabDropTarget` | `PrefabDropTarget` | Singleton | |
+| `IPrefabManager` | `PrefabManager` | Singleton | |
+| `IGameComponentFactory` | `GameComponentFactory` | Singleton | |
+| `Features.Components.GameComponentEditor` | `Features.Components.GameComponentEditor` | Singleton | Game-component authoring UI (distinct from `ComponentEditors.GameComponentEditor`) |
+| `NewProjectPopup` | `NewProjectPopup` | Singleton | |
+| `SceneSettingsPopup` | `SceneSettingsPopup` | Singleton | |
+| `SceneToolbar` | `SceneToolbar` | Singleton | |
+| `ILayer` | `EditorLayer` | Singleton | |
+| `Editor` | `Editor` | Singleton | |
 
 ### Game Assembly DI Extension
 
@@ -297,7 +306,7 @@ The editor registers delegates for hot-reloadable game assembly types:
 | `Action<Assembly>` | `GameAssemblyContainerRegistration.UnregisterRegistrationsFromGameAssembly` — cleanup on unload |
 | `Func<IEnumerable<IGameSystem>>` | Resolves all `IGameSystem` instances from the container |
 
-Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` after loading the published game DLL.
+Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` after loading the published game DLL. That path also calls `IComponentSerializerRegistry.RegisterFromAssembly`, registers `Func<IEnumerable<IGameSystem>>`, and falls back to `ILayer` → `GameLayer` when the assembly does not supply one.
 
 ## Service Lifetimes
 
@@ -305,7 +314,7 @@ Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` a
 |----------|-------|----------|
 | Singleton | Most services — shared across entire application lifetime | `IScriptEngine`, all factories, `ISceneSystemsFactory`, all editors |
 | Default (Transient) | Factory-created services where DryIoc resolves once at startup | `IGameWindow`, `IContentScaleProvider` |
-| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts` |
+| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts`, `IPhysicsQueries` |
 | Per-scene (not DI singletons) | Created by `ISceneSystemsFactory` per scene | Individual `ISystem` implementations (e.g. physics simulation) |
 
 ## Registration Flow
@@ -331,8 +340,9 @@ sequenceDiagram
     end
 
     alt Runtime mode
-        Main->>C: Register RuntimeApplication, game config
-        Main->>C: Load game assembly + TryRegisterContainer
+        Main->>C: Apply IProjectContext, register game config
+        Main->>C: Register RuntimeApplication
+        Main->>C: Load game assembly + TryRegisterContainer + serializer/game-system delegates
     end
 
     Main->>C: ValidateAndThrow()

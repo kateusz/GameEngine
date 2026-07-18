@@ -2,6 +2,19 @@
 
 OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports 3D spatial audio, WAV/Ogg loading, optional EFX (reverb, echo, low-pass), and one-shot playback. `AudioSystem` runs at priority 120 (after `ScriptUpdateSystem` at 110).
 
+**File**: `Engine/Platform/OpenAL/OpenALAudioEngine.cs`, `Engine/Scene/Systems/AudioSystem.cs`
+
+---
+
+## System Priority
+
+| Priority | System | Role |
+|---:|---|---|
+| 110 | `ScriptUpdateSystem` | Runs before audio so gameplay can trigger playback |
+| 120 | `AudioSystem` | Listener pose, source sync, effect chains |
+
+Constants: `Engine/Scene/Systems/SystemPriorities.cs`
+
 ---
 
 ## Component Diagram
@@ -18,7 +31,7 @@ graph TD
 
     IA -->|impl| OALE[OpenALAudioEngine<br/>Silk.NET.OpenAL]
     IAEF[IAudioEffectFactory] -->|impl| OALEF[OpenALAudioEffectFactory]
-    IAEF -->|fallback| NoOpEF[NoOpAudioEffectFactory]
+    OALEF -->|EFX unavailable| NoOpFX[NoOpAudioEffect]
 
     OALE -->|creates| OALS[OpenALAudioSource]
     OALE -->|loads/caches| OALC[OpenALAudioClip]
@@ -37,6 +50,7 @@ graph TD
     style ALC fill:#5cb85c,color:#fff
     style IA fill:#f0ad4e,color:#fff
     style IAEF fill:#f0ad4e,color:#fff
+    style NoOpFX fill:#999,color:#fff
 ```
 
 ---
@@ -58,9 +72,8 @@ Components live in the `SceneComponents.Audio` namespace. `AudioSystem` reads th
 | `MinDistance` | Yes | Reference distance for 3D attenuation |
 | `MaxDistance` | Yes | Max attenuation distance |
 | `Effects` | Yes | `List<AudioEffectData>` — effect chain sync |
-| `IsPlaying` | Written | Updated from `IAudioSource.IsPlaying` each frame |
 
-Runtime OpenAL sources are **not** stored on the component. `AudioSystem` keeps an `AudioRuntimeState` dictionary keyed by entity ID.
+Runtime OpenAL sources are **not** stored on the component. `AudioSystem` keeps an `AudioRuntimeState` dictionary keyed by entity ID (clip, loaded path, dirty-check caches, and `IsPlaying` mirrored from `IAudioSource.IsPlaying`). Property changes are synced via dirty-check fields (`LastVolume`, `LastPitch`, etc.) in `ApplyComponentToSource`.
 
 ### AudioListenerComponent
 
@@ -123,7 +136,11 @@ Unbinds from `AudioPlaybackService`, disposes all runtime sources, clears the en
 
 ### Playback control
 
-`AudioSystem` implements `IAudioPlayback` (`Play`, `Pause`, `Stop`). Scripts and other systems inject `IAudioPlayback`, which `AudioPlaybackService` forwards to the active `AudioSystem` instance.
+`AudioSystem` implements `IAudioPlayback` (`Play`, `Pause`, `Stop`) and calls `playbackService.Unbind(this)` on shutdown. Per-entity playback goes through the runtime source created in `EnsureRuntimeState`.
+
+### Engine update loop
+
+`OpenALAudioEngine.Update` disposes finished one-shot sources tracked in `_oneShots`. The application calls `IAudio.Update` each frame after layer updates (see [game loop](game-loop.md)).
 
 ---
 
@@ -140,13 +157,14 @@ Unbinds from `AudioPlaybackService`, disposes all runtime sources, clears the en
 
 | Step | Detail |
 |---|---|
-| Path resolution | `AudioClipPath` resolved via `PathBuilder.Build` |
+| Path resolution | `AudioClipPath` resolved via `PathBuilder.Build` in `AudioSystem.TrySyncClip`; `LoadAudioClip` normalizes again in `OpenALAudioEngine` |
 | Load | `IAudio.LoadAudioClip(fullPath)` |
 | Cache | Weak-reference dictionary keyed by normalized path (`OpenALAudioEngine`) |
-| Decode | `AudioLoaderRegistry` dispatches to `WavLoader` (`.wav`) or `OggLoader` (`.ogg`, NVorbis) |
-| Upload | `OpenALAudioClip` uploads 16-bit PCM to an OpenAL buffer |
+| Unload | `UnloadAudioClip(path)` unloads and removes a cached clip; `ClearClipCache()` on `AudioSystem` shutdown |
+| Decode | `AudioLoaderRegistry` dispatches to `WavLoader` (`.wav`) or `OggLoader` (`.ogg`, NVorbis); extensible via `RegisterLoader` |
+| Upload | `OpenALAudioClip` uploads 16-bit PCM (mono/stereo) to an OpenAL buffer |
 
-`OpenALAudioEngine.PlayOneShot(clipPath, volume)` creates a disposable source for non-ECS playback.
+`OpenALAudioEngine.PlayOneShot(clipPath, volume)` creates a source, plays once, and auto-disposes when playback finishes.
 
 ---
 
@@ -158,7 +176,7 @@ Unbinds from `AudioPlaybackService`, disposes all runtime sources, clears the en
 2. Add missing effects via `IAudioSource.AddEffect(type, amount)`.
 3. Update `Amount` on existing effects via `UpdateEffect`.
 
-`OpenALAudioEffectFactory` creates OpenAL EFX effects when the extension is available (`Reverb`, `LowPass`, `Echo`). Otherwise it returns `NoOpAudioEffect`. Low-pass uses a direct filter; reverb and echo use auxiliary send slots (max 4 sends per source).
+`OpenALAudioEffectFactory` probes `alGenEffects` at startup. When EFX is available it creates `OpenALReverbEffect`, `OpenALLowPassEffect`, or `OpenALEchoEffect`; otherwise (or on creation failure) it returns `NoOpAudioEffect`. Low-pass uses a direct filter (`AlDirectFilter`); reverb and echo use auxiliary send slots (`MaxAuxiliarySends = 4` in `OpenALAudioSource`).
 
 ---
 
@@ -181,4 +199,7 @@ When OpenAL device/context creation fails, `OpenALAudioEngine` sets `_isAvailabl
 | `Engine/Platform/OpenAL/Loaders/OggLoader.cs` | Ogg Vorbis decoder (NVorbis) |
 | `Engine/Audio/IAudioEffectFactory.cs` | Effect factory interface |
 | `Engine/Platform/OpenAL/Effects/OpenALAudioEffectFactory.cs` | EFX-backed effect creation |
-| `Engine/Audio/NoOpAudioEffectFactory.cs` | No-op effect fallback |
+| `Engine/Audio/NoOpAudioEffect.cs` | No-op effect used when EFX is unavailable |
+| `Engine/Platform/OpenAL/Effects/OpenALReverbEffect.cs` | EFX reverb |
+| `Engine/Platform/OpenAL/Effects/OpenALLowPassEffect.cs` | EFX low-pass filter |
+| `Engine/Platform/OpenAL/Effects/OpenALEchoEffect.cs` | EFX echo |

@@ -1,6 +1,6 @@
 # Serialization
 
-Scenes and prefabs are stored as JSON using System.Text.Json. A `ComponentSerializerRegistry` dispatches polymorphic component read/write through registered `IComponentSerializer` implementations. Custom `JsonConverter<T>` implementations handle `Vector2`, `Vector3`, and `Vector4`. All serialization classes are DI singletons sharing a common `SerializerOptions` instance.
+Scenes and prefabs are stored as JSON using System.Text.Json. A `ComponentSerializerRegistry` dispatches polymorphic component read/write through registered `IComponentSerializer` implementations. Custom `JsonConverter<T>` implementations handle `Vector2`, `Vector3`, and `Vector4`. Implementations are internal; public entry points are `ISceneSerializer`, `IPrefabSerializer`, and `IComponentSerializerRegistry`. All are DI singletons sharing one `SerializerOptions` instance.
 
 ## Component Diagram
 
@@ -58,9 +58,10 @@ Scene JSON structure:
 }
 ```
 
-- Scene name derived from file path via `Path.GetFileNameWithoutExtension(path)`
-- `BackgroundColor` (`Vector4`) and `Dimension` (`SceneDimension` enum) are scene-level properties
+- On save, the `"Scene"` key is set from the file path via `Path.GetFileNameWithoutExtension(path)` (metadata only — `Deserialize()` does not read it; callers supply the scene name separately, e.g. from the file path when opening)
+- `BackgroundColor` (`Vector4`) and `Dimension` (`SceneDimension` enum) are scene-level properties restored on load
 - Each entity serialized with `Id`, `Name`, and `Components` array
+- `Deserialize()` appends entities to the provided `IScene` without clearing it — callers must use a fresh scene or remove existing entities first
 - Components serialized via `ComponentSerializerRegistry.SerializeEntity()` — iteration order follows `entity.GetAllComponents()`
 - Each component JSON object includes a `"Name"` property (the registered component type name) plus serialized property values
 
@@ -73,7 +74,9 @@ Components are data-only classes serialized by System.Text.Json through `JsonCom
 | CameraComponent | `CameraViewTransform` | Computed view matrix, not persisted |
 | BoxCollider2DComponent | `IsDirty` | Physics sync flag, not persisted |
 
-Resource paths (`TexturePath`, `AudioClipPath`, `OverrideTexturePath`, etc.) are serialized as strings. GPU/audio resources are loaded later by their respective systems — not during JSON deserialization.
+Resource paths (`TexturePath`, `ModelPath`, `AudioClipPath`, etc.) are serialized as strings. GPU/audio/model resources are loaded later by their respective systems — not during JSON deserialization.
+
+Built-in components **not** registered in `RegisterBuiltins()` (`TagComponent`, `IdComponent`) cannot be saved to scene/prefab JSON — `SerializeEntity()` throws if an entity has an unregistered component type.
 
 **NativeScriptComponent** uses a dedicated `NativeScriptComponentSerializer` instead of generic JSON deserialization. It persists only:
 
@@ -134,7 +137,7 @@ Registration happens at runtime when the game assembly loads:
 - **Editor:** `GameScriptWorkspace` calls `RegisterFromAssembly(assembly)` after script hot-reload
 - **Runtime:** `Runtime/Program.cs` calls `RegisterFromAssembly(assembly)` after game assembly load
 
-`UnregisterAssembly(assembly)` removes serializers owned by that assembly without clobbering serializers registered from another assembly with the same component name.
+`RegisterFromAssembly` calls `UnregisterAssembly` first, so recompilation replaces serializers from the same assembly without duplicates. `UnregisterAssembly(assembly)` removes serializers owned by that assembly without clobbering serializers registered from another assembly with the same component name.
 
 Public registration API: `IComponentSerializerRegistry.Register<T>(string? componentName = null)`.
 
@@ -212,6 +215,16 @@ sequenceDiagram
 
     SS-->>Caller: Scene populated
 ```
+
+## Public API
+
+| Interface | Implementation | Purpose |
+|-----------|----------------|---------|
+| `ISceneSerializer` | `SceneSerializer` | `Serialize(IScene, path)` / `Deserialize(IScene, path)` |
+| `IPrefabSerializer` | `PrefabSerializer` | Prefab save, apply, and create-from-prefab |
+| `IComponentSerializerRegistry` | `ComponentSerializerRegistry` | `Register<T>()`, `RegisterFromAssembly`, `UnregisterAssembly` |
+
+`InvalidSceneJsonException` is the public exception type for invalid scene/prefab JSON and I/O failures during scene save/load.
 
 ## Key Files
 

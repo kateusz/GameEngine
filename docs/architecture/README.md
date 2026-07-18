@@ -97,9 +97,9 @@ GameEngine/
 |----------|-------|
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
-| [Rendering Pipeline](rendering-pipeline.md) | IRendererAPI, 2D batching, 3D cube rendering, shaders, textures, cameras, framebuffers |
+| [Rendering Pipeline](rendering-pipeline.md) | IRendererAPI, 2D batching, 3D PBR meshes, scene lighting, shaders, textures, cameras, HDR framebuffers |
 | [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, ScriptableEntity, editor vs runtime |
-| [Physics System](physics-system.md) | `IPhysicsWorld2D` abstraction, Box2D backend, fixed timestep, contact queue, debug draw |
+| [Physics System](physics-system.md) | `IPhysicsWorld2D` abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |
 | [Serialization](serialization.md) | Scene/prefab JSON, ComponentSerializerRegistry, custom converters |
 | [Dependency Injection](dependency-injection.md) | DryIoc setup, service lifetimes, factory pattern |

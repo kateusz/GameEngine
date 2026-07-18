@@ -95,4 +95,4 @@ You cannot swap texture maps in the inspector yet. Scene tuning is limited to **
 - [Cameras and Rendering](cameras-and-rendering.md) — perspective vs orthographic
 - [Content Browser](../editor/content-browser.md) — placing and dragging model assets
 - [Component Inspector](../editor/component-inspector.md) — full property lists
-- [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md) — shaders, import pipeline, internals
+- [Rendering Pipeline](../../architecture/rendering-pipeline.md) — shaders, import pipeline, batching internals

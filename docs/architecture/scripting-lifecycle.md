@@ -186,7 +186,8 @@ There is **no** per-frame hot-reload in the runtime `ScriptEngine`. Recompile ha
 ### Stop
 
 1. `OnRuntimeStop` — shutdown scene systems (including script `OnDestroy`).
-2. `Open(EditorScenePath)` — **dispose scene first**, then `EnsureScriptsCompiledAndApplied` (fresh edit-mode assembly if needed), deserialize saved scene.
+2. If `EditorScenePath` is set: `Open(EditorScenePath)` — **dispose scene first**, then `EnsureScriptsCompiledAndApplied` (fresh edit-mode assembly if needed), deserialize saved scene.
+3. If no saved scene path: dispose scene, then `RestoreEditAssembly()` (recompile + reload edit-mode assembly).
 
 Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` and `ScriptableEntity` instances are gone.
 
@@ -221,7 +222,7 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 | `LoadGameAssemblyFromFile(string dllPath)` | Unloads prior ALC, loads DLL via new `GameAssemblyLoadContext`, indexes concrete `ScriptableEntity` subclasses by type name |
 | `UnloadGameAssembly()` | Clears type index and unloads collectible ALC |
 | `GetScriptType(string scriptName)` | Lookup indexed script type |
-| `CreateScriptInstance(string scriptName)` | `Activator.CreateInstance` with `(ComponentAccessor, IAudio, IAudioPlayback)`; returns `Result<ScriptableEntity>` |
+| `CreateScriptInstance(string scriptName)` | `Activator.CreateInstance` with `(IComponentAccessor, IAudio, IAudioPlayback, IPhysicsQueries)` — queries from active scene or `NullPhysicsQueries`; returns `Result<ScriptableEntity>` |
 | `GetLoadedGameAssembly()` | Current game assembly, or `null` |
 | `ProcessEvent(Event, IContext, ScriptRuntimeStore)` | Forwards to `NativeScriptIteration.ProcessEvent` |
 
@@ -233,7 +234,7 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 
 **File:** `Scripting/ScriptableEntity.cs` (game-author SDK project at repo root, referenced by compiled `GameAssembly`)
 
-Constructor: `(IComponentAccessor, IAudio, IAudioPlayback)`. Lifecycle overrides: `OnCreate`, `OnUpdate`, `OnDestroy`; input via `OnKeyPressed` / mouse overrides; physics via `OnCollisionBegin` / `OnTriggerEnter` etc.
+Constructor: `(IComponentAccessor, IAudio, IAudioPlayback, IPhysicsQueries)`. Lifecycle overrides: `OnCreate`, `OnUpdate`, `OnDestroy`; input via `OnKeyPressed` / mouse overrides; physics via `OnCollisionBegin` / `OnTriggerEnter` etc.
 
 Runtime instances live in a **per-scene** `ScriptRuntimeStore` (`Engine/Scene/ScriptRuntimeStore.cs`, created in `SystemManagerFactory`). Only `ScriptTypeName` is persisted on `NativeScriptComponent` — use `IGameComponent` for serialized data.
 

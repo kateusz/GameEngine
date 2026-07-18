@@ -23,7 +23,7 @@ graph TB
     subgraph "Engine/Scene/ (Game Systems)"
         Systems["Systems<br/><i>Physics, Scripting, Rendering, etc.</i>"]
         Scene["Scene<br/><i>Owns Context + SystemManager</i>"]
-        SceneSystemRegistry["SceneSystemRegistry<br/><i>Singleton system registration</i>"]
+        SceneSystemsFactory["SceneSystemsFactory<br/><i>Per-scene system registration</i>"]
     end
 
     Entity -->|stores| IComponent
@@ -31,7 +31,7 @@ graph TB
     SystemManager -->|executes in priority order| ISystem
     Scene -->|owns| Context
     Scene -->|owns| SystemManager
-    SceneSystemRegistry -->|populates shared systems into| SystemManager
+    SceneSystemsFactory -->|populates per-scene systems into| SystemManager
     Components -->|implement| IComponent
     Systems -->|implement| ISystem
     Systems -->|query entities via| Context
@@ -90,12 +90,12 @@ Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponen
 | **TagComponent** | `SceneComponents/TagComponent.cs` | String tag for entity identification |
 | **TransformComponent** | `SceneComponents/TransformComponent.cs` | Position, rotation, scale with cached transform matrix (dirty flag) |
 | **SpriteRendererComponent** | `SceneComponents/Rendering/SpriteRendererComponent.cs` | Color, texture path, tiling factor for 2D sprite rendering |
-| **SubTextureRendererComponent** | `SceneComponents/Rendering/SubTextureRendererComponent.cs` | Sprite atlas region: coords, cell size, optional precomputed UVs |
-| **ModelRendererComponent** | `SceneComponents/Rendering/ModelRendererComponent.cs` | Lit unit-cube color for 3D rendering |
-| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic/perspective projection settings, `Primary` flag |
+| **SubTextureRendererComponent** | `SceneComponents/Rendering/SubTextureRendererComponent.cs` | Sprite atlas region: texture path, coords, cell/sprite size, optional precomputed UVs |
+| **ModelRendererComponent** | `SceneComponents/Rendering/ModelRendererComponent.cs` | `ModelPath` for imported meshes; `Color` tint; optional `MetallicOverride` / `RoughnessOverride` (unit-cube fallback when path is empty) |
+| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic/perspective projection settings, `Primary` and `FixedAspectRatio` flags |
 | **AmbientLightComponent** | `SceneComponents/Lighting/AmbientLightComponent.cs` | Scene-wide ambient light color and strength |
 | **DirectionalLightComponent** | `SceneComponents/Lighting/DirectionalLightComponent.cs` | Directional light direction and color |
-| **RigidBody2DComponent** | `SceneComponents/Physics/RigidBody2DComponent.cs` | Body type (Static/Dynamic/Kinematic), velocity, gravity scale |
+| **RigidBody2DComponent** | `SceneComponents/Physics/RigidBody2DComponent.cs` | Body type (Static/Dynamic/Kinematic), velocity, gravity scale, `FixedRotation` |
 | **BoxCollider2DComponent** | `SceneComponents/Physics/BoxCollider2DComponent.cs` | Collision shape: size, offset, density, friction, restitution, trigger flag |
 | **NativeScriptComponent** | `SceneComponents/NativeScriptComponent.cs` | Persisted script type name (`ScriptTypeName`) for runtime instantiation |
 | **AudioSourceComponent** | `SceneComponents/Audio/AudioSourceComponent.cs` | Audio clip path, volume, pitch, loop, 3D spatial settings, effects |
@@ -130,7 +130,7 @@ graph LR
 - `Dictionary<int, Entity>` — O(1) lookup by ID
 - `List<Entity>` — efficient iteration in insertion order
 - `Dictionary<Type, HashSet<Entity>>` — component-type index maintained via entity hooks
-- `Lock` object — thread-safe access for all operations
+- `Lock _lock` — thread-safe access for all operations
 - `Register`, `Remove`, `Clear`, `Contains`, `GetById`, `GetByName`, `Entities`
 
 ### View Queries
@@ -188,9 +188,9 @@ public interface ISystem
 
 ### SystemManager
 
-**File**: `ECS/Systems/SystemManager.cs`
+**File**: `ECS/Systems/SystemManager.cs`, `ECS/Systems/ISystemManager.cs`
 
-The SystemManager maintains a priority-sorted list of systems and executes them sequentially each frame.
+`SystemManager` implements `ISystemManager` and maintains a priority-sorted list of systems, executing them sequentially each frame.
 
 ```mermaid
 sequenceDiagram
@@ -216,36 +216,36 @@ sequenceDiagram
     SM->>S3: OnShutdown()
     SM->>S2: OnShutdown()
     SM->>S1: OnShutdown()
-    Note over SM: Shutdown in reverse order (LIFO)
+    Note over SM: Reverse priority order (all per-scene)
 ```
 
-- **Registration**: `RegisterSystem(system, isShared)` adds to list and re-sorts by Priority
-- **Update**: Iterates all systems in ascending priority order
-- **Shutdown**: Calls `OnShutdown()` in reverse order, skipping shared systems
-- **Dispose**: Only disposes `IDisposable` per-scene systems
+- **Registration**: `RegisterSystem(system, isShared)` adds to list and re-sorts by Priority; `isShared` marks systems that survive `Shutdown()` (unused by current scene wiring — all engine systems are per-scene)
+- **Initialize**: Calls `OnInit()` on all systems in ascending priority order (once per play session via `Scene.OnRuntimeStart`)
+- **Update**: Iterates all systems in ascending priority order each frame
+- **Shutdown**: Calls `OnShutdown()` in reverse priority order on per-scene systems (`Scene.OnRuntimeStop`); shared systems are skipped
+- **ShutdownAll** (concrete class): Calls `OnShutdown()` on every system in reverse order, then clears the list
+- **Dispose**: Shuts down any remaining per-scene systems, disposes `IDisposable` per-scene systems, then clears all registrations
 
-### Shared vs Per-Scene Systems
+### Per-Scene Systems
 
-| Lifetime | Systems | Managed By |
-|----------|---------|------------|
-| **Shared (singleton)** | ScriptUpdate, PrimaryCamera, SpriteRendering, SubTextureRendering, ModelRendering, PhysicsDebugRender, Audio | `SceneSystemRegistry` — registered with `isShared: true`, survive scene changes |
-| **Per-scene** | PhysicsSimulation | Created fresh per scene with its own Box2D `World`, disposed on scene unload |
+**File**: `Engine/Scene/SceneSystemsFactory.cs`, `Engine/Scene/SystemManagerFactory.cs`
 
-`SceneSystemRegistry` (`Engine/Scene/SceneSystemRegistry.cs`) populates the SystemManager with all shared singleton systems when a new scene initializes.
+Each scene gets a fresh `Context`, `SystemManager`, and physics world via `SceneFactory` → `SystemManagerFactory.Create`. `SceneSystemsFactory.PopulateSystemManager` registers all built-in systems as per-scene (no `isShared: true`). Scene unload calls `SystemManager.Dispose()`, which shuts down and disposes every system.
+
+Custom runtime systems can be added with `Scene.RegisterRuntimeSystem(ISystem)`.
 
 ### System Execution Order
+
+**File**: `Engine/Scene/Systems/SystemPriorities.cs`
 
 | Priority | System | Responsibility |
 |----------|--------|---------------|
 | 100 | PhysicsSimulationSystem | Fixed-timestep Box2D stepping, syncs physics bodies → TransformComponent |
 | 110 | ScriptUpdateSystem | `View<NativeScriptComponent>()`, script OnCreate/OnUpdate via `NativeScriptIteration` |
 | 120 | AudioSystem | Audio listener position, source playback |
-| 130 | *(TileMapRenderSystem)* | *(Reserved, not yet implemented)* |
 | 145 | PrimaryCameraSystem | Finds entity with `CameraComponent { Primary = true }`, caches for renderers |
-| 150 | SpriteRenderingSystem | Renders all SpriteRendererComponent entities |
-| 160 | SubTextureRenderingSystem | Renders all SubTextureRendererComponent entities |
-| 170 | ModelRenderingSystem | Renders all ModelRendererComponent entities |
-| 180 | PhysicsDebugRenderSystem | Wireframe collider visualization (color-coded by body type) |
+| 150 | SceneRenderSystem | Renders sprites, sub-textures, and models via `SceneRenderPipeline` |
+| 151 | PhysicsDebugRenderSystem | Wireframe collider visualization (color-coded by body type) |
 
 The ordering ensures: **physics runs first** → **scripts see updated positions** → **camera is resolved** → **rendering reads final state**.
 
@@ -259,8 +259,8 @@ graph LR
     Scripts["ScriptUpdate<br/>(110)"]
     Audio["Audio<br/>(120)"]
     Camera["PrimaryCamera<br/>(145)"]
-    Render["Sprite/SubTexture/Model<br/>Rendering (150-170)"]
-    Debug["PhysicsDebug<br/>(180)"]
+    Render["SceneRender<br/>(150)"]
+    Debug["PhysicsDebug<br/>(151)"]
 
     Physics -->|"updates TransformComponent"| Scripts
     Scripts -->|"may modify any component"| Audio

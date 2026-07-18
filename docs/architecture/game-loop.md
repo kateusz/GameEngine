@@ -14,7 +14,7 @@ graph TB
     end
 
     subgraph "Application Layer"
-        App["Application (abstract)<br/><i>Layer stack, Graphics2D/3D, IAudio</i>"]
+        App["Application (abstract)<br/><i>Layer stack, IRendererAPI, Graphics2D/3D, IAudio</i>"]
         Compositor["IFrameCompositor (optional)<br/><i>Wraps Draw phase (e.g. ImGui)</i>"]
         LayerStack["Layer Stack<br/><i>Processed in reverse order</i>"]
         EditorLayer["EditorLayer<br/><i>Framebuffer, scene states, mouse picking</i>"]
@@ -60,9 +60,9 @@ sequenceDiagram
     App->>Win: Run()
 
     Win-->>App: OnWindowLoad(inputSystem)
-    App->>App: Graphics2D/3D Init(), Audio.Initialize()
+    App->>App: RendererAPI.Init(), Graphics2D/3D Init(), Audio.Initialize()
     App->>Layers: OnAttach(inputSystem) for each layer
-    Note over Layers: GameLayer: loads startup scene via RuntimeSceneStarter.Start()
+    Note over Layers: GameLayer OnAttach: deserialize startup scene, RuntimeSceneStarter.Start()
 
     loop Every Frame
         Win-->>App: OnUpdate(platformDeltaTime)
@@ -82,7 +82,7 @@ sequenceDiagram
     Win-->>App: OnClose
     App->>Layers: OnDetach() for each layer (reverse order)
     App->>App: Dispose Graphics2D, Graphics3D, Audio; MeshFactory.Clear()
-    Main->>Main: container.Dispose()
+    Main->>Main: Log.CloseAndFlush(); container.Dispose()
 ```
 
 ---
@@ -104,13 +104,14 @@ sequenceDiagram
 
 **File**: `Runtime/Program.cs`
 
-1. Configures Serilog (console + rolling file under `logs/`)
-2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, startup scene, game assembly path)
-3. Creates DryIoc container: `EngineIoCContainer.RegisterCore()` + `RegisterWindowing()` with host options from config
-4. Registers `GameConfiguration` instance and `RuntimeApplication`
-5. Loads the published game assembly (`GameAssembly.dll` by default) via `IScriptEngine`, registers `[Register]` types and component serializers from that assembly
-6. Resolves `ILayer` (defaults to `GameLayer` if the game assembly did not register one), `PushLayer`, then `Run()`
-7. `container.Dispose()` in `finally`
+1. Configures Serilog (console + rolling file under `logs/runtime-.log`)
+2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, startup scene, game assembly path); falls back to defaults if missing or invalid
+3. Creates DryIoc container: `EngineIoCContainer.RegisterCore()` + `IProjectContext.Apply(AppContext.BaseDirectory)` + `RegisterWindowing()` with host options from config
+4. Registers `GameConfiguration` instance, `RuntimeApplication`, and a `Func<IEnumerable<IGameSystem>>` delegate for per-scene game systems
+5. Loads the published game assembly (`GameAssembly.dll` by default) via `IScriptEngine`; registers `[Register]` types via `GameAssemblyContainerRegistration.TryRegisterContainer` (warns if none) and component serializers from that assembly
+6. Registers `ILayer` → `GameLayer` only if the game assembly did not register one; `ValidateAndThrow()`
+7. Resolves `RuntimeApplication`, resolves `ILayer`, `PushLayer`, then `Run()`; returns exit code `1` on fatal errors
+8. `Log.CloseAndFlush()` and `container.Dispose()` in `finally`
 
 ---
 
@@ -121,9 +122,9 @@ sequenceDiagram
 
 The abstract `Application` class manages the core frame loop:
 
-- **Owns**: `IGraphics2D`, `IGraphics3D`, `IAudio`, `IMeshFactory`; optional `IFrameCompositor` and `IKeyboardInput`
-- **Initializes on window load**: `Graphics2D.Init()`, `Graphics3D.Init()`, `Audio.Initialize()` — before any `layer.OnAttach()`
-- **Manages**: Layer stack — `PushLayer` inserts at index 0, `PushOverlay` appends; all tick/event processing iterates in **reverse** (overlays first)
+- **Owns**: `IGameWindow`, `IRendererAPI`, `IGraphics2D`, `IGraphics3D`, `IAudio`, `IMeshFactory`; optional `IFrameCompositor` and `IKeyboardInput`
+- **Initializes on window load**: `RendererAPI.Init()`, `Graphics2D.Init()`, `Graphics3D.Init()`, `Audio.Initialize()` — before any `layer.OnAttach()`
+- **Manages**: Layer stack — `PushLayer` inserts at index 0, `PushOverlay` appends; `PopLayer` / `PopOverlay` detach and remove; all tick/event processing iterates in **reverse** (overlays first)
 - **Delegates**: Platform loop to `IGameWindow.Run()` (Silk.NET)
 - **Constructor**: Optionally `PushOverlay(inputOverlay)` for the input/UI overlay (editor passes `ImGuiLayer`)
 
@@ -257,6 +258,7 @@ sequenceDiagram
 
 - Input events propagate from overlays down to base layers
 - Any layer can consume an event by setting `IsHandled = true`
+- `GameLayer` updates `KeyboardInputState` and forwards to `IScriptEngine.ProcessEvent` when `ActiveScriptRuntimeStore` is available
 - Window events (resize, close) follow the same reverse-order propagation
 
 ---
@@ -274,7 +276,7 @@ sequenceDiagram
 
 ### Shutdown Sequence
 
-1. `Application.HandleGameWindowClose` — `OnDetach()` on each layer (reverse order, errors logged via `SafeDetachLayer`)
-2. `GameLayer.OnDetach()` — `scene.OnRuntimeStop()`, then `scene.Dispose()`
-3. Application disposes `Graphics2D`, `Graphics3D`, `Audio`; `IMeshFactory.Clear()`
-4. DI `container.Dispose()` in `Program.Main` `finally` block
+1. `Application.HandleGameWindowClose` — `OnDetach()` on each layer (reverse order, errors logged via `SafeDetachLayer`), then clears the layer stack
+2. `GameLayer.OnDetach()` — unsubscribes `SceneChanged`, `scene.OnRuntimeStop()`, then `scene.Dispose()`
+3. Application disposes `Graphics2D`, `Graphics3D`, `Audio`; `IMeshFactory.Clear()` (`IRendererAPI` is not disposed here)
+4. Runtime `Program.Main` `finally`: `Log.CloseAndFlush()`, then `container.Dispose()`
