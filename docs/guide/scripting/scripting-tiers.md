@@ -1,60 +1,46 @@
 # Scripting Tiers
 
-Game logic in this engine uses three tiers, similar to Unity's components, `MonoBehaviour` scripts, and ECS systems.
-
 | Tier | Type | Use for |
 |------|------|---------|
-| **Data** | `IGameComponent` + `[SerializableComponent]` | Serializable state on entities; inspector-edited fields |
-| **Glue** | `ScriptableEntity` + `NativeScriptComponent` | Per-entity wiring, entity-local reactions, bridging to components |
-| **Logic** | `IGameSystem` + `[Register]` | Batch rules, queries over `IContext`, input via `IKeyboardInput`, physics via `IPhysicsContacts` |
+| **Data** | `IGameComponent` + `[SerializableComponent]` | Serializable state; inspector fields |
+| **Glue** | `ScriptableEntity` + `NativeScriptComponent` | Per-entity wiring, local reactions |
+| **Logic** | `IGameSystem` + `[Register]` | Batch rules, queries, shared input/physics |
 
-**Rule:** Put data in game components, not on script fields. Scripts are glue; systems own batch logic.
+**Rule:** Data in components, glue in scripts, batch logic in systems.
 
-## Reference: TicTacToe
+## TicTacToe pattern
 
 ```
-BoardComponent / CellComponent  →  serializable board state (data)
-GameControllerScript            →  per-entity input glue (ScriptableEntity)
-TicTacToeSystem                 →  rules, visuals, win detection (logic)
+BoardComponent / CellComponent  →  board state
+GameControllerScript            →  OnKeyPressed → writes PendingCellIndex / ResetRequested
+TicTacToeSystem                 →  rules, visuals, win detection
 ```
 
-Input is handled in `GameControllerScript` via `OnKeyPressed`. The script writes `BoardComponent.PendingCellIndex` or `ResetRequested`; `TicTacToeSystem` reads those fields each frame. For keyboard polling in a system instead, see `SnakeSystem` (`IKeyboardInput.WasKeyPressed`).
+For keyboard polling in a system instead of script callbacks, see `SnakeSystem` (`IKeyboardInput.WasKeyPressed`).
 
-## When to use each tier
+## Components
 
-### Game components (`IGameComponent`)
+Health, score, inventory — anything saved in scene JSON. **Add Game Component** scaffolds via `GameComponentTemplates` (`Clone()`, `[SerializableComponent]`).
 
-- Health, score, inventory, AI state
-- Anything saved in the scene JSON
-- Fields edited in the Properties panel
+## Scripts
 
-Create via **Add Game Component** in the editor. New component types are scaffolded with `GameComponentTemplates` (`[SerializableComponent]`, `IGameComponent`, `Clone()`).
+Camera controller, door trigger, event→component glue. **NativeScriptComponent → Create New Script**.
 
-### Scripts (`ScriptableEntity`)
+## Systems
 
-- Camera controller on one entity
-- Door that reacts to a trigger on itself
-- Small glue between engine events and component state
+Turn order, win conditions, multi-entity updates. Register with `[Register(typeof(IGameSystem))]` (`GameIocLifetime`: `Singleton` default). Common injections:
 
-Create via **NativeScriptComponent → Create New Script**.
+| Service | Use |
+|---------|-----|
+| `IContext` | Entity/component queries |
+| `IKeyboardInput` | `IsKeyDown` / `WasKeyPressed` |
+| `IPhysicsContacts` | `DrainContacts()` per frame |
+| `IAudio` | Play sounds |
 
-Scripts receive input through lifecycle overrides (`OnKeyPressed`, etc.). For gameplay that spans many entities, prefer a game system.
+Scaffold: `GameSystemTemplates`.
 
-### Game systems (`IGameSystem`)
+## See also
 
-- Game rules (turn order, win conditions)
-- Systems that update many entities from one query
-- Input that affects global or shared state
-
-Register with `[Register(typeof(IGameSystem))]` (optional `GameIocLifetime`: `Singleton` default, `Transient`, `Scoped`; editor scaffolds via `GameSystemTemplates`) and inject:
-
-- `IContext` — entity/component queries
-- `IKeyboardInput` — `IsKeyDown` / `WasKeyPressed`
-- `IPhysicsContacts` — `DrainContacts()` for collision/trigger events each frame
-- `IAudio` — play sounds from systems
-
-## Further reading
-
-- [Getting Started](getting-started.md) — create your first script
-- [API Reference](api-reference.md) — `ScriptableEntity` methods
-- [Architecture: Scripting Lifecycle](../../architecture/scripting-lifecycle.md)
+- [Getting Started](getting-started.md)
+- [API Reference](api-reference.md)
+- [Scripting Lifecycle](../../architecture/scripting-lifecycle.md)

@@ -39,7 +39,6 @@ Sample games live under `games/` (Snake, Tic Tac Toe, Flappy Bird). Open one via
 ## Where to Go Next
 
 ### Editor
-- [Project Setup](editor/project-setup.md) — create a project and orient in the UI
 - [Scene Editor](editor/scene-editor.md) — hierarchy, viewport, and tools
 - [Component Inspector](editor/component-inspector.md) — editing components in Properties
 - [Content Browser](editor/content-browser.md) — assets and drag-and-drop workflow

@@ -1,14 +1,8 @@
 # Content Browser
 
-Browse and manage your project's assets.
-
 ## Overview
 
-The Content Browser panel displays the files inside your project's `assets` directory. A **directory tree** on the left shows folders; single-click a folder to navigate. The current path is shown at the top of the panel so you always know where you are in the hierarchy.
-
 To navigate into a folder from the grid, double-click it. When you are inside a subdirectory, a back arrow button (`<-`) appears at the top of the panel — click it to move up to the parent directory. You cannot navigate above the root `assets` directory.
-
-Files are displayed in a grid using an icon appropriate for each asset type. The grid column count adjusts automatically to fit the available panel width.
 
 ## Supported Asset Types
 

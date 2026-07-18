@@ -1,65 +1,35 @@
 # Scripting Getting Started
 
-Get from zero to a working game script.
+See [Scripting Tiers](scripting-tiers.md) for components vs scripts vs systems.
 
-See [Scripting Tiers](scripting-tiers.md) for when to use scripts vs game components vs game systems.
+## Scripts
 
-## What is a Script
+`ScriptableEntity` subclasses are per-entity glue — input on one object, wiring between components, small local behavior. Shared state belongs in `IGameComponent`; batch logic in `IGameSystem`.
 
-A script is a C# class that extends `ScriptableEntity`. Scripts are **per-entity glue**: input on one object, wiring between components, small local behavior. Put shared state in `IGameComponent` types and batch logic in `IGameSystem` classes.
+Scripts compile to `GameAssembly_{guid}.dll` under `.engine/` (`GameAssemblyCompiler.GetNextEditorBuildPath`). The editor recompiles on project open, script create/edit/delete via editor UI, and before **Play**. External `.cs` saves are not watched — see [Scripting Lifecycle](../../architecture/scripting-lifecycle.md).
 
-Scripts compile into a versioned `GameAssembly_{guid}.dll` under your project's `.engine/` folder (`GameAssemblyCompiler.GetNextEditorBuildPath`). The editor recompiles when you create, update, or delete scripts through editor workflows (Content Browser context menu, script component UI, project open) and again when you press **Play**. External saves to `.cs` files are not watched automatically — see [Scripting Lifecycle](../../architecture/scripting-lifecycle.md) for the full pipeline.
+New scripts scaffold from `ScriptableEntityTemplates` (injects `IComponentAccessor`, `IAudio`, `IAudioPlayback`, `IPhysicsQueries`).
 
-New scripts use the `ScriptableEntity` scaffold from `ScriptableEntityTemplates` (constructor: `IComponentAccessor`, `IAudio`, `IAudioPlayback`).
+## Create and attach
 
-## Creating a Script
+1. Add `NativeScriptComponent` to an entity (Properties panel or Content Browser **Add Script**)
+2. **Create New Script** → file under `assets/scripts/`
+3. Set `ScriptTypeName` to the class name (e.g. `MyScript`)
 
-1. Select an entity in the Scene Hierarchy
-2. In the Properties panel, add `NativeScriptComponent`
-3. Click **Create New Script** and enter a name
-4. The engine writes a template under `assets/scripts/`
+## Lifecycle
 
-## Attaching Scripts to Entities
+| Method | When |
+|--------|------|
+| `OnCreate()` | Play starts |
+| `OnUpdate(TimeSpan ts)` | Each frame — use `(float)ts.TotalSeconds` for delta |
+| `OnDestroy()` | Play stops |
 
-Set `ScriptTypeName` on `NativeScriptComponent` to your class name (e.g. `MyScript`). The engine instantiates the script when play mode starts.
+Input: override `OnKeyPressed`, `OnMouseButtonPressed`, etc. — [Input](input.md). Scene-wide input: `IGameSystem` + `IKeyboardInput`.
 
-## Lifecycle Methods
+## Inspector data
 
-| Method | When Called | Use For |
-|--------|------------|---------|
-| `OnCreate()` | Once when play starts | Cache components, one-time setup |
-| `OnUpdate(TimeSpan ts)` | Every frame | Per-entity update glue |
-| `OnDestroy()` | When play stops | Cleanup |
-
-Use `(float)ts.TotalSeconds` for delta time in seconds.
-
-## Input on Scripts
-
-Override `OnKeyPressed`, `OnMouseButtonPressed`, etc. See [Input Handling](input.md).
-
-For input that drives game rules across the scene, use `IGameSystem` with `IKeyboardInput` instead.
-
-## Hot Reload
-
-The editor recompiles `assets/scripts/` into a new `GameAssembly_{guid}.dll` when:
-
-- You create or edit scripts through the editor (Content Browser **Add Script**, script component **Create New Script**, etc.)
-- You open a project (scripts are compiled on load)
-- You press **Play** (scripts are recompiled before the simulation starts)
-
-Removing a script from an entity triggers a recompile via the script component editor. There is no separate **Force Recompile** button in the UI today.
-
-## Data and the Inspector
-
-Script fields are **not** serialized in scenes. Put tunable data on `[SerializableComponent]` game components and edit them in the Properties panel.
+Script fields are **not** serialized in scenes. Put tunable values on `[SerializableComponent]` game components.
 
 ## Debugging
 
-Use `Console.WriteLine()` — output appears in the editor Console panel.
-
-## Next Steps
-
-- [Scripting Tiers](scripting-tiers.md) — components, scripts, systems
-- [Input Handling](input.md)
-- [Physics](physics.md)
-- [API Reference](api-reference.md)
+`Console.WriteLine()` → editor Console panel.

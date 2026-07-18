@@ -267,14 +267,3 @@ The Scene Hierarchy panel shows each entity's **name** in a field labeled **Tag*
 Custom serializable data components created from **Add Component → Game Component** (or the Content Browser **Add Component** action on the `scripts` folder). Fields on these types are saved in scene/prefab JSON and edited in the Properties panel.
 
 See [Scripting Tiers](../scripting/scripting-tiers.md) for when to use game components vs `ScriptableEntity` scripts vs `IGameSystem`.
-
----
-
-## Coming Soon
-
-The following components are planned and will be documented when available:
-
-- **TileMapComponent** — tile-based level rendering and editor tools
-- **CircleCollider2D** — circular collision shape for physics.
-- **ParticleSystemComponent** — GPU-accelerated particle effects.
-- **UI components** — canvas, text, button, and image elements for in-game interfaces.

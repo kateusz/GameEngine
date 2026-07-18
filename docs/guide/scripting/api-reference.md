@@ -1,112 +1,107 @@
 # ScriptableEntity API Reference
 
-Reference for per-entity **glue** scripts (`ScriptableEntity`). For batch game logic, input in systems, and shared state, see [Scripting Tiers](scripting-tiers.md) (`IGameComponent`, `IGameSystem`, `IKeyboardInput`, `IPhysicsContacts`).
+Per-entity glue scripts. Batch logic: `IGameSystem` — [Scripting Tiers](scripting-tiers.md). Compile/load pipeline: [Scripting Lifecycle](../../architecture/scripting-lifecycle.md).
 
-All scripts extend `ScriptableEntity`. The methods below are available to every script.
+## Setup
 
-## Lifecycle Methods
+Subclass `ScriptableEntity`. Required constructor (scaffolded by `ScriptableEntityTemplates`):
 
-Override these to hook into the engine's update loop.
+```csharp
+public MyScript(
+    IComponentAccessor componentAccessor,
+    IAudio audio,
+    IAudioPlayback audioPlayback,
+    IPhysicsQueries physicsQueries)
+    : base(componentAccessor, audio, audioPlayback, physicsQueries) { }
+```
 
-| Method | When Called |
-|--------|------------|
-| `void OnCreate()` | Once when play mode starts |
-| `void OnUpdate(TimeSpan ts)` | Every frame (`ts` = time since last frame) |
-| `void OnDestroy()` | When play mode stops |
+Attach via `NativeScriptComponent.ScriptTypeName` = class name (e.g. `MyScript`). Only the type name is saved in scene JSON.
 
-## Input Events
+| Member | Description |
+|--------|-------------|
+| `bool IsInitialized` | `true` after the engine calls `SetEntity` on first play frame |
 
-Override these to handle player input.
+Example: [`GameControllerScript`](../../../games/TicTacToe/project/assets/scripts/GameControllerScript.cs) (input → `BoardComponent` fields).
 
-| Method | When Called |
-|--------|------------|
-| `void OnKeyPressed(KeyCodes key)` | Key pressed down |
-| `void OnKeyReleased(KeyCodes keyCode)` | Key released |
-| `void OnMouseButtonPressed(int button)` | Mouse button pressed (0=left, 1=right, 2=middle) |
-| `void OnMouseButtonReleased(int button)` | Mouse button released |
-| `void OnMouseMoved(float x, float y)` | Cursor moved (window coordinates) |
-| `void OnMouseScrolled(float xOffset, float yOffset)` | Scroll wheel moved |
+## Lifecycle
 
-See [Input Handling](input.md) for examples and the KeyCodes reference.
+| Method | When |
+|--------|------|
+| `void OnCreate()` | First play frame, before first `OnUpdate` |
+| `void OnUpdate(TimeSpan ts)` | Each frame — `(float)ts.TotalSeconds` for delta |
+| `void OnDestroy()` | Play stops or scene unloads |
 
-## Physics Events
+Exceptions in overrides are logged; play continues. After hot reload, instances are recreated and `OnCreate` runs again.
 
-Override these to react to collisions and triggers.
+## Input
 
-| Method | When Called |
-|--------|------------|
-| `void OnCollisionBegin(Entity other)` | Physical collision starts |
-| `void OnCollisionEnd(Entity other)` | Physical collision ends |
-| `void OnTriggerEnter(Entity other)` | Entity enters a trigger zone |
-| `void OnTriggerExit(Entity other)` | Entity exits a trigger zone |
+| Method | When |
+|--------|------|
+| `void OnKeyPressed(KeyCodes key)` | Key down |
+| `void OnKeyReleased(KeyCodes keyCode)` | Key up |
+| `void OnMouseButtonPressed(int button)` | Button down (0/1/2) |
+| `void OnMouseButtonReleased(int button)` | Button up |
+| `void OnMouseMoved(float x, float y)` | Cursor move (window coords) |
+| `void OnMouseScrolled(float xOffset, float yOffset)` | Scroll |
 
-See [Physics](physics.md) for setup instructions and examples.
+**Every** `ScriptableEntity` on the active scene receives each input event (broadcast). Filter in your handler or use `IKeyboardInput` in a system — [Input](input.md).
 
-## Component Access
+## Physics events
 
-These protected methods let you work with components on the script's entity.
+| Method | When |
+|--------|------|
+| `void OnCollisionBegin(Entity other)` | Solid contact starts |
+| `void OnCollisionEnd(Entity other)` | Solid contact ends |
+| `void OnTriggerEnter(Entity other)` | Trigger overlap starts |
+| `void OnTriggerExit(Entity other)` | Trigger overlap ends |
+
+`other` is the other entity (`Name`, `Id`). Callbacks fire only on entities with `NativeScriptComponent` and a live script instance. Setup: [Physics](physics.md).
+
+## Components
+
+Host entity only — `T : IComponent` (engine components and `IGameComponent`). No `CreateEntity`, `FindEntity`, or `other.GetComponent<T>()`.
 
 | Method | Description |
 |--------|-------------|
-| `T GetComponent<T>()` | Get a component by type. Throws if the entity does not have it. |
-| `bool HasComponent<T>()` | Check whether the entity has a component of this type. |
-| `T AddComponent<T>()` | Add a new component (created with parameterless constructor). |
-| `void AddComponent<T>(T component)` | Add a pre-constructed component instance. |
-| `void RemoveComponent<T>()` | Remove a component by type. |
+| `T GetComponent<T>()` | Get; throws if missing |
+| `bool HasComponent<T>()` | Presence check |
+| `T AddComponent<T>()` | Add (`new()` required) |
+| `void AddComponent<T>(T component)` | Add instance |
+| `void RemoveComponent<T>()` | Remove |
 
-**Type constraint:** `T` must implement `IComponent`.
-
-Use `GetComponent<TransformComponent>()` for position, rotation, and scale — there are no `GetPosition` / `SetPosition` helpers on `ScriptableEntity`.
-
-**Example:**
-
-```csharp
-using SceneComponents.Rendering;
-
-if (HasComponent<SpriteRendererComponent>())
-{
-    var sprite = GetComponent<SpriteRendererComponent>();
-    sprite.Color = new Vector4(1, 0, 0, 1); // Turn red
-}
-```
+Position/rotation/scale: `GetComponent<TransformComponent>()`. One component per type per entity.
 
 ## Audio
 
-Scripts receive `IAudio` and `IAudioPlayback` via the constructor scaffold (`ScriptableEntityTemplates`).
+Protected properties from constructor injection:
 
-Use the protected `Audio` property for one-shot clips and global playback:
+| API | Description |
+|-----|-------------|
+| `Audio.PlayOneShot(string clipPath, float volume = 1.0f)` | One-shot by asset path |
+| `AudioPlayback.Play(Entity entity)` | Play `AudioSourceComponent` on entity |
+| `AudioPlayback.Pause(Entity entity)` | Pause |
+| `AudioPlayback.Stop(Entity entity)` | Stop |
 
-| Method | Description |
-|--------|-------------|
-| `Audio.PlayOneShot(string clipPath, float volume = 1.0f)` | Play a clip by asset path without an `AudioSourceComponent` |
+Clip and source settings on `AudioSourceComponent` in the editor.
 
-Use the protected `AudioPlayback` property for per-entity play/pause/stop:
+## Physics queries
 
-| Method | Description |
-|--------|-------------|
-| `AudioPlayback.Play(Entity entity)` | Play `AudioSourceComponent` on the entity |
-| `AudioPlayback.Pause(Entity entity)` | Pause playback |
-| `AudioPlayback.Stop(Entity entity)` | Stop playback |
-
-Clip selection and source settings remain on `AudioSourceComponent` in the editor.
-
-## Physics Queries
-
-Protected helpers for synchronous spatial queries. Both ignore this entity's colliders automatically.
+World-space coordinates (not offset by entity transform). Returns `null` when no hit, no physics world, or script not initialized.
 
 | Method | Description |
 |--------|-------------|
-| `RaycastHit2D? Raycast(Vector2 origin, Vector2 direction, float maxDistance, bool includeTriggers = false)` | Closest hit along a ray |
-| `RaycastHit2D? OverlapCircle(Vector2 center, float radius, bool includeTriggers = false)` | One overlapping collider in a circle |
+| `RaycastHit2D? Raycast(Vector2 origin, Vector2 direction, float maxDistance, bool includeTriggers = false)` | Closest hit along ray; ignores self |
+| `RaycastHit2D? OverlapCircle(Vector2 center, float radius, bool includeTriggers = false)` | One overlap; order unspecified if several |
 
-`RaycastHit2D` fields: `Entity`, `Point`, `Normal`, `Distance`, `IsTrigger`.
+Default: solids only. `includeTriggers: true` for trigger colliders. Synchronous — no collision callbacks. Details: [Physics](physics.md#queries).
 
-See [Physics](physics.md#queries) for examples.
+`RaycastHit2D`: `Entity`, `Point`, `Normal`, `Distance`, `IsTrigger`.
 
-## Serialized Data
+## Not available on scripts
 
-Script fields are **not** persisted in scene JSON. Put tunable values on `[SerializableComponent]` game components (`GameComponentTemplates` scaffolds new types). See [Getting Started](getting-started.md#data-and-the-inspector).
-
-## Coming Soon
-
-- Coroutine support for time-delayed execution
+| Limit | Workaround |
+|-------|------------|
+| Script fields not serialized | `[SerializableComponent]` game components |
+| No entity create/destroy/find | `IGameSystem` + `IContext` |
+| No `other.GetComponent<T>()` in physics callbacks | Compare `other.Name` or use a game component/system |
+| Cannot destroy entities | Remove/hide components (see [Physics](physics.md#example-pickup)) |

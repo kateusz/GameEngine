@@ -1,14 +1,11 @@
 # Scene Editor
 
-The core editor workflow - panels, viewport, and tools you interact with most.
-
----
 
 ## Scene Hierarchy Panel
 
 The Scene Hierarchy panel lists every entity present in the current scene. Entities are displayed by name and can be selected, created, duplicated, or removed from here.
 
-- **Select an entity** by clicking its name. The entity becomes the active selection and its components appear in the Properties panel.
+- **Select an entity** by clicking its name.
 - **Search** using the filter box at the top of the panel to narrow the list.
 - **Right-click** on empty space in the panel to open the context menu:
   - **Create Empty Entity** — adds a new empty entity to the scene.

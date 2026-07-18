@@ -1,62 +1,40 @@
 # ECS Overview
 
-Understand the Entity Component System architecture that powers the engine.
+**Entities** are named containers (ID + components). **Components** are data. **Systems** run each frame on matching component sets.
 
-## What is ECS
+Build objects by composition — e.g. Player = `TransformComponent` + `SpriteRendererComponent` + `RigidBody2DComponent` + `NativeScriptComponent`.
 
-The engine uses an **Entity Component System** (ECS) architecture. This is a data-driven design pattern where game objects are built by composing small, reusable pieces rather than inheriting from deep class hierarchies.
+## Built-in vs game types
 
-The three core concepts:
+| Kind | Interface | Defined in | Serialized |
+|------|-----------|------------|------------|
+| Engine components | `IComponent` | Engine (`TransformComponent`, `RigidBody2DComponent`, …) | Most types in `.scene` / `.prefab` |
+| Game components | `IGameComponent` | `assets/scripts/` | Yes, with `[SerializableComponent]` |
+| Engine systems | `ISystem` | Engine (physics, rendering, audio) | — |
+| Game systems | `IGameSystem` | `assets/scripts/` | — |
 
-- **Entities** are containers. Think of them as empty game objects with a name and a unique ID. On their own, they do nothing.
-- **Components** are data. You attach components to entities to give them capabilities. A `TransformComponent` gives an entity a position. A `SpriteRendererComponent` makes it visible. Components hold data, not logic.
-- **Systems** are logic. The engine runs systems automatically every frame, processing entities that have specific combinations of components. For example, the physics system processes all entities that have both a `RigidBody2DComponent` and a `BoxCollider2DComponent`.
+## IGameComponent
 
-## How It Differs from Traditional OOP
+Custom component data you author for a game. Mark with `[SerializableComponent]`, implement `IGameComponent` and `Clone()`. Attach via **Add Game Component** in the editor (scaffold: `GameComponentTemplates`).
 
-In a traditional object-oriented game engine, you might have a `Player` class that inherits from `Character`, which inherits from `GameObject`. Behavior and data are mixed together in the class hierarchy.
+- **Singleton state** on one entity — score, phase, grid arrays: [`SnakeGameComponent`](../../../games/Snake/project/assets/scripts/SnakeGameComponent.cs), [`FlappyBirdGameComponent`](../../../games/FlappyBird/project/assets/scripts/FlappyBirdGameComponent.cs)
+- **Per-entity markers** — cell index, pipe slot: [`GridCellComponent`](../../../games/Snake/project/assets/scripts/GridCellComponent.cs), [`PipePairComponent`](../../../games/FlappyBird/project/assets/scripts/PipePairComponent.cs)
 
-In ECS, a player is just an entity with components attached:
-- `TransformComponent` -- position in the world
-- `SpriteRendererComponent` -- how it looks
-- `RigidBody2DComponent` -- physics behavior
-- `NativeScriptComponent` -- custom game logic
+## IGameSystem
 
-This is composition over inheritance. You build game objects by mixing and matching components instead of designing class hierarchies.
+Batch game logic registered with `[Register(typeof(IGameSystem))]`. Implements `ISystem`: `Priority`, `OnInit`, `OnUpdate`, `OnShutdown`. Inject `IContext` for queries, `IKeyboardInput` / `IAudio` / `IPhysicsContacts` as needed (scaffold: `GameSystemTemplates`).
 
-## What You Need to Know
+- [`SnakeSystem`](../../../games/Snake/project/assets/scripts/SnakeSystem.cs) — reads `SnakeGameComponent`, polls `IKeyboardInput`, updates every `GridCellComponent` visual
+- [`FlappyBirdSystem`](../../../games/FlappyBird/project/assets/scripts/FlappyBirdSystem.cs) — simulates bird/pipes from `FlappyBirdGameComponent`, syncs transforms and score digits
 
-As a game developer using this engine:
+Open samples: `games/Snake/project/`, `games/FlappyBird/project/` via **Open Project**.
 
-- **You create entities** in the editor's Scene Hierarchy panel
-- **You attach components** via the Properties panel's "Add Component" button
-- **Systems run automatically** -- the engine handles physics, rendering, and audio
-- **For custom logic, you write scripts** -- subclass `ScriptableEntity` and override lifecycle methods
+## Scripts
 
-You write scripts, not systems. Scripts are the user-facing API for per-entity game logic. Batch logic across many entities belongs in `IGameSystem` classes — see [Scripting Tiers](../scripting/scripting-tiers.md).
+Per-entity glue: `ScriptableEntity` + `NativeScriptComponent`. `GetComponent<T>()` on the host entity only — no `CreateEntity` / `FindEntity`. Systems use `IContext` (e.g. `context.GetByName("Player")`). See [Scripting Tiers](../scripting/scripting-tiers.md).
 
-## Entities
+## Editor workflow
 
-Entities are created in the Scene Hierarchy panel by right-clicking and selecting **Create Empty Entity** or **Create 3D Entity**. Each entity has:
+Create entities in **Scene Hierarchy** → attach components via **Add Component** in Properties. One component per type per entity.
 
-- A **name** (e.g., "Player", "Enemy", "MainCamera") -- for identification
-- A **unique ID** -- assigned automatically, used internally
-
-`ScriptableEntity` scripts operate on the entity they are attached to. Use `GetComponent<T>()` to read or modify that entity's components. There is no `CreateEntity` or `FindEntity` on scripts.
-
-To look up entities from batch logic, use `IContext.GetByName(string)` inside an `IGameSystem`:
-
-```csharp
-var player = context.GetByName("Player");
-```
-
-## Components
-
-Components are added via the Properties panel. Select an entity, click "Add Component," and choose from the dropdown. Each entity can have at most one component of each type.
-
-The engine provides 14 built-in C# component types covering transforms, rendering, lighting, physics, audio, scripting, and identification. Twelve of these are serialized in `.scene` and `.prefab` files (`TagComponent` and `IdComponent` exist in code but are not persisted). See the [Component Inspector](../editor/component-inspector.md) for the full reference.
-
-## Next Steps
-
-- [Component Inspector](../editor/component-inspector.md) -- all component types and their properties
-- [Scripting Getting Started](../scripting/getting-started.md) -- write custom game logic
+14 built-in component types; 12 serialize to `.scene` / `.prefab` (`TagComponent`, `IdComponent` do not). Full list: [Component Inspector](../editor/component-inspector.md).
