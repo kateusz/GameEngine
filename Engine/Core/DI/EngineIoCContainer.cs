@@ -46,6 +46,10 @@ public static class EngineIoCContainer
         container.RegisterInitializer<IProjectContext>((ctx, _) => PathBuilder.UseProjectContext(ctx));
         container.Register<KeyboardInputState>(Reuse.Singleton);
         container.RegisterMapping<IKeyboardInput, KeyboardInputState>();
+        container.Register<MouseInputState>(Reuse.Singleton);
+        container.RegisterMapping<IMouseInput, MouseInputState>();
+        container.Register<PointerSurface>(Reuse.Singleton);
+        container.RegisterMapping<IPointerSurface, PointerSurface>();
         container.Register<DebugSettings>(Reuse.Singleton);
 
         RegisterFactories(container);
@@ -81,6 +85,10 @@ public static class EngineIoCContainer
         container.RegisterDelegate<IPhysicsQueries>(r =>
             r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries
             ?? NullPhysicsQueries.Instance);
+
+        container.RegisterDelegate<ICameraQueries>(r =>
+            r.Resolve<ISceneContext>().ActiveScene?.CameraQueries
+            ?? NullCameraQueries.Instance);
 
         container.Register<SerializerOptions>(Reuse.Singleton);
         container.Register<ComponentSerializerRegistry>(Reuse.Singleton);

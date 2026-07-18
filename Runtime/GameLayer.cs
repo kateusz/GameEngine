@@ -1,6 +1,8 @@
+using System.Numerics;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Core.Input;
+using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
@@ -8,6 +10,7 @@ using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Input;
+using Scripting;
 using Serilog;
 
 namespace Runtime;
@@ -19,6 +22,9 @@ public class GameLayer(
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
     IKeyboardInput keyboardInput,
+    IMouseInput mouseInput,
+    IPointerSurface pointerSurface,
+    IGameWindow gameWindow,
     GameConfiguration gameConfig,
     Func<IEnumerable<IGameSystem>> resolveGameSystems)
     : ILayer
@@ -73,6 +79,8 @@ public class GameLayer(
         if (sceneContext.ActiveScene == null)
             return;
 
+        pointerSurface.Set(Vector2.Zero, gameWindow.ClientSize);
+
         graphics2D.SetClearColor(sceneContext.ActiveScene.BackgroundColor);
         graphics2D.Clear();
 
@@ -81,8 +89,11 @@ public class GameLayer(
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
-        if (keyboardInput is KeyboardInputState state)
-            state.Apply(windowEvent);
+        if (keyboardInput is KeyboardInputState keyboardState)
+            keyboardState.Apply(windowEvent);
+
+        if (mouseInput is MouseInputState mouseState)
+            mouseState.Apply(windowEvent);
 
         if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
             scriptEngine.ProcessEvent(windowEvent, scene.Context, store);

@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
@@ -26,6 +27,8 @@ internal sealed class SilkNetGameWindow(
             return (float)window.FramebufferSize.X / window.Size.X;
         }
     }
+
+    public Vector2 ClientSize => new(window.Size.X, window.Size.Y);
 
     public event Action<InputEvent> OnInputEvent;
     public event Action<double> OnUpdate = null!;

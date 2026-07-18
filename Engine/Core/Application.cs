@@ -21,6 +21,7 @@ public abstract class Application : IApplication
     private readonly IAudio _audio;
     private readonly IMeshFactory _meshFactory;
     private readonly IKeyboardInput? _keyboardInput;
+    private readonly IMouseInput? _mouseInput;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
 
@@ -35,7 +36,8 @@ public abstract class Application : IApplication
         IMeshFactory meshFactory,
         IFrameCompositor? frameCompositor = null,
         ILayer? inputOverlay = null,
-        IKeyboardInput? keyboardInput = null)
+        IKeyboardInput? keyboardInput = null,
+        IMouseInput? mouseInput = null)
     {
         _gameWindow = gameWindow;
         _rendererApi = rendererApi;
@@ -45,6 +47,7 @@ public abstract class Application : IApplication
         _meshFactory = meshFactory;
         _frameCompositor = frameCompositor;
         _keyboardInput = keyboardInput;
+        _mouseInput = mouseInput;
 
         _gameWindow.OnWindowEvent += HandleWindowEvent;
         _gameWindow.OnInputEvent += HandleInputEvent;
@@ -146,6 +149,7 @@ public abstract class Application : IApplication
         _frameCompositor?.EndFrame();
 
         _keyboardInput?.EndFrame();
+        _mouseInput?.EndFrame();
     }
 
     private void HandleWindowEvent(WindowEvent @event)

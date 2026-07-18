@@ -12,6 +12,7 @@ public class EditorInputHandler(
     ISceneContext sceneContext,
     IScriptEngine scriptEngine,
     IKeyboardInput keyboardInput,
+    IMouseInput mouseInput,
     ShortcutManager shortcutManager,
     IEditorViewport editorViewport)
 {
@@ -34,8 +35,11 @@ public class EditorInputHandler(
             editorViewport.HandleWindowInput(windowEvent);
         else if (sceneContext.State == SceneState.Play)
         {
-            if (keyboardInput is KeyboardInputState state)
-                state.Apply(windowEvent);
+            if (keyboardInput is KeyboardInputState keyboardState)
+                keyboardState.Apply(windowEvent);
+
+            if (mouseInput is MouseInputState mouseState)
+                mouseState.Apply(windowEvent);
 
             if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
                 scriptEngine.ProcessEvent(windowEvent, scene.Context, store);

@@ -812,7 +812,7 @@
             0.25,
             1
           ],
-          "TexturePath": null,
+          "TexturePath": "textures/ak47.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         }

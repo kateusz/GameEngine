@@ -20,6 +20,8 @@ public interface IScene : IDisposable
 
     IPhysicsQueries PhysicsQueries { get; }
 
+    ICameraQueries CameraQueries { get; }
+
     public string Name { get; }
 
     Vector4 BackgroundColor { get; set; }

@@ -11,12 +11,17 @@ namespace ArenaShooter.assets.scripts;
 
 /// <summary>
 /// Twin-stick arena shooter (Snake-style single-system game).
-/// WASD moves the Dynamic player body; arrow keys aim and auto-fire a hitscan
+/// WASD moves the Dynamic player body; mouse aims and hold-LMB auto-fires a hitscan
 /// <see cref="IPhysicsQueries.Raycast"/>. Kinematic enemies chase the player and
 /// are pooled: killed/spawned by parking them off-screen and reactivating them.
 /// </summary>
 [Register(typeof(IGameSystem))]
-public class ArenaSystem(IContext context, IKeyboardInput keyboard, IPhysicsQueries physics) : IGameSystem
+public class ArenaSystem(
+    IContext context,
+    IKeyboardInput keyboard,
+    IMouseInput mouse,
+    ICameraQueries cameraQueries,
+    IPhysicsQueries physics) : IGameSystem
 {
     private static readonly Vector3 Graveyard = new(1000f, 1000f, 0f);
 
@@ -64,13 +69,12 @@ public class ArenaSystem(IContext context, IKeyboardInput keyboard, IPhysicsQuer
         }
 
         HandleMovement(game, player);
-        // ponytail: keyboard twin-stick aim — there is no runtime mouse->world service for systems.
-        // Upgrade path: expose screen->world from the camera, then aim toward the cursor instead.
-        game.Facing = AimDirection(
-            keyboard.IsKeyDown(KeyCodes.Up), keyboard.IsKeyDown(KeyCodes.Down),
-            keyboard.IsKeyDown(KeyCodes.Left), keyboard.IsKeyDown(KeyCodes.Right),
-            game.Facing);
-        HandleShooting(game, player, playerPos, dt);
+
+        var worldMouse = cameraQueries.ScreenToWorld2D(mouse.Position);
+        if (worldMouse is { } target)
+            game.Facing = FacingToward(playerPos, target, game.Facing);
+
+        HandleShooting(game, player, playerPos, worldMouse, dt);
         UpdateEnemies(game, playerPos, dt);
         HandleSpawning(game, dt);
 
@@ -104,12 +108,18 @@ public class ArenaSystem(IContext context, IKeyboardInput keyboard, IPhysicsQuer
             body.Velocity = velocity;
     }
 
-    private void HandleShooting(ArenaGameComponent game, Entity player, Vector2 playerPos, float dt)
+    private void HandleShooting(
+        ArenaGameComponent game,
+        Entity player,
+        Vector2 playerPos,
+        Vector2? worldMouse,
+        float dt)
     {
         if (game.FireCooldown > 0f)
             game.FireCooldown -= dt;
 
-        if (!IsAiming() || game.FireCooldown > 0f)
+        // Outside surface / no camera → ScreenToWorld2D is null; don't fire into editor UI.
+        if (worldMouse is null || !mouse.IsButtonDown(MouseButtons.Left) || game.FireCooldown > 0f)
             return;
 
         game.FireCooldown = game.FireInterval;
@@ -240,12 +250,8 @@ public class ArenaSystem(IContext context, IKeyboardInput keyboard, IPhysicsQuer
             KillEnemy(entity, enemy);
 
         StopBody(player);
-        Console.WriteLine("New game! Move with WASD, aim/shoot with the arrow keys.");
+        Console.WriteLine("New game! Move with WASD, aim with the mouse, hold LMB to shoot.");
     }
-
-    private bool IsAiming() =>
-        keyboard.IsKeyDown(KeyCodes.Up) || keyboard.IsKeyDown(KeyCodes.Down) ||
-        keyboard.IsKeyDown(KeyCodes.Left) || keyboard.IsKeyDown(KeyCodes.Right);
 
     // --- Visual sync (colored quads; A=0 hides a sprite, per the renderer) ---
 
@@ -342,15 +348,11 @@ public class ArenaSystem(IContext context, IKeyboardInput keyboard, IPhysicsQuer
         return dir == Vector2.Zero ? Vector2.Zero : Vector2.Normalize(dir) * speed;
     }
 
-    /// <summary>Arrow keys → unit aim vector, keeping the previous facing when nothing is pressed.</summary>
-    public static Vector2 AimDirection(bool up, bool down, bool left, bool right, Vector2 current)
+    /// <summary>Unit facing from player toward a world mouse point; keeps current if coincident.</summary>
+    public static Vector2 FacingToward(Vector2 playerPos, Vector2 worldMouse, Vector2 current)
     {
-        var dir = Vector2.Zero;
-        if (up) dir.Y += 1f;
-        if (down) dir.Y -= 1f;
-        if (right) dir.X += 1f;
-        if (left) dir.X -= 1f;
-        return dir == Vector2.Zero ? current : Vector2.Normalize(dir);
+        var delta = worldMouse - playerPos;
+        return delta.LengthSquared() < 1e-8f ? current : Vector2.Normalize(delta);
     }
 
     /// <summary>Random point on the play-area rectangle's perimeter (enemy entry points).</summary>

@@ -36,7 +36,8 @@ public sealed class EditorViewport(
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
-    ViewportComponents viewport)
+    ViewportComponents viewport,
+    IPointerSurface pointerSurface)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -96,6 +97,9 @@ public sealed class EditorViewport(
         _viewportBounds[0] = ImGui.GetCursorScreenPos();
         _viewportBounds[1] = _viewportBounds[0] + viewportPanelSize;
         _viewportSize = viewportPanelSize;
+
+        if (sceneContext.State == SceneState.Play)
+            pointerSurface.Set(_viewportBounds[0], _viewportSize);
 
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);

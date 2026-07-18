@@ -19,6 +19,7 @@ internal sealed class Scene : IScene
     private readonly ISystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
     private readonly IPhysicsWorld2D _physicsWorld;
+    private readonly ICameraQueries _cameraQueries;
 
     internal ScriptRuntimeStore ScriptRuntimeStore { get; }
 
@@ -29,7 +30,8 @@ internal sealed class Scene : IScene
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
         ScriptRuntimeStore scriptRuntimeStore,
-        IPhysicsWorld2D physicsWorld)
+        IPhysicsWorld2D physicsWorld,
+        ICameraQueries cameraQueries)
     {
         _path = path;
         Name = sceneName;
@@ -39,11 +41,14 @@ internal sealed class Scene : IScene
         _physicsContactQueue = physicsContactQueue;
         ScriptRuntimeStore = scriptRuntimeStore;
         _physicsWorld = physicsWorld;
+        _cameraQueries = cameraQueries;
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
 
     public IPhysicsQueries PhysicsQueries => _physicsWorld;
+
+    public ICameraQueries CameraQueries => _cameraQueries;
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
 

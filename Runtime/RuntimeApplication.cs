@@ -16,7 +16,8 @@ public class RuntimeApplication(
     IGraphics3D graphics3D,
     IAudio audio,
     IMeshFactory meshFactory,
-    IKeyboardInput keyboardInput)
-    : Application(gameWindow, rendererApi, graphics2D, graphics3D, audio, meshFactory, keyboardInput: keyboardInput)
+    IKeyboardInput keyboardInput,
+    IMouseInput mouseInput)
+    : Application(gameWindow, rendererApi, graphics2D, graphics3D, audio, meshFactory, keyboardInput: keyboardInput, mouseInput: mouseInput)
 {
 }

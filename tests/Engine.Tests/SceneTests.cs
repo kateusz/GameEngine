@@ -25,7 +25,7 @@ public class SceneTests
     private EngineScene CreateScene() =>
         new("test-scene", "test-scene", new Context(),
             _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
-            new ScriptRuntimeStore(), null!);
+            new ScriptRuntimeStore(), null!, NullCameraQueries.Instance);
 
     #region Constructor Tests
 

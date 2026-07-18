@@ -31,20 +31,19 @@ public class ArenaShooterSystemTests
     }
 
     [Fact]
-    public void AimDirection_NoKeys_KeepsCurrentFacing()
+    public void FacingToward_PointsFromPlayerToMouse()
     {
-        var current = new Vector2(0f, -1f);
+        var facing = ArenaSystem.FacingToward(Vector2.Zero, new Vector2(0f, 4f), new Vector2(1f, 0f));
 
-        ArenaSystem.AimDirection(false, false, false, false, current).ShouldBe(current);
+        facing.X.ShouldBe(0f, 0.0001f);
+        facing.Y.ShouldBe(1f, 0.0001f);
     }
 
     [Fact]
-    public void AimDirection_Up_ReturnsUnitUp()
+    public void FacingToward_Coincident_KeepsCurrent()
     {
-        var dir = ArenaSystem.AimDirection(up: true, false, false, false, new Vector2(1f, 0f));
-
-        dir.X.ShouldBe(0f, 0.0001f);
-        dir.Y.ShouldBe(1f, 0.0001f);
+        var current = new Vector2(0f, -1f);
+        ArenaSystem.FacingToward(Vector2.One, Vector2.One, current).ShouldBe(current);
     }
 
     [Fact]
@@ -75,13 +74,58 @@ public class ArenaShooterSystemTests
     }
 
     [Fact]
-    public void OnUpdate_RaycastHitsEnemy_KillsItAndScores()
+    public void OnUpdate_MouseAim_UpdatesFacingTowardWorldPoint()
     {
         var keyboard = Substitute.For<IKeyboardInput>();
-        keyboard.IsKeyDown(KeyCodes.Up).Returns(true); // arrow held -> aiming -> auto-fire
+        var mouse = Substitute.For<IMouseInput>();
+        mouse.Position.Returns(new Vector2(50f, 50f));
+        mouse.IsButtonDown(MouseButtons.Left).Returns(false);
+
+        var cameras = Substitute.For<ICameraQueries>();
+        cameras.ScreenToWorld2D(Arg.Any<Vector2>()).Returns(new Vector2(0f, 3f));
+
+        var physics = Substitute.For<IPhysicsQueries>();
+        var (system, game) = CreateSystem(keyboard, mouse, cameras, physics);
+        game.Facing = new Vector2(1f, 0f);
+
+        system.OnUpdate(TimeSpan.Zero);
+
+        game.Facing.X.ShouldBe(0f, 0.0001f);
+        game.Facing.Y.ShouldBe(1f, 0.0001f);
+    }
+
+    [Fact]
+    public void OnUpdate_NullWorldMouse_KeepsFacing()
+    {
+        var keyboard = Substitute.For<IKeyboardInput>();
+        var mouse = Substitute.For<IMouseInput>();
+        mouse.Position.Returns(new Vector2(50f, 50f));
+
+        var cameras = Substitute.For<ICameraQueries>();
+        cameras.ScreenToWorld2D(Arg.Any<Vector2>()).Returns((Vector2?)null);
+
+        var physics = Substitute.For<IPhysicsQueries>();
+        var (system, game) = CreateSystem(keyboard, mouse, cameras, physics);
+        game.Facing = new Vector2(0f, -1f);
+
+        system.OnUpdate(TimeSpan.Zero);
+
+        game.Facing.ShouldBe(new Vector2(0f, -1f));
+    }
+
+    [Fact]
+    public void OnUpdate_LmbHeld_RaycastHitsEnemy_KillsItAndScores()
+    {
+        var keyboard = Substitute.For<IKeyboardInput>();
+        var mouse = Substitute.For<IMouseInput>();
+        mouse.Position.Returns(new Vector2(50f, 50f));
+        mouse.IsButtonDown(MouseButtons.Left).Returns(true);
+
+        var cameras = Substitute.For<ICameraQueries>();
+        cameras.ScreenToWorld2D(Arg.Any<Vector2>()).Returns(new Vector2(5f, 0f));
 
         var context = new Context();
-        var game = new ArenaGameComponent { SpawnTimer = 100f }; // suppress spawns during the test
+        var game = new ArenaGameComponent { SpawnTimer = 100f, Facing = new Vector2(1f, 0f) };
         Register(context, 1, "Game", game);
         Register(context, 2, "Player",
             new TransformComponent(),
@@ -99,11 +143,67 @@ public class ArenaShooterSystemTests
         physics.Raycast(Arg.Any<Vector2>(), Arg.Any<Vector2>(), Arg.Any<float>(), Arg.Any<Entity?>(), Arg.Any<bool>())
             .Returns(new RaycastHit2D(enemy, new Vector2(5f, 5f), Vector2.Zero, 7.07f, false));
 
-        var system = new ArenaSystem(context, keyboard, physics);
+        var system = new ArenaSystem(context, keyboard, mouse, cameras, physics);
         system.OnUpdate(TimeSpan.Zero);
 
         enemyComponent.Alive.ShouldBeFalse();
         game.Score.ShouldBe(1);
+    }
+
+    [Fact]
+    public void OnUpdate_NoLmb_DoesNotShoot()
+    {
+        var keyboard = Substitute.For<IKeyboardInput>();
+        var mouse = Substitute.For<IMouseInput>();
+        mouse.Position.Returns(new Vector2(50f, 50f));
+        mouse.IsButtonDown(MouseButtons.Left).Returns(false);
+
+        var cameras = Substitute.For<ICameraQueries>();
+        cameras.ScreenToWorld2D(Arg.Any<Vector2>()).Returns(new Vector2(5f, 0f));
+
+        var physics = Substitute.For<IPhysicsQueries>();
+        var (system, _) = CreateSystem(keyboard, mouse, cameras, physics);
+
+        system.OnUpdate(TimeSpan.Zero);
+
+        physics.DidNotReceive().Raycast(
+            Arg.Any<Vector2>(), Arg.Any<Vector2>(), Arg.Any<float>(), Arg.Any<Entity?>(), Arg.Any<bool>());
+    }
+
+    [Fact]
+    public void OnUpdate_OutsideSurface_DoesNotShoot()
+    {
+        var keyboard = Substitute.For<IKeyboardInput>();
+        var mouse = Substitute.For<IMouseInput>();
+        mouse.Position.Returns(new Vector2(50f, 50f));
+        mouse.IsButtonDown(MouseButtons.Left).Returns(true);
+
+        var cameras = Substitute.For<ICameraQueries>();
+        cameras.ScreenToWorld2D(Arg.Any<Vector2>()).Returns((Vector2?)null);
+
+        var physics = Substitute.For<IPhysicsQueries>();
+        var (system, _) = CreateSystem(keyboard, mouse, cameras, physics);
+
+        system.OnUpdate(TimeSpan.Zero);
+
+        physics.DidNotReceive().Raycast(
+            Arg.Any<Vector2>(), Arg.Any<Vector2>(), Arg.Any<float>(), Arg.Any<Entity?>(), Arg.Any<bool>());
+    }
+
+    private static (ArenaSystem System, ArenaGameComponent Game) CreateSystem(
+        IKeyboardInput keyboard,
+        IMouseInput mouse,
+        ICameraQueries cameras,
+        IPhysicsQueries physics)
+    {
+        var context = new Context();
+        var game = new ArenaGameComponent { SpawnTimer = 100f };
+        Register(context, 1, "Game", game);
+        Register(context, 2, "Player",
+            new TransformComponent(),
+            new RigidBody2DComponent { BodyType = RigidBodyType.Dynamic },
+            new SpriteRendererComponent());
+        return (new ArenaSystem(context, keyboard, mouse, cameras, physics), game);
     }
 
     private static Entity Register(Context context, int id, string name, params IComponent[] components)

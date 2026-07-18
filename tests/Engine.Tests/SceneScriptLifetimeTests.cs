@@ -21,7 +21,8 @@ public class SceneScriptLifetimeTests
         store = new ScriptRuntimeStore();
         context = new Context();
         return new EngineScene("test", "test", context,
-            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store, null!);
+            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store, null!,
+            NullCameraQueries.Instance);
     }
 
     [Fact]

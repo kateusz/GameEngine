@@ -15,5 +15,6 @@ public class Editor(
     IAudio audio,
     IMeshFactory meshFactory,
     IImGuiLayer imGuiLayer,
-    IKeyboardInput keyboardInput)
-    : Application(gameWindow, rendererApi, graphics2D, graphics3D, audio, meshFactory, imGuiLayer, imGuiLayer, keyboardInput);
+    IKeyboardInput keyboardInput,
+    IMouseInput mouseInput)
+    : Application(gameWindow, rendererApi, graphics2D, graphics3D, audio, meshFactory, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);
