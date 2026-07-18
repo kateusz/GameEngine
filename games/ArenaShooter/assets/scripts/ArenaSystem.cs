@@ -33,6 +33,9 @@ public class ArenaSystem(
     private static readonly Vector4 GameOverColor = new(0.82f, 0.12f, 0.12f, 0.92f);
     private static readonly Vector4 Hidden = Vector4.Zero;
 
+    private const float DigitSpacing = 0.34f;
+    private const float DigitY = 4.15f;
+
     private readonly Random _rng = new();
 
     public int Priority => 115;
@@ -274,6 +277,7 @@ public class ArenaSystem(
         SyncAim(game, playerPos, dead);
         SyncTracer(game, dead);
         SyncHearts(game.Health);
+        SyncScore(game.Score);
         SetSpriteColor("GameOverBanner", dead ? GameOverColor : Hidden);
     }
 
@@ -325,6 +329,42 @@ public class ArenaSystem(
                 break;
             if (heart.TryGetComponent<SpriteRendererComponent>(out var sprite))
                 sprite.Color = i < health ? HeartColor : Hidden;
+        }
+    }
+
+    private void SyncScore(int score)
+    {
+        var text = score.ToString();
+
+        var capacity = 0;
+        foreach (var _ in context.View<ScoreDigitComponent>())
+            capacity++;
+        if (capacity > 0 && text.Length > capacity)
+            text = text[^capacity..];
+
+        var digits = text.Length;
+        foreach (var (entity, digit) in context.View<ScoreDigitComponent>())
+        {
+            if (!entity.TryGetComponent<TransformComponent>(out var transform))
+                continue;
+            if (!entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+                continue;
+
+            if (digit.Place < digits)
+            {
+                var x = (digit.Place - (digits - 1) * 0.5f) * DigitSpacing;
+                var p = transform.Translation;
+                transform.Translation = new Vector3(x, DigitY, p.Z);
+                transform.Scale = new Vector3(0.24f, 0.36f, 1f);
+                sprite.TexturePath = $"textures/UI/Numbers/{text[digit.Place]}.png";
+                sprite.Color = Vector4.One;
+            }
+            else
+            {
+                sprite.TexturePath = null;
+                sprite.Color = Hidden;
+                transform.Scale = Vector3.Zero;
+            }
         }
     }
 

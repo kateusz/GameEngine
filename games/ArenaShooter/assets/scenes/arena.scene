@@ -982,14 +982,170 @@
         },
         {
           "Color": [
-            0.82,
-            0.12,
-            0.12,
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/UI/gameover.jpg",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 20,
+      "Name": "ScoreDigit0",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.24,
+            0.36,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "textures/UI/Numbers/0.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Place": 0,
+          "Name": "ScoreDigitComponent"
+        }
+      ]
+    },
+    {
+      "Id": 21,
+      "Name": "ScoreDigit1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0,
+            0,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": null,
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
+        },
+        {
+          "Place": 1,
+          "Name": "ScoreDigitComponent"
+        }
+      ]
+    },
+    {
+      "Id": 22,
+      "Name": "ScoreDigit2",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0,
+            0,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Place": 2,
+          "Name": "ScoreDigitComponent"
+        }
+      ]
+    },
+    {
+      "Id": 23,
+      "Name": "ScoreDigit3",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0,
+            0,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Place": 3,
+          "Name": "ScoreDigitComponent"
         }
       ]
     }
