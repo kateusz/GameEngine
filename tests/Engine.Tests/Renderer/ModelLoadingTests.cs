@@ -157,13 +157,13 @@ public class AssimpModelImporterTests : IDisposable
     {
         var importer = new AssimpModelImporter(_assimp);
 
-        var submeshes = importer.Import(_objPath);
+        var imported = importer.Import(_objPath);
 
-        submeshes.Count.ShouldBe(1);
-        submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
-        submeshes[0].Mesh.Indices.Count.ShouldBe(3);
-        submeshes[0].Material.Metallic.ShouldBe(0f);
-        submeshes[0].Material.Roughness.ShouldBeInRange(0.04f, 1f);
+        imported.Submeshes.Count.ShouldBe(1);
+        imported.Submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
+        imported.Submeshes[0].Mesh.Indices.Count.ShouldBe(3);
+        imported.Submeshes[0].Material.Metallic.ShouldBe(0f);
+        imported.Submeshes[0].Material.Roughness.ShouldBeInRange(0.04f, 1f);
     }
 
     [Fact]
@@ -171,12 +171,12 @@ public class AssimpModelImporterTests : IDisposable
     {
         var importer = new AssimpModelImporter(_assimp);
 
-        var submeshes = importer.Import(_gltfPath);
+        var imported = importer.Import(_gltfPath);
 
-        submeshes.Count.ShouldBe(1);
-        submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
-        submeshes[0].Material.Metallic.ShouldBe(0.8f, 0.01);
-        submeshes[0].Material.Roughness.ShouldBe(0.2f, 0.01);
+        imported.Submeshes.Count.ShouldBe(1);
+        imported.Submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
+        imported.Submeshes[0].Material.Metallic.ShouldBe(0.8f, 0.01);
+        imported.Submeshes[0].Material.Roughness.ShouldBe(0.2f, 0.01);
     }
 
     [Fact]
@@ -184,9 +184,9 @@ public class AssimpModelImporterTests : IDisposable
     {
         var importer = new AssimpModelImporter(_assimp);
 
-        var submeshes = importer.Import(Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.obj"));
+        var imported = importer.Import(Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.obj"));
 
-        submeshes.ShouldBeEmpty();
+        imported.Submeshes.ShouldBeEmpty();
     }
 
     public void Dispose() => _assimp.Dispose();

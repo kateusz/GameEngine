@@ -90,6 +90,39 @@ Use the protected `AudioPlayback` property for per-entity play/pause/stop:
 
 Clip selection and source settings remain on `AudioSourceComponent` in the editor.
 
+## Animation
+
+Requires an **Animator** component on the same entity (plus a skinned model on **Model Renderer**). Clips must be embedded in the model file.
+
+Use `GetComponent<AnimatorComponent>()` — same pattern as sprites/transforms. There are no animation helpers on `ScriptableEntity`.
+
+| Member on `AnimatorComponent` | Description |
+|-------------------------------|-------------|
+| `Play(string clipName)` | Start clip from time 0 |
+| `Stop()` | Stop and reset toward bind pose |
+| `Pause()` / `Resume()` | Freeze / continue |
+| `Loop`, `Speed`, `ApplyRootMotion` | Playback options |
+
+**Example:**
+
+```csharp
+using SceneComponents.Rendering;
+
+public override void OnCreate()
+{
+    var animator = GetComponent<AnimatorComponent>();
+    animator.Loop = true;
+    animator.ApplyRootMotion = true;
+    animator.Play("Walk");
+}
+
+public override void OnKeyPressed(KeyCodes key)
+{
+    if (key == KeyCodes.Space)
+        GetComponent<AnimatorComponent>().Play("Jump");
+}
+```
+
 ## Physics Queries
 
 Protected helpers for synchronous spatial queries. Both ignore this entity's colliders automatically.

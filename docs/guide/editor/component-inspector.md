@@ -254,6 +254,29 @@ See also: [3D Rendering](../concepts/3d-rendering.md), [Cameras and Rendering](.
 
 ---
 
+## AnimatorComponent
+
+Plays a single skeletal animation clip from the model file on **Model Renderer**. Control from scripts via `GetComponent<AnimatorComponent>()` (`Play` / `Stop` / `Pause` / `Resume`).
+
+**Add in editor:** Properties panel → **Add Component** → **Animator** (adds `Transform` and `Model Renderer` if missing)
+
+**File**: `Editor/ComponentEditors/Rendering/AnimatorComponentEditor.cs`
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `ClipName` | string? | null | Name of an embedded clip in the model |
+| `Time` | float | 0 | Playback time in seconds |
+| `IsPlaying` | bool | false | Advances time when true |
+| `Loop` | bool | true | Wrap time at clip end |
+| `Speed` | float | 1 | Playback rate multiplier |
+| `ApplyRootMotion` | bool | false | Apply root-bone translation delta to `Transform` |
+
+**Script access:** `GetComponent<AnimatorComponent>()` — see [API Reference](../scripting/api-reference.md#animation).
+
+See also: [3D Rendering](../concepts/3d-rendering.md)
+
+---
+
 ## Entity Name (Hierarchy)
 
 The Scene Hierarchy panel shows each entity's **name** in a field labeled **Tag**. This edits `entity.Name` for identification in the hierarchy and in scripts (`other.Name`, `context.GetByName(...)`). It is not a separate `TagComponent` in the Add Component menu.

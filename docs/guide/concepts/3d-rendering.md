@@ -9,7 +9,9 @@ Place models in a scene, light them, and tune materials.
 - **Cube fallback** — empty or failed `ModelPath` draws a lit 1×1×1 unit cube (handy for blockout)
 - **Lights** — one ambient + one directional light per scene (first of each type wins)
 
-Not in this path yet: animation/skins, IBL/environment lighting, shadows, or splitting a file into child entities.
+Not in this path yet: IBL/environment lighting, shadows, or splitting a file into child entities.
+
+**Skeletal animation (v1):** add an **Animator** component beside **Model Renderer**. From scripts: `GetComponent<AnimatorComponent>().Play("Walk")` (also `Stop` / `Pause` / `Resume`; set `Loop` / `ApplyRootMotion` on the component). Clips must be embedded in the same model file. No blending or separate anim files yet.
 
 ## Quick Start
 

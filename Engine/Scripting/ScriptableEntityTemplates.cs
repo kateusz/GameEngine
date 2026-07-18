@@ -9,6 +9,7 @@ public static class ScriptableEntityTemplates
         using Math;
         using SceneComponents;
         using SceneComponents.Camera;
+        using SceneComponents.Rendering;
         using Scripting;
 
         public class {{className}} : ScriptableEntity

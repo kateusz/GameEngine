@@ -67,6 +67,12 @@ internal static class SceneRenderPipeline
         {
             var transform = transformComponent.GetTransform();
             var tint = modelRenderer.Color;
+            Matrix4x4[]? boneMatrices = null;
+            if (entity.TryGetComponent<AnimatorComponent>(out var animator) &&
+                animator.HasPose && animator.SkinMatrices is { Length: > 0 })
+            {
+                boneMatrices = animator.SkinMatrices;
+            }
 
             if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath) || modelFactory == null)
             {
@@ -89,7 +95,7 @@ internal static class SceneRenderPipeline
             {
                 var metallic = modelRenderer.MetallicOverride ?? submesh.Material.Metallic;
                 var roughness = modelRenderer.RoughnessOverride ?? submesh.Material.Roughness;
-                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, metallic, roughness, entity.Id);
+                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, metallic, roughness, entity.Id, boneMatrices);
             }
         }
 

@@ -62,15 +62,15 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
         try
         {
-            var submeshes = _importer.Import(normalizedPath);
-            if (submeshes.Count == 0)
+            var imported = _importer.Import(normalizedPath);
+            if (imported.Submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);
                 return null;
             }
 
-            var initialized = new List<ModelSubmesh>(submeshes.Count);
-            foreach (var submesh in submeshes)
+            var initialized = new List<ModelSubmesh>(imported.Submeshes.Count);
+            foreach (var submesh in imported.Submeshes)
             {
                 try
                 {
@@ -91,7 +91,7 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
                 return null;
             }
 
-            var model = new Model(normalizedPath, initialized);
+            var model = new Model(normalizedPath, initialized, imported.Skeleton, imported.Clips);
 
             lock (_cacheLock)
             {

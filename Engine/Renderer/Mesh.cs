@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
@@ -8,17 +9,28 @@ namespace Engine.Renderer;
 
 public class Mesh : IDisposable
 {
+    [StructLayout(LayoutKind.Sequential)]
     public record struct Vertex(
         Vector3 Position,
         Vector3 Normal,
         Vector2 TexCoord,
         Vector3 Tangent,
         Vector3 Bitangent,
-        int EntityId = -1)
+        int EntityId,
+        int BoneId0,
+        int BoneId1,
+        int BoneId2,
+        int BoneId3,
+        Vector4 BoneWeights)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3) + sizeof(int); // 60 bytes
+        public Vertex(Vector3 position, Vector3 normal, Vector2 texCoord, Vector3 tangent, Vector3 bitangent, int entityId = -1)
+            : this(position, normal, texCoord, tangent, bitangent, entityId, 0, 0, 0, 0, Vector4.Zero)
+        {
+        }
+
+        // float3+float3+float2+float3+float3+int + 4*int + float4 = 60 + 16 + 16 = 92
+        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3 + 4) + sizeof(int) * 5;
     }
-    
 
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
@@ -26,13 +38,14 @@ public class Mesh : IDisposable
     public Texture2D DiffuseTexture { get; set; }
     public List<Texture2D> Textures { get; set; }
     public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
-    
+    public bool HasSkinning { get; set; }
+
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
     private IIndexBuffer _indexBuffer;
     private bool _initialized = false;
     private bool _disposed = false;
-    
+
     public IVertexArray GetVertexArray()
     {
         if (!_initialized)
@@ -61,10 +74,7 @@ public class Mesh : IDisposable
         if (_initialized)
             throw new InvalidOperationException($"Mesh '{Name}' already initialized. Initialize() should only be called once.");
 
-        // Create vertex array
         _vertexArray = vertexArrayFactory.Create();
-
-        // Create vertex buffer
         _vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
 
         var layout = new BufferLayout([
@@ -73,16 +83,15 @@ public class Mesh : IDisposable
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Float3, "a_Tangent"),
             new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
-            new BufferElement(ShaderDataType.Int, "a_EntityID")
+            new BufferElement(ShaderDataType.Int, "a_EntityID"),
+            new BufferElement(ShaderDataType.Int4, "a_BoneIds"),
+            new BufferElement(ShaderDataType.Float4, "a_BoneWeights")
         ]);
 
         _vertexBuffer.SetLayout(layout);
         _vertexArray.AddVertexBuffer(_vertexBuffer);
-
-        // Upload vertex data
         UploadVertexData();
 
-        // Create index buffer
         _indexBuffer = indexBufferFactory.Create(Indices.ToArray(), Indices.Count);
         _vertexArray.SetIndexBuffer(_indexBuffer);
 
@@ -91,7 +100,6 @@ public class Mesh : IDisposable
 
     private void UploadVertexData()
     {
-        // Upload the mesh vertices directly using our specialized method
         _vertexBuffer.SetMeshData(Vertices, Vertices.Count * Vertex.GetSize());
     }
 

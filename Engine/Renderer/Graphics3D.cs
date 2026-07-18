@@ -79,7 +79,7 @@ internal sealed class Graphics3D(
         _cubeShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1, Matrix4x4[]? boneMatrices = null)
     {
         var meshTransform = mesh.NodeTransform * transform;
 
@@ -91,6 +91,18 @@ internal sealed class Graphics3D(
         _texturedShader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
         _texturedShader.SetInt("u_HasMetallicRoughnessMap", material.HasMetallicRoughnessMap ? 1 : 0);
         _texturedShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
+
+        var useBones = boneMatrices is { Length: > 0 };
+        _texturedShader.SetInt("u_HasBones", useBones ? 1 : 0);
+        if (useBones)
+        {
+            // Always upload full palette so clamped shader indices never hit uninitialized slots.
+            var palette = new Matrix4x4[Animation.Skeleton.MaxBones];
+            Array.Fill(palette, Matrix4x4.Identity);
+            var copy = System.Math.Min(boneMatrices!.Length, palette.Length);
+            Array.Copy(boneMatrices, palette, copy);
+            _texturedShader.SetMat4Array("u_BoneMatrices", palette, palette.Length);
+        }
 
         (material.AlbedoTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
         (material.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);

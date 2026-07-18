@@ -55,6 +55,14 @@ public static class ComponentSelector
                     entity.AddComponent<TransformComponent>();
                 entity.AddComponent<ModelRendererComponent>();
             });
+            DrawComponentMenuItem<AnimatorComponent>("Animator", entity, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                if (!entity.HasComponent<ModelRendererComponent>())
+                    entity.AddComponent<ModelRendererComponent>();
+                entity.AddComponent<AnimatorComponent>();
+            });
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
             DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);

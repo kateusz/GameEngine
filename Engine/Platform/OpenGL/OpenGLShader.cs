@@ -105,6 +105,35 @@ internal sealed class OpenGLShader : IShader
         SilkNetContext.GL.UniformMatrix4(location, true, matrix);
     }
 
+    public void SetMat4Array(string name, Matrix4x4[] matrices, int count)
+    {
+        if (matrices.Length == 0 || count <= 0)
+            return;
+
+        count = System.Math.Min(count, matrices.Length);
+        if (!_uniformLocations.TryGetValue(name, out var location) &&
+            !_uniformLocations.TryGetValue(name + "[0]", out location))
+            return;
+
+        var floats = new float[count * 16];
+        for (var i = 0; i < count; i++)
+        {
+            var m = matrices[i];
+            var o = i * 16;
+            floats[o] = m.M11; floats[o + 1] = m.M12; floats[o + 2] = m.M13; floats[o + 3] = m.M14;
+            floats[o + 4] = m.M21; floats[o + 5] = m.M22; floats[o + 6] = m.M23; floats[o + 7] = m.M24;
+            floats[o + 8] = m.M31; floats[o + 9] = m.M32; floats[o + 10] = m.M33; floats[o + 11] = m.M34;
+            floats[o + 12] = m.M41; floats[o + 13] = m.M42; floats[o + 14] = m.M43; floats[o + 15] = m.M44;
+        }
+
+        SilkNetContext.GL.UseProgram(_handle);
+        unsafe
+        {
+            fixed (float* ptr = floats)
+                SilkNetContext.GL.UniformMatrix4(location, (uint)count, true, ptr);
+        }
+    }
+
     public void SetFloat3(string name, Vector3 data)
     {
         if (!_uniformLocations.TryGetValue(name, out var location)) return;

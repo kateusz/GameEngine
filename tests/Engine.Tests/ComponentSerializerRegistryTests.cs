@@ -62,6 +62,37 @@ public class ComponentSerializerRegistryTests
     }
 
     [Fact]
+    public void AnimatorComponent_RoundTrip_ThroughRegistry()
+    {
+        var entity = Entity.Create(1, "character");
+        entity.AddComponent(new AnimatorComponent
+        {
+            ClipName = "Walk",
+            Loop = true,
+            Speed = 1.5f,
+            ApplyRootMotion = true,
+            IsPlaying = true,
+            Time = 0.25f
+        });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+
+        var loaded = Entity.Create(1, "character");
+        foreach (var node in array)
+            _registry.DeserializeComponent(loaded, node!.AsObject(), _serializerOptions.Options, strict: true);
+
+        var animator = loaded.GetComponent<AnimatorComponent>();
+        animator.ClipName.ShouldBe("Walk");
+        animator.Loop.ShouldBeTrue();
+        animator.Speed.ShouldBe(1.5f);
+        animator.ApplyRootMotion.ShouldBeTrue();
+        animator.IsPlaying.ShouldBeTrue();
+        animator.Time.ShouldBe(0.25f);
+        animator.SkinMatrices.ShouldBeNull();
+    }
+
+    [Fact]
     public void StrictDeserialize_UnknownComponent_Throws()
     {
         var entity = Entity.Create(1, "e");
