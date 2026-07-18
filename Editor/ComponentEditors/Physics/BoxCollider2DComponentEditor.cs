@@ -26,5 +26,8 @@ public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer)
 
         propertyRenderer.DrawPropertyField("Restitution", component.Restitution,
             newValue => component.Restitution = (float)newValue);
+
+        propertyRenderer.DrawPropertyField("Is Trigger", component.IsTrigger,
+            newValue => component.IsTrigger = (bool)newValue);
     }
 }
