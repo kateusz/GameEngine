@@ -19,10 +19,10 @@ public class AudioSourceComponentEditor(
 
     protected override void DrawContent(AudioSourceComponent component, Entity entity)
     {
-        audioDropTarget.Draw("Audio Clip", null, (_, relativePath) =>
+        audioDropTarget.Draw("Audio Clip", relativePath =>
         {
             component.AudioClipPath = relativePath;
-        });
+        }, component.AudioClipPath);
 
         propertyRenderer.DrawPropertyField("Volume", component.Volume,
             newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));

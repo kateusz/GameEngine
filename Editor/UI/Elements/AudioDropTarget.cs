@@ -15,24 +15,21 @@ public class AudioDropTarget(IAudio audio)
     /// Draws a drag-and-drop target button for audio clips.
     /// </summary>
     /// <param name="label">Label to display for the property</param>
-    /// <param name="currentClip">Currently assigned audio clip (can be null)</param>
-    /// <param name="onAudioChanged">Callback invoked when a new audio clip is dropped</param>
-    public void Draw(string label, IAudioClip? currentClip, Action<IAudioClip, string> onAudioChanged)
+    /// <param name="onAudioPathChanged">Callback invoked with the dropped path when a new audio clip is assigned</param>
+    /// <param name="currentAudioPath">Currently assigned audio path (can be null)</param>
+    public void Draw(string label, Action<string> onAudioPathChanged, string? currentAudioPath = null)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
-            // Display current audio clip name or "None" if no clip is assigned
-            var buttonLabel = currentClip != null
-                ? Path.GetFileName(currentClip.Path)
+            var buttonLabel = !string.IsNullOrEmpty(currentAudioPath)
+                ? Path.GetFileName(currentAudioPath)
                 : "None (Drop audio here)";
 
-            // Button acts as the drop target
             ButtonDrawer.DrawFullWidthButton(buttonLabel, () =>
             {
                 // Optional: Could add a file picker popup here in the future
             });
 
-            // Handle drag-and-drop
             DragDropDrawer.HandleFileDropTarget(
                 DragDropDrawer.ContentBrowserItemPayload,
                 path =>
@@ -45,8 +42,8 @@ public class AudioDropTarget(IAudio audio)
                     var audioPath = PathBuilder.Build(path);
                     try
                     {
-                        var audioClip = audio.LoadAudioClip(audioPath);
-                        onAudioChanged(audioClip, path);
+                        audio.LoadAudioClip(audioPath);
+                        onAudioPathChanged(PathBuilder.ToAssetRelativePath(path));
                     }
                     catch (Exception ex)
                     {
