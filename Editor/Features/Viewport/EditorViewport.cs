@@ -15,6 +15,7 @@ using Engine.Scene;
 using Engine.Scene.Cameras;
 using Engine.Scene.Serializer;
 using ImGuiNET;
+using Input;
 using Math;
 
 namespace Editor.Features.Viewport;
@@ -46,6 +47,7 @@ public sealed class EditorViewport(
     private Vector2 _viewportSize;
     private readonly Dictionary<int, Entity> _entityById = [];
     private readonly HashSet<int> _pressedMouseButtons = [];
+    private readonly HashSet<KeyCodes> _pressedKeys = [];
 
     private Action<IScene> _sceneChangedHandler = null!;
 
@@ -118,6 +120,8 @@ public sealed class EditorViewport(
         if (ImGui.IsWindowHovered())
             HandleViewportInput();
 
+        UpdateFly(deltaTime);
+
         DrawOverlays();
 
         ImGui.End();
@@ -130,6 +134,12 @@ public sealed class EditorViewport(
 
         switch (windowEvent)
         {
+            case KeyPressedEvent kpe:
+                _pressedKeys.Add(kpe.KeyCode);
+                break;
+            case KeyReleasedEvent kre:
+                _pressedKeys.Remove(kre.KeyCode);
+                break;
             case MouseButtonPressedEvent mbpe:
                 _pressedMouseButtons.Add(mbpe.Button);
                 break;
@@ -141,19 +151,45 @@ public sealed class EditorViewport(
         if (!IsHovered)
             return;
 
+        var leftDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Left);
+        var middleDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Middle);
+        var rightDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Right);
+        var alt = ImGui.GetIO().KeyAlt;
+
         if (windowEvent is MouseScrolledEvent scrollEvent)
-            _editorCamera.OnMouseScroll(scrollEvent.YOffset);
+        {
+            if (rightDown && !alt)
+                _editorCamera.AdjustFlySpeed(scrollEvent.YOffset);
+            else
+                _editorCamera.OnMouseScroll(scrollEvent.YOffset);
+        }
 
         if (windowEvent is MouseButtonPressedEvent)
             _editorCamera.SetPreviousMousePosition(GetMousePosition());
-        else if (windowEvent is MouseMovedEvent moveEvent && ImGui.GetIO().KeyAlt)
+        else if (windowEvent is MouseMovedEvent moveEvent)
         {
             var currentPos = new Vector2(moveEvent.X, moveEvent.Y);
-            var leftDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Left);
-            var middleDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Middle);
-            var rightDown = _pressedMouseButtons.Contains((int)ImGuiMouseButton.Right);
+            var delta = (currentPos - _editorCamera.GetPreviousMousePosition()) * CameraConfig.EditorMouseSensitivity;
 
-            _editorCamera.OnMouseMove(currentPos, pan: middleDown, orbit: leftDown, zoomDrag: rightDown);
+            if (alt && (leftDown || middleDown || rightDown))
+            {
+                _editorCamera.OnMouseMove(currentPos, pan: middleDown, orbit: leftDown, zoomDrag: rightDown);
+            }
+            else if (leftDown && rightDown)
+            {
+                _editorCamera.Slide(delta);
+                _editorCamera.SetPreviousMousePosition(currentPos);
+            }
+            else if (rightDown)
+            {
+                _editorCamera.Look(delta);
+                _editorCamera.SetPreviousMousePosition(currentPos);
+            }
+            else if (middleDown)
+            {
+                _editorCamera.Pan(delta);
+                _editorCamera.SetPreviousMousePosition(currentPos);
+            }
         }
     }
 
@@ -261,6 +297,32 @@ public sealed class EditorViewport(
         }
 
         HoveredEntity = entity;
+    }
+
+    private void UpdateFly(TimeSpan deltaTime)
+    {
+        if (!IsHovered || ImGui.GetIO().KeyAlt)
+            return;
+
+        if (!_pressedMouseButtons.Contains((int)ImGuiMouseButton.Right))
+            return;
+
+        var move = Vector3.Zero;
+        if (_pressedKeys.Contains(KeyCodes.W))
+            move.Z += 1.0f;
+        if (_pressedKeys.Contains(KeyCodes.S))
+            move.Z -= 1.0f;
+        if (_pressedKeys.Contains(KeyCodes.A))
+            move.X -= 1.0f;
+        if (_pressedKeys.Contains(KeyCodes.D))
+            move.X += 1.0f;
+        if (_pressedKeys.Contains(KeyCodes.E))
+            move.Y += 1.0f;
+        if (_pressedKeys.Contains(KeyCodes.Q))
+            move.Y -= 1.0f;
+
+        if (move != Vector3.Zero)
+            _editorCamera.Fly(move, (float)deltaTime.TotalSeconds);
     }
 
     private void HandleViewportInput()

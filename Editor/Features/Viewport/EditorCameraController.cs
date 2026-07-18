@@ -24,5 +24,6 @@ public sealed class EditorCameraController : IEditorCameraController
         _camera.SetDistance(CameraConfig.DefaultEditorDistance);
         _camera.SetPitch(0.0f);
         _camera.SetYaw(0.0f);
+        _camera.ResetFlySpeedMultiplier();
     }
 }

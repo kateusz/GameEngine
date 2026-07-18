@@ -112,6 +112,56 @@ public class EditorCameraTests
         forward.Z.ShouldBe(-1f, 0.001f);
     }
 
+    [Fact]
+    public void Look_KeepsEyePositionFixed()
+    {
+        var camera = new EditorCamera();
+        var eyeBefore = camera.GetPosition();
+
+        camera.Look(new Vector2(10.0f, 5.0f));
+
+        var eyeAfter = camera.GetPosition();
+        eyeAfter.X.ShouldBe(eyeBefore.X, 0.01f);
+        eyeAfter.Y.ShouldBe(eyeBefore.Y, 0.01f);
+        eyeAfter.Z.ShouldBe(eyeBefore.Z, 0.01f);
+    }
+
+    [Fact]
+    public void Fly_MovesFocalPoint()
+    {
+        var camera = new EditorCamera();
+        var focalBefore = camera.FocalPoint;
+
+        camera.Fly(new Vector3(0, 0, 1), 1.0f);
+
+        camera.FocalPoint.ShouldNotBe(focalBefore);
+    }
+
+    [Fact]
+    public void Fly_ZeroMove_DoesNothing()
+    {
+        var camera = new EditorCamera();
+        var focalBefore = camera.FocalPoint;
+
+        camera.Fly(Vector3.Zero, 1.0f);
+
+        camera.FocalPoint.ShouldBe(focalBefore);
+    }
+
+    [Fact]
+    public void AdjustFlySpeed_ClampsToRange()
+    {
+        var camera = new EditorCamera();
+
+        for (var i = 0; i < 100; i++)
+            camera.AdjustFlySpeed(10.0f);
+        camera.FlySpeedMultiplier.ShouldBe(CameraConfig.MaxEditorFlySpeedMultiplier);
+
+        for (var i = 0; i < 100; i++)
+            camera.AdjustFlySpeed(-10.0f);
+        camera.FlySpeedMultiplier.ShouldBe(CameraConfig.MinEditorFlySpeedMultiplier);
+    }
+
     private static void AssertMatricesEqual(Matrix4x4 actual, Matrix4x4 expected, float tolerance)
     {
         actual.M11.ShouldBe(expected.M11, tolerance);

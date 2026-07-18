@@ -23,8 +23,10 @@ public class EditorCamera : Camera, IViewCamera
     private float _viewportHeight = DisplayConfig.DefaultEditorViewportHeight;
 
     private Vector2 _previousMousePosition;
+    private float _flySpeedMultiplier = CameraConfig.DefaultEditorFlySpeedMultiplier;
 
     public float Distance => _distance;
+    public float FlySpeedMultiplier => _flySpeedMultiplier;
     public float FOV => _fov;
     public float Pitch => _pitch;
     public float Yaw => _yaw;
@@ -121,11 +123,48 @@ public class EditorCamera : Camera, IViewCamera
 
     public void Orbit(Vector2 delta)
     {
-        var yawSign = GetUpDirection().Y < 0 ? -1.0f : 1.0f;
-        _yaw += yawSign * delta.X * CameraConfig.EditorRotationSpeed;
-        _pitch += delta.Y * CameraConfig.EditorRotationSpeed;
+        ApplyRotation(delta);
         _viewDirty = true;
     }
+
+    public void Look(Vector2 delta)
+    {
+        var eye = GetPosition();
+        ApplyRotation(delta);
+        _focalPoint = eye + GetForwardDirection() * _distance;
+        _viewDirty = true;
+    }
+
+    public void Fly(Vector3 move, float dt)
+    {
+        if (move == Vector3.Zero)
+            return;
+
+        var speed = CameraConfig.EditorFlySpeed * _flySpeedMultiplier * dt;
+        _focalPoint += GetForwardDirection() * move.Z * speed;
+        _focalPoint += GetRightDirection() * move.X * speed;
+        _focalPoint += Vector3.UnitY * move.Y * speed;
+        _viewDirty = true;
+    }
+
+    public void Slide(Vector2 delta)
+    {
+        var (xSpeed, ySpeed) = CalculatePanSpeed();
+        _focalPoint += GetRightDirection() * delta.X * xSpeed * _distance;
+        _focalPoint += GetForwardDirection() * delta.Y * ySpeed * _distance;
+        _viewDirty = true;
+    }
+
+    public void AdjustFlySpeed(float scrollDelta)
+    {
+        _flySpeedMultiplier = System.Math.Clamp(
+            _flySpeedMultiplier + scrollDelta * CameraConfig.EditorFlySpeedScrollStep,
+            CameraConfig.MinEditorFlySpeedMultiplier,
+            CameraConfig.MaxEditorFlySpeedMultiplier);
+    }
+
+    public void ResetFlySpeedMultiplier() =>
+        _flySpeedMultiplier = CameraConfig.DefaultEditorFlySpeedMultiplier;
 
     public void Zoom(float delta)
     {
@@ -163,6 +202,8 @@ public class EditorCamera : Camera, IViewCamera
         _previousMousePosition = position;
     }
 
+    public Vector2 GetPreviousMousePosition() => _previousMousePosition;
+
     private void UpdateProjection()
     {
         _projection = Matrix4x4.CreatePerspectiveFieldOfView(
@@ -171,6 +212,14 @@ public class EditorCamera : Camera, IViewCamera
             _nearClip,
             _farClip);
         _projectionDirty = false;
+    }
+
+    private void ApplyRotation(Vector2 delta)
+    {
+        var yawSign = GetUpDirection().Y < 0 ? -1.0f : 1.0f;
+        _yaw += yawSign * delta.X * CameraConfig.EditorRotationSpeed;
+        _pitch += delta.Y * CameraConfig.EditorRotationSpeed;
+        _pitch = System.Math.Clamp(_pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);
     }
 
     private void UpdateView()

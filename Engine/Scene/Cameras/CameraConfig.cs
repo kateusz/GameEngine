@@ -120,6 +120,11 @@ public static class CameraConfig
     public const float EditorRotationSpeed = 0.8f;
     public const float EditorZoomSensitivity = 0.1f;
     public const float EditorMouseSensitivity = 0.003f;
+    public const float EditorFlySpeed = 50.0f;
+    public const float DefaultEditorFlySpeedMultiplier = 2.0f;
+    public const float MinEditorFlySpeedMultiplier = 0.1f;
+    public const float MaxEditorFlySpeedMultiplier = 50.0f;
+    public const float EditorFlySpeedScrollStep = 2.0f;
 
     // Camera position defaults
     public const float DefaultCameraZPosition = 3.0f;

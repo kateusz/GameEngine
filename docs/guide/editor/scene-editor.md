@@ -23,10 +23,17 @@ The viewport is the main visual canvas where you see and interact with your scen
 
 | Action | Input |
 |--------|-------|
-| Pan | Alt + middle mouse drag |
+| Look | Right mouse drag |
+| Fly | Right mouse held + WASD |
+| Fly up / down | Right mouse held + E / Q |
+| Fly speed | Right mouse held + scroll wheel |
+| Pan | Middle mouse drag |
 | Orbit | Alt + left mouse drag |
 | Zoom (drag) | Alt + right mouse drag |
+| Pan (Alt) | Alt + middle mouse drag |
+| Slide | Left + right mouse drag |
 | Zoom (wheel) | Scroll wheel |
+| Reset camera | Ctrl+R or View → Reset Camera |
 | Select entity | Left-click on entity (Select mode, or while using Move/Scale/Rotate tools) |
 
 ### Gizmo Tools
