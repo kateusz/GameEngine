@@ -448,7 +448,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         // Create many sprite entities
         for (var i = 0; i < _entityCount; i++)
         {
-            var entity = _currentTestScene.CreateEntity($"Sprite_{i}");
+            var entity = _currentTestScene!.CreateEntity($"Sprite_{i}");
             entity.AddComponent<TransformComponent>(); // Explicitly add TransformComponent
             var transform = entity.GetComponent<TransformComponent>();
             transform.Translation = new Vector3(
@@ -476,7 +476,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         for (var i = 0; i < _entityCount; i++)
         {
-            var entity = _currentTestScene.CreateEntity($"TexturedSprite_{i}");
+            var entity = _currentTestScene!.CreateEntity($"TexturedSprite_{i}");
             entity.AddComponent<TransformComponent>(); // Add required component
             var transform = entity.GetComponent<TransformComponent>();
             transform.Translation = new Vector3(
@@ -496,7 +496,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         for (var i = 0; i < _drawCallsPerFrame; i++)
         {
-            var entity = _currentTestScene.CreateEntity($"DrawCall_{i}");
+            var entity = _currentTestScene!.CreateEntity($"DrawCall_{i}");
             entity.AddComponent<TransformComponent>(); // Add required component
             var transform = entity.GetComponent<TransformComponent>();
             transform.Translation = new Vector3(
@@ -517,7 +517,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     private void UpdateRenderer2DStress()
     {
         // Animate sprites
-        foreach (var entity in _currentTestScene.Entities)
+        foreach (var entity in _currentTestScene!.Entities)
         {
             if (entity.HasComponent<SpriteRendererComponent>() &&
                 entity.TryGetComponent<TransformComponent>(out var transform))
@@ -533,7 +533,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         var random = new Random();
         var textureValues = _testTextures.Values.ToArray();
 
-        foreach (var entity in _currentTestScene.Entities)
+        foreach (var entity in _currentTestScene!.Entities)
         {
             if (random.NextDouble() < 0.1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
@@ -548,7 +548,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         graphics2D.BeginScene(_cameraController);
 
-        foreach (var entity in _currentTestScene.Entities)
+        foreach (var entity in _currentTestScene!.Entities)
         {
             if (!entity.TryGetComponent<TransformComponent>(out var transform)) continue;
 

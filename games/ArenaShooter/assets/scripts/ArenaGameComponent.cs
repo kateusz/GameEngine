@@ -30,6 +30,9 @@ public class ArenaGameComponent : IGameComponent
     public Vector2 TracerStart { get; set; }
     public Vector2 TracerEnd { get; set; }
 
+    /// <summary>Edge cache for looped walk AudioSource — Play restarts the clip, so only call on transitions.</summary>
+    public bool WalkPlaying { get; set; }
+
     // --- Tunables (editable in the inspector) ---
     public int MaxHealth { get; set; } = 3;
     public float MoveSpeed { get; set; } = 5f;
@@ -61,6 +64,7 @@ public class ArenaGameComponent : IGameComponent
         TracerTimer = TracerTimer,
         TracerStart = TracerStart,
         TracerEnd = TracerEnd,
+        WalkPlaying = WalkPlaying,
         MaxHealth = MaxHealth,
         MoveSpeed = MoveSpeed,
         EnemySpeed = EnemySpeed,

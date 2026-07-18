@@ -104,6 +104,7 @@
             0,
             0
           ],
+          "WalkPlaying": false,
           "MaxHealth": 3,
           "MoveSpeed": 5,
           "EnemySpeed": 2.2,
@@ -181,6 +182,18 @@
           "RestitutionThreshold": 0.5,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
+        },
+        {
+          "AudioClipPath": "sounds\\walk.wav",
+          "Volume": 1,
+          "Pitch": 1,
+          "Loop": true,
+          "PlayOnAwake": false,
+          "Is3D": false,
+          "MinDistance": 1,
+          "MaxDistance": 100,
+          "Effects": [],
+          "Name": "AudioSourceComponent"
         }
       ]
     },
@@ -850,6 +863,18 @@
           "TexturePath": "textures/ak47.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
+        },
+        {
+          "AudioClipPath": "sounds/shot.wav",
+          "Volume": 1,
+          "Pitch": 1,
+          "Loop": false,
+          "PlayOnAwake": false,
+          "Is3D": false,
+          "MinDistance": 1,
+          "MaxDistance": 100,
+          "Effects": [],
+          "Name": "AudioSourceComponent"
         }
       ]
     },

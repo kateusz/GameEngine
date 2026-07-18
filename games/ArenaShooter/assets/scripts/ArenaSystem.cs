@@ -1,4 +1,5 @@
 using System.Numerics;
+using Audio;
 using ECS;
 using ECS.Systems;
 using Input;
@@ -21,7 +22,9 @@ public class ArenaSystem(
     IKeyboardInput keyboard,
     IMouseInput mouse,
     ICameraQueries cameraQueries,
-    IPhysicsQueries physics) : IGameSystem
+    IPhysicsQueries physics,
+    IAudioPlayback audioPlayback,
+    IAudio audio) : IGameSystem
 {
     private static readonly Vector3 Graveyard = new(1000f, 1000f, 0f);
 
@@ -37,10 +40,14 @@ public class ArenaSystem(
     private const float DigitY = 4.15f;
 
     private readonly Random _rng = new();
+    private Entity _weaponEntity;
 
     public int Priority => 115;
 
-    public void OnInit() { }
+    public void OnInit()
+    {
+        _weaponEntity = context.GetByName("Aim");
+    }
 
     public void OnShutdown() { }
 
@@ -51,7 +58,7 @@ public class ArenaSystem(
             return;
 
         var player = context.GetByName("Player");
-        if (player == null || !player.TryGetComponent<TransformComponent>(out var playerTransform))
+        if (!player.TryGetComponent<TransformComponent>(out var playerTransform))
             return;
 
         // Clamp dt so a lag spike can't teleport enemies through the player before we can react.
@@ -65,6 +72,7 @@ public class ArenaSystem(
         {
             StopBody(player);
             StopAllEnemies();
+            StopWalk(game, player);
             if (keyboard.WasKeyPressed(KeyCodes.R))
                 Reset(game, player);
             SyncVisuals(game, player, playerPos);
@@ -87,6 +95,7 @@ public class ArenaSystem(
         if (game.Health <= 0)
         {
             game.Phase = ArenaGameComponent.Dead;
+            StopWalk(game, player);
             Console.WriteLine($"Game over! Final score: {game.Score}. Press R to play again.");
         }
 
@@ -109,6 +118,30 @@ public class ArenaSystem(
 
         if (player.TryGetComponent<RigidBody2DComponent>(out var body))
             body.Velocity = velocity;
+
+        SyncWalk(game, player, moving: velocity.LengthSquared() > 0f);
+    }
+
+    private void SyncWalk(ArenaGameComponent game, Entity player, bool moving)
+    {
+        if (moving == game.WalkPlaying)
+            return;
+
+        if (moving)
+            audioPlayback.Play(player);
+        else
+            audioPlayback.Pause(player);
+
+        game.WalkPlaying = moving;
+    }
+
+    private void StopWalk(ArenaGameComponent game, Entity player)
+    {
+        if (!game.WalkPlaying)
+            return;
+
+        audioPlayback.Stop(player);
+        game.WalkPlaying = false;
     }
 
     private void HandleShooting(
@@ -126,6 +159,7 @@ public class ArenaSystem(
             return;
 
         game.FireCooldown = game.FireInterval;
+        audioPlayback.Play(_weaponEntity);
 
         var dir = game.Facing.LengthSquared() > 0f ? Vector2.Normalize(game.Facing) : new Vector2(1f, 0f);
         var hit = physics.Raycast(playerPos, dir, game.ShootRange, ignoreEntity: player, includeTriggers: false);
@@ -138,7 +172,7 @@ public class ArenaSystem(
             enemyHit.Entity.TryGetComponent<EnemyComponent>(out var enemy) &&
             enemy.Alive)
         {
-            KillEnemy(enemyHit.Entity, enemy);
+            KillEnemy(enemyHit.Entity, enemy, playDeathSound: true);
             game.Score++;
             Console.WriteLine($"Enemy down! Score: {game.Score}");
         }
@@ -168,7 +202,7 @@ public class ArenaSystem(
             // bodies with runtime spawn/despawn + DrainContacts() if precise collisions are needed.
             if (distance <= game.ContactRadius)
             {
-                KillEnemy(entity, enemy);
+                KillEnemy(entity, enemy, playDeathSound: true);
                 if (game.InvulnTimer <= 0f)
                 {
                     game.Health--;
@@ -223,13 +257,16 @@ public class ArenaSystem(
         }
     }
 
-    private static void KillEnemy(Entity entity, EnemyComponent enemy)
+    private void KillEnemy(Entity entity, EnemyComponent enemy, bool playDeathSound = false)
     {
         enemy.Alive = false;
         if (entity.TryGetComponent<TransformComponent>(out var transform))
             transform.Translation = Graveyard;
         if (entity.TryGetComponent<RigidBody2DComponent>(out var body))
             body.Velocity = Vector2.Zero;
+        
+        if (playDeathSound && _rng.Next(8) == 0)
+            audio.PlayOneShot("assets/sounds/zombie.wav");
     }
 
     private void StopAllEnemies()
@@ -257,6 +294,7 @@ public class ArenaSystem(
         game.SpawnTimer = 0f;
         game.InvulnTimer = 0f;
         game.TracerTimer = 0f;
+        StopWalk(game, player);
 
         foreach (var (entity, enemy) in context.View<EnemyComponent>())
             KillEnemy(entity, enemy);
@@ -293,9 +331,6 @@ public class ArenaSystem(
     private void SyncAim(ArenaGameComponent game, Vector2 playerPos, bool dead)
     {
         var aim = context.GetByName("Aim");
-        if (aim == null)
-            return;
-
         var facing = game.Facing.LengthSquared() > 0f ? Vector2.Normalize(game.Facing) : new Vector2(1f, 0f);
         if (aim.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -313,9 +348,6 @@ public class ArenaSystem(
     private void SyncTracer(ArenaGameComponent game, bool dead)
     {
         var tracer = context.GetByName("Tracer");
-        if (tracer == null)
-            return;
-
         var show = game.TracerTimer > 0f && !dead;
         if (show && tracer.TryGetComponent<TransformComponent>(out var transform))
         {
@@ -331,11 +363,9 @@ public class ArenaSystem(
 
     private void SyncHearts(int health)
     {
-        for (var i = 0; ; i++)
+        for (var i = 0; i < health; i++)
         {
             var heart = context.GetByName($"Heart{i}");
-            if (heart == null)
-                break;
             if (heart.TryGetComponent<SpriteRendererComponent>(out var sprite))
                 sprite.Color = i < health ? HeartColor : Hidden;
         }
@@ -380,7 +410,7 @@ public class ArenaSystem(
     private void SetSpriteColor(string entityName, Vector4 color)
     {
         var entity = context.GetByName(entityName);
-        if (entity != null && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+        if (entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             sprite.Color = color;
     }
 

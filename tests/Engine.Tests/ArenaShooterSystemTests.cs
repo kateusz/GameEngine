@@ -1,5 +1,6 @@
 using System.Numerics;
 using ArenaShooter.assets.scripts;
+using Audio;
 using ECS;
 using Input;
 using NSubstitute;
@@ -143,7 +144,9 @@ public class ArenaShooterSystemTests
         physics.Raycast(Arg.Any<Vector2>(), Arg.Any<Vector2>(), Arg.Any<float>(), Arg.Any<Entity?>(), Arg.Any<bool>())
             .Returns(new RaycastHit2D(enemy, new Vector2(5f, 5f), Vector2.Zero, 7.07f, false));
 
-        var system = new ArenaSystem(context, keyboard, mouse, cameras, physics);
+        var audioPlayback = Substitute.For<IAudioPlayback>();
+        var audio = Substitute.For<IAudio>();
+        var system = new ArenaSystem(context, keyboard, mouse, cameras, physics, audioPlayback, audio);
         system.OnUpdate(TimeSpan.Zero);
 
         enemyComponent.Alive.ShouldBeFalse();
@@ -203,7 +206,10 @@ public class ArenaShooterSystemTests
             new TransformComponent(),
             new RigidBody2DComponent { BodyType = RigidBodyType.Dynamic },
             new SpriteRendererComponent());
-        return (new ArenaSystem(context, keyboard, mouse, cameras, physics), game);
+        
+        var audioPlayback = Substitute.For<IAudioPlayback>();
+        var audio = Substitute.For<IAudio>();
+        return (new ArenaSystem(context, keyboard, mouse, cameras, physics, audioPlayback, audio), game);
     }
 
     private static Entity Register(Context context, int id, string name, params IComponent[] components)

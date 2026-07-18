@@ -54,7 +54,7 @@ public class Context : IContext
 
     public Entity GetById(int entityId) => _entitiesById[entityId];
 
-    public Entity GetByName(string name) => _entitiesList.FirstOrDefault(e => e.Name == name);
+    public Entity GetByName(string name) => _entitiesList.Single(e => e.Name == name);
 
     public IEnumerable<Entity> Entities
     {
