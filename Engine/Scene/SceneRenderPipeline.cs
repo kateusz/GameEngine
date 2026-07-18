@@ -119,6 +119,9 @@ internal static class SceneRenderPipeline
         foreach (var (entity, spriteRendererComponent, transformComponent) in
                  context.View<SpriteRendererComponent, TransformComponent>())
         {
+            if (spriteRendererComponent.Color.W <= 0f)
+                continue;
+
             var transform = transformComponent.GetTransform();
             if (!string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath) && textureFactory != null)
             {

@@ -57,8 +57,7 @@ public sealed class HdrTonemapPass(
         _shader.Bind();
         _shader.SetInt("u_HdrBuffer", 0);
         _shader.Unbind();
-
-        // Vertex shader builds a fullscreen triangle from gl_VertexID; VAO must still be bound.
+        
         _emptyVao = vertexArrayFactory.Create();
     }
 }

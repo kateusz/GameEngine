@@ -431,14 +431,15 @@ internal sealed class Graphics2D(
 
     private static Matrix4x4 CalculateTransform(Vector3 position, Vector2 size, float rotation)
     {
-        var transform = Matrix4x4.CreateTranslation(position);
+        // Row-vector order (see TransformComponent.GetTransform): scale, then rotate, then translate.
+        var transform = Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
 
         if (System.Math.Abs(rotation) > float.Epsilon)
         {
             transform *= Matrix4x4.CreateRotationZ(MathHelpers.DegreesToRadians(rotation));
         }
 
-        transform *= Matrix4x4.CreateScale(size.X, size.Y, 1.0f);
+        transform *= Matrix4x4.CreateTranslation(position);
         return transform;
     }
 

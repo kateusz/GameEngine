@@ -8,9 +8,10 @@ namespace Sandbox;
 
 public class SandboxApplication(
     IGameWindow gameWindow,
+    IRendererAPI rendererApi,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     IAudio audio,
     IMeshFactory meshFactory,
     IImGuiLayer imGuiLayer)
-    : Application(gameWindow, graphics2D, graphics3D, audio, meshFactory, imGuiLayer, imGuiLayer);
+    : Application(gameWindow, rendererApi, graphics2D, graphics3D, audio, meshFactory, imGuiLayer, imGuiLayer);

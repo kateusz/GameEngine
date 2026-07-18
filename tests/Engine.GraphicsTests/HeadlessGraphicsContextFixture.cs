@@ -44,7 +44,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
         IndexBufferFactory = new IndexBufferFactory(ApiConfig);
         _textureFactory = new TextureFactory(ApiConfig);
         _shaderFactory = new ShaderFactory(ApiConfig);
-        _meshFactory = new MeshFactory(_textureFactory, VertexArrayFactory, VertexBufferFactory, IndexBufferFactory);
+        _meshFactory = new MeshFactory(VertexArrayFactory, VertexBufferFactory, IndexBufferFactory);
         FrameBufferFactory = new FrameBufferFactory(ApiConfig);
 
         Graphics2D = new Graphics2D(
@@ -56,7 +56,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
             _shaderFactory);
         Graphics2D.Init();
 
-        Graphics3D = new Graphics3D(RendererApi, _shaderFactory, _meshFactory);
+        Graphics3D = new Graphics3D(RendererApi, _shaderFactory, _meshFactory, _textureFactory);
         Graphics3D.Init();
     }
 

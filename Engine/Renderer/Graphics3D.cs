@@ -81,10 +81,8 @@ internal sealed class Graphics3D(
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
     {
-        var meshTransform = mesh.NodeTransform * transform;
-
         rendererApi.SetDepthTest(true);
-        BindCommon(_texturedShader, meshTransform, tint, entityId);
+        BindCommon(_texturedShader, transform, tint, entityId);
         _texturedShader.SetFloat3("u_ViewPosition", _viewPosition);
         _texturedShader.SetFloat("u_Metallic", metallic);
         _texturedShader.SetFloat("u_Roughness", roughness);

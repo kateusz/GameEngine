@@ -9,10 +9,11 @@ namespace Editor;
 
 public class Editor(
     IGameWindow gameWindow,
+    IRendererAPI rendererApi,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     IAudio audio,
     IMeshFactory meshFactory,
     IImGuiLayer imGuiLayer,
     IKeyboardInput keyboardInput)
-    : Application(gameWindow, graphics2D, graphics3D, audio, meshFactory, imGuiLayer, imGuiLayer, keyboardInput);
+    : Application(gameWindow, rendererApi, graphics2D, graphics3D, audio, meshFactory, imGuiLayer, imGuiLayer, keyboardInput);
