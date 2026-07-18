@@ -175,6 +175,25 @@ public class ComponentSerializerRegistryTests
         }
     }
 
+    [Fact]
+    public void SerializeEntity_StaleHotReloadType_MatchesBySerializableName()
+    {
+        _registry.Register<LocalScoreComponent>("ScoreComponent");
+
+        var entity = Entity.Create(2, "Game");
+        entity.AddComponent(new StaleScoreComponent { Points = 42 });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+        array.Count.ShouldBe(1);
+        array[0]!["Name"]!.GetValue<string>().ShouldBe("ScoreComponent");
+        array[0]!["Points"]!.GetValue<int>().ShouldBe(42);
+
+        var loaded = Entity.Create(2, "Game");
+        _registry.DeserializeComponent(loaded, array[0]!.AsObject(), _serializerOptions.Options, strict: true);
+        loaded.GetComponent<LocalScoreComponent>().Points.ShouldBe(42);
+    }
+
     [SerializableComponent]
     private sealed class TestScoreComponent : IGameComponent
     {
@@ -189,5 +208,14 @@ public class ComponentSerializerRegistryTests
         public int Points { get; set; }
 
         public IComponent Clone() => new LocalScoreComponent { Points = Points };
+    }
+
+    // Simulates a previous GameAssembly's type: same serializable name, different CLR type.
+    [SerializableComponent("ScoreComponent")]
+    private sealed class StaleScoreComponent : IGameComponent
+    {
+        public int Points { get; set; }
+
+        public IComponent Clone() => new StaleScoreComponent { Points = Points };
     }
 }

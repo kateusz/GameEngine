@@ -76,11 +76,27 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
     {
         foreach (var component in entity.GetAllComponents())
         {
-            if (!_byType.TryGetValue(component.GetType(), out var serializer))
+            var componentType = component.GetType();
+            if (!_byType.TryGetValue(componentType, out var serializer))
             {
-                throw new InvalidOperationException(
-                    $"No serializer registered for component type '{component.GetType().FullName}' on entity '{entity.Name}' (Id={entity.Id}). " +
-                    "Refusing to serialize a partial entity — this would silently drop data.");
+                // Hot-reload leaves instances typed from the previous GameAssembly; serializers are
+                // registered for the new types. Match by [SerializableComponent] name so Save still works.
+                var name = componentType.GetCustomAttribute<SerializableComponentAttribute>()?.Name
+                           ?? componentType.Name;
+                if (!_byName.TryGetValue(name, out serializer))
+                {
+                    throw new InvalidOperationException(
+                        $"No serializer registered for component type '{componentType.FullName}' on entity '{entity.Name}' (Id={entity.Id}). " +
+                        "Refusing to serialize a partial entity — this would silently drop data.");
+                }
+
+                var node = JsonSerializer.SerializeToNode(component, componentType, options);
+                if (node is not JsonObject obj)
+                    continue;
+
+                obj[NameKey] = serializer.ComponentName;
+                componentsArray.Add(obj);
+                continue;
             }
 
             if (serializer.TrySerialize(component, options, out var json) && json is not null)
