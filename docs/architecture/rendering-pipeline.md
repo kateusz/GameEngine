@@ -15,17 +15,18 @@ graph TB
     end
 
     subgraph "Scene Render Pipeline"
-        SRP["SceneRenderPipeline<br/><i>Sprites, subtextures, 3D cubes</i>"]
+        SRP["SceneRenderPipeline<br/><i>Sprites, subtextures, 3D models/cubes</i>"]
     end
 
     subgraph "Graphics Layer"
         G2D["Graphics2D (IGraphics2D)<br/><i>Batched 2D: quads + lines</i>"]
-        G3D["Graphics3D (IGraphics3D)<br/><i>3D cube rendering</i>"]
+        G3D["Graphics3D (IGraphics3D)<br/><i>Cubes + PBR meshes</i>"]
     end
 
     subgraph "Resource Factories"
-        TF["TextureFactory<br/><i>Weak-ref cache by path</i>"]
+        TF["TextureFactory<br/><i>Path cache + white/flat-normal</i>"]
         SF["ShaderFactory<br/><i>File-time cache, parallel compile</i>"]
+        MF["ModelFactory<br/><i>Assimp import, path cache</i>"]
     end
 
     subgraph "Renderer Abstraction"
@@ -40,22 +41,29 @@ graph TB
         FB["Framebuffer<br/><i>Color + EntityID + Depth</i>"]
         Tex["Texture2D"]
         Shader["Shader"]
+        Model["Model / Mesh"]
     end
 
     PCS --> SRS
     SRS --> SRP
     SRP --> G2D
     SRP --> G3D
+    SRP --> MF
     PDRS --> G2D
     G2D --> API
     G3D --> API
     G2D --> TF
     G2D --> SF
+    G3D --> TF
+    G3D --> SF
+    MF --> TF
+    MF --> Model
     API --> OAPI
     OAPI --> VAO
     OAPI --> FB
     TF --> Tex
     SF --> Shader
+    Model --> VAO
     VAO --> VBO
     VAO --> IBO
 ```
@@ -66,52 +74,76 @@ graph TB
 
 **File**: `Engine/Scene/SceneRenderPipeline.cs`
 
-`SceneRenderSystem` (priority 150) calls `SceneRenderPipeline.RenderScene`, which batches all drawable entities in one pass:
+`SceneRenderSystem` (priority 150) calls `SceneRenderPipeline.RenderScene`, which draws all drawable entities in one pass:
 
 | Pass | Components queried | Graphics API |
 |------|-------------------|--------------|
 | 2D sprites | `SpriteRendererComponent` + `TransformComponent` | `IGraphics2D.DrawQuad` |
 | 2D subtextures | `SubTextureRendererComponent` + `TransformComponent` | `IGraphics2D.DrawQuad` with atlas coords |
-| 3D cubes | `ModelRendererComponent` + `TransformComponent` | `IGraphics3D.DrawCube` with ambient/directional light |
+| 3D models / cubes | `ModelRendererComponent` + `TransformComponent` | `DrawMesh` per submesh, or `DrawCube` fallback |
 
 `PhysicsDebugRenderSystem` (priority 151) draws collider outlines via `PhysicsDebugDrawer` when `DebugSettings.ShowColliderBounds` is enabled.
 
-**Render order within a frame**: 2D sprites and subtextures first, then 3D cubes. Both passes share the same `CameraBinding` from `PrimaryCameraSystem` (runtime) or `EditorCamera` (editor).
+**Render order within a frame**: 2D sprites and subtextures first, then 3D models. Both passes share the same `CameraBinding` from `PrimaryCameraSystem` (runtime) or `EditorCamera` (editor).
 
 ---
 
-## 3D Cube Rendering (Prototype)
+## 3D Model Rendering
 
-> **Prototype only** — shared unit cube mesh, ambient + directional diffuse lighting. No model import, no 3D textures, no batching. See [OpenGL 3D Workflow](../opengl/opengl-3d-workflow.md).
+**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/AssimpModelImporter.cs`, `Engine/Renderer/MeshFactory.cs`
 
-**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/MeshFactory.cs`
+`SceneRenderPipeline` resolves each `ModelRendererComponent` path through `IModelFactory`. On success it draws every submesh with PBR materials under ambient + directional lights. Empty or failed paths fall back to the shared unit cube.
 
-`Graphics3D` draws a shared unit cube for every entity with `ModelRendererComponent` + `TransformComponent`. Lighting comes from the first `AmbientLightComponent` and `DirectionalLightComponent` in the scene.
+### Draw path
+
+| Condition | Call | Shader |
+|-----------|------|--------|
+| `ModelPath` empty / factory null / load fails | `DrawCube` | `flatColorShader` (ambient + diffuse tint) |
+| Model loaded | `DrawMesh` per submesh | `lightingShader` (metal/rough PBR) |
+
+Metallic/roughness for each draw: component override if set, else imported `MeshMaterial` scalars. Tint (`Color`) always multiplies albedo.
 
 ### IGraphics3D API
 
 | Method | Purpose |
 |--------|---------|
-| `Init()` | Load `flatColorShader`, create shared cube via `MeshFactory.CreateCube()` |
-| `BeginScene(Camera, Matrix4x4)` / `BeginScene(IViewCamera)` | Upload `u_ViewProjection` |
+| `Init()` | Load `flatColorShader` + `lightingShader`; create shared cube via `MeshFactory.CreateCube()` |
+| `BeginScene(Camera, Matrix4x4)` / `BeginScene(IViewCamera)` | Upload `u_ViewProjection` and view position |
 | `DrawCube(Matrix4x4 transform, Vector4 color, int entityId)` | Indexed draw of shared cube mesh |
+| `DrawMesh(transform, mesh, material, tint, metallic, roughness, entityId)` | PBR textured submesh draw |
 | `SetAmbientLight(Vector3 color, float strength)` | Scene ambient (`lightColor`, `strength` uniforms) |
-| `SetDirectionalLight(Vector3 direction, Vector3 color)` | Directional diffuse (`u_LightDirection`, `u_LightColor`) |
-| `EndScene()` | Unbind shader |
+| `SetDirectionalLight(Vector3 direction, Vector3 color)` | Directional light (`u_LightDirection`, `u_LightColor`) |
+| `EndScene()` | No-op (unbind happens per draw) |
 
-There is no 3D batching — each cube is one `DrawIndexed` call. `GetStats()` tracks `DrawCalls` per frame.
+No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` tracks `DrawCalls` per frame.
 
-### Shaders and lighting
+### Model factory and import
 
-**Shader**: `assets/shaders/OpenGL/flatColorShader.vert` / `.frag`
+**Files**: `Engine/Renderer/IModelFactory.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/AssimpModelImporter.cs`
 
-Fragment output: `(ambient + diffuse) * albedo` where albedo is `ModelRendererComponent.Color`. No specular term; no texture sampling in the current 3D shader.
+- Path-keyed cache (`OrdinalIgnoreCase` full paths); miss → Assimp import → GPU upload → cache
+- Post-process: triangulate, generate normals, calculate tangents, FlipUVs, PreTransformVertices
+- Formats via Silk.NET Assimp (FBX, glTF, GLB, and other Assimp-supported types)
+- Whole file → ordered `ModelSubmesh` list (mesh + `MeshMaterial`); no animation / hierarchy explosion
+- Texture paths resolved relative to the model directory; loads go through `TextureFactory`
+- Legacy Phong materials convert heuristically (diffuse→albedo, shininess→roughness, dielectric metallic)
+
+### MeshMaterial (PBR)
+
+**File**: `Engine/Renderer/MeshMaterial.cs`
+
+| Field | Role |
+|-------|------|
+| Albedo / metallic-roughness / normal / specular maps | Optional textures (slots 0–3) |
+| `Metallic`, `Roughness` | Scalar fallbacks when maps absent (roughness default `0.5`) |
+
+Missing maps bind white (or flat normal for normals). Specular map is retained for legacy assets; primary workflow is packed metallic-roughness (G = roughness, B = metallic).
 
 ### Mesh
 
 **File**: `Engine/Renderer/Mesh.cs`
 
-`Mesh.Vertex` holds position, normal, tex coords, tangents, and entity ID (60 bytes). `IMeshFactory` only implements `CreateCube()` today — the cube mesh is created once and reused.
+`Mesh.Vertex` holds position, normal, tex coords, tangents/bitangents, and entity ID (60 bytes). `IMeshFactory.CreateCube()` still builds the shared fallback cube.
 
 Detailed workflow: [OpenGL 3D Rendering Workflow](../opengl/opengl-3d-workflow.md).
 
@@ -232,18 +264,19 @@ sequenceDiagram
 ```mermaid
 graph TD
     Request["Create(path)"] --> Normalize["Path.GetFullPath(path)<br/><i>Normalize for consistent keys</i>"]
-    Normalize --> CacheCheck{"Cache hit?<br/>(WeakReference alive?)"}
+    Normalize --> CacheCheck{"Cache hit?"}
     CacheCheck -->|Yes| Return["Return cached Texture2D"]
     CacheCheck -->|No| Load["Load via OpenGLTexture2D.Create()"]
-    Load --> Cache["Store WeakReference in cache"]
+    Load --> Cache["Store in path cache"]
     Cache --> Return
 ```
 
-- **Weak reference cache**: `Dictionary<string, WeakReference<Texture2D>>` — textures GC'd if no other references
-- **Path normalization**: `Path.GetFullPath()` + `StringComparer.OrdinalIgnoreCase` for cross-platform consistency
-- **White texture singleton**: 1×1 pixel `0xFFFFFFFF`, created on first access (double-check locking), permanently occupies texture slot 0
-- **Thread-safe**: All cache operations protected by `Lock`
-- **Implements IDisposable**: Clears cache and disposes white texture on shutdown
+- **Strong path cache**: `Dictionary<string, Texture2D>` — cleared/disposed via `ClearCache()` / `Dispose()`
+- **Path normalization**: `Path.GetFullPath()` + `StringComparer.OrdinalIgnoreCase`
+- **Singletons**: white (`0xFFFFFFFF`), black, flat normal (`0xFFFF8080`) for missing PBR maps
+- **HDR**: `.hdr` paths decode via `HdrEquirectDecoder` to float RGBA (`OpenGLTexture2D.CreateFromHdr`)
+- **Thread-safe**: cache and singleton creation protected by `Lock`
+- **Implements IDisposable**: disposes singletons and clears the path cache on shutdown
 
 ### Texture Slot Caching (Per-Batch)
 

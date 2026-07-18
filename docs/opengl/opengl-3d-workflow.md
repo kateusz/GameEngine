@@ -1,29 +1,30 @@
 # OpenGL 3D Rendering Workflow
 
-> **Prototype status:** 3D rendering is intentionally minimal — lit unit cubes only. There is no mesh import (no Assimp, `.obj`, or `.fbx`), no textured 3D geometry, and no draw batching. Use for blockout and pipeline validation; not for shipping 3D art.
-
 **File**: `Engine/Renderer/Graphics3D.cs` — implements `IGraphics3D`
 
 ## Overview
 
-The OpenGL 3D rendering path draws lit unit cubes for entities with `ModelRendererComponent`. It uses a shared cube mesh, per-entity model matrices, and ambient plus directional lighting from ECS light components. There is no mesh import, texture sampling, or draw batching in the current 3D path.
+The OpenGL 3D path draws entities with `ModelRendererComponent`: either imported meshes (Assimp → PBR `lightingShader`) or a shared unit cube fallback (`flatColorShader`). Lighting comes from the first `AmbientLightComponent` and `DirectionalLightComponent` in the scene. There is no 3D draw batching.
 
 ### Purpose
 
-- Render solid-color 3D cubes with simple ambient and diffuse lighting
+- Load and draw FBX / glTF / GLB (and other Assimp-supported) models with metal/rough materials
+- Fall back to lit unit cubes when the model path is empty or load fails
 - Support perspective and orthographic cameras (via `SceneCamera`)
 - Output entity IDs for editor picking (same framebuffer attachment model as 2D)
 - Integrate with `SceneRenderPipeline` and the ECS scene graph
 
 ### Key Concepts
 
-**Per-Entity Draw Calls**: Each `ModelRendererComponent` entity issues one indexed draw of the shared cube mesh. Unlike 2D batching, there is no CPU-side geometry accumulation for 3D.
+**Cube vs mesh**: Empty/`null` load → one `DrawCube` of the shared mesh. Successful load → one `DrawMesh` per submesh.
 
-**Shared Cube Mesh**: `MeshFactory.CreateCube()` builds a single 1×1×1 cube (half-extent 0.5) with per-face normals, uploads it once, and reuses the same VAO for every draw.
+**Model factory**: Path-keyed cache. Miss → `AssimpModelImporter` → texture bind via `TextureFactory` → GPU mesh init → cache.
 
-**Ambient + Diffuse Lighting**: `flatColorShader.frag` combines scene ambient (`AmbientLightComponent`) and directional diffuse (`DirectionalLightComponent`) with the entity albedo color. There is no specular term.
+**PBR materials**: Albedo, packed metallic-roughness, optional normal (and legacy specular). Scalars fill gaps; component metallic/roughness overrides replace imported scalars when set.
 
-**Model-View-Projection**: `BeginScene` uploads view-projection; each `DrawCube` uploads model and normal matrices.
+**Lighting**: Ambient + one directional light. Cube path is ambient+diffuse tint only; mesh path uses Cook-Torrance-style metal/rough in `lightingShader`.
+
+**Model-View-Projection**: `BeginScene` uploads view-projection and view position; each draw uploads model and normal matrices.
 
 ---
 
@@ -33,19 +34,20 @@ The OpenGL 3D rendering path draws lit unit cubes for entities with `ModelRender
 
 **File**: `Engine/Renderer/Graphics3D.cs`
 
-1. `Graphics3D.Init()` loads `flatColorShader.vert` / `flatColorShader.frag` via `ShaderFactory`
-2. `MeshFactory.CreateCube()` creates and initializes the shared cube `Mesh` (24 vertices, 36 indices)
+1. Load `flatColorShader.vert` / `.frag` (cube fallback)
+2. Load `lightingShader.vert` / `.frag` (textured PBR meshes); bind sampler units 0–3
+3. `MeshFactory.CreateCube()` creates the shared cube `Mesh` (24 vertices, 36 indices)
 
 ### Scene Integration
 
 **File**: `Engine/Scene/SceneRenderPipeline.cs`
 
-`SceneRenderSystem` (priority 150) calls `SceneRenderPipeline.RenderScene`, which runs **2D sprites first**, then **3D cubes**:
+`SceneRenderSystem` (priority 150) calls `SceneRenderPipeline.RenderScene`: **2D first**, then **3D**:
 
 | Pass | Components queried | Graphics API |
 |------|-------------------|--------------|
 | 2D sprites / subtextures | `SpriteRendererComponent` or `SubTextureRendererComponent` + `TransformComponent` | `IGraphics2D.DrawQuad` |
-| 3D cubes | `ModelRendererComponent` + `TransformComponent` | `IGraphics3D.DrawCube` |
+| 3D models / cubes | `ModelRendererComponent` + `TransformComponent` | `DrawMesh` or `DrawCube` |
 
 Lighting is resolved once per 3D pass from the first matching ECS components:
 
@@ -60,17 +62,25 @@ Lighting is resolved once per 3D pass from the first matching ECS components:
 sequenceDiagram
     participant SRS as SceneRenderSystem
     participant SRP as SceneRenderPipeline
+    participant MF as IModelFactory
     participant G3D as Graphics3D
     participant GPU as IRendererAPI
 
-    SRS->>SRP: RenderScene(context, graphics2D, graphics3D, ...)
+    SRS->>SRP: RenderScene(..., graphics3D, modelFactory, ...)
     Note over SRP: 2D pass completes first
     SRP->>G3D: BeginScene(camera or IViewCamera)
     SRP->>G3D: SetAmbientLight / SetDirectionalLight
     loop Each ModelRenderer + Transform
-        SRP->>G3D: DrawCube(transform, color, entityId)
-        G3D->>GPU: Bind shader, upload u_Model / u_NormalMatrix / u_Color
-        G3D->>GPU: Bind cube VAO, DrawIndexed
+        alt ModelPath empty or load fails
+            SRP->>G3D: DrawCube(transform, tint, entityId)
+            G3D->>GPU: flatColorShader + cube VAO, DrawIndexed
+        else Model loaded
+            SRP->>MF: Create(resolvedPath)
+            loop Each submesh
+                SRP->>G3D: DrawMesh(..., metallic, roughness, entityId)
+                G3D->>GPU: lightingShader + maps + DrawIndexed
+            end
+        end
     end
     SRP->>G3D: EndScene()
 ```
@@ -83,14 +93,32 @@ sequenceDiagram
 
 | Method | Purpose |
 |--------|---------|
-| `Init()` | Load `flatColorShader`, create shared cube mesh |
-| `BeginScene(Camera, Matrix4x4 transform)` | Runtime: invert camera entity transform × projection → `u_ViewProjection` |
-| `BeginScene(IViewCamera)` | Editor: use precomputed view-projection from `EditorCamera` |
-| `EndScene()` | Unbind mesh shader |
-| `DrawCube(Matrix4x4 transform, Vector4 color, int entityId)` | Draw shared cube with model matrix and tint |
-| `SetAmbientLight(Vector3 color, float strength)` | Upload ambient uniforms |
-| `SetDirectionalLight(Vector3 direction, Vector3 color)` | Upload directional light uniforms |
-| `ResetStats()` / `GetStats()` | Track per-frame `DrawCalls` (one per cube) |
+| `Init()` | Load both shaders; create shared cube mesh |
+| `BeginScene(Camera, Matrix4x4 transform)` | Runtime: invert camera transform × projection → `u_ViewProjection`; store view position |
+| `BeginScene(IViewCamera)` | Editor: precomputed view-projection + position from `EditorCamera` |
+| `EndScene()` | No-op (unbind per draw) |
+| `DrawCube(Matrix4x4 transform, Vector4 color, int entityId)` | Shared cube with tint |
+| `DrawMesh(transform, mesh, material, tint, metallic, roughness, entityId)` | PBR submesh draw |
+| `SetAmbientLight` / `SetDirectionalLight` | Upload light uniforms |
+| `ResetStats()` / `GetStats()` | Per-frame `DrawCalls` |
+
+---
+
+## Model Loading
+
+**Files**: `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/AssimpModelImporter.cs`, `Engine/Renderer/Model.cs`, `Engine/Renderer/MeshMaterial.cs`
+
+| Step | Behavior |
+|------|----------|
+| Cache | Full-path key; return existing `Model` on hit |
+| Import | Assimp with triangulate, normals, tangents, FlipUVs, PreTransformVertices |
+| Materials | BaseColor/Diffuse → albedo; glTF MR / metalness / roughness → packed MR; normals/height; specular or `_Specular` sibling of `_BaseColor` |
+| Scalars | glTF metallic/roughness factors when present; else Phong shininess → roughness, metallic `0` |
+| Textures | Paths relative to model directory; `TextureFactory.Create`; missing map → soft fail (null) |
+| GPU | Each submesh `Mesh.Initialize` via buffer factories |
+| Failure | Missing file / no meshes → `null` → pipeline draws cube |
+
+`Model` is an ordered list of `ModelSubmesh(Mesh, MeshMaterial)`. Animation, skins, and file cameras/lights are ignored. Node transforms are baked (`PreTransformVertices`); per-mesh `NodeTransform` still multiplies the entity transform at draw time.
 
 ---
 
@@ -100,65 +128,62 @@ sequenceDiagram
 
 `Mesh.Vertex` (60 bytes):
 
-| Field | Type | Shader location |
-|-------|------|-----------------|
-| Position | `Vector3` | `a_Position` (0) |
-| Normal | `Vector3` | `a_Normal` (1) |
-| TexCoord | `Vector2` | not used by `flatColorShader` |
-| Tangent | `Vector3` | not used |
-| Bitangent | `Vector3` | not used |
-| EntityId | `int` | `a_EntityID` (5) |
+| Field | Type | Used by |
+|-------|------|---------|
+| Position | `Vector3` | Both shaders (`a_Position`) |
+| Normal | `Vector3` | Both shaders (`a_Normal`) |
+| TexCoord | `Vector2` | `lightingShader` |
+| Tangent / Bitangent | `Vector3` | `lightingShader` (normal mapping) |
+| EntityId | `int` | Both (`a_EntityID`) |
 
-`Mesh.Initialize()` creates VAO/VBO/IBO via buffer factories and uploads static vertex data. `IMeshFactory` currently exposes only `CreateCube()` — no file-based mesh loading.
-
-Normal matrix for lighting: transpose of the inverse of the model matrix (`Graphics3D.ComputeNormalMatrix`).
+Normal matrix: transpose of inverse model matrix (`Graphics3D.ComputeNormalMatrix`).
 
 ---
 
 ## Shaders
 
-**Files**: `assets/shaders/OpenGL/flatColorShader.vert`, `flatColorShader.frag`
+### Cube — `flatColorShader`
 
-**Vertex shader**:
-- Transforms position: `worldPos = vec4(a_Position, 1.0) * u_Model`
-- Transforms normal: `v_Normal = normalize(a_Normal * mat3(u_NormalMatrix))`
-- Passes `a_EntityID` to fragment stage
+**Files**: `assets/shaders/OpenGL/flatColorShader.vert`, `.frag`
 
-**Fragment shader**:
-- `albedo = u_Color.rgb`
+- Albedo from `u_Color`
 - `ambient = strength * lightColor`
 - `diffuse = max(dot(N, L), 0.0) * u_LightColor` where `L = -u_LightDirection`
-- `o_Color = vec4((ambient + diffuse) * albedo, u_Color.a)`
-- `o_EntityID = u_EntityID` (entity picking attachment)
+- Output: `(ambient + diffuse) * albedo`; entity ID to second attachment
+
+### Mesh — `lightingShader`
+
+**Files**: `assets/shaders/OpenGL/lightingShader.vert`, `.frag`
+
+- Samplers: `u_AlbedoMap` (0), `u_MetallicRoughnessMap` (1), `u_NormalMap` (2), `u_SpecularMap` (3)
+- Uniforms: `u_Metallic`, `u_Roughness`, `u_Color` tint, light + view position
+- Has-map flags select textures vs white / flat-normal fallbacks
+- Metal/rough BRDF under the directional light; ambient fill dampened for metals
 
 ---
 
 ## ECS Components
 
-**File**: `SceneComponents/Rendering/ModelRendererComponent.cs`
-
 | Component | Role |
 |-----------|------|
-| `ModelRendererComponent` | `Color` tint (`Vector4`, default white) — only rendering property today |
+| `ModelRendererComponent` | `ModelPath`, `Color` tint, optional `MetallicOverride` / `RoughnessOverride` |
 | `TransformComponent` | World model matrix via `GetTransform()` |
-| `CameraComponent` | Primary camera for view-projection (resolved by `PrimaryCameraSystem`, priority 145) |
+| `CameraComponent` | Primary camera (resolved by `PrimaryCameraSystem`, priority 145) |
 | `AmbientLightComponent` | Scene-wide ambient color and strength |
 | `DirectionalLightComponent` | World-space light direction and color |
 
-There is no `MeshComponent` or model file path in the current codebase. Every `ModelRendererComponent` draws the same unit cube mesh scaled and positioned by its transform.
-
-**Editor UI:** [Component Inspector — lighting and model renderer](../guide/editor/component-inspector.md#ambientlightcomponent)
+**Editor UI:** [Component Inspector — lighting and model renderer](../guide/editor/component-inspector.md#modelrenderercomponent)
 
 ---
 
 ## Camera Integration
 
-3D cubes use the same camera binding as 2D sprites:
+Same binding as 2D:
 
-- **Runtime**: `PrimaryCameraSystem` provides `Camera` + entity `Transform`; `Graphics3D.BeginScene` inverts the camera transform and multiplies by `camera.GetProjectionMatrix()`
-- **Editor**: `EditorCamera` implements `IViewCamera`; `BeginScene(IViewCamera)` uploads `GetViewProjectionMatrix()` directly
+- **Runtime**: `PrimaryCameraSystem` → `Camera` + entity transform; `Graphics3D.BeginScene` inverts transform × projection
+- **Editor**: `EditorCamera` as `IViewCamera`
 
-Use `ProjectionType.Perspective` on `SceneCamera` for depth perspective. Orthographic projection is also supported for flat 3D-style views.
+Prefer `ProjectionType.Perspective` for depth. Orthographic works for flat 3D-style views.
 
 ---
 
@@ -167,39 +192,41 @@ Use `ProjectionType.Perspective` on `SceneCamera` for depth perspective. Orthogr
 | Aspect | 2D (`Graphics2D`) | 3D (`Graphics3D`) |
 |--------|-------------------|-------------------|
 | Batching | Yes (up to 10K quads) | No |
-| Draw calls | Few per frame | One per `ModelRendererComponent` |
-| Vertex upload | Dynamic each frame | Static at cube creation |
-| Lighting | None (tinted sprites) | Ambient + directional diffuse |
-| Depth | Z-order / layers | Depth buffer (enabled in `IRendererAPI.Init`) |
+| Draw calls | Few per frame | One per cube, or one per submesh |
+| Vertex upload | Dynamic each frame | Static at mesh init / cube creation |
+| Lighting | None (tinted sprites) | Ambient + directional (PBR on meshes) |
+| Depth | Off during sprite flush | On for 3D draws |
 
-`Graphics3D` statistics expose `DrawCalls` only (no quad/mesh counts).
+`Graphics3D` statistics expose `DrawCalls` only.
 
 ---
 
 ## Entity Picking
 
-Cube draws pass `entity.Id` into `DrawCube`. The fragment shader writes `o_EntityID` to the second color attachment, matching the 2D picking pipeline described in [Frame Buffers](frame-buffers.md).
+`entity.Id` is passed into `DrawCube` / `DrawMesh`. Fragment shaders write `o_EntityID` to the second color attachment — same picking path as 2D ([Frame Buffers](frame-buffers.md)).
 
 ---
 
 ## Common Issues
 
-**Nothing renders**: Confirm a valid primary camera, `ModelRendererComponent` + `TransformComponent` on entities, and that the camera frustum contains the cubes.
+**Nothing renders**: Primary camera present; entity has `ModelRendererComponent` + `TransformComponent`; frustum contains the object.
 
-**Flat / black cubes**: Add a `DirectionalLightComponent` with non-zero `Color`. Default directional color is zero when no component exists. Tune `AmbientLightComponent.Strength` for base fill.
+**Black / flat shading**: Add `DirectionalLightComponent` with non-zero `Color` (default is zero when absent). Raise `AmbientLightComponent.Strength` for fill.
 
-**Wrong scale**: The shared mesh is a 1×1×1 cube centered at the origin; use `TransformComponent` scale for size.
+**Cube instead of model**: Check `ModelPath`, file exists after `PathBuilder.Resolve`, and logs for Assimp / texture failures.
+
+**Wrong scale**: Fallback cube is 1×1×1 centered at origin; imported meshes keep their authored size (plus entity scale).
 
 ---
 
 ## Summary
 
-Current 3D rendering is intentionally minimal:
-
-- **Cube-only geometry** via shared `MeshFactory` mesh
-- **Ambient + diffuse** lighting from ECS light components
-- **No model import**, textures, specular highlights, or 3D batching
+- **Models** via Assimp + `ModelFactory` cache; **cube fallback** when path/load fails
+- **PBR metal/rough** on meshes; simple lit tint on cubes
+- **Ambient + one directional** light from ECS
+- **No 3D batching**
 - **Same scene pipeline** as 2D: `SceneRenderSystem` → `SceneRenderPipeline` → `Graphics3D`
-- **Entity ID output** for editor picking
+
+Design background: [3D model loading](../specs/3d-model-loading/introduction.md), [Physically based rendering](../specs/physically-based-rendering/introduction.md).
 
 For the full pipeline diagram and `IRendererAPI` details, see [Rendering Pipeline](../architecture/rendering-pipeline.md).

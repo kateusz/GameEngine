@@ -19,7 +19,7 @@ Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026
 | **M5 — Public alpha** | External testers | Docs updated, sample "menu + gameplay" template, known-issues list |
 | **M6 — Polish** | Juice and feel | Basic particles, edge collider, script field serialization |
 
-3D mesh import, navmesh, gamepad, and asset GUID database are **post-alpha** unless scope changes.
+Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope changes. (3D mesh import + PBR are already in; see [OpenGL 3D Workflow](../opengl/opengl-3d-workflow.md).)
 
 ---
 
@@ -135,7 +135,6 @@ Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026
 | Snap-to-grid | S | Viewport already draws grid |
 | 2D lighting | L | Deferred or forward+ pass |
 | Audio mixer groups | M | OpenAL EFX routing exists partially |
-| 3D mesh import (Assimp) | XL | Not needed for 2D alpha |
 | Tilemap system | L | Genre-specific |
 | Visual scripting | XL | C# scripting sufficient for alpha |
 

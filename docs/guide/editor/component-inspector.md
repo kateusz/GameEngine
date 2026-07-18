@@ -90,7 +90,7 @@ See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md)
 
 ## AmbientLightComponent
 
-Provides scene-wide fill lighting for 3D cube rendering. The renderer uses the **first** `AmbientLightComponent` found in the scene each frame.
+Provides scene-wide fill lighting for 3D models and cube fallbacks. The renderer uses the **first** `AmbientLightComponent` found in the scene each frame.
 
 **Add in editor:** Properties panel → **Add Component** → **Ambient Light**
 
@@ -101,17 +101,17 @@ Provides scene-wide fill lighting for 3D cube rendering. The renderer uses the *
 | `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Ambient light color multiplied into the final shaded result |
 | `Strength` | float | 0.1 | Float field | Intensity of ambient fill. Higher values brighten shadowed areas |
 
-**When to use:** Add to a dedicated entity (e.g. "Ambient Light") in any 3D scene. Tune `Strength` for base visibility; pair with `DirectionalLightComponent` for readable shading on `ModelRendererComponent` cubes.
+**When to use:** Add to a dedicated entity (e.g. "Ambient Light") in any 3D scene. Tune `Strength` for base visibility; pair with `DirectionalLightComponent` for readable shading on `ModelRendererComponent` entities.
 
-**Runtime behavior:** `SceneRenderPipeline` uploads `Color` and `Strength` to the `flatColorShader` ambient uniforms. If no ambient light entity exists, defaults are white color at strength `0.1`.
+**Runtime behavior:** `SceneRenderPipeline` uploads `Color` and `Strength` to ambient uniforms on both the cube and mesh shaders. If no ambient light entity exists, defaults are white color at strength `0.1`.
 
-See also: [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [DirectionalLightComponent](#directionallightcomponent)
+See also: [3D Rendering](../concepts/3d-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [DirectionalLightComponent](#directionallightcomponent)
 
 ---
 
 ## DirectionalLightComponent
 
-Provides a single directional diffuse light for 3D cube rendering (like sunlight). The renderer uses the **first** `DirectionalLightComponent` found in the scene each frame.
+Provides a single directional light for 3D models and cube fallbacks (like sunlight). The renderer uses the **first** `DirectionalLightComponent` found in the scene each frame.
 
 **Add in editor:** Properties panel → **Add Component** → **Directional Light**
 
@@ -120,15 +120,15 @@ Provides a single directional diffuse light for 3D cube rendering (like sunlight
 | Property | Type | Default | Editor control | Description |
 |---|---|---|---|---|
 | `Direction` | Vector3 | (0, -1, 0) | XYZ vector control (axis-colored) | World-space direction the light travels **from**. Does not need to be normalized — the pipeline normalizes it at render time |
-| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Diffuse light color. Set to non-zero RGB or cubes appear flat/black aside from ambient |
+| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Light color. Set to non-zero RGB or meshes/cubes appear flat/black aside from ambient |
 
 **When to use:** Add to a dedicated entity (e.g. "Directional Light") in any 3D scene with `ModelRendererComponent` entities. Adjust `Direction` to change highlight angle; `(0, -1, 0)` shines from above.
 
-**Runtime behavior:** `SceneRenderPipeline` uploads normalized direction and `Color` to `u_LightDirection` / `u_LightColor`. If no directional light exists, diffuse contribution is zero — cubes only show ambient fill.
+**Runtime behavior:** `SceneRenderPipeline` uploads normalized direction and `Color` to `u_LightDirection` / `u_LightColor`. If no directional light exists, directional contribution is zero — only ambient fill remains.
 
-**Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent` cube.
+**Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent`.
 
-See also: [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [AmbientLightComponent](#ambientlightcomponent)
+See also: [3D Rendering](../concepts/3d-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [AmbientLightComponent](#ambientlightcomponent)
 
 ---
 
@@ -235,7 +235,7 @@ Acts as the ears of the scene for 3D spatial audio. The audio system calculates 
 
 ## ModelRendererComponent
 
-Renders a lit unit cube at the entity's transform. **3D rendering is prototype-only** — the engine uses one shared cube mesh for all `ModelRendererComponent` entities. There is no per-entity model file and no mesh import (no Assimp, `.obj`, or `.fbx` support).
+Renders a 3D model at the entity's transform. Assign a `ModelPath` to load FBX / glTF / GLB (Assimp). Empty path or failed load falls back to a shared lit unit cube.
 
 **Add in editor:** Properties panel → **Add Component** → **Model Renderer** (adds `TransformComponent` automatically if missing)
 
@@ -243,11 +243,14 @@ Renders a lit unit cube at the entity's transform. **3D rendering is prototype-o
 
 | Property | Type | Default | Editor control | Description |
 |---|---|---|---|---|
-| `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Color field | Albedo tint for the cube. White means no tint |
+| `ModelPath` | string? | null | Mesh drop target | Project path to a model file. Drag from Content Browser or leave empty for the cube fallback |
+| `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Color field | Albedo tint multiplied with the material / cube color |
+| `MetallicOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported metallic for all submeshes |
+| `RoughnessOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported roughness for all submeshes |
 
-**When to use:** Any 3D placeholder or blockout geometry. Requires `TransformComponent` for position, rotation, and scale. Add `AmbientLightComponent` and `DirectionalLightComponent` entities to the scene for shading.
+**When to use:** Imported 3D assets or quick cube blockout. Requires `TransformComponent`. Add `AmbientLightComponent` and `DirectionalLightComponent` for shading. Prefer a perspective primary camera.
 
-See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md)
+See also: [3D Rendering](../concepts/3d-rendering.md), [Cameras and Rendering](../concepts/cameras-and-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md)
 
 ---
 

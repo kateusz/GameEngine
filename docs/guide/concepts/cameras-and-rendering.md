@@ -41,25 +41,9 @@ For 2D visuals, the engine provides two components:
 
 **SubTextureRendererComponent** renders a portion of a texture atlas (sprite sheet). You specify grid coordinates (`Coords`) and cell size (`CellSize`) to select which part of the atlas to display. Update `Coords` from scripts to switch frames manually.
 
-## 3D Rendering (Prototype)
+## 3D Rendering
 
-> **Prototype only** — no mesh import, no textured models, no Assimp integration. Every `ModelRendererComponent` draws the same shared unit cube.
-
-For 3D visuals, add these components to an entity:
-
-- **ModelRendererComponent** — `Color` tint for the drawn cube (default white)
-- **TransformComponent** — position, rotation, and scale (the engine draws a 1×1×1 unit cube scaled by transform)
-
-Optional scene lighting components (one of each is enough; the pipeline uses the first match):
-
-- **AmbientLightComponent** — `Color` and `Strength` for base fill (default strength `0.1`)
-- **DirectionalLightComponent** — `Direction` and `Color` for diffuse shading
-
-Use **Perspective** projection on the primary camera for depth. Without a `DirectionalLightComponent`, cubes only receive ambient light.
-
-Editor property reference: [AmbientLightComponent](../editor/component-inspector.md#ambientlightcomponent), [DirectionalLightComponent](../editor/component-inspector.md#directionallightcomponent), [ModelRendererComponent](../editor/component-inspector.md#modelrenderercomponent)
-
-See [OpenGL 3D Rendering Workflow](../../opengl/opengl-3d-workflow.md) for shader and pipeline details.
+For models, lights, and PBR materials, see **[3D Rendering](3d-rendering.md)**. Short version: add `ModelRendererComponent` + perspective camera + ambient/directional lights; leave `ModelPath` empty for a lit cube.
 
 ## Render Order
 
@@ -69,5 +53,6 @@ See [OpenGL 3D Rendering Workflow](../../opengl/opengl-3d-workflow.md) for shade
 
 ## Next Steps
 
+- [3D Rendering](3d-rendering.md) -- models, lights, and PBR in the editor
 - [Component Inspector](../editor/component-inspector.md) -- CameraComponent properties
 - [Scripting Getting Started](../scripting/getting-started.md) -- control cameras from scripts
