@@ -1,5 +1,6 @@
 using ECS;
 using Engine.Scene;
+using NSubstitute;
 using Scripting;
 using Shouldly;
 
@@ -53,6 +54,6 @@ public class ScriptRuntimeStoreTests
 
     private sealed class StubScript : ScriptableEntity
     {
-        public StubScript() : base(new ComponentAccessor(), null!, null!) { }
+        public StubScript() : base(new ComponentAccessor(), null!, null!, Substitute.For<IPhysicsQueries>()) { }
     }
 }

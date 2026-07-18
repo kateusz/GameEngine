@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Engine.Scripting;
 
-internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) : IScriptEngine
+internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback, ISceneContext sceneContext) : IScriptEngine
 {
     private static readonly ILogger Logger = Log.ForContext<ScriptEngine>();
 
@@ -58,7 +58,8 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback) :
         try
         {
             var componentAccessor = new ComponentAccessor();
-            return Activator.CreateInstance(scriptType, componentAccessor, audio, audioPlayback) is ScriptableEntity instance
+            var physicsQueries = sceneContext.ActiveScene?.PhysicsQueries ?? NullPhysicsQueries.Instance;
+            return Activator.CreateInstance(scriptType, componentAccessor, audio, audioPlayback, physicsQueries) is ScriptableEntity instance
                 ? Result.Success(instance)
                 : Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}");
         }

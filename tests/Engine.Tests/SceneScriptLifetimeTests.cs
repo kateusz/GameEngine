@@ -21,7 +21,7 @@ public class SceneScriptLifetimeTests
         store = new ScriptRuntimeStore();
         context = new Context();
         return new EngineScene("test", "test", context,
-            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store);
+            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), store, null!);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class SceneScriptLifetimeTests
     {
         public bool DestroyCalled { get; private set; }
 
-        public TrackingScript() : base(new ComponentAccessor(), Substitute.For<IAudio>(), Substitute.For<IAudioPlayback>()) { }
+        public TrackingScript() : base(new ComponentAccessor(), Substitute.For<IAudio>(), Substitute.For<IAudioPlayback>(), Substitute.For<IPhysicsQueries>()) { }
 
         public override void OnDestroy() => DestroyCalled = true;
     }

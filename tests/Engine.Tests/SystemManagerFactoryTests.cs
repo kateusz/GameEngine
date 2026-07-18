@@ -1,5 +1,6 @@
 using ECS;
 using ECS.Systems;
+using Engine.Physics;
 using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
@@ -14,6 +15,9 @@ public class SystemManagerFactoryTests
     [Fact]
     public void Create_ShouldPopulateSystemsForContext()
     {
+        _mockSystemsFactory.PopulateSystemManager(Arg.Any<ISystemManager>(), Arg.Any<IContext>(), Arg.Any<PhysicsRuntimeBodyStore>(), Arg.Any<PhysicsContactQueue>(), Arg.Any<ScriptRuntimeStore>())
+            .Returns(Substitute.For<IPhysicsWorld2D>());
+
         var context = new Context();
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 
@@ -28,6 +32,9 @@ public class SystemManagerFactoryTests
     [Fact]
     public void Create_ShouldReturnNewSystemManagerPerCall()
     {
+        _mockSystemsFactory.PopulateSystemManager(Arg.Any<ISystemManager>(), Arg.Any<IContext>(), Arg.Any<PhysicsRuntimeBodyStore>(), Arg.Any<PhysicsContactQueue>(), Arg.Any<ScriptRuntimeStore>())
+            .Returns(Substitute.For<IPhysicsWorld2D>());
+
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 
         var first = builder.Create(new Context()).SystemManager;

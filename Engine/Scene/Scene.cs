@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using ECS.Systems;
+using Engine.Physics;
 using Engine.Scene.Systems;
 using SceneComponents.Camera;
 using Scripting;
@@ -17,6 +18,7 @@ internal sealed class Scene : IScene
     private readonly string _path;
     private readonly ISystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
+    private readonly IPhysicsWorld2D _physicsWorld;
 
     internal ScriptRuntimeStore ScriptRuntimeStore { get; }
 
@@ -26,7 +28,8 @@ internal sealed class Scene : IScene
         ISystemManager systemManager,
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
-        ScriptRuntimeStore scriptRuntimeStore)
+        ScriptRuntimeStore scriptRuntimeStore,
+        IPhysicsWorld2D physicsWorld)
     {
         _path = path;
         Name = sceneName;
@@ -35,9 +38,12 @@ internal sealed class Scene : IScene
         PhysicsBodies = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
         ScriptRuntimeStore = scriptRuntimeStore;
+        _physicsWorld = physicsWorld;
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
+
+    public IPhysicsQueries PhysicsQueries => _physicsWorld;
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
 

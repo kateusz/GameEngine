@@ -1,5 +1,11 @@
 {
   "Scene": "2d",
+  "BackgroundColor": [
+    0.1,
+    0.1,
+    0.1,
+    1
+  ],
   "Dimension": "TwoD",
   "Entities": [
     {
@@ -25,15 +31,14 @@
           "Name": "TransformComponent"
         },
         {
-          "Camera": {
-            "ProjectionType": "Orthographic",
-            "OrthographicSize": 20,
-            "OrthographicNear": -1,
-            "OrthographicFar": 1,
-            "PerspectiveFOV": 0.7853982,
-            "PerspectiveNear": 0.01,
-            "PerspectiveFar": 1000
-          },
+          "ProjectionType": "Orthographic",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.7777778,
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
@@ -80,6 +85,11 @@
         {
           "BodyType": "Static",
           "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
           "Name": "RigidBody2DComponent"
         },
         {
@@ -136,6 +146,11 @@
         {
           "BodyType": "Dynamic",
           "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
           "Name": "RigidBody2DComponent"
         },
         {
@@ -153,6 +168,10 @@
           "RestitutionThreshold": 0.5,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Name": "NativeScriptComponent",
+          "ScriptType": "PhysicsQueryTest"
         }
       ]
     },

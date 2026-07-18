@@ -11,6 +11,6 @@ public sealed class SceneFactory(ISystemManagerFactory systemManagerFactory)
         var context = new Context();
         var build = systemManagerFactory.Create(context);
         return new Scene(path, newSceneName, context,
-            build.SystemManager, build.BodyStore, build.ContactQueue, build.ScriptStore);
+            build.SystemManager, build.BodyStore, build.ContactQueue, build.ScriptStore, build.PhysicsWorld);
     }
 }

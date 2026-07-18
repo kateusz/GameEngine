@@ -2,6 +2,7 @@ using Audio;
 using ECS;
 using Input;
 using Scripting;
+using System.Numerics;
 
 namespace Scripting;
 
@@ -11,17 +12,23 @@ namespace Scripting;
 public abstract class ScriptableEntity
 {
     private readonly IComponentAccessor _componentAccessor;
+    private readonly IPhysicsQueries _physicsQueries;
 
     /// <summary>
     /// The entity this script is attached to
     /// </summary>
     private IEntity? _entity;
 
-    protected ScriptableEntity(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback)
+    protected ScriptableEntity(
+        IComponentAccessor componentAccessor,
+        IAudio audio,
+        IAudioPlayback audioPlayback,
+        IPhysicsQueries physicsQueries)
     {
         _componentAccessor = componentAccessor;
         Audio = audio;
         AudioPlayback = audioPlayback;
+        _physicsQueries = physicsQueries;
     }
 
     protected IAudio Audio { get; }
@@ -123,6 +130,26 @@ public abstract class ScriptableEntity
     /// <param name="other">The entity with the trigger collider</param>
     public virtual void OnTriggerExit(Entity other)
     {
+    }
+
+    #endregion
+
+    #region Physics Query Methods
+
+    protected RaycastHit2D? Raycast(Vector2 origin, Vector2 direction, float maxDistance, bool includeTriggers = false)
+    {
+        if (_entity is not Entity self)
+            return null;
+
+        return _physicsQueries.Raycast(origin, direction, maxDistance, self, includeTriggers);
+    }
+
+    protected RaycastHit2D? OverlapCircle(Vector2 center, float radius, bool includeTriggers = false)
+    {
+        if (_entity is not Entity self)
+            return null;
+
+        return _physicsQueries.OverlapCircle(center, radius, self, includeTriggers);
     }
 
     #endregion

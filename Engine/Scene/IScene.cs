@@ -18,6 +18,8 @@ public interface IScene : IDisposable
 
     IPhysicsContacts PhysicsContacts { get; }
 
+    IPhysicsQueries PhysicsQueries { get; }
+
     public string Name { get; }
 
     Vector4 BackgroundColor { get; set; }
