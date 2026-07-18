@@ -133,6 +133,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<ModelRendererComponent>();
         Register<AmbientLightComponent>();
         Register<DirectionalLightComponent>();
+        Register<EnvironmentLightComponent>();
         RegisterSerializer(new NativeScriptComponentSerializer());
     }
 

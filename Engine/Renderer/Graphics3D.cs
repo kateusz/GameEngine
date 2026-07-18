@@ -13,11 +13,16 @@ internal sealed class Graphics3D(
     ITextureFactory textureFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
+
     private IShader _cubeShader = null!;
     private IShader _texturedShader = null!;
+    private IShader _skyboxShader = null!;
     private Mesh _cubeMesh = null!;
+    private Mesh _skyMesh = null!;
 
     private Matrix4x4 _viewProjection = Matrix4x4.Identity;
+    private Matrix4x4 _view = Matrix4x4.Identity;
+    private Matrix4x4 _projection = Matrix4x4.Identity;
     private Vector3 _viewPosition;
     private Vector3 _ambientColor = Vector3.One;
     private float _ambientStrength = 0.1f;
@@ -35,7 +40,11 @@ internal sealed class Graphics3D(
         _texturedShader = shaderFactory.Create(
             PathBuilder.Resolve("assets/shaders/OpenGL/lightingShader.vert"),
             PathBuilder.Resolve("assets/shaders/OpenGL/lightingShader.frag"));
+        _skyboxShader = shaderFactory.Create(
+            PathBuilder.Resolve("assets/shaders/OpenGL/skyboxShader.vert"),
+            PathBuilder.Resolve("assets/shaders/OpenGL/skyboxShader.frag"));
         _cubeMesh = meshFactory.CreateCube();
+        _skyMesh = meshFactory.CreateFullscreenTriangle();
 
         _texturedShader.Bind();
         _texturedShader.SetInt("u_AlbedoMap", 0);
@@ -43,6 +52,10 @@ internal sealed class Graphics3D(
         _texturedShader.SetInt("u_NormalMap", 2);
         _texturedShader.SetInt("u_SpecularMap", 3);
         _texturedShader.Unbind();
+
+        _skyboxShader.Bind();
+        _skyboxShader.SetInt("u_EquirectMap", 0);
+        _skyboxShader.Unbind();
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -55,18 +68,55 @@ internal sealed class Graphics3D(
             return;
         }
 
-        _viewProjection = viewMatrix * camera.GetProjectionMatrix();
+        _view = viewMatrix;
+        _projection = camera.GetProjectionMatrix();
+        _viewProjection = _view * _projection;
         _viewPosition = new Vector3(transform.M41, transform.M42, transform.M43);
     }
 
     public void BeginScene(IViewCamera camera)
     {
-        _viewProjection = camera.GetViewProjectionMatrix();
         _viewPosition = camera.GetPosition();
+        if (camera is EditorCamera editorCamera)
+        {
+            _view = editorCamera.GetViewMatrix();
+            _projection = editorCamera.GetProjectionMatrix();
+            _viewProjection = _view * _projection;
+        }
+        else
+        {
+            _viewProjection = camera.GetViewProjectionMatrix();
+            _view = Matrix4x4.Identity;
+            _projection = _viewProjection;
+        }
     }
 
     public void EndScene()
     {
+    }
+
+    public void DrawSkybox(Texture2D equirectHdr, float exposure = 1f)
+    {
+        if (!SkyboxMath.TryInvertRotationViewProjection(_view, _projection, out var invVp))
+            return;
+
+        // Drawn first into a cleared depth buffer. DepthTest off so exact far-plane z
+        // (NDC z=1 vs clear=1 + LEQUAL) cannot discard the fullscreen triangle.
+        // Depth writes stay off while the test is disabled, so models still depth-test against 1.
+        rendererApi.SetDepthTest(false);
+
+        _skyboxShader.Bind();
+        _skyboxShader.SetMat4("u_InverseViewProjection", invVp);
+        _skyboxShader.SetFloat("u_Exposure", System.Math.Clamp(exposure, 0.01f, 16f));
+        _skyboxShader.SetInt("u_EntityID", -1);
+        equirectHdr.Bind(0);
+
+        _skyMesh.Bind();
+        rendererApi.DrawIndexed(_skyMesh.GetVertexArray(), (uint)_skyMesh.GetIndexCount());
+        _stats.DrawCalls++;
+        _skyboxShader.Unbind();
+
+        rendererApi.SetDepthTest(true);
     }
 
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1)
@@ -154,8 +204,9 @@ internal sealed class Graphics3D(
         _cubeShader = null!;
         _texturedShader?.Dispose();
         _texturedShader = null!;
-        _cubeMesh?.Dispose();
-        _cubeMesh = null!;
+        _skyboxShader?.Dispose();
+        _skyboxShader = null!;
+        // MeshFactory owns cube/sky meshes — do not dispose here
 
         _disposed = true;
         GC.SuppressFinalize(this);

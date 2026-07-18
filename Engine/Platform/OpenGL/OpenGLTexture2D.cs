@@ -63,10 +63,19 @@ internal sealed class OpenGLTexture2D : Texture2D
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
         var ext = System.IO.Path.GetExtension(path);
+        if (string.Equals(ext, ".hdr", StringComparison.OrdinalIgnoreCase))
+            return CreateFromHdr(path);
+
         if (PfimExtensions.Contains(ext))
             return CreateFromPfim(path);
 
         return CreateFromStb(path);
+    }
+
+    private static Texture2D CreateFromHdr(string path)
+    {
+        var image = HdrEquirectDecoder.Decode(path);
+        return UploadFloatTexture(path, image.Rgba, image.Width, image.Height);
     }
 
     private static Texture2D CreateFromStb(string path)
@@ -183,6 +192,44 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         return new OpenGLTexture2D(path, handle, width, height, internalFormat,
             dataFormat == PixelFormat.Bgra ? PixelFormat.Rgba : dataFormat);
+    }
+
+    // ponytail: upload float32 pixels into RGBA16F (same pattern as framebuffer HDR attachments)
+    private static Texture2D UploadFloatTexture(string path, float[] rgba, int width, int height)
+    {
+        const InternalFormat internalFormat = InternalFormat.Rgba16f;
+        const PixelFormat dataFormat = PixelFormat.Rgba;
+
+        var handle = SilkNetContext.GL.GenTexture();
+        OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture (HDR)");
+
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D HDR)");
+
+        unsafe
+        {
+            fixed (float* ptr = rgba)
+            {
+                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
+                    (uint)height, 0, dataFormat, PixelType.Float, ptr);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D (HDR RGBA16F)");
+            }
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int)TextureMinFilter.Linear);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Linear);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters HDR)");
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                (int)TextureWrapMode.ClampToEdge);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                (int)TextureWrapMode.ClampToEdge);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap HDR)");
+        }
+
+        return new OpenGLTexture2D(path, handle, width, height, internalFormat, dataFormat);
     }
 
     public override void Bind(int slot = 0)

@@ -14,6 +14,7 @@ internal sealed class MeshFactory(
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private Mesh? _cubeMesh;
+    private Mesh? _fullscreenTriangle;
     private bool _disposed;
 
     public Mesh CreateCube()
@@ -72,10 +73,35 @@ internal sealed class MeshFactory(
         return mesh;
     }
 
+    /// <summary>
+    /// NDC fullscreen triangle covering the viewport (skybox / post passes).
+    /// </summary>
+    public Mesh CreateFullscreenTriangle()
+    {
+        if (_fullscreenTriangle != null)
+            return _fullscreenTriangle;
+
+        var mesh = new Mesh("FullscreenTriangle", textureFactory);
+        var n = Vector3.UnitZ;
+        var t = Vector3.UnitX;
+        var b = Vector3.UnitY;
+        // Oversized triangle covers clip space [-1,1]^2
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-1f, -1f, 0f), n, Vector2.Zero, t, b));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(3f, -1f, 0f), n, Vector2.Zero, t, b));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-1f, 3f, 0f), n, Vector2.Zero, t, b));
+        mesh.Indices.AddRange([0u, 1u, 2u]);
+
+        mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        _fullscreenTriangle = mesh;
+        return mesh;
+    }
+
     public void Clear()
     {
         _cubeMesh?.Dispose();
         _cubeMesh = null;
+        _fullscreenTriangle?.Dispose();
+        _fullscreenTriangle = null;
         _logger.Information("MeshFactory cache cleared and resources disposed");
     }
 

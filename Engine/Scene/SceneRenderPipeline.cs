@@ -48,10 +48,15 @@ internal static class SceneRenderPipeline
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderModels(context, graphics3D, modelFactory, camera);
+        RenderModels(context, graphics3D, modelFactory, textureFactory, camera);
     }
 
-    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory? modelFactory, in CameraBinding camera)
+    private static void RenderModels(
+        IContext context,
+        IGraphics3D graphics3D,
+        IModelFactory? modelFactory,
+        ITextureFactory? textureFactory,
+        in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -61,6 +66,8 @@ internal static class SceneRenderPipeline
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
         var (lightDirection, lightColor) = ResolveDirectional(context);
         graphics3D.SetDirectionalLight(lightDirection, lightColor);
+
+        TryDrawSkybox(context, graphics3D, textureFactory);
 
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
@@ -188,6 +195,31 @@ internal static class SceneRenderPipeline
             graphics3D.BeginScene(camera.ViewCamera);
         else
             graphics3D.BeginScene(camera.Camera!, camera.Transform);
+    }
+
+    private static void TryDrawSkybox(IContext context, IGraphics3D graphics3D, ITextureFactory? textureFactory)
+    {
+        if (textureFactory == null)
+            return;
+
+        foreach (var (_, env) in context.View<EnvironmentLightComponent>())
+        {
+            if (string.IsNullOrWhiteSpace(env.HdrPath))
+                continue;
+
+            try
+            {
+                var resolved = PathBuilder.Resolve(env.HdrPath);
+                var hdr = textureFactory.Create(resolved);
+                graphics3D.DrawSkybox(hdr, env.Exposure);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Failed to draw skybox from HdrPath={HdrPath}", env.HdrPath);
+            }
+
+            return;
+        }
     }
 
     private static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
