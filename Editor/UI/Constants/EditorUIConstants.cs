@@ -162,7 +162,7 @@ public static class EditorUIConstants
     /// <summary>
     /// Default size for the publish progress modal window.
     /// </summary>
-    public static readonly Vector2 PublishProgressModalSize = new(600f, 400f);
+    public static readonly Vector2 PublishProgressModalSize = new(600f, 500f);
 
     public const float DefaultButtonWidth = 100;
 

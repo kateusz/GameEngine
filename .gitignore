@@ -407,3 +407,6 @@ FodyWeavers.xsd
 .DS_Store
 .worktrees/
 .build-check
+
+# Publish/build output (any depth — leading / only matched repo root)
+Builds/

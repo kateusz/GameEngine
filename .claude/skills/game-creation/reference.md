@@ -17,18 +17,17 @@ Companion to [SKILL.md](SKILL.md). Read when scaffolding or reviewing a game pro
 
 **Lessons:** Fixed timestep in system (`TickAccumulator` / `TickInterval`). Banners = sprite entities toggled by texture path. No `ScriptableEntity` required when the system injects `IKeyboardInput`.
 
-### TicTacToe (`games/TicTacToe/`)
+### FlappyBird (`games/FlappyBird/`)
 
 | File | Role |
 |------|------|
-| `project/assets/scripts/BoardComponent.cs` | Board state + mailboxes (`PendingCellIndex`, `ResetRequested`) |
-| `project/assets/scripts/CellComponent.cs` | Cell index |
-| `project/assets/scripts/TicTacToeSystem.cs` | Rules + sprite sync |
-| `project/assets/scripts/GameControllerScript.cs` | Glue: keys → mailboxes + one-shot audio |
-| `project/assets/scripts/tictactoe.csproj` | Script SDK refs via `.engine/sdk/*.dll` (editor layout) |
-| `project/game.config.json` | Startup → `assets/scenes/main.scene` |
+| `project/assets/scripts/FlappyBirdGameComponent.cs` | Serializable game state |
+| `project/assets/scripts/PipePairComponent.cs` | Per-pipe-pair index/state |
+| `project/assets/scripts/ScoreDigitComponent.cs` | Score digit display |
+| `project/assets/scripts/FlappyBirdSystem.cs` | `[Register]` system: input, physics, scoring, visuals |
+| `project/game.config.json` | Runtime/publish config |
 
-**Lessons:** Script writes intent; system applies rules. Win/draw banners via texture swaps. Prefer this split when one entity should own input callbacks.
+**Lessons:** Physics-driven arcade loop in one `IGameSystem`. Sprite/quad UI for score and banners.
 
 ## Genre fit (readiness)
 

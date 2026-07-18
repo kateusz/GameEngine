@@ -2,17 +2,23 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0-windows</TargetFramework>
+        <TargetFramework Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnableMixedModeDebugging>true</EnableMixedModeDebugging>
+        <UseWindowsForms Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</UseWindowsForms>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="../Engine/Engine.csproj" />
         <ProjectReference Include="../Ui.ImGui/Ui.ImGui.csproj" />
         <ProjectReference Include="../GameScriptSdk/GameScriptSdk.csproj" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+        <Compile Remove="Platform\WindowsFolderPicker.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -25,21 +31,26 @@
         <None Include="libs/**/*.*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+      <PackageReference Include="FolderBrowserEx" Version="1.0.1" />
+      <!-- Avoid System.Windows.Forms.Application colliding with Engine.Core.Application -->
+      <Using Remove="System.Windows.Forms" />
+    </ItemGroup>
+
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/fonts;$(OutputPath)assets/fonts/opensans;$(OutputPath)assets/game;$(OutputPath)assets/game/textures;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures;$(OutputPath)assets/textures/skybox;$(OutputPath)Resources;$(OutputPath)libs" />
     </Target>
 
     <Target Name="CopyGameScriptSdk" AfterTargets="Build">
         <PropertyGroup>
-            <_SdkStaging>$(MSBuildThisFileDirectory)..\artifacts\GameScriptSdk\$(Configuration)\$(TargetFramework)\</_SdkStaging>
+            <_SdkStaging>$(MSBuildThisFileDirectory)..\artifacts\GameScriptSdk\$(Configuration)\net10.0\</_SdkStaging>
             <_SdkDest>$(OutputPath)Data\GameScriptSdk\</_SdkDest>
         </PropertyGroup>
         <MakeDir Directories="$(_SdkDest)" />
         <ItemGroup>
             <_SdkFiles Include="$(_SdkStaging)*.dll;$(_SdkStaging)*.pdb" Condition="Exists('$(_SdkStaging)')" />
         </ItemGroup>
-        <Copy SourceFiles="@(_SdkFiles)" DestinationFolder="$(_SdkDest)" SkipUnchangedFiles="true"
-              Condition="'@(_SdkFiles)' != ''" />
+        <Copy SourceFiles="@(_SdkFiles)" DestinationFolder="$(_SdkDest)" SkipUnchangedFiles="true" Condition="'@(_SdkFiles)' != ''" />
     </Target>
 
     <!-- Copy OpenAL Soft on Windows from NuGet runtimes folder to output root -->
@@ -47,8 +58,7 @@
         <PropertyGroup>
             <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
         </PropertyGroup>
-        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled."
-                 Condition="!Exists('$(OpenALNativePath)')" />
+        <Warning Text="OpenAL Soft NuGet DLL not found - audio will be disabled." Condition="!Exists('$(OpenALNativePath)')" />
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 
@@ -64,12 +74,9 @@
             <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86)')">$(OpenALSoftPathX86)</OpenALSoftPath>
             <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86Lib)')">$(OpenALSoftPathX86Lib)</OpenALSoftPath>
         </PropertyGroup>
-        <Warning Text="OpenAL Soft not found - audio effects will be disabled. Run: brew install openal-soft"
-                 Condition="'$(OpenALSoftPath)' == ''" />
-        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFolder="$(OutputPath)"
-              Condition="'$(OpenALSoftPath)' != ''" />
-        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFiles="$(OutputPath)libopenal.dylib"
-              Condition="'$(OpenALSoftPath)' != ''" />
+        <Warning Text="OpenAL Soft not found - audio effects will be disabled. Run: brew install openal-soft" Condition="'$(OpenALSoftPath)' == ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFolder="$(OutputPath)" Condition="'$(OpenALSoftPath)' != ''" />
+        <Copy SourceFiles="$(OpenALSoftPath)" DestinationFiles="$(OutputPath)libopenal.dylib" Condition="'$(OpenALSoftPath)' != ''" />
     </Target>
 
 </Project>

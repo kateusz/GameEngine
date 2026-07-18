@@ -14,4 +14,8 @@
         <ProjectReference Include="..\..\SceneComponents\SceneComponents.csproj" />
         <ProjectReference Include="..\..\Scripting\Scripting.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="assets\" />
+    </ItemGroup>
 </Project>

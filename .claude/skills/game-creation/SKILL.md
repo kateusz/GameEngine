@@ -1,11 +1,11 @@
 ---
 name: game-creation
-description: Guardrails and workflow for creating games on this engine using sample patterns (Snake, TicTacToe), scripting tiers, project layout, and readiness limits. Use when scaffolding a new game, adding gameplay scripts/systems/components under games/ or assets/scripts/, publishing a game, or when the user asks how to build a game with the engine.
+description: Guardrails and workflow for creating games on this engine using sample patterns (Snake, FlappyBird), scripting tiers, project layout, and readiness limits. Use when scaffolding a new game, adding gameplay scripts/systems/components under games/ or assets/scripts/, publishing a game, or when the user asks how to build a game with the engine.
 ---
 
 # Game Creation
 
-Create **small 2D games** the way `games/Snake` and `games/TicTacToe` do — not like Unity/Godot full-stack projects.
+Create **small 2D games** the way `games/Snake` and `games/FlappyBird` do — not like Unity/Godot full-stack projects.
 
 **Hard gate:** Before scaffolding or writing gameplay code, run the [feasibility check](#0-feasibility-check). If the design needs a missing capability, stop and redesign or defer.
 
@@ -31,7 +31,7 @@ For **engine** features (new built-in components, editor panels), use `component
 | Content Browser create flows | [docs/guide/editor/content-browser.md](../../../docs/guide/editor/content-browser.md) |
 | What ships today | [docs/readiness-analysis-2026-07.md](../../../docs/readiness-analysis-2026-07.md) |
 
-Canonical samples: `games/Snake/`, `games/TicTacToe/`. Sample anatomy → [reference.md](reference.md).
+Canonical samples: `games/Snake/`, `games/FlappyBird/`. Sample anatomy → [reference.md](reference.md).
 
 ---
 
@@ -49,9 +49,9 @@ Engine is ~70% ready for small **2D** prototypes. Confirm the design fits:
 | OpenAL one-shots / spatial audio | — |
 | Publish via editor (`game.config.json`) | Assume undo/redo or asset GUIDs |
 
-**UI rule:** No ImGui in published games. Fake UI with sprites/quads (see Snake `SyncBanners`, TicTacToe `SyncGameOverBanner`). Do not invent a UI framework in the game project.
+**UI rule:** No ImGui in published games. Fake UI with sprites/quads (see Snake `SyncBanners`). Do not invent a UI framework in the game project.
 
-If blocked, say so and propose a Snake/TicTacToe-shaped redesign.
+If blocked, say so and propose a Snake/FlappyBird-shaped redesign.
 
 ---
 
@@ -107,13 +107,13 @@ From [scripting-tiers.md](../../../docs/guide/scripting/scripting-tiers.md):
 3. Scripts are thin glue; systems own gameplay.
 4. Create via Content Browser on `assets/scripts/`: **Add Component / Add System / Add Script** (templates).
 
-### Pattern A — system owns input (Snake)
+### Pattern A — system owns input (Snake / FlappyBird)
 
-`SnakeGameComponent` = state · `SnakeSystem` = input + tick + `SyncCellVisuals` / banners · inject `IContext`, `IKeyboardInput`, `IAudio`.
+`SnakeGameComponent` = state · `SnakeSystem` = input + tick + `SyncCellVisuals` / banners · inject `IContext`, `IKeyboardInput`, `IAudio`. Same shape in FlappyBird (`FlappyBirdGameComponent` + `FlappyBirdSystem`).
 
-### Pattern B — script mailbox + system rules (TicTacToe)
+### Pattern B — script mailbox + system rules
 
-`GameControllerScript` sets `PendingCellIndex` / `ResetRequested` · `TicTacToeSystem` consumes mailboxes and syncs sprites.
+Thin `ScriptableEntity` writes intent flags/mailboxes on a component · `IGameSystem` consumes them and syncs visuals. Prefer this when one entity should own input callbacks.
 
 Pick one; do not scatter the same rule in both.
 

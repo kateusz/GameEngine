@@ -71,9 +71,6 @@ public class RecentProjectsPanel(
             return;
         }
 
-        ImGui.Text("Recent Projects:");
-        ImGui.Spacing();
-
         var availableHeight = ImGui.GetContentRegionAvail().Y - 140;
 
         if (ImGui.BeginChild("ProjectsList", new Vector2(0, availableHeight), ImGuiChildFlags.Border))
@@ -149,10 +146,8 @@ public class RecentProjectsPanel(
             return;
         }
 
-        _pendingOpenPath = project.Path;
+        QueueOpenProjectByPath(project.Path);
         _loadingProjectName = project.Name;
-        _loadingSpinnerRotation = 0.0f;
-        _isLoading = true;
     }
 
     private void ProcessPendingOpen(string path)
@@ -193,10 +188,34 @@ public class RecentProjectsPanel(
 
         ImGui.SameLine();
 
+        ButtonDrawer.DrawModalButton("Open Project", OpenProject, buttonWidth, 20);
+
         ButtonDrawer.DrawModalButton("Continue Without Project", () =>
         {
             _isOpen = false;
-        }, buttonWidth, 20);
+        }, ImGui.GetContentRegionAvail().X, 20);
+    }
+
+    private void OpenProject()
+    {
+        if (newProjectPopup.ShowOpenProjectPopup())
+            _isOpen = false;
+        else if (!OperatingSystem.IsWindows())
+            _isOpen = false;
+    }
+
+    private void QueueOpenProjectByPath(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            Logger.Warning("Project directory not found: {Path}", path);
+            return;
+        }
+
+        _pendingOpenPath = path;
+        _loadingProjectName = Path.GetFileName(path);
+        _loadingSpinnerRotation = 0.0f;
+        _isLoading = true;
     }
 
     private void DrawLoadingOverlay()

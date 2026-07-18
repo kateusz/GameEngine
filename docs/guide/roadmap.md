@@ -11,7 +11,7 @@ Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026
 
 | Milestone | Goal | Exit criteria |
 |-----------|------|---------------|
-| **M0 — Today** | Internal prototyping | Snake + TicTacToe run in editor and publish |
+| **M0 — Today** | Internal prototyping | Snake + FlappyBird run in editor and publish |
 | **M1 — Alpha foundations** | Remove top mechanics blockers | Raycasting, sort layers, circle collider, publish smoke test |
 | **M2 — Editor safety** | Safe content iteration | Undo/redo for transform, delete, component add/remove |
 | **M3 — Runtime UI MVP** | Menus and HUD without quad hacks | Canvas + Label + Button + screen-space layout |
@@ -163,7 +163,7 @@ P1 (undo) can run in parallel with late P0 / early P2 if staffed.
 | Script hot-reload | Edit script → see change in play mode |
 | Menu-driven game | Possible without custom quad UI code |
 | Test suite | 523 unit tests green; publish smoke test in CI |
-| Known crash on publish | 0 in Snake/TicTacToe template publish |
+| Known crash on publish | 0 in Snake/FlappyBird template publish |
 
 ---
 

@@ -34,7 +34,7 @@ cd Editor && dotnet run
 
 The editor window will open. From there you can create a new project, add entities to a scene, attach components, and run the game directly inside the editor viewport.
 
-Sample games live under `games/` (Snake, Tic Tac Toe, Flappy Bird). Open one via **Open Project** and select its `project/` folder.
+Sample games live under `games/` (Snake, Flappy Bird). Open one via **Open Project** and select its `project/` folder.
 
 ## Where to Go Next
 

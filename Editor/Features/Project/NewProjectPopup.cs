@@ -1,23 +1,51 @@
 using System.Numerics;
+#if WINDOWS
+using Editor.Platform;
+#endif
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.Features.Project;
 
 public class NewProjectPopup(IProjectManager projectManager)
 {
+    private static readonly ILogger Logger = Log.ForContext<NewProjectPopup>();
+
     private bool _showNewProjectPopup;
     private bool _showOpenProjectPopup;
 
-    private string _newProjectParentPath = Environment.CurrentDirectory;
+    private string _newProjectParentPath =
+#if WINDOWS
+        string.Empty;
+#else
+        Environment.CurrentDirectory;
+#endif
     private string _newProjectName = string.Empty;
     private string _newProjectError = string.Empty;
     private string _openProjectPath = string.Empty;
     private string _openProjectError = string.Empty;
 
     public void ShowNewProjectPopup() => _showNewProjectPopup = true;
-    public void ShowOpenProjectPopup() => _showOpenProjectPopup = true;
+
+    public bool ShowOpenProjectPopup()
+    {
+#if WINDOWS
+        var path = WindowsFolderPicker.PickFolder("Select Project Folder", Environment.CurrentDirectory);
+        if (string.IsNullOrEmpty(path))
+            return false;
+
+        if (projectManager.TryOpenProject(path, out var err))
+            return true;
+
+        Logger.Warning("Failed to open project {Path}: {Error}", path, err);
+        return false;
+#else
+        _showOpenProjectPopup = true;
+        return false;
+#endif
+    }
 
     public void Render()
     {
@@ -38,15 +66,36 @@ public class NewProjectPopup(IProjectManager projectManager)
                 ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
             return;
 
-        ImGui.Text("Parent folder (project will be created inside this folder):");
+        ImGui.Text("Project name (new subfolder name):");
         if (ImGui.IsWindowAppearing())
             ImGui.SetKeyboardFocusHere();
-        ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
-
-        ImGui.Spacing();
-        ImGui.Text("Project name (new subfolder name):");
         var enterOnName = ImGui.InputText("##NewProject_Name", ref _newProjectName, EditorUIConstants.MaxNameLength,
             ImGuiInputTextFlags.EnterReturnsTrue);
+
+        ImGui.Spacing();
+
+#if WINDOWS
+        ImGui.Text("Location:");
+        var locationLabel = string.IsNullOrWhiteSpace(_newProjectParentPath)
+            ? "(no folder selected)"
+            : _newProjectParentPath;
+        TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
+
+        ImGui.Spacing();
+        if (ImGui.Button("Select Folder..."))
+        {
+            var picked = WindowsFolderPicker.PickFolder(
+                "Select Folder Where Project Will Be Created",
+                string.IsNullOrWhiteSpace(_newProjectParentPath)
+                    ? Environment.CurrentDirectory
+                    : _newProjectParentPath);
+            if (!string.IsNullOrEmpty(picked))
+                _newProjectParentPath = picked;
+        }
+#else
+        ImGui.Text("Parent folder (project will be created inside this folder):");
+        ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
+#endif
 
         ImGui.Separator();
 
@@ -134,7 +183,11 @@ public class NewProjectPopup(IProjectManager projectManager)
     private string? GetNewProjectValidationMessage()
     {
         if (string.IsNullOrWhiteSpace(_newProjectParentPath))
+#if WINDOWS
+            return "Select a folder where the project will be created.";
+#else
             return "Parent folder path is required.";
+#endif
 
         var parentFull = Path.GetFullPath(Path.IsPathRooted(_newProjectParentPath.Trim())
             ? _newProjectParentPath.Trim()

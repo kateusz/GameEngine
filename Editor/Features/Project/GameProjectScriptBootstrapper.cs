@@ -176,7 +176,7 @@ public sealed class GameProjectScriptBootstrapper : IGameProjectScriptBootstrapp
             var text = File.ReadAllText(gitignorePath);
             if (text.Contains(rule, StringComparison.Ordinal))
                 return;
-            File.AppendAllText(gitignorePath, Environment.NewLine + rule + Environment.NewLine);
+            File.AppendAllText(gitignorePath, Environment.NewLine + rule + Environment.NewLine + "Builds/");
             return;
         }
 

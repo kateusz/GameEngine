@@ -8,15 +8,14 @@
 
 **Rule:** Data in components, glue in scripts, batch logic in systems.
 
-## TicTacToe pattern
+## Snake pattern
 
 ```
-BoardComponent / CellComponent  →  board state
-GameControllerScript            →  OnKeyPressed → writes PendingCellIndex / ResetRequested
-TicTacToeSystem                 →  rules, visuals, win detection
+SnakeGameComponent / GridCellComponent  →  game state
+SnakeSystem                             →  input, tick, visuals, audio
 ```
 
-For keyboard polling in a system instead of script callbacks, see `SnakeSystem` (`IKeyboardInput.WasKeyPressed`).
+For per-entity input callbacks instead of system polling, use a thin `ScriptableEntity` that writes intent flags onto a component; keep batch rules in an `IGameSystem`.
 
 ## Components
 

@@ -135,10 +135,11 @@ public class PublishSettingsUI(
         if (_publishProgress == null)
             return;
 
-        ImGui.SetNextWindowSize(EditorUIConstants.PublishProgressModalSize, ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(EditorUIConstants.PublishProgressModalSize, ImGuiCond.Appearing);
 
         var isOpen = true;
-        if (ModalDrawer.BeginCenteredModal("Publishing Game...", ref isOpen, ImGuiWindowFlags.NoResize))
+        if (ModalDrawer.BeginCenteredModal("Publishing Game...", ref isOpen,
+                ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
         {
             ImGui.Spacing();
             ImGui.TextWrapped(_publishProgress.CurrentStep);
@@ -147,7 +148,7 @@ public class PublishSettingsUI(
             ImGui.Spacing();
             LayoutDrawer.DrawSeparatorWithSpacing();
 
-            RenderBuildOutput(_publishProgress.BuildOutput);
+            RenderBuildOutput(_publishProgress.BuildOutput, !_publishProgress.IsComplete);
 
             LayoutDrawer.DrawSeparatorWithSpacing();
             RenderProgressButtons(_publishProgress.IsComplete, _publishProgress.HasError);
@@ -162,7 +163,7 @@ public class PublishSettingsUI(
         }
     }
 
-    private static void RenderBuildOutput(IEnumerable<string> lines)
+    private static void RenderBuildOutput(IEnumerable<string> lines, bool autoScroll)
     {
         ImGui.Text("Build Output:");
         ImGui.BeginChild("BuildOutput", new System.Numerics.Vector2(0, 250), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar);
@@ -173,8 +174,8 @@ public class PublishSettingsUI(
             else
                 ImGui.TextWrapped(line);
         }
-        if (ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
-            ImGui.SetScrollHereY(1.0f);
+        if (autoScroll)
+            ImGui.SetScrollY(ImGui.GetScrollMaxY());
         ImGui.EndChild();
     }
 

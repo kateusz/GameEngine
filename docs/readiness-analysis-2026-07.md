@@ -5,7 +5,7 @@
 
 **Stack (verified):** .NET 10, Silk.NET, OpenGL 3.3+, ECS, Box2D, OpenAL, Roslyn scripting, DryIoc, ImGui editor.
 
-**Evidence base:** ~313 C# source files, 19 projects, **520 passing unit tests** (434 `Engine.Tests` + 86 `ECS.Tests`), two sample games (`Snake`, `TicTacToe`), cross-checked against [pareto-analysis-missing-features.md](pareto-analysis-missing-features.md).
+**Evidence base:** ~313 C# source files, 19 projects, **520 passing unit tests** (434 `Engine.Tests` + 86 `ECS.Tests`), sample games (`Snake`, `FlappyBird`), cross-checked against [pareto-analysis-missing-features.md](pareto-analysis-missing-features.md).
 
 **Overall verdict:** ~**68–72% ready for 2D alpha**. Strong ECS, 2D rendering, scripting, editor shell, and publish pipeline. The remaining ~30% clusters around **runtime UI**, **physics queries**, **entity hierarchy**, and **editor workflow polish** — these dominate alpha risk, not 3D mesh import or navmesh.
 
@@ -31,7 +31,7 @@
 | **Runtime player** | Standalone `Runtime` project loads config + scene | `Runtime/Program.cs` |
 | **DI / platform** | DryIoc, Silk.NET windowing, `IRendererAPI` abstraction | `EngineIoCContainer.cs`, `OpenGLRendererApi.cs` |
 | **Testing** | 520 unit tests on ECS + engine logic; benchmarks | `tests/Engine.Tests/`, `tests/ECS.Tests/` |
-| **Sample games** | Snake (grid + audio + `IGameSystem`), TicTacToe | `games/Snake/`, `games/TicTacToe/` |
+| **Sample games** | Snake (grid + audio + `IGameSystem`), FlappyBird | `games/Snake/`, `games/FlappyBird/` |
 
 **Confirmed absent:** runtime UI, physics raycasting/queries, entity parent/child hierarchy, particles, tilemaps, extra collider shapes, gamepad, undo/redo, asset GUID database, 3D mesh import, editor automated tests, crash reporting.
 
@@ -89,7 +89,7 @@ These ~8 gaps account for most remaining schedule risk and blocker surface area:
 
 ### 1. Runtime UI (largest)
 
-`Ui.ImGui` is editor-only. Snake/TicTacToe work around this by rendering colored quads as "UI" (`SnakeSystem.SyncBanners`). That pattern does not scale to buttons, text input, or responsive layouts. **Every alpha game with a main menu is blocked** unless you hand-roll quad UI per project.
+`Ui.ImGui` is editor-only. Snake/FlappyBird work around this by rendering colored quads/sprites as "UI" (`SnakeSystem.SyncBanners`). That pattern does not scale to buttons, text input, or responsive layouts. **Every alpha game with a main menu is blocked** unless you hand-roll quad UI per project.
 
 ### 2. Physics raycasting
 
@@ -197,7 +197,7 @@ Publish pipeline
 Editor core
 ```
 
-**Bottom line:** You can prototype and publish small 2D games today (Snake/TicTacToe prove it). For a **public alpha** where strangers build content in the editor and download standalone builds, invest first in **runtime UI**, **physics queries**, and **hierarchy** — that triad is ~80% of functional risk. Pair with **undo/redo** and **publish smoke tests** for the hidden 20% that determines whether alpha feels professional or fragile.
+**Bottom line:** You can prototype and publish small 2D games today (Snake/FlappyBird prove it). For a **public alpha** where strangers build content in the editor and download standalone builds, invest first in **runtime UI**, **physics queries**, and **hierarchy** — that triad is ~80% of functional risk. Pair with **undo/redo** and **publish smoke tests** for the hidden 20% that determines whether alpha feels professional or fragile.
 
 ---
 

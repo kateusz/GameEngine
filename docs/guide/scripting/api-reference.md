@@ -21,8 +21,6 @@ Attach via `NativeScriptComponent.ScriptTypeName` = class name (e.g. `MyScript`)
 |--------|-------------|
 | `bool IsInitialized` | `true` after the engine calls `SetEntity` on first play frame |
 
-Example: [`GameControllerScript`](../../../games/TicTacToe/project/assets/scripts/GameControllerScript.cs) (input → `BoardComponent` fields).
-
 ## Lifecycle
 
 | Method | When |

@@ -1,3 +1,4 @@
+using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Scripting;
 using Engine.Core;
@@ -9,7 +10,8 @@ public class ProjectManager(
     IEditorPreferences editorPreferences,
     IProjectContext projectContext,
     GameScriptWorkspace scriptWorkspace,
-    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper)
+    IGameProjectScriptBootstrapper gameProjectScriptBootstrapper,
+    ISceneManager sceneManager)
     : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
@@ -96,8 +98,12 @@ public class ProjectManager(
             ApplyProjectPaths(projectDir);
             InitializeScripts();
 
-            Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", projectName, projectDir);
-            editorPreferences.AddRecentProject(projectDir, projectName.Trim());
+            var name = projectName.Trim();
+            sceneManager.New(name);
+            sceneManager.Save();
+
+            Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", name, projectDir);
+            editorPreferences.AddRecentProject(projectDir, name);
             return true;
         }
         catch (Exception ex)
