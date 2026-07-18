@@ -3,6 +3,7 @@ using ECS;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
+using Editor.Features.Viewport.Gizmos;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Core.Window;
@@ -250,6 +251,7 @@ public sealed class EditorViewport(
                         camera);
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
+                    CameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera, textureFactory);
                 }
                 break;
             case SceneState.Play:
