@@ -2,6 +2,9 @@
 
 A modern, component-based game engine built with C# and .NET 10, featuring a comprehensive editor, hot-reloadable scripting system, and 2D game development support.
 
+<img width="2536" height="1322" alt="image" src="https://github.com/user-attachments/assets/6587c9de-8d17-4457-baf3-e65ae7b97dbc" />
+
+
 ## ✨ Features
 
 ### 🎮 Core Engine
