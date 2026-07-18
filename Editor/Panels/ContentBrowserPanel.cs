@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Engine.Core;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Editor.UI.Elements;
 using Engine.Renderer.Textures;
 using Engine.Scripting;
 using ImGuiNET;
@@ -356,11 +357,6 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         ImGui.Columns(1);
     }
 
-    private static bool IsModelFile(string filename) =>
-        filename.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase) ||
-        filename.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase) ||
-        filename.EndsWith(".glb", StringComparison.OrdinalIgnoreCase);
-
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
     {
         if (isDirectory)
@@ -408,7 +404,7 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         }
         else if (isDirectory)
             TextDrawer.DrawInfoText("Type: Directory");
-        else if (IsModelFile(filename))
+        else if (MeshDropTarget.IsSupported(filename))
             TextDrawer.DrawInfoText("Type: Model");
         else
             TextDrawer.DrawInfoText($"Type: {Path.GetExtension(filename)}");

@@ -56,56 +56,7 @@ public class MeshMaterialTests
         material.Roughness.ShouldBe(0.5f);
         material.HasAlbedoMap.ShouldBeFalse();
         material.HasMetallicRoughnessMap.ShouldBeFalse();
-        material.HasSpecularMap.ShouldBeFalse();
         material.HasNormalMap.ShouldBeFalse();
-    }
-}
-
-public class ModelTexturePathResolverTests
-{
-    [Fact]
-    public void ResolveSpecularSibling_WhenFileExists_ShouldReturnSpecularPath()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "ge-specular-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var albedo = Path.Combine(dir, "Foo_BaseColor.dds");
-            var specular = Path.Combine(dir, "Foo_Specular.dds");
-            System.IO.File.WriteAllText(albedo, "albedo");
-            System.IO.File.WriteAllText(specular, "specular");
-
-            ModelTexturePathResolver.ResolveSpecularSibling(albedo).ShouldBe(specular);
-        }
-        finally
-        {
-            Directory.Delete(dir, recursive: true);
-        }
-    }
-
-    [Fact]
-    public void ResolveSpecularSibling_WhenMissing_ShouldReturnNull()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "ge-specular-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var albedo = Path.Combine(dir, "Foo_BaseColor.dds");
-            System.IO.File.WriteAllText(albedo, "albedo");
-
-            ModelTexturePathResolver.ResolveSpecularSibling(albedo).ShouldBeNull();
-        }
-        finally
-        {
-            Directory.Delete(dir, recursive: true);
-        }
-    }
-
-    [Fact]
-    public void ResolveSpecularSibling_WhenNoBaseColorSuffix_ShouldReturnNull()
-    {
-        ModelTexturePathResolver.ResolveSpecularSibling("Foo.dds").ShouldBeNull();
-        ModelTexturePathResolver.ResolveSpecularSibling(null).ShouldBeNull();
     }
 }
 

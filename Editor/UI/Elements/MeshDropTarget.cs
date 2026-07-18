@@ -5,7 +5,10 @@ namespace Editor.UI.Elements;
 
 public static class MeshDropTarget
 {
-    private static readonly string[] SupportedExtensions = [".fbx", ".gltf", ".glb"];
+    public static readonly string[] SupportedExtensions = [".fbx", ".gltf", ".glb"];
+
+    public static bool IsSupported(string filename) =>
+        SupportedExtensions.Any(ext => filename.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
     public static void Draw(string label, Action<string> onModelPathChanged, string? currentModelPath = null)
     {
@@ -20,18 +23,7 @@ public static class MeshDropTarget
             DragDropDrawer.HandleFileDropTarget(
                 DragDropDrawer.ContentBrowserItemPayload,
                 path => DragDropDrawer.IsValidFile(PathBuilder.Resolve(path), SupportedExtensions),
-                path => onModelPathChanged(ToAssetRelativePath(path)));
+                path => onModelPathChanged(PathBuilder.ToAssetRelativePath(path)));
         });
-    }
-
-    private static string ToAssetRelativePath(string path)
-    {
-        var resolved = PathBuilder.Resolve(path);
-        var assetsPath = Path.GetFullPath(PathBuilder.AssetsPath);
-        var relative = Path.GetRelativePath(assetsPath, resolved);
-        if (!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative))
-            return relative.Replace('\\', '/');
-
-        return path.Replace('\\', '/');
     }
 }

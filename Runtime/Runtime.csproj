@@ -21,12 +21,6 @@
         <None Update="assets\shaders\OpenGL\flatColorShader.vert">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="assets\shaders\OpenGL\hdrTonemap.frag">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="assets\shaders\OpenGL\hdrTonemap.vert">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
         <None Update="assets\shaders\OpenGL\lightCubeShader.frag">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>

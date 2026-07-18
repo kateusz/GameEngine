@@ -28,12 +28,16 @@ public interface ITextureFactory
 
     /// <summary>
     /// Creates or retrieves a cached texture from the specified file path.
-    /// Returns a cached instance when the same path was loaded before.
+    /// Returns a cached instance when the same path+colorspace was loaded before.
     /// The factory owns cached textures and disposes them via <see cref="ClearCache"/> or container shutdown.
     /// </summary>
     /// <param name="path">The file path to the texture resource.</param>
+    /// <param name="sRgb">
+    /// When true, upload as sRGB (albedo/base color). When false, upload as linear
+    /// (metallic-roughness, normals, AO, data maps).
+    /// </param>
     /// <returns>A texture instance, either from cache or newly created.</returns>
-    Texture2D Create(string path);
+    Texture2D Create(string path, bool sRgb = false);
 
     /// <summary>
     /// Creates a new procedural texture with the specified dimensions.

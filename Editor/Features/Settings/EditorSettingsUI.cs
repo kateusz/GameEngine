@@ -62,6 +62,4 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
     /// Gets the current background color from preferences.
     /// </summary>
     public Vector4 GetBackgroundColor() => editorPreferences.BackgroundColor;
-
-    public float GetHdrExposure() => editorPreferences.HdrExposure;
 }

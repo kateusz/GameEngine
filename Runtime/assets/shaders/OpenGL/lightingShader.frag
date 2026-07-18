@@ -21,11 +21,9 @@ uniform float u_Roughness;
 uniform int u_HasAlbedoMap;
 uniform int u_HasMetallicRoughnessMap;
 uniform int u_HasNormalMap;
-uniform int u_HasSpecularMap;
 uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_MetallicRoughnessMap;
 uniform sampler2D u_NormalMap;
-uniform sampler2D u_SpecularMap;
 
 const float PI = 3.14159265359;
 
@@ -81,15 +79,8 @@ void main()
     if (u_HasMetallicRoughnessMap != 0)
     {
         vec3 mr = texture(u_MetallicRoughnessMap, v_TexCoord).rgb;
-        roughness = mr.g;
-        metallic = mr.b;
-    }
-    else if (u_HasSpecularMap != 0)
-    {
-        // ponytail: Lumberyard Bistro _Specular.dds is packed R=AO, G=roughness, B=metalness
-        vec3 spec = texture(u_SpecularMap, v_TexCoord).rgb;
-        roughness = spec.g;
-        metallic = spec.b;
+        roughness *= mr.g;
+        metallic *= mr.b;
     }
     roughness = clamp(roughness, 0.04, 1.0);
     metallic = clamp(metallic, 0.0, 1.0);
@@ -108,12 +99,12 @@ void main()
 
     vec3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
     vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
-    // ponytail: no /PI — scene lights are artistic units tuned for forward shading without HDR/IBL
-    vec3 diffuse = kd * albedo;
+    vec3 diffuse = kd * albedo / PI;
 
-    // ponytail: no metallic ambient kill until IBL exists; metals go black otherwise
-    vec3 ambient = strength * lightColor * albedo;
-    vec3 color = ambient + (diffuse + specular) * u_LightColor * NdotL;
+    // Metals have no diffuse ambient; IBL specular is out of scope for now.
+    vec3 ambient = strength * lightColor * albedo * (1.0 - metallic);
+    vec3 radiance = u_LightColor * PI;
+    vec3 color = ambient + (diffuse + specular) * radiance * NdotL;
 
     o_Color = vec4(color, u_Color.a);
     o_EntityID = u_EntityID;

@@ -74,15 +74,7 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             {
                 try
                 {
-                    ResolveMaterialTextures(submesh.Material, submesh.Mesh.Name);
-                    Logger.Debug(
-                        "PBR textures bound path={Path} mesh={MeshName} " +
-                        "albedoBound={AlbedoBound} mrBound={MrBound} specularBound={SpecularBound} normalBound={NormalBound} " +
-                        "metallic={Metallic:F3} roughness={Roughness:F3}",
-                        normalizedPath, submesh.Mesh.Name,
-                        submesh.Material.HasAlbedoMap, submesh.Material.HasMetallicRoughnessMap,
-                        submesh.Material.HasSpecularMap, submesh.Material.HasNormalMap,
-                        submesh.Material.Metallic, submesh.Material.Roughness);
+                    ResolveMaterialTextures(submesh.Material);
                     submesh.Mesh.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
                     initialized.Add(submesh);
                 }
@@ -105,19 +97,6 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             {
                 _cache[normalizedPath] = model;
             }
-
-            var withAlbedo = initialized.Count(s => s.Material.HasAlbedoMap);
-            var withMr = initialized.Count(s => s.Material.HasMetallicRoughnessMap);
-            var withSpecular = initialized.Count(s => s.Material.HasSpecularMap);
-            var withNormal = initialized.Count(s => s.Material.HasNormalMap);
-            var pbrReady = initialized.Count(s =>
-                s.Material.HasAlbedoMap &&
-                (s.Material.HasMetallicRoughnessMap || s.Material.HasSpecularMap) &&
-                s.Material.HasNormalMap);
-            Logger.Debug(
-                "PBR model loaded path={Path} submeshes={SubmeshCount} pbrReadySubmeshes={PbrReady} " +
-                "withAlbedoMap={WithAlbedo} withMetallicRoughnessMap={WithMr} withSpecularMap={WithSpecular} withNormalMap={WithNormal}",
-                normalizedPath, initialized.Count, pbrReady, withAlbedo, withMr, withSpecular, withNormal);
 
             return model;
         }
@@ -145,37 +124,21 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void ResolveMaterialTextures(MeshMaterial material, string meshName)
+    private void ResolveMaterialTextures(MeshMaterial material)
     {
-        material.AlbedoTexture = LoadTextureSlot("albedo", meshName, material.AlbedoTexturePath);
-        material.MetallicRoughnessTexture = LoadTextureSlot("metallicRoughness", meshName, material.MetallicRoughnessTexturePath);
-        material.NormalTexture = LoadTextureSlot("normal", meshName, material.NormalTexturePath);
-        material.SpecularTexture = LoadTextureSlot("specular", meshName, material.SpecularTexturePath);
+        material.AlbedoTexture = LoadTexture(material.AlbedoTexturePath, sRgb: true);
+        material.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessTexturePath);
+        material.NormalTexture = LoadTexture(material.NormalTexturePath);
     }
 
-    private Texture2D? LoadTextureSlot(string slot, string meshName, string? path)
-    {
-        if (string.IsNullOrEmpty(path))
-        {
-            Logger.Debug("PBR texture skipped slot={Slot} mesh={MeshName} reason=noPath", slot, meshName);
-            return null;
-        }
-
-        var texture = LoadTexture(path);
-        Logger.Debug(
-            "PBR texture loaded slot={Slot} mesh={MeshName} path={Path} success={Success}",
-            slot, meshName, path, texture != null);
-        return texture;
-    }
-
-    private Texture2D? LoadTexture(string? path)
+    private Texture2D? LoadTexture(string? path, bool sRgb = false)
     {
         if (string.IsNullOrEmpty(path))
             return null;
 
         try
         {
-            return _textureFactory.Create(path);
+            return _textureFactory.Create(path, sRgb);
         }
         catch (Exception ex)
         {

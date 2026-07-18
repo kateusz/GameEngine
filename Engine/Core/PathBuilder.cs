@@ -32,6 +32,16 @@ public static class PathBuilder
         return Path.GetFullPath(Path.Combine(AssetsPath, path));
     }
 
+    public static string ToAssetRelativePath(string path)
+    {
+        var resolved = Resolve(path);
+        var relative = Path.GetRelativePath(Path.GetFullPath(AssetsPath), resolved);
+        if (!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative))
+            return relative.Replace('\\', '/');
+
+        return path.Replace('\\', '/');
+    }
+
     private static string NormalizeSlashes(string path)
     {
         if (OSInfo.IsWindows)

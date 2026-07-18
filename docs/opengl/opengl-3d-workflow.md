@@ -155,7 +155,7 @@ Normal matrix: transpose of inverse model matrix (`Graphics3D.ComputeNormalMatri
 
 **Files**: `assets/shaders/OpenGL/lightingShader.vert`, `.frag`
 
-- Samplers: `u_AlbedoMap` (0), `u_MetallicRoughnessMap` (1), `u_NormalMap` (2), `u_SpecularMap` (3)
+- Samplers: `u_AlbedoMap` (0), `u_MetallicRoughnessMap` (1), `u_NormalMap` (2)
 - Uniforms: `u_Metallic`, `u_Roughness`, `u_Color` tint, light + view position
 - Has-map flags select textures vs white / flat-normal fallbacks
 - Metal/rough BRDF under the directional light; ambient fill dampened for metals

@@ -43,19 +43,8 @@ public static class TextureDropTarget
                 {
                     var texturePath = PathBuilder.Resolve(path);
                     textureFactory.Create(texturePath);
-                    onTexturePathChanged(ToAssetRelativePath(path));
+                    onTexturePathChanged(PathBuilder.ToAssetRelativePath(path));
                 });
         });
-    }
-
-    private static string ToAssetRelativePath(string path)
-    {
-        var fullPath = Path.GetFullPath(path);
-        var assetsPath = Path.GetFullPath(PathBuilder.AssetsPath);
-        var relative = Path.GetRelativePath(assetsPath, fullPath);
-        if (!relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative))
-            return relative.Replace('\\', '/');
-
-        return path.Replace('\\', '/');
     }
 }

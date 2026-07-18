@@ -9,6 +9,7 @@ public interface IRendererAPI
     void Clear();
     void BindTexture2D(uint textureId, int slot = 0);
     void DrawIndexed(IVertexArray vertexArray, uint count);
+    void DrawArrays(IVertexArray vertexArray, uint vertexCount);
     void DrawLines(IVertexArray vertexArray, uint vertexCount);
     void SetLineWidth(float width);
     void SetDepthTest(bool enabled);

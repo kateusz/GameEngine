@@ -44,14 +44,7 @@ public class RecentProjectsPanel(
         if (ImGui.Begin("Recent Projects", ref _isOpen, windowFlags))
         {
             if (_isLoading)
-            {
-                LoadingOverlayDrawer.Draw(
-                    ImGui.GetWindowDrawList(),
-                    ImGui.GetWindowPos(),
-                    ImGui.GetWindowSize(),
-                    ref _loadingSpinnerRotation,
-                    $"Loading {_loadingProjectName}...");
-            }
+                DrawLoadingOverlay();
             else
             {
                 DrawRecentProjects();
@@ -204,6 +197,50 @@ public class RecentProjectsPanel(
         {
             _isOpen = false;
         }, buttonWidth, 20);
+    }
+
+    private void DrawLoadingOverlay()
+    {
+        var windowSize = ImGui.GetWindowSize();
+        var windowPos = ImGui.GetWindowPos();
+        var drawList = ImGui.GetWindowDrawList();
+
+        drawList.AddRectFilled(
+            windowPos,
+            windowPos + windowSize,
+            ImGui.GetColorU32(new Vector4(0.0f, 0.0f, 0.0f, 0.5f)));
+
+        var center = windowPos + windowSize * 0.5f;
+        _loadingSpinnerRotation += ImGui.GetIO().DeltaTime * 3.0f;
+
+        const float spinnerRadius = 30.0f;
+        const int segments = 12;
+        const float thickness = 4.0f;
+
+        for (var i = 0; i < segments; i++)
+        {
+            var angle = (_loadingSpinnerRotation + (i * MathF.PI * 2.0f / segments)) % (MathF.PI * 2.0f);
+            var alpha = 1.0f - (i / (float)segments);
+
+            drawList.PathArcTo(
+                center,
+                spinnerRadius,
+                angle,
+                angle + (MathF.PI * 2.0f / segments * 0.8f),
+                10);
+
+            drawList.PathStroke(
+                ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, alpha)),
+                0,
+                thickness);
+        }
+
+        var loadingText = $"Loading {_loadingProjectName}...";
+        var textSize = ImGui.CalcTextSize(loadingText);
+        drawList.AddText(
+            new Vector2(center.X - textSize.X * 0.5f, center.Y + spinnerRadius + 20),
+            ImGui.GetColorU32(new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+            loadingText);
     }
 
     private static string GetTimeAgoString(DateTime timestamp)

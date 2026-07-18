@@ -95,7 +95,7 @@ For each material slot:
 if PBR metal/rough present:
   albedo map ← base color texture
   albedo factor ← base color factor (bake into tint default or store if you add a factor field)
-  MR map ← metallic-roughness texture
+  MR map ← metallic-roughness texture, or Assimp specular slot, or Bistro `_BaseColor` → `_Specular` sibling (packed G=roughness, B=metallic)
   metallic ← metallic factor
   roughness ← roughness factor
   normal ← normal map (existing path)

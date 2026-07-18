@@ -28,7 +28,9 @@ public sealed class EditorViewport(
     IModelFactory modelFactory,
     DebugSettings debugSettings,
     EditorSettingsUI editorSettingsUI,
+    IEditorPreferences editorPreferences,
     IFrameBufferFactory frameBufferFactory,
+    HdrTonemapPass hdrTonemapPass,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
@@ -39,6 +41,7 @@ public sealed class EditorViewport(
 
     private EditorCamera _editorCamera = null!;
     private IFrameBuffer _frameBuffer = null!;
+    private IFrameBuffer _sdrFrameBuffer = null!;
     private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
     private readonly Dictionary<int, Entity> _entityById = [];
@@ -58,6 +61,14 @@ public sealed class EditorViewport(
         _editorCamera = new EditorCamera();
         cameraController.SetCamera(_editorCamera);
         _frameBuffer = frameBufferFactory.Create();
+        _sdrFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
+            DisplayConfig.DefaultEditorViewportWidth,
+            DisplayConfig.DefaultEditorViewportHeight)
+        {
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8),
+            ])
+        });
         _contentScale = contentScaleProvider.ContentScale;
 
         if (sceneContext.ActiveScene is not null)
@@ -68,6 +79,7 @@ public sealed class EditorViewport(
     {
         sceneContext.SceneChanged -= _sceneChangedHandler;
         _frameBuffer?.Dispose();
+        _sdrFrameBuffer?.Dispose();
     }
 
     public void LayoutAndRender(TimeSpan deltaTime)
@@ -85,7 +97,12 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var texturePointer = new IntPtr(_frameBuffer.GetColorAttachmentRendererId());
+        hdrTonemapPass.Apply(
+            _frameBuffer.GetColorAttachmentRendererId(),
+            _sdrFrameBuffer,
+            editorPreferences.HdrExposure);
+
+        var texturePointer = new IntPtr(_sdrFrameBuffer.GetColorAttachmentRendererId());
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();
@@ -166,6 +183,7 @@ public sealed class EditorViewport(
             return;
 
         _frameBuffer.Resize(fbWidth, fbHeight);
+        _sdrFrameBuffer.Resize(fbWidth, fbHeight);
         _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
         sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
     }

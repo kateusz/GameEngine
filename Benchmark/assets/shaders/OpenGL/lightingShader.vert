@@ -26,9 +26,17 @@ void main()
     v_EntityID = a_EntityID;
 
     vec3 T = normalize(a_Tangent * mat3(u_NormalMatrix));
+    vec3 B = a_Bitangent * mat3(u_NormalMatrix);
     vec3 N = v_Normal;
+    // Re-orthogonalize T against N; keep Assimp B for mirrored-UV handedness.
     T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(N, T);
+    if (dot(B, B) < 1e-8)
+        B = cross(N, T);
+    else
+    {
+        B = normalize(B);
+        B = normalize(B - dot(B, N) * N - dot(B, T) * T);
+    }
     v_TBN = mat3(T, B, N);
 
     gl_Position = worldPos * u_ViewProjection;

@@ -57,19 +57,19 @@ internal sealed class OpenGLTexture2D : Texture2D
         ".dds", ".tga"
     };
 
-    public static Texture2D Create(string path)
+    public static Texture2D Create(string path, bool sRgb = false)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
         var ext = System.IO.Path.GetExtension(path);
         if (PfimExtensions.Contains(ext))
-            return CreateFromPfim(path);
+            return CreateFromPfim(path, sRgb);
 
-        return CreateFromStb(path);
+        return CreateFromStb(path, sRgb);
     }
 
-    private static Texture2D CreateFromStb(string path)
+    private static Texture2D CreateFromStb(string path, bool sRgb)
     {
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 
@@ -79,10 +79,11 @@ internal sealed class OpenGLTexture2D : Texture2D
             image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
         }
 
-        return UploadTexture(path, image.Data, image.Width, image.Height, InternalFormat.Rgba8, PixelFormat.Rgba);
+        var internalFormat = sRgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8;
+        return UploadTexture(path, image.Data, image.Width, image.Height, internalFormat, PixelFormat.Rgba);
     }
 
-    private static Texture2D CreateFromPfim(string path)
+    private static Texture2D CreateFromPfim(string path, bool sRgb)
     {
         using var pfimImage = Pfimage.FromFile(path);
         if (pfimImage.Compressed)
@@ -90,8 +91,8 @@ internal sealed class OpenGLTexture2D : Texture2D
 
         var (internalFormat, dataFormat) = pfimImage.Format switch
         {
-            Pfim.ImageFormat.Rgba32 => (InternalFormat.Rgba8, PixelFormat.Bgra),
-            Pfim.ImageFormat.Rgb24 => (InternalFormat.Rgb8, PixelFormat.Bgr),
+            Pfim.ImageFormat.Rgba32 => (sRgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8, PixelFormat.Bgra),
+            Pfim.ImageFormat.Rgb24 => (sRgb ? InternalFormat.Srgb8 : InternalFormat.Rgb8, PixelFormat.Bgr),
             Pfim.ImageFormat.R5g5b5 => (InternalFormat.Rgb5, PixelFormat.Bgr),
             Pfim.ImageFormat.R5g6b5 => (InternalFormat.Rgb565, PixelFormat.Bgr),
             Pfim.ImageFormat.R5g5b5a1 => (InternalFormat.Rgb5A1, PixelFormat.Bgra),

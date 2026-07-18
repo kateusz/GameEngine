@@ -67,23 +67,24 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
         }
     }
 
-    public Texture2D Create(string path)
+    public Texture2D Create(string path, bool sRgb = false)
     {
         // Normalize the path to ensure cache consistency across different path representations
         var normalizedPath = Path.GetFullPath(path);
+        var cacheKey = sRgb ? normalizedPath + "#srgb" : normalizedPath;
 
         lock (_cacheLock)
         {
-            if (_textureCache.TryGetValue(normalizedPath, out var cachedTexture))
+            if (_textureCache.TryGetValue(cacheKey, out var cachedTexture))
                 return cachedTexture;
 
             var texture = apiConfig.Type switch
             {
-                ApiType.SilkNet => OpenGLTexture2D.Create(path),
+                ApiType.SilkNet => OpenGLTexture2D.Create(path, sRgb),
                 _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
             };
 
-            _textureCache[normalizedPath] = texture;
+            _textureCache[cacheKey] = texture;
             return texture;
         }
     }

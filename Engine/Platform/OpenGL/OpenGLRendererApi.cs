@@ -37,6 +37,13 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "DrawElements");
     }
 
+    public void DrawArrays(IVertexArray vertexArray, uint vertexCount)
+    {
+        vertexArray.Bind();
+        SilkNetContext.GL.DrawArrays(PrimitiveType.Triangles, 0, vertexCount);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "DrawArrays(Triangles)");
+    }
+
     public void DrawLines(IVertexArray vertexArray, uint vertexCount)
     {
         vertexArray.Bind();
