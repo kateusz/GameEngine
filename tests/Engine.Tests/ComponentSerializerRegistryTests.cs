@@ -41,7 +41,9 @@ public class ComponentSerializerRegistryTests
         entity.AddComponent(new ModelRendererComponent
         {
             ModelPath = "models/crate.gltf",
-            Color = new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f)
+            Color = new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f),
+            MetallicOverride = 0.6f,
+            RoughnessOverride = 0.3f
         });
 
         var array = new JsonArray();
@@ -55,6 +57,8 @@ public class ComponentSerializerRegistryTests
         var modelRenderer = loaded.GetComponent<ModelRendererComponent>();
         modelRenderer.ModelPath.ShouldBe("models/crate.gltf");
         modelRenderer.Color.ShouldBe(new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f));
+        modelRenderer.MetallicOverride.ShouldBe(0.6f);
+        modelRenderer.RoughnessOverride.ShouldBe(0.3f);
     }
 
     [Fact]

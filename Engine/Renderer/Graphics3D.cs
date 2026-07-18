@@ -38,9 +38,10 @@ internal sealed class Graphics3D(
         _cubeMesh = meshFactory.CreateCube();
 
         _texturedShader.Bind();
-        _texturedShader.SetInt("u_DiffuseMap", 0);
-        _texturedShader.SetInt("u_SpecularMap", 1);
+        _texturedShader.SetInt("u_AlbedoMap", 0);
+        _texturedShader.SetInt("u_MetallicRoughnessMap", 1);
         _texturedShader.SetInt("u_NormalMap", 2);
+        _texturedShader.SetInt("u_SpecularMap", 3);
         _texturedShader.Unbind();
     }
 
@@ -79,21 +80,24 @@ internal sealed class Graphics3D(
         _cubeShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
     {
         var meshTransform = mesh.NodeTransform * transform;
 
         rendererApi.SetDepthTest(true);
         BindCommon(_texturedShader, meshTransform, tint, entityId);
         _texturedShader.SetFloat3("u_ViewPosition", _viewPosition);
-        _texturedShader.SetFloat("u_Shininess", material.Shininess);
-        _texturedShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
-        _texturedShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
+        _texturedShader.SetFloat("u_Metallic", System.Math.Clamp(metallic, 0f, 1f));
+        _texturedShader.SetFloat("u_Roughness", System.Math.Clamp(roughness, 0f, 1f));
+        _texturedShader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
+        _texturedShader.SetInt("u_HasMetallicRoughnessMap", material.HasMetallicRoughnessMap ? 1 : 0);
         _texturedShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
+        _texturedShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
 
-        (material.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
-        (material.SpecularTexture ?? textureFactory.GetBlackTexture()).Bind(1);
+        (material.AlbedoTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
+        (material.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
         (material.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+        (material.SpecularTexture ?? textureFactory.GetWhiteTexture()).Bind(3);
 
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());

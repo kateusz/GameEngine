@@ -20,7 +20,7 @@ Prior Assimp-based FBX work existed and was removed. The gap remains: without lo
 - **Animation and skins** — bones, clips, and morph targets in the file are ignored.
 - **Hierarchy as child entities** — node trees are not exploded into ECS children; one entity owns the whole file.
 - **Editor bake / engine-native mesh format** — no import pipeline to a custom binary; source formats load at runtime.
-- **PBR metal/rough workflow** — materials stay in a diffuse/specular/shininess (+ optional normal) model aligned with current lighting.
+- **PBR metal/rough workflow** — superseded by `docs/specs/physically-based-rendering/`; materials are now albedo / metallic-roughness / normal.
 - **Cameras, lights, and empties from the file** — only meshes and the material maps above.
 - **Per-submesh entity picking** — no mesh-index component API in v1.
 

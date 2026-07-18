@@ -16,47 +16,105 @@ uniform float strength;
 uniform vec3 u_LightDirection;
 uniform vec3 u_LightColor;
 uniform vec3 u_ViewPosition;
-uniform float u_Shininess;
-uniform int u_HasDiffuseMap;
-uniform int u_HasSpecularMap;
+uniform float u_Metallic;
+uniform float u_Roughness;
+uniform int u_HasAlbedoMap;
+uniform int u_HasMetallicRoughnessMap;
 uniform int u_HasNormalMap;
-uniform sampler2D u_DiffuseMap;
-uniform sampler2D u_SpecularMap;
+uniform int u_HasSpecularMap;
+uniform sampler2D u_AlbedoMap;
+uniform sampler2D u_MetallicRoughnessMap;
 uniform sampler2D u_NormalMap;
+uniform sampler2D u_SpecularMap;
+
+const float PI = 3.14159265359;
+
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    float denom = NdotH2 * (a2 - 1.0) + 1.0;
+    return a2 / (PI * denom * denom);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    return GeometrySchlickGGX(NdotV, roughness) * GeometrySchlickGGX(NdotL, roughness);
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
 
 void main()
 {
-    vec3 norm;
+    vec3 N;
     if (u_HasNormalMap != 0)
     {
         vec3 sampledNormal = texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0;
-        norm = normalize(v_TBN * sampledNormal);
+        N = normalize(v_TBN * sampledNormal);
     }
     else
     {
-        norm = normalize(v_Normal);
+        N = normalize(v_Normal);
     }
 
-    vec3 diffuseColor = u_HasDiffuseMap != 0
-        ? texture(u_DiffuseMap, v_TexCoord).rgb
+    vec3 albedo = u_HasAlbedoMap != 0
+        ? texture(u_AlbedoMap, v_TexCoord).rgb
         : vec3(1.0);
-    diffuseColor *= u_Color.rgb;
+    albedo *= u_Color.rgb;
 
-    vec3 specularColor = u_HasSpecularMap != 0
-        ? texture(u_SpecularMap, v_TexCoord).rgb
-        : vec3(0.5);
-
-    vec3 ambient = strength * lightColor * diffuseColor;
-
-    vec3 L = normalize(-u_LightDirection);
-    float ndotl = max(dot(norm, L), 0.0);
-    vec3 diffuse = ndotl * u_LightColor * diffuseColor;
+    float metallic = u_Metallic;
+    float roughness = u_Roughness;
+    if (u_HasMetallicRoughnessMap != 0)
+    {
+        vec3 mr = texture(u_MetallicRoughnessMap, v_TexCoord).rgb;
+        roughness = mr.g;
+        metallic = mr.b;
+    }
+    else if (u_HasSpecularMap != 0)
+    {
+        // ponytail: Lumberyard Bistro _Specular.dds is packed R=AO, G=roughness, B=metalness
+        vec3 spec = texture(u_SpecularMap, v_TexCoord).rgb;
+        roughness = spec.g;
+        metallic = spec.b;
+    }
+    roughness = clamp(roughness, 0.04, 1.0);
+    metallic = clamp(metallic, 0.0, 1.0);
 
     vec3 V = normalize(u_ViewPosition - v_FragPos);
-    vec3 H = normalize(L + V);
-    float spec = pow(max(dot(norm, H), 0.0), u_Shininess);
-    vec3 specular = spec * u_LightColor * specularColor;
+    vec3 L = normalize(-u_LightDirection);
+    vec3 H = normalize(V + L);
 
-    o_Color = vec4(ambient + diffuse + specular, u_Color.a);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    float D = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    vec3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
+    vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
+    // ponytail: no /PI — scene lights are artistic units tuned for forward shading without HDR/IBL
+    vec3 diffuse = kd * albedo;
+
+    // ponytail: no metallic ambient kill until IBL exists; metals go black otherwise
+    vec3 ambient = strength * lightColor * albedo;
+    vec3 color = ambient + (diffuse + specular) * u_LightColor * NdotL;
+
+    o_Color = vec4(color, u_Color.a);
     o_EntityID = u_EntityID;
 }

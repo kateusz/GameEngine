@@ -31,17 +31,26 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                 return submeshes;
             }
 
+            Logger.Debug(
+                "Importing model path={Path} meshCount={MeshCount} materialCount={MaterialCount}",
+                path, scene->MNumMeshes, scene->MNumMaterials);
+
             for (uint i = 0; i < scene->MNumMeshes; i++)
             {
                 var aiMesh = scene->MMeshes[i];
                 var mesh = ExtractMesh(aiMesh);
-                var material = ExtractMaterial(scene, aiMesh->MMaterialIndex, directory);
+                var material = ExtractMaterial(scene, aiMesh->MMaterialIndex, directory, mesh.Name);
                 submeshes.Add(new ModelSubmesh(mesh, material));
+
+                Logger.Debug(
+                    "Imported submesh path={Path} mesh={MeshName} vertices={VertexCount} indices={IndexCount}",
+                    path, mesh.Name, mesh.Vertices.Count, mesh.Indices.Count);
             }
 
             assimp.ReleaseImport(scene);
         }
 
+        Logger.Debug("Import finished path={Path} submeshCount={SubmeshCount}", path, submeshes.Count);
         return submeshes;
     }
 
@@ -87,22 +96,74 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         return mesh;
     }
 
-    private unsafe MeshMaterial ExtractMaterial(Silk.NET.Assimp.Scene* scene, uint materialIndex, string directory)
+    private unsafe MeshMaterial ExtractMaterial(
+        Silk.NET.Assimp.Scene* scene,
+        uint materialIndex,
+        string directory,
+        string meshName)
     {
         var aiMaterial = scene->MMaterials[materialIndex];
+
+        var albedoPath = ResolveTexturePath(aiMaterial, TextureType.BaseColor, directory)
+            ?? ResolveTexturePath(aiMaterial, TextureType.Diffuse, directory);
+
+        var mrPath = ResolveTexturePath(aiMaterial, TextureType.GltfMetallicRoughness, directory)
+            ?? ResolveTexturePath(aiMaterial, TextureType.Metalness, directory)
+            ?? ResolveTexturePath(aiMaterial, TextureType.DiffuseRoughness, directory);
+
+        var normalPath = ResolveTexturePath(aiMaterial, TextureType.Normals, directory)
+            ?? ResolveTexturePath(aiMaterial, TextureType.Height, directory);
+
+        var specularPath = ResolveTexturePath(aiMaterial, TextureType.Specular, directory)
+            ?? ModelTexturePathResolver.ResolveSpecularSibling(albedoPath);
+
         var material = new MeshMaterial
         {
-            DiffuseTexturePath = ResolveTexturePath(aiMaterial, TextureType.Diffuse, directory),
-            SpecularTexturePath = ResolveTexturePath(aiMaterial, TextureType.Specular, directory),
-            NormalTexturePath = ResolveTexturePath(aiMaterial, TextureType.Normals, directory)
-                ?? ResolveTexturePath(aiMaterial, TextureType.Height, directory)
+            AlbedoTexturePath = albedoPath,
+            MetallicRoughnessTexturePath = mrPath,
+            NormalTexturePath = normalPath,
+            SpecularTexturePath = specularPath
         };
 
-        var shininess = 32.0f;
-        assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
-        material.Shininess = shininess > 0 ? shininess : 32.0f;
+        var hasMetallic = TryGetFloat(aiMaterial, Assimp.MatkeyMetallicFactor, out var metallic);
+        var hasRoughness = TryGetFloat(aiMaterial, Assimp.MatkeyRoughnessFactor, out var roughness);
+        var metallicScalar = hasMetallic ? System.Math.Clamp(metallic, 0f, 1f) : 0f;
+        var roughnessScalar = hasRoughness ? System.Math.Clamp(roughness, 0f, 1f) : 0.5f;
+        var isPbr = mrPath != null || specularPath != null || (hasMetallic && metallicScalar > 0.001f);
+
+        if (isPbr)
+        {
+            material.Metallic = metallicScalar;
+            material.Roughness = hasRoughness ? roughnessScalar : 0.5f;
+        }
+        else
+        {
+            // Legacy Phong: diffuse → albedo, dielectric, roughness from shininess
+            material.Metallic = 0f;
+            if (TryGetFloat(aiMaterial, Assimp.MaterialShininess, out var shininess) && shininess > 0f)
+                material.Roughness = System.Math.Clamp(1f - shininess / 256f, 0.04f, 1f);
+            else
+                material.Roughness = 0.5f;
+        }
+
+        Logger.Debug(
+            "Material mesh={MeshName} materialIndex={MaterialIndex} isPbr={IsPbr} " +
+            "metallic={Metallic:F3} roughness={Roughness:F3} " +
+            "hasAlbedoMap={HasAlbedo} hasMetallicRoughnessMap={HasMr} hasSpecularMap={HasSpecular} hasNormalMap={HasNormal} " +
+            "albedoPath={AlbedoPath} mrPath={MrPath} specularPath={SpecularPath} normalPath={NormalPath}",
+            meshName, materialIndex, isPbr,
+            material.Metallic, material.Roughness,
+            albedoPath != null, mrPath != null, specularPath != null, normalPath != null,
+            albedoPath ?? "(none)", mrPath ?? "(none)", specularPath ?? "(none)", normalPath ?? "(none)");
 
         return material;
+    }
+
+    private unsafe bool TryGetFloat(Silk.NET.Assimp.Material* aiMaterial, string key, out float value)
+    {
+        value = 0f;
+        var result = assimp.GetMaterialFloatArray(aiMaterial, key, 0, 0, ref value, (uint*)null);
+        return result == Return.Success;
     }
 
     private unsafe string? ResolveTexturePath(
@@ -126,6 +187,12 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             texturePath = Path.Combine(directory, texturePath);
 
         texturePath = texturePath.Replace('\\', '/');
-        return System.IO.File.Exists(texturePath) ? texturePath : null;
+        if (System.IO.File.Exists(texturePath))
+            return texturePath;
+
+        Logger.Debug(
+            "Texture file missing type={TextureType} resolvedPath={Path}",
+            textureType, texturePath);
+        return null;
     }
 }
