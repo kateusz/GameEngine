@@ -29,6 +29,20 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         ShowGrid3D = scene.Dimension == SceneDimension.ThreeD;
     }
 
+    public void SetShowGrid(bool show)
+    {
+        ShowGrid = show;
+        if (show)
+            ShowGrid3D = false;
+    }
+
+    public void SetShowGrid3D(bool show)
+    {
+        ShowGrid3D = show;
+        if (show)
+            ShowGrid = false;
+    }
+
     public event Action OnPlayScene;
     public event Action OnStopScene;
     public event Action OnRestartScene;
@@ -118,18 +132,18 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        // Grid toggles
+        // Grid toggles — only one of 2D/3D can be active
         var showGrid = ShowGrid;
-        ButtonDrawer.DrawToggleButton("2D", "2D", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        if (ButtonDrawer.DrawToggleButton("2D", "2D", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
+            SetShowGrid(showGrid);
         LayoutDrawer.DrawTooltip("Show 2D Grid");
-        ShowGrid = showGrid;
 
         ImGui.SameLine();
 
         var showGrid3D = ShowGrid3D;
-        ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight);
+        if (ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
+            SetShowGrid3D(showGrid3D);
         LayoutDrawer.DrawTooltip("Show 3D Grid");
-        ShowGrid3D = showGrid3D;
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
