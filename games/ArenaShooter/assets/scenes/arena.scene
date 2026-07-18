@@ -1,0 +1,997 @@
+{
+  "Scene": "arena",
+  "BackgroundColor": [
+    0.06,
+    0.07,
+    0.09,
+    1
+  ],
+  "Dimension": "TwoD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Orthographic",
+          "OrthographicSize": 5,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Game",
+      "Components": [
+        {
+          "Phase": 0,
+          "Health": 3,
+          "Score": 0,
+          "Facing": [
+            1,
+            0
+          ],
+          "FireCooldown": 0,
+          "SpawnTimer": 0,
+          "InvulnTimer": 0,
+          "TracerTimer": 0,
+          "TracerStart": [
+            0,
+            0
+          ],
+          "TracerEnd": [
+            0,
+            0
+          ],
+          "MaxHealth": 3,
+          "MoveSpeed": 5,
+          "EnemySpeed": 2.2,
+          "FireInterval": 0.15,
+          "SpawnInterval": 1.1,
+          "MaxActiveEnemies": 6,
+          "ShootRange": 20,
+          "ContactRadius": 0.62,
+          "InvulnTime": 0.8,
+          "TracerTime": 0.05,
+          "AimOffset": 0.55,
+          "MinX": -7.6,
+          "MaxX": 7.6,
+          "MinY": -4.1,
+          "MaxY": 4.1,
+          "Name": "ArenaGameComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Player",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "textures/stachu.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "WallTop",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            4.75,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            17,
+            0.5,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.28,
+            0.3,
+            0.36,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "WallBottom",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -4.75,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            17,
+            0.5,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.28,
+            0.3,
+            0.36,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "WallLeft",
+      "Components": [
+        {
+          "Translation": [
+            -8.25,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.5,
+            9.5,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.28,
+            0.3,
+            0.36,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "WallRight",
+      "Components": [
+        {
+          "Translation": [
+            8.25,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.5,
+            9.5,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.28,
+            0.3,
+            0.36,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "Enemy0",
+      "Components": [
+        {
+          "Translation": [
+            1000,
+            1000,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/gucz.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Alive": false,
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 9,
+      "Name": "Enemy1",
+      "Components": [
+        {
+          "Translation": [
+            1000,
+            1000,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/gucz.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Alive": false,
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "Enemy2",
+      "Components": [
+        {
+          "Translation": [
+            1000,
+            1000,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/gucz.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Alive": false,
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "Enemy3",
+      "Components": [
+        {
+          "Translation": [
+            1000,
+            1000,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/gucz.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Alive": false,
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "Enemy4",
+      "Components": [
+        {
+          "Translation": [
+            1000,
+            1000,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/gucz.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Alive": false,
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 13,
+      "Name": "Enemy5",
+      "Components": [
+        {
+          "Translation": [
+            1000,
+            1000,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.6,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "TexturePath": "textures/gucz.png",
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Kinematic",
+          "FixedRotation": true,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        },
+        {
+          "Alive": false,
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 14,
+      "Name": "Aim",
+      "Components": [
+        {
+          "Translation": [
+            0.55,
+            0,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.25,
+            0.25,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            0.9,
+            0.25,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "Tracer",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.001,
+            0.06,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            0.85,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 16,
+      "Name": "Heart0",
+      "Components": [
+        {
+          "Translation": [
+            -7.6,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            0.35,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.32,
+            0.9,
+            0.42,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 17,
+      "Name": "Heart1",
+      "Components": [
+        {
+          "Translation": [
+            -7.1,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            0.35,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.32,
+            0.9,
+            0.42,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 18,
+      "Name": "Heart2",
+      "Components": [
+        {
+          "Translation": [
+            -6.6,
+            4.15,
+            0.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            0.35,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.32,
+            0.9,
+            0.42,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 19,
+      "Name": "GameOverBanner",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            3,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.82,
+            0.12,
+            0.12,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "Name": "SpriteRendererComponent"
+        }
+      ]
+    }
+  ]
+}
