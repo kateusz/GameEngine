@@ -96,7 +96,7 @@ public class EditorMenuBar(
 
     private void RenderSceneMenu()
     {
-        if (!ImGui.BeginMenu("Scene...")) return;
+        if (!ImGui.BeginMenu("Scene")) return;
 
         if (ImGui.MenuItem("New", "Ctrl+N"))
             sceneSettingsPopup.ShowNewScenePopup();

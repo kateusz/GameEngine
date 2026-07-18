@@ -33,14 +33,22 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     {
         ShowGrid = show;
         if (show)
+        {
             ShowGrid3D = false;
+            if (sceneContext.ActiveScene is { } scene)
+                scene.Dimension = SceneDimension.TwoD;
+        }
     }
 
     public void SetShowGrid3D(bool show)
     {
         ShowGrid3D = show;
         if (show)
+        {
             ShowGrid = false;
+            if (sceneContext.ActiveScene is { } scene)
+                scene.Dimension = SceneDimension.ThreeD;
+        }
     }
 
     public event Action OnPlayScene;
@@ -136,14 +144,14 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         var showGrid = ShowGrid;
         if (ButtonDrawer.DrawToggleButton("2D", "2D", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
             SetShowGrid(showGrid);
-        LayoutDrawer.DrawTooltip("Show 2D Grid");
+        LayoutDrawer.DrawTooltip("2D Scene");
 
         ImGui.SameLine();
 
         var showGrid3D = ShowGrid3D;
         if (ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
             SetShowGrid3D(showGrid3D);
-        LayoutDrawer.DrawTooltip("Show 3D Grid");
+        LayoutDrawer.DrawTooltip("3D Scene");
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 

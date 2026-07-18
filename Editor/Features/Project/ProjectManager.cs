@@ -100,7 +100,6 @@ public class ProjectManager(
 
             var name = projectName.Trim();
             sceneManager.New(name);
-            sceneManager.Save();
 
             Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", name, projectDir);
             editorPreferences.AddRecentProject(projectDir, name);

@@ -29,6 +29,9 @@ public class SceneManager(
 
         sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
         Logger.Information("📄 New scene created");
+
+        if (!string.IsNullOrWhiteSpace(sceneName) && projectContext.HasProject)
+            Save();
     }
 
     public void Open(string path)

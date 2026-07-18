@@ -9,7 +9,7 @@ namespace Editor.Features.Scene;
 public interface ISceneManager
 {
     /// <summary>
-    /// Creates a new empty scene.
+    /// Creates a new empty scene and saves it immediately when a project is open.
     /// </summary>
     /// <param name="sceneName"></param>
     void New(string sceneName);
