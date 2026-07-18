@@ -43,10 +43,15 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
             game.TickAccumulator -= game.TickInterval;
             var scoreBefore = game.Score;
             Step(game);
+            if (game.GameOver)
+            {
+                audio.PlayOneShot("assets/sounds/gameover.wav");
+                break;
+            }
             if (game.Score > scoreBefore)
                 audio.PlayOneShot("assets/sounds/eat.wav");
-            if (game.GameOver)
-                break;
+            else
+                audio.PlayOneShot("assets/sounds/move.wav");
         }
 
         SyncCellVisuals(game);
@@ -253,7 +258,7 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
 
     private void SyncBanners(SnakeGameComponent game)
     {
-        SetBanner("GameOverBanner", game.GameOver ? "textures/game_over.png" : null);
+        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null);
         SetBanner("ResetHint", game.GameOver ? "textures/press_r.png" : null);
     }
 
