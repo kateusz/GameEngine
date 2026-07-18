@@ -14,7 +14,7 @@ public class PrefabManager(IPrefabSerializer serializer, IProjectContext project
     private bool _showSavePrefabPopup;
     private string _prefabName = "";
     private string _prefabSaveError = "";
-    private Entity _entityToSave;
+    private Entity? _entityToSave;
 
     public void ShowSavePrefabPopup(Entity entity)
     {
@@ -52,7 +52,7 @@ public class PrefabManager(IPrefabSerializer serializer, IProjectContext project
                 try
                 {
                     var currentProjectPath = GetCurrentProjectPath();
-                    serializer.SerializeToPrefab(_entityToSave, _prefabName, currentProjectPath);
+                    serializer.SerializeToPrefab(_entityToSave!, _prefabName, currentProjectPath);
                     Logger.Information("Saved prefab: {PrefabName}.prefab", _prefabName);
                     _prefabSaveError = "";
                 }

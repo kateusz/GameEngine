@@ -16,7 +16,7 @@ public class SceneHierarchyPanel(
     IEditorSelection selection)
     : ISceneHierarchyPanel, IEditorPanel
 {
-    private IScene _scene;
+    private IScene _scene = null!;
 
     private string _searchQuery = string.Empty;
     private readonly List<Entity> _filteredEntities = [];

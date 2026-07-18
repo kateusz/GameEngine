@@ -41,7 +41,7 @@ public class PropertiesPanel(
         EntityNameEditor.Draw(selectedEntity);
         ImGui.Spacing();
 
-        ComponentSelector.Draw(selectedEntity, sceneContext.ActiveScene, gameComponentEditor);
+        ComponentSelector.Draw(selectedEntity, sceneContext.ActiveScene!, gameComponentEditor);
         ImGui.SameLine();
 
         ButtonDrawer.DrawButton("Save as Prefab",

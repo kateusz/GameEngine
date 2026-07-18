@@ -23,7 +23,7 @@ public class CameraComponentEditor(
             newValue =>
             {
                 if ((bool)newValue)
-                    sceneContext.ActiveScene.SetPrimaryCamera(entity);
+                    sceneContext.ActiveScene!.SetPrimaryCamera(entity);
                 else
                     component.Primary = false;
             });
