@@ -1,11 +1,11 @@
 ---
 name: game-creation
-description: Guardrails and workflow for creating games on this engine using sample patterns (Snake, FlappyBird), scripting tiers, project layout, and readiness limits. Use when scaffolding a new game, adding gameplay scripts/systems/components under games/ or assets/scripts/, publishing a game, or when the user asks how to build a game with the engine.
+description: Guardrails and workflow for creating games on this engine using sample patterns (Snake, FlappyBird, TicTacToe), scripting tiers, project layout, and readiness limits. Use when scaffolding a new game, adding gameplay scripts/systems/components under games/ or assets/scripts/, publishing a game, or when the user asks how to build a game with the engine.
 ---
 
 # Game Creation
 
-Create **small 2D games** the way `games/Snake` and `games/FlappyBird` do — not like Unity/Godot full-stack projects.
+Create **small 2D games** the way `games/Snake`, `games/FlappyBird`, and `games/TicTacToe` do — not like Unity/Godot full-stack projects.
 
 **Hard gate:** Before scaffolding or writing gameplay code, run the [feasibility check](#0-feasibility-check). If the design needs a missing capability, stop and redesign or defer.
 
@@ -22,16 +22,19 @@ For **engine** features (new built-in components, editor panels), use `component
 
 | Topic | Doc |
 |-------|-----|
-| Project layout | [docs/guide/editor/project-setup.md](../../../docs/guide/editor/project-setup.md) |
+| Editor + open samples | [docs/guide/index.md](../../../docs/guide/index.md) |
 | Scripting tiers | [docs/guide/scripting/scripting-tiers.md](../../../docs/guide/scripting/scripting-tiers.md) |
 | Scripts | [docs/guide/scripting/getting-started.md](../../../docs/guide/scripting/getting-started.md) |
 | Input | [docs/guide/scripting/input.md](../../../docs/guide/scripting/input.md) |
 | Physics | [docs/guide/scripting/physics.md](../../../docs/guide/scripting/physics.md) |
+| API | [docs/guide/scripting/api-reference.md](../../../docs/guide/scripting/api-reference.md) |
 | ECS | [docs/guide/concepts/ecs-overview.md](../../../docs/guide/concepts/ecs-overview.md) |
 | Content Browser create flows | [docs/guide/editor/content-browser.md](../../../docs/guide/editor/content-browser.md) |
 | What ships today | [docs/readiness-analysis-2026-07.md](../../../docs/readiness-analysis-2026-07.md) |
 
-Canonical samples: `games/Snake/`, `games/FlappyBird/`. Sample anatomy → [reference.md](reference.md).
+Canonical samples: `games/Snake/`, `games/FlappyBird/`, `games/TicTacToe/`. Sample anatomy → [reference.md](reference.md).
+
+**Do not copy leftover `project/` subfolders** in samples — some trees still have stale duplicates. Open/create the **game root** (folder that contains `assets/`).
 
 ---
 
@@ -44,7 +47,7 @@ Engine is ~70% ready for small **2D** prototypes. Confirm the design fits:
 | Grid / puzzle / turn-based / Pong-class arcade | Real menus, HUD text, settings (no runtime UI) |
 | Keyboard + mouse | Gamepad / rebinding |
 | Sprites, colored quads, texture-swap banners | Particles, tilemaps, sorting layers |
-| Box colliders + contact/trigger callbacks | Raycasts, shape queries, circle colliders |
+| Box colliders + contacts/triggers; `Raycast` / `OverlapCircle` | Circle colliders, edge/polygon shapes |
 | Flat entity list | Parent/child hierarchy (weapons-on-player, vehicles) |
 | OpenAL one-shots / spatial audio | — |
 | Publish via editor (`game.config.json`) | Assume undo/redo or asset GUIDs |
@@ -57,18 +60,17 @@ If blocked, say so and propose a Snake/FlappyBird-shaped redesign.
 
 ## 1. Project shape
 
-Prefer editor **New Project**, or mirror samples:
+Prefer editor **New Project** (`ProjectManager` scaffolds this), or mirror samples:
 
 ```
-GameName/
-├── project/                    # editor project root (samples use this)
-│   ├── game.config.json
-│   └── assets/
-│       ├── scenes/
-│       ├── textures/
-│       ├── scripts/            # all game C# lives here
-│       ├── sounds/             # optional
-│       └── prefabs/
+GameName/                       # editor project root — Open Project here
+├── game.config.json            # required for publish/runtime (not auto-created by New Project)
+├── assets/
+│   ├── scenes/
+│   ├── textures/
+│   ├── scripts/                # all game C# lives here
+│   ├── sounds/ or audio/       # optional
+│   └── prefabs/
 └── GameName.csproj             # optional: IDE refs to engine projects (see Snake.csproj)
 ```
 
@@ -107,9 +109,9 @@ From [scripting-tiers.md](../../../docs/guide/scripting/scripting-tiers.md):
 3. Scripts are thin glue; systems own gameplay.
 4. Create via Content Browser on `assets/scripts/`: **Add Component / Add System / Add Script** (templates).
 
-### Pattern A — system owns input (Snake / FlappyBird)
+### Pattern A — system owns input (Snake / FlappyBird / TicTacToe)
 
-`SnakeGameComponent` = state · `SnakeSystem` = input + tick + `SyncCellVisuals` / banners · inject `IContext`, `IKeyboardInput`, `IAudio`. Same shape in FlappyBird (`FlappyBirdGameComponent` + `FlappyBirdSystem`).
+`SnakeGameComponent` = state · `SnakeSystem` = input + tick + `SyncCellVisuals` / banners · inject `IContext`, `IKeyboardInput`, `IAudio`. Same shape in FlappyBird and TicTacToe.
 
 ### Pattern B — script mailbox + system rules
 
@@ -125,15 +127,15 @@ Copy and track:
 
 ```
 Game Progress:
-- [ ] Feasibility OK (no runtime UI / raycasts / hierarchy / gamepad required)
+- [ ] Feasibility OK (no runtime UI / hierarchy / gamepad / circle colliders required)
 - [ ] Project + scene + camera
 - [ ] `[SerializableComponent]` state component(s) + `Clone()`
 - [ ] `[Register(typeof(IGameSystem))]` rules system (Priority ~115 like samples)
 - [ ] Visuals: SpriteRendererComponent texture/color sync from system
 - [ ] Input: IKeyboardInput in system OR ScriptableEntity → component mailbox
 - [ ] Audio (optional): IAudio.PlayOneShot with stable relative path
-- [ ] Physics only if needed: RigidBody2D + BoxCollider2D; contacts via script callbacks or IPhysicsContacts
-- [ ] game.config.json StartupScenePath correct
+- [ ] Physics only if needed: RigidBody2D + BoxCollider2D; contacts via callbacks/IPhysicsContacts; queries via Raycast/OverlapCircle or IPhysicsQueries
+- [ ] game.config.json at project root; StartupScenePath correct
 - [ ] Play in editor; then publish smoke (exe + config + GameAssembly.dll + scene)
 ```
 
@@ -143,7 +145,7 @@ Systems drive presentation each frame — e.g. set `SpriteRendererComponent.Text
 
 ### Physics (optional)
 
-See [physics.md](../../../docs/guide/scripting/physics.md). Both `RigidBody2DComponent` and `BoxCollider2DComponent` required. Use contacts/triggers — **no raycast API**. Prefer grid/arcade logic when possible (Snake style).
+See [physics.md](../../../docs/guide/scripting/physics.md). Both `RigidBody2DComponent` and `BoxCollider2DComponent` required for simulation. Contacts/triggers for collisions; `Raycast` / `OverlapCircle` (scripts) or inject `IPhysicsQueries` (systems) for ground checks / LoS / mouse pick. Prefer grid/arcade logic when possible (Snake style).
 
 ---
 
@@ -155,7 +157,7 @@ See [physics.md](../../../docs/guide/scripting/physics.md). Both `RigidBody2DCom
 | Put score/board on `ScriptableEntity` fields | `[SerializableComponent]` game component |
 | One giant `ScriptableEntity` for all rules | `IGameSystem` + components |
 | Assume parent/child transforms | Flat entities; manual sync if attached parts needed |
-| Raycast for aim/ground/LoS | Contacts, sensors, or grid math |
+| Nest under a `project/` folder | Flat root with `assets/` + `game.config.json` |
 | Hardcode absolute disk paths | Project-relative asset paths |
 | Skip `Clone()` on game components | Implement `IComponent.Clone()` like samples |
 | New engine systems in `Engine/` for one game | Keep logic in `assets/scripts/` with `[Register]` |
