@@ -5,6 +5,7 @@ namespace SceneComponents.Rendering;
 
 public class ModelRendererComponent : IComponent
 {
+    public string? ModelPath { get; set; }
     public Vector4 Color { get; set; } = Vector4.One;
 
     public ModelRendererComponent() { }
@@ -14,5 +15,9 @@ public class ModelRendererComponent : IComponent
         Color = color;
     }
 
-    public IComponent Clone() => new ModelRendererComponent { Color = Color };
+    public IComponent Clone() => new ModelRendererComponent
+    {
+        ModelPath = ModelPath,
+        Color = Color
+    };
 }

@@ -35,6 +35,29 @@ public class ComponentSerializerRegistryTests
     }
 
     [Fact]
+    public void ModelRendererComponent_RoundTrip_ThroughRegistry()
+    {
+        var entity = Entity.Create(1, "player");
+        entity.AddComponent(new ModelRendererComponent
+        {
+            ModelPath = "models/crate.gltf",
+            Color = new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f)
+        });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+
+        var loaded = Entity.Create(1, "player");
+        foreach (var node in array)
+            _registry.DeserializeComponent(loaded, node!.AsObject(), _serializerOptions.Options, strict: true);
+
+        loaded.HasComponent<ModelRendererComponent>().ShouldBeTrue();
+        var modelRenderer = loaded.GetComponent<ModelRendererComponent>();
+        modelRenderer.ModelPath.ShouldBe("models/crate.gltf");
+        modelRenderer.Color.ShouldBe(new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f));
+    }
+
+    [Fact]
     public void StrictDeserialize_UnknownComponent_Throws()
     {
         var entity = Entity.Create(1, "e");

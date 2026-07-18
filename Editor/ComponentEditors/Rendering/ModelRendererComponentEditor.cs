@@ -12,6 +12,7 @@ public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer)
 
     protected override void DrawContent(ModelRendererComponent component, Entity entity)
     {
+        MeshDropTarget.Draw("Model", path => component.ModelPath = path, component.ModelPath);
         propertyRenderer.DrawPropertyField("Color", component.Color,
             newValue => component.Color = (System.Numerics.Vector4)newValue);
     }

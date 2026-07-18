@@ -33,4 +33,8 @@
     <ProjectReference Include="..\..\games\Snake\Snake.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
