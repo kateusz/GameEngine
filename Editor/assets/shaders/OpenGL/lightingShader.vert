@@ -5,7 +5,6 @@ layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in vec3 a_Tangent;
 layout(location = 4) in vec3 a_Bitangent;
-layout(location = 5) in int  a_EntityID;
 
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Model;
@@ -15,7 +14,6 @@ out vec3 v_FragPos;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
 out mat3 v_TBN;
-flat out int v_EntityID;
 
 void main()
 {
@@ -23,7 +21,6 @@ void main()
     v_FragPos  = worldPos.xyz;
     v_Normal   = normalize(a_Normal * mat3(u_NormalMatrix));
     v_TexCoord = a_TexCoord;
-    v_EntityID = a_EntityID;
 
     vec3 T = normalize(a_Tangent * mat3(u_NormalMatrix));
     vec3 B = a_Bitangent * mat3(u_NormalMatrix);

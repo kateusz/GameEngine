@@ -12,10 +12,9 @@ public class Mesh : IDisposable
         Vector3 Normal,
         Vector2 TexCoord,
         Vector3 Tangent,
-        Vector3 Bitangent,
-        int EntityId = -1)
+        Vector3 Bitangent)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3) + sizeof(int); // 60 bytes
+        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3); // 56 bytes
     }
 
     public string Name { get; set; }

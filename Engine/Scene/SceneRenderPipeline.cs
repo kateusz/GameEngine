@@ -44,14 +44,14 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory? textureFactory,
-        IModelFactory? modelFactory,
+        IModelFactory modelFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
         RenderModels(context, graphics3D, modelFactory, camera);
     }
 
-    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory? modelFactory, in CameraBinding camera)
+    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -68,7 +68,7 @@ internal static class SceneRenderPipeline
             var transform = transformComponent.GetTransform();
             var tint = modelRenderer.Color;
 
-            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath) || modelFactory == null)
+            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
             {
                 graphics3D.DrawCube(transform, tint, entity.Id);
                 continue;
@@ -158,26 +158,17 @@ internal static class SceneRenderPipeline
 
             var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
             var transform = transformComponent.GetTransform();
-            Vector2[] texCoords;
-            if (subtextureComponent.TexCoords != null)
-            {
-                texCoords = subtextureComponent.TexCoords;
-            }
-            else
-            {
-                var subTexture = SubTexture2D.CreateFromCoords(
-                    texture,
-                    subtextureComponent.Coords,
-                    subtextureComponent.CellSize,
-                    subtextureComponent.SpriteSize);
-                texCoords = subTexture.TexCoords;
-            }
+            var texCoords = subtextureComponent.TexCoords ?? SubTexture2D.CreateFromCoords(
+                texture,
+                subtextureComponent.Coords,
+                subtextureComponent.CellSize,
+                subtextureComponent.SpriteSize).TexCoords;
 
             graphics2D.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
     }
 
-    private static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
+    internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
     {
         if (camera.ViewCamera != null)
             graphics2D.BeginScene(camera.ViewCamera);
@@ -204,11 +195,13 @@ internal static class SceneRenderPipeline
     private static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
     {
         foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
-            return (NormalizeDirection(dlc.Direction), dlc.Color);
+        {
+            var direction = dlc.Direction.LengthSquared() < 1e-6f
+                ? new Vector3(0, -1, 0)
+                : Vector3.Normalize(dlc.Direction);
+            return (direction, dlc.Color);
+        }
 
         return (new Vector3(0, -1, 0), Vector3.Zero);
     }
-
-    private static Vector3 NormalizeDirection(Vector3 direction) =>
-        direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
 }

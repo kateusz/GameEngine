@@ -4,7 +4,6 @@ layout(location = 0) out vec4 o_Color;
 layout(location = 1) out int  o_EntityID;
 
 in vec3 v_Normal;
-flat in int v_EntityID;
 
 uniform vec4 u_Color;
 uniform int  u_EntityID;
