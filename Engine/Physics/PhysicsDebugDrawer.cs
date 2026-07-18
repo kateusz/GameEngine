@@ -20,7 +20,7 @@ internal static class PhysicsDebugDrawer
         if (!camera.IsValid)
             return;
 
-        Begin2DScene(graphics2D, camera);
+        SceneRenderPipeline.Begin2DScene(graphics2D, camera);
         foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
         {
             if (bodyStore.TryGet(entity.Id, out var body))
@@ -30,14 +30,6 @@ internal static class PhysicsDebugDrawer
         }
 
         graphics2D.EndScene();
-    }
-
-    private static void Begin2DScene(IGraphics2D graphics2D, in SceneRenderPipeline.CameraBinding camera)
-    {
-        if (camera.ViewCamera != null)
-            graphics2D.BeginScene(camera.ViewCamera);
-        else
-            graphics2D.BeginScene(camera.Camera!, camera.Transform);
     }
 
     private static void DrawColliderFromBody(

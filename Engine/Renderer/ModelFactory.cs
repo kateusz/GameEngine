@@ -91,7 +91,7 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
                 return null;
             }
 
-            var model = new Model(normalizedPath, initialized);
+            var model = new Model(initialized);
 
             lock (_cacheLock)
             {

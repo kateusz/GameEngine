@@ -100,8 +100,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         var mrPath = ResolveTexturePath(aiMaterial, TextureType.GltfMetallicRoughness, directory)
             ?? ResolveTexturePath(aiMaterial, TextureType.Metalness, directory)
             ?? ResolveTexturePath(aiMaterial, TextureType.DiffuseRoughness, directory)
-            ?? ResolveTexturePath(aiMaterial, TextureType.Specular, directory)
-            ?? ResolvePackedMrSibling(albedoPath);
+            ?? ResolveTexturePath(aiMaterial, TextureType.Specular, directory);
 
         var normalPath = ResolveTexturePath(aiMaterial, TextureType.Normals, directory)
             ?? ResolveTexturePath(aiMaterial, TextureType.Height, directory);
@@ -113,39 +112,20 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             NormalTexturePath = normalPath
         };
 
-        var hasMetallic = TryGetFloat(aiMaterial, Assimp.MatkeyMetallicFactor, out var metallic);
-        var hasRoughness = TryGetFloat(aiMaterial, Assimp.MatkeyRoughnessFactor, out var roughness);
-        var metallicScalar = hasMetallic ? System.Math.Clamp(metallic, 0f, 1f) : 0f;
-        var roughnessScalar = hasRoughness ? System.Math.Clamp(roughness, 0f, 1f) : 0.5f;
+        material.Metallic = TryGetFloat(aiMaterial, Assimp.MatkeyMetallicFactor, out var metallic)
+            ? System.Math.Clamp(metallic, 0f, 1f)
+            : 0f;
 
-        if (mrPath != null || hasMetallic || hasRoughness)
-        {
-            material.Metallic = metallicScalar;
-            material.Roughness = hasRoughness ? roughnessScalar : 0.5f;
-        }
+        if (TryGetFloat(aiMaterial, Assimp.MatkeyRoughnessFactor, out var roughness))
+            material.Roughness = System.Math.Clamp(roughness, 0f, 1f);
+        else if (mrPath == null &&
+                 TryGetFloat(aiMaterial, Assimp.MaterialShininess, out var shininess) &&
+                 shininess > 0f)
+            material.Roughness = System.Math.Clamp(1f - shininess / 256f, 0.04f, 1f);
         else
-        {
-            // Legacy Phong: diffuse → albedo, dielectric, roughness from shininess
-            material.Metallic = 0f;
-            if (TryGetFloat(aiMaterial, Assimp.MaterialShininess, out var shininess) && shininess > 0f)
-                material.Roughness = System.Math.Clamp(1f - shininess / 256f, 0.04f, 1f);
-            else
-                material.Roughness = 0.5f;
-        }
+            material.Roughness = 0.5f;
 
         return material;
-    }
-
-    private static string? ResolvePackedMrSibling(string? albedoPath)
-    {
-        if (string.IsNullOrEmpty(albedoPath))
-            return null;
-
-        var specularPath = albedoPath.Replace("_BaseColor", "_Specular", StringComparison.OrdinalIgnoreCase);
-        if (string.Equals(specularPath, albedoPath, StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        return System.IO.File.Exists(specularPath) ? specularPath : null;
     }
 
     private unsafe bool TryGetFloat(Silk.NET.Assimp.Material* aiMaterial, string key, out float value)

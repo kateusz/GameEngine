@@ -17,8 +17,6 @@ internal sealed class Graphics3D(
     private IShader _texturedShader = null!;
     private Mesh _cubeMesh = null!;
 
-    private Matrix4x4 _viewProjection = Matrix4x4.Identity;
-    private Vector3 _viewPosition;
     private Vector3 _ambientColor = Vector3.One;
     private float _ambientStrength = 0.1f;
     private Vector3 _lightDirection = new(0, -1, 0);
@@ -54,15 +52,11 @@ internal sealed class Graphics3D(
             return;
         }
 
-        _viewProjection = viewMatrix * camera.GetProjectionMatrix();
-        _viewPosition = new Vector3(transform.M41, transform.M42, transform.M43);
+        ApplyCamera(viewMatrix * camera.GetProjectionMatrix(), new Vector3(transform.M41, transform.M42, transform.M43));
     }
 
-    public void BeginScene(IViewCamera camera)
-    {
-        _viewProjection = camera.GetViewProjectionMatrix();
-        _viewPosition = camera.GetPosition();
-    }
+    public void BeginScene(IViewCamera camera) =>
+        ApplyCamera(camera.GetViewProjectionMatrix(), camera.GetPosition());
 
     public void EndScene()
     {
@@ -81,11 +75,8 @@ internal sealed class Graphics3D(
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
     {
-        var meshTransform = mesh.NodeTransform * transform;
-
         rendererApi.SetDepthTest(true);
-        BindCommon(_texturedShader, meshTransform, tint, entityId);
-        _texturedShader.SetFloat3("u_ViewPosition", _viewPosition);
+        BindCommon(_texturedShader, transform, tint, entityId);
         _texturedShader.SetFloat("u_Metallic", metallic);
         _texturedShader.SetFloat("u_Roughness", roughness);
         _texturedShader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
@@ -114,10 +105,19 @@ internal sealed class Graphics3D(
         _lightColor = color;
     }
 
+    private void ApplyCamera(Matrix4x4 viewProjection, Vector3 viewPosition)
+    {
+        _cubeShader.Bind();
+        _cubeShader.SetMat4(ViewProjectionUniform, viewProjection);
+
+        _texturedShader.Bind();
+        _texturedShader.SetMat4(ViewProjectionUniform, viewProjection);
+        _texturedShader.SetFloat3("u_ViewPosition", viewPosition);
+    }
+
     private void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
     {
         shader.Bind();
-        shader.SetMat4(ViewProjectionUniform, _viewProjection);
         shader.SetMat4("u_Model", transform);
         shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
         shader.SetFloat4("u_Color", color);
