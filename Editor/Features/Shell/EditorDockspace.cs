@@ -4,7 +4,9 @@ using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
 using Editor.Publisher;
+using Engine.Scene;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.Features.Shell;
 
@@ -16,10 +18,20 @@ public class EditorDockspace(
     EditorSettingsUI editorSettingsUI,
     NewProjectPopup newProjectPopup,
     SceneSettingsPopup sceneSettingsPopup,
-    PublishSettingsUI publishSettingsUI)
+    PublishSettingsUI publishSettingsUI,
+    ISceneManager sceneManager,
+    IEditorPreferences editorPreferences,
+    ISceneContext sceneContext)
 {
+    private static readonly ILogger Logger = Log.ForContext<EditorDockspace>();
+    private const int MinAutosaveIntervalSeconds = 5;
+
+    private TimeSpan _timeSinceAutosave;
+
     public void Draw(TimeSpan deltaTime)
     {
+        TickAutosave(deltaTime);
+
         var dockspaceOpen = true;
         const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoDocking
             | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse
@@ -56,5 +68,32 @@ public class EditorDockspace(
         newProjectPopup.Render();
         sceneSettingsPopup.Render();
         publishSettingsUI.Render();
+    }
+
+    private void TickAutosave(TimeSpan deltaTime)
+    {
+        var intervalSeconds = editorPreferences.AutosaveIntervalSeconds;
+        if (intervalSeconds <= 0
+            || sceneContext.State != SceneState.Edit
+            || sceneContext.ActiveScene is null
+            || string.IsNullOrEmpty(sceneManager.GetCurrentScenePath()))
+            return;
+
+        _timeSinceAutosave += deltaTime;
+        var interval = TimeSpan.FromSeconds(intervalSeconds < MinAutosaveIntervalSeconds
+            ? MinAutosaveIntervalSeconds
+            : intervalSeconds);
+        if (_timeSinceAutosave < interval)
+            return;
+
+        _timeSinceAutosave = TimeSpan.Zero;
+        try
+        {
+            sceneManager.Save(compileScripts: false);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Scene autosave failed");
+        }
     }
 }

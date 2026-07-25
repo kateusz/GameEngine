@@ -27,6 +27,9 @@ public class EditorPreferences : IEditorPreferences
     // HDR Settings
     public float HdrExposure { get; set; } = 1.0f;
 
+    // Autosave: 0 = off
+    public int AutosaveIntervalSeconds { get; set; } = 60;
+
     private static readonly string PreferencesPath =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

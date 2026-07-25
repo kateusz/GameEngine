@@ -53,9 +53,9 @@ public class SceneManager(
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
-    public void Save()
+    public void Save(bool compileScripts = true)
     {
-        if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
+        if (compileScripts && !string.IsNullOrEmpty(projectContext.ScriptsDir))
             scriptWorkspace.EnsureScriptsCompiledAndApplied();
 
         if (string.IsNullOrEmpty(EditorScenePath))

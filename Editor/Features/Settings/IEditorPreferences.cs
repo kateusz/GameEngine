@@ -34,6 +34,11 @@ public interface IEditorPreferences : IDisposable
     float HdrExposure { get; set; }
 
     /// <summary>
+    /// Scene autosave interval in seconds. 0 disables autosave.
+    /// </summary>
+    int AutosaveIntervalSeconds { get; set; }
+
+    /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.
     /// </summary>
