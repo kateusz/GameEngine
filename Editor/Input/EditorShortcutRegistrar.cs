@@ -57,7 +57,7 @@ public class EditorShortcutRegistrar(
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.S, KeyModifiers.CtrlOnly,
-            sceneManager.Save,
+            () => sceneManager.Save(),
             "Save scene", "File"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(

@@ -23,7 +23,8 @@ public interface ISceneManager
     /// <summary>
     /// Saves the current scene to disk.
     /// </summary>
-    void Save();
+    /// <param name="compileScripts">When true, compiles/applies scripts before serialize (Ctrl+S). Autosave passes false.</param>
+    void Save(bool compileScripts = true);
 
     /// <summary>
     /// Enters play mode, initializing runtime systems and physics.

@@ -7,6 +7,7 @@ namespace Editor.Features.Settings;
 
 public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings)
 {
+    private const int MinAutosaveIntervalSeconds = 5;
     private bool _open;
 
     public void Show() => _open = true;
@@ -52,6 +53,19 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         if (ImGui.DragFloat("Exposure", ref hdrExposure, 0.01f, 0.1f, 8.0f))
         {
             editorPreferences.HdrExposure = hdrExposure;
+            editorPreferences.Save();
+        }
+
+        ImGui.Separator();
+        ImGui.SeparatorText("Autosave");
+
+        var autosaveSeconds = editorPreferences.AutosaveIntervalSeconds;
+        if (ImGui.DragInt("Interval (seconds, 0 = off)", ref autosaveSeconds, 1, 0, 3600))
+        {
+            // ponytail: 1–4 clamped to MinAutosave; 0 stays off
+            if (autosaveSeconds is > 0 and < MinAutosaveIntervalSeconds)
+                autosaveSeconds = MinAutosaveIntervalSeconds;
+            editorPreferences.AutosaveIntervalSeconds = autosaveSeconds;
             editorPreferences.Save();
         }
 
