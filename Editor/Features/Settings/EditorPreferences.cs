@@ -27,6 +27,10 @@ public class EditorPreferences : IEditorPreferences
     // HDR Settings
     public float HdrExposure { get; set; } = 1.0f;
 
+    // Snapping (ADR-005 / ADR-006) — defaults apply when JSON keys are missing
+    public bool SnapEnabled { get; set; }
+    public float GridStep { get; set; } = 1.0f;
+
     private static readonly string PreferencesPath =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

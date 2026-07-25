@@ -1,4 +1,6 @@
 using System.Numerics;
+using Editor.Features.Viewport;
+using Editor.Input;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
@@ -9,7 +11,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
+public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFactory, IViewportSnapService snapService)
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -56,7 +58,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     public event Action OnRestartScene;
 
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
-    
+
     public void Init()
     {
         _iconPlay = textureFactory.Create("Resources/Icons/PlayButton.png");
@@ -86,8 +88,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         var size = ImGui.GetWindowHeight() - 4.0f;
-        
-        // Left side: Mode selection buttons
+
         ImGui.SetCursorPosX(10.0f);
 
         if (ButtonDrawer.DrawIconButton("select", _iconSelect.GetRendererId(), new Vector2(15, 15),
@@ -95,7 +96,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 onClick: () => CurrentMode = EditorMode.Select,
                 tooltip: "Select Mode"))
         {
-            // Mode already set in onClick
         }
 
         ImGui.SameLine();
@@ -105,7 +105,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 onClick: () => CurrentMode = EditorMode.Move,
                 tooltip: "Move Mode"))
         {
-            // Mode already set in onClick
         }
 
         ImGui.SameLine();
@@ -115,7 +114,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 onClick: () => CurrentMode = EditorMode.Scale,
                 tooltip: "Scale Mode"))
         {
-            // Mode already set in onClick
         }
 
         ImGui.SameLine();
@@ -125,7 +123,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 onClick: () => CurrentMode = EditorMode.Rotate,
                 tooltip: "Rotate Mode"))
         {
-            // Mode already set in onClick
         }
 
         ImGui.SameLine();
@@ -135,12 +132,10 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 onClick: () => CurrentMode = EditorMode.Ruler,
                 tooltip: "Ruler Mode"))
         {
-            // Mode already set in onClick
         }
 
         ImGui.SameLine();
 
-        // Grid toggles — only one of 2D/3D can be active
         var showGrid = ShowGrid;
         if (ButtonDrawer.DrawToggleButton("2D", "2D", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
             SetShowGrid(showGrid);
@@ -152,6 +147,22 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         if (ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
             SetShowGrid3D(showGrid3D);
         LayoutDrawer.DrawTooltip("3D Scene");
+
+        ImGui.SameLine();
+
+        var snapEnabled = snapService.Enabled;
+        if (ButtonDrawer.DrawToggleButton("Snap", "Snap", ref snapEnabled,
+                width: EditorUIConstants.ToolbarSnapToggleWidth,
+                height: EditorUIConstants.ToolbarToggleHeight))
+            snapService.Enabled = snapEnabled;
+        LayoutDrawer.DrawTooltip("Snap to grid (Shift+G)");
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(EditorUIConstants.ToolbarGridStepWidth);
+        var gridStep = snapService.GridStep;
+        if (ImGui.DragFloat("##SnapGridStep", ref gridStep, 0.01f, 0f, 0f, "%.2f"))
+            snapService.GridStep = ClampGridStep(gridStep);
+        LayoutDrawer.DrawTooltip("Grid step");
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
@@ -183,4 +194,8 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         ImGui.PopStyleColor(3);
         ImGui.End();
     }
+
+    /// <summary>Shared GridStep UI clamp (toolbar + Settings) — min &gt; 0; SnapMath still no-ops &lt;= 0.</summary>
+    public static float ClampGridStep(float step)
+        => step < EditorUIConstants.SnapGridStepMin ? EditorUIConstants.SnapGridStepMin : step;
 }

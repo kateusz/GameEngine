@@ -34,6 +34,18 @@ public interface IEditorPreferences : IDisposable
     float HdrExposure { get; set; }
 
     /// <summary>
+    /// Gets or sets whether Move-tool world-lattice grid snap is enabled.
+    /// Default false (opt-in). Exact name — no EnableGridSnap alias.
+    /// </summary>
+    bool SnapEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the world-space snap lattice step.
+    /// Default 1.0. Exact name — no GridStepSize alias.
+    /// </summary>
+    float GridStep { get; set; }
+
+    /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.
     /// </summary>

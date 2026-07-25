@@ -155,6 +155,21 @@ public static class EditorUIConstants
     public const float ToolbarToggleHeight = 19f;
 
     /// <summary>
+    /// Width for the toolbar Snap toggle (wider than 2D/3D for the "Snap" label).
+    /// </summary>
+    public const float ToolbarSnapToggleWidth = 40f;
+
+    /// <summary>
+    /// Compact width for the toolbar GridStep DragFloat.
+    /// </summary>
+    public const float ToolbarGridStepWidth = 48f;
+
+    /// <summary>
+    /// Minimum GridStep allowed from UX controls (Settings / toolbar). SnapMath still no-ops &lt;= 0.
+    /// </summary>
+    public const float SnapGridStepMin = 0.01f;
+
+    /// <summary>
     /// Default size for the publish settings modal window.
     /// </summary>
     public static readonly Vector2 PublishSettingsModalSize = new(500f, 400f);

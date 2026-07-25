@@ -107,6 +107,7 @@ public static class EditorIoCContainer
     
         // Viewport infrastructure
         container.Register<IViewportScaleHelper, ViewportScaleHelper>(Reuse.Singleton);
+        container.Register<IViewportSnapService, ViewportSnapService>(Reuse.Singleton);
         container.Register<ViewportRuler>(Reuse.Singleton);
         container.Register<ViewportGrid>(Reuse.Singleton);
         container.Register<ViewportGrid3D>(Reuse.Singleton);

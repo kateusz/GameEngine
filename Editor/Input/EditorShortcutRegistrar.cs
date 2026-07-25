@@ -12,7 +12,8 @@ public class EditorShortcutRegistrar(
     SceneSettingsPopup sceneSettingsPopup,
     ISceneManager sceneManager,
     IEditorSelection selection,
-    IEditorCameraController cameraController)
+    IEditorCameraController cameraController,
+    IViewportSnapService snapService)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorShortcutRegistrar>();
 
@@ -37,6 +38,11 @@ public class EditorShortcutRegistrar(
             KeyCodes.E, KeyModifiers.ShiftOnly,
             () => viewport.SceneToolbar.CurrentMode = EditorMode.Ruler,
             "Ruler tool", "Tools"));
+
+        shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.G, KeyModifiers.ShiftOnly,
+            () => snapService.Enabled = !snapService.Enabled,
+            "Toggle snap to grid", "Tools"));
 
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Escape, KeyModifiers.None,

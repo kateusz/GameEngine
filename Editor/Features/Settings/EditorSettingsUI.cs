@@ -1,11 +1,13 @@
 using System.Numerics;
+using Editor.Features.Scene;
+using Editor.Features.Viewport;
 using Editor.UI.Drawers;
 using Engine.Core;
 using ImGuiNET;
 
 namespace Editor.Features.Settings;
 
-public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings)
+public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSettings debugSettings, IViewportSnapService snapService)
 {
     private bool _open;
 
@@ -54,6 +56,18 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.HdrExposure = hdrExposure;
             editorPreferences.Save();
         }
+
+        ImGui.Separator();
+        ImGui.SeparatorText("Snapping");
+
+        // Mutate via service setters (persist); never touches ShowGrid / scene.Dimension
+        var snapEnabled = snapService.Enabled;
+        if (ImGui.Checkbox("Snap to Grid", ref snapEnabled))
+            snapService.Enabled = snapEnabled;
+
+        var gridStep = snapService.GridStep;
+        if (ImGui.DragFloat("Grid Step", ref gridStep, 0.01f, 0f, 0f, "%.2f"))
+            snapService.GridStep = SceneToolbar.ClampGridStep(gridStep);
 
         ModalDrawer.EndModal();
     }

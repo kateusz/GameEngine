@@ -5,12 +5,14 @@ using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
+using Editor.Features.Viewport.Tools;
 using Editor.Input;
 using Editor.Panels;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Scene;
 using Engine.Scripting;
+using Math;
 using SceneComponents;
 using Serilog;
 
@@ -47,6 +49,13 @@ public class EditorLifecycle(
     public void Attach(IInputSystem inputSystem)
     {
         Logger.Debug("EditorLifecycle Attach.");
+
+#if DEBUG
+        // One-shot snap verification (D2A / FR-14) — single host; Release skips entirely
+        SnapMath.SelfCheck();
+        ViewportSnapService.SelfCheck();
+        MoveTool.SelfCheck();
+#endif
 
         _projectClosingHandler = () =>
         {
