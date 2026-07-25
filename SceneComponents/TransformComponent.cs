@@ -13,6 +13,8 @@ public class TransformComponent : IComponent
     private Matrix4x4 _cachedTransform;
     private bool _isDirty = true;
 
+    private Matrix4x4 _cachedWorldTransform = Matrix4x4.Identity;
+
     public Vector3 Translation
     {
         get => _translation;
@@ -57,6 +59,7 @@ public class TransformComponent : IComponent
         _scale = scale;
     }
 
+    /// <summary>Local TRS matrix (relative to parent, or world if root).</summary>
     public Matrix4x4 GetTransform()
     {
         if (_isDirty)
@@ -74,6 +77,11 @@ public class TransformComponent : IComponent
 
         return _cachedTransform;
     }
+
+    /// <summary>Cached world matrix. Written by UpdateWorldTransforms.</summary>
+    public Matrix4x4 GetWorldTransform() => _cachedWorldTransform;
+
+    public void SetWorldTransform(Matrix4x4 world) => _cachedWorldTransform = world;
 
     public IComponent Clone()
     {

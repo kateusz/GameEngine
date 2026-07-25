@@ -245,6 +245,7 @@ public sealed class EditorViewport(
             case SceneState.Edit:
                 if (sceneContext.ActiveScene is { } scene)
                 {
+                    scene.UpdateWorldTransforms();
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
                     SceneRenderPipeline.RenderScene(
                         scene.Context,

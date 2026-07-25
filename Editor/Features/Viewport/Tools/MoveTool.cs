@@ -31,17 +31,19 @@ public class MoveTool : IEntityTargetTool
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
+
         var hoveredAxis = GizmoRenderer.GetTranslationHover(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(), mousePos);
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(), mousePos);
 
         if (hoveredAxis == GizmoAxis.None) return;
 
-        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
-        if (worldPos is null) return;
+        var mouseWorld = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (mouseWorld is null) return;
 
         _activeAxis = hoveredAxis;
-        _dragStartWorldPos = worldPos.Value;
-        _dragStartEntityPos = transform.Translation;
+        _dragStartWorldPos = mouseWorld.Value;
+        _dragStartEntityPos = transform.Translation; // edit local
     }
 
     public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
@@ -72,12 +74,13 @@ public class MoveTool : IEntityTargetTool
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
         var hover = GizmoRenderer.GetTranslationHover(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(),
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(),
             ToLocal(ImGuiNET.ImGui.GetMousePos(), viewportBounds));
 
         GizmoRenderer.DrawTranslation(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(),
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(),
             _activeAxis != GizmoAxis.None ? _activeAxis : hover);
     }
 

@@ -86,6 +86,10 @@ public static class EngineIoCContainer
             r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries
             ?? NullPhysicsQueries.Instance);
 
+        container.RegisterDelegate<IEntityHierarchy>(r =>
+            r.Resolve<ISceneContext>().ActiveScene
+            ?? (IEntityHierarchy)NullEntityHierarchy.Instance);
+
         container.RegisterDelegate<ICameraQueries>(r =>
             r.Resolve<ISceneContext>().ActiveScene?.CameraQueries
             ?? NullCameraQueries.Instance);
