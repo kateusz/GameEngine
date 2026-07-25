@@ -410,3 +410,5 @@ FodyWeavers.xsd
 
 # Publish/build output (any depth — leading / only matched repo root)
 Builds/
+
+.maister/tasks

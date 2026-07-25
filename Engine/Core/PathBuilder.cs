@@ -10,7 +10,8 @@ public static class PathBuilder
 
     public static string AssetsPath =>
         _context?.AssetsPath
-        ?? throw new InvalidOperationException("PathBuilder not initialized. Call EngineIoCContainer.RegisterCore first.");
+        ?? throw new InvalidOperationException(
+            "PathBuilder not initialized. Resolve IProjectContext after EngineIoCContainer.RegisterCore (initializer wires PathBuilder).");
 
     public static string Build(string path) => Resolve(path);
 
