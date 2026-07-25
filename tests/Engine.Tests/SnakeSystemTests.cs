@@ -2,8 +2,8 @@ using Audio;
 using ECS;
 using Input;
 using NSubstitute;
+using SceneComponents.Rendering;
 using Shouldly;
-using Snake;
 using Snake.project.assets.scripts;
 
 namespace Engine.Tests;
@@ -98,6 +98,11 @@ public class SnakeSystemTests
         var game = CreateGame();
         entity.AddComponent(game);
         context.Register(entity);
+
+        var banner = Entity.Create(2, "GameOverBanner");
+        banner.AddComponent(new SpriteRendererComponent());
+        context.Register(banner);
+
         keyboard ??= Substitute.For<IKeyboardInput>();
         var audio = Substitute.For<IAudio>();
         return (new SnakeSystem(context, keyboard, audio), game);
