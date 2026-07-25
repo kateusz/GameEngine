@@ -1,5 +1,5 @@
 using System.Numerics;
-using Engine.Core;
+using System.Runtime.InteropServices;
 using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
@@ -8,14 +8,24 @@ using Engine.Platform.SilkNet;
 using ImGuiNET;
 using Silk.NET.Input;
 using Silk.NET.OpenGL.Extensions.ImGui;
-using Ui.ImGui;
 
 namespace Ui.ImGui.Platform.SilkNet;
 
 internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 {
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr GetClipboardTextFn(IntPtr userData);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void SetClipboardTextFn(IntPtr userData, IntPtr text);
+
+    private static IKeyboard? _clipboardKeyboard;
+    private static IntPtr _clipboardUtf8;
+
     private ImGuiController? _controller;
     private IInputContext? _inputContext;
+    private GetClipboardTextFn? _getClipboardTextFn;
+    private SetClipboardTextFn? _setClipboardTextFn;
     private bool _disposed;
 
     public void OnDetach()
@@ -33,8 +43,8 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
     public void BeginFrame(TimeSpan elapsed)
     {
-        _controller?.Update((float)elapsed.TotalSeconds);
         SyncModifierKeys();
+        _controller?.Update((float)elapsed.TotalSeconds);
     }
 
     public void EndFrame()
@@ -50,6 +60,35 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
         _inputContext = inputContext;
         _controller = new ImGuiController(gl, view, inputContext, OnConfigureIo);
+
+        if (inputContext.Keyboards.Count > 0)
+        {
+            _clipboardKeyboard = inputContext.Keyboards[0];
+            _getClipboardTextFn = GetClipboardText;
+            _setClipboardTextFn = SetClipboardText;
+            var io = ImGuiNET.ImGui.GetIO();
+            io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_getClipboardTextFn);
+            io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_setClipboardTextFn);
+        }
+    }
+
+    private static IntPtr GetClipboardText(IntPtr userData)
+    {
+        string text;
+        try { text = _clipboardKeyboard?.ClipboardText ?? string.Empty; }
+        catch { text = string.Empty; } // GLFW: non-text clipboard
+
+        if (_clipboardUtf8 != IntPtr.Zero)
+            Marshal.FreeCoTaskMem(_clipboardUtf8);
+        return _clipboardUtf8 = Marshal.StringToCoTaskMemUTF8(text);
+    }
+
+    private static void SetClipboardText(IntPtr userData, IntPtr text)
+    {
+        if (_clipboardKeyboard is null)
+            return;
+
+        _clipboardKeyboard.ClipboardText = Marshal.PtrToStringUTF8(text) ?? string.Empty;
     }
 
     private void SyncModifierKeys()
@@ -174,6 +213,13 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
         _controller?.Dispose();
         _controller = null!;
+        _clipboardKeyboard = null;
+        if (_clipboardUtf8 != IntPtr.Zero)
+        {
+            Marshal.FreeCoTaskMem(_clipboardUtf8);
+            _clipboardUtf8 = IntPtr.Zero;
+        }
+
         _disposed = true;
         GC.SuppressFinalize(this);
     }

@@ -258,8 +258,7 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
 
     private void SyncBanners(SnakeGameComponent game)
     {
-        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null);
-        SetBanner("ResetHint", game.GameOver ? "textures/press_r.png" : null);
+        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null); ;
     }
 
     private void SetBanner(string entityName, string? texturePath)
