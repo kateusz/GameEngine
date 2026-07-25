@@ -55,12 +55,13 @@ public class MoveTool : IEntityTargetTool
         if (currentWorld is null) return;
 
         var delta = currentWorld.Value - _dragStartWorldPos;
+        var deltaLocal = WorldDeltaToLocal(transform, new Vector3(delta.X, delta.Y, 0f));
 
         transform.Translation = _activeAxis switch
         {
-            GizmoAxis.X => _dragStartEntityPos with { X = _dragStartEntityPos.X + delta.X },
-            GizmoAxis.Y => _dragStartEntityPos with { Y = _dragStartEntityPos.Y + delta.Y },
-            _ => new Vector3(_dragStartEntityPos.X + delta.X, _dragStartEntityPos.Y + delta.Y, _dragStartEntityPos.Z)
+            GizmoAxis.X => _dragStartEntityPos with { X = _dragStartEntityPos.X + deltaLocal.X },
+            GizmoAxis.Y => _dragStartEntityPos with { Y = _dragStartEntityPos.Y + deltaLocal.Y },
+            _ => new Vector3(_dragStartEntityPos.X + deltaLocal.X, _dragStartEntityPos.Y + deltaLocal.Y, _dragStartEntityPos.Z)
         };
     }
 
@@ -82,6 +83,24 @@ public class MoveTool : IEntityTargetTool
         GizmoRenderer.DrawTranslation(
             worldPos, viewportBounds, camera.GetViewProjectionMatrix(),
             _activeAxis != GizmoAxis.None ? _activeAxis : hover);
+    }
+
+    /// <summary>
+    /// world = local * parentWorld ⇒ parentWorld = inv(local) * world.
+    /// Maps a world-space drag delta into the entity's parent-local space.
+    /// </summary>
+    private static Vector3 WorldDeltaToLocal(TransformComponent transform, Vector3 deltaWorld)
+    {
+        var local = transform.GetTransform();
+        var world = transform.GetWorldTransform();
+        if (!Matrix4x4.Invert(local, out var invLocal))
+            return deltaWorld;
+
+        var parentWorld = invLocal * world;
+        if (!Matrix4x4.Invert(parentWorld, out var invParent))
+            return deltaWorld;
+
+        return Vector3.TransformNormal(deltaWorld, invParent);
     }
 
     private static Vector2 ToLocal(Vector2 globalMouse, Vector2[] viewportBounds)

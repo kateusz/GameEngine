@@ -47,6 +47,9 @@ internal sealed class Scene : IScene
         ScriptRuntimeStore = scriptRuntimeStore;
         _physicsWorld = physicsWorld;
         _cameraQueries = cameraQueries;
+
+        // After scripts (110), before audio (120) — locals settle first, then world caches.
+        _systemManager.RegisterSystem(new TransformHierarchySystem(UpdateWorldTransforms));
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
@@ -154,9 +157,9 @@ internal sealed class Scene : IScene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
-        UpdateWorldTransforms();
         // 100: PhysicsSimulationSystem
         // 110: ScriptUpdateSystem
+        // 115: TransformHierarchySystem (world caches)
         // 120: AudioSystem
         // 145: PrimaryCameraSystem
         // 150: SceneRenderSystem
@@ -256,12 +259,16 @@ internal sealed class Scene : IScene
         return Context.Contains(parentId) ? Context.GetById(parentId) : null;
     }
 
+    /// <summary>
+    /// Direct children of <paramref name="entity"/>. Returns a snapshot detached from the
+    /// live hierarchy index so callers can iterate safely during mutations.
+    /// </summary>
     public IReadOnlyList<Entity> GetChildren(Entity entity)
     {
-        if (!_childrenIndex.TryGetValue(entity.Id, out var children))
+        if (!_childrenIndex.TryGetValue(entity.Id, out var children) || children.Count == 0)
             return EmptyEntities;
 
-        return children;
+        return children.ToArray();
     }
 
     public IReadOnlyList<Entity> GetRootEntities()
@@ -296,6 +303,13 @@ internal sealed class Scene : IScene
                     return false;
             }
         }
+
+        // Same parent → no-op (preserves sibling order)
+        var currentParent = GetParent(child);
+        if (currentParent is null && parent is null)
+            return true;
+        if (currentParent is not null && parent is not null && currentParent.Id == parent.Id)
+            return true;
 
         DetachFromParentIndex(child);
 
@@ -346,10 +360,40 @@ internal sealed class Scene : IScene
                 continue;
             }
 
-            if (!_childrenIndex.TryGetValue(parentId, out var list))
+            // Cycle check: walk ancestors; first repeat → detach this entity to root
+            var visited = new HashSet<int> { entity.Id };
+            var walkId = parentId;
+            var cyclic = false;
+            while (true)
+            {
+                if (!visited.Add(walkId))
+                {
+                    Logger.Warning(
+                        "Hierarchy cycle at entity '{EntityName}' (ID: {EntityId}) — detaching to root",
+                        entity.Name, entity.Id);
+                    parentComp.ParentId = null;
+                    cyclic = true;
+                    break;
+                }
+
+                if (!Context.Contains(walkId))
+                    break;
+
+                var ancestor = Context.GetById(walkId);
+                if (!ancestor.TryGetComponent<ParentComponent>(out var ancestorParent) ||
+                    ancestorParent.ParentId is not int nextId)
+                    break;
+
+                walkId = nextId;
+            }
+
+            if (cyclic || parentComp.ParentId is not int resolvedParentId)
+                continue;
+
+            if (!_childrenIndex.TryGetValue(resolvedParentId, out var list))
             {
                 list = [];
-                _childrenIndex[parentId] = list;
+                _childrenIndex[resolvedParentId] = list;
             }
 
             list.Add(entity);

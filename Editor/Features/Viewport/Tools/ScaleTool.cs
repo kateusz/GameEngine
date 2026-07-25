@@ -54,18 +54,19 @@ public class ScaleTool : IEntityTargetTool
         if (currentWorld is null) return;
 
         var delta = currentWorld.Value - _dragStartWorldPos;
+        var deltaLocal = WorldDeltaToLocal(transform, new Vector3(delta.X, delta.Y, 0f));
 
         transform.Scale = _activeAxis switch
         {
             GizmoAxis.X => _dragStartScale with
             {
-                X = MathF.Max(0.01f, _dragStartScale.X * MathF.Max(0.01f, 1f + delta.X * 0.5f))
+                X = MathF.Max(0.01f, _dragStartScale.X * MathF.Max(0.01f, 1f + deltaLocal.X * 0.5f))
             },
             GizmoAxis.Y => _dragStartScale with
             {
-                Y = MathF.Max(0.01f, _dragStartScale.Y * MathF.Max(0.01f, 1f + delta.Y * 0.5f))
+                Y = MathF.Max(0.01f, _dragStartScale.Y * MathF.Max(0.01f, 1f + deltaLocal.Y * 0.5f))
             },
-            _ => _dragStartScale * MathF.Max(0.01f, 1f + (delta.X + delta.Y) * 0.5f)
+            _ => _dragStartScale * MathF.Max(0.01f, 1f + (deltaLocal.X + deltaLocal.Y) * 0.5f)
         };
     }
 
@@ -87,6 +88,24 @@ public class ScaleTool : IEntityTargetTool
         GizmoRenderer.DrawScale(
             worldPos, viewportBounds, camera.GetViewProjectionMatrix(),
             _activeAxis != GizmoAxis.None ? _activeAxis : hover);
+    }
+
+    /// <summary>
+    /// world = local * parentWorld ⇒ parentWorld = inv(local) * world.
+    /// Maps a world-space drag delta into the entity's parent-local space.
+    /// </summary>
+    private static Vector3 WorldDeltaToLocal(TransformComponent transform, Vector3 deltaWorld)
+    {
+        var local = transform.GetTransform();
+        var world = transform.GetWorldTransform();
+        if (!Matrix4x4.Invert(local, out var invLocal))
+            return deltaWorld;
+
+        var parentWorld = invLocal * world;
+        if (!Matrix4x4.Invert(parentWorld, out var invParent))
+            return deltaWorld;
+
+        return Vector3.TransformNormal(deltaWorld, invParent);
     }
 
     private static Vector2 ToLocal(Vector2 globalMouse, Vector2[] viewportBounds)

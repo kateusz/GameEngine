@@ -10,6 +10,9 @@ public interface IEntityHierarchy
 {
     Entity? GetParent(Entity entity);
 
+    /// <summary>
+    /// Direct children of <paramref name="entity"/>. Snapshot detached from the live hierarchy index.
+    /// </summary>
     IReadOnlyList<Entity> GetChildren(Entity entity);
 
     /// <summary>

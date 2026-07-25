@@ -44,11 +44,19 @@ public class SceneHierarchyPanel(
 
         RenderEntityHierarchy();
 
-        // Drop on empty panel background → promote to root
-        if (ImGui.BeginDragDropTarget())
+        // Explicit empty-space target for promote-to-root (not the last tree node).
+        // InvisibleButton is an item, so window NoOpenOverItems menu won't fire over it —
+        // attach the create-entity menu to the button instead.
+        var avail = ImGui.GetContentRegionAvail();
+        if (avail.X > 0 && avail.Y > 0)
         {
-            TryAcceptEntityDrop(parent: null);
-            ImGui.EndDragDropTarget();
+            ImGui.InvisibleButton("##HierarchyBgDrop", avail);
+            entityContextMenu.RenderForLastItem(_scene);
+            if (ImGui.BeginDragDropTarget())
+            {
+                TryAcceptEntityDrop(parent: null);
+                ImGui.EndDragDropTarget();
+            }
         }
 
         if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered())
@@ -61,7 +69,7 @@ public class SceneHierarchyPanel(
 
     private void RenderEntityHierarchy()
     {
-        var roots = _scene?.GetRootEntities().ToList() ?? [];
+        var roots = _scene.GetRootEntities();
         if (_isFilterActive)
         {
             if (_filterVisibleIds.Count == 0)
@@ -204,7 +212,7 @@ public class SceneHierarchyPanel(
         }
 
         _isFilterActive = true;
-        var normalizedQuery = query.Trim().ToLowerInvariant();
+        var normalizedQuery = query.Trim();
 
         foreach (var entity in _scene.Entities)
         {
@@ -214,12 +222,15 @@ public class SceneHierarchyPanel(
             _filterMatchIds.Add(entity.Id);
             // Include match + ancestors so nested hits stay visible in context
             for (Entity? current = entity; current is not null; current = _scene.GetParent(current))
-                _filterVisibleIds.Add(current.Id);
+            {
+                if (!_filterVisibleIds.Add(current.Id))
+                    break;
+            }
         }
     }
 
     private static bool MatchesFilter(Entity entity, string query)
     {
-        return entity.Name.ToLowerInvariant().Contains(query);
+        return entity.Name.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 }

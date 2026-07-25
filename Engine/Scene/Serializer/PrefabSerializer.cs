@@ -45,9 +45,9 @@ internal sealed class PrefabSerializer(
             registry.SerializeEntity(source, componentsArray, _options);
 
             // Remap ParentId scene Ids → prefab-local indices
-            foreach (var node in componentsArray)
+            for (var c = componentsArray.Count - 1; c >= 0; c--)
             {
-                if (node is not JsonObject compObj)
+                if (componentsArray[c] is not JsonObject compObj)
                     continue;
                 if (compObj["Name"]?.GetValue<string>() != nameof(ParentComponent))
                     continue;
@@ -55,8 +55,18 @@ internal sealed class PrefabSerializer(
                 if (compObj["ParentId"] is JsonValue parentVal && parentVal.TryGetValue<int>(out var parentSceneId))
                 {
                     if (!idToIndex.TryGetValue(parentSceneId, out var parentIndex))
+                    {
+                        // Subtree root's ParentId points at the external scene parent — drop it
+                        if (i == 0)
+                        {
+                            componentsArray.RemoveAt(c);
+                            continue;
+                        }
+
                         throw new InvalidSceneJsonException(
                             $"Prefab save failed: ParentId {parentSceneId} is outside the saved subtree");
+                    }
+
                     compObj["ParentId"] = parentIndex;
                 }
             }

@@ -8,6 +8,9 @@ namespace Editor.UI.Elements;
 public interface IEntityContextMenu
 {
     void Render(IScene context);
+
+    /// <summary>Context menu for the last submitted item (e.g. hierarchy empty-space drop target).</summary>
+    void RenderForLastItem(IScene context);
 }
 
 public class EntityContextMenu : IEntityContextMenu
@@ -17,18 +20,27 @@ public class EntityContextMenu : IEntityContextMenu
         if (ImGui.BeginPopupContextWindow("WindowContextMenu",
                 ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
         {
-            if (ImGui.MenuItem("Create Empty Entity"))
-            {
-                CreateEmptyEntity(context);
-            }
-
-            if (ImGui.MenuItem("Create 3D Entity"))
-            {
-                Create3DEntity(context);
-            }
-
+            DrawCreateItems(context);
             ImGui.EndPopup();
         }
+    }
+
+    public void RenderForLastItem(IScene context)
+    {
+        if (ImGui.BeginPopupContextItem("HierarchyBgContextMenu"))
+        {
+            DrawCreateItems(context);
+            ImGui.EndPopup();
+        }
+    }
+
+    private static void DrawCreateItems(IScene context)
+    {
+        if (ImGui.MenuItem("Create Empty Entity"))
+            CreateEmptyEntity(context);
+
+        if (ImGui.MenuItem("Create 3D Entity"))
+            Create3DEntity(context);
     }
 
     private static void CreateEmptyEntity(IScene context)

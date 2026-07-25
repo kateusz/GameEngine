@@ -91,22 +91,31 @@ public class EntityHierarchyTests
     public void WorldTransform_Child_ComposesParentThenLocal()
     {
         using var scene = CreateScene();
-        var parent = CreateWithTransform(scene, "parent", new Vector3(10, 0, 0));
+        var parent = scene.CreateEntity("parent");
+        parent.AddComponent(new TransformComponent(
+            new Vector3(10, 0, 0),
+            new Vector3(0, 0, MathF.PI / 2f),
+            new Vector3(2, 1, 1)));
         var child = CreateWithTransform(scene, "child", new Vector3(1, 2, 0));
         scene.SetParent(child, parent);
 
         scene.UpdateWorldTransforms();
 
-        var expected = child.GetComponent<TransformComponent>().GetTransform()
-                       * parent.GetComponent<TransformComponent>().GetTransform();
+        var parentLocal = parent.GetComponent<TransformComponent>().GetTransform();
+        var childLocal = child.GetComponent<TransformComponent>().GetTransform();
+        var expected = childLocal * parentLocal;
+        var reversed = parentLocal * childLocal;
         var world = child.GetComponent<TransformComponent>().GetWorldTransform();
 
         world.M41.ShouldBe(expected.M41, 0.0001f);
         world.M42.ShouldBe(expected.M42, 0.0001f);
         world.M43.ShouldBe(expected.M43, 0.0001f);
-        world.Translation.X.ShouldBe(11f, 0.0001f);
-        world.Translation.Y.ShouldBe(2f, 0.0001f);
-        world.Translation.Z.ShouldBe(0f, 0.0001f);
+        // Non-commutative: reversed order must differ when parent has rotation/scale
+        (MathF.Abs(reversed.M41 - expected.M41) + MathF.Abs(reversed.M42 - expected.M42))
+            .ShouldBeGreaterThan(0.01f);
+        world.Translation.X.ShouldBe(expected.Translation.X, 0.0001f);
+        world.Translation.Y.ShouldBe(expected.Translation.Y, 0.0001f);
+        world.Translation.Z.ShouldBe(expected.Translation.Z, 0.0001f);
     }
 
     [Fact]
@@ -210,6 +219,38 @@ public class EntityHierarchyTests
 
         orphan.GetComponent<ParentComponent>().ParentId.ShouldBeNull();
         scene.GetRootEntities().Select(e => e.Id).ShouldContain(orphan.Id);
+    }
+
+    [Fact]
+    public void RebuildHierarchyIndex_Cycle_DetachesOneEntityToRoot()
+    {
+        using var scene = CreateScene();
+        var a = CreateWithTransform(scene, "a", Vector3.Zero);
+        var b = CreateWithTransform(scene, "b", Vector3.Zero);
+        a.AddComponent(new ParentComponent(b.Id));
+        b.AddComponent(new ParentComponent(a.Id));
+
+        scene.RebuildHierarchyIndex();
+
+        var aParent = a.GetComponent<ParentComponent>().ParentId;
+        var bParent = b.GetComponent<ParentComponent>().ParentId;
+        (aParent is null ^ bParent is null).ShouldBeTrue();
+        scene.GetRootEntities().Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void SetParent_SameParent_PreservesSiblingOrder()
+    {
+        using var scene = CreateScene();
+        var parent = CreateWithTransform(scene, "parent", Vector3.Zero);
+        var c1 = CreateWithTransform(scene, "c1", Vector3.Zero);
+        var c2 = CreateWithTransform(scene, "c2", Vector3.Zero);
+        scene.SetParent(c1, parent);
+        scene.SetParent(c2, parent);
+
+        scene.SetParent(c1, parent).ShouldBeTrue();
+
+        scene.GetChildren(parent).Select(e => e.Id).ShouldBe([c1.Id, c2.Id]);
     }
 
     [Fact]

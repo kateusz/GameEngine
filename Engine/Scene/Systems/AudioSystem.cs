@@ -134,12 +134,14 @@ internal sealed class AudioSystem(
             if (!component.IsActive)
                 continue;
 
-            var pos = transform.GetWorldTransform().Translation;
-            audio.SetListenerPosition(pos);
+            var world = transform.GetWorldTransform();
+            audio.SetListenerPosition(world.Translation);
 
-            var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
-            var forward = Vector3.Transform(-Vector3.UnitZ, quaternion);
-            var up = Vector3.Transform(Vector3.UnitY, quaternion);
+            if (!Matrix4x4.Decompose(world, out _, out var rotation, out _))
+                rotation = MathHelpers.QuaternionFromEuler(transform.Rotation);
+
+            var forward = Vector3.Normalize(Vector3.Transform(-Vector3.UnitZ, rotation));
+            var up = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, rotation));
 
             audio.SetListenerOrientation(forward, up);
             return;
