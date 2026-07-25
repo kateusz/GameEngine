@@ -1,12 +1,12 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Elements;
 using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors.Physics;
 
-public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<BoxCollider2DComponent>
+public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<BoxCollider2DComponent>(history)
 {
     protected override string DisplayName => "Box Collider 2D";
 

@@ -1,5 +1,5 @@
 ﻿using DryIoc;
-using ECS;
+using Engine.Core;
 using Engine.Core.DI;
 using Serilog;
 using Ui.ImGui.DI;
@@ -15,6 +15,8 @@ public class Program
         try
         {
             EngineIoCContainer.RegisterCore(container);
+            // PathBuilder wires via RegisterInitializer on first IProjectContext resolve (same as Runtime).
+            container.Resolve<IProjectContext>().Apply(AppContext.BaseDirectory);
             EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Benchmark", 1280, 720));
             ImGuiIoCContainer.Register(container);
             container.Register<BenchmarkLayer>(Reuse.Singleton);

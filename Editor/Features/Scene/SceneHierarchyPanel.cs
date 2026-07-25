@@ -1,5 +1,7 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.Features.Selection;
 using Editor.Panels;
 using Editor.UI.Constants;
@@ -14,7 +16,8 @@ namespace Editor.Features.Scene;
 public class SceneHierarchyPanel(
     PrefabDropTarget prefabDropTarget,
     IEntityContextMenu entityContextMenu,
-    IEditorSelection selection)
+    IEditorSelection selection,
+    IEditorHistory history)
     : ISceneHierarchyPanel, IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
@@ -159,8 +162,9 @@ public class SceneHierarchyPanel(
 
         if (entityDeleted)
         {
-            _scene.DestroyEntity(entity);
-            if (selection.SelectedEntity?.Id == entity.Id)
+            var deletedId = entity.Id;
+            history.Execute(new DestroyEntitySubtreeCommand(_scene, deletedId));
+            if (selection.SelectedEntity?.Id == deletedId)
                 selection.Select(null, SelectionSource.Code);
             ApplyFilter(_searchQuery);
         }

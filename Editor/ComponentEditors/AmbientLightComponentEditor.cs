@@ -1,13 +1,13 @@
 ﻿using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Elements;
 using ImGuiNET;
 using SceneComponents.Lighting;
 
 namespace Editor.ComponentEditors;
 
-public class AmbientLightComponentEditor(UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<AmbientLightComponent>
+public class AmbientLightComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<AmbientLightComponent>(history)
 {
     protected override string DisplayName => "Ambient Light";
 

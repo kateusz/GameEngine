@@ -1,5 +1,7 @@
 using ECS;
 using Engine.Core;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.Features.Scripting;
 using Engine.Scripting;
 using Serilog;
@@ -8,7 +10,8 @@ namespace Editor.Features.Components;
 
 public class GameComponentFactory(
     IProjectContext projectContext,
-    GameScriptWorkspace scriptWorkspace)
+    GameScriptWorkspace scriptWorkspace,
+    IEditorHistory history)
     : IGameComponentFactory
 {
     private static readonly ILogger Logger = Log.ForContext<GameComponentFactory>();
@@ -73,7 +76,8 @@ public class GameComponentFactory(
         if (entity.GetAllComponents().Any(c => c.GetType() == type))
             return (false, "Entity already has this component.");
 
-        entity.AddComponentDynamic((IComponent)Activator.CreateInstance(type)!);
+        // I3: undo attachment only — created .cs file is not deleted on Undo
+        history.Execute(new AddComponentCommand(entity, (IComponent)Activator.CreateInstance(type)!));
         Logger.Information("Attached {ComponentName} to entity {EntityName}", className, entity.Name);
         return (true, null);
     }
@@ -102,7 +106,7 @@ public class GameComponentFactory(
         if (entity.GetAllComponents().Any(c => c.GetType() == type))
             return (false, "Entity already has this component.");
 
-        entity.AddComponentDynamic((IComponent)Activator.CreateInstance(type)!);
+        history.Execute(new AddComponentCommand(entity, (IComponent)Activator.CreateInstance(type)!));
         Logger.Information("Attached existing {ComponentName} to entity {EntityName}", typeName, entity.Name);
         return (true, null);
     }

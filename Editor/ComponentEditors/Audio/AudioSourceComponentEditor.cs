@@ -1,6 +1,7 @@
 using Audio;
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using ImGuiNET;
@@ -12,8 +13,7 @@ namespace Editor.ComponentEditors.Audio;
 public class AudioSourceComponentEditor(
     IAudioPlayback audioPlayback,
     AudioDropTarget audioDropTarget,
-    UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<AudioSourceComponent>
+    UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<AudioSourceComponent>(history)
 {
     protected override string DisplayName => "Audio Source";
 

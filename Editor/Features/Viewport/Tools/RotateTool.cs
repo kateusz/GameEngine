@@ -1,17 +1,23 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.Features.Viewport.Gizmos;
+using Engine.Scene;
 using Engine.Scene.Cameras;
 using SceneComponents;
 
 namespace Editor.Features.Viewport.Tools;
 
-public class RotateTool : IEntityTargetTool
+public class RotateTool(IEditorHistory history, ISceneContext sceneContext) : IEntityTargetTool
 {
     private Entity? _targetEntity;
     private bool _isRotating;
     private float _startAngle;
     private float _startRotZ;
+    private Vector3 _dragStartTranslation;
+    private Vector3 _dragStartRotation;
+    private Vector3 _dragStartScale;
 
     public EditorMode Mode => EditorMode.Rotate;
     public bool IsActive => _isRotating;
@@ -44,6 +50,9 @@ public class RotateTool : IEntityTargetTool
         _isRotating = true;
         _startAngle = MathF.Atan2(globalMouse.Y - origin.Y, globalMouse.X - origin.X);
         _startRotZ = transform.Rotation.Z;
+        _dragStartTranslation = transform.Translation;
+        _dragStartRotation = transform.Rotation;
+        _dragStartScale = transform.Scale;
     }
 
     public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
@@ -64,6 +73,20 @@ public class RotateTool : IEntityTargetTool
 
     public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
+        if (_isRotating
+            && _targetEntity is not null
+            && _targetEntity.TryGetComponent<TransformComponent>(out var transform)
+            && sceneContext.ActiveScene is { } scene
+            && !SetTransformCommand.TrsEqual(
+                _dragStartTranslation, _dragStartRotation, _dragStartScale,
+                transform.Translation, transform.Rotation, transform.Scale))
+        {
+            history.Execute(new SetTransformCommand(
+                scene, _targetEntity.Id,
+                _dragStartTranslation, _dragStartRotation, _dragStartScale,
+                transform.Translation, transform.Rotation, transform.Scale));
+        }
+
         _isRotating = false;
     }
 

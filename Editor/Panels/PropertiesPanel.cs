@@ -1,8 +1,6 @@
 using System.Numerics;
-using ECS;
-using Editor.ComponentEditors;
 using Editor.ComponentEditors.Core;
-using Editor.Features.Components;
+using Editor.Features.History;
 using Editor.Features.Selection;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
@@ -17,7 +15,8 @@ public class PropertiesPanel(
     IComponentEditorRegistry componentEditors,
     ISceneContext sceneContext,
     GameComponentEditor gameComponentEditor,
-    IEditorSelection selection)
+    IEditorSelection selection,
+    IEditorHistory history)
     : IPropertiesPanel, IEditorPanel
 {
     public void Draw()
@@ -41,7 +40,7 @@ public class PropertiesPanel(
         EntityNameEditor.Draw(selectedEntity);
         ImGui.Spacing();
 
-        ComponentSelector.Draw(selectedEntity, sceneContext.ActiveScene!, gameComponentEditor);
+        ComponentSelector.Draw(selectedEntity, sceneContext.ActiveScene!, gameComponentEditor, history);
         ImGui.SameLine();
 
         ButtonDrawer.DrawButton("Save as Prefab",

@@ -258,13 +258,13 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
 
     private void SyncBanners(SnakeGameComponent game)
     {
-        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null); ;
+        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null);
     }
 
     private void SetBanner(string entityName, string? texturePath)
     {
         var entity = context.GetByName(entityName);
-        if (entity == null || !entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+        if (!entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             return;
 
         sprite.TexturePath = texturePath;
