@@ -27,7 +27,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
             Camera = ResolveRuntimeCamera(_cachedEntity.Id, _cachedCameraComponent);
             Transform = _cachedCameraComponent.CameraViewTransform
                 ?? (_cachedEntity.TryGetComponent<TransformComponent>(out var transform)
-                    ? transform.GetTransform()
+                    ? transform.GetWorldTransform()
                     : Matrix4x4.Identity);
             return;
         }
@@ -47,7 +47,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
             Camera = ResolveRuntimeCamera(entity.Id, cameraComponent);
             Transform = cameraComponent.CameraViewTransform
                 ?? (entity.TryGetComponent<TransformComponent>(out var transform)
-                    ? transform.GetTransform()
+                    ? transform.GetWorldTransform()
                     : Matrix4x4.Identity);
             break;
         }

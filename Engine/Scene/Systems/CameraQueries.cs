@@ -42,7 +42,7 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
 
             var transform = cameraComponent.CameraViewTransform
                 ?? (entity.TryGetComponent<TransformComponent>(out var transformComponent)
-                    ? transformComponent.GetTransform()
+                    ? transformComponent.GetWorldTransform()
                     : Matrix4x4.Identity);
 
             if (!Matrix4x4.Invert(transform, out var viewMatrix))

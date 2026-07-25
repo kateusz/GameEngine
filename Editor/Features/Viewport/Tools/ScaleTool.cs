@@ -31,16 +31,17 @@ public class ScaleTool : IEntityTargetTool
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
         var hoveredAxis = GizmoRenderer.GetScaleHover(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(), mousePos);
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(), mousePos);
 
         if (hoveredAxis == GizmoAxis.None) return;
 
-        var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
-        if (worldPos is null) return;
+        var mouseWorld = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
+        if (mouseWorld is null) return;
 
         _activeAxis = hoveredAxis;
-        _dragStartWorldPos = worldPos.Value;
+        _dragStartWorldPos = mouseWorld.Value;
         _dragStartScale = transform.Scale;
     }
 
@@ -78,12 +79,13 @@ public class ScaleTool : IEntityTargetTool
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
         var hover = GizmoRenderer.GetScaleHover(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(),
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(),
             ToLocal(ImGuiNET.ImGui.GetMousePos(), viewportBounds));
 
         GizmoRenderer.DrawScale(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(),
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(),
             _activeAxis != GizmoAxis.None ? _activeAxis : hover);
     }
 

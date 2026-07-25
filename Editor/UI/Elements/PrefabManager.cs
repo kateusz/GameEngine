@@ -2,12 +2,16 @@ using ECS;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Scene;
 using Engine.Scene.Serializer;
 using Serilog;
 
 namespace Editor.UI.Elements;
 
-public class PrefabManager(IPrefabSerializer serializer, IProjectContext projectContext) : IPrefabManager
+public class PrefabManager(
+    IPrefabSerializer serializer,
+    IProjectContext projectContext,
+    ISceneContext sceneContext) : IPrefabManager
 {
     private static readonly ILogger Logger = Log.ForContext<PrefabManager>();
 
@@ -51,8 +55,10 @@ public class PrefabManager(IPrefabSerializer serializer, IProjectContext project
             {
                 try
                 {
+                    var scene = sceneContext.ActiveScene
+                                ?? throw new InvalidOperationException("No active scene");
                     var currentProjectPath = GetCurrentProjectPath();
-                    serializer.SerializeToPrefab(_entityToSave!, _prefabName, currentProjectPath);
+                    serializer.SerializeToPrefab(scene, _entityToSave!, _prefabName, currentProjectPath);
                     Logger.Information("Saved prefab: {PrefabName}.prefab", _prefabName);
                     _prefabSaveError = "";
                 }

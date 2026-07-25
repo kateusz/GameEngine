@@ -30,7 +30,7 @@ public class ScriptableEntityPhysicsQueriesTests
     private sealed class QueryForwardingScript : ScriptableEntity
     {
         public QueryForwardingScript(IPhysicsQueries physicsQueries)
-            : base(new ComponentAccessor(), Substitute.For<IAudio>(), Substitute.For<IAudioPlayback>(), physicsQueries)
+            : base(new ComponentAccessor(), Substitute.For<IAudio>(), Substitute.For<IAudioPlayback>(), physicsQueries, NullEntityHierarchy.Instance)
         {
         }
 

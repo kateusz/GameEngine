@@ -65,7 +65,7 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
-            var transform = transformComponent.GetTransform();
+            var transform = transformComponent.GetWorldTransform();
             var tint = modelRenderer.Color;
 
             if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
@@ -122,7 +122,7 @@ internal static class SceneRenderPipeline
             if (spriteRendererComponent.Color.W <= 0f)
                 continue;
 
-            var transform = transformComponent.GetTransform();
+            var transform = transformComponent.GetWorldTransform();
             if (!string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath) && textureFactory != null)
             {
                 try
@@ -157,7 +157,7 @@ internal static class SceneRenderPipeline
                 continue;
 
             var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
-            var transform = transformComponent.GetTransform();
+            var transform = transformComponent.GetWorldTransform();
             var texCoords = subtextureComponent.TexCoords ?? SubTexture2D.CreateFromCoords(
                 texture,
                 subtextureComponent.Coords,

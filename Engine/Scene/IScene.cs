@@ -9,7 +9,7 @@ namespace Engine.Scene;
 /// Interface for a game scene that manages entities, systems, and scene lifecycle.
 /// Provides methods for entity management, runtime/editor updates, and resource cleanup.
 /// </summary>
-public interface IScene : IDisposable
+public interface IScene : IDisposable, IEntityHierarchy
 {
     /// <summary>
     /// Scene-owned entity registry. Isolated from other scenes.
@@ -96,8 +96,26 @@ public interface IScene : IDisposable
 
     /// <summary>
     /// Duplicates an entity by cloning all of its components.
+    /// If the entity has children, duplicates the entire subtree with remapped parent Ids.
     /// </summary>
     /// <param name="entity">The entity to duplicate</param>
     /// <returns>The newly created entity with cloned components</returns>
     Entity DuplicateEntity(Entity entity);
+
+    /// <summary>
+    /// Rebuilds the children index from ParentComponent data and fixes orphans.
+    /// Call after bulk deserialize.
+    /// </summary>
+    void RebuildHierarchyIndex();
+
+    /// <summary>
+    /// Depth-first world matrix update from roots. Call before reading GetWorldTransform in edit mode.
+    /// </summary>
+    void UpdateWorldTransforms();
+
+    /// <summary>Entities with no parent (scene roots), in registration order.</summary>
+    IReadOnlyList<Entity> GetRootEntities();
+
+    /// <summary>Root plus all descendants, parent-before-child.</summary>
+    IReadOnlyList<Entity> CollectSubtree(Entity root);
 }

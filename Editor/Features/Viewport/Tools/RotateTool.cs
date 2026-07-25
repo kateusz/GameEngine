@@ -31,12 +31,14 @@ public class RotateTool : IEntityTargetTool
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
+
         if (!GizmoRenderer.GetRotationHover(
-                transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(), mousePos))
+                worldPos, viewportBounds, camera.GetViewProjectionMatrix(), mousePos))
             return;
 
         var origin = ViewportCoordinateConverter.WorldToScreen(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix());
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix());
         var globalMouse = mousePos + viewportBounds[0];
 
         _isRotating = true;
@@ -49,8 +51,9 @@ public class RotateTool : IEntityTargetTool
         if (!_isRotating || _targetEntity == null) return;
         if (!_targetEntity.TryGetComponent<TransformComponent>(out var transform)) return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
         var origin = ViewportCoordinateConverter.WorldToScreen(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix());
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix());
         var globalMouse = mousePos + viewportBounds[0];
 
         var currentAngle = MathF.Atan2(globalMouse.Y - origin.Y, globalMouse.X - origin.X);
@@ -69,12 +72,13 @@ public class RotateTool : IEntityTargetTool
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        var worldPos = transform.GetWorldTransform().Translation;
         var localMouse = ImGuiNET.ImGui.GetMousePos() - viewportBounds[0];
         var hover = _isRotating || GizmoRenderer.GetRotationHover(
-            transform.Translation, viewportBounds, camera.GetViewProjectionMatrix(), localMouse);
+            worldPos, viewportBounds, camera.GetViewProjectionMatrix(), localMouse);
 
         GizmoRenderer.DrawRotation(
-            transform.Translation, transform.Rotation.Z,
+            worldPos, transform.Rotation.Z,
             viewportBounds, camera.GetViewProjectionMatrix(), hover);
     }
 }

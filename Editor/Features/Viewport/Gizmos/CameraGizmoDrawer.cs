@@ -53,7 +53,7 @@ internal static class CameraGizmoDrawer
             if (!entity.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
-            DrawIcon(graphics2D, entity.Id, transform.Translation, editorPos, right, up, face);
+            DrawIcon(graphics2D, entity.Id, transform.GetWorldTransform().Translation, editorPos, right, up, face);
         }
 
         graphics2D.EndScene();

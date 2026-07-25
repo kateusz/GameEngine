@@ -11,7 +11,8 @@ public class WaterScript : ScriptableEntity
     private readonly IAudio _audio;
 
     public WaterScript(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback,
-        IPhysicsQueries physicsQueries) : base(componentAccessor, audio, audioPlayback, physicsQueries)
+        IPhysicsQueries physicsQueries, IEntityHierarchy hierarchy)
+        : base(componentAccessor, audio, audioPlayback, physicsQueries, hierarchy)
     {
         _audio = audio;
     }

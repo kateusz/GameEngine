@@ -104,6 +104,8 @@ internal sealed class SceneSerializer(
             if (jsonEntity is not JsonObject entityObj) continue;
             scene.AddEntity(DeserializeEntity(entityObj));
         }
+
+        scene.RebuildHierarchyIndex();
     }
 
     private static JsonArray GetJsonArray(JsonNode jsonObject, string key)

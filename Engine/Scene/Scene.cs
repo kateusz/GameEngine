@@ -3,6 +3,7 @@ using ECS;
 using ECS.Systems;
 using Engine.Physics;
 using Engine.Scene.Systems;
+using SceneComponents;
 using SceneComponents.Camera;
 using Scripting;
 using Serilog;
@@ -12,6 +13,7 @@ namespace Engine.Scene;
 internal sealed class Scene : IScene
 {
     private static readonly ILogger Logger = Log.ForContext<Scene>();
+    private static readonly IReadOnlyList<Entity> EmptyEntities = Array.Empty<Entity>();
 
     private int _nextEntityId = 1;
     private bool _disposed;
@@ -20,6 +22,9 @@ internal sealed class Scene : IScene
     private readonly PhysicsContactQueue _physicsContactQueue;
     private readonly IPhysicsWorld2D _physicsWorld;
     private readonly ICameraQueries _cameraQueries;
+
+    // parent Id → ordered child entities (insertion order). Roots are entities with no ParentComponent / null ParentId.
+    private readonly Dictionary<int, List<Entity>> _childrenIndex = new();
 
     internal ScriptRuntimeStore ScriptRuntimeStore { get; }
 
@@ -90,6 +95,21 @@ internal sealed class Scene : IScene
 
     public void DestroyEntity(Entity entity)
     {
+        if (!Context.Contains(entity.Id))
+            return;
+
+        // Snapshot children first — recursive destroy mutates the index
+        foreach (var child in GetChildren(entity).ToList())
+            DestroyEntity(child);
+
+        DestroyEntityLeaf(entity);
+    }
+
+    private void DestroyEntityLeaf(Entity entity)
+    {
+        DetachFromParentIndex(entity);
+        _childrenIndex.Remove(entity.Id);
+
         if (ScriptRuntimeStore.TryGet(entity.Id, out var script))
         {
             try
@@ -134,6 +154,7 @@ internal sealed class Scene : IScene
 
     public void OnUpdateRuntime(TimeSpan ts)
     {
+        UpdateWorldTransforms();
         // 100: PhysicsSimulationSystem
         // 110: ScriptUpdateSystem
         // 120: AudioSystem
@@ -186,25 +207,204 @@ internal sealed class Scene : IScene
         }
     }
 
-    /// <summary>
-    /// Duplicates an entity by cloning all of its components.
-    /// </summary>
-    /// <param name="entity">The entity to duplicate.</param>
-    /// <returns>The newly created entity with cloned components.</returns>
     public Entity DuplicateEntity(Entity entity)
     {
-        var newEntity = CreateEntity(entity.Name);
+        if (!Context.Contains(entity.Id))
+            throw new ArgumentException("Entity does not belong to this scene", nameof(entity));
 
-        foreach (var component in entity.GetAllComponents())
+        var toClone = CollectSubtree(entity);
+        var idMap = new Dictionary<int, int>(toClone.Count);
+
+        Entity? rootClone = null;
+        foreach (var source in toClone)
         {
-            newEntity.AddComponentDynamic(component.Clone());
+            var clone = CreateEntity(source.Name);
+            idMap[source.Id] = clone.Id;
+
+            foreach (var component in source.GetAllComponents())
+                clone.AddComponentDynamic(component.Clone());
+
+            if (rootClone is null)
+                rootClone = clone;
         }
 
-        // Normalize primary camera flags to ensure at most one primary camera
-        if (newEntity.HasComponent<CameraComponent>() && newEntity.GetComponent<CameraComponent>().Primary)
-            SetPrimaryCamera(newEntity);
+        foreach (var (_, newId) in idMap)
+        {
+            var clone = Context.GetById(newId);
+            if (!clone.TryGetComponent<ParentComponent>(out var parentComp) || parentComp.ParentId is not int oldParentId)
+                continue;
 
-        return newEntity;
+            if (idMap.TryGetValue(oldParentId, out var mappedParentId))
+                parentComp.ParentId = mappedParentId;
+            // else keep ParentId — duplicate stays under the same external parent
+        }
+
+        RebuildHierarchyIndex();
+
+        // Normalize primary camera flags to ensure at most one primary camera
+        if (rootClone!.HasComponent<CameraComponent>() && rootClone.GetComponent<CameraComponent>().Primary)
+            SetPrimaryCamera(rootClone);
+
+        return rootClone;
+    }
+
+    public Entity? GetParent(Entity entity)
+    {
+        if (!entity.TryGetComponent<ParentComponent>(out var parent) || parent.ParentId is not int parentId)
+            return null;
+
+        return Context.Contains(parentId) ? Context.GetById(parentId) : null;
+    }
+
+    public IReadOnlyList<Entity> GetChildren(Entity entity)
+    {
+        if (!_childrenIndex.TryGetValue(entity.Id, out var children))
+            return EmptyEntities;
+
+        return children;
+    }
+
+    public IReadOnlyList<Entity> GetRootEntities()
+    {
+        var roots = new List<Entity>();
+        foreach (var entity in Context.Entities)
+        {
+            if (!entity.TryGetComponent<ParentComponent>(out var parent) || parent.ParentId is null)
+                roots.Add(entity);
+        }
+
+        return roots;
+    }
+
+    public bool SetParent(Entity child, Entity? parent)
+    {
+        if (!Context.Contains(child.Id))
+            return false;
+
+        if (parent is not null)
+        {
+            if (!Context.Contains(parent.Id))
+                return false;
+
+            if (parent.Id == child.Id)
+                return false;
+
+            // Cycle: walking ancestors of new parent must not hit child
+            for (var ancestor = parent; ancestor is not null; ancestor = GetParent(ancestor))
+            {
+                if (ancestor.Id == child.Id)
+                    return false;
+            }
+        }
+
+        DetachFromParentIndex(child);
+
+        if (parent is null)
+        {
+            if (child.HasComponent<ParentComponent>())
+                child.RemoveComponent<ParentComponent>();
+        }
+        else
+        {
+            if (!child.TryGetComponent<ParentComponent>(out var parentComp))
+            {
+                parentComp = new ParentComponent(parent.Id);
+                child.AddComponent(parentComp);
+            }
+            else
+            {
+                parentComp.ParentId = parent.Id;
+            }
+
+            if (!_childrenIndex.TryGetValue(parent.Id, out var list))
+            {
+                list = [];
+                _childrenIndex[parent.Id] = list;
+            }
+
+            list.Add(child);
+        }
+
+        return true;
+    }
+
+    public void RebuildHierarchyIndex()
+    {
+        _childrenIndex.Clear();
+
+        foreach (var (entity, parentComp) in Context.View<ParentComponent>())
+        {
+            if (parentComp.ParentId is not int parentId)
+                continue;
+
+            if (!Context.Contains(parentId))
+            {
+                Logger.Warning(
+                    "Orphan entity '{EntityName}' (ID: {EntityId}): ParentId {ParentId} missing — detaching to root",
+                    entity.Name, entity.Id, parentId);
+                parentComp.ParentId = null;
+                continue;
+            }
+
+            if (!_childrenIndex.TryGetValue(parentId, out var list))
+            {
+                list = [];
+                _childrenIndex[parentId] = list;
+            }
+
+            list.Add(entity);
+        }
+    }
+
+    public void UpdateWorldTransforms()
+    {
+        foreach (var root in GetRootEntities())
+            ComputeWorldTransform(root, Matrix4x4.Identity);
+    }
+
+    public Vector3 GetWorldPosition(Entity entity)
+    {
+        if (!entity.TryGetComponent<TransformComponent>(out var transform))
+            return Vector3.Zero;
+
+        return transform.GetWorldTransform().Translation;
+    }
+
+    private void ComputeWorldTransform(Entity entity, Matrix4x4 parentWorld)
+    {
+        if (entity.TryGetComponent<TransformComponent>(out var transform))
+        {
+            // Row-vector convention: local then parent → local * parentWorld
+            var world = transform.GetTransform() * parentWorld;
+            transform.SetWorldTransform(world);
+            parentWorld = world;
+        }
+
+        foreach (var child in GetChildren(entity))
+            ComputeWorldTransform(child, parentWorld);
+    }
+
+    private void DetachFromParentIndex(Entity child)
+    {
+        if (!child.TryGetComponent<ParentComponent>(out var parentComp) || parentComp.ParentId is not int oldParentId)
+            return;
+
+        if (_childrenIndex.TryGetValue(oldParentId, out var list))
+            list.RemoveAll(e => e.Id == child.Id);
+    }
+
+    public IReadOnlyList<Entity> CollectSubtree(Entity root)
+    {
+        var result = new List<Entity>();
+        void Visit(Entity e)
+        {
+            result.Add(e);
+            foreach (var child in GetChildren(e))
+                Visit(child);
+        }
+
+        Visit(root);
+        return result;
     }
 
     /// <summary>
@@ -224,6 +424,7 @@ internal sealed class Scene : IScene
 
         // Clear entity storage
         Context.Clear();
+        _childrenIndex.Clear();
 
         _disposed = true;
         GC.SuppressFinalize(this);

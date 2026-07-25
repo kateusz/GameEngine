@@ -134,7 +134,7 @@ internal sealed class AudioSystem(
             if (!component.IsActive)
                 continue;
 
-            var pos = transform.Translation;
+            var pos = transform.GetWorldTransform().Translation;
             audio.SetListenerPosition(pos);
 
             var quaternion = MathHelpers.QuaternionFromEuler(transform.Rotation);
@@ -205,7 +205,7 @@ internal sealed class AudioSystem(
         TrySyncClip(component, runtimeState, entity);
 
         if (component.Is3D && entity.TryGetComponent<TransformComponent>(out var transform))
-            runtimeState.Source.SetPosition(transform.Translation);
+            runtimeState.Source.SetPosition(transform.GetWorldTransform().Translation);
 
         var effectsHash = ComputeEffectsHash(component.Effects);
         if (force || effectsHash != runtimeState.LastEffectsHash)

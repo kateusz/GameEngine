@@ -127,12 +127,15 @@ public class ArenaShooterSystemTests
         cameras.ScreenToWorld2D(Arg.Any<Vector2>()).Returns(new Vector2(5f, 0f));
 
         var context = new Context();
-        var game = new ArenaGameComponent { SpawnTimer = 100f, Facing = new Vector2(1f, 0f) };
+        var game = new ArenaGameComponent { SpawnTimer = 100f, Facing = new Vector2(1f, 0f), Health = 0 };
         Register(context, 1, "Game", game);
         Register(context, 2, "Player",
             new TransformComponent(),
             new RigidBody2DComponent { BodyType = RigidBodyType.Dynamic },
             new SpriteRendererComponent());
+        Register(context, 10, "Aim", new TransformComponent(), new SpriteRendererComponent());
+        Register(context, 11, "Tracer", new TransformComponent(), new SpriteRendererComponent());
+        Register(context, 12, "GameOverBanner", new SpriteRendererComponent());
 
         var enemyComponent = new EnemyComponent { Alive = true };
         var enemy = Register(context, 3, "Enemy0",
@@ -202,12 +205,15 @@ public class ArenaShooterSystemTests
         IPhysicsQueries physics)
     {
         var context = new Context();
-        var game = new ArenaGameComponent { SpawnTimer = 100f };
+        var game = new ArenaGameComponent { SpawnTimer = 100f, Health = 0 };
         Register(context, 1, "Game", game);
         Register(context, 2, "Player",
             new TransformComponent(),
             new RigidBody2DComponent { BodyType = RigidBodyType.Dynamic },
             new SpriteRendererComponent());
+        Register(context, 3, "Aim", new TransformComponent(), new SpriteRendererComponent());
+        Register(context, 4, "Tracer", new TransformComponent(), new SpriteRendererComponent());
+        Register(context, 5, "GameOverBanner", new SpriteRendererComponent());
         
         var contacts = new PhysicsContactQueue();
         var audioPlayback = Substitute.For<IAudioPlayback>();

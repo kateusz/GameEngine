@@ -54,6 +54,6 @@ public class ScriptRuntimeStoreTests
 
     private sealed class StubScript : ScriptableEntity
     {
-        public StubScript() : base(new ComponentAccessor(), null!, null!, Substitute.For<IPhysicsQueries>()) { }
+        public StubScript() : base(new ComponentAccessor(), null!, null!, Substitute.For<IPhysicsQueries>(), NullEntityHierarchy.Instance) { }
     }
 }

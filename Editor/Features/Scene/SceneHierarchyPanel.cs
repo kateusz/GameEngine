@@ -7,6 +7,7 @@ using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
 using ImGuiNET;
+using SceneComponents;
 
 namespace Editor.Features.Scene;
 
@@ -16,10 +17,13 @@ public class SceneHierarchyPanel(
     IEditorSelection selection)
     : ISceneHierarchyPanel, IEditorPanel
 {
+    private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
+
     private IScene _scene = null!;
 
     private string _searchQuery = string.Empty;
-    private readonly List<Entity> _filteredEntities = [];
+    private readonly HashSet<int> _filterVisibleIds = [];
+    private readonly HashSet<int> _filterMatchIds = [];
     private bool _isFilterActive;
 
     public void SetScene(IScene scene)
@@ -40,7 +44,14 @@ public class SceneHierarchyPanel(
 
         RenderEntityHierarchy();
 
-        if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered())
+        // Drop on empty panel background → promote to root
+        if (ImGui.BeginDragDropTarget())
+        {
+            TryAcceptEntityDrop(parent: null);
+            ImGui.EndDragDropTarget();
+        }
+
+        if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered())
             selection.Select(null, SelectionSource.Hierarchy);
 
         entityContextMenu.Render(_scene);
@@ -48,35 +59,124 @@ public class SceneHierarchyPanel(
         ImGui.End();
     }
 
-    private void DrawEntityNode(Entity entity)
+    private void RenderEntityHierarchy()
     {
-        var tag = entity.Name;
-        var isSelected = selection.SelectedEntity?.Id == entity.Id;
-        var entityDeleted = false;
-
-        var opened = TreeDrawer.DrawSelectableTreeNode(
-            label: tag,
-            isSelected: isSelected,
-            onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
-            onContextMenu: () =>
+        var roots = _scene?.GetRootEntities().ToList() ?? [];
+        if (_isFilterActive)
+        {
+            if (_filterVisibleIds.Count == 0)
             {
-                if (ImGui.MenuItem("Delete Entity"))
-                    entityDeleted = true;
-            },
-            flags: ImGuiTreeNodeFlags.OpenOnArrow
-        );
+                ImGui.TextUnformatted("No entities match your search");
+                return;
+            }
+
+            foreach (var root in roots)
+            {
+                if (_filterVisibleIds.Contains(root.Id))
+                    DrawEntityNode(root, filtered: true);
+            }
+
+            return;
+        }
+
+        foreach (var root in roots)
+            DrawEntityNode(root, filtered: false);
+    }
+
+    private void DrawEntityNode(Entity entity, bool filtered)
+    {
+        var children = _scene.GetChildren(entity)
+            .Where(c => !filtered || _filterVisibleIds.Contains(c.Id))
+            .ToList();
+
+        var isSelected = selection.SelectedEntity?.Id == entity.Id;
+        var isMatch = filtered && _filterMatchIds.Contains(entity.Id);
+        var entityDeleted = false;
+        var createChild = false;
+
+        var flags = children.Count == 0
+            ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen
+            : ImGuiTreeNodeFlags.OpenOnArrow;
+
+        if (isMatch)
+            flags |= ImGuiTreeNodeFlags.DefaultOpen;
+
+        Action onContextMenu = () =>
+        {
+            if (ImGui.MenuItem("Create Child Entity"))
+                createChild = true;
+            if (ImGui.MenuItem("Delete Entity"))
+                entityDeleted = true;
+        };
+
+        var opened = isMatch
+            ? TreeDrawer.DrawColoredTreeNode(
+                label: entity.Name,
+                color: EditorUIConstants.InfoColor,
+                isSelected: isSelected,
+                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
+                onContextMenu: onContextMenu,
+                flags: flags)
+            : TreeDrawer.DrawSelectableTreeNode(
+                label: entity.Name,
+                isSelected: isSelected,
+                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
+                onContextMenu: onContextMenu,
+                flags: flags);
+
+        DragDropDrawer.CreateDragDropSource(EntityDragPayload, entity.Id.ToString(), () => ImGui.TextUnformatted(entity.Name));
+
+        if (ImGui.BeginDragDropTarget())
+        {
+            TryAcceptEntityDrop(parent: entity);
+            ImGui.EndDragDropTarget();
+        }
 
         prefabDropTarget.HandleEntityDrop(entity);
 
-        if (opened)
+        if (opened && children.Count > 0)
+        {
+            foreach (var child in children)
+                DrawEntityNode(child, filtered);
             ImGui.TreePop();
+        }
+
+        if (createChild)
+        {
+            var child = _scene.CreateEntity("Empty Entity");
+            child.AddComponent<TransformComponent>();
+            _scene.SetParent(child, entity);
+            selection.Select(child, SelectionSource.Hierarchy);
+        }
 
         if (entityDeleted)
         {
             _scene.DestroyEntity(entity);
             if (selection.SelectedEntity?.Id == entity.Id)
                 selection.Select(null, SelectionSource.Code);
+            ApplyFilter(_searchQuery);
         }
+    }
+
+    private unsafe void TryAcceptEntityDrop(Entity? parent)
+    {
+        var payload = ImGui.AcceptDragDropPayload(EntityDragPayload);
+        if (payload.NativePtr == null)
+            return;
+
+        var idText = DragDropDrawer.ExtractStringFromPayload(payload.Data);
+        if (idText is null || !int.TryParse(idText, out var draggedId))
+            return;
+
+        if (!_scene.Context.Contains(draggedId))
+            return;
+
+        var dragged = _scene.Context.GetById(draggedId);
+        if (!_scene.SetParent(dragged, parent))
+            return; // cycle or invalid — silent reject (ImGui shows no drop)
+
+        if (_isFilterActive)
+            ApplyFilter(_searchQuery);
     }
 
     private void RenderSearchInput()
@@ -86,119 +186,40 @@ public class SceneHierarchyPanel(
 
     private void RenderFilterStatus()
     {
-        var matchCount = CountDirectMatches();
         var totalCount = _scene.Entities.Count();
-
-        var statusText = $"🔍 Filtering: {matchCount} of {totalCount} entities";
-
+        var statusText = $"Filtering: {_filterMatchIds.Count} of {totalCount} entities";
         TextDrawer.DrawInfoText(statusText);
-
         ImGui.Separator();
-    }
-
-    private void RenderEntityHierarchy()
-    {
-        if (_isFilterActive)
-        {
-            if (_filteredEntities.Count == 0)
-            {
-                ImGui.TextUnformatted("No entities match your search");
-                return;
-            }
-
-            foreach (var entity in _filteredEntities.ToList())
-                DrawEntityNodeFiltered(entity);
-        }
-        else
-        {
-            foreach (var entity in _scene?.Entities.ToList() ?? [])
-                DrawEntityNode(entity);
-        }
-    }
-
-    private void DrawEntityNodeFiltered(Entity entity)
-    {
-        var isDirectMatch = MatchesFilter(entity, _searchQuery);
-        var tag = entity.Name;
-        var isSelected = selection.SelectedEntity?.Id == entity.Id;
-        var entityDeleted = false;
-
-        bool opened;
-        if (isDirectMatch)
-        {
-            opened = TreeDrawer.DrawColoredTreeNode(
-                label: tag,
-                color: EditorUIConstants.InfoColor,
-                isSelected: isSelected,
-                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
-                onContextMenu: () =>
-                {
-                    if (ImGui.MenuItem("Delete Entity"))
-                        entityDeleted = true;
-                },
-                flags: ImGuiTreeNodeFlags.OpenOnArrow
-            );
-        }
-        else
-        {
-            opened = TreeDrawer.DrawSelectableTreeNode(
-                label: tag,
-                isSelected: isSelected,
-                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
-                onContextMenu: () =>
-                {
-                    if (ImGui.MenuItem("Delete Entity"))
-                        entityDeleted = true;
-                },
-                flags: ImGuiTreeNodeFlags.OpenOnArrow
-            );
-        }
-
-        prefabDropTarget.HandleEntityDrop(entity);
-
-        if (opened)
-            ImGui.TreePop();
-
-        if (entityDeleted)
-        {
-            _scene.DestroyEntity(entity);
-            _filteredEntities.Remove(entity);
-            if (selection.SelectedEntity?.Id == entity.Id)
-                selection.Select(null, SelectionSource.Code);
-        }
     }
 
     private void ApplyFilter(string query)
     {
+        _filterVisibleIds.Clear();
+        _filterMatchIds.Clear();
+
         if (string.IsNullOrWhiteSpace(query))
         {
             _isFilterActive = false;
-            _filteredEntities.Clear();
             return;
         }
 
         _isFilterActive = true;
-        _filteredEntities.Clear();
-
         var normalizedQuery = query.Trim().ToLowerInvariant();
 
         foreach (var entity in _scene.Entities)
         {
-            if (MatchesFilter(entity, normalizedQuery))
-                _filteredEntities.Add(entity);
+            if (!MatchesFilter(entity, normalizedQuery))
+                continue;
+
+            _filterMatchIds.Add(entity.Id);
+            // Include match + ancestors so nested hits stay visible in context
+            for (Entity? current = entity; current is not null; current = _scene.GetParent(current))
+                _filterVisibleIds.Add(current.Id);
         }
     }
 
     private static bool MatchesFilter(Entity entity, string query)
     {
-        var entityName = entity.Name.ToLowerInvariant();
-        var normalizedQuery = query.ToLowerInvariant();
-        return entityName.Contains(normalizedQuery);
-    }
-
-    private int CountDirectMatches()
-    {
-        var normalizedQuery = _searchQuery.Trim().ToLowerInvariant();
-        return _filteredEntities.Count(entity => MatchesFilter(entity, normalizedQuery));
+        return entity.Name.ToLowerInvariant().Contains(query);
     }
 }

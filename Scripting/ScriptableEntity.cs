@@ -13,6 +13,7 @@ public abstract class ScriptableEntity
 {
     private readonly IComponentAccessor _componentAccessor;
     private readonly IPhysicsQueries _physicsQueries;
+    private readonly IEntityHierarchy _hierarchy;
 
     /// <summary>
     /// The entity this script is attached to
@@ -23,12 +24,14 @@ public abstract class ScriptableEntity
         IComponentAccessor componentAccessor,
         IAudio audio,
         IAudioPlayback audioPlayback,
-        IPhysicsQueries physicsQueries)
+        IPhysicsQueries physicsQueries,
+        IEntityHierarchy hierarchy)
     {
         _componentAccessor = componentAccessor;
         Audio = audio;
         AudioPlayback = audioPlayback;
         _physicsQueries = physicsQueries;
+        _hierarchy = hierarchy;
     }
 
     protected IAudio Audio { get; }
@@ -43,6 +46,40 @@ public abstract class ScriptableEntity
     public IEntity GetEntity() => _entity;
 
     public bool IsInitialized => _entity is not null;
+
+    #region Hierarchy
+
+    /// <summary>Parent entity, or null if this is a scene root.</summary>
+    protected Entity? Parent => _entity is null ? null : _hierarchy.GetParent(_entity);
+
+    /// <summary>Direct children of this entity.</summary>
+    protected IReadOnlyList<Entity> Children =>
+        _entity is null ? Array.Empty<Entity>() : _hierarchy.GetChildren(_entity);
+
+    /// <summary>Reparent this entity. Null detaches to scene root.</summary>
+    protected bool SetParent(Entity? parent) =>
+        _entity is not null && _hierarchy.SetParent(_entity, parent);
+
+    /// <summary>First direct child with the given name, or null.</summary>
+    protected Entity? GetChild(string name)
+    {
+        if (_entity is null)
+            return null;
+
+        foreach (var child in _hierarchy.GetChildren(_entity))
+        {
+            if (child.Name == name)
+                return child;
+        }
+
+        return null;
+    }
+
+    /// <summary>World-space translation from the cached world transform.</summary>
+    protected Vector3 WorldPosition =>
+        _entity is null ? Vector3.Zero : _hierarchy.GetWorldPosition(_entity);
+
+    #endregion
 
     #region Lifecycle Methods
 

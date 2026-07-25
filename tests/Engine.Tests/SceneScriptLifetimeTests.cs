@@ -81,7 +81,7 @@ public class SceneScriptLifetimeTests
     {
         public bool DestroyCalled { get; private set; }
 
-        public TrackingScript() : base(new ComponentAccessor(), Substitute.For<IAudio>(), Substitute.For<IAudioPlayback>(), Substitute.For<IPhysicsQueries>()) { }
+        public TrackingScript() : base(new ComponentAccessor(), Substitute.For<IAudio>(), Substitute.For<IAudioPlayback>(), Substitute.For<IPhysicsQueries>(), NullEntityHierarchy.Instance) { }
 
         public override void OnDestroy() => DestroyCalled = true;
     }

@@ -139,6 +139,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
     private void RegisterBuiltins()
     {
         Register<TransformComponent>();
+        Register<ParentComponent>();
         Register<CameraComponent>();
         Register<SpriteRendererComponent>();
         Register<SubTextureRendererComponent>();
