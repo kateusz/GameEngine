@@ -1,13 +1,13 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Elements;
 using ImGuiNET;
 using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
 
-public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<ModelRendererComponent>
+public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<ModelRendererComponent>(history)
 {
     protected override string DisplayName => "Model Renderer";
 

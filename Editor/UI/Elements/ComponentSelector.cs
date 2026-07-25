@@ -1,6 +1,6 @@
 using ECS;
-using Editor.ComponentEditors;
-using Editor.Features.Components;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Scene;
@@ -17,48 +17,47 @@ namespace Editor.UI.Elements;
 
 public static class ComponentSelector
 {
-    public static void Draw(Entity entity, IScene scene, GameComponentEditor gameComponentEditor)
+    public static void Draw(Entity entity, IScene scene, GameComponentEditor gameComponentEditor, IEditorHistory history)
     {
         ButtonDrawer.DrawButton("Add Component", () => ImGui.OpenPopup("AddComponent"));
 
         if (ImGui.BeginPopup("AddComponent"))
         {
-            DrawComponentMenuItem<CameraComponent>("Camera", entity, () =>
+            DrawComponentMenuItem<CameraComponent>("Camera", entity, history, () =>
             {
                 var c = new CameraComponent();
                 if (scene.GetPrimaryCameraEntity() is null)
                     c.Primary = true;
                 c.AspectRatio = (float)DisplayConfig.DefaultWindowWidth / DisplayConfig.DefaultWindowHeight;
-                if (!entity.HasComponent<TransformComponent>())
-                    entity.AddComponent<TransformComponent>();
-                entity.AddComponent<CameraComponent>(c);
+                history.Execute(new AddComponentCommand(
+                    entity, c, autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
 
-            DrawComponentMenuItem<TransformComponent>("Transform", entity);
-            DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity, () =>
+            DrawComponentMenuItem<TransformComponent>("Transform", entity, history);
+            DrawComponentMenuItem<SpriteRendererComponent>("Sprite Renderer", entity, history, () =>
             {
-                if (!entity.HasComponent<TransformComponent>())
-                    entity.AddComponent<TransformComponent>();
-                entity.AddComponent<SpriteRendererComponent>();
+                history.Execute(new AddComponentCommand(
+                    entity, new SpriteRendererComponent(),
+                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
-            DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity, () =>
+            DrawComponentMenuItem<SubTextureRendererComponent>("Sub Texture Renderer", entity, history, () =>
             {
-                if (!entity.HasComponent<TransformComponent>())
-                    entity.AddComponent<TransformComponent>();
-                entity.AddComponent<SubTextureRendererComponent>();
+                history.Execute(new AddComponentCommand(
+                    entity, new SubTextureRendererComponent(),
+                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
-            DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity);
-            DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity);
-            DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, () =>
+            DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity, history);
+            DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity, history);
+            DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, history, () =>
             {
-                if (!entity.HasComponent<TransformComponent>())
-                    entity.AddComponent<TransformComponent>();
-                entity.AddComponent<ModelRendererComponent>();
+                history.Execute(new AddComponentCommand(
+                    entity, new ModelRendererComponent(),
+                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
-            DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity);
-            DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity);
-            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity);
-            DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity);
+            DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity, history);
+            DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity, history);
+            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity, history);
+            DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity, history);
 
             if (ImGui.MenuItem("Game Component"))
             {
@@ -70,7 +69,8 @@ public static class ComponentSelector
         }
     }
 
-    private static void DrawComponentMenuItem<T>(string name, Entity entity, Action? customAction = null)
+    private static void DrawComponentMenuItem<T>(
+        string name, Entity entity, IEditorHistory history, Action? customAction = null)
         where T : IComponent, new()
     {
         if (entity.HasComponent<T>()) return;
@@ -79,7 +79,7 @@ public static class ComponentSelector
         if (customAction != null)
             customAction();
         else
-            entity.AddComponent<T>();
+            history.Execute(new AddComponentCommand(entity, new T()));
         ImGui.CloseCurrentPopup();
     }
 }

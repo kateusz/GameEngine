@@ -1,4 +1,5 @@
 using ECS;
+using Editor.Features.History;
 using Editor.Features.Scripting;
 using Editor.Features.Project;
 using Editor.Features.Scene;
@@ -10,7 +11,6 @@ using Editor.Panels;
 using Engine.Core;
 using Engine.Core.Input;
 using Engine.Scene;
-using Engine.Scripting;
 using SceneComponents;
 using Serilog;
 
@@ -27,6 +27,7 @@ public class EditorLifecycle(
     ShortcutManager shortcutManager,
     EditorShortcutRegistrar shortcutRegistrar,
     IEditorSelection selection,
+    IEditorHistory history,
     IEditorViewport editorViewport,
     ISceneHierarchyPanel sceneHierarchyPanel,
     IContentBrowserPanel contentBrowserPanel,
@@ -75,6 +76,7 @@ public class EditorLifecycle(
         {
             sceneHierarchyPanel.SetScene(newScene);
             viewport.SceneToolbar.ApplyGridFromScene(newScene);
+            history.Clear();
         };
         _playSceneHandler = sceneManager.Play;
         _stopSceneHandler = sceneManager.Stop;

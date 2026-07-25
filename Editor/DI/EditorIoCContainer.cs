@@ -7,6 +7,7 @@ using Editor.ComponentEditors.Core;
 using Editor.ComponentEditors.Physics;
 using Editor.ComponentEditors.Rendering;
 using Editor.Features.Components;
+using Editor.Features.History;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
@@ -33,6 +34,7 @@ public static class EditorIoCContainer
     {
         container.Register<ShortcutManager>(Reuse.Singleton);
         container.Register<IEditorSelection, EditorSelection>(Reuse.Singleton);
+        container.Register<IEditorHistory, EditorHistory>(Reuse.Singleton);
         
         container.Register<IProjectManager, ProjectManager>(Reuse.Singleton);
         container.Register<GameScriptWorkspace>(Reuse.Singleton);

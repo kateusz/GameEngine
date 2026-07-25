@@ -1,5 +1,7 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using ImGuiNET;
@@ -16,23 +18,26 @@ public class ComponentEditorRegistry(IEnumerable<IComponentEditor> editors) : IC
             editor.DrawComponent(entity);
     }
 
-    public static void DrawComponent<T>(string name, Entity entity, Action uiFunction) where T : IComponent
+    public static void DrawComponent<T>(string name, Entity entity, IEditorHistory history, Action uiFunction)
+        where T : IComponent
     {
         if (!entity.TryGetComponent<T>(out _))
             return;
 
         DrawComponentTree(name, entity, $"{typeof(T).FullName}_{entity.Id}",
-            entity.RemoveComponent<T>, uiFunction, () => entity.TryGetComponent<T>(out _));
+            () => history.Execute(new RemoveComponentCommand(entity, typeof(T))),
+            uiFunction, () => entity.TryGetComponent<T>(out _));
     }
 
-    public static void DrawComponent(string name, Entity entity, Type componentType, Action uiFunction)
+    public static void DrawComponent(
+        string name, Entity entity, Type componentType, IEditorHistory history, Action uiFunction)
     {
         if (!entity.TryGetComponent(componentType, out _))
             return;
 
         DrawComponentTree(name, entity, $"{componentType.FullName}_{entity.Id}",
-            () => entity.RemoveComponent(componentType), uiFunction,
-            () => entity.TryGetComponent(componentType, out _));
+            () => history.Execute(new RemoveComponentCommand(entity, componentType)),
+            uiFunction, () => entity.TryGetComponent(componentType, out _));
     }
 
     private static void DrawComponentTree(

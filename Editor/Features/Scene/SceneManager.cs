@@ -1,5 +1,6 @@
 using ECS;
 using ECS.Systems;
+using Editor.Features.History;
 using Editor.Features.Scripting;
 using Engine.Core;
 using Engine.Scene;
@@ -15,7 +16,8 @@ public class SceneManager(
     SceneFactory sceneFactory,
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IProjectContext projectContext,
-    GameScriptWorkspace scriptWorkspace)
+    GameScriptWorkspace scriptWorkspace,
+    IEditorHistory history)
     : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
@@ -94,6 +96,9 @@ public class SceneManager(
                 return;
             }
 
+            // Locked: Clear only after successful compile, before play reload
+            history.Clear();
+
             scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir);
 
             ReloadEntitiesFromSnapshot(scene, snapshotPath);
@@ -119,6 +124,7 @@ public class SceneManager(
         {
             sceneContext.ActiveScene?.Dispose();
             scriptWorkspace.RestoreEditAssembly();
+            history.Clear();
         }
 
         Logger.Information("⏹️ Scene play stopped");

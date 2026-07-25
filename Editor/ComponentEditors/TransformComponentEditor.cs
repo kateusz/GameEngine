@@ -1,12 +1,13 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Elements;
 using Math;
 using SceneComponents;
 
 namespace Editor.ComponentEditors;
 
-public class TransformComponentEditor : ComponentEditor<TransformComponent>
+public class TransformComponentEditor(IEditorHistory history) : ComponentEditor<TransformComponent>(history)
 {
     protected override string DisplayName => "Transform";
 

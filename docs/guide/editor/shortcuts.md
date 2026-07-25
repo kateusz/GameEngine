@@ -32,7 +32,11 @@ Open **Help → Keyboard Shortcuts** to browse all registered bindings grouped b
 
 | Shortcut | Action |
 |----------|--------|
+| Ctrl+Z | Undo |
+| Ctrl+Y | Redo |
 | Ctrl+D | Duplicate selected entity |
+
+Undo covers gizmo transforms, hierarchy delete, and component add/remove. Property inspector edits, create-entity, and duplicate are not undoable yet. After undoing a delete, entity IDs are remapped — further undoing older edits that targeted the pre-delete entity may no-op.
 
 ### Navigation
 

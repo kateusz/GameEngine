@@ -1,12 +1,13 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
 
 namespace Editor.ComponentEditors;
 
-public class GameComponentEditor(UIPropertyRenderer propertyRenderer) : IComponentEditor
+public class GameComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : IComponentEditor
 {
     public void DrawComponent(Entity entity)
     {
@@ -16,7 +17,7 @@ public class GameComponentEditor(UIPropertyRenderer propertyRenderer) : ICompone
         {
             var componentType = component.GetType();
             var treeNodeId = $"{componentType.FullName}_{entity.Id}";
-            ComponentEditorRegistry.DrawComponent(componentType.Name, entity, componentType,
+            ComponentEditorRegistry.DrawComponent(componentType.Name, entity, componentType, history,
                 () => DrawComponentFields(component, treeNodeId));
         }
     }

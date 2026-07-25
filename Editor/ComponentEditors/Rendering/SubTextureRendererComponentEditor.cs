@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Elements;
 using Engine.Renderer.Textures;
 using ImGuiNET;
@@ -9,8 +10,7 @@ namespace Editor.ComponentEditors.Rendering;
 
 public class SubTextureRendererComponentEditor(
     ITextureFactory textureFactory,
-    UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<SubTextureRendererComponent>
+    UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<SubTextureRendererComponent>(history)
 {
     protected override string DisplayName => "Sub Texture Renderer";
 

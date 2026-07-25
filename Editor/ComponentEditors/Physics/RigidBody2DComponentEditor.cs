@@ -1,13 +1,13 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using SceneComponents.Physics;
 
 namespace Editor.ComponentEditors.Physics;
 
-public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<RigidBody2DComponent>
+public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<RigidBody2DComponent>(history)
 {
     private static readonly string[] BodyTypeStrings =
         [nameof(RigidBodyType.Static), nameof(RigidBodyType.Dynamic), nameof(RigidBodyType.Kinematic)];

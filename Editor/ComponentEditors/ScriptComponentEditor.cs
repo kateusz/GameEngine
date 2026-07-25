@@ -3,6 +3,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.Features.Scripting;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -17,7 +19,8 @@ namespace Editor.ComponentEditors;
 public class ScriptComponentEditor(
     IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace,
-    ISceneContext sceneContext) : IComponentEditor
+    ISceneContext sceneContext,
+    IEditorHistory history) : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentEditor));
 
@@ -38,7 +41,7 @@ public class ScriptComponentEditor(
 
         if (entity.TryGetComponent<NativeScriptComponent>(out _))
         {
-            ComponentEditorRegistry.DrawComponent<NativeScriptComponent>("Script", entity, () =>
+            ComponentEditorRegistry.DrawComponent<NativeScriptComponent>("Script", entity, history, () =>
             {
                 var component = entity.GetComponent<NativeScriptComponent>();
                 if (!string.IsNullOrWhiteSpace(component.ScriptTypeName))
@@ -56,7 +59,7 @@ public class ScriptComponentEditor(
         }
     }
 
-    private static void DrawAddScriptPlaceholder(Entity entity)
+    private void DrawAddScriptPlaceholder(Entity entity)
     {
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(EditorUIConstants.StandardPadding, EditorUIConstants.StandardPadding));
         ImGui.Separator();
@@ -72,7 +75,7 @@ public class ScriptComponentEditor(
             return;
 
         ButtonDrawer.DrawFullWidthButton("Add Script Component", () =>
-            entity.AddComponent<NativeScriptComponent>(new NativeScriptComponent()));
+            history.Execute(new AddComponentCommand(entity, new NativeScriptComponent())));
 
         ImGui.TreePop();
     }
@@ -93,7 +96,7 @@ public class ScriptComponentEditor(
         {
             if (ImGui.MenuItem("Remove"))
             {
-                entity.RemoveComponent<NativeScriptComponent>();
+                history.Execute(new RemoveComponentCommand(entity, typeof(NativeScriptComponent)));
                 if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
                     scriptWorkspace.ForceRecompile(scene.Context, store);
             }
@@ -189,10 +192,11 @@ public class ScriptComponentEditor(
                         }
                         else
                         {
-                            _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent
+                            // I3 sibling: script .cs file is not undone; only component attachment
+                            history.Execute(new AddComponentCommand(_selectedEntity, new NativeScriptComponent
                             {
                                 ScriptTypeName = _newScriptName
-                            });
+                            }));
                         }
 
                         Logger.Information("Created and attached script {ScriptName} to entity {EntityName}", _newScriptName, _selectedEntity.Name);
@@ -236,7 +240,8 @@ public class ScriptComponentEditor(
             if (_selectedEntity.TryGetComponent<NativeScriptComponent>(out var scriptComponent))
                 scriptComponent.ScriptTypeName = scriptName;
             else
-                _selectedEntity.AddComponent<NativeScriptComponent>(new NativeScriptComponent { ScriptTypeName = scriptName });
+                history.Execute(new AddComponentCommand(_selectedEntity,
+                    new NativeScriptComponent { ScriptTypeName = scriptName }));
 
             Logger.Information("Added script {ScriptName} to entity {EntityName}", scriptName, _selectedEntity.Name);
         }

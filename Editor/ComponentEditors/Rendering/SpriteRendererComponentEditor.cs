@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Elements;
 using Engine.Renderer.Textures;
 using SceneComponents.Rendering;
@@ -8,8 +9,7 @@ namespace Editor.ComponentEditors.Rendering;
 
 public class SpriteRendererComponentEditor(
     ITextureFactory textureFactory,
-    UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<SpriteRendererComponent>
+    UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<SpriteRendererComponent>(history)
 {
     protected override string DisplayName => "Sprite Renderer";
 

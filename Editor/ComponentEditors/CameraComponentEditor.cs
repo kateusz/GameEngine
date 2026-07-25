@@ -1,5 +1,6 @@
 using ECS;
 using Editor.ComponentEditors.Core;
+using Editor.Features.History;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
@@ -10,8 +11,7 @@ namespace Editor.ComponentEditors;
 
 public class CameraComponentEditor(
     ISceneContext sceneContext,
-    UIPropertyRenderer propertyRenderer)
-    : ComponentEditor<CameraComponent>
+    UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<CameraComponent>(history)
 {
     private static readonly string[] ProjectionTypeStrings = ["Perspective", "Orthographic"];
 
