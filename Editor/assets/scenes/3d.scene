@@ -1,5 +1,11 @@
 {
   "Scene": "3d",
+  "BackgroundColor": [
+    0.1,
+    0.1,
+    0.1,
+    1
+  ],
   "Dimension": "ThreeD",
   "Entities": [
     {
@@ -8,9 +14,9 @@
       "Components": [
         {
           "Translation": [
-            2.85,
-            3.46,
-            5
+            0,
+            0,
+            0
           ],
           "Rotation": [
             0,
@@ -32,20 +38,56 @@
           "PerspectiveFOV": 0.7853982,
           "PerspectiveNear": 0.01,
           "PerspectiveFar": 1000,
-          "AspectRatio": 1.7777778,
+          "AspectRatio": 1.9179265,
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
         },
         {
           "Name": "NativeScriptComponent",
-          "ScriptType": "EditorCameraController"
+          "ScriptType": "CameraController"
         }
       ]
     },
     {
       "Id": 2,
-      "Name": "Ambient Light",
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.1,
+            0.1,
+            0.1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": "models/stachu-light.glb",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Light",
       "Components": [
         {
           "Color": [
@@ -55,18 +97,12 @@
           ],
           "Strength": 0.3,
           "Name": "AmbientLightComponent"
-        }
-      ]
-    },
-    {
-      "Id": 4,
-      "Name": "Directional Light",
-      "Components": [
+        },
         {
           "Direction": [
-            0.3,
+            0,
             -1,
-            0.2
+            0
           ],
           "Color": [
             1,
@@ -74,39 +110,6 @@
             1
           ],
           "Name": "DirectionalLightComponent"
-        }
-      ]
-    },
-    {
-      "Id": 3,
-      "Name": "3D Entity",
-      "Components": [
-        {
-          "Translation": [
-            0,
-            0,
-            0
-          ],
-          "Rotation": [
-            0,
-            0,
-            0
-          ],
-          "Scale": [
-            1,
-            1,
-            1
-          ],
-          "Name": "TransformComponent"
-        },
-        {
-          "Color": [
-            1,
-            1,
-            1,
-            1
-          ],
-          "Name": "ModelRendererComponent"
         }
       ]
     }

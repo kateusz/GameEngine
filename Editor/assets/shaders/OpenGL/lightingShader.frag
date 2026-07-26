@@ -100,8 +100,8 @@ void main()
     vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
     vec3 diffuse = kd * albedo / PI;
 
-    // Metals have no diffuse ambient; IBL specular is out of scope for now.
-    vec3 ambient = strength * lightColor * albedo * (1.0 - metallic);
+    // Metals have no diffuse ambient; without IBL use a small residual so they aren't pure black.
+    vec3 ambient = strength * lightColor * albedo * mix(1.0, 0.1, metallic);
     vec3 radiance = u_LightColor * PI;
     vec3 color = ambient + (diffuse + specular) * radiance * NdotL;
 

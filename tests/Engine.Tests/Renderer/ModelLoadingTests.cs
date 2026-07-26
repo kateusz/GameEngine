@@ -152,6 +152,83 @@ public class AssimpModelImporterTests : IDisposable
         return gltfPath;
     }
 
+    private static string EnsureGltfWithEmbeddedAlbedo(string assetsDir)
+    {
+        var binPath = Path.Combine(assetsDir, "triangle_embedded.bin");
+        using (var stream = System.IO.File.Create(binPath))
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write(0f); writer.Write(0f); writer.Write(0f);
+            writer.Write(1f); writer.Write(0f); writer.Write(0f);
+            writer.Write(0f); writer.Write(1f); writer.Write(0f);
+            writer.Write(0f); writer.Write(0f);
+            writer.Write(1f); writer.Write(0f);
+            writer.Write(0f); writer.Write(1f);
+            writer.Write((ushort)0);
+            writer.Write((ushort)1);
+            writer.Write((ushort)2);
+        }
+
+        // 1x1 white PNG as data-URI — Assimp promotes this to an embedded texture (*0).
+        const string pngBase64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+        var gltfPath = Path.Combine(assetsDir, "triangle_embedded_albedo.gltf");
+        System.IO.File.WriteAllText(gltfPath, $$"""
+            {
+              "asset": { "version": "2.0" },
+              "scenes": [{ "nodes": [0] }],
+              "nodes": [{ "mesh": 0 }],
+              "meshes": [{
+                "primitives": [{
+                  "attributes": { "POSITION": 0, "TEXCOORD_0": 1 },
+                  "indices": 2,
+                  "material": 0
+                }]
+              }],
+              "materials": [{
+                "pbrMetallicRoughness": {
+                  "baseColorTexture": { "index": 0 },
+                  "metallicFactor": 1.0,
+                  "roughnessFactor": 0.5
+                }
+              }],
+              "textures": [{ "source": 0 }],
+              "images": [{ "uri": "data:image/png;base64,{{pngBase64}}" }],
+              "buffers": [{ "uri": "triangle_embedded.bin", "byteLength": 66 }],
+              "bufferViews": [
+                { "buffer": 0, "byteOffset": 0, "byteLength": 36 },
+                { "buffer": 0, "byteOffset": 36, "byteLength": 24 },
+                { "buffer": 0, "byteOffset": 60, "byteLength": 6 }
+              ],
+              "accessors": [
+                {
+                  "bufferView": 0,
+                  "componentType": 5126,
+                  "count": 3,
+                  "type": "VEC3",
+                  "max": [1, 1, 0],
+                  "min": [0, 0, 0]
+                },
+                {
+                  "bufferView": 1,
+                  "componentType": 5126,
+                  "count": 3,
+                  "type": "VEC2"
+                },
+                {
+                  "bufferView": 2,
+                  "componentType": 5123,
+                  "count": 3,
+                  "type": "SCALAR"
+                }
+              ]
+            }
+            """);
+
+        return gltfPath;
+    }
+
     [Fact]
     public void Import_ObjTriangle_ShouldProduceDielectricMaterial()
     {
@@ -164,6 +241,24 @@ public class AssimpModelImporterTests : IDisposable
         submeshes[0].Mesh.Indices.Count.ShouldBe(3);
         submeshes[0].Material.Metallic.ShouldBe(0f);
         submeshes[0].Material.Roughness.ShouldBeInRange(0.04f, 1f);
+    }
+
+    [Fact]
+    public void Import_GltfWithEmbeddedAlbedo_ShouldResolveAlbedoPathToExistingFile()
+    {
+        var assetsDir = Path.Combine(AppContext.BaseDirectory, "TestAssets");
+        Directory.CreateDirectory(assetsDir);
+        var gltfPath = EnsureGltfWithEmbeddedAlbedo(assetsDir);
+        var importer = new AssimpModelImporter(_assimp);
+
+        var submeshes = importer.Import(gltfPath);
+
+        submeshes.Count.ShouldBe(1);
+        submeshes[0].Material.AlbedoTexturePath.ShouldNotBeNull();
+        System.IO.File.Exists(submeshes[0].Material.AlbedoTexturePath!).ShouldBeTrue();
+        Path.GetExtension(submeshes[0].Material.AlbedoTexturePath!).ShouldBe(".png");
+        // glTF default metallic=1 with no MR map → forced dielectric for no-IBL shading
+        submeshes[0].Material.Metallic.ShouldBe(0f);
     }
 
     [Fact]

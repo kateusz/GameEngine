@@ -15,6 +15,8 @@ namespace Engine.Scene;
 internal static class SceneRenderPipeline
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
+    // ponytail: debug — once-per-entity tint warnings; clear not needed (reload editor resets process)
+    private static readonly HashSet<int> WarnedTintEntities = [];
 
     private static readonly Vector2[] DefaultTextureCoords =
     [
@@ -83,6 +85,30 @@ internal static class SceneRenderPipeline
                     modelRenderer.ModelPath, resolvedPath);
                 graphics3D.DrawCube(transform, tint, entity.Id);
                 continue;
+            }
+
+            // ponytail: debug tint/alpha once per entity — Color.a==0 → fully invisible; Color.rgb==0 → black
+            if (WarnedTintEntities.Add(entity.Id))
+            {
+                if (tint.W <= 0f)
+                {
+                    Logger.Warning(
+                        "ModelRenderer Color.a={Alpha} makes mesh invisible entity={EntityId} path={Path} color={Color}",
+                        tint.W, entity.Id, modelRenderer.ModelPath, tint);
+                }
+                else if (tint.X <= 0f && tint.Y <= 0f && tint.Z <= 0f)
+                {
+                    Logger.Warning(
+                        "ModelRenderer Color.rgb is black entity={EntityId} path={Path} color={Color} — mesh draws but looks invisible",
+                        entity.Id, modelRenderer.ModelPath, tint);
+                }
+                else
+                {
+                    Logger.Information(
+                        "ModelRenderer draw entity={EntityId} path={Path} tint={Color} hasAlbedo={HasAlbedo} submeshes={Count}",
+                        entity.Id, modelRenderer.ModelPath, tint,
+                        model.Submeshes[0].Material.HasAlbedoMap, model.Submeshes.Count);
+                }
             }
 
             foreach (var submesh in model.Submeshes)
@@ -202,6 +228,7 @@ internal static class SceneRenderPipeline
             return (direction, dlc.Color);
         }
 
-        return (new Vector3(0, -1, 0), Vector3.Zero);
+        // Metals get zero ambient in the PBR shader; without a directional light they are pure black.
+        return (new Vector3(0, -1, 0), Vector3.One);
     }
 }

@@ -1,4 +1,6 @@
 using System.Numerics;
+using System.Security.Cryptography;
+using System.Text;
 using Serilog;
 using Silk.NET.Assimp;
 
@@ -7,16 +9,19 @@ namespace Engine.Renderer;
 internal sealed class AssimpModelImporter(Assimp assimp)
 {
     private static readonly ILogger Logger = Log.ForContext<AssimpModelImporter>();
+    private static readonly string EmbeddedCacheDir =
+        Path.Combine(Path.GetTempPath(), "GameEngine", "embedded-textures");
 
     public List<ModelSubmesh> Import(string path)
     {
         var submeshes = new List<ModelSubmesh>();
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
 
+        // glTF/GLB UVs are already OpenGL-style (v=0 bottom). Do NOT FlipUVs here —
+        // textures are uploaded with stbi_flip; FlipUVs + flip = double-flip atlas scramble.
         const uint flags = (uint)(PostProcessSteps.Triangulate |
                                   PostProcessSteps.GenerateNormals |
                                   PostProcessSteps.CalculateTangentSpace |
-                                  PostProcessSteps.FlipUVs |
                                   PostProcessSteps.PreTransformVertices);
 
         unsafe
@@ -30,6 +35,10 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                     path, assimp.GetErrorStringS());
                 return submeshes;
             }
+
+            Logger.Information(
+                "Assimp import ok path={Path} meshes={MeshCount} materials={MaterialCount} embeddedTextures={EmbeddedCount} flags={Flags}",
+                path, scene->MNumMeshes, scene->MNumMaterials, scene->MNumTextures, scene->MFlags);
 
             for (uint i = 0; i < scene->MNumMeshes; i++)
             {
@@ -51,6 +60,8 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
         var hasTexCoords = aiMesh->MTextureCoords[0] != null;
         var hasTangents = aiMesh->MTangents != null;
+        var min = new Vector3(float.MaxValue);
+        var max = new Vector3(float.MinValue);
 
         for (uint i = 0; i < aiMesh->MNumVertices; i++)
         {
@@ -58,6 +69,9 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             {
                 Position = aiMesh->MVertices[i]
             };
+
+            min = Vector3.Min(min, vertex.Position);
+            max = Vector3.Max(max, vertex.Position);
 
             if (aiMesh->MNormals != null)
                 vertex.Normal = aiMesh->MNormals[i];
@@ -84,6 +98,11 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                 mesh.Indices.Add(face.MIndices[j]);
         }
 
+        var extent = max - min;
+        Logger.Information(
+            "Mesh extracted name={Name} verts={Verts} indices={Indices} hasUV={HasUV} hasNormals={HasNormals} boundsMin={Min} boundsMax={Max} extent={Extent}",
+            mesh.Name, mesh.Vertices.Count, mesh.Indices.Count, hasTexCoords, aiMesh->MNormals != null, min, max, extent);
+
         return mesh;
     }
 
@@ -94,16 +113,16 @@ internal sealed class AssimpModelImporter(Assimp assimp)
     {
         var aiMaterial = scene->MMaterials[materialIndex];
 
-        var albedoPath = ResolveTexturePath(aiMaterial, TextureType.BaseColor, directory)
-            ?? ResolveTexturePath(aiMaterial, TextureType.Diffuse, directory);
+        var albedoPath = ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
 
-        var mrPath = ResolveTexturePath(aiMaterial, TextureType.GltfMetallicRoughness, directory)
-            ?? ResolveTexturePath(aiMaterial, TextureType.Metalness, directory)
-            ?? ResolveTexturePath(aiMaterial, TextureType.DiffuseRoughness, directory)
-            ?? ResolveTexturePath(aiMaterial, TextureType.Specular, directory);
+        var mrPath = ResolveTexturePath(scene, aiMaterial, TextureType.GltfMetallicRoughness, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Metalness, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.DiffuseRoughness, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
 
-        var normalPath = ResolveTexturePath(aiMaterial, TextureType.Normals, directory)
-            ?? ResolveTexturePath(aiMaterial, TextureType.Height, directory);
+        var normalPath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
 
         var material = new MeshMaterial
         {
@@ -125,6 +144,31 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         else
             material.Roughness = 0.5f;
 
+        // glTF default metallicFactor is 1.0. Albedo-only assets that keep that default
+        // render near-black under our no-IBL PBR path — treat as dielectric when no MR map.
+        if (mrPath == null && material.Metallic >= 0.99f)
+        {
+            Logger.Warning(
+                "Material[{Index}] metallic=1 with no metallic-roughness map — " +
+                "defaulting metallic to 0 (glTF default is unlit without IBL). " +
+                "Use Metallic Override if this should stay metal.",
+                materialIndex);
+            material.Metallic = 0f;
+        }
+
+        var hasBaseColor = TryGetColor(aiMaterial, Assimp.MatkeyBaseColor, out var baseColor);
+        var hasDiffuse = TryGetColor(aiMaterial, Assimp.MatkeyColorDiffuse, out var diffuseColor);
+        Logger.Information(
+            "Material[{Index}] albedoPath={Albedo} mrPath={MR} normalPath={Normal} metallic={Metallic} roughness={Roughness} baseColor={HasBase}:{BaseColor} diffuseColor={HasDiff}:{DiffuseColor}",
+            materialIndex,
+            albedoPath ?? "<null>",
+            mrPath ?? "<null>",
+            normalPath ?? "<null>",
+            material.Metallic,
+            material.Roughness,
+            hasBaseColor, baseColor,
+            hasDiffuse, diffuseColor);
+
         return material;
     }
 
@@ -135,27 +179,149 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         return result == Return.Success;
     }
 
+    private unsafe bool TryGetColor(Silk.NET.Assimp.Material* aiMaterial, string key, out Vector4 color)
+    {
+        color = default;
+        var result = assimp.GetMaterialColor(aiMaterial, key, 0, 0, ref color);
+        return result == Return.Success;
+    }
+
     private unsafe string? ResolveTexturePath(
+        Silk.NET.Assimp.Scene* scene,
         Silk.NET.Assimp.Material* aiMaterial,
         TextureType textureType,
         string directory)
     {
-        if (assimp.GetMaterialTextureCount(aiMaterial, textureType) == 0)
+        var slotCount = assimp.GetMaterialTextureCount(aiMaterial, textureType);
+        if (slotCount == 0)
             return null;
 
         AssimpString aiPath;
         var result = assimp.GetMaterialTexture(aiMaterial, textureType, 0, &aiPath, null, null, null, null, null, null);
         if (result != Return.Success)
+        {
+            Logger.Warning("GetMaterialTexture failed type={Type} result={Result}", textureType, result);
             return null;
+        }
 
         var texturePath = aiPath.AsString;
         if (string.IsNullOrEmpty(texturePath))
+        {
+            Logger.Warning("Texture type={Type} has empty path (count={Count})", textureType, slotCount);
             return null;
+        }
+
+        // GLB/glTF embedded images show up as "*0", "*1", …
+        if (texturePath.StartsWith('*'))
+        {
+            var cached = ExtractEmbeddedTextureToCache(scene, texturePath);
+            if (cached == null)
+            {
+                Logger.Warning("Failed to extract embedded texture type={Type} ref={Ref}", textureType, texturePath);
+                return null;
+            }
+
+            Logger.Information("Texture type={Type} extracted embedded {Ref} → {Path}", textureType, texturePath, cached);
+            return cached;
+        }
 
         if (!Path.IsPathRooted(texturePath))
             texturePath = Path.Combine(directory, texturePath);
 
         texturePath = texturePath.Replace('\\', '/');
-        return System.IO.File.Exists(texturePath) ? texturePath : null;
+        if (!System.IO.File.Exists(texturePath))
+        {
+            Logger.Warning(
+                "Texture type={Type} path missing on disk: {Path}",
+                textureType, texturePath);
+            return null;
+        }
+
+        Logger.Information("Texture type={Type} resolved to file {Path}", textureType, texturePath);
+        return texturePath;
+    }
+
+    private unsafe string? ExtractEmbeddedTextureToCache(Silk.NET.Assimp.Scene* scene, string embeddedRef)
+    {
+        // Native Assimp shipped with Silk.NET may lack aiGetEmbeddedTexture — index into MTextures instead.
+        // Refs look like "*0" or "*0:filename.png".
+        if (embeddedRef.Length < 2 || embeddedRef[0] != '*')
+            return null;
+
+        var indexSpan = embeddedRef.AsSpan(1);
+        var colon = indexSpan.IndexOf(':');
+        if (colon >= 0)
+            indexSpan = indexSpan[..colon];
+
+        if (!uint.TryParse(indexSpan, out var index) || index >= scene->MNumTextures)
+            return null;
+
+        var tex = scene->MTextures[index];
+        if (tex == null)
+            return null;
+
+        // Compressed image blob (png/jpg/…). Uncompressed texel buffers are rare for glTF/GLB.
+        if (tex->MHeight != 0)
+        {
+            Logger.Warning(
+                "Embedded texture {Ref} is uncompressed ({W}x{H}) — not supported yet",
+                embeddedRef, tex->MWidth, tex->MHeight);
+            return null;
+        }
+
+        var byteCount = (int)tex->MWidth;
+        if (byteCount <= 0 || tex->PcData == null)
+            return null;
+
+        var bytes = new byte[byteCount];
+        fixed (byte* dst = bytes)
+            System.Buffer.MemoryCopy(tex->PcData, dst, byteCount, byteCount);
+
+        var ext = GuessImageExtension(bytes, ReadFormatHint(tex));
+        // ponytail: content-addressed temp cache; switch to CreateFromMemory if temp files become a problem
+        Directory.CreateDirectory(EmbeddedCacheDir);
+        var hash = Convert.ToHexString(SHA256.HashData(bytes)).AsSpan(0, 16);
+        var cachePath = Path.Combine(EmbeddedCacheDir, $"{hash}{ext}");
+        if (!System.IO.File.Exists(cachePath))
+            System.IO.File.WriteAllBytes(cachePath, bytes);
+
+        return cachePath;
+    }
+
+    private static string GuessImageExtension(byte[] bytes, string hint)
+    {
+        if (bytes.Length >= 8 &&
+            bytes[0] == 0x89 && bytes[1] == (byte)'P' && bytes[2] == (byte)'N' && bytes[3] == (byte)'G')
+            return ".png";
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)
+            return ".jpg";
+        if (bytes.Length >= 12 &&
+            bytes[0] == (byte)'R' && bytes[1] == (byte)'I' && bytes[2] == (byte)'F' && bytes[3] == (byte)'F' &&
+            bytes[8] == (byte)'W' && bytes[9] == (byte)'E' && bytes[10] == (byte)'B' && bytes[11] == (byte)'P')
+            return ".webp";
+
+        // Assimp AchFormatHint is often garbage on GLB — only trust short alphanumeric hints.
+        if (hint.Length is > 0 and <= 4 && hint.All(char.IsLetterOrDigit))
+            return "." + hint.ToLowerInvariant();
+
+        return ".bin";
+    }
+
+    private static unsafe string ReadFormatHint(Silk.NET.Assimp.Texture* tex)
+    {
+        // Assimp stores up to 8 chars + null in AchFormatHint.
+        var sb = new StringBuilder(8);
+        var p = (byte*)&tex->AchFormatHint;
+        for (var i = 0; i < 8; i++)
+        {
+            var c = p[i];
+            if (c == 0)
+                break;
+            if (c is < 32 or > 126)
+                return string.Empty;
+            sb.Append((char)c);
+        }
+
+        return sb.ToString();
     }
 }

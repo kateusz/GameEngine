@@ -129,6 +129,14 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         material.AlbedoTexture = LoadTexture(material.AlbedoTexturePath, sRgb: true);
         material.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessTexturePath);
         material.NormalTexture = LoadTexture(material.NormalTexturePath);
+
+        // ponytail: debug — remove after GLB texture investigation
+        Logger.Information(
+            "Resolved material textures hasAlbedo={HasAlbedo} albedoPath={AlbedoPath} hasMR={HasMR} mrPath={MRPath} hasNormal={HasNormal} normalPath={NormalPath} metallic={Metallic} roughness={Roughness}",
+            material.HasAlbedoMap, material.AlbedoTexturePath ?? "<null>",
+            material.HasMetallicRoughnessMap, material.MetallicRoughnessTexturePath ?? "<null>",
+            material.HasNormalMap, material.NormalTexturePath ?? "<null>",
+            material.Metallic, material.Roughness);
     }
 
     private Texture2D? LoadTexture(string? path, bool sRgb = false)
@@ -138,7 +146,9 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
         try
         {
-            return _textureFactory.Create(path, sRgb);
+            var tex = _textureFactory.Create(path, sRgb);
+            Logger.Information("Loaded texture path={Path} sRgb={SRgb} size={W}x{H}", path, sRgb, tex.Width, tex.Height);
+            return tex;
         }
         catch (Exception ex)
         {

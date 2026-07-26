@@ -48,7 +48,7 @@ On load:
 
 ```
 open file with Assimp
-apply post-process: triangulate, normals if missing, tangents if missing, FlipUVs
+apply post-process: triangulate, normals if missing, tangents if missing (no FlipUVs — glTF is already OpenGL UV space; textures use stbi vertical flip)
 for each mesh in scene:
   copy positions, normals, uvs, tangents/bitangents into engine vertices
   copy indices (triangles only after triangulate)

@@ -34,7 +34,7 @@ Prior Assimp-based FBX work existed and was removed. The gap remains: without lo
 
 **Model factory.** A path-keyed cache and loader. Callers ask for a path; on a miss the factory imports, builds meshes and materials, caches the model, and returns it.
 
-**Importer.** The Assimp-backed step that reads source formats, applies fixed post-process rules (triangulate, normals/tangents as needed, FlipUVs), and maps file materials into the engine’s mesh material fields.
+**Importer.** The Assimp-backed step that reads source formats, applies fixed post-process rules (triangulate, normals/tangents as needed, PreTransformVertices), and maps file materials into the engine’s mesh material fields. UVs are left in OpenGL space (no FlipUVs); texture upload flips image rows for GL.
 
 **Mesh material.** Per-submesh shading inputs: diffuse texture (optional), specular texture (optional), normal texture (optional), shininess, and a fallback diffuse color when no diffuse map exists.
 

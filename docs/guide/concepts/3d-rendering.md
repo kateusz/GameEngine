@@ -2,7 +2,7 @@
 
 **Formats:** `.fbx`, `.gltf`, `.glb` (Assimp). Empty or bad `ModelPath` → lit 1×1 cube.
 
-**Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` per frame. No directional light → zero directional contribution (ambient only).
+**Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` per frame. No directional light → white default directional (metals need it; ambient alone leaves metals black).
 
 **Not supported:** animation/skins, IBL, shadows, per-submesh entities.
 
@@ -30,9 +30,10 @@ Metal/rough workflow: albedo, metallic-roughness packed map (G=roughness, B=meta
 | Symptom | Check |
 |---------|-------|
 | Nothing visible | Primary camera, frustum, scene 3D + perspective |
-| Black / flat | Directional `Color` non-zero; raise ambient `Strength` |
+| Black / flat | Directional `Color` non-zero; raise ambient `Strength`; check Metallic isn’t 1 without an MR map |
 | Cube fallback | `ModelPath`, file under `assets/`, console for Assimp errors |
 | Wrong scale | Transform **Scale** |
-| Bad metals | Overrides on component, or fix maps in DCC |
+| Bad metals | Overrides on component, or fix maps in DCC. Albedo-only GLBs with metallic=1 are auto-forced to 0 at import. |
+| Atlas / face-on-wrong-body | UV double-flip (engine must not FlipUVs when textures use stbi flip). Restart editor after importer fix to clear model cache. |
 
 Details: [Component Inspector](../editor/component-inspector.md#modelrenderercomponent), [Rendering Pipeline](../../architecture/rendering-pipeline.md).

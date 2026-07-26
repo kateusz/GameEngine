@@ -135,7 +135,7 @@ No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` track
 **Files**: `Engine/Renderer/IModelFactory.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/AssimpModelImporter.cs`
 
 - Path-keyed cache (`OrdinalIgnoreCase` full paths); miss → Assimp import → GPU upload → cache
-- Post-process: triangulate, generate normals, calculate tangents, FlipUVs, PreTransformVertices
+- Post-process: triangulate, generate normals, calculate tangents, PreTransformVertices (no FlipUVs — avoids double-flip with stbi texture upload)
 - Formats via Silk.NET Assimp (FBX, glTF, GLB, and other Assimp-supported types)
 - Whole file → ordered `ModelSubmesh` list (mesh + `MeshMaterial`); no animation / hierarchy explosion
 - Texture paths resolved relative to the model directory; loads go through `TextureFactory`
