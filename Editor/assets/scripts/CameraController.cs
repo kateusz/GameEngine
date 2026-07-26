@@ -46,7 +46,13 @@ public class CameraController : ScriptableEntity
         _isPerspective = GetComponent<CameraComponent>().ProjectionType == CameraProjectionTypeData.Perspective;
 
         if (_isPerspective && HasComponent<TransformComponent>())
-            _position = GetComponent<TransformComponent>().Translation;
+        {
+            var transform = GetComponent<TransformComponent>();
+            _position = transform.Translation;
+            // Rotation stored as (pitch, yaw, roll) — same convention as OnUpdate / Sandbox
+            _pitch = transform.Rotation.X;
+            _yaw = transform.Rotation.Y;
+        }
 
         if (_isPerspective)
             GetComponent<CameraComponent>().CameraViewTransform = null;

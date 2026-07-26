@@ -15,8 +15,8 @@
         {
           "Translation": [
             0,
-            0,
-            0
+            2,
+            5
           ],
           "Rotation": [
             0,
@@ -38,7 +38,7 @@
           "PerspectiveFOV": 0.7853982,
           "PerspectiveNear": 0.01,
           "PerspectiveFar": 1000,
-          "AspectRatio": 1.9179265,
+          "AspectRatio": 1.9777282,
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
@@ -56,7 +56,7 @@
         {
           "Translation": [
             0,
-            -1.5,
+            0,
             0
           ],
           "Rotation": [
@@ -100,9 +100,9 @@
         },
         {
           "Direction": [
-            0,
+            0.4,
             -1,
-            0
+            -2.3
           ],
           "Color": [
             1,
