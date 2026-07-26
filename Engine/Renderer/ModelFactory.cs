@@ -9,6 +9,7 @@ namespace Engine.Renderer;
 /// <summary>
 /// Loads GPU-ready models from cooked <c>.mesh</c> files only.
 /// Raw interchange (.fbx/.glb/.gltf) must be cooked first — never loaded here.
+/// Vertex upload uses Mesh StaticDraw layout (incl. bone attrs); pose is shader uniforms only — never mutate cached VBOs.
 /// </summary>
 internal sealed class ModelFactory : IModelFactory, IDisposable
 {
@@ -32,6 +33,26 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         _vertexArrayFactory = vertexArrayFactory;
         _vertexBufferFactory = vertexBufferFactory;
         _indexBufferFactory = indexBufferFactory;
+    }
+
+    public void Evict(string path)
+    {
+        var normalizedPath = Path.GetFullPath(path);
+        lock (_cacheLock)
+        {
+            if (_cache.Remove(normalizedPath, out var model))
+                model.Dispose();
+        }
+    }
+
+    public void ClearCache()
+    {
+        lock (_cacheLock)
+        {
+            foreach (var model in _cache.Values)
+                model.Dispose();
+            _cache.Clear();
+        }
     }
 
     public Model? Create(string path)

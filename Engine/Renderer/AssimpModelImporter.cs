@@ -12,6 +12,19 @@ internal sealed class AssimpModelImporter(Assimp assimp)
     private static readonly string EmbeddedCacheDir =
         Path.Combine(Path.GetTempPath(), "GameEngine", "embedded-textures");
 
+    /// <summary>
+    /// Post-process for skinned cook: never <see cref="PostProcessSteps.PreTransformVertices"/>
+    /// (destroys hierarchy); always <see cref="PostProcessSteps.LimitBoneWeights"/> (≤4).
+    /// </summary>
+    public const PostProcessSteps SkinnedPostProcessFlags =
+        PostProcessSteps.Triangulate |
+        PostProcessSteps.GenerateNormals |
+        PostProcessSteps.CalculateTangentSpace |
+        PostProcessSteps.JoinIdenticalVertices |
+        PostProcessSteps.LimitBoneWeights;
+
+    public static int MaxSkeletonBones => (int)SkeletonReader.MaxBones;
+
     public List<ModelSubmesh> Import(string path)
     {
         var submeshes = new List<ModelSubmesh>();
@@ -27,7 +40,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
         unsafe
         {
-            var scene = assimp.ImportFile(path, flags);
+            var scene = AssimpSceneImport.Import(assimp, path, flags);
 
             if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
             {
@@ -70,7 +83,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
         unsafe
         {
-            var scene = assimp.ImportFile(path, flags);
+            var scene = AssimpSceneImport.Import(assimp, path, flags);
 
             if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
             {
@@ -85,12 +98,63 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                 path, scene->MNumMeshes, scene->MNumMaterials, scene->MNumTextures);
 
             var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            WalkNode(scene, scene->MRootNode, Matrix4x4.Identity, directory, nameCounts, parts);
+            WalkNode(scene, scene->MRootNode, Matrix4x4.Identity, directory, nameCounts, parts, boneIndexByName: null);
 
             assimp.ReleaseImport(scene);
         }
 
         return parts;
+    }
+
+    /// <summary>
+    /// Skinned cook: full node walk, bone weights, skeleton + clips.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No bones, or bone count &gt; <see cref="MaxSkeletonBones"/>.</exception>
+    public AssimpSkinnedImport ImportSkinned(string path)
+    {
+        var directory = Path.GetDirectoryName(path) ?? string.Empty;
+        var flags = (uint)SkinnedPostProcessFlags;
+
+        unsafe
+        {
+            var scene = AssimpSceneImport.Import(assimp, path, flags);
+
+            if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
+            {
+                var err = assimp.GetErrorStringS();
+                Logger.Error("Failed to import skinned model path={Path} assimpError={AssimpError}", path, err);
+                throw new InvalidOperationException($"Assimp failed to import skinned model: {err}");
+            }
+
+            Logger.Information(
+                "Assimp import skinned ok path={Path} meshes={MeshCount} animations={AnimCount}",
+                path, scene->MNumMeshes, scene->MNumAnimations);
+
+            try
+            {
+                var nodesByName = new Dictionary<string, nint>(StringComparer.Ordinal);
+                CollectNodesByName(scene->MRootNode, nodesByName);
+
+                var skeleton = BuildSkeleton(scene, nodesByName);
+                var boneIndexByName = new Dictionary<string, int>(skeleton.Bones.Count, StringComparer.Ordinal);
+                for (var i = 0; i < skeleton.Bones.Count; i++)
+                    boneIndexByName[skeleton.Bones[i].Name] = i;
+
+                var parts = new List<AssimpModelPart>();
+                var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                WalkNode(scene, scene->MRootNode, Matrix4x4.Identity, directory, nameCounts, parts, boneIndexByName);
+
+                if (parts.Count == 0)
+                    throw new InvalidOperationException($"Assimp produced no mesh nodes for skinned model: {path}");
+
+                var animations = ExtractAnimations(scene, boneIndexByName);
+                return new AssimpSkinnedImport(parts, skeleton, animations);
+            }
+            finally
+            {
+                assimp.ReleaseImport(scene);
+            }
+        }
     }
 
     private unsafe void WalkNode(
@@ -99,7 +163,8 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         Matrix4x4 parentWorld,
         string directory,
         Dictionary<string, int> nameCounts,
-        List<AssimpModelPart> parts)
+        List<AssimpModelPart> parts,
+        Dictionary<string, int>? boneIndexByName)
     {
         // Assimp: node transform maps local → parent (column-vector storage).
         // Accumulated in Assimp space; transposed to Numerics when emitting parts.
@@ -115,7 +180,9 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                     continue;
 
                 var aiMesh = scene->MMeshes[meshIndex];
-                var mesh = ExtractMesh(aiMesh);
+                var mesh = boneIndexByName != null
+                    ? ExtractSkinnedMesh(aiMesh, boneIndexByName)
+                    : ExtractMesh(aiMesh);
                 var material = ExtractMaterial(scene, aiMesh->MMaterialIndex, directory);
                 submeshes.Add(new ModelSubmesh(mesh, material));
             }
@@ -139,8 +206,291 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         {
             var child = node->MChildren[i];
             if (child != null)
-                WalkNode(scene, child, world, directory, nameCounts, parts);
+                WalkNode(scene, child, world, directory, nameCounts, parts, boneIndexByName);
         }
+    }
+
+    private static unsafe void CollectNodesByName(Node* node, Dictionary<string, nint> nodesByName)
+    {
+        var name = node->MName.AsString;
+        if (!string.IsNullOrEmpty(name))
+            nodesByName.TryAdd(name, (nint)node);
+
+        for (uint i = 0; i < node->MNumChildren; i++)
+        {
+            var child = node->MChildren[i];
+            if (child != null)
+                CollectNodesByName(child, nodesByName);
+        }
+    }
+
+    private static unsafe SkeletonAsset BuildSkeleton(
+        Silk.NET.Assimp.Scene* scene,
+        Dictionary<string, nint> nodesByName)
+    {
+        // Collect bone names from mesh weights; inverse-bind from node bind pose (row-vector).
+        var boneNames = new HashSet<string>(StringComparer.Ordinal);
+        for (uint mi = 0; mi < scene->MNumMeshes; mi++)
+        {
+            var aiMesh = scene->MMeshes[mi];
+            if (aiMesh->MNumBones == 0 || aiMesh->MBones == null)
+                continue;
+
+            for (uint bi = 0; bi < aiMesh->MNumBones; bi++)
+            {
+                var name = aiMesh->MBones[bi]->MName.AsString;
+                if (!string.IsNullOrEmpty(name))
+                    boneNames.Add(name);
+            }
+        }
+
+        if (boneNames.Count == 0)
+            throw new InvalidOperationException("Skinned import found no bones (mBones == 0).");
+
+        // Joints that animate but have no weights.
+        for (uint ai = 0; ai < scene->MNumAnimations; ai++)
+        {
+            var anim = scene->MAnimations[ai];
+            for (uint ci = 0; ci < anim->MNumChannels; ci++)
+            {
+                var nodeName = anim->MChannels[ci]->MNodeName.AsString;
+                if (!string.IsNullOrEmpty(nodeName))
+                    boneNames.Add(nodeName);
+            }
+        }
+
+        if (boneNames.Count > MaxSkeletonBones)
+            throw new InvalidOperationException(
+                $"Skeleton has {boneNames.Count} bones; maximum is {MaxSkeletonBones}.");
+
+        var sortedNames = boneNames.ToList();
+        sortedNames.Sort((a, b) =>
+        {
+            var da = NodeDepth(a, nodesByName);
+            var db = NodeDepth(b, nodesByName);
+            var cmp = da.CompareTo(db);
+            return cmp != 0 ? cmp : string.CompareOrdinal(a, b);
+        });
+
+        var indexByName = new Dictionary<string, int>(sortedNames.Count, StringComparer.Ordinal);
+        for (var i = 0; i < sortedNames.Count; i++)
+            indexByName[sortedNames[i]] = i;
+
+        var bones = new List<SkeletonBone>(sortedNames.Count);
+        foreach (var name in sortedNames)
+        {
+            var parentIndex = -1;
+            nint nodePtr = 0;
+            if (nodesByName.TryGetValue(name, out nodePtr))
+            {
+                var node = (Node*)nodePtr;
+                for (var parent = node->MParent; parent != null; parent = parent->MParent)
+                {
+                    var parentName = parent->MName.AsString;
+                    if (indexByName.TryGetValue(parentName, out var pi))
+                    {
+                        parentIndex = pi;
+                        break;
+                    }
+                }
+            }
+
+            var inverseBind = TryAssimpOffsetMatrix(scene, name);
+            if (inverseBind == Matrix4x4.Identity)
+            {
+                Logger.Warning("Bone {Bone} missing Assimp offset matrix", name);
+                if (nodePtr != 0)
+                {
+                    var bindGlobalRow = ComputeBindGlobalRow((Node*)nodePtr);
+                    if (!Matrix4x4.Invert(bindGlobalRow, out inverseBind))
+                        inverseBind = Matrix4x4.Identity;
+                }
+            }
+
+            bones.Add(new SkeletonBone(name, parentIndex, inverseBind));
+        }
+
+        return new SkeletonAsset(bones);
+    }
+
+    private static unsafe Matrix4x4 ComputeBindGlobalRow(Node* node)
+    {
+        var depth = 0;
+        for (var n = node; n != null; n = n->MParent)
+            depth++;
+
+        Span<nint> chain = stackalloc nint[depth];
+        var index = depth - 1;
+        for (var n = node; n != null; n = n->MParent)
+            chain[index--] = (nint)n;
+
+        var worldColumn = Matrix4x4.Identity;
+        for (var i = 0; i < depth; i++)
+        {
+            var n = (Node*)chain[i];
+            worldColumn = Matrix4x4.Multiply(worldColumn, n->MTransformation);
+        }
+
+        return Matrix4x4.Transpose(worldColumn);
+    }
+
+    private static unsafe Matrix4x4 TryAssimpOffsetMatrix(Silk.NET.Assimp.Scene* scene, string boneName)
+    {
+        for (uint mi = 0; mi < scene->MNumMeshes; mi++)
+        {
+            var aiMesh = scene->MMeshes[mi];
+            if (aiMesh->MNumBones == 0 || aiMesh->MBones == null)
+                continue;
+
+            for (uint bi = 0; bi < aiMesh->MNumBones; bi++)
+            {
+                var bone = aiMesh->MBones[bi];
+                if (!string.Equals(bone->MName.AsString, boneName, StringComparison.Ordinal))
+                    continue;
+
+                return Matrix4x4.Transpose(bone->MOffsetMatrix);
+            }
+        }
+
+        return Matrix4x4.Identity;
+    }
+
+    private static int NodeDepth(string name, Dictionary<string, nint> nodesByName)
+    {
+        if (!nodesByName.TryGetValue(name, out var ptr))
+            return int.MaxValue;
+
+        unsafe
+        {
+            var depth = 0;
+            for (var n = ((Node*)ptr)->MParent; n != null; n = n->MParent)
+                depth++;
+            return depth;
+        }
+    }
+
+    private static unsafe Anim3dAsset ExtractAnimations(
+        Silk.NET.Assimp.Scene* scene,
+        Dictionary<string, int> boneIndexByName)
+    {
+        var clips = new List<Anim3dClip>((int)scene->MNumAnimations);
+        for (uint ai = 0; ai < scene->MNumAnimations; ai++)
+        {
+            var anim = scene->MAnimations[ai];
+            var ticksPerSecond = anim->MTicksPerSecond > 0 ? anim->MTicksPerSecond : 25.0;
+            var durationSeconds = (float)(anim->MDuration / ticksPerSecond);
+            var name = anim->MName.AsString;
+            if (string.IsNullOrWhiteSpace(name))
+                name = $"Clip{ai}";
+
+            var channels = new List<Anim3dChannel>((int)anim->MNumChannels);
+            for (uint ci = 0; ci < anim->MNumChannels; ci++)
+            {
+                var channel = anim->MChannels[ci];
+                var nodeName = channel->MNodeName.AsString;
+                if (!boneIndexByName.TryGetValue(nodeName, out var boneIndex))
+                    continue;
+
+                var translations = new List<Anim3dVec3Key>((int)channel->MNumPositionKeys);
+                for (uint k = 0; k < channel->MNumPositionKeys; k++)
+                {
+                    var key = channel->MPositionKeys[k];
+                    translations.Add(new Anim3dVec3Key((float)(key.MTime / ticksPerSecond), key.MValue));
+                }
+
+                var rotations = new List<Anim3dQuatKey>((int)channel->MNumRotationKeys);
+                for (uint k = 0; k < channel->MNumRotationKeys; k++)
+                {
+                    var key = channel->MRotationKeys[k];
+                    var q = key.MValue;
+                    rotations.Add(new Anim3dQuatKey(
+                        (float)(key.MTime / ticksPerSecond),
+                        new Quaternion(q.X, q.Y, q.Z, q.W)));
+                }
+
+                var scales = new List<Anim3dVec3Key>((int)channel->MNumScalingKeys);
+                for (uint k = 0; k < channel->MNumScalingKeys; k++)
+                {
+                    var key = channel->MScalingKeys[k];
+                    scales.Add(new Anim3dVec3Key((float)(key.MTime / ticksPerSecond), key.MValue));
+                }
+
+                channels.Add(new Anim3dChannel((uint)boneIndex, translations, rotations, scales));
+            }
+
+            clips.Add(new Anim3dClip(name, durationSeconds, channels));
+        }
+
+        return new Anim3dAsset(clips);
+    }
+
+    private static unsafe Mesh ExtractSkinnedMesh(
+        Silk.NET.Assimp.Mesh* aiMesh,
+        Dictionary<string, int> boneIndexByName)
+    {
+        var mesh = ExtractMesh(aiMesh);
+        if (aiMesh->MNumBones == 0 || aiMesh->MBones == null)
+            return mesh;
+
+        var vertCount = mesh.Vertices.Count;
+        var influences = new List<(int Bone, float Weight)>[vertCount];
+        for (var i = 0; i < vertCount; i++)
+            influences[i] = [];
+
+        for (uint bi = 0; bi < aiMesh->MNumBones; bi++)
+        {
+            var bone = aiMesh->MBones[bi];
+            var name = bone->MName.AsString;
+            if (!boneIndexByName.TryGetValue(name, out var boneIndex))
+                continue;
+
+            for (uint wi = 0; wi < bone->MNumWeights; wi++)
+            {
+                var vw = bone->MWeights[wi];
+                var vid = (int)vw.MVertexId;
+                if (vid < 0 || vid >= vertCount)
+                    continue;
+                influences[vid].Add((boneIndex, vw.MWeight));
+            }
+        }
+
+        for (var vi = 0; vi < vertCount; vi++)
+        {
+            var list = influences[vi];
+            if (list.Count == 0)
+                continue;
+
+            // LimitBoneWeights caps Assimp side; still keep ≤4 and renormalize.
+            list.Sort((a, b) => b.Weight.CompareTo(a.Weight));
+            if (list.Count > 4)
+                list.RemoveRange(4, list.Count - 4);
+
+            var sum = 0f;
+            for (var i = 0; i < list.Count; i++)
+                sum += list[i].Weight;
+            if (sum > 1e-6f)
+            {
+                for (var i = 0; i < list.Count; i++)
+                    list[i] = (list[i].Bone, list[i].Weight / sum);
+            }
+
+            var idx = new int[4];
+            var wgt = new float[4];
+            for (var i = 0; i < list.Count; i++)
+            {
+                idx[i] = list[i].Bone;
+                wgt[i] = list[i].Weight;
+            }
+
+            var v = mesh.Vertices[vi];
+            mesh.Vertices[vi] = v with
+            {
+                BoneIndex = new Vector4(idx[0], idx[1], idx[2], idx[3]),
+                BoneWeight = new Vector4(wgt[0], wgt[1], wgt[2], wgt[3])
+            };
+        }
+
+        return mesh;
     }
 
     private static unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh)
@@ -205,7 +555,8 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         var albedoPath = ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
 
-        var mrPath = ResolveTexturePath(scene, aiMaterial, TextureType.GltfMetallicRoughness, directory)
+        // assimp 5.x exposes the glTF combined metallic-roughness map as aiTextureType_UNKNOWN.
+        var mrPath = ResolveTexturePath(scene, aiMaterial, TextureType.Unknown, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Metalness, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.DiffuseRoughness, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);

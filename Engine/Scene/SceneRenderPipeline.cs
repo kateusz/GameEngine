@@ -17,6 +17,17 @@ internal static class SceneRenderPipeline
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
     // ponytail: debug — once-per-entity tint warnings; clear not needed (reload editor resets process)
     private static readonly HashSet<int> WarnedTintEntities = [];
+    private static readonly HashSet<int> WarnedSkinnedEntities = [];
+    private static readonly HashSet<int> LoggedLiveSkinnedEntities = [];
+    private static readonly Matrix4x4[] IdentityBonePalette = CreateIdentityBonePalette();
+
+    private static Matrix4x4[] CreateIdentityBonePalette()
+    {
+        var palette = new Matrix4x4[SkeletalPlaybackComponent.MaxBones];
+        for (var i = 0; i < palette.Length; i++)
+            palette[i] = Matrix4x4.Identity;
+        return palette;
+    }
 
     private static readonly Vector2[] DefaultTextureCoords =
     [
@@ -58,7 +69,12 @@ internal static class SceneRenderPipeline
         if (!camera.IsValid)
             return;
 
+        SkinnedRenderDiagnostics.OnRenderFrame();
         Begin3DScene(graphics3D, camera);
+        var cameraMode = camera.ViewCamera != null ? "EditorCamera/IViewCamera" : "PrimaryCameraProvider";
+        SkinnedRenderDiagnostics.Once(
+            camera.ViewCamera != null ? "pipeline-camera-editor" : "pipeline-camera-scene",
+            () => Logger.Information("SkinnedDbg RenderModels camera={Mode}", cameraMode));
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
         var (lightDirection, lightColor) = ResolveDirectional(context);
@@ -115,11 +131,91 @@ internal static class SceneRenderPipeline
             {
                 var metallic = modelRenderer.MetallicOverride ?? submesh.Material.Metallic;
                 var roughness = modelRenderer.RoughnessOverride ?? submesh.Material.Roughness;
-                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, metallic, roughness, entity.Id);
+                var (bones, paletteSource) = ResolveBonePalette(entity, context);
+                LogSkinnedDrawOnce(entity, modelRenderer, submesh.Mesh, bones, paletteSource);
+                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, metallic, roughness, entity.Id, bones);
             }
         }
 
         graphics3D.EndScene();
+    }
+
+    private static (Matrix4x4[] Palette, string Source) ResolveBonePalette(Entity entity, IContext context)
+    {
+        var (playback, playbackEntityId) = ResolvePlayback(entity, context);
+        if (playback is null)
+            return (IdentityBonePalette, "no-playback");
+
+        if (!playback.Playing)
+            return (IdentityBonePalette, $"playback-{playbackEntityId}-not-playing");
+
+        return playback.BonePalette.Length >= SkeletalPlaybackComponent.MaxBones
+            ? (playback.BonePalette, $"playback-{playbackEntityId}-live")
+            : (IdentityBonePalette, $"playback-{playbackEntityId}-short-palette");
+    }
+
+    private static (SkeletalPlaybackComponent? Playback, int PlaybackEntityId) ResolvePlayback(Entity entity, IContext context)
+    {
+        if (entity.TryGetComponent<SkeletalPlaybackComponent>(out var self))
+            return (self, entity.Id);
+
+        var current = entity;
+        while (current.TryGetComponent<ParentComponent>(out var parentComp)
+               && parentComp.ParentId is int parentId
+               && context.Contains(parentId))
+        {
+            var parent = context.GetById(parentId);
+            if (parent.TryGetComponent<SkeletalPlaybackComponent>(out var parentPlayback))
+                return (parentPlayback, parent.Id);
+
+            current = parent;
+        }
+
+        return (null, -1);
+    }
+
+    private static void LogSkinnedDrawOnce(
+        Entity entity,
+        ModelRendererComponent renderer,
+        Mesh mesh,
+        Matrix4x4[] bones,
+        string paletteSource)
+    {
+        var live = paletteSource.Contains("live", StringComparison.Ordinal);
+        if (live)
+        {
+            if (!LoggedLiveSkinnedEntities.Add(entity.Id))
+                return;
+        }
+        else if (!WarnedSkinnedEntities.Add(entity.Id))
+        {
+            return;
+        }
+
+        Logger.Information(
+            "SkinnedDbg draw entity={EntityId} mesh={Mesh} modelPath={Path} paletteSource={Source} meshVerts={VertCount} meshIndices={IndexCount}",
+            entity.Id, mesh.Name, renderer.ModelPath, paletteSource, mesh.Vertices.Count, mesh.Indices.Count);
+
+        var weighted = 0;
+        foreach (var v in mesh.Vertices)
+        {
+            var w = v.BoneWeight.X + v.BoneWeight.Y + v.BoneWeight.Z + v.BoneWeight.W;
+            if (w < 1e-5f)
+                continue;
+
+            weighted++;
+            if (weighted > 3)
+                continue;
+
+            Logger.Information(
+                "SkinnedDbg mesh vert boneIdx=({I0},{I1},{I2},{I3}) weights=({W0:F3},{W1:F3},{W2:F3},{W3:F3}) pos=({X:F3},{Y:F3},{Z:F3})",
+                v.BoneIndex.X, v.BoneIndex.Y, v.BoneIndex.Z, v.BoneIndex.W,
+                v.BoneWeight.X, v.BoneWeight.Y, v.BoneWeight.Z, v.BoneWeight.W,
+                v.Position.X, v.Position.Y, v.Position.Z);
+        }
+
+        Logger.Information("SkinnedDbg mesh weightedVertCount>={Weighted} (up to 3 logged)", System.Math.Min(weighted, 3));
+        SkinnedRenderDiagnostics.LogBonePalette($"draw-entity-{entity.Id}-{paletteSource}", bones);
     }
 
     private static IEnumerable<ModelSubmesh> EnumerateDrawSubmeshes(Model model, ModelRendererComponent renderer)

@@ -56,6 +56,7 @@ public static class ComponentSelector
                     entity, new ModelRendererComponent(),
                     autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
+            DrawComponentMenuItem<SkeletalPlaybackComponent>("Skeletal Playback", entity, history);
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity, history);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity, history);
             DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity, history);

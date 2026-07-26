@@ -161,6 +161,7 @@ internal sealed class Scene : IScene
         // 110: ScriptUpdateSystem
         // 115: TransformHierarchySystem (world caches)
         // 120: AudioSystem
+        // 135: SkeletalAnimationSystem
         // 145: PrimaryCameraSystem
         // 150: SceneRenderSystem
         // 151: PhysicsDebugRenderSystem

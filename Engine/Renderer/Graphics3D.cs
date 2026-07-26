@@ -1,5 +1,7 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Platform.OpenGL;
+using Engine.Scene;
 using Engine.Scene.Cameras;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
@@ -12,7 +14,15 @@ internal sealed class Graphics3D(
     IMeshFactory meshFactory,
     ITextureFactory textureFactory) : IGraphics3D
 {
+    private static readonly Serilog.ILogger Logger = Serilog.Log.ForContext<Graphics3D>();
+    private static readonly HashSet<int> LoggedSkinnedDrawEntities = [];
+    private static readonly HashSet<int> LoggedLiveSkinnedDrawEntities = [];
+
     private const string ViewProjectionUniform = "u_ViewProjection";
+    private const string BoneMatricesUniform = "u_BoneMatrices[0]";
+    private const int BoneMatrixCount = 100;
+    private static readonly Matrix4x4[] IdentityBonePalette = CreateIdentityBonePalette();
+
     private IShader _cubeShader = null!;
     private IShader _texturedShader = null!;
     private IShader? _wireframeShader;
@@ -29,6 +39,14 @@ internal sealed class Graphics3D(
     private readonly Statistics _stats = new();
     private bool _disposed;
 
+    private static Matrix4x4[] CreateIdentityBonePalette()
+    {
+        var palette = new Matrix4x4[BoneMatrixCount];
+        for (var i = 0; i < BoneMatrixCount; i++)
+            palette[i] = Matrix4x4.Identity;
+        return palette;
+    }
+
     public void Init()
     {
         _cubeShader = shaderFactory.Create(
@@ -44,6 +62,12 @@ internal sealed class Graphics3D(
         _texturedShader.SetInt("u_MetallicRoughnessMap", 1);
         _texturedShader.SetInt("u_NormalMap", 2);
         _texturedShader.Unbind();
+
+        SkinnedRenderDiagnostics.Once("graphics3d-lighting-shader", () =>
+        {
+            if (_texturedShader is OpenGLShader glShader)
+                glShader.LogUniformInventory("lightingShader");
+        });
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -57,10 +81,22 @@ internal sealed class Graphics3D(
         }
 
         ApplyCamera(viewMatrix * camera.GetProjectionMatrix(), new Vector3(transform.M41, transform.M42, transform.M43));
+        SkinnedRenderDiagnostics.Once("camera-entity", () =>
+            Logger.Information("SkinnedDbg BeginScene Camera entity transform row4=({X:F3},{Y:F3},{Z:F3})",
+                transform.M41, transform.M42, transform.M43));
     }
 
-    public void BeginScene(IViewCamera camera) =>
-        ApplyCamera(camera.GetViewProjectionMatrix(), camera.GetPosition());
+    public void BeginScene(IViewCamera camera)
+    {
+        var vp = camera.GetViewProjectionMatrix();
+        var pos = camera.GetPosition();
+        ApplyCamera(vp, pos);
+        SkinnedRenderDiagnostics.Once("camera-viewcamera", () =>
+        {
+            Logger.Information("SkinnedDbg BeginScene IViewCamera pos=({X:F3},{Y:F3},{Z:F3})", pos.X, pos.Y, pos.Z);
+            SkinnedRenderDiagnostics.LogMatrix("u_ViewProjection", vp);
+        });
+    }
 
     public void EndScene()
     {
@@ -97,17 +133,39 @@ internal sealed class Graphics3D(
         _cubeShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1, Matrix4x4[]? boneMatrices = null)
     {
         rendererApi.SetDepthTest(true);
 
         if (_wireframe)
         {
+            if (LoggedSkinnedDrawEntities.Add(entityId))
+                Logger.Warning("SkinnedDbg wireframe draw — skinning skipped for entity={EntityId} mesh={Mesh}", entityId, mesh.Name);
             DrawWireframe(mesh, transform, entityId);
             return;
         }
 
         BindCommon(_texturedShader, transform, tint, entityId);
+        var usingIdentityBones = boneMatrices is null or { Length: < BoneMatrixCount }
+            || IsIdentityPalette(boneMatrices);
+        var bones = usingIdentityBones ? IdentityBonePalette : boneMatrices!;
+        _texturedShader.SetMat4Array(BoneMatricesUniform, bones, BoneMatrixCount);
+        // ponytail: large mat4[] clobbers earlier uniforms on some GL drivers
+        _texturedShader.SetMat4(ViewProjectionUniform, _viewProjection);
+        _texturedShader.SetMat4("u_Model", transform);
+        _texturedShader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
+
+        if (usingIdentityBones)
+        {
+            if (LoggedSkinnedDrawEntities.Add(entityId))
+                LogSkinnedDrawDiagnostics(entityId, mesh, bones, usingIdentityBones: true);
+        }
+        else if (LoggedLiveSkinnedDrawEntities.Add(entityId))
+        {
+            LogSkinnedDrawDiagnostics(entityId, mesh, bones, usingIdentityBones: false);
+            LogCpuSkinSample(entityId, mesh, bones);
+        }
+
         _texturedShader.SetFloat("u_Metallic", metallic);
         _texturedShader.SetFloat("u_Roughness", roughness);
         _texturedShader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
@@ -122,6 +180,76 @@ internal sealed class Graphics3D(
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
         _texturedShader.Unbind();
+    }
+
+    private static void LogSkinnedDrawDiagnostics(int entityId, Mesh mesh, Matrix4x4[] bones, bool usingIdentityBones)
+    {
+        var hasWeights = mesh.Vertices.Any(v =>
+            v.BoneWeight.X + v.BoneWeight.Y + v.BoneWeight.Z + v.BoneWeight.W > 1e-5f);
+        if (!hasWeights && usingIdentityBones)
+            return;
+
+        Logger.Information(
+            "SkinnedDbg DrawMesh entity={EntityId} mesh={Mesh} indices={IndexCount} identityBones={IdentityBones}",
+            entityId, mesh.Name, mesh.GetIndexCount(), usingIdentityBones);
+        SkinnedRenderDiagnostics.LogBonePalette($"gpu-entity-{entityId}", bones);
+    }
+    
+    private static void LogCpuSkinSample(int entityId, Mesh mesh, Matrix4x4[] bones)
+    {
+        var maxDisp = 0f;
+        var samples = 0;
+        var step = System.Math.Max(1, mesh.Vertices.Count / 256);
+        for (var i = 0; i < mesh.Vertices.Count && samples < 256; i += step)
+        {
+            var v = mesh.Vertices[i];
+            var w = v.BoneWeight.X + v.BoneWeight.Y + v.BoneWeight.Z + v.BoneWeight.W;
+            if (w < 1e-5f)
+                continue;
+
+            samples++;
+            var skinned = SkinPositionCpu(v, bones);
+            maxDisp = MathF.Max(maxDisp, Vector3.Distance(v.Position, skinned));
+        }
+
+        Logger.Information(
+            "SkinnedDbg cpuSkin entity={EntityId} samples={Samples} maxDisp={MaxDisp:F3} (if bounded but viewport explodes → GPU attrib/uniform)",
+            entityId, samples, maxDisp);
+    }
+
+    private static Vector3 SkinPositionCpu(Mesh.Vertex v, Matrix4x4[] palette)
+    {
+        var weightSum = v.BoneWeight.X + v.BoneWeight.Y + v.BoneWeight.Z + v.BoneWeight.W;
+        if (weightSum < 1e-5f)
+            return v.Position;
+
+        var pos = Vector4.Zero;
+        SkinAccumulate(ref pos, v.Position, v.BoneIndex.X, v.BoneWeight.X, palette);
+        SkinAccumulate(ref pos, v.Position, v.BoneIndex.Y, v.BoneWeight.Y, palette);
+        SkinAccumulate(ref pos, v.Position, v.BoneIndex.Z, v.BoneWeight.Z, palette);
+        SkinAccumulate(ref pos, v.Position, v.BoneIndex.W, v.BoneWeight.W, palette);
+        return new Vector3(pos.X, pos.Y, pos.Z);
+    }
+
+    private static void SkinAccumulate(ref Vector4 pos, Vector3 p, float boneIndexF, float weight, Matrix4x4[] palette)
+    {
+        if (weight <= 0f)
+            return;
+        var idx = (int)(boneIndexF + 0.5f);
+        if ((uint)idx >= (uint)palette.Length)
+            idx = 0;
+        pos += Vector4.Transform(new Vector4(p, 1f), palette[idx]) * weight;
+    }
+
+    private static bool IsIdentityPalette(Matrix4x4[] bones)
+    {
+        var n = System.Math.Min(bones.Length, 32);
+        for (var i = 0; i < n; i++)
+        {
+            if (bones[i] != Matrix4x4.Identity)
+                return false;
+        }
+        return true;
     }
 
     public void SetAmbientLight(Vector3 color, float strength)

@@ -96,6 +96,21 @@ public class PathBuilderTests : IDisposable
     }
 
     [Fact]
+    public void ToAssetRelativePath_nested_path_uses_forward_slashes_on_every_os()
+    {
+        // Cooked .mesh/.skel/.anim3d files ship texture/asset paths across machines —
+        // a Windows cook must not embed backslashes (Path.Combine there produces '\').
+        var context = Substitute.For<IProjectContext>();
+        context.AssetsPath.Returns(GameAssets);
+        PathBuilder.UseProjectContext(context);
+
+        var absolute = Path.Combine(GameAssets, "models", "textures", "skin.png");
+        var relative = PathBuilder.ToAssetRelativePath(absolute);
+
+        relative.ShouldBe("models/textures/skin.png");
+    }
+
+    [Fact]
     public void IsUnderAssets_true_for_path_inside_assets()
     {
         var context = Substitute.For<IProjectContext>();

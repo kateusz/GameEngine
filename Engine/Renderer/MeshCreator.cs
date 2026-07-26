@@ -34,6 +34,25 @@ public static class MeshCreator
         public static SplitResult Fail(string error) => new(false, [], error);
     }
 
+    public readonly record struct SkinnedResult(
+        bool Success,
+        string? MeshRelativePath,
+        string? SkeletonRelativePath,
+        string? Anim3dRelativePath,
+        IReadOnlyList<SplitPart> Parts,
+        string? Error)
+    {
+        public static SkinnedResult Ok(
+            string meshRelativePath,
+            string skeletonRelativePath,
+            string anim3dRelativePath,
+            IReadOnlyList<SplitPart> parts) =>
+            new(true, meshRelativePath, skeletonRelativePath, anim3dRelativePath, parts, null);
+
+        public static SkinnedResult Fail(string error) =>
+            new(false, null, null, null, [], error);
+    }
+
     public static bool TrySanitizeStem(string stem, out string sanitized, out string? error)
     {
         sanitized = stem?.Trim() ?? string.Empty;
@@ -153,6 +172,10 @@ public static class MeshCreator
             if (assimpParts.Count == 0)
                 return SplitResult.Fail($"Assimp produced no mesh nodes for: {source}");
 
+            var allSubmeshesPreview = assimpParts.SelectMany(p => p.Submeshes).ToList();
+            var unitFactor = CookUnitScale.DetectDownscaleFactor(allSubmeshesPreview);
+            CookUnitScale.ApplyToSubmeshes(allSubmeshesPreview, unitFactor);
+
             var modelsDir = Path.Combine(assetsRoot, "models");
             Directory.CreateDirectory(modelsDir);
 
@@ -168,13 +191,8 @@ public static class MeshCreator
             var submeshCursor = 0;
             foreach (var part in assimpParts)
             {
-                if (!MathHelpers.DecomposeTransform(
-                        part.LocalToRoot, out var translation, out var rotation, out var scale))
-                {
-                    translation = Vector3.Zero;
-                    rotation = Vector3.Zero;
-                    scale = Vector3.One;
-                }
+                var (translation, rotation, scale) =
+                    ImportSpawnTransform.FromLocalToRoot(part.LocalToRoot, unitFactor);
 
                 var count = part.Submeshes.Count;
                 written.Add(new SplitPart(
@@ -194,6 +212,78 @@ public static class MeshCreator
         {
             Logger.Error(ex, "CreateSplit failed for {Source}", source);
             return SplitResult.Fail($"CreateSplit failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Skinned cook: <c>models/{stem}.mesh</c> + co-located <c>.skel</c> / <c>.anim3d</c>.
+    /// Does not use <see cref="Create"/> / PreTransform path.
+    /// </summary>
+    public static SkinnedResult CreateSkinned(string sourceAbsolutePath, string projectAssetsRoot, string stem)
+    {
+        if (!TryResolvePaths(sourceAbsolutePath, projectAssetsRoot, stem,
+                out var assetsRoot, out var source, out var safeStem, out var error))
+            return SkinnedResult.Fail(error!);
+
+        try
+        {
+            using var assimp = Assimp.GetApi();
+            var importer = new AssimpModelImporter(assimp);
+            var skinned = SkinnedMeshSpace.BakePartsToRootSpace(importer.ImportSkinned(source));
+
+            var allSubmeshesPreview = skinned.Parts.SelectMany(p => p.Submeshes).ToList();
+            var scale = CookUnitScale.DetectScaleFactors(allSubmeshesPreview, skinned.Animations);
+            CookUnitScale.ApplyToSubmeshes(allSubmeshesPreview, scale.Mesh);
+            // InverseBind must follow mesh units. Assimp often leaves offsets in cm after FBX
+            // unit-scale already shrank mesh verts — detect and fix before ApplyToSkeleton.
+            var skeleton = CookUnitScale.HarmonizeInverseBindWithMesh(skinned.Skeleton, allSubmeshesPreview);
+            skeleton = CookUnitScale.ApplyToSkeleton(skeleton, scale.Mesh);
+            var animations = CookUnitScale.ApplyToAnimations(skinned.Animations, scale.Anim);
+
+            var modelsDir = Path.Combine(assetsRoot, "models");
+            Directory.CreateDirectory(modelsDir);
+
+            var allSubmeshes = skinned.Parts.SelectMany(p => p.Submeshes).ToList();
+            TextureRelocator.Relocate(allSubmeshes, assetsRoot);
+
+            var meshAbsolute = Path.Combine(modelsDir, $"{safeStem}.mesh");
+            var skelAbsolute = Path.Combine(modelsDir, $"{safeStem}.skel");
+            var animAbsolute = Path.Combine(modelsDir, $"{safeStem}.anim3d");
+
+            using (var stream = System.IO.File.Create(meshAbsolute))
+                MeshWriter.Write(stream, new Model(allSubmeshes));
+            using (var stream = System.IO.File.Create(skelAbsolute))
+                SkeletonWriter.Write(stream, skeleton);
+            using (var stream = System.IO.File.Create(animAbsolute))
+                Anim3dWriter.Write(stream, animations);
+
+            var meshRelative = PathBuilder.ToAssetRelativePath(meshAbsolute);
+            var skelRelative = PathBuilder.ToAssetRelativePath(skelAbsolute);
+            var animRelative = PathBuilder.ToAssetRelativePath(animAbsolute);
+
+            var written = new List<SplitPart>(skinned.Parts.Count);
+            var submeshCursor = 0;
+            foreach (var part in skinned.Parts)
+            {
+                var (translation, rotation, partScale) =
+                    ImportSpawnTransform.FromLocalToRoot(part.LocalToRoot, scale.Mesh);
+
+                var count = part.Submeshes.Count;
+                written.Add(new SplitPart(
+                    part.Name, meshRelative, submeshCursor, count, translation, rotation, partScale));
+                submeshCursor += count;
+            }
+
+            Logger.Information(
+                "Created skinned model source={Source} → mesh={Mesh} skel={Skel} anim={Anim} bones={Bones} clips={Clips}",
+                source, meshRelative, skelRelative, animRelative,
+                skinned.Skeleton.Bones.Count, skinned.Animations.Clips.Count);
+            return SkinnedResult.Ok(meshRelative, skelRelative, animRelative, written);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "CreateSkinned failed for {Source}", source);
+            return SkinnedResult.Fail($"CreateSkinned failed: {ex.Message}");
         }
     }
 

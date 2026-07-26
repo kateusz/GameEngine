@@ -3,6 +3,7 @@ using ECS.Systems;
 using Editor.Features.History;
 using Editor.Features.Scripting;
 using Engine.Core;
+using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
@@ -17,7 +18,8 @@ public class SceneManager(
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IProjectContext projectContext,
     GameScriptWorkspace scriptWorkspace,
-    IEditorHistory history)
+    IEditorHistory history,
+    IModelFactory modelFactory)
     : ISceneManager
 {
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
@@ -28,6 +30,7 @@ public class SceneManager(
     {
         sceneContext.ActiveScene?.Dispose();
         EditorScenePath = null;
+        modelFactory.ClearCache();
 
         sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
         Logger.Information("📄 New scene created");
@@ -43,6 +46,7 @@ public class SceneManager(
 
         sceneContext.ActiveScene?.Dispose();
         EditorScenePath = null;
+        modelFactory.ClearCache();
 
         EditorScenePath = path;
         var scene = sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path));

@@ -1,8 +1,11 @@
 using Editor.UI.Drawers;
+using Engine.Core;
 using Engine.Renderer;
 using Engine.Scene;
 using SceneComponents;
 using SceneComponents.Rendering;
+using Silk.NET.Assimp;
+using File = System.IO.File;
 
 namespace Editor.Features.Import;
 
@@ -14,7 +17,12 @@ public static class Import3DModelBatch
     public static readonly string[] SupportedExtensions = [".fbx", ".glb", ".gltf"];
 
     public readonly record struct Failure(string Source, string Error);
-    public readonly record struct SourceImport(string Source, IReadOnlyList<MeshCreator.SplitPart> Parts);
+
+    public readonly record struct SourceImport(
+        string Source,
+        IReadOnlyList<MeshCreator.SplitPart> Parts,
+        string? SkeletonRelativePath = null,
+        string? ClipRelativePath = null);
 
     public readonly record struct ImportBatchSummary(
         int Succeeded,
@@ -113,17 +121,41 @@ public static class Import3DModelBatch
         var results = new List<SourceImport>();
         foreach (var source in sources)
         {
-            var result = MeshCreator.CreateSplit(
-                source, projectAssetsRoot, Path.GetFileNameWithoutExtension(source));
-
-            if (result.Success)
+            try
             {
-                succeeded++;
-                results.Add(new SourceImport(source, result.Parts));
+                var stem = Path.GetFileNameWithoutExtension(source);
+                if (SourceHasAnyBones(source))
+                {
+                    var skinned = MeshCreator.CreateSkinned(source, projectAssetsRoot, stem);
+                    if (skinned.Success)
+                    {
+                        succeeded++;
+                        results.Add(new SourceImport(
+                            source, skinned.Parts,
+                            skinned.SkeletonRelativePath, skinned.Anim3dRelativePath));
+                    }
+                    else
+                    {
+                        failures.Add(new Failure(source, skinned.Error ?? "Unknown error"));
+                    }
+                }
+                else
+                {
+                    var result = MeshCreator.CreateSplit(source, projectAssetsRoot, stem);
+                    if (result.Success)
+                    {
+                        succeeded++;
+                        results.Add(new SourceImport(source, result.Parts));
+                    }
+                    else
+                    {
+                        failures.Add(new Failure(source, result.Error ?? "Unknown error"));
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                failures.Add(new Failure(source, result.Error ?? "Unknown error"));
+                failures.Add(new Failure(source, ex.Message));
             }
         }
 
@@ -131,10 +163,50 @@ public static class Import3DModelBatch
         return true;
     }
     
+    public static bool SourceHasAnyBones(string sourceAbsolutePath)
+    {
+        if (string.IsNullOrWhiteSpace(sourceAbsolutePath) || !File.Exists(sourceAbsolutePath))
+            return false;
+
+        using var assimp = Assimp.GetApi();
+        unsafe
+        {
+            var scene = AssimpSceneImport.Import(assimp, sourceAbsolutePath, 0);
+            if (scene == null || scene->MRootNode == null)
+                throw new InvalidOperationException($"Assimp failed to import '{sourceAbsolutePath}' for bone detection.");
+
+            try
+            {
+                for (uint i = 0; i < scene->MNumMeshes; i++)
+                {
+                    var mesh = scene->MMeshes[i];
+                    if (mesh != null && mesh->MNumBones > 0)
+                        return true;
+                }
+
+                return false;
+            }
+            finally
+            {
+                assimp.ReleaseImport(scene);
+            }
+        }
+    }
+
     public static string SpawnHierarchy(
         IScene scene,
         string parentName,
-        IReadOnlyList<MeshCreator.SplitPart> parts)
+        SourceImport source) =>
+        SpawnHierarchy(
+            scene, parentName, source.Parts,
+            source.SkeletonRelativePath, source.ClipRelativePath);
+
+    public static string SpawnHierarchy(
+        IScene scene,
+        string parentName,
+        IReadOnlyList<MeshCreator.SplitPart> parts,
+        string? skeletonRelativePath = null,
+        string? clipRelativePath = null)
     {
         ArgumentNullException.ThrowIfNull(scene);
         if (parts.Count == 0)
@@ -143,6 +215,17 @@ public static class Import3DModelBatch
         var safeParent = string.IsNullOrWhiteSpace(parentName) ? "ImportedModel" : parentName.Trim();
         var parent = scene.CreateEntity(safeParent);
         parent.AddComponent(new TransformComponent());
+
+        // parent owns playback; children keep ModelRenderer only
+        if (!string.IsNullOrWhiteSpace(skeletonRelativePath)
+            || !string.IsNullOrWhiteSpace(clipRelativePath))
+        {
+            parent.AddComponent(new SkeletalPlaybackComponent
+            {
+                SkeletonPath = skeletonRelativePath,
+                ClipPath = clipRelativePath
+            });
+        }
 
         foreach (var part in parts)
         {
@@ -214,6 +297,22 @@ public static class Import3DModelBatch
     public static string FormatOverwriteMessage(int conflictCount) =>
         $"{conflictCount} destination .mesh file(s) already exist under assets/models/.\n\n" +
         "Overwrite all conflicts in this import batch?";
+
+    public static void EvictImportedAssets(
+        IModelFactory modelFactory,
+        ISkeletonFactory skeletonFactory,
+        IAnim3dFactory anim3dFactory,
+        SourceImport source)
+    {
+        foreach (var part in source.Parts)
+            modelFactory.Evict(PathBuilder.Resolve(part.MeshRelativePath));
+
+        if (!string.IsNullOrWhiteSpace(source.SkeletonRelativePath))
+            skeletonFactory.Evict(PathBuilder.Resolve(source.SkeletonRelativePath));
+
+        if (!string.IsNullOrWhiteSpace(source.ClipRelativePath))
+            anim3dFactory.Evict(PathBuilder.Resolve(source.ClipRelativePath));
+    }
 
     public static string FormatDuplicateDestinationMessage(
         IReadOnlyList<DuplicateDestination> duplicates)

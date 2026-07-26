@@ -9,6 +9,65 @@ namespace Engine.Tests.Renderer;
 public class MeshFormatRoundTripTests
 {
     [Fact]
+    public void RoundTrip_SkinnedVertex_PreservesBoneIndexAndWeight()
+    {
+        var boneIndex = new Vector4(1, 2, 3, 0);
+        var boneWeight = new Vector4(0.5f, 0.25f, 0.25f, 0f);
+        var vertex = new Mesh.Vertex(
+            new Vector3(1, 2, 3),
+            new Vector3(0, 1, 0),
+            new Vector2(0.5f, 0.25f),
+            new Vector3(1, 0, 0),
+            new Vector3(0, 0, 1),
+            boneIndex,
+            boneWeight);
+
+        var mesh = new Mesh("Skinned");
+        mesh.Vertices.Add(vertex);
+        mesh.Indices.Add(0);
+
+        var model = new Model([new ModelSubmesh(mesh, new MeshMaterial())]);
+
+        using var stream = new MemoryStream();
+        MeshWriter.Write(stream, model);
+        stream.Position = 0;
+        var loaded = MeshReader.Read(stream);
+
+        var loadedVertex = loaded.Submeshes[0].Mesh.Vertices[0];
+        loadedVertex.BoneIndex.ShouldBe(boneIndex);
+        loadedVertex.BoneWeight.ShouldBe(boneWeight);
+        loadedVertex.Position.ShouldBe(new Vector3(1, 2, 3));
+    }
+
+    [Fact]
+    public void RoundTrip_StaticVertex_WritesZeroBoneAttrs()
+    {
+        var vertex = new Mesh.Vertex(
+            new Vector3(1, 2, 3),
+            new Vector3(0, 1, 0),
+            new Vector2(0.5f, 0.25f),
+            new Vector3(1, 0, 0),
+            new Vector3(0, 0, 1));
+
+        var mesh = new Mesh("Static");
+        mesh.Vertices.Add(vertex);
+        mesh.Indices.Add(0);
+
+        var model = new Model([new ModelSubmesh(mesh, new MeshMaterial { Metallic = 0.2f, Roughness = 0.8f })]);
+
+        using var stream = new MemoryStream();
+        MeshWriter.Write(stream, model);
+        stream.Position = 0;
+        var loaded = MeshReader.Read(stream);
+
+        var loadedVertex = loaded.Submeshes[0].Mesh.Vertices[0];
+        loadedVertex.BoneIndex.ShouldBe(default(Vector4));
+        loadedVertex.BoneWeight.ShouldBe(Vector4.Zero);
+        loadedVertex.Position.ShouldBe(vertex.Position);
+        loaded.Submeshes[0].Material.Metallic.ShouldBe(0.2f);
+    }
+
+    [Fact]
     public void RoundTrip_SingleSubmesh_PreservesVertexStrideIndicesPbrAndTexturePaths()
     {
         var vertex = new Mesh.Vertex(
@@ -43,7 +102,7 @@ public class MeshFormatRoundTripTests
         loaded.Submeshes.Count.ShouldBe(1);
         var sub = loaded.Submeshes[0];
         sub.Mesh.Name.ShouldBe("Cube");
-        Mesh.Vertex.GetSize().ShouldBe(56);
+        Mesh.Vertex.GetSize().ShouldBe(88);
         sub.Mesh.Vertices.Count.ShouldBe(3);
         sub.Mesh.Vertices[0].ShouldBe(vertex);
         sub.Mesh.Vertices[1].Position.ShouldBe(new Vector3(4, 5, 6));
@@ -138,7 +197,6 @@ public class MeshFormatRoundTripTests
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write(Encoding.ASCII.GetBytes("XXXX"));
-            writer.Write(1u);
             writer.Write(0u);
         }
 
@@ -147,22 +205,7 @@ public class MeshFormatRoundTripTests
     }
 
     [Fact]
-    public void Read_UnsupportedVersion_Throws()
-    {
-        using var stream = new MemoryStream();
-        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
-        {
-            writer.Write("KULA"u8.ToArray());
-            writer.Write(2u);
-            writer.Write(0u);
-        }
-
-        stream.Position = 0;
-        Should.Throw<NotSupportedException>(() => MeshReader.Read(stream));
-    }
-
-    [Fact]
-    public void Write_ProducesLittleEndianMagicAndVersionHeader()
+    public void Write_ProducesLittleEndianMagicAndSubmeshCountHeader()
     {
         var mesh = new Mesh("Header");
         mesh.Vertices.Add(new Mesh.Vertex(Vector3.Zero, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
@@ -175,6 +218,7 @@ public class MeshFormatRoundTripTests
         var bytes = stream.ToArray();
         bytes.Length.ShouldBeGreaterThanOrEqualTo(8);
         Encoding.ASCII.GetString(bytes, 0, 4).ShouldBe("KULA");
+        // Little-endian submesh count follows the magic directly (no version field).
         bytes[4].ShouldBe((byte)1);
         bytes[5].ShouldBe((byte)0);
         bytes[6].ShouldBe((byte)0);
@@ -189,11 +233,14 @@ public class MeshFormatRoundTripTests
         {
             writer.Write("KULA"u8.ToArray());
             writer.Write(1u);
-            writer.Write(1u);
             writer.Write(0u);
             writer.Write(1u);
             writer.Write(1u);
             for (var i = 0; i < 14; i++)
+                writer.Write(0f);
+            for (var i = 0; i < 4; i++)
+                writer.Write(0);
+            for (var i = 0; i < 4; i++)
                 writer.Write(0f);
             writer.Write(5u);
             writer.Write(0f);
@@ -215,12 +262,28 @@ public class MeshFormatRoundTripTests
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write("KULA"u8.ToArray());
-            writer.Write(1u);
             writer.Write(MeshReader.MaxSubmeshes + 1);
         }
 
         stream.Position = 0;
         Should.Throw<InvalidDataException>(() => MeshReader.Read(stream))
             .Message.ShouldContain("SUBMESH_COUNT");
+    }
+
+    [Fact]
+    public void Write_VertexCountExceedsMax_ThrowsBeforeWriting()
+    {
+        var mesh = new Mesh("Huge");
+        mesh.Vertices.Capacity = (int)MeshReader.MaxVerticesPerSubmesh + 1;
+        for (var i = 0; i <= MeshReader.MaxVerticesPerSubmesh; i++)
+            mesh.Vertices.Add(default);
+        mesh.Indices.Add(0);
+
+        var model = new Model([new ModelSubmesh(mesh, new MeshMaterial())]);
+
+        using var stream = new MemoryStream();
+        Should.Throw<InvalidOperationException>(() => MeshWriter.Write(stream, model))
+            .Message.ShouldContain("VERTEX_COUNT");
+        stream.Length.ShouldBe(0);
     }
 }

@@ -149,12 +149,15 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
 
         unsafe
         {
-            // Use Span<T> for direct memory access without allocations
+            // Vertex is blittable Float4 bone indices — raw upload matches shader a_BoneIndexF.
             var vertexSpan = CollectionsMarshal.AsSpan(vertices);
-            var byteSpan = MemoryMarshal.Cast<Mesh.Vertex, byte>(vertexSpan);
+            var byteSpan = MemoryMarshal.AsBytes(vertexSpan);
+            if (byteSpan.Length < dataSize)
+                throw new ArgumentException($"dataSize {dataSize} exceeds vertex bytes {byteSpan.Length}", nameof(dataSize));
+
             fixed (byte* pData = byteSpan)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)byteSpan.Length, pData,
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)dataSize, pData,
                     BufferUsageARB.StaticDraw);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "BufferData(MeshVertex)");
             }

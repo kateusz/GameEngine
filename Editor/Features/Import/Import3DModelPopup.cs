@@ -3,12 +3,18 @@ using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Platform;
+using Engine.Renderer;
 using Engine.Scene;
 using Serilog;
 
 namespace Editor.Features.Import;
 
-public class Import3DModelPopup(IProjectContext projectContext, ISceneContext sceneContext)
+public class Import3DModelPopup(
+    IProjectContext projectContext,
+    ISceneContext sceneContext,
+    IModelFactory modelFactory,
+    ISkeletonFactory skeletonFactory,
+    IAnim3dFactory anim3dFactory)
 {
     private static readonly ILogger Logger = Log.ForContext<Import3DModelPopup>();
 
@@ -17,7 +23,7 @@ public class Import3DModelPopup(IProjectContext projectContext, ISceneContext sc
     private bool _showOverwrite;
     private bool _showSummary;
 
-    private string _pathInput = OSInfo.IsWindows ? string.Empty : Environment.CurrentDirectory;
+    private string _pathInput = "/Users/mateuszkulesza/Downloads/Illegal Elbow Punch.fbx";//OSInfo.IsWindows ? string.Empty : Environment.CurrentDirectory;
     private string _sourceDisplay = string.Empty;
     private IReadOnlyList<string> _pendingSources = [];
     private int _conflictCount;
@@ -201,6 +207,9 @@ public class Import3DModelPopup(IProjectContext projectContext, ISceneContext sc
         }
 
         var result = summary.Value;
+        foreach (var source in result.Sources)
+            Import3DModelBatch.EvictImportedAssets(modelFactory, skeletonFactory, anim3dFactory, source);
+
         var spawnNotes = new List<string>();
         var scene = sceneContext.ActiveScene;
         if (scene is null)
@@ -213,7 +222,7 @@ public class Import3DModelPopup(IProjectContext projectContext, ISceneContext sc
             foreach (var source in result.Sources.Where(s => s.Parts.Count > 0))
             {
                 var parentName = Path.GetFileNameWithoutExtension(source.Source);
-                spawnNotes.Add(Import3DModelBatch.SpawnHierarchy(scene, parentName, source.Parts));
+                spawnNotes.Add(Import3DModelBatch.SpawnHierarchy(scene, parentName, source));
             }
         }
 

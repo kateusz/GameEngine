@@ -64,4 +64,46 @@ public class Import3DModelSceneSpawnTests
         roofRenderer.SubmeshStart.ShouldBe(1);
         roofRenderer.SubmeshCount.ShouldBe(2);
     }
+
+    [Fact]
+    public void SpawnHierarchy_Skinned_AttachesPlaybackOnParentWithCompanionPaths()
+    {
+        using var scene = CreateScene();
+        var parts = new List<MeshCreator.SplitPart>
+        {
+            new("Body", "models/hero.mesh", 0, 1, Vector3.Zero, Vector3.Zero, Vector3.One),
+        };
+
+        Import3DModelBatch.SpawnHierarchy(
+            scene, "hero", parts,
+            skeletonRelativePath: "models/hero.skel",
+            clipRelativePath: "models/hero.anim3d");
+
+        var parent = scene.Entities.Single(e => e.Name == "hero");
+        parent.HasComponent<ModelRendererComponent>().ShouldBeFalse();
+        var playback = parent.GetComponent<SkeletalPlaybackComponent>();
+        playback.SkeletonPath.ShouldBe("models/hero.skel");
+        playback.ClipPath.ShouldBe("models/hero.anim3d");
+
+        var child = scene.GetChildren(parent).ShouldHaveSingleItem();
+        child.HasComponent<SkeletalPlaybackComponent>().ShouldBeFalse();
+        child.GetComponent<ModelRendererComponent>().ModelPath.ShouldBe("models/hero.mesh");
+    }
+
+    [Fact]
+    public void SpawnHierarchy_BoneFree_DoesNotAttachPlayback()
+    {
+        using var scene = CreateScene();
+        var parts = new List<MeshCreator.SplitPart>
+        {
+            new("Prop", "models/crate.mesh", 0, 1, Vector3.Zero, Vector3.Zero, Vector3.One),
+        };
+
+        Import3DModelBatch.SpawnHierarchy(scene, "crate", parts);
+
+        var parent = scene.Entities.Single(e => e.Name == "crate");
+        parent.HasComponent<SkeletalPlaybackComponent>().ShouldBeFalse();
+        scene.GetChildren(parent).ShouldHaveSingleItem()
+            .HasComponent<SkeletalPlaybackComponent>().ShouldBeFalse();
+    }
 }

@@ -4,6 +4,7 @@ using Editor.Features.Scene;
 using Editor.Features.Scripting;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Renderer;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
@@ -175,6 +176,8 @@ public class EditorHistoryClearPolicyTests
             _ => true,
             _ => { });
 
+        var modelFactory = Substitute.For<IModelFactory>();
+
         var factory = new SceneFactory(
             Substitute.For<ISystemManagerFactory>(),
             Substitute.For<IPointerSurface>());
@@ -183,9 +186,10 @@ public class EditorHistoryClearPolicyTests
             _sceneContext,
             Substitute.For<ISceneSerializer>(),
             factory,
-            () => Enumerable.Empty<IGameSystem>(),
+            Enumerable.Empty<IGameSystem>,
             projectContext,
             workspace,
-            history);
+            history,
+            modelFactory);
     }
 }

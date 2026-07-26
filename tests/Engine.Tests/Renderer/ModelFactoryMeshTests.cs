@@ -74,6 +74,24 @@ public class ModelFactoryMeshTests : IDisposable
     }
 
     [Fact]
+    public void Evict_ForcesReloadFromDisk()
+    {
+        var meshPath = WriteMeshFixture("evict.mesh", albedoPath: null);
+        var first = _factory.Create(meshPath);
+        first.ShouldNotBeNull();
+        first!.Submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
+
+        using (var stream = File.Create(meshPath))
+            MeshWriter.Write(stream, CreateQuadModel());
+
+        _factory.Evict(meshPath);
+        var reloaded = _factory.Create(meshPath);
+        reloaded.ShouldNotBeNull();
+        reloaded.ShouldNotBeSameAs(first);
+        reloaded!.Submeshes[0].Mesh.Vertices.Count.ShouldBe(4);
+    }
+
+    [Fact]
     public void Create_GlbExtension_ReturnsNullWithoutAssimp()
     {
         var path = Path.Combine(_tempDir, "raw.glb");
@@ -145,6 +163,17 @@ public class ModelFactoryMeshTests : IDisposable
             MeshWriter.Write(stream, model);
 
         return path;
+    }
+
+    private static Model CreateQuadModel()
+    {
+        var mesh = new Mesh("Quad");
+        mesh.Vertices.Add(new Mesh.Vertex(Vector3.Zero, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(Vector3.UnitX, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(Vector3.UnitY, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(Vector3.UnitZ, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Indices.AddRange([0u, 1u, 2u, 0u, 2u, 3u]);
+        return new Model([new ModelSubmesh(mesh, new MeshMaterial())]);
     }
 
     private static IVertexArrayFactory CreateVertexArrayFactory()

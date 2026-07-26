@@ -4,21 +4,17 @@ using System.Text;
 namespace Engine.Renderer;
 
 /// <summary>
-/// Reads versioned little-endian *.mesh binary (KULA / VERSION=1)
+/// Reads versioned little-endian *.mesh binary (KULA / VERSION=2). Always-present bone attrs.
 /// </summary>
 public static class MeshReader
 {
-    public const uint SupportedVersion = 1;
-
-    /// <summary>Hard caps against hostile/corrupt size fields (verification hardening).</summary>
-    // ponytail: one GLB → one .mesh packs every Assimp mesh-bearing node; village packs exceed 2k.
-    // Ceiling: still bounds DoS from a hostile COUNT; raise if a real asset needs more.
     public const uint MaxSubmeshes = 65_536;
     public const uint MaxVerticesPerSubmesh = 5_000_000;
     public const uint MaxIndicesPerSubmesh = 15_000_000;
     public const uint MaxStringBytes = 4096;
 
     private const string ExpectedMagic = "KULA";
+    private const uint VertexStrideBytes = 88;
 
     public static Model Read(Stream stream)
     {
@@ -29,11 +25,7 @@ public static class MeshReader
         var magic = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (magic != ExpectedMagic)
             throw new InvalidDataException($"Invalid mesh magic '{magic}', expected '{ExpectedMagic}'");
-
-        var version = reader.ReadUInt32();
-        if (version != SupportedVersion)
-            throw new NotSupportedException($"Unsupported mesh VERSION {version}; supported: {SupportedVersion}");
-
+        
         var submeshCount = reader.ReadUInt32();
         if (submeshCount > MaxSubmeshes)
             throw new InvalidDataException($"SUBMESH_COUNT {submeshCount} exceeds max {MaxSubmeshes}");
@@ -57,7 +49,7 @@ public static class MeshReader
         if (indexCount > MaxIndicesPerSubmesh)
             throw new InvalidDataException($"INDEX_COUNT {indexCount} exceeds max {MaxIndicesPerSubmesh}");
 
-        EnsureReadable(reader, vertexCount * 14u * sizeof(float) + indexCount * sizeof(uint));
+        EnsureReadable(reader, vertexCount * VertexStrideBytes + indexCount * sizeof(uint));
 
         var mesh = new Mesh(name);
         mesh.Vertices.Capacity = (int)vertexCount;
@@ -105,7 +97,10 @@ public static class MeshReader
             ReadVector3(reader),
             new Vector2(reader.ReadSingle(), reader.ReadSingle()),
             ReadVector3(reader),
-            ReadVector3(reader));
+            ReadVector3(reader),
+            // File stores int32 indices; CPU/GPU vertex uses float4.
+            new Vector4(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32()),
+            new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
     }
 
     private static Vector3 ReadVector3(BinaryReader reader) =>

@@ -172,6 +172,55 @@ public class PublishedAssetValidatorTests : IDisposable
         result.Success.ShouldBeTrue();
     }
 
+    [Fact]
+    public void ValidateAssetReferences_FailsWhenSkeletonOrClipPathMissing()
+    {
+        var assets = CreateAssetsLayout();
+        WriteScene(assets, """
+            {
+              "Entities": [
+                {
+                  "Components": [
+                    { "SkeletonPath": "models/missing.skel", "ClipPath": "models/missing.anim3d" }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeFalse();
+        var error = result.ErrorMessage.ShouldNotBeNull();
+        error.ShouldContain("models/missing.skel");
+        error.ShouldContain("SkeletonPath");
+        error.ShouldContain("models/missing.anim3d");
+        error.ShouldContain("ClipPath");
+    }
+
+    [Fact]
+    public void ValidateAssetReferences_ModelPathOnly_DoesNotRequireCompanions()
+    {
+        var assets = CreateAssetsLayout();
+        Directory.CreateDirectory(Path.Combine(assets, "models"));
+        File.WriteAllBytes(Path.Combine(assets, "models", "static.mesh"), [1, 2, 3]);
+        WriteScene(assets, """
+            {
+              "Entities": [
+                {
+                  "Components": [
+                    { "ModelPath": "models/static.mesh" }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeTrue();
+    }
+
     private string CreateAssetsLayout()
     {
         var assets = Path.Combine(_tempRoot, "assets");
