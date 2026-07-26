@@ -15,6 +15,7 @@ internal sealed class Graphics3D(
     private const string ViewProjectionUniform = "u_ViewProjection";
     private IShader _cubeShader = null!;
     private IShader _texturedShader = null!;
+    private IShader? _wireframeShader;
     private Mesh _cubeMesh = null!;
 
     private Vector3 _ambientColor = Vector3.One;
@@ -22,6 +23,9 @@ internal sealed class Graphics3D(
     private Vector3 _lightDirection = new(0, -1, 0);
     private Vector3 _lightColor = Vector3.Zero;
 
+    private Matrix4x4 _viewProjection = Matrix4x4.Identity;
+    private bool _wireframe;
+    private bool _wireframeLoadFailed;
     private readonly Statistics _stats = new();
     private bool _disposed;
 
@@ -62,9 +66,29 @@ internal sealed class Graphics3D(
     {
     }
 
+    public void SetWireframe(bool enabled)
+    {
+        if (enabled)
+        {
+            if (EnsureWireframeShader())
+                _wireframe = true;
+            return;
+        }
+
+        _wireframe = false;
+        rendererApi.SetPolygonMode(PolygonMode.Fill);
+    }
+
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1)
     {
         rendererApi.SetDepthTest(true);
+
+        if (_wireframe)
+        {
+            DrawWireframe(_cubeMesh, transform, entityId);
+            return;
+        }
+
         BindCommon(_cubeShader, transform, color, entityId);
 
         _cubeMesh.Bind();
@@ -76,6 +100,13 @@ internal sealed class Graphics3D(
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
     {
         rendererApi.SetDepthTest(true);
+
+        if (_wireframe)
+        {
+            DrawWireframe(mesh, transform, entityId);
+            return;
+        }
+
         BindCommon(_texturedShader, transform, tint, entityId);
         _texturedShader.SetFloat("u_Metallic", metallic);
         _texturedShader.SetFloat("u_Roughness", roughness);
@@ -107,13 +138,74 @@ internal sealed class Graphics3D(
 
     private void ApplyCamera(Matrix4x4 viewProjection, Vector3 viewPosition)
     {
+        _viewProjection = viewProjection;
+
         _cubeShader.Bind();
         _cubeShader.SetMat4(ViewProjectionUniform, viewProjection);
 
         _texturedShader.Bind();
         _texturedShader.SetMat4(ViewProjectionUniform, viewProjection);
         _texturedShader.SetFloat3("u_ViewPosition", viewPosition);
+
+        if (_wireframeShader is not null)
+        {
+            _wireframeShader.Bind();
+            _wireframeShader.SetMat4(ViewProjectionUniform, viewProjection);
+        }
     }
+
+    private void DrawWireframe(Mesh mesh, Matrix4x4 transform, int entityId)
+    {
+        _wireframeShader!.Bind();
+        _wireframeShader.SetMat4(ViewProjectionUniform, _viewProjection);
+        _wireframeShader.SetMat4("u_Model", transform);
+        _wireframeShader.SetFloat4("u_Color", RenderingConstants.WireframeEdgeColor);
+        _wireframeShader.SetInt("u_EntityID", entityId);
+        mesh.Bind();
+        try
+        {
+            rendererApi.SetPolygonMode(PolygonMode.Line);
+            rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+            _stats.DrawCalls++;
+        }
+        finally
+        {
+            rendererApi.SetPolygonMode(PolygonMode.Fill);
+            _wireframeShader.Unbind();
+        }
+    }
+
+    private bool EnsureWireframeShader()
+    {
+        if (_wireframeShader is not null)
+            return true;
+        if (_wireframeLoadFailed)
+            return false;
+
+        try
+        {
+            // ponytail: host BaseDirectory — project AssetsPath has no Editor shaders; latch until Dispose
+            _wireframeShader = shaderFactory.Create(
+                ResolveHostShader("wireframeShader.vert"),
+                ResolveHostShader("wireframeShader.frag"));
+            _wireframeShader.Bind();
+            _wireframeShader.SetMat4(ViewProjectionUniform, _viewProjection);
+            _wireframeShader.Unbind();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.ForContext<Graphics3D>().Error(ex, "Failed to load wireframe shader; falling back to Normal");
+            _wireframeShader = null;
+            _wireframe = false;
+            _wireframeLoadFailed = true;
+            rendererApi.SetPolygonMode(PolygonMode.Fill);
+            return false;
+        }
+    }
+
+    private static string ResolveHostShader(string fileName) =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", fileName));
 
     private void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
     {
@@ -151,6 +243,8 @@ internal sealed class Graphics3D(
         _cubeShader = null!;
         _texturedShader?.Dispose();
         _texturedShader = null!;
+        _wireframeShader?.Dispose();
+        _wireframeShader = null;
         _cubeMesh?.Dispose();
         _cubeMesh = null!;
 
