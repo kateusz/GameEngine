@@ -1,12 +1,12 @@
 # Game Engine Developer Guide
 
-This is a C# game engine built on an Entity Component System (ECS) architecture, offering production-ready **2D** rendering via OpenGL, **3D** mesh rendering with Assimp import and PBR metal/rough shading (cube fallback when no model is set), a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers core game development needs: physics simulation, spatial audio, and sprite atlasing.
+This is a C# game engine built on an Entity Component System (ECS) architecture, offering production-ready **2D** rendering via OpenGL, **3D** mesh rendering from cooked `.mesh` assets (File → Import 3D Model… for FBX/glTF/GLB) with PBR metal/rough shading (cube fallback when no model is set), a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers core game development needs: physics simulation, spatial audio, and sprite atlasing.
 
 ## Features
 
 - **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
 - **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
-- **3D rendering** — FBX/glTF/GLB via Assimp, PBR materials, ambient + directional lights; unit-cube fallback when `ModelPath` is empty
+- **3D rendering** — bake-on-import to `.mesh` (Assimp at import only), PBR materials, ambient + directional lights; unit-cube fallback when `ModelPath` is empty or not a cooked mesh
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
 - **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)

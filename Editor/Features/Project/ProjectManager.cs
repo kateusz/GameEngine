@@ -22,7 +22,8 @@ public class ProjectManager(
         Path.Combine("assets", "scenes"),
         Path.Combine("assets", "textures"),
         Path.Combine("assets", "scripts"),
-        Path.Combine("assets", "prefabs")
+        Path.Combine("assets", "prefabs"),
+        Path.Combine("assets", "models")
     ];
 
     public event Action? ProjectOpened;

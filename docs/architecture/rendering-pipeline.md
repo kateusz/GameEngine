@@ -26,7 +26,7 @@ graph TB
     subgraph "Resource Factories"
         TF["TextureFactory<br/><i>Path cache + white/flat-normal</i>"]
         SF["ShaderFactory<br/><i>File-time cache, parallel compile</i>"]
-        MF["ModelFactory<br/><i>Assimp import, path cache</i>"]
+        MF["ModelFactory<br/><i>.mesh load, path cache</i>"]
     end
 
     subgraph "Renderer Abstraction"
@@ -103,9 +103,9 @@ User-facing setup: [3D Rendering](../guide/concepts/3d-rendering.md).
 
 ## 3D Model Rendering
 
-**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/AssimpModelImporter.cs`, `Engine/Renderer/MeshFactory.cs`
+**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/MeshReader.cs`, `Engine/Renderer/MeshCreator.cs`, `Engine/Renderer/AssimpModelImporter.cs`, `Engine/Renderer/MeshFactory.cs`
 
-`SceneRenderPipeline` resolves each `ModelRendererComponent` path through `IModelFactory`. On success it draws every submesh with PBR materials under ambient + directional lights. Empty or failed paths fall back to the shared unit cube.
+`SceneRenderPipeline` resolves each `ModelRendererComponent` path through `IModelFactory`. On success it draws every submesh with PBR materials under ambient + directional lights. Empty or failed paths (including rejected non-`.mesh` / legacy raw paths) fall back to the shared unit cube.
 
 ### Draw path
 
@@ -130,16 +130,21 @@ Metallic/roughness for each draw: component override if set, else imported `Mesh
 
 No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` tracks `DrawCalls` per frame.
 
-### Model factory and import
+### Model factory and cook
 
-**Files**: `Engine/Renderer/IModelFactory.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/AssimpModelImporter.cs`
+**Runtime files**: `Engine/Renderer/IModelFactory.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/MeshReader.cs`
 
-- Path-keyed cache (`OrdinalIgnoreCase` full paths); miss → Assimp import → GPU upload → cache
-- Post-process: triangulate, generate normals, calculate tangents, PreTransformVertices (no FlipUVs — avoids double-flip with stbi texture upload)
-- Formats via Silk.NET Assimp (FBX, glTF, GLB, and other Assimp-supported types)
+- Path-keyed cache (`OrdinalIgnoreCase` full paths); miss → `MeshReader` → GPU upload → cache
+- **`.mesh` only** — non-`.mesh` paths are rejected with a warning (no Assimp fallback); authors must **File → Import 3D Model…** and re-assign
 - Whole file → ordered `ModelSubmesh` list (mesh + `MeshMaterial`); no animation / hierarchy explosion
-- Texture paths resolved relative to the model directory; loads go through `TextureFactory`
-- Legacy Phong materials convert heuristically (diffuse→albedo, shininess→roughness, dielectric metallic)
+- Texture paths in the binary are asset-relative; resolve via `PathBuilder.Resolve` then `TextureFactory`
+
+**Cook-time files**: `Engine/Renderer/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs`, `MeshWriter.cs`
+
+- Assimp used only in cook: triangulate, generate normals/tangents, PreTransformVertices (no FlipUVs)
+- Output layout: `assets/models/<stem>.mesh` + relocated textures under models/textures/
+- Formats at import: FBX, glTF, GLB (and other Assimp-supported types as enumerated by Import)
+- Legacy Phong materials convert heuristically at cook (diffuse→albedo, shininess→roughness, dielectric metallic)
 
 ### MeshMaterial (PBR)
 
@@ -150,7 +155,7 @@ No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` track
 | Albedo / metallic-roughness / normal maps | Optional textures (slots 0–2) |
 | `Metallic`, `Roughness` | Scalar fallbacks when maps absent (roughness default `0.5`) |
 
-Missing maps bind white (or flat normal for normals). Assimp import may map legacy specular textures into the metallic-roughness slot heuristically; the runtime material type exposes only albedo, MR, and normal.
+Missing maps bind white (or flat normal for normals). Cook-time Assimp import may map legacy specular textures into the metallic-roughness slot heuristically; the runtime material type exposes only albedo, MR, and normal.
 
 ### Mesh
 

@@ -1,3 +1,4 @@
+using Editor.Features.Import;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
@@ -17,6 +18,7 @@ public class EditorMenuBar(
     EditorSettingsUI editorSettingsUI,
     ISceneManager sceneManager,
     NewProjectPopup newProjectPopup,
+    Import3DModelPopup import3DModelPopup,
     SceneSettingsPopup sceneSettingsPopup,
     PublishSettingsUI publishSettingsUI,
     RecentProjectsPanel recentProjectsPanel,
@@ -87,6 +89,10 @@ public class EditorMenuBar(
             }
             ImGui.EndMenu();
         }
+
+        ImGui.Separator();
+        if (ImGui.MenuItem("Import 3D Model..."))
+            import3DModelPopup.Show();
 
         ImGui.Separator();
         if (ImGui.MenuItem("Exit"))

@@ -124,7 +124,7 @@ TextureDropTarget.Draw("Texture",
 **Common Elements**:
 - `TextureDropTarget` - Texture files (.png, .jpg)
 - `AudioDropTarget` - Audio files (.wav, .ogg)
-- `MeshDropTarget` - Mesh files (.obj, .fbx)
+- `MeshDropTarget` - Mesh files (.mesh)
 - `ComponentSelector` - Searchable component list for "Add Component"
 - `EntityContextMenu` - Right-click menu (duplicate, delete, rename)
 - `PrefabManager` - Prefab creation/instantiation

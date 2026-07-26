@@ -1,11 +1,15 @@
+using Engine.Core;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
 using Serilog;
-using Silk.NET.Assimp;
 
 namespace Engine.Renderer;
 
+/// <summary>
+/// Loads GPU-ready models from cooked <c>.mesh</c> files only.
+/// Raw interchange (.fbx/.glb/.gltf) must be cooked first — never loaded here.
+/// </summary>
 internal sealed class ModelFactory : IModelFactory, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<ModelFactory>();
@@ -14,8 +18,6 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
     private readonly IVertexArrayFactory _vertexArrayFactory;
     private readonly IVertexBufferFactory _vertexBufferFactory;
     private readonly IIndexBufferFactory _indexBufferFactory;
-    private readonly Assimp _assimp;
-    private readonly AssimpModelImporter _importer;
     private readonly Dictionary<string, Model> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
@@ -25,85 +27,79 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
-        : this(textureFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory, Assimp.GetApi())
-    {
-    }
-
-    internal ModelFactory(
-        ITextureFactory textureFactory,
-        IVertexArrayFactory vertexArrayFactory,
-        IVertexBufferFactory vertexBufferFactory,
-        IIndexBufferFactory indexBufferFactory,
-        Assimp assimp)
     {
         _textureFactory = textureFactory;
         _vertexArrayFactory = vertexArrayFactory;
         _vertexBufferFactory = vertexBufferFactory;
         _indexBufferFactory = indexBufferFactory;
-        _assimp = assimp;
-        _importer = new AssimpModelImporter(assimp);
     }
 
     public Model? Create(string path)
     {
         var normalizedPath = Path.GetFullPath(path);
-
+        
         lock (_cacheLock)
         {
             if (_cache.TryGetValue(normalizedPath, out var cached))
                 return cached;
-        }
 
-        if (!System.IO.File.Exists(normalizedPath))
-        {
-            Logger.Warning("Model file not found: {Path}", normalizedPath);
-            return null;
-        }
-
-        try
-        {
-            var submeshes = _importer.Import(normalizedPath);
-            if (submeshes.Count == 0)
+            if (!File.Exists(normalizedPath))
             {
-                Logger.Warning("Model has no meshes: {Path}", normalizedPath);
+                Logger.Warning("Model file not found: {Path}", normalizedPath);
                 return null;
             }
 
-            var initialized = new List<ModelSubmesh>(submeshes.Count);
-            foreach (var submesh in submeshes)
+            if (!IsMeshExtension(normalizedPath))
             {
-                try
-                {
-                    ResolveMaterialTextures(submesh.Material);
-                    submesh.Mesh.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
-                    initialized.Add(submesh);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warning(ex, "Failed to initialize mesh '{MeshName}' in {Path}", submesh.Mesh.Name, normalizedPath);
-                    submesh.Mesh.Dispose();
-                }
-            }
-
-            if (initialized.Count == 0)
-            {
-                Logger.Warning("No submeshes initialized for model: {Path}", normalizedPath);
+                Logger.Warning(
+                    "Rejected non-.mesh model path (cook required): {Path} extension={Extension}",
+                    normalizedPath, Path.GetExtension(normalizedPath));
                 return null;
             }
 
-            var model = new Model(initialized);
-
-            lock (_cacheLock)
+            try
             {
-                _cache[normalizedPath] = model;
-            }
+                Model model;
+                using (var stream = File.OpenRead(normalizedPath))
+                    model = MeshReader.Read(stream);
 
-            return model;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to load model: {Path}", normalizedPath);
-            return null;
+                if (model.Submeshes.Count == 0)
+                {
+                    Logger.Warning("Model has no meshes: {Path}", normalizedPath);
+                    return null;
+                }
+
+                var initialized = new List<ModelSubmesh>(model.Submeshes.Count);
+                foreach (var submesh in model.Submeshes)
+                {
+                    try
+                    {
+                        ResolveMaterialTextures(submesh.Material);
+                        submesh.Mesh.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
+                        initialized.Add(submesh);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning(ex, "Failed to initialize mesh '{MeshName}' in {Path}", submesh.Mesh.Name, normalizedPath);
+                        submesh.Mesh.Dispose();
+                    }
+                }
+
+                if (initialized.Count == 0)
+                {
+                    Logger.Warning("No submeshes initialized for model: {Path}", normalizedPath);
+                    return null;
+                }
+
+                var result = new Model(initialized);
+                _cache[normalizedPath] = result;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to load model: {Path}", normalizedPath);
+                return null;
+            }
         }
     }
 
@@ -119,24 +115,18 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             _cache.Clear();
         }
 
-        _assimp.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);
     }
+
+    private static bool IsMeshExtension(string path) =>
+        Path.GetExtension(path).Equals(".mesh", StringComparison.OrdinalIgnoreCase);
 
     private void ResolveMaterialTextures(MeshMaterial material)
     {
         material.AlbedoTexture = LoadTexture(material.AlbedoTexturePath, sRgb: true);
         material.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessTexturePath);
         material.NormalTexture = LoadTexture(material.NormalTexturePath);
-
-        // ponytail: debug — remove after GLB texture investigation
-        Logger.Information(
-            "Resolved material textures hasAlbedo={HasAlbedo} albedoPath={AlbedoPath} hasMR={HasMR} mrPath={MRPath} hasNormal={HasNormal} normalPath={NormalPath} metallic={Metallic} roughness={Roughness}",
-            material.HasAlbedoMap, material.AlbedoTexturePath ?? "<null>",
-            material.HasMetallicRoughnessMap, material.MetallicRoughnessTexturePath ?? "<null>",
-            material.HasNormalMap, material.NormalTexturePath ?? "<null>",
-            material.Metallic, material.Roughness);
     }
 
     private Texture2D? LoadTexture(string? path, bool sRgb = false)
@@ -146,9 +136,14 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
         try
         {
-            var tex = _textureFactory.Create(path, sRgb);
-            Logger.Information("Loaded texture path={Path} sRgb={SRgb} size={W}x{H}", path, sRgb, tex.Width, tex.Height);
-            return tex;
+            var resolved = PathBuilder.Resolve(path);
+            if (!PathBuilder.IsUnderAssets(resolved))
+            {
+                Logger.Warning("Rejected texture path outside assets root: {Path} → {Resolved}", path, resolved);
+                return null;
+            }
+
+            return _textureFactory.Create(resolved, sRgb);
         }
         catch (Exception ex)
         {

@@ -1,89 +1,62 @@
-# 3D Model Loading (FBX / glTF) — Developer Guide
+# 3D Model Loading (bake-on-import / `.mesh`) — Developer Guide
 
-Implementation guide for runtime FBX/glTF load with textured lit materials. See `introduction.md` for conceptual background.
+Implementation guide for cook-on-import and `.mesh`-only runtime load. See `introduction.md` for conceptual background.
 
 ## Glossary (implementation subset)
 
 | Term | Meaning in code |
 |------|-----------------|
-| Model path | String on `ModelRendererComponent`; empty = cube |
+| Model path | String on `ModelRendererComponent`; empty = cube; must be `.mesh` when set |
 | Model | Cached path key + ordered submeshes |
-| Submesh | Existing mesh geometry + mesh material |
-| Mesh material | Diffuse / specular / normal maps + shininess + fallback color |
-| Model factory | Path → cached model; Assimp on miss |
-| Cube fallback | Empty or failed path → existing unit-cube draw |
-| Tint | Component color multiplied with diffuse |
+| Submesh | Mesh geometry + `MeshMaterial` (PBR) |
+| MeshCreator | Assimp → texture relocate → `MeshWriter` → `assets/models/<stem>.mesh` |
+| Model factory | Path → cached model; `MeshReader` on miss; rejects non-`.mesh` |
+| Cube fallback | Empty, failed, or rejected path → unit-cube draw |
+| Tint | Component color multiplied with albedo |
 
-## Implementation order
+## Pipeline (current)
 
-1. **Mesh material + model container** — data only, no Assimp yet
-2. **Assimp importer** — file → meshes + materials; texture path resolution
-3. **Model factory** — cache, DI registration, failure policy
-4. **Graphics3D draw path** — bind materials, draw submeshes; keep cube for empty path
-5. **Component + editor** — `ModelPath`, inspector, content-browser extensions, drag-drop
-6. **Tests + fixtures** — mapping, cache, serialization, manual smoke
+1. **Author** — **File → Import 3D Model…** (macOS file|folder path; Windows folder pick + non-recursive enumerate of `.fbx` / `.glb` / `.gltf`)
+2. **Create** — `MeshCreator.Create(source, projectAssetsRoot, stem)` → nested `.mesh` + relocated textures
+3. **Author assign** — set `ModelPath` to `models/<stem>.mesh` (inspector MeshDropTarget / Content Browser)
+4. **Runtime** — `ModelFactory.Create` reads `.mesh` only; draw submeshes or cube fallback
 
----
-
-## Step 1: Mesh material and model container
-
-Introduce:
-
-- Mesh material fields: optional diffuse / specular / normal texture references, shininess, fallback diffuse color
-- Model: path/name key + ordered list of (mesh + material)
-
-Reuse the existing mesh/vertex layout (positions, normals, UVs, tangents/bitangents). Do not invent a parallel vertex format.
-
-Textures are not owned as raw bitmaps on the material long-term — resolve through the existing texture factory when building or drawing (same soft-cache pattern as sprites).
-
-**Why:** Separates “what a model is” from “how Assimp fills it,” and keeps GPU upload on the existing mesh initialize path.
+Animation/skinning is **out of scope for v1** (roadmap follow-on).
 
 ---
 
-## Step 2: Assimp importer
+## Create path (`MeshCreator`)
 
-Add Silk.NET.Assimp. Keep the importer private to the model-loading path (not a public engine service).
-
-On load:
+**Files**: `Engine/Renderer/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs`, `MeshWriter.cs`
 
 ```
-open file with Assimp
-apply post-process: triangulate, normals if missing, tangents if missing (no FlipUVs — glTF is already OpenGL UV space; textures use stbi vertical flip)
-for each mesh in scene:
-  copy positions, normals, uvs, tangents/bitangents into engine vertices
-  copy indices (triangles only after triangulate)
-  map material slot → mesh material:
-    diffuse map / color
-    specular map
-    shininess
-    normal map (optional)
-  resolve texture paths relative to model file directory (then project-relative if needed)
-  initialize mesh GPU buffers
-return model with ordered submeshes
+open source with Assimp (cook-time only)
+post-process: triangulate, normals/tangents as needed, PreTransformVertices (no FlipUVs)
+map materials → MeshMaterial (PBR + legacy heuristics)
+TextureRelocator → copy maps under assets/models/textures/, rewrite paths relative
+MeshWriter → assets/models/<stem>.mesh
 ```
 
 Ignore bones, animations, cameras, lights, and empties.
 
-**Why:** One dependency covers FBX and glTF; fixed post-process flags keep import behavior predictable.
+**Why:** Assimp stays behind one cook boundary; Runtime never opens raw interchange.
 
 ---
 
-## Step 3: Model factory
+## Runtime path (`ModelFactory`)
 
-Add a model factory beside the texture/mesh factories:
+**Files**: `Engine/Renderer/ModelFactory.cs`, `MeshReader.cs`
 
-- `Create(path)` → cached model on hit; import + cache on miss
-- Do **not** cache hard failures as successful empty models; allow retry after the user fixes the file
-- Throttle or gate per-path error logs so a bad path does not spam every frame
-- Register in the engine DI container; clear/dispose policy aligned with other renderer factories on shutdown
+- `Create(path)` → cache hit, or open `.mesh` via `MeshReader`, resolve textures with `PathBuilder.Resolve`, upload GPU, cache
+- Non-`.mesh` extension → warn + return null (cube fallback upstream) — **no Assimp fallback**
+- Missing/corrupt file or unknown magic/VERSION → fail soft (null); do not cache hard failures as success
+- Register in engine DI; dispose/clear aligned with other renderer factories
 
-**Why:** Call sites stay path-based; Assimp stays behind one cache boundary.
+**Why:** Call sites stay path-based; hot path is binary I/O only.
 
 ---
 
-## Step 4: Graphics3D and scene render path
-
-Extend the 3D draw API so the scene render pipeline can draw a loaded model, not only the shared cube.
+## Graphics3D and scene render path
 
 Per entity with model renderer + transform:
 
@@ -91,56 +64,51 @@ Per entity with model renderer + transform:
 if ModelPath empty:
   DrawCube(tint)
 else:
-  model = ModelFactory.Create(ModelPath)
+  model = ModelFactory.Create(resolved ModelPath)
   if model missing:
     log (throttled) + DrawCube(tint)
   else:
     for each submesh:
-      bind diffuse / specular / normal (skip missing maps)
-      set shininess + tint
-      set world transform from entity
+      bind PBR maps + tint / overrides
       draw mesh
 ```
 
-Keep ambient + directional lighting uniforms consistent with the cube path. Prefer extending the existing lit shader path over a second lighting model.
-
-**Why:** Empty-path cube preserves current scenes; textured draw is an additive path.
-
 ---
 
-## Step 5: Component and editor
+## Component and editor
 
 On `ModelRendererComponent`:
 
-- Add `ModelPath` (string)
-- Keep `Color` as tint
+- `ModelPath` (string) — project-relative `.mesh`
+- `Color` tint; optional metallic/roughness overrides
 
 Editor:
 
-- Inspector field for path + existing color
-- Drag-drop from content browser onto the path (same UX idea as texture paths on sprites)
-- Content browser: recognize `.fbx`, `.gltf`, `.glb` as known asset types for selection/browse (no bake UI)
+- **File → Import 3D Model…** — bake sources into `assets/models/`
+- Inspector MeshDropTarget — **`.mesh` only**
+- Content Browser Type: Model — same allowlist as MeshDropTarget
+- Required project dir: `assets/models`
 
-Serialize `ModelPath` with the component like other string asset fields.
+### Legacy raw ModelPath (hard cutover)
 
-**Why:** Authors only learn one field; whole-file attachment matches the approved v1 UX.
+Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show the **unit cube** until authors **re-import** and update the path to the cooked nested `.mesh`. Document this break; do not dual-load.
 
 ---
 
-## Step 6: Testing
+## Testing focus
 
 **Automated**
 
-- Importer/factory: fixture glTF (and FBX if practical) → expected submesh count, non-zero geometry, material slots populated when present
-- Texture path resolution: relative-to-model success; missing map does not fail the model
-- Cache: same path → same cached instance; failed path not treated as a permanent success entry
+- `MeshWriter` ↔ `MeshReader` round-trip (geometry + materials)
+- `ModelFactory` accepts `.mesh`, rejects raw extensions
+- Cook/re-home on tiny glTF fixtures; flat `models/<stem>.mesh` layout
 - Serialization: `ModelPath` + `Color` round-trip
 
 **Manual smoke**
 
-- Empty path → cube
-- Valid textured FBX and glTF → lit meshes with diffuse (and specular/normal when present)
-- Bad path → cube + log, no crash
+- Import → Content Browser shows `.mesh` → drag to Model field → lit mesh
+- Empty / raw / bad path → cube + log
+- Sample `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh` (cooked sample may be large ~94 MB under `Editor/assets/models/`)
 
 ---
 
@@ -148,49 +116,53 @@ Serialize `ModelPath` with the component like other string asset fields.
 
 ```mermaid
 flowchart TB
-  subgraph ecs [ECS]
+  subgraph editor [Editor]
+    IMP[File → Import 3D Model]
     MRC[ModelRendererComponent<br/>ModelPath + Color]
-    TC[TransformComponent]
   end
 
-  subgraph render [Render]
-    SRP[Scene render pipeline]
+  subgraph cook [Cook-time]
+    MB[MeshCreator]
+    AI[AssimpModelImporter]
+    TR[TextureRelocator]
+    MW[MeshWriter]
+  end
+
+  subgraph runtime [Runtime]
+    MF[ModelFactory cache]
+    MR[MeshReader]
+    TF[TextureFactory]
     G3D[Graphics3D]
   end
 
-  subgraph assets [Assets]
-    MF[Model factory cache]
-    IMP[Assimp importer]
-    TF[Texture factory]
-  end
-
-  MRC --> SRP
-  TC --> SRP
-  SRP -->|empty path| G3D
-  SRP -->|path set| MF
-  MF -->|miss| IMP
-  IMP --> TF
+  IMP --> MB
+  MB --> AI
+  AI --> TR
+  TR --> MW
+  MW -->|models/stem.mesh| Disk[(assets)]
+  MRC --> MF
+  MF -->|miss .mesh| MR
+  MR --> TF
   MF -->|Model| G3D
-  G3D -->|DrawCube / DrawMesh| GPU[GPU]
+  MF -->|reject raw / fail| G3D
 ```
 
 ```mermaid
 sequenceDiagram
   participant Pipeline as Scene render pipeline
   participant Factory as Model factory
-  participant Assimp as Assimp importer
+  participant Reader as MeshReader
   participant Tex as Texture factory
   participant G3D as Graphics3D
 
   Pipeline->>Pipeline: read ModelPath + Color + transform
-  alt path empty or load failed
+  alt path empty or load failed or non-.mesh
     Pipeline->>G3D: DrawCube(tint)
-  else path set
+  else .mesh path set
     Pipeline->>Factory: Create(path)
     alt cache miss
-      Factory->>Assimp: import file
-      Assimp->>Tex: resolve maps
-      Assimp-->>Factory: Model
+      Factory->>Reader: Read stream
+      Reader->>Tex: resolve re-homed maps
       Factory->>Factory: cache
     end
     Factory-->>Pipeline: Model
@@ -206,15 +178,15 @@ sequenceDiagram
 
 | Case | Behavior |
 |------|----------|
-| Missing / corrupt file | No success cache; throttled log; cube fallback |
-| Zero meshes in file | Treat as load failure (same as above) |
+| Missing / corrupt `.mesh` | No success cache; throttled log; cube fallback |
+| Non-`.mesh` ModelPath (legacy raw) | Reject + log; cube until re-import |
+| Zero meshes in file | Treat as load failure |
 | Missing texture map | Skip that map; draw with remaining material + tint |
-| No material on mesh | Default material (fallback color, default shininess) |
-| Unsupported chunks (anim, lights, …) | Ignore |
+| Unsupported chunks at cook (anim, lights, …) | Ignore |
 | Single submesh GPU init failure | Drop that submesh; keep others; log |
 
 ---
 
 ## Out of scope reminders
 
-Do not add in this feature: animation/skins, child-entity hierarchy from nodes, editor bake format, PBR metal/rough, mesh-index selection API, or a public Assimp service used outside the model factory.
+Do not add in this feature: animation/skins (roadmap), child-entity hierarchy from nodes, dual-load Assimp in `ModelFactory`, mesh-index selection API, or treating Assimp as a public runtime service.

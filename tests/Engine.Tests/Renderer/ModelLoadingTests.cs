@@ -287,30 +287,28 @@ public class AssimpModelImporterTests : IDisposable
     public void Dispose() => _assimp.Dispose();
 }
 
-public class ModelFactoryTests : IDisposable
+public class ModelFactoryTests
 {
-    private readonly Assimp _assimp = Assimp.GetApi();
-
     [Fact]
-    public void Create_MissingPath_ShouldReturnNull()
+    public void Create_MissingMeshPath_ShouldReturnNull()
     {
         var factory = CreateFactory();
 
-        factory.Create(Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.obj"))
+        factory.Create(Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.mesh"))
             .ShouldBeNull();
     }
 
     [Fact]
-    public void Create_InvalidPath_ShouldNotCacheSuccess()
+    public void Create_InvalidMeshPath_ShouldNotCacheSuccess()
     {
         var factory = CreateFactory();
-        var missing = Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.obj");
+        var missing = Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.mesh");
 
         factory.Create(missing).ShouldBeNull();
         factory.Create(missing).ShouldBeNull();
     }
 
-    private ModelFactory CreateFactory()
+    private static ModelFactory CreateFactory()
     {
         var textureFactory = Substitute.For<ITextureFactory>();
         textureFactory.GetWhiteTexture().Returns(Substitute.For<Texture2D>());
@@ -321,9 +319,6 @@ public class ModelFactoryTests : IDisposable
             textureFactory,
             Substitute.For<Engine.Renderer.Buffers.VertexArray.IVertexArrayFactory>(),
             Substitute.For<Engine.Renderer.Buffers.IVertexBufferFactory>(),
-            Substitute.For<Engine.Renderer.Buffers.IIndexBufferFactory>(),
-            _assimp);
+            Substitute.For<Engine.Renderer.Buffers.IIndexBufferFactory>());
     }
-
-    public void Dispose() => _assimp.Dispose();
 }

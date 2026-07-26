@@ -235,7 +235,7 @@ Acts as the ears of the scene for 3D spatial audio. The audio system calculates 
 
 ## ModelRendererComponent
 
-Renders a 3D model at the entity's transform. Assign a `ModelPath` to load FBX / glTF / GLB (Assimp). Empty path or failed load falls back to a shared lit unit cube.
+Renders a 3D model at the entity's transform. Assign a `ModelPath` to a cooked `.mesh` (from **File → Import 3D Model…**). Empty path, failed load, or legacy raw interchange paths (`.fbx` / `.gltf` / `.glb`, etc.) fall back to a shared lit unit cube until you re-import and assign `models/<stem>.mesh`.
 
 **Add in editor:** Properties panel → **Add Component** → **Model Renderer** (adds `TransformComponent` automatically if missing)
 
@@ -243,12 +243,12 @@ Renders a 3D model at the entity's transform. Assign a `ModelPath` to load FBX /
 
 | Property | Type | Default | Editor control | Description |
 |---|---|---|---|---|
-| `ModelPath` | string? | null | Mesh drop target | Project path to a model file. Drag from Content Browser or leave empty for the cube fallback |
+| `ModelPath` | string? | null | Mesh drop target (`.mesh` only) | Project path to a cooked mesh, e.g. `models/hero.mesh`. Drag from Content Browser or leave empty for the cube fallback |
 | `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Color field | Albedo tint multiplied with the material / cube color |
 | `MetallicOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported metallic for all submeshes |
 | `RoughnessOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported roughness for all submeshes |
 
-**When to use:** Imported 3D assets or quick cube blockout. Requires `TransformComponent`. Add `AmbientLightComponent` and `DirectionalLightComponent` for shading. Prefer a perspective primary camera.
+**When to use:** Cooked 3D assets or quick cube blockout. Import sources via **File → Import 3D Model…** first. Requires `TransformComponent`. Add `AmbientLightComponent` and `DirectionalLightComponent` for shading. Prefer a perspective primary camera.
 
 See also: [3D Rendering](../concepts/3d-rendering.md), [Cameras and Rendering](../concepts/cameras-and-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md)
 

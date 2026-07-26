@@ -225,11 +225,8 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             return cached;
         }
 
-        if (!Path.IsPathRooted(texturePath))
-            texturePath = Path.Combine(directory, texturePath);
-
-        texturePath = texturePath.Replace('\\', '/');
-        if (!System.IO.File.Exists(texturePath))
+        var resolved = AssimpTexturePath.Resolve(texturePath, directory);
+        if (resolved == null)
         {
             Logger.Warning(
                 "Texture type={Type} path missing on disk: {Path}",
@@ -237,8 +234,8 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             return null;
         }
 
-        Logger.Information("Texture type={Type} resolved to file {Path}", textureType, texturePath);
-        return texturePath;
+        Logger.Information("Texture type={Type} resolved to file {Path}", textureType, resolved);
+        return resolved;
     }
 
     private unsafe string? ExtractEmbeddedTextureToCache(Silk.NET.Assimp.Scene* scene, string embeddedRef)

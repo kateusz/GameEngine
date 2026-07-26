@@ -8,6 +8,7 @@ using Editor.ComponentEditors.Physics;
 using Editor.ComponentEditors.Rendering;
 using Editor.Features.Components;
 using Editor.Features.History;
+using Editor.Features.Import;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
@@ -103,6 +104,7 @@ public static class EditorIoCContainer
 
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         container.Register<NewProjectPopup>(Reuse.Singleton);
+        container.Register<Import3DModelPopup>(Reuse.Singleton);
         container.Register<SceneSettingsPopup>(Reuse.Singleton);
         container.Register<SceneToolbar>(Reuse.Singleton);
         container.Register<RendererStatsPanel>(Reuse.Singleton);

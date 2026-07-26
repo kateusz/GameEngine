@@ -175,7 +175,7 @@ flowchart TB
   end
   subgraph load
     Factory[Model factory]
-    Assimp[Assimp PBR extract]
+    MeshReader[MeshReader .mesh]
     Mat[MeshMaterial albedo / MR / normal]
     Mesh[GPU mesh]
   end
@@ -186,9 +186,9 @@ flowchart TB
     FBO[Color + entity ID]
   end
   Path --> Factory
-  Factory -->|miss| Assimp
-  Assimp --> Mat
-  Assimp --> Mesh
+  Factory -->|miss cache| MeshReader
+  MeshReader --> Mat
+  MeshReader --> Mesh
   Factory --> G3D
   Tint --> G3D
   Mat --> G3D
@@ -196,6 +196,8 @@ flowchart TB
   Lights --> G3D
   G3D --> Shader --> FBO
 ```
+
+Assimp PBR extract runs only at **Editor cook** (`MeshCreator`), not on factory miss. Runtime/`ModelFactory` loads cooked `.mesh` via `MeshReader`.
 
 ### Draw sequence
 
