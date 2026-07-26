@@ -1,6 +1,6 @@
 ﻿---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Use before complex creative work — new features, multi-component systems, or behavior changes with real design trade-offs. Explores user intent, requirements and design before implementation. DO NOT use for non-complex tasks (bug fixes, small tweaks, single-file changes, obvious one-path work) — that is overkill."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -13,9 +13,19 @@ Start by understanding the current project context, then ask questions one at a 
 Do NOT invoke any implementation skill, write any real code, scaffold any project, or take any implementation action. This skill's only output is the two design documents described below. Implementation is explicitly out of scope and is handled elsewhere.
 </HARD-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## When NOT To Use This Skill
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences per section for truly simple projects), but you MUST present it and get approval.
+**DO NOT USE THIS SKILL FOR NON-COMPLEX TASKS — it would be overkill.**
+
+Skip brainstorming and go straight to implementation (or the appropriate lighter workflow) when the work is:
+
+- A bug fix with a clear root cause
+- A small tweak, rename, config change, or single-file change
+- One obvious approach with no meaningful trade-offs
+- Extending an existing pattern in a well-understood place
+- Docs-only or mechanical wiring (DI registration, menu entry, etc.)
+
+Use this skill when the request has real design surface area: unclear requirements, multiple valid approaches, new subsystems, cross-cutting behavior, or anything where getting the design wrong would waste significant implementation effort.
 
 ## Checklist
 

@@ -37,6 +37,7 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     private string _createAssetPopupName = string.Empty;
     private string _newAssetName = string.Empty;
     private string? _errorMessage;
+    private string _folderFilter = string.Empty;
 
     public ContentBrowserPanel(
         ITextureFactory textureFactory,
@@ -117,7 +118,7 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         var opened = ImGui.TreeNodeEx($"{dirName}##{directoryPath}", flags);
 
         if (ImGui.IsItemClicked())
-            _currentDirectory = directoryPath;
+            NavigateTo(directoryPath);
 
         if (ImGui.BeginPopupContextItem($"DirCtx##{directoryPath}"))
         {
@@ -304,9 +305,12 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         {
             ButtonDrawer.DrawCompactButton("<-", () =>
             {
-                _currentDirectory = Directory.GetParent(_currentDirectory)!.FullName;
+                NavigateTo(Directory.GetParent(_currentDirectory)!.FullName);
             });
+            ImGui.SameLine();
         }
+
+        LayoutDrawer.DrawSearchInput("Filter...", ref _folderFilter);
 
         var padding = 16.0f;
         var thumbnailSize = 36.0f;
@@ -327,6 +331,11 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
             var relativePath = Path.GetRelativePath(_assetPath, entry);
             var isDirectory = (info.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
             var filenameString = info.Name;
+
+            if (!string.IsNullOrEmpty(_folderFilter) &&
+                !filenameString.Contains(_folderFilter, StringComparison.OrdinalIgnoreCase))
+                continue;
+
             ImGui.PushID(filenameString);
 
             var (icon, isImage, isPrefab) = ResolveIcon(info, entry, isDirectory);
@@ -345,7 +354,7 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) &&
                 !File.Exists(info.FullName))
             {
-                _currentDirectory = info.FullName;
+                NavigateTo(info.FullName);
             }
 
             ImGui.TextWrapped(filenameString);
@@ -355,6 +364,12 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         }
 
         ImGui.Columns(1);
+    }
+
+    private void NavigateTo(string directory)
+    {
+        _currentDirectory = directory;
+        _folderFilter = string.Empty;
     }
 
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
@@ -413,6 +428,6 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     public void SetRootDirectory(string rootDir)
     {
         _assetPath = rootDir;
-        _currentDirectory = rootDir;
+        NavigateTo(rootDir);
     }
 }
