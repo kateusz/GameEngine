@@ -52,6 +52,17 @@ public partial class GamePublisher(IProjectContext projectContext)
             if (!startupSceneValidation.Success)
                 return startupSceneValidation;
 
+            if (projectContext.Root is null)
+            {
+                const string error = "No project directory available for asset packaging.";
+                Logger.Error(error);
+                return PublishResult.Failed(error);
+            }
+
+            var assetsDirValidation = PublishedAssetValidator.ValidateAssetsDirectory(projectContext.Root);
+            if (!assetsDirValidation.Success)
+                return assetsDirValidation;
+
             progress?.Report("Preparing build directory...");
             Logger.Information("Starting publish with settings: OutputPath={OutputPath}, Runtime={Runtime}",
                 settings.OutputPath, settings.RuntimeIdentifier);
@@ -87,6 +98,16 @@ public partial class GamePublisher(IProjectContext projectContext)
             {
                 CleanupTempDirectory(tempOutputPath);
                 return copyAssetsResult;
+            }
+
+            ReportProgress(progress, "Validating asset references...", 0.55f);
+            var assetRefsValidation = PublishedAssetValidator.ValidateAssetReferences(
+                Path.Combine(tempOutputPath, "assets"));
+            if (!assetRefsValidation.Success)
+            {
+                Logger.Error(assetRefsValidation.ErrorMessage ?? "Asset reference validation failed");
+                CleanupTempDirectory(tempOutputPath);
+                return assetRefsValidation;
             }
 
             if (string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase))
@@ -125,29 +146,26 @@ public partial class GamePublisher(IProjectContext projectContext)
             }
 
             ReportProgress(progress, "Validating build...", 0.9f);
-            var validationCheck = ValidatePublishedBuild(tempOutputPath, settings.RuntimeIdentifier, mergedConfig);
+            var validationCheck = PublishedBuildValidator.Validate(
+                tempOutputPath, settings.RuntimeIdentifier, mergedConfig);
             if (!validationCheck.Success)
             {
+                Logger.Error(validationCheck.ErrorMessage ?? "Published build validation failed");
                 CleanupTempDirectory(tempOutputPath);
                 return validationCheck;
             }
 
-            ReportProgress(progress, "Finalizing build...", 0.95f);
-            try
-            {
-                if (Directory.Exists(outputPath))
-                    Directory.Delete(outputPath, recursive: true);
+            Logger.Information("Published build validation passed");
 
-                Directory.Move(tempOutputPath, outputPath);
-                tempOutputPath = null;
-            }
-            catch (Exception ex)
+            ReportProgress(progress, "Finalizing build...", 0.95f);
+            var finalizeResult = FinalizeBuild(tempOutputPath, outputPath);
+            if (!finalizeResult.Success)
             {
-                var error = $"Failed to move build to output directory: {ex.Message}";
-                Logger.Error(ex, "Failed to move build");
                 CleanupTempDirectory(tempOutputPath);
-                return PublishResult.Failed(error);
+                return finalizeResult;
             }
+
+            tempOutputPath = null;
 
             ReportProgress(progress, "Publish completed successfully!", 1.0f);
             Logger.Information("Game published successfully to {OutputPath}", outputPath);
@@ -207,6 +225,42 @@ public partial class GamePublisher(IProjectContext projectContext)
 
     private string GetDefaultOutputPath()
         => Path.Combine(projectContext.Root ?? Environment.CurrentDirectory, "Builds");
+
+    /// <summary>
+    /// Moves the temp build into the final output path. Creates the parent folder when missing
+    /// and falls back to copy+delete when <see cref="Directory.Move"/> cannot rename across volumes.
+    /// </summary>
+    private static PublishResult FinalizeBuild(string tempOutputPath, string outputPath)
+    {
+        try
+        {
+            var parent = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(parent))
+                Directory.CreateDirectory(parent);
+
+            if (Directory.Exists(outputPath))
+                Directory.Delete(outputPath, recursive: true);
+
+            try
+            {
+                Directory.Move(tempOutputPath, outputPath);
+            }
+            catch (IOException)
+            {
+                // Cross-volume rename fails on macOS/Linux; copy then delete source.
+                CopyDirectory(tempOutputPath, outputPath);
+                Directory.Delete(tempOutputPath, recursive: true);
+            }
+
+            return new PublishResult { Success = true, OutputPath = outputPath };
+        }
+        catch (Exception ex)
+        {
+            var error = $"Failed to move build to output directory: {ex.Message}";
+            Logger.Error(ex, "Failed to finalize build at {OutputPath}", outputPath);
+            return PublishResult.Failed(error);
+        }
+    }
 
     private static void ReportProgress(IProgress<string>? progress, string message, float percentage)
     {

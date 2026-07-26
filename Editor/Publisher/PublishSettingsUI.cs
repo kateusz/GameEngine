@@ -58,7 +58,6 @@ public class PublishSettingsUI(
         {
             ImGui.Spacing();
 
-            // Platform selection using LayoutDrawer
             ImGui.Text("Target Platform:");
             ImGui.SameLine();
             LayoutDrawer.DrawComboBox(
@@ -67,7 +66,6 @@ public class PublishSettingsUI(
                 SupportedPlatforms.Select(PlatformDetection.GetPlatformDisplayName).ToArray(),
                 selectedDisplay =>
                 {
-                    // Find platform by display name
                     _selectedPlatform = SupportedPlatforms.First(p =>
                         PlatformDetection.GetPlatformDisplayName(p) == selectedDisplay);
                 },
@@ -111,7 +109,6 @@ public class PublishSettingsUI(
 
             ImGui.Spacing();
 
-            // Configuration using LayoutDrawer
             ImGui.Text("Configuration:");
             ImGui.SameLine();
             LayoutDrawer.DrawComboBox(
@@ -124,29 +121,26 @@ public class PublishSettingsUI(
 
             LayoutDrawer.DrawSeparatorWithSpacing();
 
-            // Options
             ImGui.Checkbox("Self-Contained (includes .NET runtime)", ref _selfContained);
             ImGui.Checkbox("Single File (package as single executable)", ref _singleFile);
 
             LayoutDrawer.DrawSeparatorWithSpacing();
 
-            // Error message using TextDrawer
             if (!string.IsNullOrEmpty(_errorMessage))
             {
-                TextDrawer.DrawErrorText(_errorMessage);
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
+                ImGui.TextWrapped(_errorMessage);
+                ImGui.PopStyleColor();
                 ImGui.Spacing();
             }
 
-            // Buttons - centered
             ImGui.Spacing();
             var buttonWidth = 100.0f;
             var availWidth = ImGui.GetContentRegionAvail().X;
             ImGui.SetCursorPosX((availWidth - buttonWidth * 2 - ImGui.GetStyle().ItemSpacing.X) / 2);
 
             if (ButtonDrawer.DrawColoredButton("Publish", MessageType.Success, width: buttonWidth))
-            {
                 _ = StartPublish();
-            }
 
             ImGui.SameLine();
 
@@ -167,42 +161,64 @@ public class PublishSettingsUI(
 
         ImGui.SetNextWindowSize(EditorUIConstants.PublishProgressModalSize, ImGuiCond.Appearing);
 
+        var title = _publishProgress.HasError ? "Publish Failed"
+            : _publishProgress.IsComplete ? "Publish Complete"
+            : "Publishing Game...";
+
         var isOpen = true;
-        if (ModalDrawer.BeginCenteredModal("Publishing Game...", ref isOpen,
+        // Visible title changes with status; ### id stays stable so ImGui keeps the same popup.
+        if (ModalDrawer.BeginCenteredModal($"{title}###PublishProgressModal", ref isOpen,
                 ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar))
         {
             ImGui.Spacing();
-            ImGui.TextWrapped(_publishProgress.CurrentStep);
+
+            if (_publishProgress.HasError && !string.IsNullOrEmpty(_publishProgress.ErrorMessage))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
+                ImGui.TextWrapped(_publishProgress.ErrorMessage);
+                ImGui.PopStyleColor();
+                ImGui.Spacing();
+            }
+            else
+            {
+                ImGui.TextWrapped(_publishProgress.CurrentStep);
+                ImGui.Spacing();
+            }
+
+            var barColor = PublishProgress.ProgressBarColor(_publishProgress.HasError, _publishProgress.IsComplete);
+            ImGui.PushStyleColor(ImGuiCol.PlotHistogram, barColor);
+            ImGui.ProgressBar(_publishProgress.Progress, new Vector2(-1, 0));
+            ImGui.PopStyleColor();
             ImGui.Spacing();
-            ImGui.ProgressBar(_publishProgress.Progress, new System.Numerics.Vector2(-1, 0));
-            ImGui.Spacing();
+
             LayoutDrawer.DrawSeparatorWithSpacing();
-
-            RenderBuildOutput(_publishProgress.BuildOutput, !_publishProgress.IsComplete);
-
+            RenderBuildOutput(_publishProgress.BuildOutput, !_publishProgress.IsComplete && !_publishProgress.HasError);
             LayoutDrawer.DrawSeparatorWithSpacing();
             RenderProgressButtons(_publishProgress.IsComplete, _publishProgress.HasError);
             ModalDrawer.EndModal();
         }
 
         if (!isOpen)
-        {
-            _publishProgress = null;
-            _publishCts?.Dispose();
-            _publishCts = null;
-        }
+            ClearPublishProgress();
     }
 
     private static void RenderBuildOutput(IEnumerable<string> lines, bool autoScroll)
     {
         ImGui.Text("Build Output:");
-        ImGui.BeginChild("BuildOutput", new System.Numerics.Vector2(0, 250), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar);
+        ImGui.BeginChild("BuildOutput", new Vector2(0, 250), ImGuiChildFlags.Border, ImGuiWindowFlags.HorizontalScrollbar);
         foreach (var line in lines)
         {
-            if (line.StartsWith("ERROR:"))
-                TextDrawer.DrawErrorText(line);
-            else
+            if (line.StartsWith("ERROR:", StringComparison.Ordinal)
+                || line.Contains("failed", StringComparison.OrdinalIgnoreCase))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
                 ImGui.TextWrapped(line);
+                ImGui.PopStyleColor();
+            }
+            else
+            {
+                ImGui.TextWrapped(line);
+            }
         }
         if (autoScroll)
             ImGui.SetScrollY(ImGui.GetScrollMaxY());
@@ -217,18 +233,21 @@ public class PublishSettingsUI(
 
         if (isComplete || hasError)
         {
-            if (ButtonDrawer.DrawColoredButton("Close", MessageType.Success, width: buttonWidth))
-            {
-                _publishProgress = null;
-                _publishCts?.Dispose();
-                _publishCts = null;
-            }
+            var closeType = hasError ? MessageType.Error : MessageType.Success;
+            if (ButtonDrawer.DrawColoredButton("Close", closeType, width: buttonWidth))
+                ClearPublishProgress();
         }
-        else
+        else if (ButtonDrawer.DrawColoredButton("Cancel", MessageType.Warning, width: buttonWidth))
         {
-            if (ButtonDrawer.DrawColoredButton("Cancel", MessageType.Warning, width: buttonWidth))
-                _publishCts?.Cancel();
+            _publishCts?.Cancel();
         }
+    }
+
+    private void ClearPublishProgress()
+    {
+        _publishProgress = null;
+        _publishCts?.Dispose();
+        _publishCts = null;
     }
 
     private async Task StartPublish()
@@ -247,11 +266,8 @@ public class PublishSettingsUI(
         }
 
         var outputPath = ResolveOutputPath(projectContext.Root);
-        if (Directory.Exists(outputPath))
-        {
-            _errorMessage = $"Output folder already exists:\n{outputPath}";
-            return;
-        }
+        // Ensure parent exists up front so finalize is not the first place Builds/ is created.
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
         _showPublishModal = false;
         _errorMessage = string.Empty;
@@ -282,26 +298,14 @@ public class PublishSettingsUI(
             var result = await Task.Run(async () =>
                 await gamePublisher.PublishAsync(settings, gameConfig, _publishProgress, _publishCts.Token));
 
-            _publishProgress.IsComplete = true;
-            _publishProgress.HasError = !result.Success;
-
             if (result.Success)
-            {
-                _publishProgress.Report($"✓ Publish completed successfully!");
-                _publishProgress.Report($"Output: {result.OutputPath}");
-                _publishProgress.SetProgress(1.0f);
-            }
+                _publishProgress.SetSucceeded(result.OutputPath ?? outputPath);
             else
-            {
-                _publishProgress.Report($"✗ Publish failed: {result.ErrorMessage}");
-                _publishProgress.HasError = true;
-            }
+                _publishProgress.SetFailed(result.ErrorMessage ?? "Publish failed.");
         }
         catch (Exception ex)
         {
-            _publishProgress.Report($"✗ Unexpected error: {ex.Message}");
-            _publishProgress.HasError = true;
-            _publishProgress.IsComplete = true;
+            _publishProgress.SetFailed($"Unexpected error: {ex.Message}");
         }
     }
 

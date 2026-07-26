@@ -9,17 +9,12 @@ public partial class GamePublisher
     {
         if (projectContext.Root is null)
         {
-            Logger.Warning("No project directory available for asset copying");
-            return new PublishResult { Success = true };
+            const string error = "No project directory available for asset copying.";
+            Logger.Error(error);
+            return PublishResult.Failed(error);
         }
 
         var assetsSource = Path.Combine(projectContext.Root, "assets");
-        if (!Directory.Exists(assetsSource))
-        {
-            Logger.Information("No assets directory found at {Path}, skipping asset copy", assetsSource);
-            return new PublishResult { Success = true };
-        }
-
         var assetsTarget = Path.Combine(buildOutput, "assets");
         var includeScripts = string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase);
 
