@@ -1,12 +1,17 @@
+using System.Numerics;
+
 namespace Engine.Renderer;
 
 /// <summary>
-/// Centralized constants for the 2D rendering system.
-/// Defines all magic numbers used throughout the renderer to improve maintainability
-/// and prevent inconsistencies.
+/// Centralized renderer constants (2D batching and shared draw path values).
 /// </summary>
 public static class RenderingConstants
 {
+    /// <summary>
+    /// Fixed unlit edge color for viewport wireframe draws (RGBA).
+    /// </summary>
+    public static readonly Vector4 WireframeEdgeColor = new(0.85f, 0.85f, 0.85f, 1f);
+
     // Batch configuration
     /// <summary>
     /// Maximum number of quads that can be batched in a single draw call.

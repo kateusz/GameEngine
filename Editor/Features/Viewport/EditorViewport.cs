@@ -229,6 +229,19 @@ public sealed class EditorViewport(
         sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
     }
 
+    public static void ApplyWireframeDuring(IGraphics3D graphics3D, ViewportDisplayMode mode, Action scenePass)
+    {
+        try
+        {
+            graphics3D.SetWireframe(mode == ViewportDisplayMode.Wireframe);
+            scenePass();
+        }
+        finally
+        {
+            graphics3D.SetWireframe(false);
+        }
+    }
+
     private void RenderSceneToFramebuffer(TimeSpan deltaTime)
     {
         graphics2D.ResetStats();
@@ -240,6 +253,8 @@ public sealed class EditorViewport(
         graphics2D.Clear();
         _frameBuffer.ClearAttachment(1, -1);
 
+        var displayMode = viewport.SceneToolbar.ViewportDisplayMode;
+
         switch (sceneContext.State)
         {
             case SceneState.Edit:
@@ -247,20 +262,22 @@ public sealed class EditorViewport(
                 {
                     scene.UpdateWorldTransforms();
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
-                    SceneRenderPipeline.RenderScene(
-                        scene.Context,
-                        graphics2D,
-                        graphics3D,
-                        textureFactory,
-                        modelFactory,
-                        camera);
+                    ApplyWireframeDuring(graphics3D, displayMode, () =>
+                        SceneRenderPipeline.RenderScene(
+                            scene.Context,
+                            graphics2D,
+                            graphics3D,
+                            textureFactory,
+                            modelFactory,
+                            camera));
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
                     CameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera, textureFactory);
                 }
                 break;
             case SceneState.Play:
-                sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime);
+                ApplyWireframeDuring(graphics3D, displayMode, () =>
+                    sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime));
                 break;
         }
 

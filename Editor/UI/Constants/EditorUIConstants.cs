@@ -148,6 +148,7 @@ public static class EditorUIConstants
     /// Width for toolbar toggle buttons (grid, ruler, etc.)
     /// </summary>
     public const float ToolbarToggleWidth = 25f;
+    public const float ToolbarWireframeToggleWidth = 70f;
 
     /// <summary>
     /// Height for toolbar toggle buttons (grid, ruler, etc.)

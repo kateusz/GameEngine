@@ -13,6 +13,7 @@ public interface IRendererAPI
     void DrawLines(IVertexArray vertexArray, uint vertexCount);
     void SetLineWidth(float width);
     void SetDepthTest(bool enabled);
+    void SetPolygonMode(PolygonMode mode);
     void Init();
     int GetError();
 }

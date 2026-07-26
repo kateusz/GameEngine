@@ -70,6 +70,17 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthTest");
     }
 
+    public void SetPolygonMode(Renderer.PolygonMode mode)
+    {
+        var glMode = mode switch
+        {
+            Engine.Renderer.PolygonMode.Line => Silk.NET.OpenGL.PolygonMode.Line,
+            _ => Silk.NET.OpenGL.PolygonMode.Fill
+        };
+        SilkNetContext.GL.PolygonMode(TriangleFace.FrontAndBack, glMode);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "SetPolygonMode");
+    }
+
     public void Init()
     {
         SilkNetContext.GL.Enable(EnableCap.Blend);
