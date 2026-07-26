@@ -235,7 +235,7 @@ Acts as the ears of the scene for 3D spatial audio. The audio system calculates 
 
 ## ModelRendererComponent
 
-Renders a 3D model at the entity's transform. Assign a `ModelPath` to a cooked `.mesh` (from **File → Import 3D Model…**). Empty path, failed load, or legacy raw interchange paths (`.fbx` / `.gltf` / `.glb`, etc.) fall back to a shared lit unit cube until you re-import and assign `models/<stem>.mesh`.
+Renders a 3D model at the entity's transform. Assign a `ModelPath` to a cooked `.mesh` (from **File → Import 3D Model…**). Empty path, failed load, or legacy raw interchange paths (`.fbx` / `.gltf` / `.glb`, etc.) fall back to a shared lit unit cube until you re-import and assign `models/<stem>_<part>.mesh`.
 
 **Add in editor:** Properties panel → **Add Component** → **Model Renderer** (adds `TransformComponent` automatically if missing)
 

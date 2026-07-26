@@ -29,6 +29,9 @@ internal static class TextureRelocator
             material.MetallicRoughnessTexturePath = RelocateOne(material.MetallicRoughnessTexturePath, destDir, copied);
             material.NormalTexturePath = RelocateOne(material.NormalTexturePath, destDir, copied);
         }
+
+        if (copied.Count > 0)
+            Logger.Information("Relocated {Count} texture(s) → models/textures/", copied.Count);
     }
 
     private static string? RelocateOne(string? sourcePath, string destDir, Dictionary<string, string> copied)
@@ -56,7 +59,7 @@ internal static class TextureRelocator
 
         var relative = PathBuilder.ToAssetRelativePath(destAbsolute);
         copied[normalizedSource] = relative;
-        Logger.Information("Relocated texture {Source} → {Relative}", normalizedSource, relative);
+        Logger.Debug("Relocated texture {Source} → {Relative}", normalizedSource, relative);
         return relative;
     }
 }

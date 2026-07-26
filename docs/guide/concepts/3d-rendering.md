@@ -1,6 +1,6 @@
 # 3D Rendering
 
-**Formats (runtime):** cooked `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** cooks `.fbx` / `.gltf` / `.glb` via Assimp into `assets/models/<stem>.mesh` (textures under models/textures/). Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
+**Formats (runtime):** cooked `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** cooks `.fbx` / `.gltf` / `.glb` via Assimp into `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
 
 **Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` per frame. No directional light → white default directional (metals need it; ambient alone leaves metals black).
 

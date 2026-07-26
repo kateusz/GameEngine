@@ -9,7 +9,7 @@ Implementation guide for cook-on-import and `.mesh`-only runtime load. See `intr
 | Model path | String on `ModelRendererComponent`; empty = cube; must be `.mesh` when set |
 | Model | Cached path key + ordered submeshes |
 | Submesh | Mesh geometry + `MeshMaterial` (PBR) |
-| MeshCreator | Assimp → texture relocate → `MeshWriter` → `assets/models/<stem>.mesh` |
+| MeshCreator | Assimp node walk → texture relocate → one `assets/models/<stem>.mesh` + scene spawn with submesh ranges |
 | Model factory | Path → cached model; `MeshReader` on miss; rejects non-`.mesh` |
 | Cube fallback | Empty, failed, or rejected path → unit-cube draw |
 | Tint | Component color multiplied with albedo |
@@ -17,9 +17,9 @@ Implementation guide for cook-on-import and `.mesh`-only runtime load. See `intr
 ## Pipeline (current)
 
 1. **Author** — **File → Import 3D Model…** (macOS file|folder path; Windows folder pick + non-recursive enumerate of `.fbx` / `.glb` / `.gltf`)
-2. **Create** — `MeshCreator.Create(source, projectAssetsRoot, stem)` → nested `.mesh` + relocated textures
-3. **Author assign** — set `ModelPath` to `models/<stem>.mesh` (inspector MeshDropTarget / Content Browser)
-4. **Runtime** — `ModelFactory.Create` reads `.mesh` only; draw submeshes or cube fallback
+2. **CreateSplit** — `MeshCreator.CreateSplit(...)` → one `models/<stem>.mesh` (all node submeshes packed in order) + relocated textures
+3. **Spawn** — parent entity + children (`Transform` + `ModelRenderer` with shared path + `SubmeshStart`/`SubmeshCount`) in the active scene
+4. **Runtime** — `ModelFactory.Create` loads the shared `.mesh`; each child draws only its submesh range
 
 Animation/skinning is **out of scope for v1** (roadmap follow-on).
 
@@ -31,13 +31,16 @@ Animation/skinning is **out of scope for v1** (roadmap follow-on).
 
 ```
 open source with Assimp (cook-time only)
-post-process: triangulate, normals/tangents as needed, PreTransformVertices (no FlipUVs)
+post-process: triangulate, normals/tangents (no PreTransformVertices; no FlipUVs)
+walk mesh-bearing nodes → parts with local-to-root transforms
 map materials → MeshMaterial (PBR + legacy heuristics)
 TextureRelocator → copy maps under assets/models/textures/, rewrite paths relative
-MeshWriter → assets/models/<stem>.mesh
+MeshWriter → one assets/models/<stem>.mesh (ordered submeshes across nodes)
 ```
 
 Ignore bones, animations, cameras, lights, and empties.
+
+Each spawned child points at that file with `SubmeshStart` / `SubmeshCount` so parts stay independently movable.
 
 **Why:** Assimp stays behind one cook boundary; Runtime never opens raw interchange.
 
@@ -68,7 +71,7 @@ else:
   if model missing:
     log (throttled) + DrawCube(tint)
   else:
-    for each submesh:
+    for each submesh in renderer SubmeshStart..Count (or all if Count < 0):
       bind PBR maps + tint / overrides
       draw mesh
 ```
@@ -80,6 +83,7 @@ else:
 On `ModelRendererComponent`:
 
 - `ModelPath` (string) — project-relative `.mesh`
+- `SubmeshStart` / `SubmeshCount` — slice of that file’s submeshes (`Count = -1` draws all)
 - `Color` tint; optional metallic/roughness overrides
 
 Editor:
@@ -91,7 +95,7 @@ Editor:
 
 ### Legacy raw ModelPath (hard cutover)
 
-Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show the **unit cube** until authors **re-import** and update the path to the cooked nested `.mesh`. Document this break; do not dual-load.
+Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show the **unit cube** until authors **re-import** and update the path to the cooked `.mesh`. Document this break; do not dual-load.
 
 ---
 
@@ -102,7 +106,7 @@ Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show th
 - `MeshWriter` ↔ `MeshReader` round-trip (geometry + materials)
 - `ModelFactory` accepts `.mesh`, rejects raw extensions
 - Cook/re-home on tiny glTF fixtures; flat `models/<stem>.mesh` layout
-- Serialization: `ModelPath` + `Color` round-trip
+- Serialization: `ModelPath` + `Color` + submesh range round-trip
 
 **Manual smoke**
 
@@ -118,7 +122,7 @@ Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show th
 flowchart TB
   subgraph editor [Editor]
     IMP[File → Import 3D Model]
-    MRC[ModelRendererComponent<br/>ModelPath + Color]
+    MRC[ModelRendererComponent<br/>ModelPath + Submesh range + Color]
   end
 
   subgraph cook [Cook-time]
@@ -155,7 +159,7 @@ sequenceDiagram
   participant Tex as Texture factory
   participant G3D as Graphics3D
 
-  Pipeline->>Pipeline: read ModelPath + Color + transform
+  Pipeline->>Pipeline: read ModelPath + Submesh range + Color + transform
   alt path empty or load failed or non-.mesh
     Pipeline->>G3D: DrawCube(tint)
   else .mesh path set

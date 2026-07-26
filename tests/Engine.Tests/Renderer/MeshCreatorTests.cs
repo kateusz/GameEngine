@@ -41,6 +41,36 @@ public class MeshCreatorTests : IDisposable
     }
 
     [Fact]
+    public void CreateSplit_ObjTriangle_WritesOneStemMeshWithSubmeshRanges()
+    {
+        var sourcePath = WriteObjTriangle(_sourceDir, "splitme");
+        var stem = Path.GetFileNameWithoutExtension(sourcePath);
+
+        var result = MeshCreator.CreateSplit(sourcePath, _assetsRoot, stem);
+
+        result.Success.ShouldBeTrue(result.Error);
+        result.Parts.Count.ShouldBeGreaterThan(0);
+
+        var expectedPath = $"models/{stem}.mesh";
+        File.Exists(Path.Combine(_assetsRoot, "models", $"{stem}.mesh")).ShouldBeTrue();
+        Directory.GetFiles(Path.Combine(_assetsRoot, "models"), "*.mesh").Length.ShouldBe(1);
+
+        var cursor = 0;
+        foreach (var part in result.Parts)
+        {
+            part.MeshRelativePath.ShouldBe(expectedPath);
+            part.SubmeshStart.ShouldBe(cursor);
+            part.SubmeshCount.ShouldBeGreaterThan(0);
+            cursor += part.SubmeshCount;
+        }
+
+        using (var stream = File.OpenRead(Path.Combine(_assetsRoot, "models", $"{stem}.mesh")))
+            MeshReader.Read(stream).Submeshes.Count.ShouldBe(cursor);
+
+        MeshCreator.CountExistingSplitMeshes(_assetsRoot, stem).ShouldBe(1);
+    }
+
+    [Fact]
     public void Create_ObjTriangle_WritesFlatModelsMesh()
     {
         var sourcePath = WriteObjTriangle(_sourceDir, "crate");

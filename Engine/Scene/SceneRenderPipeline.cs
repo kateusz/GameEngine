@@ -111,7 +111,7 @@ internal static class SceneRenderPipeline
                 }
             }
 
-            foreach (var submesh in model.Submeshes)
+            foreach (var submesh in EnumerateDrawSubmeshes(model, modelRenderer))
             {
                 var metallic = modelRenderer.MetallicOverride ?? submesh.Material.Metallic;
                 var roughness = modelRenderer.RoughnessOverride ?? submesh.Material.Roughness;
@@ -120,6 +120,20 @@ internal static class SceneRenderPipeline
         }
 
         graphics3D.EndScene();
+    }
+
+    private static IEnumerable<ModelSubmesh> EnumerateDrawSubmeshes(Model model, ModelRendererComponent renderer)
+    {
+        var all = model.Submeshes;
+        if (renderer.SubmeshCount < 0)
+            return all;
+
+        var start = System.Math.Clamp(renderer.SubmeshStart, 0, all.Count);
+        var count = System.Math.Min(renderer.SubmeshCount, all.Count - start);
+        if (count <= 0)
+            return [];
+
+        return all.Skip(start).Take(count);
     }
 
     private static void RenderSpritesAndSubTextures(

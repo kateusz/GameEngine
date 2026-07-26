@@ -19,6 +19,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
         // glTF/GLB UVs are already OpenGL-style (v=0 bottom). Do NOT FlipUVs here —
         // textures are uploaded with stbi_flip; FlipUVs + flip = double-flip atlas scramble.
+        // PreTransformVertices keeps single-file Create in a common space (no hierarchy).
         const uint flags = (uint)(PostProcessSteps.Triangulate |
                                   PostProcessSteps.GenerateNormals |
                                   PostProcessSteps.CalculateTangentSpace |
@@ -52,6 +53,94 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         }
 
         return submeshes;
+    }
+
+    /// <summary>
+    /// Node walk without <see cref="PostProcessSteps.PreTransformVertices"/> —
+    /// one part per mesh-bearing node with transform relative to the Assimp root.
+    /// </summary>
+    public List<AssimpModelPart> ImportParts(string path)
+    {
+        var parts = new List<AssimpModelPart>();
+        var directory = Path.GetDirectoryName(path) ?? string.Empty;
+
+        const uint flags = (uint)(PostProcessSteps.Triangulate |
+                                  PostProcessSteps.GenerateNormals |
+                                  PostProcessSteps.CalculateTangentSpace);
+
+        unsafe
+        {
+            var scene = assimp.ImportFile(path, flags);
+
+            if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
+            {
+                Logger.Error(
+                    "Failed to import model parts path={Path} assimpError={AssimpError}",
+                    path, assimp.GetErrorStringS());
+                return parts;
+            }
+
+            Logger.Information(
+                "Assimp import parts ok path={Path} meshes={MeshCount} materials={MaterialCount} embeddedTextures={EmbeddedCount}",
+                path, scene->MNumMeshes, scene->MNumMaterials, scene->MNumTextures);
+
+            var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            WalkNode(scene, scene->MRootNode, Matrix4x4.Identity, directory, nameCounts, parts);
+
+            assimp.ReleaseImport(scene);
+        }
+
+        return parts;
+    }
+
+    private unsafe void WalkNode(
+        Silk.NET.Assimp.Scene* scene,
+        Node* node,
+        Matrix4x4 parentWorld,
+        string directory,
+        Dictionary<string, int> nameCounts,
+        List<AssimpModelPart> parts)
+    {
+        // Assimp: node transform maps local → parent (column-vector storage).
+        // Accumulated in Assimp space; transposed to Numerics when emitting parts.
+        var world = Matrix4x4.Multiply(parentWorld, node->MTransformation);
+
+        if (node->MNumMeshes > 0 && node->MMeshes != null)
+        {
+            var submeshes = new List<ModelSubmesh>((int)node->MNumMeshes);
+            for (uint i = 0; i < node->MNumMeshes; i++)
+            {
+                var meshIndex = node->MMeshes[i];
+                if (meshIndex >= scene->MNumMeshes)
+                    continue;
+
+                var aiMesh = scene->MMeshes[meshIndex];
+                var mesh = ExtractMesh(aiMesh);
+                var material = ExtractMaterial(scene, aiMesh->MMaterialIndex, directory);
+                submeshes.Add(new ModelSubmesh(mesh, material));
+            }
+
+            if (submeshes.Count > 0)
+            {
+                var rawName = node->MName.AsString;
+                if (string.IsNullOrWhiteSpace(rawName))
+                    rawName = submeshes[0].Mesh.Name;
+                if (string.IsNullOrWhiteSpace(rawName))
+                    rawName = "part";
+
+                var partName = AssimpPartNaming.UniqueSanitize(rawName, nameCounts);
+                // Assimp aiMatrix4x4 is column-vector (T in 4th column). System.Numerics /
+                // TransformComponent use row-vector (T in 4th row) — transpose before TRS.
+                parts.Add(new AssimpModelPart(partName, Matrix4x4.Transpose(world), submeshes));
+            }
+        }
+
+        for (uint i = 0; i < node->MNumChildren; i++)
+        {
+            var child = node->MChildren[i];
+            if (child != null)
+                WalkNode(scene, child, world, directory, nameCounts, parts);
+        }
     }
 
     private static unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh)
@@ -99,7 +188,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         }
 
         var extent = max - min;
-        Logger.Information(
+        Logger.Debug(
             "Mesh extracted name={Name} verts={Verts} indices={Indices} hasUV={HasUV} hasNormals={HasNormals} boundsMin={Min} boundsMax={Max} extent={Extent}",
             mesh.Name, mesh.Vertices.Count, mesh.Indices.Count, hasTexCoords, aiMesh->MNormals != null, min, max, extent);
 
@@ -158,7 +247,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
         var hasBaseColor = TryGetColor(aiMaterial, Assimp.MatkeyBaseColor, out var baseColor);
         var hasDiffuse = TryGetColor(aiMaterial, Assimp.MatkeyColorDiffuse, out var diffuseColor);
-        Logger.Information(
+        Logger.Debug(
             "Material[{Index}] albedoPath={Albedo} mrPath={MR} normalPath={Normal} metallic={Metallic} roughness={Roughness} baseColor={HasBase}:{BaseColor} diffuseColor={HasDiff}:{DiffuseColor}",
             materialIndex,
             albedoPath ?? "<null>",
@@ -221,7 +310,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                 return null;
             }
 
-            Logger.Information("Texture type={Type} extracted embedded {Ref} → {Path}", textureType, texturePath, cached);
+            Logger.Debug("Texture type={Type} extracted embedded {Ref} → {Path}", textureType, texturePath, cached);
             return cached;
         }
 
@@ -234,7 +323,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             return null;
         }
 
-        Logger.Information("Texture type={Type} resolved to file {Path}", textureType, resolved);
+        Logger.Debug("Texture type={Type} resolved to file {Path}", textureType, resolved);
         return resolved;
     }
 

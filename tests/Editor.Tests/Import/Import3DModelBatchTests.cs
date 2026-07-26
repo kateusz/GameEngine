@@ -104,15 +104,6 @@ public class Import3DModelBatchTests : IDisposable
     }
 
     [Fact]
-    public void DestinationMeshPath_BuildsFlatModelsLayout()
-    {
-        var source = Path.Combine(_root, "MyModel.FBX");
-        var dest = Import3DModelBatch.DestinationMeshPath(_assets, source);
-
-        dest.ShouldBe(Path.Combine(_assets, "models", "MyModel.mesh"));
-    }
-
-    [Fact]
     public void FindDuplicateDestinations_SameStemDifferentExtensions_ReportsConflict()
     {
         var fbx = Path.Combine(_sourceDir, "robot.fbx");
@@ -120,10 +111,10 @@ public class Import3DModelBatchTests : IDisposable
         File.WriteAllText(fbx, "x");
         File.WriteAllText(glb, "x");
 
-        var dupes = Import3DModelBatch.FindDuplicateDestinations([fbx, glb], _assets);
+        var dupes = Import3DModelBatch.FindDuplicateDestinations([fbx, glb]);
 
         dupes.ShouldHaveSingleItem();
-        Path.GetFileName(dupes[0].DestinationPath).ShouldBe("robot.mesh");
+        dupes[0].Stem.ShouldBe("robot");
         dupes[0].Sources.Select(Path.GetFileName).OrderBy(x => x)
             .ShouldBe(["robot.fbx", "robot.glb"]);
 
@@ -161,8 +152,9 @@ public class Import3DModelBatchTests : IDisposable
     {
         var source = Path.Combine(_root, "prop.glb");
         File.WriteAllText(source, "x");
-        var dest = Import3DModelBatch.DestinationMeshPath(_assets, source);
-        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+        var models = Path.Combine(_assets, "models");
+        Directory.CreateDirectory(models);
+        var dest = Path.Combine(models, "prop.mesh");
         File.WriteAllText(dest, "existing");
 
         var aborted = !Import3DModelBatch.TryImportBatch(
@@ -197,7 +189,9 @@ public class Import3DModelBatchTests : IDisposable
         result.Failures.ShouldHaveSingleItem();
         result.Failures[0].Source.ShouldBe(Path.GetFullPath(badSrc));
         result.Failures[0].Error.ShouldNotBeNullOrWhiteSpace();
+        result.Sources.First().Parts.Count.ShouldBeGreaterThan(0);
         File.Exists(Path.Combine(_assets, "models", "ok.mesh")).ShouldBeTrue();
+        Directory.GetFiles(Path.Combine(_assets, "models"), "*.mesh").Length.ShouldBe(1);
     }
 
     [Fact]

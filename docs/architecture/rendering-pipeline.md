@@ -141,8 +141,8 @@ No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` track
 
 **Cook-time files**: `Engine/Renderer/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs`, `MeshWriter.cs`
 
-- Assimp used only in cook: triangulate, generate normals/tangents, PreTransformVertices (no FlipUVs)
-- Output layout: `assets/models/<stem>.mesh` + relocated textures under models/textures/
+- Assimp used only in cook: triangulate, generate normals/tangents; split import skips PreTransformVertices and walks nodes
+- Output layout: `assets/models/<stem>_<part>.mesh` + relocated textures under models/textures/; editor spawns parent+children
 - Formats at import: FBX, glTF, GLB (and other Assimp-supported types as enumerated by Import)
 - Legacy Phong materials convert heuristically at cook (diffuse→albedo, shininess→roughness, dielectric metallic)
 

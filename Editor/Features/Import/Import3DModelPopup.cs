@@ -3,11 +3,12 @@ using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Platform;
+using Engine.Scene;
 using Serilog;
 
 namespace Editor.Features.Import;
 
-public class Import3DModelPopup(IProjectContext projectContext)
+public class Import3DModelPopup(IProjectContext projectContext, ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext<Import3DModelPopup>();
 
@@ -147,8 +148,7 @@ public class Import3DModelPopup(IProjectContext projectContext)
         _pendingSources = sources;
         _sourceDisplay = full;
 
-        var duplicates = Import3DModelBatch.FindDuplicateDestinations(
-            sources, projectContext.AssetsPath);
+        var duplicates = Import3DModelBatch.FindDuplicateDestinations(sources);
         if (duplicates.Count > 0)
         {
             ShowSummaryError(
@@ -201,11 +201,32 @@ public class Import3DModelPopup(IProjectContext projectContext)
         }
 
         var result = summary.Value;
-        Logger.Information(
-            "Import 3D Model batch complete: ok={Ok} fail={Fail} source={Source}",
-            result.Succeeded, result.Failures.Count, _sourceDisplay);
+        var spawnNotes = new List<string>();
+        var scene = sceneContext.ActiveScene;
+        if (scene is null)
+        {
+            if (result.Succeeded > 0)
+                spawnNotes.Add(Import3DModelBatch.NoActiveSceneNote);
+        }
+        else
+        {
+            foreach (var source in result.Sources.Where(s => s.Parts.Count > 0))
+            {
+                var parentName = Path.GetFileNameWithoutExtension(source.Source);
+                spawnNotes.Add(Import3DModelBatch.SpawnHierarchy(scene, parentName, source.Parts));
+            }
+        }
 
-        _summaryMessage = Import3DModelBatch.FormatSummaryMessage(result, _sourceDisplay);
+        var spawnNote = spawnNotes.Count == 0 ? null : string.Join('\n', spawnNotes);
+
+        Logger.Information(
+            "Import 3D Model batch complete: ok={Ok} fail={Fail} parts={Parts} source={Source}",
+            result.Succeeded,
+            result.Failures.Count,
+            result.Sources.Sum(s => s.Parts.Count),
+            _sourceDisplay);
+
+        _summaryMessage = Import3DModelBatch.FormatSummaryMessage(result, _sourceDisplay, spawnNote);
         _summaryType = Import3DModelBatch.SummaryMessageType(result.Succeeded, result.Failures.Count);
         _showSummary = true;
         _pendingSources = [];

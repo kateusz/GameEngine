@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
+using Math;
 using NSubstitute;
 using SceneComponents.Rendering;
 using Shouldly;
@@ -272,6 +273,79 @@ public class AssimpModelImporterTests : IDisposable
         submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
         submeshes[0].Material.Metallic.ShouldBe(0.8f, 0.01);
         submeshes[0].Material.Roughness.ShouldBe(0.2f, 0.01);
+    }
+
+    [Fact]
+    public void ImportParts_GltfTranslatedNode_YieldsNumericsTranslation()
+    {
+        var assetsDir = Path.Combine(AppContext.BaseDirectory, "TestAssets");
+        Directory.CreateDirectory(assetsDir);
+        var gltfPath = EnsureGltfTranslatedTriangle(assetsDir);
+        var importer = new AssimpModelImporter(_assimp);
+
+        var parts = importer.ImportParts(gltfPath);
+
+        parts.Count.ShouldBe(1);
+        MathHelpers.DecomposeTransform(
+            parts[0].LocalToRoot, out var translation, out _, out var scale);
+        translation.X.ShouldBe(10f, 0.01f);
+        translation.Y.ShouldBe(20f, 0.01f);
+        translation.Z.ShouldBe(30f, 0.01f);
+        scale.X.ShouldBe(1f, 0.01f);
+        scale.Y.ShouldBe(1f, 0.01f);
+        scale.Z.ShouldBe(1f, 0.01f);
+    }
+
+    private static string EnsureGltfTranslatedTriangle(string assetsDir)
+    {
+        var binPath = Path.Combine(assetsDir, "triangle_translated.bin");
+        using (var stream = System.IO.File.Create(binPath))
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write(0f); writer.Write(0f); writer.Write(0f);
+            writer.Write(1f); writer.Write(0f); writer.Write(0f);
+            writer.Write(0f); writer.Write(1f); writer.Write(0f);
+            writer.Write((ushort)0);
+            writer.Write((ushort)1);
+            writer.Write((ushort)2);
+        }
+
+        var gltfPath = Path.Combine(assetsDir, "triangle_translated.gltf");
+        System.IO.File.WriteAllText(gltfPath, """
+            {
+              "asset": { "version": "2.0" },
+              "scenes": [{ "nodes": [0] }],
+              "nodes": [{ "mesh": 0, "translation": [10, 20, 30] }],
+              "meshes": [{
+                "primitives": [{
+                  "attributes": { "POSITION": 0 },
+                  "indices": 1
+                }]
+              }],
+              "buffers": [{ "uri": "triangle_translated.bin", "byteLength": 42 }],
+              "bufferViews": [
+                { "buffer": 0, "byteOffset": 0, "byteLength": 36 },
+                { "buffer": 0, "byteOffset": 36, "byteLength": 6 }
+              ],
+              "accessors": [
+                {
+                  "bufferView": 0,
+                  "componentType": 5126,
+                  "count": 3,
+                  "type": "VEC3",
+                  "max": [1, 1, 0],
+                  "min": [0, 0, 0]
+                },
+                {
+                  "bufferView": 1,
+                  "componentType": 5123,
+                  "count": 3,
+                  "type": "SCALAR"
+                }
+              ]
+            }
+            """);
+        return gltfPath;
     }
 
     [Fact]

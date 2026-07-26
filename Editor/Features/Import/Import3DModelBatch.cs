@@ -1,25 +1,28 @@
 using Editor.UI.Drawers;
 using Engine.Renderer;
+using Engine.Scene;
+using SceneComponents;
+using SceneComponents.Rendering;
 
 namespace Editor.Features.Import;
 
 public static class Import3DModelBatch
 {
     public const string NoProjectError = "Open a project before importing 3D models.";
+    public const string NoActiveSceneNote = "Meshes written; no active scene — skipped hierarchy spawn.";
 
     public static readonly string[] SupportedExtensions = [".fbx", ".glb", ".gltf"];
 
     public readonly record struct Failure(string Source, string Error);
+    public readonly record struct SourceImport(string Source, IReadOnlyList<MeshCreator.SplitPart> Parts);
 
-    public readonly record struct ImportBatchSummary(int Succeeded, IReadOnlyList<Failure> Failures);
+    public readonly record struct ImportBatchSummary(
+        int Succeeded,
+        IReadOnlyList<Failure> Failures,
+        IReadOnlyList<SourceImport> Sources);
 
-    public readonly record struct DuplicateDestination(
-        string DestinationPath,
-        IReadOnlyList<string> Sources);
+    public readonly record struct DuplicateDestination(string Stem, IReadOnlyList<string> Sources);
 
-    /// <summary>
-    /// Non-recursive: single allowlisted file, or files in a folder with allowlisted extensions.
-    /// </summary>
     public static IReadOnlyList<string> EnumerateSources(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -46,33 +49,23 @@ public static class Import3DModelBatch
             string.Equals(s, ext, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static string DestinationMeshPath(string projectAssetsRoot, string sourceAbsolutePath)
-    {
-        var stem = Path.GetFileNameWithoutExtension(sourceAbsolutePath);
-        return Path.Combine(projectAssetsRoot, "models", $"{stem}.mesh");
-    }
-
-    /// <summary>
-    /// Sources that share a destination stem (e.g. robot.fbx + robot.glb → robot.mesh).
-    /// </summary>
     public static IReadOnlyList<DuplicateDestination> FindDuplicateDestinations(
-        IReadOnlyList<string> sources,
-        string projectAssetsRoot)
+        IReadOnlyList<string> sources)
     {
-        var byDest = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var byStem = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var source in sources)
         {
-            var dest = DestinationMeshPath(projectAssetsRoot, source);
-            if (!byDest.TryGetValue(dest, out var list))
+            var stem = Path.GetFileNameWithoutExtension(source);
+            if (!byStem.TryGetValue(stem, out var list))
             {
                 list = [];
-                byDest[dest] = list;
+                byStem[stem] = list;
             }
 
             list.Add(source);
         }
 
-        return byDest
+        return byStem
             .Where(kv => kv.Value.Count > 1)
             .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
             .Select(kv => new DuplicateDestination(kv.Key, kv.Value))
@@ -85,24 +78,11 @@ public static class Import3DModelBatch
     {
         var count = 0;
         foreach (var source in sources)
-        {
-            if (File.Exists(DestinationMeshPath(projectAssetsRoot, source)))
-                count++;
-        }
-
+            count += MeshCreator.CountExistingSplitMeshes(
+                projectAssetsRoot, Path.GetFileNameWithoutExtension(source));
         return count;
     }
 
-    /// <summary>
-    /// Ensures <c>assets/models</c> exists under the project assets root.
-    /// </summary>
-    public static void EnsureModelsDirectory(string projectAssetsRoot) =>
-        Directory.CreateDirectory(Path.Combine(projectAssetsRoot, "models"));
-
-    /// <summary>
-    /// When destinations already exist and <paramref name="overwriteConfirmed"/> is false,
-    /// returns false and does not create meshes.
-    /// </summary>
     public static bool TryImportBatch(
         IReadOnlyList<string> sources,
         string projectAssetsRoot,
@@ -112,47 +92,77 @@ public static class Import3DModelBatch
         summary = null;
         if (sources.Count == 0)
         {
-            summary = new ImportBatchSummary(0, []);
+            summary = new ImportBatchSummary(0, [], []);
             return true;
         }
 
-        var duplicates = FindDuplicateDestinations(sources, projectAssetsRoot);
+        var duplicates = FindDuplicateDestinations(sources);
         if (duplicates.Count > 0)
         {
             summary = new ImportBatchSummary(0, [
                 new Failure(string.Empty, FormatDuplicateDestinationMessage(duplicates))
-            ]);
+            ], []);
             return true;
         }
 
         if (CountExistingDestinations(sources, projectAssetsRoot) > 0 && !overwriteConfirmed)
             return false;
 
-        EnsureModelsDirectory(projectAssetsRoot);
-
         var succeeded = 0;
         var failures = new List<Failure>();
+        var results = new List<SourceImport>();
         foreach (var source in sources)
         {
-            var stem = Path.GetFileNameWithoutExtension(source);
-            MeshCreator.Result result;
-            try
-            {
-                result = MeshCreator.Create(source, projectAssetsRoot, stem);
-            }
-            catch (Exception ex)
-            {
-                result = MeshCreator.Result.Fail(ex.Message);
-            }
+            var result = MeshCreator.CreateSplit(
+                source, projectAssetsRoot, Path.GetFileNameWithoutExtension(source));
 
             if (result.Success)
+            {
                 succeeded++;
+                results.Add(new SourceImport(source, result.Parts));
+            }
             else
+            {
                 failures.Add(new Failure(source, result.Error ?? "Unknown error"));
+            }
         }
 
-        summary = new ImportBatchSummary(succeeded, failures);
+        summary = new ImportBatchSummary(succeeded, failures, results);
         return true;
+    }
+    
+    public static string SpawnHierarchy(
+        IScene scene,
+        string parentName,
+        IReadOnlyList<MeshCreator.SplitPart> parts)
+    {
+        ArgumentNullException.ThrowIfNull(scene);
+        if (parts.Count == 0)
+            return "No parts to spawn.";
+
+        var safeParent = string.IsNullOrWhiteSpace(parentName) ? "ImportedModel" : parentName.Trim();
+        var parent = scene.CreateEntity(safeParent);
+        parent.AddComponent(new TransformComponent());
+
+        foreach (var part in parts)
+        {
+            var child = scene.CreateEntity(part.PartName);
+            child.AddComponent(new TransformComponent
+            {
+                Translation = part.Translation,
+                Rotation = part.Rotation,
+                Scale = part.Scale
+            });
+            child.AddComponent(new ModelRendererComponent
+            {
+                ModelPath = part.MeshRelativePath,
+                SubmeshStart = part.SubmeshStart,
+                SubmeshCount = part.SubmeshCount
+            });
+            scene.SetParent(child, parent);
+        }
+
+        return $"Spawned parent '{safeParent}' with {parts.Count} child mesh(es).";
     }
 
     public static MessageType SummaryMessageType(int succeeded, int failed)
@@ -166,30 +176,43 @@ public static class Import3DModelBatch
 
     public static string FormatSummaryMessage(
         ImportBatchSummary summary,
-        string sourceDisplay)
+        string sourceDisplay,
+        string? spawnNote = null)
     {
+        var partCount = summary.Sources.Sum(s => s.Parts.Count);
         var lines = new List<string>
         {
-            $"Imported: {summary.Succeeded}",
+            $"Imported sources: {summary.Succeeded}",
             $"Failed: {summary.Failures.Count}",
+            $"Mesh files written: {summary.Succeeded}",
+            $"Hierarchy parts: {partCount}",
             string.Empty,
             "Source:",
             sourceDisplay
         };
+
+        if (!string.IsNullOrWhiteSpace(spawnNote))
+        {
+            lines.Add(string.Empty);
+            lines.Add(spawnNote);
+        }
 
         if (summary.Failures.Count > 0)
         {
             lines.Add(string.Empty);
             lines.Add("Failures:");
             foreach (var f in summary.Failures)
-                lines.Add($"- {Path.GetFileName(f.Source)}: {f.Error}");
+            {
+                var name = string.IsNullOrEmpty(f.Source) ? "(batch)" : Path.GetFileName(f.Source);
+                lines.Add($"- {name}: {f.Error}");
+            }
         }
 
         return string.Join('\n', lines);
     }
 
     public static string FormatOverwriteMessage(int conflictCount) =>
-        $"{conflictCount} destination *.mesh file(s) already exist under assets/models/.\n\n" +
+        $"{conflictCount} destination .mesh file(s) already exist under assets/models/.\n\n" +
         "Overwrite all conflicts in this import batch?";
 
     public static string FormatDuplicateDestinationMessage(
@@ -197,7 +220,7 @@ public static class Import3DModelBatch
     {
         var lines = new List<string>
         {
-            "Multiple inputs map to the same destination *.mesh file.",
+            "Multiple inputs map to the same destination stem (stem.mesh).",
             "Rename or remove conflicting sources before importing.",
             string.Empty,
             "Conflicts:"
@@ -206,7 +229,7 @@ public static class Import3DModelBatch
         foreach (var d in duplicates)
         {
             var names = string.Join(", ", d.Sources.Select(Path.GetFileName));
-            lines.Add($"- {Path.GetFileName(d.DestinationPath)} ← {names}");
+            lines.Add($"- {d.Stem}.mesh ← {names}");
         }
 
         return string.Join('\n', lines);
