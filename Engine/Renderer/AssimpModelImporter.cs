@@ -54,7 +54,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         return submeshes;
     }
 
-    private unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh)
+    private static unsafe Mesh ExtractMesh(Silk.NET.Assimp.Mesh* aiMesh)
     {
         var mesh = new Mesh(aiMesh->MName.AsString);
 

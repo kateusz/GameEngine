@@ -13,6 +13,10 @@ public static class Import3DModelBatch
 
     public readonly record struct ImportBatchSummary(int Succeeded, IReadOnlyList<Failure> Failures);
 
+    public readonly record struct DuplicateDestination(
+        string DestinationPath,
+        IReadOnlyList<string> Sources);
+
     /// <summary>
     /// Non-recursive: single allowlisted file, or files in a folder with allowlisted extensions.
     /// </summary>
@@ -46,6 +50,33 @@ public static class Import3DModelBatch
     {
         var stem = Path.GetFileNameWithoutExtension(sourceAbsolutePath);
         return Path.Combine(projectAssetsRoot, "models", $"{stem}.mesh");
+    }
+
+    /// <summary>
+    /// Sources that share a destination stem (e.g. robot.fbx + robot.glb → robot.mesh).
+    /// </summary>
+    public static IReadOnlyList<DuplicateDestination> FindDuplicateDestinations(
+        IReadOnlyList<string> sources,
+        string projectAssetsRoot)
+    {
+        var byDest = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var source in sources)
+        {
+            var dest = DestinationMeshPath(projectAssetsRoot, source);
+            if (!byDest.TryGetValue(dest, out var list))
+            {
+                list = [];
+                byDest[dest] = list;
+            }
+
+            list.Add(source);
+        }
+
+        return byDest
+            .Where(kv => kv.Value.Count > 1)
+            .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(kv => new DuplicateDestination(kv.Key, kv.Value))
+            .ToList();
     }
 
     public static int CountExistingDestinations(
@@ -82,6 +113,15 @@ public static class Import3DModelBatch
         if (sources.Count == 0)
         {
             summary = new ImportBatchSummary(0, []);
+            return true;
+        }
+
+        var duplicates = FindDuplicateDestinations(sources, projectAssetsRoot);
+        if (duplicates.Count > 0)
+        {
+            summary = new ImportBatchSummary(0, [
+                new Failure(string.Empty, FormatDuplicateDestinationMessage(duplicates))
+            ]);
             return true;
         }
 
@@ -151,4 +191,24 @@ public static class Import3DModelBatch
     public static string FormatOverwriteMessage(int conflictCount) =>
         $"{conflictCount} destination *.mesh file(s) already exist under assets/models/.\n\n" +
         "Overwrite all conflicts in this import batch?";
+
+    public static string FormatDuplicateDestinationMessage(
+        IReadOnlyList<DuplicateDestination> duplicates)
+    {
+        var lines = new List<string>
+        {
+            "Multiple inputs map to the same destination *.mesh file.",
+            "Rename or remove conflicting sources before importing.",
+            string.Empty,
+            "Conflicts:"
+        };
+
+        foreach (var d in duplicates)
+        {
+            var names = string.Join(", ", d.Sources.Select(Path.GetFileName));
+            lines.Add($"- {Path.GetFileName(d.DestinationPath)} ← {names}");
+        }
+
+        return string.Join('\n', lines);
+    }
 }

@@ -47,7 +47,7 @@ internal static class AssimpTexturePath
         return null;
     }
     
-    private static bool IsAbsolute(string path)
+    public static bool IsAbsolute(string path)
     {
         if (string.IsNullOrEmpty(path))
             return false;

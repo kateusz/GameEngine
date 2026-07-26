@@ -113,6 +113,50 @@ public class Import3DModelBatchTests : IDisposable
     }
 
     [Fact]
+    public void FindDuplicateDestinations_SameStemDifferentExtensions_ReportsConflict()
+    {
+        var fbx = Path.Combine(_sourceDir, "robot.fbx");
+        var glb = Path.Combine(_sourceDir, "robot.glb");
+        File.WriteAllText(fbx, "x");
+        File.WriteAllText(glb, "x");
+
+        var dupes = Import3DModelBatch.FindDuplicateDestinations([fbx, glb], _assets);
+
+        dupes.ShouldHaveSingleItem();
+        Path.GetFileName(dupes[0].DestinationPath).ShouldBe("robot.mesh");
+        dupes[0].Sources.Select(Path.GetFileName).OrderBy(x => x)
+            .ShouldBe(["robot.fbx", "robot.glb"]);
+
+        var msg = Import3DModelBatch.FormatDuplicateDestinationMessage(dupes);
+        msg.ShouldContain("robot.mesh");
+        msg.ShouldContain("robot.fbx");
+        msg.ShouldContain("robot.glb");
+    }
+
+    [Fact]
+    public void TryImportBatch_DuplicateDestinations_AbortsWithoutCooking()
+    {
+        var fbx = Path.Combine(_sourceDir, "robot.fbx");
+        var glb = Path.Combine(_sourceDir, "robot.glb");
+        File.WriteAllText(fbx, "x");
+        File.WriteAllText(glb, "x");
+
+        var ok = Import3DModelBatch.TryImportBatch(
+            [fbx, glb],
+            _assets,
+            overwriteConfirmed: true,
+            out var summary);
+
+        ok.ShouldBeTrue();
+        summary.ShouldNotBeNull();
+        var result = summary!.Value;
+        result.Succeeded.ShouldBe(0);
+        result.Failures.ShouldHaveSingleItem();
+        result.Failures[0].Error.ShouldContain("robot.mesh");
+        Directory.Exists(Path.Combine(_assets, "models")).ShouldBeFalse();
+    }
+
+    [Fact]
     public void TryImportBatch_ConflictsWithoutConfirm_AbortsWithoutTouchingDestination()
     {
         var source = Path.Combine(_root, "prop.glb");

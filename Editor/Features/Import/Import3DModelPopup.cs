@@ -147,6 +147,16 @@ public class Import3DModelPopup(IProjectContext projectContext)
         _pendingSources = sources;
         _sourceDisplay = full;
 
+        var duplicates = Import3DModelBatch.FindDuplicateDestinations(
+            sources, projectContext.AssetsPath);
+        if (duplicates.Count > 0)
+        {
+            ShowSummaryError(
+                Import3DModelBatch.FormatDuplicateDestinationMessage(duplicates),
+                MessageType.Error);
+            return;
+        }
+
         _conflictCount = Import3DModelBatch.CountExistingDestinations(sources, projectContext.AssetsPath);
         if (_conflictCount > 0)
         {

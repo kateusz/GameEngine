@@ -152,7 +152,7 @@ public class MeshFormatRoundTripTests
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(Encoding.ASCII.GetBytes("GEMH"));
+            writer.Write("KULA"u8.ToArray());
             writer.Write(2u);
             writer.Write(0u);
         }
@@ -174,7 +174,7 @@ public class MeshFormatRoundTripTests
 
         var bytes = stream.ToArray();
         bytes.Length.ShouldBeGreaterThanOrEqualTo(8);
-        Encoding.ASCII.GetString(bytes, 0, 4).ShouldBe("GEMH");
+        Encoding.ASCII.GetString(bytes, 0, 4).ShouldBe("KULA");
         bytes[4].ShouldBe((byte)1);
         bytes[5].ShouldBe((byte)0);
         bytes[6].ShouldBe((byte)0);
@@ -187,7 +187,7 @@ public class MeshFormatRoundTripTests
         using var hostile = new MemoryStream();
         using (var writer = new BinaryWriter(hostile, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(Encoding.ASCII.GetBytes("GEMH"));
+            writer.Write("KULA"u8.ToArray());
             writer.Write(1u);
             writer.Write(1u);
             writer.Write(0u);
@@ -214,7 +214,7 @@ public class MeshFormatRoundTripTests
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
-            writer.Write(Encoding.ASCII.GetBytes("GEMH"));
+            writer.Write("KULA"u8.ToArray());
             writer.Write(1u);
             writer.Write(MeshReader.MaxSubmeshes + 1);
         }
