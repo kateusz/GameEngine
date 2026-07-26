@@ -48,6 +48,8 @@ public static class ComponentSelector
             });
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity, history);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity, history);
+            DrawComponentMenuItem<CircleCollider2DComponent>("Circle Collider 2D", entity, history);
+            DrawComponentMenuItem<EdgeCollider2DComponent>("Edge Collider 2D", entity, history);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, history, () =>
             {
                 history.Execute(new AddComponentCommand(

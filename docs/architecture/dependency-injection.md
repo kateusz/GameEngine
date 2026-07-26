@@ -238,7 +238,7 @@ All singletons via `RegisterMany`. Used by the script inspector for reflected fi
 All singletons via `RegisterMany`. Registration order matches properties panel draw order:
 
 - `TransformComponentEditor`, `CameraComponentEditor`, `SpriteRendererComponentEditor`
-- `ModelRendererComponentEditor`, `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`
+- `ModelRendererComponentEditor`, `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`, `CircleCollider2DComponentEditor`, `EdgeCollider2DComponentEditor`
 - `SubTextureRendererComponentEditor`, `AudioSourceComponentEditor`, `AudioListenerComponentEditor`
 - `GameComponentEditor`, `ScriptComponentEditor`
 - `AmbientLightComponentEditor`, `DirectionalLightComponentEditor`

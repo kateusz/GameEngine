@@ -132,6 +132,73 @@ public class PhysicsSimulationSystemTests
         world.Received(1).Dispose();
     }
 
+    [Fact]
+    public void OnInit_WithCircleCollider_CreatesCircleFixture()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithTransformAndRb(context);
+        entity.AddComponent(new CircleCollider2DComponent { Radius = 1.25f });
+        var mockBody = Substitute.For<IPhysicsBody2D>();
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(mockBody);
+
+        system.OnInit();
+
+        mockBody.Received(1).CreateCircleFixture(Arg.Is<PhysicsCircleFixtureDef>(d =>
+            d.Radius == 1.25f && !d.IsSensor));
+    }
+
+    [Fact]
+    public void OnInit_WithEdgeCollider_CreatesEdgeFixture()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithTransformAndRb(context);
+        entity.AddComponent(new EdgeCollider2DComponent());
+        var mockBody = Substitute.For<IPhysicsBody2D>();
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(mockBody);
+
+        system.OnInit();
+
+        mockBody.Received(1).CreateEdgeFixture(Arg.Any<PhysicsEdgeFixtureDef>());
+    }
+
+    [Fact]
+    public void OnUpdate_SyncsTransformForCircleCollider()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithTransformAndRb(context);
+        entity.AddComponent(new CircleCollider2DComponent());
+        var transform = entity.GetComponent<TransformComponent>();
+
+        var mockBody = Substitute.For<IPhysicsBody2D>();
+        mockBody.Position.Returns(new Vector2(3, 4));
+        mockBody.Angle.Returns(0.25f);
+        mockBody.LinearVelocity.Returns(Vector2.Zero);
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(mockBody);
+
+        system.OnInit();
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        transform.Translation.X.ShouldBe(3);
+        transform.Translation.Y.ShouldBe(4);
+        transform.Rotation.Z.ShouldBe(0.25f);
+    }
+
+    [Fact]
+    public void OnInit_PrefersBoxWhenMultipleCollidersPresent()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithTransformAndRb(context);
+        entity.AddComponent(new BoxCollider2DComponent());
+        entity.AddComponent(new CircleCollider2DComponent());
+        var mockBody = Substitute.For<IPhysicsBody2D>();
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(mockBody);
+
+        system.OnInit();
+
+        mockBody.Received(1).CreateBoxFixture(Arg.Any<PhysicsBoxFixtureDef>());
+        mockBody.DidNotReceive().CreateCircleFixture(Arg.Any<PhysicsCircleFixtureDef>());
+    }
+
     private static (PhysicsSimulationSystem System, IContext Context, IPhysicsWorld2D World, PhysicsRuntimeBodyStore BodyStore) CreateFullSystem()
     {
         var world = Substitute.For<IPhysicsWorld2D>();

@@ -54,14 +54,43 @@ internal sealed class Box2DPhysicsBody2D(Body body) : IPhysicsBody2D
     {
         var shape = new PolygonShape();
         shape.SetAsBox(def.HalfWidth, def.HalfHeight, def.CenterOffset, 0.0f);
+        CreateFixture(shape, def.Density, def.Friction, def.Restitution, def.IsSensor);
+    }
 
+    public void CreateCircleFixture(in PhysicsCircleFixtureDef def)
+    {
+        if (def.Radius <= 0f)
+            return;
+
+        var shape = new CircleShape();
+        shape.Center = def.CenterOffset;
+        shape.Radius = def.Radius;
+        CreateFixture(shape, def.Density, def.Friction, def.Restitution, def.IsSensor);
+    }
+
+    public void CreateEdgeFixture(in PhysicsEdgeFixtureDef def)
+    {
+        var points = def.Points;
+        if (points is null || points.Length < 2)
+            return;
+
+        var chain = new ChainShape();
+        var vertices = (Vector2[])points.Clone();
+        var prev = vertices[0] - (vertices[1] - vertices[0]);
+        var next = vertices[^1] + (vertices[^1] - vertices[^2]);
+        chain.CreateChain(in vertices, in prev, in next);
+        CreateFixture(chain, def.Density, def.Friction, def.Restitution, def.IsSensor);
+    }
+
+    private void CreateFixture(Shape shape, float density, float friction, float restitution, bool isSensor)
+    {
         var fixtureDef = new FixtureDef
         {
             shape = shape,
-            density = def.Density,
-            friction = def.Friction,
-            restitution = def.Restitution,
-            isSensor = def.IsSensor
+            density = density,
+            friction = friction,
+            restitution = restitution,
+            isSensor = isSensor
         };
         body.CreateFixture(fixtureDef);
     }

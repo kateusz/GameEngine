@@ -20,7 +20,9 @@ graph TB
 
     subgraph "ECS Components"
         RB[RigidBody2DComponent<br/>BodyType, FixedRotation,<br/>GravityScale, Velocity]
-        BC[BoxCollider2DComponent<br/>Size, Offset, Density,<br/>Friction, Restitution, IsTrigger]
+        BC[BoxCollider2DComponent]
+        CC[CircleCollider2DComponent]
+        EC[EdgeCollider2DComponent]
         TC[TransformComponent]
         NSC[NativeScriptComponent]
     end
@@ -40,6 +42,8 @@ graph TB
     PSS -->|"read/write position, angle, velocity"| RB
     PSS -->|"write X, Y, Rotation.Z"| TC
     PSS -->|"fixture material"| BC
+    PSS --> CC
+    PSS --> EC
     PDR --> BS
 ```
 
@@ -71,6 +75,8 @@ Body and fixture creation use value-type defs:
 |---|---|---|
 | `PhysicsBodyDef` | `Engine/Physics/PhysicsBodyDef.cs` | `Position`, `Angle`, `MotionType`, `FixedRotation`, `GravityScale` |
 | `PhysicsBoxFixtureDef` | `Engine/Physics/PhysicsBoxFixtureDef.cs` | `HalfWidth`, `HalfHeight`, `CenterOffset`, `Density`, `Friction`, `Restitution`, `IsSensor` |
+| `PhysicsCircleFixtureDef` | `Engine/Physics/PhysicsCircleFixtureDef.cs` | `Radius`, `CenterOffset`, `Density`, `Friction`, `Restitution`, `IsSensor` |
+| `PhysicsEdgeFixtureDef` | `Engine/Physics/PhysicsEdgeFixtureDef.cs` | `Points`, `Density`, `Friction`, `Restitution`, `IsSensor` |
 | `PhysicsBodyMotionType` | `Engine/Physics/PhysicsBodyMotionType.cs` | `Static`, `Dynamic`, `Kinematic` |
 
 Dynamic bodies are created with `bullet = true` in the Box2D backend to reduce tunneling.
@@ -79,7 +85,7 @@ Dynamic bodies are created with `bullet = true` in the Box2D backend to reduce t
 
 ## ECS Components
 
-Physics systems read `RigidBody2DComponent`, `BoxCollider2DComponent`, and `TransformComponent`. Component types live under `SceneComponents/Physics/`.
+Physics systems read `RigidBody2DComponent`, any one 2D collider (`Box` / `Circle` / `Edge`), and `TransformComponent`. Component types live under `SceneComponents/Physics/`. Fixture create priority if multiple colliders exist: Box → Circle → Edge (one fixture per body).
 
 Properties referenced by `PhysicsSimulationSystem`:
 
@@ -92,21 +98,20 @@ Properties referenced by `PhysicsSimulationSystem`:
 | `GravityScale` | Passed to `PhysicsBodyDef` |
 | `Velocity` | Written to body before each step (Dynamic/Kinematic); read back after sync |
 
-### BoxCollider2DComponent
+### Collider components
 
-| Property | Used for |
-|---|---|
-| `Size` | Half-extents; multiplied by transform scale at fixture creation |
-| `Offset` | Center offset; multiplied by transform scale at fixture creation |
-| `Density`, `Friction`, `Restitution` | Initial fixture + per-frame `UpdateFixtureMaterial` |
-| `IsTrigger` | Fixture sensor flag (`PhysicsBoxFixtureDef.IsSensor`) |
-| `RestitutionThreshold` | Serialized on component; not read by `PhysicsSimulationSystem` or the Box2D backend |
+| Component | Shape fields | Shared material |
+|---|---|---|
+| `BoxCollider2DComponent` | `Size` (half-extents), `Offset` | `Density`, `Friction`, `Restitution`, `IsTrigger` |
+| `CircleCollider2DComponent` | `Radius`, `Offset` | same |
+| `EdgeCollider2DComponent` | `Points` (≥2, open chain) | same |
 
-Collider size and offset are multiplied by `TransformComponent.Scale` when the body is first created. Scale changes after that are not reflected in the collider shape.
+`RestitutionThreshold` is serialized on `BoxCollider2DComponent` only; not read by `PhysicsSimulationSystem` or the Box2D backend.
+Collider geometry is multiplied by `TransformComponent.Scale` when the body is first created. Scale changes after that are not reflected in the collider shape. Circle radius uses the average of `|Scale.X|` and `|Scale.Y|`.
 
 Bodies are **not** stored on the component. Runtime mapping is `PhysicsRuntimeBodyStore` keyed by entity ID.
 
-`BoxCollider2DComponent` is required for post-step transform and velocity sync — `PhysicsSimulationSystem` skips entities that have `RigidBody2DComponent` but no collider in its sync loop, even though a body may have been created for them.
+Any of the three collider components enables post-step transform and velocity sync — `PhysicsSimulationSystem` skips entities that have `RigidBody2DComponent` but no collider in its sync loop, even though a body may have been created for them.
 
 ---
 

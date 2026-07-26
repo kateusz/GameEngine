@@ -65,6 +65,8 @@ public static class EditorIoCContainer
         container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<RigidBody2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<BoxCollider2DComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<CircleCollider2DComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<EdgeCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SubTextureRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioSourceComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioListenerComponentEditor>(Reuse.Singleton);

@@ -1,6 +1,6 @@
 # Physics
 
-2D physics via Box2D. Entities need `RigidBody2DComponent` + `BoxCollider2DComponent` to participate.
+2D physics via Box2D. Entities need `RigidBody2DComponent` + one 2D collider (`BoxCollider2DComponent`, `CircleCollider2DComponent`, or `EdgeCollider2DComponent`) to participate. Use one collider type per entity.
 
 ## Body types
 
@@ -16,13 +16,19 @@ Set `RigidBody2DComponent.Velocity` in `OnUpdate` for Dynamic/Kinematic movement
 
 **Collision** (`OnCollisionBegin` / `OnCollisionEnd`): both entities need colliders; at least one needs a rigidbody.
 
-**Trigger** (`OnTriggerEnter` / `OnTriggerExit`): set `BoxCollider2DComponent.IsTrigger = true`. Overlap without physical response.
+**Trigger** (`OnTriggerEnter` / `OnTriggerExit`): set the collider's `IsTrigger = true`. Overlap without physical response.
 
 Systems can poll `IPhysicsContacts.DrainContacts()` instead of script callbacks — [Scripting Tiers](scripting-tiers.md).
 
-## Collider properties
+## Collider shapes
 
-`Density`, `Friction` (0–1), `Restitution` (bounciness 0–1), `RestitutionThreshold` (min speed to bounce).
+| Component | Shape data |
+|-----------|------------|
+| `BoxCollider2DComponent` | `Size` (half-extents), `Offset` |
+| `CircleCollider2DComponent` | `Radius`, `Offset` |
+| `EdgeCollider2DComponent` | `Points` (open chain, ≥2) |
+
+Shared material: `Density`, `Friction` (0–1), `Restitution` (bounciness 0–1). Box also serializes unused `RestitutionThreshold`.
 
 ## Example: pickup
 

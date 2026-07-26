@@ -11,6 +11,6 @@ public class TagComponent : IComponent { ... }
 ```
 
 ### Physics Pairing Requirement
-Both RigidBody2DComponent and BoxCollider2DComponent are required on an entity for 2D physics simulation.
+Both `RigidBody2DComponent` and one 2D collider (`BoxCollider2DComponent`, `CircleCollider2DComponent`, or `EdgeCollider2DComponent`) are required on an entity for 2D physics simulation. Use a single collider type per entity (fixture priority if multiple are present: Box → Circle → Edge).
 
 **Sources:** documentation (confidence 88%)

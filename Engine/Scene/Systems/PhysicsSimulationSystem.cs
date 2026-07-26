@@ -60,12 +60,12 @@ internal sealed class PhysicsSimulationSystem(
         foreach (var (entity, component, transform) in
                  context.View<RigidBody2DComponent, TransformComponent>())
         {
-            if (!entity.TryGetComponent<BoxCollider2DComponent>(out var collision))
+            if (GetColliderMaterial(entity) is not { } material)
                 continue;
             if (!bodyStore.TryGet(entity.Id, out var body))
                 continue;
 
-            body.UpdateFixtureMaterial(collision.Density, collision.Friction, collision.Restitution);
+            body.UpdateFixtureMaterial(material.Density, material.Friction, material.Restitution);
 
             var position = body.Position;
             transform.Translation = new Vector3(position.X, position.Y, 0);
@@ -104,19 +104,70 @@ internal sealed class PhysicsSimulationSystem(
             body.Entity = entity;
             bodyStore.Set(entity.Id, body);
 
-            if (!entity.HasComponent<BoxCollider2DComponent>())
-                continue;
-
-            var boxCollider = entity.GetComponent<BoxCollider2DComponent>();
-            body.CreateBoxFixture(new PhysicsBoxFixtureDef(
-                boxCollider.Size.X * transform.Scale.X,
-                boxCollider.Size.Y * transform.Scale.Y,
-                new Vector2(boxCollider.Offset.X * transform.Scale.X, boxCollider.Offset.Y * transform.Scale.Y),
-                boxCollider.Density,
-                boxCollider.Friction,
-                boxCollider.Restitution,
-                boxCollider.IsTrigger));
+            AttachFixture(entity, body, transform);
         }
+    }
+
+    // One fixture per body: Box > Circle > Edge.
+    private static void AttachFixture(Entity entity, IPhysicsBody2D body, TransformComponent transform)
+    {
+        var scale = transform.Scale;
+
+        if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
+        {
+            body.CreateBoxFixture(new PhysicsBoxFixtureDef(
+                box.Size.X * scale.X,
+                box.Size.Y * scale.Y,
+                new Vector2(box.Offset.X * scale.X, box.Offset.Y * scale.Y),
+                box.Density,
+                box.Friction,
+                box.Restitution,
+                box.IsTrigger));
+            return;
+        }
+
+        if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
+        {
+            var radiusScale = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
+            body.CreateCircleFixture(new PhysicsCircleFixtureDef(
+                circle.Radius * radiusScale,
+                new Vector2(circle.Offset.X * scale.X, circle.Offset.Y * scale.Y),
+                circle.Density,
+                circle.Friction,
+                circle.Restitution,
+                circle.IsTrigger));
+            return;
+        }
+
+        if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
+        {
+            body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
+                ScalePoints(edge.Points, scale),
+                edge.Density,
+                edge.Friction,
+                edge.Restitution,
+                edge.IsTrigger));
+        }
+    }
+
+    private static Vector2[] ScalePoints(List<Vector2> points, Vector3 scale)
+    {
+        var scaled = new Vector2[points.Count];
+        for (var i = 0; i < points.Count; i++)
+            scaled[i] = new Vector2(points[i].X * scale.X, points[i].Y * scale.Y);
+        return scaled;
+    }
+
+    // Same priority as AttachFixture: Box > Circle > Edge.
+    private static (float Density, float Friction, float Restitution)? GetColliderMaterial(Entity entity)
+    {
+        if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
+            return (box.Density, box.Friction, box.Restitution);
+        if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
+            return (circle.Density, circle.Friction, circle.Restitution);
+        if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
+            return (edge.Density, edge.Friction, edge.Restitution);
+        return null;
     }
 
     private void SyncVelocitiesToBodies()

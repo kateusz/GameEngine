@@ -54,6 +54,31 @@ public class PhysicsDebugRenderSystemTests
         graphics2D.Received(1).DrawRect(Arg.Any<Matrix4x4>(), Arg.Any<Vector4>(), 1);
     }
 
+    [Fact]
+    public void OnUpdate_WithCircleCollider_DrawsCircleOutline()
+    {
+        var debugSettings = new DebugSettings { ShowColliderBounds = true };
+        var (system, graphics2D, context, bodyStore, cameraProvider) = CreateFullSystem(debugSettings);
+
+        cameraProvider.Camera.Returns(new SceneCamera());
+        cameraProvider.Transform.Returns(Matrix4x4.Identity);
+
+        var entity = Entity.Create(2, "circle");
+        entity.AddComponent(new CircleCollider2DComponent { Radius = 1f });
+        entity.AddComponent<TransformComponent>();
+        context.Register(entity);
+
+        var body = Substitute.For<IPhysicsBody2D>();
+        body.Position.Returns(Vector2.Zero);
+        body.Angle.Returns(0f);
+        body.IsEnabled().Returns(true);
+        bodyStore.Set(2, body);
+
+        system.OnUpdate(TimeSpan.Zero);
+
+        graphics2D.Received().DrawLine(Arg.Any<Vector3>(), Arg.Any<Vector3>(), Arg.Any<Vector4>(), 2);
+    }
+
     private static (PhysicsDebugRenderSystem, IGraphics2D, IContext, PhysicsRuntimeBodyStore, IPrimaryCameraProvider) CreateFullSystem(DebugSettings debugSettings)
     {
         var graphics2D = Substitute.For<IGraphics2D>();

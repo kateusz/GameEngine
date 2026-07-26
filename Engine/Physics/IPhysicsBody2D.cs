@@ -16,5 +16,7 @@ public interface IPhysicsBody2D
     bool IsEnabled();
     bool IsAwake();
     void CreateBoxFixture(in PhysicsBoxFixtureDef def);
+    void CreateCircleFixture(in PhysicsCircleFixtureDef def);
+    void CreateEdgeFixture(in PhysicsEdgeFixtureDef def);
     void UpdateFixtureMaterial(float density, float friction, float restitution);
 }

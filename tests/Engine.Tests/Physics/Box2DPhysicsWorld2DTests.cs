@@ -269,6 +269,70 @@ public class Box2DPhysicsWorld2DTests
         world.OverlapCircle(Vector2.Zero, -1f).ShouldBeNull();
     }
 
+    [Fact]
+    public void CreateCircleFixture_CreatesFixtureAndParticipatesInOverlap()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        var target = Entity.Create(1, "Circle");
+        var body = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+        body.Entity = target;
+        body.CreateCircleFixture(new PhysicsCircleFixtureDef(1f, Vector2.Zero, 0f, 0.5f, 0f, false));
+
+        body.HasFixture.ShouldBeTrue();
+        var hit = world.OverlapCircle(Vector2.Zero, 2f);
+        hit.ShouldNotBeNull();
+        hit.Value.Entity.Id.ShouldBe(target.Id);
+    }
+
+    [Fact]
+    public void CreateCircleFixture_InvalidRadius_DoesNotCreateFixture()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        var body = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+
+        body.CreateCircleFixture(new PhysicsCircleFixtureDef(0f, Vector2.Zero, 0f, 0.5f, 0f, false));
+        body.HasFixture.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CreateEdgeFixture_CreatesFixtureForSegment()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        var body = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+
+        body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
+            [new Vector2(-2f, 0f), new Vector2(2f, 0f)], 0f, 0.5f, 0f, false));
+
+        body.HasFixture.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CreateEdgeFixture_CreatesFixtureForChain()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        var body = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+
+        body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
+            [new Vector2(-2f, 0f), new Vector2(0f, 1f), new Vector2(2f, 0f)], 0f, 0.5f, 0f, false));
+
+        body.HasFixture.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CreateEdgeFixture_TooFewPoints_DoesNotCreateFixture()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        var body = world.CreateBody(new PhysicsBodyDef(
+            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+
+        body.CreateEdgeFixture(new PhysicsEdgeFixtureDef([Vector2.Zero], 0f, 0.5f, 0f, false));
+        body.HasFixture.ShouldBeFalse();
+    }
+
     private static IPhysicsBody2D CreateStaticBox(
         Box2DPhysicsWorld2D world,
         Entity entity,
