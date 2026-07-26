@@ -11,8 +11,9 @@ public MyScript(
     IComponentAccessor componentAccessor,
     IAudio audio,
     IAudioPlayback audioPlayback,
-    IPhysicsQueries physicsQueries)
-    : base(componentAccessor, audio, audioPlayback, physicsQueries) { }
+    IPhysicsQueries physicsQueries,
+    IEntityHierarchy hierarchy)
+    : base(componentAccessor, audio, audioPlayback, physicsQueries, hierarchy) { }
 ```
 
 Attach via `NativeScriptComponent.ScriptTypeName` = class name (e.g. `MyScript`). Only the type name is saved in scene JSON.
@@ -68,6 +69,18 @@ Host entity only — `T : IComponent` (engine components and `IGameComponent`). 
 | `void RemoveComponent<T>()` | Remove |
 
 Position/rotation/scale: `GetComponent<TransformComponent>()`. One component per type per entity.
+
+## Hierarchy
+
+Requires an active scene (`IEntityHierarchy`). No-ops / empty when the script is not initialized.
+
+| Member | Description |
+|--------|-------------|
+| `Entity? Parent` | Parent entity, or null if scene root |
+| `IReadOnlyList<Entity> Children` | Direct children |
+| `bool SetParent(Entity? parent)` | Reparent; null detaches to root |
+| `Entity? GetChild(string name)` | First direct child with the given name |
+| `Vector3 WorldPosition` | World-space translation from the cached world transform |
 
 ## Audio
 

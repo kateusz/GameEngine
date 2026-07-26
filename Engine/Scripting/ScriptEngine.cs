@@ -59,7 +59,9 @@ internal sealed class ScriptEngine(IAudio audio, IAudioPlayback audioPlayback, I
         {
             var componentAccessor = new ComponentAccessor();
             var physicsQueries = sceneContext.ActiveScene?.PhysicsQueries ?? NullPhysicsQueries.Instance;
-            return Activator.CreateInstance(scriptType, componentAccessor, audio, audioPlayback, physicsQueries) is ScriptableEntity instance
+            IEntityHierarchy hierarchy = sceneContext.ActiveScene
+                ?? (IEntityHierarchy)NullEntityHierarchy.Instance;
+            return Activator.CreateInstance(scriptType, componentAccessor, audio, audioPlayback, physicsQueries, hierarchy) is ScriptableEntity instance
                 ? Result.Success(instance)
                 : Result.Failure<ScriptableEntity>($"Unable to create instance of {scriptType}");
         }

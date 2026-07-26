@@ -31,7 +31,10 @@ public class CameraController : ScriptableEntity
     // Orthographic movement accumulator
     private Vector3 _orthoInput = Vector3.Zero;
 
-    public CameraController(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback, IPhysicsQueries physicsQueries, IEntityHierarchy hierarchy) : base(componentAccessor, audio, audioPlayback, physicsQueries, hierarchy)
+
+    public CameraController(IComponentAccessor componentAccessor, IAudio audio, IAudioPlayback audioPlayback,
+        IPhysicsQueries physicsQueries, IEntityHierarchy hierarchy)
+        : base(componentAccessor, audio, audioPlayback, physicsQueries, hierarchy)
     {
     }
 

@@ -16,4 +16,14 @@ public class ScriptableEntityTemplatesTests
         source.ShouldContain("public override void OnDestroy()");
         source.ShouldContain("public override void OnKeyPressed(KeyCodes key)");
     }
+
+    [Fact]
+    public void Generate_IncludesHierarchyConstructorArg()
+    {
+        var source = ScriptableEntityTemplates.Generate("PlayerController");
+
+        source.ShouldContain("IEntityHierarchy hierarchy");
+        source.ShouldContain(
+            ": base(componentAccessor, audio, audioPlayback, physicsQueries, hierarchy)");
+    }
 }
