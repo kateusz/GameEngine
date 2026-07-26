@@ -4,6 +4,7 @@ using Shouldly;
 
 namespace Engine.Tests.Serializer;
 
+[Collection("PathBuilder")]
 public class PathBuilderTests : IDisposable
 {
     private static string GameAssets =>
@@ -92,5 +93,26 @@ public class PathBuilderTests : IDisposable
         PathBuilder.UseProjectContext(context);
 
         PathBuilder.Build("sprites/icon.png").ShouldBe(PathBuilder.Resolve("sprites/icon.png"));
+    }
+
+    [Fact]
+    public void IsUnderAssets_true_for_path_inside_assets()
+    {
+        var context = Substitute.For<IProjectContext>();
+        context.AssetsPath.Returns(GameAssets);
+        PathBuilder.UseProjectContext(context);
+
+        PathBuilder.IsUnderAssets(RootedTexturePath).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsUnderAssets_false_for_path_outside_assets()
+    {
+        var context = Substitute.For<IProjectContext>();
+        context.AssetsPath.Returns(GameAssets);
+        PathBuilder.UseProjectContext(context);
+
+        var outside = OperatingSystem.IsWindows() ? @"C:\other\secret.png" : "/other/secret.png";
+        PathBuilder.IsUnderAssets(outside).ShouldBeFalse();
     }
 }

@@ -9,7 +9,7 @@ To navigate into a folder from the grid, double-click it. When you are inside a 
 | Extension | Type | Display |
 |-----------|------|---------|
 | `.png`, `.jpg` | Texture | Thumbnail (actual image preview) |
-| `.fbx`, `.gltf`, `.glb` | Model | File icon (labeled Type: Model) |
+| `.mesh` | Model | File icon (labeled Type: Model) |
 | `.wav`, `.ogg` | Audio Clip | File icon |
 | `.scene` | Scene | File icon |
 | `.prefab` | Prefab | File icon (same as other data files) |
@@ -25,10 +25,12 @@ All drop targets accept only files with matching extensions — dropping an inco
 | Drag source | Drop target | Result |
 |-------------|-------------|--------|
 | `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture |
-| `.fbx` / `.gltf` / `.glb` model | ModelRendererComponent model field | Assigns `ModelPath` |
+| `.mesh` model | ModelRendererComponent model field | Assigns `ModelPath` |
 | `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
 | `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
 | `.scene` scene file | Viewport | Opens the scene |
+
+Cook interchange formats (`.fbx` / `.gltf` / `.glb`) with **File → Import 3D Model…** into `assets/models/<stem>_<part>.mesh` (and spawn hierarchy) before assigning them on a model renderer. Raw source files are not drop targets for `ModelPath`.
 
 The Content Browser passes the asset's path relative to the `assets` directory as the drag-and-drop payload. Drop targets resolve the full path by combining this relative path with the project's assets root.
 

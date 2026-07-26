@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Renderer;
 using Engine.Renderer.Textures;
+using Math;
 using NSubstitute;
 using SceneComponents.Rendering;
 using Shouldly;
@@ -275,6 +276,79 @@ public class AssimpModelImporterTests : IDisposable
     }
 
     [Fact]
+    public void ImportParts_GltfTranslatedNode_YieldsNumericsTranslation()
+    {
+        var assetsDir = Path.Combine(AppContext.BaseDirectory, "TestAssets");
+        Directory.CreateDirectory(assetsDir);
+        var gltfPath = EnsureGltfTranslatedTriangle(assetsDir);
+        var importer = new AssimpModelImporter(_assimp);
+
+        var parts = importer.ImportParts(gltfPath);
+
+        parts.Count.ShouldBe(1);
+        MathHelpers.DecomposeTransform(
+            parts[0].LocalToRoot, out var translation, out _, out var scale);
+        translation.X.ShouldBe(10f, 0.01f);
+        translation.Y.ShouldBe(20f, 0.01f);
+        translation.Z.ShouldBe(30f, 0.01f);
+        scale.X.ShouldBe(1f, 0.01f);
+        scale.Y.ShouldBe(1f, 0.01f);
+        scale.Z.ShouldBe(1f, 0.01f);
+    }
+
+    private static string EnsureGltfTranslatedTriangle(string assetsDir)
+    {
+        var binPath = Path.Combine(assetsDir, "triangle_translated.bin");
+        using (var stream = System.IO.File.Create(binPath))
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write(0f); writer.Write(0f); writer.Write(0f);
+            writer.Write(1f); writer.Write(0f); writer.Write(0f);
+            writer.Write(0f); writer.Write(1f); writer.Write(0f);
+            writer.Write((ushort)0);
+            writer.Write((ushort)1);
+            writer.Write((ushort)2);
+        }
+
+        var gltfPath = Path.Combine(assetsDir, "triangle_translated.gltf");
+        System.IO.File.WriteAllText(gltfPath, """
+            {
+              "asset": { "version": "2.0" },
+              "scenes": [{ "nodes": [0] }],
+              "nodes": [{ "mesh": 0, "translation": [10, 20, 30] }],
+              "meshes": [{
+                "primitives": [{
+                  "attributes": { "POSITION": 0 },
+                  "indices": 1
+                }]
+              }],
+              "buffers": [{ "uri": "triangle_translated.bin", "byteLength": 42 }],
+              "bufferViews": [
+                { "buffer": 0, "byteOffset": 0, "byteLength": 36 },
+                { "buffer": 0, "byteOffset": 36, "byteLength": 6 }
+              ],
+              "accessors": [
+                {
+                  "bufferView": 0,
+                  "componentType": 5126,
+                  "count": 3,
+                  "type": "VEC3",
+                  "max": [1, 1, 0],
+                  "min": [0, 0, 0]
+                },
+                {
+                  "bufferView": 1,
+                  "componentType": 5123,
+                  "count": 3,
+                  "type": "SCALAR"
+                }
+              ]
+            }
+            """);
+        return gltfPath;
+    }
+
+    [Fact]
     public void Import_MissingFile_ShouldReturnEmpty()
     {
         var importer = new AssimpModelImporter(_assimp);
@@ -287,30 +361,28 @@ public class AssimpModelImporterTests : IDisposable
     public void Dispose() => _assimp.Dispose();
 }
 
-public class ModelFactoryTests : IDisposable
+public class ModelFactoryTests
 {
-    private readonly Assimp _assimp = Assimp.GetApi();
-
     [Fact]
-    public void Create_MissingPath_ShouldReturnNull()
+    public void Create_MissingMeshPath_ShouldReturnNull()
     {
         var factory = CreateFactory();
 
-        factory.Create(Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.obj"))
+        factory.Create(Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.mesh"))
             .ShouldBeNull();
     }
 
     [Fact]
-    public void Create_InvalidPath_ShouldNotCacheSuccess()
+    public void Create_InvalidMeshPath_ShouldNotCacheSuccess()
     {
         var factory = CreateFactory();
-        var missing = Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.obj");
+        var missing = Path.Combine(AppContext.BaseDirectory, "TestAssets", "missing.mesh");
 
         factory.Create(missing).ShouldBeNull();
         factory.Create(missing).ShouldBeNull();
     }
 
-    private ModelFactory CreateFactory()
+    private static ModelFactory CreateFactory()
     {
         var textureFactory = Substitute.For<ITextureFactory>();
         textureFactory.GetWhiteTexture().Returns(Substitute.For<Texture2D>());
@@ -321,9 +393,6 @@ public class ModelFactoryTests : IDisposable
             textureFactory,
             Substitute.For<Engine.Renderer.Buffers.VertexArray.IVertexArrayFactory>(),
             Substitute.For<Engine.Renderer.Buffers.IVertexBufferFactory>(),
-            Substitute.For<Engine.Renderer.Buffers.IIndexBufferFactory>(),
-            _assimp);
+            Substitute.For<Engine.Renderer.Buffers.IIndexBufferFactory>());
     }
-
-    public void Dispose() => _assimp.Dispose();
 }

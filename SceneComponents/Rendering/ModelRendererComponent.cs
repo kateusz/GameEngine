@@ -10,6 +10,15 @@ public class ModelRendererComponent : IComponent
     public float? MetallicOverride { get; set; }
     public float? RoughnessOverride { get; set; }
 
+    /// <summary>First submesh index to draw. Used with <see cref="SubmeshCount"/>.</summary>
+    public int SubmeshStart { get; set; }
+
+    /// <summary>
+    /// Number of submeshes to draw from <see cref="SubmeshStart"/>.
+    /// <c>-1</c> (default) = draw all submeshes in the file.
+    /// </summary>
+    public int SubmeshCount { get; set; } = -1;
+
     public ModelRendererComponent() { }
 
     public ModelRendererComponent(Vector4 color)
@@ -22,6 +31,8 @@ public class ModelRendererComponent : IComponent
         ModelPath = ModelPath,
         Color = Color,
         MetallicOverride = MetallicOverride,
-        RoughnessOverride = RoughnessOverride
+        RoughnessOverride = RoughnessOverride,
+        SubmeshStart = SubmeshStart,
+        SubmeshCount = SubmeshCount
     };
 }

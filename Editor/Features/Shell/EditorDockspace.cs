@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Features.Import;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
@@ -17,6 +18,7 @@ public class EditorDockspace(
     ViewportComponents viewport,
     EditorSettingsUI editorSettingsUI,
     NewProjectPopup newProjectPopup,
+    Import3DModelPopup import3DModelPopup,
     SceneSettingsPopup sceneSettingsPopup,
     PublishSettingsUI publishSettingsUI,
     ISceneManager sceneManager,
@@ -66,6 +68,7 @@ public class EditorDockspace(
 
         editorSettingsUI.Render();
         newProjectPopup.Render();
+        import3DModelPopup.Render();
         sceneSettingsPopup.Render();
         publishSettingsUI.Render();
     }

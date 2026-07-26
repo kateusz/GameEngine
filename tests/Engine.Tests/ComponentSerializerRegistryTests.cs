@@ -40,10 +40,12 @@ public class ComponentSerializerRegistryTests
         var entity = Entity.Create(1, "player");
         entity.AddComponent(new ModelRendererComponent
         {
-            ModelPath = "models/crate.gltf",
+            ModelPath = "models/crate.mesh",
             Color = new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f),
             MetallicOverride = 0.6f,
-            RoughnessOverride = 0.3f
+            RoughnessOverride = 0.3f,
+            SubmeshStart = 2,
+            SubmeshCount = 3
         });
 
         var array = new JsonArray();
@@ -55,10 +57,12 @@ public class ComponentSerializerRegistryTests
 
         loaded.HasComponent<ModelRendererComponent>().ShouldBeTrue();
         var modelRenderer = loaded.GetComponent<ModelRendererComponent>();
-        modelRenderer.ModelPath.ShouldBe("models/crate.gltf");
+        modelRenderer.ModelPath.ShouldBe("models/crate.mesh");
         modelRenderer.Color.ShouldBe(new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f));
         modelRenderer.MetallicOverride.ShouldBe(0.6f);
         modelRenderer.RoughnessOverride.ShouldBe(0.3f);
+        modelRenderer.SubmeshStart.ShouldBe(2);
+        modelRenderer.SubmeshCount.ShouldBe(3);
     }
 
     [Fact]

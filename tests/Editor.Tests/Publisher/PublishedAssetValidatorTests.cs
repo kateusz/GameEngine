@@ -136,7 +136,7 @@ public class PublishedAssetValidatorTests : IDisposable
             {
               "Components": [
                 { "AudioClipPath": "sounds/missing.wav" },
-                { "ModelPath": "models/missing.gltf" }
+                { "ModelPath": "models/missing.mesh" }
               ]
             }
             """);
@@ -146,7 +146,30 @@ public class PublishedAssetValidatorTests : IDisposable
         result.Success.ShouldBeFalse();
         var error = result.ErrorMessage.ShouldNotBeNull();
         error.ShouldContain("sounds/missing.wav");
-        error.ShouldContain("models/missing.gltf");
+        error.ShouldContain("models/missing.mesh");
+    }
+
+    [Fact]
+    public void ValidateAssetReferences_SucceedsWhenCookedMeshExists()
+    {
+        var assets = CreateAssetsLayout();
+        Directory.CreateDirectory(Path.Combine(assets, "models"));
+        File.WriteAllBytes(Path.Combine(assets, "models", "crate.mesh"), [1, 2, 3]);
+        WriteScene(assets, """
+            {
+              "Entities": [
+                {
+                  "Components": [
+                    { "ModelPath": "models/crate.mesh" }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeTrue();
     }
 
     private string CreateAssetsLayout()

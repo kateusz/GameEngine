@@ -5,7 +5,7 @@ namespace Editor.UI.Elements;
 
 public static class MeshDropTarget
 {
-    public static readonly string[] SupportedExtensions = [".fbx", ".gltf", ".glb"];
+    public static readonly string[] SupportedExtensions = [".mesh"];
 
     public static bool IsSupported(string filename) =>
         SupportedExtensions.Any(ext => filename.EndsWith(ext, StringComparison.OrdinalIgnoreCase));

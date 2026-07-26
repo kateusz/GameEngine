@@ -113,7 +113,7 @@ public class AudioSourceEditor : IComponentEditor<AudioSourceComponent>
 
 ### MeshDropTarget
 
-Drop target for mesh files (.obj, .fbx, .gltf, .glb).
+Drop target for mesh files (.mesh).
 
 #### Usage
 
@@ -148,7 +148,7 @@ public class MeshComponentEditor : IComponentEditor<MeshComponent>
 
 #### Features
 
-- ✅ Validates mesh file formats
+- ✅ Validates `.mesh` only (cooked meshes; use File → Import 3D Model… for FBX/glTF/GLB)
 - ✅ Shows mesh file name or "(None)"
 - ✅ Drag operation visual feedback
 - ✅ Validates mesh can be loaded

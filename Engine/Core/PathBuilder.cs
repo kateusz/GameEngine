@@ -33,6 +33,22 @@ public static class PathBuilder
         return Path.GetFullPath(Path.Combine(AssetsPath, path));
     }
 
+    /// <summary>
+    /// True when <paramref name="absolutePath"/> resolves under the current <see cref="AssetsPath"/>
+    /// (no <c>..</c> escape). Used to confine cooked texture loads.
+    /// </summary>
+    public static bool IsUnderAssets(string absolutePath)
+    {
+        if (string.IsNullOrWhiteSpace(absolutePath))
+            return false;
+
+        var assets = Path.GetFullPath(AssetsPath)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var full = Path.GetFullPath(absolutePath);
+        return full.StartsWith(assets + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+               || full.Equals(assets, StringComparison.OrdinalIgnoreCase);
+    }
+
     public static string ToAssetRelativePath(string path)
     {
         var resolved = Resolve(path);
