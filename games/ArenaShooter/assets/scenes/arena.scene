@@ -1263,6 +1263,256 @@
           "ScriptType": "WaterScript"
         }
       ]
+    },
+    {
+      "Id": 26,
+      "Name": "House1",
+      "Components": [
+        {
+          "Translation": [
+            -6.4,
+            3.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.2,
+            1.4,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 27,
+      "Name": "House2",
+      "Components": [
+        {
+          "Translation": [
+            3.4,
+            3.1,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            1.4,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 28,
+      "Name": "House3",
+      "Components": [
+        {
+          "Translation": [
+            2.9,
+            0.4,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.9,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 29,
+      "Name": "House4",
+      "Components": [
+        {
+          "Translation": [
+            4.9,
+            -2.7,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            1.2,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 30,
+      "Name": "House5",
+      "Components": [
+        {
+          "Translation": [
+            7.5,
+            -1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.6,
+            1.2,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
     }
   ]
 }

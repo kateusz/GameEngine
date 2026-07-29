@@ -350,7 +350,7 @@ public class ArenaSystem(
 
         SyncAim(game, playerPos, dead);
         SyncTracer(game, dead);
-        SyncHearts(game.Health);
+        SyncHearts(game.Health, game.MaxHealth);
         SyncScore(game.Score);
         SetSpriteColor("GameOverBanner", dead ? GameOverColor : Hidden);
     }
@@ -388,9 +388,9 @@ public class ArenaSystem(
             sprite.Color = show ? TracerColor : Hidden;
     }
 
-    private void SyncHearts(int health)
+    private void SyncHearts(int health, int maxHealth)
     {
-        for (var i = 0; i < health; i++)
+        for (var i = 0; i < maxHealth; i++)
         {
             var heart = context.GetByName($"Heart{i}");
             if (heart.TryGetComponent<SpriteRendererComponent>(out var sprite))
