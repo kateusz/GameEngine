@@ -4,6 +4,7 @@ using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Platform;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using Engine.Scene;
 using Serilog;
 
@@ -23,7 +24,7 @@ public class Import3DModelPopup(
     private bool _showOverwrite;
     private bool _showSummary;
 
-    private string _pathInput = "/Users/mateuszkulesza/Downloads/Illegal Elbow Punch.fbx";//OSInfo.IsWindows ? string.Empty : Environment.CurrentDirectory;
+    private string _pathInput = string.Empty;
     private string _sourceDisplay = string.Empty;
     private IReadOnlyList<string> _pendingSources = [];
     private int _conflictCount;

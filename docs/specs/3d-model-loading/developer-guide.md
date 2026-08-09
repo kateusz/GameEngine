@@ -35,7 +35,7 @@ Implementation guide for cook-on-import, `.mesh`-only runtime load, and skeletal
 
 ### Static (`CreateSplit`)
 
-```
+```text
 open source with Assimp (cook-time only)
 post-process: triangulate, normals/tangents (no PreTransformVertices; no FlipUVs)
 walk mesh-bearing nodes → parts with local-to-root transforms
@@ -46,7 +46,7 @@ MeshWriter → one assets/models/<stem>.mesh VERSION 2 (bone attrs = zeros)
 
 ### Skinned (`CreateSkinned`)
 
-```
+```text
 open source with Assimp — omit PreTransformVertices; LimitBoneWeights
 extract bone indices/weights onto verts (cap 100 bones; fail clearly if more)
 write .mesh VERSION 2 + .skel (parentIndex + inverseBind) + .anim3d (multi-clip, seconds)

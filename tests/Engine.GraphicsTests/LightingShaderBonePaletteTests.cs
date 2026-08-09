@@ -9,8 +9,9 @@ namespace Engine.GraphicsTests;
 
 /// <summary>
 /// The REAL production lighting shader against the live GL driver:
-/// (1) it must link at all — u_BoneMatrices[100] is 1600 uniform components, above the
-///     GL 3.3 guaranteed minimum of 1024, so minimum-spec drivers reject it;
+/// (1) it must link at all — u_BoneMatrices[100] is 1600 uniform components; we keep MaxBones=100
+///     (Mixamo often needs &gt;64) and require GL_MAX_VERTEX_UNIFORM_COMPONENTS ≥ 1600 (OpenGLShader
+///     fails fast when the driver is below that; GL 3.3 only guarantees 1024);
 /// (2) a full 100-matrix palette upload must land where the driver says each array element
 ///     lives — element location stride differs per driver (Apple GL: 4 per mat4, most
 ///     desktop drivers: 1), which is exactly the kind of macOS/Windows divergence that
@@ -21,6 +22,7 @@ namespace Engine.GraphicsTests;
 public class LightingShaderBonePaletteTests : IClassFixture<HeadlessGraphicsContextFixture>
 {
     private const int BoneCount = 100;
+    private const int RequiredVertexUniformComponents = BoneCount * 16;
     private readonly ITestOutputHelper _output;
 
     public LightingShaderBonePaletteTests(HeadlessGraphicsContextFixture _, ITestOutputHelper output)
@@ -39,9 +41,11 @@ public class LightingShaderBonePaletteTests : IClassFixture<HeadlessGraphicsCont
         File.Exists(frag).ShouldBeTrue(frag);
 
         SilkNetContext.GL.GetInteger(GetPName.MaxVertexUniformComponents, out int maxComponents);
-        _output.WriteLine($"GL_MAX_VERTEX_UNIFORM_COMPONENTS = {maxComponents} (palette needs 1600)");
+        _output.WriteLine($"GL_MAX_VERTEX_UNIFORM_COMPONENTS = {maxComponents} (palette needs {RequiredVertexUniformComponents})");
+        maxComponents.ShouldBeGreaterThanOrEqualTo(RequiredVertexUniformComponents,
+            "driver must meet the explicit bone-palette capability gate (MaxBones=100 → 1600 components)");
 
-        // Constructor throws on compile/link failure — the uniform-budget check per platform.
+        // Constructor throws on compile/link failure or insufficient uniform budget.
         using var shader = new OpenGLShader(vert, frag);
         shader.Bind();
 

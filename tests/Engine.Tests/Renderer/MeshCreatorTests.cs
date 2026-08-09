@@ -1,5 +1,6 @@
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Renderer.Serialization;
 using NSubstitute;
 using Shouldly;
 

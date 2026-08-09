@@ -1,7 +1,9 @@
 using System.Numerics;
 using ECS;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using Engine.Scene;
+using Engine.Scene.Skeletal;
 using Engine.Scene.Cameras;
 using NSubstitute;
 using SceneComponents;

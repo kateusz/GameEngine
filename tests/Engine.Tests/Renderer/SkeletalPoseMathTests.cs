@@ -1,7 +1,10 @@
 using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Scene;
+using Engine.Renderer.Serialization;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
+using Engine.Scene.Skeletal;
 using Engine.Tests.Fixtures;
 using NSubstitute;
 using Shouldly;
@@ -12,7 +15,7 @@ namespace Engine.Tests.Renderer;
 [Collection("PathBuilder")]
 public class SkeletalPoseMathTests : IDisposable
 {
-    private readonly string? _tempRoot;
+    private readonly string _tempRoot;
 
     public SkeletalPoseMathTests()
     {
@@ -28,7 +31,7 @@ public class SkeletalPoseMathTests : IDisposable
     public void Dispose()
     {
         PathBuilder.UseProjectContext(Substitute.For<IProjectContext>());
-        if (_tempRoot != null && Directory.Exists(_tempRoot))
+        if (Directory.Exists(_tempRoot))
             Directory.Delete(_tempRoot, recursive: true);
     }
 
@@ -311,20 +314,7 @@ public class SkeletalPoseMathTests : IDisposable
     [Fact]
     public void Evaluate_CookedSkinnedGltf_AtTimeZero_MatchesIdentitySkinningOnWeightedVerts()
     {
-        var assets = Path.Combine(_tempRoot!, "assets");
-        var sourceDir = Path.Combine(_tempRoot!, "source");
-        Directory.CreateDirectory(sourceDir);
-
-        var source = SkinnedGltfFixture.WriteTwoBoneSkinned(sourceDir, "twobone", animationCount: 1);
-        var cook = MeshCreator.CreateSkinned(source, assets, "twobone");
-        cook.Success.ShouldBeTrue(cook.Error);
-
-        using var skelStream = File.OpenRead(Path.Combine(assets, "models/twobone.skel"));
-        var skeleton = SkeletonReader.Read(skelStream);
-        using var animStream = File.OpenRead(Path.Combine(assets, "models/twobone.anim3d"));
-        var anim = Anim3dReader.Read(animStream);
-        using var meshStream = File.OpenRead(Path.Combine(assets, "models/twobone.mesh"));
-        var model = MeshReader.Read(meshStream);
+        var (skeleton, clip, model) = CookTwoBoneSkinned();
 
         // Rest-only palette must be identity (mesh bind ↔ InverseBind).
         var restPalette = new Matrix4x4[SkeletalPoseMath.MaxBones];
@@ -332,7 +322,6 @@ public class SkeletalPoseMathTests : IDisposable
         for (var i = 0; i < skeleton.Bones.Count; i++)
             AssertNearIdentity(restPalette[i], 1e-3f);
 
-        var clip = anim.Clips[0];
         var palette = new Matrix4x4[SkeletalPoseMath.MaxBones];
         SkeletalPoseMath.Evaluate(skeleton, clip, 0f, palette);
 
@@ -357,22 +346,8 @@ public class SkeletalPoseMathTests : IDisposable
     [Fact]
     public void Evaluate_CookedSkinnedGltf_AtMidClip_ProducesFiniteBoundedSkinning()
     {
-        var assets = Path.Combine(_tempRoot!, "assets");
-        var sourceDir = Path.Combine(_tempRoot!, "source");
-        Directory.CreateDirectory(sourceDir);
+        var (skeleton, clip, model) = CookTwoBoneSkinned();
 
-        var source = SkinnedGltfFixture.WriteTwoBoneSkinned(sourceDir, "twobone", animationCount: 1);
-        var cook = MeshCreator.CreateSkinned(source, assets, "twobone");
-        cook.Success.ShouldBeTrue(cook.Error);
-
-        using var skelStream = File.OpenRead(Path.Combine(assets, "models/twobone.skel"));
-        var skeleton = SkeletonReader.Read(skelStream);
-        using var animStream = File.OpenRead(Path.Combine(assets, "models/twobone.anim3d"));
-        var anim = Anim3dReader.Read(animStream);
-        using var meshStream = File.OpenRead(Path.Combine(assets, "models/twobone.mesh"));
-        var model = MeshReader.Read(meshStream);
-
-        var clip = anim.Clips[0];
         var palette = new Matrix4x4[SkeletalPoseMath.MaxBones];
         SkeletalPoseMath.Evaluate(skeleton, clip, clip.DurationSeconds * 0.5f, palette);
 
@@ -391,6 +366,26 @@ public class SkeletalPoseMathTests : IDisposable
                 poseSkinned.Length().ShouldBeLessThan(10f, "skinned vertex should stay near origin for fixture");
             }
         }
+    }
+
+    private (SkeletonAsset Skeleton, Anim3dClip Clip, Model Model) CookTwoBoneSkinned()
+    {
+        var assets = Path.Combine(_tempRoot, "assets");
+        var sourceDir = Path.Combine(_tempRoot, "source");
+        Directory.CreateDirectory(sourceDir);
+
+        var source = SkinnedGltfFixture.WriteTwoBoneSkinned(sourceDir, "twobone", animationCount: 1);
+        var cook = MeshCreator.CreateSkinned(source, assets, "twobone");
+        cook.Success.ShouldBeTrue(cook.Error);
+
+        using var skelStream = File.OpenRead(Path.Combine(assets, "models/twobone.skel"));
+        var skeleton = SkeletonReader.Read(skelStream);
+        using var animStream = File.OpenRead(Path.Combine(assets, "models/twobone.anim3d"));
+        var anim = Anim3dReader.Read(animStream);
+        using var meshStream = File.OpenRead(Path.Combine(assets, "models/twobone.mesh"));
+        var model = MeshReader.Read(meshStream);
+
+        return (skeleton, anim.Clips[0], model);
     }
 
     private static Matrix4x4[] CreateIdentityPalette()

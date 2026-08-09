@@ -1,8 +1,9 @@
 using System.Numerics;
-using System.Numerics;
 using System.Text;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Renderer.Serialization;
+using Engine.Renderer.Skeletal.Serialization;
 using Engine.Tests.Fixtures;
 using NSubstitute;
 using Shouldly;
@@ -155,7 +156,7 @@ public class SkinnedCookTests : IDisposable
         using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
 
         Encoding.ASCII.GetString(reader.ReadBytes(4)).ShouldBe("KULA");
-        // Submesh count follows the magic directly (no version field).
+        reader.ReadUInt32().ShouldBe(MeshReader.FormatVersion);
         reader.ReadUInt32().ShouldBe(1u);
 
         using var meshStream = File.OpenRead(meshAbsolute);

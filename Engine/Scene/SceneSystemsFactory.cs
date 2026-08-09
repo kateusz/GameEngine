@@ -5,6 +5,7 @@ using ECS.Systems;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using Engine.Scripting;

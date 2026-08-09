@@ -153,7 +153,11 @@ internal sealed class Scene : IScene
         Logger.Warning("Play mode has no camera — nothing will render until you add a CameraComponent.");
     }
 
-    public void OnRuntimeStop() => _systemManager.Shutdown();
+    public void OnRuntimeStop()
+    {
+        Skeletal.SkinnedRenderDiagnostics.Reset();
+        _systemManager.Shutdown();
+    }
 
     public void OnUpdateRuntime(TimeSpan ts)
     {

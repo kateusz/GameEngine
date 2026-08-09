@@ -1,5 +1,6 @@
 using System.Numerics;
-using Engine.Renderer;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
 using Shouldly;
 
 namespace Engine.Tests.Renderer;
@@ -32,7 +33,7 @@ public class Anim3dFormatRoundTripTests
                         new Anim3dQuatKey(0f, Quaternion.Identity),
                         new Anim3dQuatKey(1f, Quaternion.CreateFromAxisAngle(Vector3.UnitY, MathF.PI / 2f))
                     ],
-                    [new Anim3dVec3Key(0f, Vector3.One), new Anim3dVec3Key(2f, new Vector3(1, 1, 1))])
+                    [new Anim3dVec3Key(0f, Vector3.One), new Anim3dVec3Key(2f, new Vector3(2, 2, 2))])
             ]);
 
         var asset = new Anim3dAsset([clipA, clipB]);
@@ -60,6 +61,7 @@ public class Anim3dFormatRoundTripTests
         loaded.Clips[1].Channels[0].RotationKeys.Count.ShouldBe(2);
         loaded.Clips[1].Channels[0].ScaleKeys.Count.ShouldBe(2);
         loaded.Clips[1].Channels[0].ScaleKeys[0].Value.ShouldBe(Vector3.One);
+        loaded.Clips[1].Channels[0].ScaleKeys[1].Value.ShouldBe(new Vector3(2, 2, 2));
     }
 
     [Fact]

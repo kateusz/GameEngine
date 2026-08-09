@@ -1,5 +1,6 @@
 using Engine.Core;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Serialization;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
 using Serilog;

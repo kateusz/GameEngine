@@ -3,6 +3,8 @@ using ECS;
 using Engine.Core;
 using Engine.Platform;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents.Rendering;

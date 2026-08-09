@@ -29,3 +29,6 @@ Maintain a changelog or release notes for significant changes.
 
 ### Build What's Needed
 Avoid speculative code and "just in case" additions (see minimal-implementation.md).
+
+### Fenced Code Blocks
+Markdown fenced code blocks must include a language tag (e.g. `csharp`, `text`, `bash`). Bare ` ``` ` fences are not allowed.

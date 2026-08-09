@@ -1,10 +1,10 @@
 using System.Numerics;
 using Engine.Renderer;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal;
 
 /// <summary>Downscale oversized Assimp cooks (cm) to engine meters.</summary>
-internal static class CookUnitScale
+internal static class ImportUnitNormalizer
 {
     public const float CmToMeters = 0.01f;
     public const float OversizedExtentThreshold = 20f;
@@ -105,13 +105,12 @@ internal static class CookUnitScale
             foreach (var channel in clip.Channels)
             {
                 var translations = channel.TranslationKeys
-                    .Select(k => new Anim3dVec3Key(k.Time, k.Value * factor))
+                    .Select(k => k with { Value = k.Value * factor })
                     .ToList();
-                channels.Add(new Anim3dChannel(
-                    channel.BoneIndex, translations, channel.RotationKeys, channel.ScaleKeys));
+                channels.Add(channel with { TranslationKeys = translations });
             }
 
-            clips.Add(new Anim3dClip(clip.Name, clip.DurationSeconds, channels));
+            clips.Add(clip with { Channels = channels });
         }
 
         return new Anim3dAsset(clips);

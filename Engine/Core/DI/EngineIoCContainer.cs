@@ -10,6 +10,7 @@ using Engine.Platform.SilkNet;
 using Silk.NET.OpenAL;
 using Engine.Physics;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Shaders;

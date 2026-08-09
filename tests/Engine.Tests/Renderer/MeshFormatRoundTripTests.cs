@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text;
 using Engine.Renderer;
+using Engine.Renderer.Serialization;
 using Shouldly;
 
 namespace Engine.Tests.Renderer;
@@ -216,13 +217,11 @@ public class MeshFormatRoundTripTests
         MeshWriter.Write(stream, model);
 
         var bytes = stream.ToArray();
-        bytes.Length.ShouldBeGreaterThanOrEqualTo(8);
+        bytes.Length.ShouldBeGreaterThanOrEqualTo(12);
         Encoding.ASCII.GetString(bytes, 0, 4).ShouldBe("KULA");
-        // Little-endian submesh count follows the magic directly (no version field).
-        bytes[4].ShouldBe((byte)1);
-        bytes[5].ShouldBe((byte)0);
-        bytes[6].ShouldBe((byte)0);
-        bytes[7].ShouldBe((byte)0);
+        // Little-endian FormatVersion, then submesh count.
+        BitConverter.ToUInt32(bytes, 4).ShouldBe(MeshReader.FormatVersion);
+        BitConverter.ToUInt32(bytes, 8).ShouldBe(1u);
     }
 
     [Fact]
@@ -232,6 +231,7 @@ public class MeshFormatRoundTripTests
         using (var writer = new BinaryWriter(hostile, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write("KULA"u8.ToArray());
+            writer.Write(MeshReader.FormatVersion);
             writer.Write(1u);
             writer.Write(0u);
             writer.Write(1u);
@@ -262,6 +262,7 @@ public class MeshFormatRoundTripTests
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write("KULA"u8.ToArray());
+            writer.Write(MeshReader.FormatVersion);
             writer.Write(MeshReader.MaxSubmeshes + 1);
         }
 

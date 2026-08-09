@@ -15,8 +15,8 @@
         {
           "Translation": [
             0,
-            2,
-            5
+            5,
+            10
           ],
           "Rotation": [
             0,
@@ -98,6 +98,82 @@
             1
           ],
           "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 14,
+      "Name": "stachu-tex",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "SkeletonPath": "models/stachu-tex.skel",
+          "ClipPath": "models/stachu-tex.anim3d",
+          "ClipName": "Armature|mixamo.com",
+          "Time": 15.427796,
+          "Speed": 1,
+          "Loop": true,
+          "Playing": true,
+          "Name": "SkeletalPlaybackComponent"
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "Mesh_0.001",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            -0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": "models/stachu-tex.mesh",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": 1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "ParentId": 14,
+          "Name": "ParentComponent"
         }
       ]
     }

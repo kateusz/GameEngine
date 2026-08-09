@@ -12,4 +12,7 @@ public interface IShader : IBindable
     void SetInt(string name, int data);
     void SetIntArray(string name, int[] values, uint count);
     void UploadUniformIntArray(string name, int[] values, uint count);
+
+    /// <summary>Optional backend diagnostic; no-op unless the implementation supports it.</summary>
+    void LogUniformInventory(string label) { }
 }

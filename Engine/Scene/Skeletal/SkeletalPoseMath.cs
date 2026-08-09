@@ -1,8 +1,8 @@
 using System.Numerics;
-using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using SceneComponents.Rendering;
 
-namespace Engine.Scene;
+namespace Engine.Scene.Skeletal;
 
 /// <summary>
 /// Pure skeletal pose evaluation (no ECS/GPU). Row-vector convention throughout (v' = v·M):
@@ -13,6 +13,14 @@ namespace Engine.Scene;
 public static class SkeletalPoseMath
 {
     public const int MaxBones = SkeletalPlaybackComponent.MaxBones;
+
+    public static Matrix4x4[] CreateIdentityBonePalette()
+    {
+        var palette = new Matrix4x4[MaxBones];
+        for (var i = 0; i < MaxBones; i++)
+            palette[i] = Matrix4x4.Identity;
+        return palette;
+    }
 
     public static void Evaluate(SkeletonAsset skeleton, Anim3dClip clip, float timeSeconds, Matrix4x4[] destination)
     {

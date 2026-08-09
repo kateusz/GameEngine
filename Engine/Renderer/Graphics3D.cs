@@ -1,8 +1,7 @@
 using System.Numerics;
 using Engine.Core;
-using Engine.Platform.OpenGL;
-using Engine.Scene;
 using Engine.Scene.Cameras;
+using Engine.Scene.Skeletal;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 
@@ -20,8 +19,8 @@ internal sealed class Graphics3D(
 
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const string BoneMatricesUniform = "u_BoneMatrices[0]";
-    private const int BoneMatrixCount = 100;
-    private static readonly Matrix4x4[] IdentityBonePalette = CreateIdentityBonePalette();
+    private static readonly Matrix4x4[] IdentityBonePalette = SkeletalPoseMath.CreateIdentityBonePalette();
+    private const int BoneMatrixCount = SkeletalPoseMath.MaxBones;
 
     private IShader _cubeShader = null!;
     private IShader _texturedShader = null!;
@@ -38,14 +37,8 @@ internal sealed class Graphics3D(
     private bool _wireframeLoadFailed;
     private readonly Statistics _stats = new();
     private bool _disposed;
-
-    private static Matrix4x4[] CreateIdentityBonePalette()
-    {
-        var palette = new Matrix4x4[BoneMatrixCount];
-        for (var i = 0; i < BoneMatrixCount; i++)
-            palette[i] = Matrix4x4.Identity;
-        return palette;
-    }
+    private Matrix4x4[]? _lastUploadedBonePalette;
+    private bool _identityBonesUploaded;
 
     public void Init()
     {
@@ -61,13 +54,14 @@ internal sealed class Graphics3D(
         _texturedShader.SetInt("u_AlbedoMap", 0);
         _texturedShader.SetInt("u_MetallicRoughnessMap", 1);
         _texturedShader.SetInt("u_NormalMap", 2);
+        // One-time identity palette so unweighted draws can skip SetMat4Array.
+        _texturedShader.SetMat4Array(BoneMatricesUniform, IdentityBonePalette, (uint)BoneMatrixCount);
+        _identityBonesUploaded = true;
+        _lastUploadedBonePalette = IdentityBonePalette;
         _texturedShader.Unbind();
 
         SkinnedRenderDiagnostics.Once("graphics3d-lighting-shader", () =>
-        {
-            if (_texturedShader is OpenGLShader glShader)
-                glShader.LogUniformInventory("lightingShader");
-        });
+            _texturedShader.LogUniformInventory("lightingShader"));
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -82,7 +76,7 @@ internal sealed class Graphics3D(
 
         ApplyCamera(viewMatrix * camera.GetProjectionMatrix(), new Vector3(transform.M41, transform.M42, transform.M43));
         SkinnedRenderDiagnostics.Once("camera-entity", () =>
-            Logger.Information("SkinnedDbg BeginScene Camera entity transform row4=({X:F3},{Y:F3},{Z:F3})",
+            Logger.Debug("SkinnedDbg BeginScene Camera entity transform row4=({X:F3},{Y:F3},{Z:F3})",
                 transform.M41, transform.M42, transform.M43));
     }
 
@@ -93,7 +87,7 @@ internal sealed class Graphics3D(
         ApplyCamera(vp, pos);
         SkinnedRenderDiagnostics.Once("camera-viewcamera", () =>
         {
-            Logger.Information("SkinnedDbg BeginScene IViewCamera pos=({X:F3},{Y:F3},{Z:F3})", pos.X, pos.Y, pos.Z);
+            Logger.Debug("SkinnedDbg BeginScene IViewCamera pos=({X:F3},{Y:F3},{Z:F3})", pos.X, pos.Y, pos.Z);
             SkinnedRenderDiagnostics.LogMatrix("u_ViewProjection", vp);
         });
     }
@@ -149,7 +143,20 @@ internal sealed class Graphics3D(
         var usingIdentityBones = boneMatrices is null or { Length: < BoneMatrixCount }
             || IsIdentityPalette(boneMatrices);
         var bones = usingIdentityBones ? IdentityBonePalette : boneMatrices!;
-        _texturedShader.SetMat4Array(BoneMatricesUniform, bones, BoneMatrixCount);
+        // Live palettes are mutated in place each frame (same array ref) — must re-upload.
+        // Identity: seed once in Init and skip until a live palette was uploaded.
+        if (!usingIdentityBones)
+        {
+            _texturedShader.SetMat4Array(BoneMatricesUniform, bones, (uint)BoneMatrixCount);
+            _lastUploadedBonePalette = bones;
+            _identityBonesUploaded = false;
+        }
+        else if (!_identityBonesUploaded || !ReferenceEquals(_lastUploadedBonePalette, IdentityBonePalette))
+        {
+            _texturedShader.SetMat4Array(BoneMatricesUniform, IdentityBonePalette, (uint)BoneMatrixCount);
+            _lastUploadedBonePalette = IdentityBonePalette;
+            _identityBonesUploaded = true;
+        }
         // ponytail: large mat4[] clobbers earlier uniforms on some GL drivers
         _texturedShader.SetMat4(ViewProjectionUniform, _viewProjection);
         _texturedShader.SetMat4("u_Model", transform);
@@ -189,7 +196,7 @@ internal sealed class Graphics3D(
         if (!hasWeights && usingIdentityBones)
             return;
 
-        Logger.Information(
+        Logger.Debug(
             "SkinnedDbg DrawMesh entity={EntityId} mesh={Mesh} indices={IndexCount} identityBones={IdentityBones}",
             entityId, mesh.Name, mesh.GetIndexCount(), usingIdentityBones);
         SkinnedRenderDiagnostics.LogBonePalette($"gpu-entity-{entityId}", bones);
@@ -212,7 +219,7 @@ internal sealed class Graphics3D(
             maxDisp = MathF.Max(maxDisp, Vector3.Distance(v.Position, skinned));
         }
 
-        Logger.Information(
+        Logger.Debug(
             "SkinnedDbg cpuSkin entity={EntityId} samples={Samples} maxDisp={MaxDisp:F3} (if bounded but viewport explodes → GPU attrib/uniform)",
             entityId, samples, maxDisp);
     }
@@ -236,15 +243,20 @@ internal sealed class Graphics3D(
         if (weight <= 0f)
             return;
         var idx = (int)(boneIndexF + 0.5f);
-        if ((uint)idx >= (uint)palette.Length)
+        // Match GLSL BoneIndices() clamp to last bone (MaxBones-1), not force bone 0.
+        var maxIdx = System.Math.Min(palette.Length, BoneMatrixCount) - 1;
+        if (maxIdx < 0)
+            return;
+        if (idx < 0)
             idx = 0;
+        else if (idx > maxIdx)
+            idx = maxIdx;
         pos += Vector4.Transform(new Vector4(p, 1f), palette[idx]) * weight;
     }
 
     private static bool IsIdentityPalette(Matrix4x4[] bones)
     {
-        var n = System.Math.Min(bones.Length, 32);
-        for (var i = 0; i < n; i++)
+        for (var i = 0; i < bones.Length; i++)
         {
             if (bones[i] != Matrix4x4.Identity)
                 return false;

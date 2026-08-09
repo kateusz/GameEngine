@@ -1,19 +1,23 @@
 using System.Numerics;
 using System.Text;
+using Engine.Renderer.Skeletal.Serialization;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Serialization;
 
 /// <summary>
-/// Reads versioned little-endian *.mesh binary (KULA / VERSION=2). Always-present bone attrs.
+/// Reads versioned little-endian *.mesh binary (KULA / FormatVersion=2). Always-present bone attrs.
+/// Bone index -1 is the unused-influence sentinel and is only valid when the corresponding bone weight is zero.
 /// </summary>
 public static class MeshReader
 {
+    public const uint FormatVersion = 2;
     public const uint MaxSubmeshes = 65_536;
     public const uint MaxVerticesPerSubmesh = 5_000_000;
     public const uint MaxIndicesPerSubmesh = 15_000_000;
     public const uint MaxStringBytes = 4096;
 
     private const string ExpectedMagic = "KULA";
+    // FormatVersion 2 vertex layout: pos/nrm/uv/tan/bitan + 4×int32 bone ids + 4×float weights.
     private const uint VertexStrideBytes = 88;
 
     public static Model Read(Stream stream)
@@ -25,7 +29,12 @@ public static class MeshReader
         var magic = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (magic != ExpectedMagic)
             throw new InvalidDataException($"Invalid mesh magic '{magic}', expected '{ExpectedMagic}'");
-        
+
+        var version = reader.ReadUInt32();
+        if (version != FormatVersion)
+            throw new InvalidDataException(
+                $"Invalid mesh version {version}, expected {FormatVersion}");
+
         var submeshCount = reader.ReadUInt32();
         if (submeshCount > MaxSubmeshes)
             throw new InvalidDataException($"SUBMESH_COUNT {submeshCount} exceeds max {MaxSubmeshes}");
@@ -92,15 +101,54 @@ public static class MeshReader
 
     private static Mesh.Vertex ReadVertex(BinaryReader reader)
     {
+        var position = ReadVector3(reader);
+        var normal = ReadVector3(reader);
+        var texCoord = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+        var tangent = ReadVector3(reader);
+        var bitangent = ReadVector3(reader);
+
+        // File stores int32 indices; CPU/GPU vertex uses float4.
+        // Unused influence sentinel: -1 only when the corresponding weight is zero.
+        var i0 = reader.ReadInt32();
+        var i1 = reader.ReadInt32();
+        var i2 = reader.ReadInt32();
+        var i3 = reader.ReadInt32();
+        var w0 = reader.ReadSingle();
+        var w1 = reader.ReadSingle();
+        var w2 = reader.ReadSingle();
+        var w3 = reader.ReadSingle();
+
+        ValidateBoneInfluence(i0, w0);
+        ValidateBoneInfluence(i1, w1);
+        ValidateBoneInfluence(i2, w2);
+        ValidateBoneInfluence(i3, w3);
+
         return new Mesh.Vertex(
-            ReadVector3(reader),
-            ReadVector3(reader),
-            new Vector2(reader.ReadSingle(), reader.ReadSingle()),
-            ReadVector3(reader),
-            ReadVector3(reader),
-            // File stores int32 indices; CPU/GPU vertex uses float4.
-            new Vector4(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32()),
-            new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
+            position,
+            normal,
+            texCoord,
+            tangent,
+            bitangent,
+            new Vector4(i0, i1, i2, i3),
+            new Vector4(w0, w1, w2, w3));
+    }
+
+    private static void ValidateBoneInfluence(int boneIndex, float boneWeight)
+    {
+        if (!float.IsFinite(boneWeight))
+            throw new InvalidDataException($"Bone weight {boneWeight} is not finite");
+
+        if (boneIndex == -1)
+        {
+            if (boneWeight != 0f)
+                throw new InvalidDataException(
+                    $"Bone index sentinel -1 requires zero weight, got {boneWeight}");
+            return;
+        }
+
+        if (boneIndex < 0 || boneIndex >= SkeletonReader.MaxBones)
+            throw new InvalidDataException(
+                $"Bone index {boneIndex} out of range [0, {SkeletonReader.MaxBones - 1}] (or -1 with zero weight)");
     }
 
     private static Vector3 ReadVector3(BinaryReader reader) =>

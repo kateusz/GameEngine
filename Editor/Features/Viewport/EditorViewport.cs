@@ -28,8 +28,6 @@ public sealed class EditorViewport(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     IModelFactory modelFactory,
-    ISkeletonFactory skeletonFactory,
-    IAnim3dFactory anim3dFactory,
     DebugSettings debugSettings,
     EditorSettingsUI editorSettingsUI,
     IEditorPreferences editorPreferences,
@@ -263,7 +261,6 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
-                    SkeletalPlaybackUpdater.Update(scene.Context, skeletonFactory, anim3dFactory, deltaTime);
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
                     ApplyWireframeDuring(graphics3D, displayMode, () =>
                         SceneRenderPipeline.RenderScene(

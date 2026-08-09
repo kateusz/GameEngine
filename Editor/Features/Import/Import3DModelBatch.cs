@@ -1,6 +1,7 @@
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using Engine.Scene;
 using SceneComponents;
 using SceneComponents.Rendering;

@@ -152,8 +152,8 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
             // Vertex is blittable Float4 bone indices — raw upload matches shader a_BoneIndexF.
             var vertexSpan = CollectionsMarshal.AsSpan(vertices);
             var byteSpan = MemoryMarshal.AsBytes(vertexSpan);
-            if (byteSpan.Length < dataSize)
-                throw new ArgumentException($"dataSize {dataSize} exceeds vertex bytes {byteSpan.Length}", nameof(dataSize));
+            if (dataSize < 0 || dataSize > byteSpan.Length)
+                throw new ArgumentException($"dataSize {dataSize} is outside 0..{byteSpan.Length}", nameof(dataSize));
 
             fixed (byte* pData = byteSpan)
             {

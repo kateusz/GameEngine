@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Renderer.Serialization;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;

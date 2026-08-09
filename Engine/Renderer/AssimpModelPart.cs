@@ -8,16 +8,6 @@ internal readonly record struct AssimpModelPart(
     System.Numerics.Matrix4x4 LocalToRoot,
     IReadOnlyList<ModelSubmesh> Submeshes);
 
-internal sealed class AssimpSkinnedImport(
-    IReadOnlyList<AssimpModelPart> parts,
-    SkeletonAsset skeleton,
-    Anim3dAsset animations)
-{
-    public IReadOnlyList<AssimpModelPart> Parts { get; } = parts;
-    public SkeletonAsset Skeleton { get; } = skeleton;
-    public Anim3dAsset Animations { get; } = animations;
-}
-
 internal static class AssimpPartNaming
 {
     public static string Sanitize(string raw)

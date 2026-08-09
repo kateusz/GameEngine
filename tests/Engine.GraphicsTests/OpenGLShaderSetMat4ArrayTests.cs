@@ -29,7 +29,10 @@ public class OpenGLShaderSetMat4ArrayTests : IClassFixture<HeadlessGraphicsConte
             uniform mat4 u_Single;
             void main()
             {
-                gl_Position = vec4(a_Position, 1.0) * u_BoneMatrices[0] * u_Single;
+                // Reference every array element so drivers keep all four active for GetUniform.
+                gl_Position = vec4(a_Position, 1.0)
+                    * u_BoneMatrices[0] * u_BoneMatrices[1] * u_BoneMatrices[2] * u_BoneMatrices[3]
+                    * u_Single;
             }
             """);
 

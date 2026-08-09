@@ -1,11 +1,13 @@
 using System.Numerics;
 using System.Text;
+using Engine.Renderer.Skeletal;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal.Serialization;
 
-/// <summary>Reads *.skel binary (SKEL).</summary>
+/// <summary>Reads *.skel binary (SKEL / FormatVersion=1).</summary>
 public static class SkeletonReader
 {
+    public const uint FormatVersion = 1;
     public const uint MinBones = 1;
     public const uint MaxBones = 100;
     public const uint MaxStringBytes = 4096;
@@ -21,6 +23,11 @@ public static class SkeletonReader
         var magic = Encoding.ASCII.GetString(reader.ReadBytes(4));
         if (magic != ExpectedMagic)
             throw new InvalidDataException($"Invalid skeleton magic '{magic}', expected '{ExpectedMagic}'");
+
+        var version = reader.ReadUInt32();
+        if (version != FormatVersion)
+            throw new InvalidDataException(
+                $"Invalid skeleton version {version}, expected {FormatVersion}");
 
         var boneCount = reader.ReadUInt32();
         if (boneCount < MinBones || boneCount > MaxBones)
@@ -41,6 +48,7 @@ public static class SkeletonReader
 
     private static void ValidateBoneTopology(IReadOnlyList<SkeletonBone> bones)
     {
+        // Pass 1: range and self-parent across the entire collection before any parent dereference.
         for (var i = 0; i < bones.Count; i++)
         {
             var parentIndex = bones[i].ParentIndex;
@@ -48,7 +56,11 @@ public static class SkeletonReader
                 throw new InvalidDataException($"Bone {i} parentIndex {parentIndex} out of range [-1, {bones.Count - 1}]");
             if (parentIndex == i)
                 throw new InvalidDataException($"Bone {i} cannot be its own parent");
+        }
 
+        // Pass 2: cycle walk — parents are known in-range from pass 1.
+        for (var i = 0; i < bones.Count; i++)
+        {
             var visited = new HashSet<int>();
             var current = i;
             while (true)

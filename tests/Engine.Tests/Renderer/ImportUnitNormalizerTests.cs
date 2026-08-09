@@ -1,11 +1,12 @@
 using System.Numerics;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using Shouldly;
 
 namespace Engine.Tests.Renderer;
 
 [Trait("Category", "Unit")]
-public class CookUnitScaleTests
+public class ImportUnitNormalizerTests
 {
     [Fact]
     public void DetectDownscaleFactor_OversizedMesh_ReturnsCmToMeters()
@@ -14,9 +15,9 @@ public class CookUnitScaleTests
         mesh.Vertices.Add(new Mesh.Vertex { Position = new System.Numerics.Vector3(0f, 180f, 0f) });
         mesh.Indices.Add(0);
 
-        var factor = CookUnitScale.DetectDownscaleFactor([new ModelSubmesh(mesh, new MeshMaterial())]);
+        var factor = ImportUnitNormalizer.DetectDownscaleFactor([new ModelSubmesh(mesh, new MeshMaterial())]);
 
-        factor.ShouldBe(CookUnitScale.CmToMeters);
+        factor.ShouldBe(ImportUnitNormalizer.CmToMeters);
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class CookUnitScaleTests
         mesh.Vertices.Add(new Mesh.Vertex { Position = new System.Numerics.Vector3(0f, 1.8f, 0f) });
         mesh.Indices.Add(0);
 
-        var factor = CookUnitScale.DetectDownscaleFactor([new ModelSubmesh(mesh, new MeshMaterial())]);
+        var factor = ImportUnitNormalizer.DetectDownscaleFactor([new ModelSubmesh(mesh, new MeshMaterial())]);
 
         factor.ShouldBe(1f);
     }
@@ -40,7 +41,7 @@ public class CookUnitScaleTests
         var ib = Matrix4x4.CreateTranslation(0f, 180f, 0f);
         var skeleton = new SkeletonAsset([new SkeletonBone("hips", -1, ib)]);
 
-        var fixedSkel = CookUnitScale.HarmonizeInverseBindWithMesh(
+        var fixedSkel = ImportUnitNormalizer.HarmonizeInverseBindWithMesh(
             skeleton, [new ModelSubmesh(mesh, new MeshMaterial())]);
 
         var t = new Vector3(
@@ -71,11 +72,11 @@ public class CookUnitScaleTests
                 ])
         ]);
 
-        var scale = CookUnitScale.DetectScaleFactors(
+        var scale = ImportUnitNormalizer.DetectScaleFactors(
             [new ModelSubmesh(mesh, new MeshMaterial())], anim);
 
         scale.Mesh.ShouldBe(1f);
-        scale.Anim.ShouldBe(CookUnitScale.CmToMeters);
+        scale.Anim.ShouldBe(ImportUnitNormalizer.CmToMeters);
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public class CookUnitScaleTests
         mesh.Indices.Add(0);
         var submeshes = new[] { new ModelSubmesh(mesh, new MeshMaterial()) };
 
-        CookUnitScale.ApplyToSubmeshes(submeshes, CookUnitScale.CmToMeters);
+        ImportUnitNormalizer.ApplyToSubmeshes(submeshes, ImportUnitNormalizer.CmToMeters);
 
         mesh.Vertices[0].Position.Y.ShouldBe(2f, 0.001f);
     }

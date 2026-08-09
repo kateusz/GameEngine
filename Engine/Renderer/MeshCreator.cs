@@ -1,5 +1,8 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Renderer.Serialization;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
 using Math;
 using Serilog;
 using Silk.NET.Assimp;
@@ -173,8 +176,8 @@ public static class MeshCreator
                 return SplitResult.Fail($"Assimp produced no mesh nodes for: {source}");
 
             var allSubmeshesPreview = assimpParts.SelectMany(p => p.Submeshes).ToList();
-            var unitFactor = CookUnitScale.DetectDownscaleFactor(allSubmeshesPreview);
-            CookUnitScale.ApplyToSubmeshes(allSubmeshesPreview, unitFactor);
+            var unitFactor = ImportUnitNormalizer.DetectDownscaleFactor(allSubmeshesPreview);
+            ImportUnitNormalizer.ApplyToSubmeshes(allSubmeshesPreview, unitFactor);
 
             var modelsDir = Path.Combine(assetsRoot, "models");
             Directory.CreateDirectory(modelsDir);
@@ -232,13 +235,13 @@ public static class MeshCreator
             var skinned = SkinnedMeshSpace.BakePartsToRootSpace(importer.ImportSkinned(source));
 
             var allSubmeshesPreview = skinned.Parts.SelectMany(p => p.Submeshes).ToList();
-            var scale = CookUnitScale.DetectScaleFactors(allSubmeshesPreview, skinned.Animations);
-            CookUnitScale.ApplyToSubmeshes(allSubmeshesPreview, scale.Mesh);
+            var scale = ImportUnitNormalizer.DetectScaleFactors(allSubmeshesPreview, skinned.Animations);
+            ImportUnitNormalizer.ApplyToSubmeshes(allSubmeshesPreview, scale.Mesh);
             // InverseBind must follow mesh units. Assimp often leaves offsets in cm after FBX
             // unit-scale already shrank mesh verts — detect and fix before ApplyToSkeleton.
-            var skeleton = CookUnitScale.HarmonizeInverseBindWithMesh(skinned.Skeleton, allSubmeshesPreview);
-            skeleton = CookUnitScale.ApplyToSkeleton(skeleton, scale.Mesh);
-            var animations = CookUnitScale.ApplyToAnimations(skinned.Animations, scale.Anim);
+            var skeleton = ImportUnitNormalizer.HarmonizeInverseBindWithMesh(skinned.Skeleton, allSubmeshesPreview);
+            skeleton = ImportUnitNormalizer.ApplyToSkeleton(skeleton, scale.Mesh);
+            var animations = ImportUnitNormalizer.ApplyToAnimations(skinned.Animations, scale.Anim);
 
             var modelsDir = Path.Combine(assetsRoot, "models");
             Directory.CreateDirectory(modelsDir);
@@ -249,13 +252,39 @@ public static class MeshCreator
             var meshAbsolute = Path.Combine(modelsDir, $"{safeStem}.mesh");
             var skelAbsolute = Path.Combine(modelsDir, $"{safeStem}.skel");
             var animAbsolute = Path.Combine(modelsDir, $"{safeStem}.anim3d");
+            string? meshTemp = meshAbsolute + ".tmp";
+            string? skelTemp = skelAbsolute + ".tmp";
+            string? animTemp = animAbsolute + ".tmp";
+            string? movedMesh = null, movedSkel = null, movedAnim = null;
+            try
+            {
+                using (var stream = System.IO.File.Create(meshTemp))
+                    MeshWriter.Write(stream, new Model(allSubmeshes));
+                using (var stream = System.IO.File.Create(skelTemp))
+                    SkeletonWriter.Write(stream, skeleton);
+                using (var stream = System.IO.File.Create(animTemp))
+                    Anim3dWriter.Write(stream, animations);
 
-            using (var stream = System.IO.File.Create(meshAbsolute))
-                MeshWriter.Write(stream, new Model(allSubmeshes));
-            using (var stream = System.IO.File.Create(skelAbsolute))
-                SkeletonWriter.Write(stream, skeleton);
-            using (var stream = System.IO.File.Create(animAbsolute))
-                Anim3dWriter.Write(stream, animations);
+                System.IO.File.Move(meshTemp, meshAbsolute, overwrite: true);
+                movedMesh = meshAbsolute;
+                meshTemp = null;
+                System.IO.File.Move(skelTemp, skelAbsolute, overwrite: true);
+                movedSkel = skelAbsolute;
+                skelTemp = null;
+                System.IO.File.Move(animTemp, animAbsolute, overwrite: true);
+                movedAnim = animAbsolute;
+                animTemp = null;
+            }
+            catch
+            {
+                TryDeleteFile(meshTemp);
+                TryDeleteFile(skelTemp);
+                TryDeleteFile(animTemp);
+                TryDeleteFile(movedMesh);
+                TryDeleteFile(movedSkel);
+                TryDeleteFile(movedAnim);
+                throw;
+            }
 
             var meshRelative = PathBuilder.ToAssetRelativePath(meshAbsolute);
             var skelRelative = PathBuilder.ToAssetRelativePath(skelAbsolute);
@@ -295,5 +324,20 @@ public static class MeshCreator
 
         var meshPath = Path.Combine(Path.GetFullPath(projectAssetsRoot), "models", $"{safeStem}.mesh");
         return System.IO.File.Exists(meshPath) ? 1 : 0;
+    }
+
+    private static void TryDeleteFile(string? path)
+    {
+        if (path is null)
+            return;
+        try
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
+        catch
+        {
+            // Best-effort cleanup after a failed atomic cook.
+        }
     }
 }

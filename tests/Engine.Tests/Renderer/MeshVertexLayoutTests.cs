@@ -53,7 +53,7 @@ public class MeshVertexLayoutTests
         MemoryMarshal.Read<float>(bytes.Slice(Mesh.BoneIndexByteOffset + 12, 4)).ShouldBe(0f);
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct VertexLayoutMirror
     {
         public Vector3 Position;

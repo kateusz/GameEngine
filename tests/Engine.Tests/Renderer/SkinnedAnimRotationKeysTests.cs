@@ -1,7 +1,9 @@
 using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Scene;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
+using Engine.Scene.Skeletal;
 using Engine.Tests.Fixtures;
 using NSubstitute;
 using Shouldly;

@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal;
 
 /// <summary>CPU animation clip set DTO for *.anim3d (AN3D v1 / W4).</summary>
 public sealed class Anim3dAsset

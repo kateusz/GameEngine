@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal;
 
 /// <summary>CPU skeleton DTO for *.skel (SKEL v1).</summary>
 public sealed class SkeletonAsset

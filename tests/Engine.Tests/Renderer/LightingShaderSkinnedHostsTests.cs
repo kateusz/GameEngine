@@ -18,11 +18,13 @@ public class LightingShaderSkinnedHostsTests
     ];
 
     [Fact]
-    public void AllHostLightingVertexShaders_ExistWithBoneSkinningAttrs()
+    public void AllHostLightingVertexShaders_AreByteIdentical()
     {
         var repoRoot = FindRepoRoot();
         repoRoot.ShouldNotBeNull("Could not locate repo root from test base directory");
 
+        string? reference = null;
+        string? referenceHost = null;
         foreach (var host in HostRoots)
         {
             var path = Path.Combine(repoRoot, host, "assets", "shaders", "OpenGL", "lightingShader.vert");
@@ -33,8 +35,16 @@ public class LightingShaderSkinnedHostsTests
             src.Contains("a_BoneWeight", StringComparison.Ordinal).ShouldBeTrue(path);
             src.Contains("u_BoneMatrices[100]", StringComparison.Ordinal).ShouldBeTrue(path);
             src.Contains("MulRowVectorMatrix", StringComparison.Ordinal).ShouldBeTrue(path);
-            src.Contains("SkinPosition", StringComparison.Ordinal).ShouldBeTrue(path);
-            src.Contains("SkinDirection", StringComparison.Ordinal).ShouldBeTrue(path);
+            src.Contains("SkinMatrix", StringComparison.Ordinal).ShouldBeTrue(path);
+
+            if (reference is null)
+            {
+                reference = src;
+                referenceHost = host;
+                continue;
+            }
+
+            src.ShouldBe(reference, $"{host}/lightingShader.vert drifted from {referenceHost}/");
         }
     }
 

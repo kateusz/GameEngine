@@ -12,9 +12,13 @@ internal sealed class OpenGLShader : IShader
     private static readonly ILogger Logger = Log.ForContext<OpenGLShader>();
     private static readonly HashSet<uint> LoggedMissingBoneUniformPrograms = [];
 
+    // u_BoneMatrices[100] = 1600 components; GL 3.3 only guarantees 1024.
+    private const int BonePaletteRequiredVertexUniformComponents = 1600;
+
     private uint _handle;
     private readonly Dictionary<string, int> _uniformLocations;
     private readonly Dictionary<string, int[]> _arrayElementLocations = new(StringComparer.Ordinal);
+    private float[]? _mat4ArrayPackScratch;
     private bool _disposed;
 
     public OpenGLShader(string vertPath, string fragPath)
@@ -54,6 +58,23 @@ internal sealed class OpenGLShader : IShader
             var key = SilkNetContext.GL.GetActiveUniform(_handle, i, out _, out _);
             var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
             _uniformLocations.Add(key, location);
+        }
+
+        EnsureBonePaletteUniformCapacity();
+    }
+
+    private void EnsureBonePaletteUniformCapacity()
+    {
+        if (!_uniformLocations.Keys.Any(k => k.Contains("BoneMatrices", StringComparison.Ordinal)))
+            return;
+
+        SilkNetContext.GL.GetInteger(GetPName.MaxVertexUniformComponents, out int maxComponents);
+        if (maxComponents < BonePaletteRequiredVertexUniformComponents)
+        {
+            throw new InvalidOperationException(
+                $"Lighting shader needs {BonePaletteRequiredVertexUniformComponents} vertex uniform components " +
+                $"for u_BoneMatrices[100], but GL_MAX_VERTEX_UNIFORM_COMPONENTS={maxComponents}. " +
+                "Use a driver/GPU that meets this capability (GL 3.3 only guarantees 1024).");
         }
     }
 
@@ -115,7 +136,9 @@ internal sealed class OpenGLShader : IShader
         ArgumentNullException.ThrowIfNull(values);
         if (count > values.Length)
             throw new ArgumentOutOfRangeException(nameof(count), count, $"count ({count}) exceeds values.Length ({values.Length})");
-        if (!TryGetUniformLocation(name, out var location) || count == 0)
+        if (count == 0)
+            return;
+        if (!TryGetUniformLocation(name, out var location))
         {
             if (name.Contains("BoneMatrices", StringComparison.Ordinal)
                 && LoggedMissingBoneUniformPrograms.Add(_handle))
@@ -130,7 +153,10 @@ internal sealed class OpenGLShader : IShader
         }
 
         // Pack exactly `count` matrices (do not ignore count — SetIntArray anti-pattern).
-        var packed = new float[count * 16];
+        var packLen = (int)(count * 16);
+        if (_mat4ArrayPackScratch is null || _mat4ArrayPackScratch.Length < packLen)
+            _mat4ArrayPackScratch = new float[packLen];
+        var packed = _mat4ArrayPackScratch;
         for (uint i = 0; i < count; i++)
             PackMatrix4x4(values[i], packed, (int)(i * 16));
 
@@ -168,12 +194,12 @@ internal sealed class OpenGLShader : IShader
         return locations;
     }
 
-    internal void LogUniformInventory(string label)
+    public void LogUniformInventory(string label)
     {
         var rows = _uniformLocations
             .OrderBy(kv => kv.Value)
             .Select(kv => $"{kv.Key}@{kv.Value}");
-        Logger.Information(
+        Logger.Debug(
             "SkinnedDbg shader uniforms {Label} program={Program}: {Uniforms}",
             label, _handle, string.Join(", ", rows));
     }

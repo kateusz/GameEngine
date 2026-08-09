@@ -1,7 +1,8 @@
 using Engine.Core;
+using Engine.Renderer.Skeletal.Serialization;
 using Serilog;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal;
 
 /// <summary>Path-keyed cache for cooked *.skel assets. Consumers must not dispose returned assets.</summary>
 public interface ISkeletonFactory
@@ -33,31 +34,38 @@ internal sealed class SkeletonFactory : ISkeletonFactory, IDisposable
         {
             if (_cache.TryGetValue(normalizedPath, out var cached))
                 return cached;
+        }
 
-            if (!PathBuilder.IsUnderAssets(normalizedPath))
-            {
-                Logger.Warning("Rejected skeleton path outside assets root: {Path}", normalizedPath);
-                return null;
-            }
+        if (!PathBuilder.IsUnderAssets(normalizedPath))
+        {
+            Logger.Warning("Rejected skeleton path outside assets root: {Path}", normalizedPath);
+            return null;
+        }
 
-            if (!File.Exists(normalizedPath))
-            {
-                Logger.Warning("Skeleton file not found: {Path}", normalizedPath);
-                return null;
-            }
+        if (!File.Exists(normalizedPath))
+        {
+            Logger.Warning("Skeleton file not found: {Path}", normalizedPath);
+            return null;
+        }
 
-            try
-            {
-                using var stream = File.OpenRead(normalizedPath);
-                var asset = SkeletonReader.Read(stream);
-                _cache[normalizedPath] = asset;
-                return asset;
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex, "Failed to load skeleton: {Path}", normalizedPath);
-                return null;
-            }
+        SkeletonAsset asset;
+        try
+        {
+            using var stream = File.OpenRead(normalizedPath);
+            asset = SkeletonReader.Read(stream);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to load skeleton: {Path}", normalizedPath);
+            return null;
+        }
+
+        lock (_cacheLock)
+        {
+            if (_cache.TryGetValue(normalizedPath, out var raced))
+                return raced;
+            _cache[normalizedPath] = asset;
+            return asset;
         }
     }
 

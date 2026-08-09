@@ -2,6 +2,7 @@ using Editor.Features.Import;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Renderer.Skeletal;
 using NSubstitute;
 using Shouldly;
 

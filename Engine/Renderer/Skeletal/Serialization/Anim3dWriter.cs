@@ -1,11 +1,14 @@
 using System.Numerics;
 using System.Text;
+using Engine.Renderer.Skeletal;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal.Serialization;
 
-/// <summary>Writes *.anim3d binary (AN3D).</summary>
+/// <summary>Writes *.anim3d binary (AN3D / FormatVersion=1).</summary>
 public static class Anim3dWriter
 {
+    public const uint FormatVersion = Anim3dReader.FormatVersion;
+
     private static readonly byte[] Magic = [.. "AN3D"u8];
 
     public static void Write(Stream stream, Anim3dAsset asset)
@@ -15,6 +18,7 @@ public static class Anim3dWriter
 
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(Magic);
+        writer.Write(FormatVersion);
         writer.Write((uint)asset.Clips.Count);
 
         foreach (var clip in asset.Clips)

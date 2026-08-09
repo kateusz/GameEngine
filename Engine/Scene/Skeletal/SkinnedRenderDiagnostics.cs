@@ -1,7 +1,8 @@
 using System.Numerics;
 using Serilog;
+using Serilog.Events;
 
-namespace Engine.Scene;
+namespace Engine.Scene.Skeletal;
 
 /// <summary>Throttled skeletal render logs — enable Debug in console to see.</summary>
 internal static class SkinnedRenderDiagnostics
@@ -9,6 +10,14 @@ internal static class SkinnedRenderDiagnostics
     private static readonly ILogger Logger = Log.ForContext(typeof(SkinnedRenderDiagnostics));
     private static readonly HashSet<string> LoggedOnce = [];
     private static int _renderFrame;
+
+    public static bool DebugEnabled => Logger.IsEnabled(LogEventLevel.Debug);
+
+    public static void Reset()
+    {
+        LoggedOnce.Clear();
+        _renderFrame = 0;
+    }
 
     public static void OnRenderFrame() => _renderFrame++;
 
@@ -23,6 +32,9 @@ internal static class SkinnedRenderDiagnostics
 
     public static void LogBonePalette(string source, Matrix4x4[] palette, int sampleBones = 3, params int[] extraBoneIndices)
     {
+        if (!DebugEnabled)
+            return;
+
         var maxT = 0f;
         var nonIdentity = 0;
         var maxDeviation = 0f;

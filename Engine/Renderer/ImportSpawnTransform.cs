@@ -1,5 +1,6 @@
 using System.Numerics;
 using Math;
+using Engine.Renderer.Skeletal;
 
 namespace Engine.Renderer;
 
@@ -18,8 +19,9 @@ internal static class ImportSpawnTransform
         // FbxConvertToMeters can leave cm translations on the node matrix while verts are already meters.
         if (IsUniformCentimeterNodeScale(scale))
         {
-            translation *= CookUnitScale.CmToMeters;
-            scale = Vector3.One;
+            translation *= ImportUnitNormalizer.CmToMeters;
+            var sign = MathF.Sign(scale.X);
+            scale = new Vector3(sign, sign, sign);
         }
         else if (MathF.Abs(unitDownscaleFactor - 1f) > 1e-6f)
             translation *= unitDownscaleFactor;
@@ -29,6 +31,10 @@ internal static class ImportSpawnTransform
 
     private static bool IsUniformCentimeterNodeScale(Vector3 scale)
     {
+        // Mirrored / mixed-sign scales are not "cm uniform" — keep them as authored.
+        if (scale.X * scale.Y < 0f || scale.X * scale.Z < 0f)
+            return false;
+
         var ax = MathF.Abs(scale.X);
         var ay = MathF.Abs(scale.Y);
         var az = MathF.Abs(scale.Z);

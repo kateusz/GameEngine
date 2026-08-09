@@ -6,7 +6,7 @@ namespace Engine.Renderer;
 internal static class AssimpSceneImport
 {
     // assimp/config.h — FBX files often import with ~100 uniform scale (cm); convert to meters.
-    private const string FbxConvertToMeters = "FbxConvertToMeters";
+    private const string FbxConvertToMeters = "AI_CONFIG_FBX_CONVERT_TO_M";
 
     public static unsafe Silk.NET.Assimp.Scene* Import(Assimp assimp, string path, uint flags)
     {

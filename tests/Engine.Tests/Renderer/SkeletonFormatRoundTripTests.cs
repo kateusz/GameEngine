@@ -1,5 +1,6 @@
 using System.Numerics;
-using Engine.Renderer;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
 using Shouldly;
 
 namespace Engine.Tests.Renderer;

@@ -52,7 +52,7 @@ Work through every `.mesh` in your `assets/models/` folder. A step-by-step check
 
 Skinned characters need **three** files with the same base name:
 
-```
+```text
 assets/models/character.mesh
 assets/models/character.skel
 assets/models/character.anim3d

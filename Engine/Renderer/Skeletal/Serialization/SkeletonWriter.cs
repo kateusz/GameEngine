@@ -1,9 +1,10 @@
 using System.Numerics;
 using System.Text;
+using Engine.Renderer.Skeletal;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Skeletal.Serialization;
 
-/// <summary>Writes *.skel binary (SKEL).</summary>
+/// <summary>Writes *.skel binary (SKEL / FormatVersion=1).</summary>
 public static class SkeletonWriter
 {
     private static readonly byte[] Magic = [.. "SKEL"u8];
@@ -13,8 +14,11 @@ public static class SkeletonWriter
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(asset);
 
+        ValidateForWrite(asset);
+
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(Magic);
+        writer.Write(SkeletonReader.FormatVersion);
         writer.Write((uint)asset.Bones.Count);
 
         foreach (var bone in asset.Bones)
@@ -22,6 +26,25 @@ public static class SkeletonWriter
             WriteString(writer, bone.Name);
             writer.Write(bone.ParentIndex);
             WriteMatrix(writer, bone.InverseBind);
+        }
+    }
+
+    private static void ValidateForWrite(SkeletonAsset asset)
+    {
+        var boneCount = (uint)asset.Bones.Count;
+        if (boneCount < SkeletonReader.MinBones || boneCount > SkeletonReader.MaxBones)
+            throw new InvalidOperationException(
+                $"Cannot write skeleton: BONE_COUNT {boneCount} must be in {SkeletonReader.MinBones}..{SkeletonReader.MaxBones}");
+
+        foreach (var bone in asset.Bones)
+        {
+            if (string.IsNullOrEmpty(bone.Name))
+                continue;
+
+            var byteCount = Encoding.UTF8.GetByteCount(bone.Name);
+            if (byteCount > SkeletonReader.MaxStringBytes)
+                throw new InvalidOperationException(
+                    $"Cannot write skeleton bone '{bone.Name}': UTF-8 byte count {byteCount} exceeds max {SkeletonReader.MaxStringBytes}");
         }
     }
 

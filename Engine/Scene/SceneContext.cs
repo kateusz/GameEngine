@@ -18,6 +18,7 @@ public class SceneContext : ISceneContext
     
     public void SetScene(IScene newScene)
     {
+        Skeletal.SkinnedRenderDiagnostics.Reset();
         ActiveScene = newScene;
         SceneChanged.Invoke(newScene);
     }

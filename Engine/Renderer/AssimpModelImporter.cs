@@ -1,8 +1,13 @@
+using System.Buffers;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
 using Serilog;
 using Silk.NET.Assimp;
+using SkeletalBone = Engine.Renderer.Skeletal.SkeletonBone;
+using SkeletonBone = Engine.Renderer.Skeletal.SkeletonBone;
 
 namespace Engine.Renderer;
 
@@ -230,6 +235,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
     {
         // Collect bone names from mesh weights; inverse-bind from node bind pose (row-vector).
         var boneNames = new HashSet<string>(StringComparer.Ordinal);
+        var offsetByName = new Dictionary<string, Matrix4x4>(StringComparer.Ordinal);
         for (uint mi = 0; mi < scene->MNumMeshes; mi++)
         {
             var aiMesh = scene->MMeshes[mi];
@@ -238,9 +244,12 @@ internal sealed class AssimpModelImporter(Assimp assimp)
 
             for (uint bi = 0; bi < aiMesh->MNumBones; bi++)
             {
-                var name = aiMesh->MBones[bi]->MName.AsString;
-                if (!string.IsNullOrEmpty(name))
-                    boneNames.Add(name);
+                var bone = aiMesh->MBones[bi];
+                var name = bone->MName.AsString;
+                if (string.IsNullOrEmpty(name))
+                    continue;
+                boneNames.Add(name);
+                offsetByName.TryAdd(name, Matrix4x4.Transpose(bone->MOffsetMatrix));
             }
         }
 
@@ -276,7 +285,7 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         for (var i = 0; i < sortedNames.Count; i++)
             indexByName[sortedNames[i]] = i;
 
-        var bones = new List<SkeletonBone>(sortedNames.Count);
+        var bones = new List<SkeletalBone>(sortedNames.Count);
         foreach (var name in sortedNames)
         {
             var parentIndex = -1;
@@ -295,7 +304,8 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                 }
             }
 
-            var inverseBind = TryAssimpOffsetMatrix(scene, name);
+            if (!offsetByName.TryGetValue(name, out var inverseBind))
+                inverseBind = Matrix4x4.Identity;
             if (inverseBind == Matrix4x4.Identity)
             {
                 Logger.Warning("Bone {Bone} missing Assimp offset matrix", name);
@@ -307,11 +317,13 @@ internal sealed class AssimpModelImporter(Assimp assimp)
                 }
             }
 
-            bones.Add(new SkeletonBone(name, parentIndex, inverseBind));
+            bones.Add(new SkeletalBone(name, parentIndex, inverseBind));
         }
 
         return new SkeletonAsset(bones);
     }
+
+    private const int BindGlobalStackDepth = 64;
 
     private static unsafe Matrix4x4 ComputeBindGlobalRow(Node* node)
     {
@@ -319,40 +331,37 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         for (var n = node; n != null; n = n->MParent)
             depth++;
 
-        Span<nint> chain = stackalloc nint[depth];
-        var index = depth - 1;
+        if (depth <= BindGlobalStackDepth)
+        {
+            Span<nint> chain = stackalloc nint[depth];
+            return ComposeBindGlobalRow(node, chain);
+        }
+
+        var rented = ArrayPool<nint>.Shared.Rent(depth);
+        try
+        {
+            return ComposeBindGlobalRow(node, rented.AsSpan(0, depth));
+        }
+        finally
+        {
+            ArrayPool<nint>.Shared.Return(rented);
+        }
+    }
+
+    private static unsafe Matrix4x4 ComposeBindGlobalRow(Node* node, Span<nint> chain)
+    {
+        var index = chain.Length - 1;
         for (var n = node; n != null; n = n->MParent)
             chain[index--] = (nint)n;
 
         var worldColumn = Matrix4x4.Identity;
-        for (var i = 0; i < depth; i++)
+        for (var i = 0; i < chain.Length; i++)
         {
             var n = (Node*)chain[i];
             worldColumn = Matrix4x4.Multiply(worldColumn, n->MTransformation);
         }
 
         return Matrix4x4.Transpose(worldColumn);
-    }
-
-    private static unsafe Matrix4x4 TryAssimpOffsetMatrix(Silk.NET.Assimp.Scene* scene, string boneName)
-    {
-        for (uint mi = 0; mi < scene->MNumMeshes; mi++)
-        {
-            var aiMesh = scene->MMeshes[mi];
-            if (aiMesh->MNumBones == 0 || aiMesh->MBones == null)
-                continue;
-
-            for (uint bi = 0; bi < aiMesh->MNumBones; bi++)
-            {
-                var bone = aiMesh->MBones[bi];
-                if (!string.Equals(bone->MName.AsString, boneName, StringComparison.Ordinal))
-                    continue;
-
-                return Matrix4x4.Transpose(bone->MOffsetMatrix);
-            }
-        }
-
-        return Matrix4x4.Identity;
     }
 
     private static int NodeDepth(string name, Dictionary<string, nint> nodesByName)
@@ -457,18 +466,24 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         for (var vi = 0; vi < vertCount; vi++)
         {
             var list = influences[vi];
-            if (list.Count == 0)
-                continue;
 
             // LimitBoneWeights caps Assimp side; still keep ≤4 and renormalize.
-            list.Sort((a, b) => b.Weight.CompareTo(a.Weight));
-            if (list.Count > 4)
-                list.RemoveRange(4, list.Count - 4);
+            if (list.Count > 0)
+            {
+                list.Sort((a, b) => b.Weight.CompareTo(a.Weight));
+                if (list.Count > 4)
+                    list.RemoveRange(4, list.Count - 4);
+            }
 
             var sum = 0f;
             for (var i = 0; i < list.Count; i++)
                 sum += list[i].Weight;
-            if (sum > 1e-6f)
+            if (list.Count == 0 || sum <= 1e-6f)
+            {
+                list.Clear();
+                list.Add((0, 1f));
+            }
+            else
             {
                 for (var i = 0; i < list.Count; i++)
                     list[i] = (list[i].Bone, list[i].Weight / sum);

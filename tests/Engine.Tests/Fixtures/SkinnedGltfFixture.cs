@@ -17,7 +17,7 @@ internal static class SkinnedGltfFixture
         var gltfPath = Path.Combine(dir, $"{stem}.gltf");
         var anim2 = animationCount >= 2;
 
-        WriteTwoBoneBin(binPath, anim2, withRotation, withScale);
+        var views = WriteTwoBoneBin(binPath, anim2, withRotation, withScale);
         var binLen = new FileInfo(binPath).Length;
 
         var accessors = new List<object>
@@ -39,17 +39,6 @@ internal static class SkinnedGltfFixture
             new { bufferView = 6, componentType = 5126, count = 2, type = "VEC3" }
         };
 
-        var bufferViews = new List<object>
-        {
-            new { buffer = 0, byteOffset = 0, byteLength = 36 },
-            new { buffer = 0, byteOffset = 36, byteLength = 12 },
-            new { buffer = 0, byteOffset = 48, byteLength = 48 },
-            new { buffer = 0, byteOffset = 96, byteLength = 6 },
-            new { buffer = 0, byteOffset = 104, byteLength = 128 },
-            new { buffer = 0, byteOffset = 232, byteLength = 8 },
-            new { buffer = 0, byteOffset = 240, byteLength = 24 }
-        };
-
         if (anim2)
         {
             accessors.Add(new
@@ -58,9 +47,11 @@ internal static class SkinnedGltfFixture
                 max = new[] { 2f }, min = new[] { 0f }
             });
             accessors.Add(new { bufferView = 8, componentType = 5126, count = 2, type = "VEC3" });
-            bufferViews.Add(new { buffer = 0, byteOffset = 264, byteLength = 8 });
-            bufferViews.Add(new { buffer = 0, byteOffset = 272, byteLength = 24 });
         }
+
+        var bufferViews = new List<object>(views.Count);
+        foreach (var (offset, length) in views)
+            bufferViews.Add(new { buffer = 0, byteOffset = offset, byteLength = length });
 
         var clipAChannels = new List<object>
         {
@@ -71,13 +62,13 @@ internal static class SkinnedGltfFixture
             new { input = 5, output = 6, interpolation = "LINEAR" }
         };
 
+        // Base views 0..6; anim2 adds 7..8; rotation/scale append after that (same order as WriteTwoBoneBin).
+        var nextView = 7 + (anim2 ? 2 : 0);
+
         if (withRotation)
         {
-            var rotOffset = anim2 ? 296 : 264;
-            var timesView = bufferViews.Count;
-            bufferViews.Add(new { buffer = 0, byteOffset = rotOffset, byteLength = 12 });
-            var quatsView = bufferViews.Count;
-            bufferViews.Add(new { buffer = 0, byteOffset = rotOffset + 12, byteLength = 48 });
+            var timesView = nextView++;
+            var quatsView = nextView++;
 
             var timesAcc = accessors.Count;
             accessors.Add(new
@@ -98,11 +89,8 @@ internal static class SkinnedGltfFixture
 
         if (withScale)
         {
-            var scaleOffset = (anim2 ? 296 : 264) + (withRotation ? 60 : 0);
-            var timesView = bufferViews.Count;
-            bufferViews.Add(new { buffer = 0, byteOffset = scaleOffset, byteLength = 8 });
-            var scalesView = bufferViews.Count;
-            bufferViews.Add(new { buffer = 0, byteOffset = scaleOffset + 8, byteLength = 24 });
+            var timesView = nextView++;
+            var scalesView = nextView;
 
             var timesAcc = accessors.Count;
             accessors.Add(new
@@ -311,15 +299,32 @@ internal static class SkinnedGltfFixture
         return gltfPath;
     }
 
-    private static void WriteTwoBoneBin(string binPath, bool anim2, bool withRotation = false, bool withScale = false)
+    /// <summary>Writes the shared two-bone bin and returns bufferView (offset, length) in write order.</summary>
+    private static List<(int Offset, int Length)> WriteTwoBoneBin(
+        string binPath,
+        bool anim2,
+        bool withRotation = false,
+        bool withScale = false)
     {
+        var views = new List<(int Offset, int Length)>();
         using var stream = File.Create(binPath);
         using var w = new BinaryWriter(stream);
 
+        void Mark(int length)
+        {
+            var end = (int)w.BaseStream.Position;
+            views.Add((end - length, length));
+        }
+
+        long Begin() => w.BaseStream.Position;
+
+        var start = Begin();
         WriteF3(w, 0, 0, 0);
         WriteF3(w, 1, 0, 0);
         WriteF3(w, 0, 1, 0);
+        Mark((int)(w.BaseStream.Position - start));
 
+        start = Begin();
         for (var i = 0; i < 3; i++)
         {
             w.Write((byte)0);
@@ -327,49 +332,78 @@ internal static class SkinnedGltfFixture
             w.Write((byte)0);
             w.Write((byte)0);
         }
+        Mark((int)(w.BaseStream.Position - start));
 
+        start = Begin();
         for (var i = 0; i < 3; i++)
             WriteF4(w, 0.75f, 0.25f, 0f, 0f);
+        Mark((int)(w.BaseStream.Position - start));
 
+        start = Begin();
         w.Write((ushort)0);
         w.Write((ushort)1);
         w.Write((ushort)2);
-        w.Write((ushort)0); // pad → 104
+        Mark((int)(w.BaseStream.Position - start)); // 6 bytes — pad ushort is outside the view
+        w.Write((ushort)0);
 
+        start = Begin();
         WriteIdentityMat4(w);
-        WriteIdentityMat4(w); // → 232
+        WriteIdentityMat4(w);
+        Mark((int)(w.BaseStream.Position - start));
 
+        start = Begin();
         w.Write(0f);
         w.Write(1f);
+        Mark((int)(w.BaseStream.Position - start));
+
+        start = Begin();
         WriteF3(w, 0, 0, 0);
         WriteF3(w, 0, 0.5f, 0);
+        Mark((int)(w.BaseStream.Position - start));
 
         if (anim2)
         {
+            start = Begin();
             w.Write(0f);
             w.Write(2f);
+            Mark((int)(w.BaseStream.Position - start));
+
+            start = Begin();
             WriteF3(w, 0, 0, 0);
             WriteF3(w, 0.5f, 0, 0);
+            Mark((int)(w.BaseStream.Position - start));
         }
 
         if (withRotation)
         {
             // 3 keys so key strides past index 0 are exercised (interop layout bugs hide on key 0).
+            start = Begin();
             w.Write(0f);
             w.Write(0.5f);
             w.Write(1f);
+            Mark((int)(w.BaseStream.Position - start));
+
+            start = Begin();
             WriteF4(w, 0f, 0f, 0f, 1f);
             WriteF4(w, 0f, 0f, 0.38268343f, 0.92387953f);
             WriteF4(w, 0f, 0f, 0.70710678f, 0.70710678f);
+            Mark((int)(w.BaseStream.Position - start));
         }
 
         if (withScale)
         {
+            start = Begin();
             w.Write(0f);
             w.Write(1f);
+            Mark((int)(w.BaseStream.Position - start));
+
+            start = Begin();
             WriteF3(w, 1f, 1f, 1f);
             WriteF3(w, 2f, 2f, 2f);
+            Mark((int)(w.BaseStream.Position - start));
         }
+
+        return views;
     }
 
     private static void WriteF3(BinaryWriter w, float x, float y, float z)

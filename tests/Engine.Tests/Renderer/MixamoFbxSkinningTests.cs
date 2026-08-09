@@ -1,19 +1,22 @@
 using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Scene;
+using Engine.Renderer.Serialization;
+using Engine.Renderer.Skeletal;
+using Engine.Renderer.Skeletal.Serialization;
+using Engine.Scene.Skeletal;
 using NSubstitute;
 using Shouldly;
 using Xunit.Abstractions;
 
 namespace Engine.Tests.Renderer;
 
-/// <summary>Regression for Mixamo FBX skinning when source file is present locally.</summary>
-[Trait("Category", "Unit")]
+/// <summary>Regression for Mixamo FBX skinning when MIXAMO_FBX_PATH points at a local file.</summary>
+[Trait("Category", "Manual")]
 [Collection("PathBuilder")]
 public class MixamoFbxSkinningTests : IDisposable
 {
-    private const string FbxPath = "/Users/mateuszkulesza/Downloads/Illegal Elbow Punch.fbx";
+    private static readonly string? FbxPath = Environment.GetEnvironmentVariable("MIXAMO_FBX_PATH");
     private readonly string _tempRoot;
     private readonly ITestOutputHelper _output;
 
@@ -36,14 +39,15 @@ public class MixamoFbxSkinningTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
-    [Fact]
+    [SkippableFact]
     public void FreshCook_Fbx_RestPaletteIdentity_AndMidClipBounded()
     {
-        if (!File.Exists(FbxPath))
-            return;
+        Skip.If(
+            string.IsNullOrWhiteSpace(FbxPath) || !File.Exists(FbxPath),
+            $"Set MIXAMO_FBX_PATH to a Mixamo FBX (got: {FbxPath ?? "(unset)"})");
 
         var assets = Path.Combine(_tempRoot, "assets");
-        var cook = MeshCreator.CreateSkinned(FbxPath, assets, "elbow");
+        var cook = MeshCreator.CreateSkinned(FbxPath!, assets, "elbow");
         cook.Success.ShouldBeTrue(cook.Error);
 
         using var skelStream = File.OpenRead(Path.Combine(assets, "models/elbow.skel"));
