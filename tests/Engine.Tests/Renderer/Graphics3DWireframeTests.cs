@@ -92,7 +92,6 @@ public class Graphics3DWireframeTests : IDisposable
         }
         catch
         {
-            // ponytail: temp cleanup best-effort
         }
     }
 

@@ -14,7 +14,6 @@ public sealed class BloomPass(
     IVertexArrayFactory vertexArrayFactory,
     IFrameBufferFactory frameBufferFactory) : IDisposable
 {
-    // ponytail: 5 H + 5 V like the tutorial; raise if the glow looks too tight
     private const int BlurIterations = 10;
 
     private IShader? _extractShader;

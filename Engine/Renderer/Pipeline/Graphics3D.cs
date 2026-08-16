@@ -21,9 +21,7 @@ internal sealed class Graphics3D(
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const uint ShadowMapSize = 1024;
-    // ponytail: 512 is enough for one omni light; GS cubemap was the freeze on macOS
     private const uint PointShadowMapSize = 512;
-    // ponytail: one ortho cascade fitted to the camera frustum; CSM if distant casters stay soft
     private const float ShadowMaxDistance = 80f;
     private const float ShadowNearPad = 1f;
     private const int ShadowMapSlot = 6;

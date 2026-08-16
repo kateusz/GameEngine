@@ -19,7 +19,6 @@ internal static class SceneRenderPipeline
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
     private const string BuiltinSphereModelPath = "builtin:sphere";
-    // ponytail: debug — once-per-entity tint warnings; clear not needed (reload editor resets process)
     private static readonly HashSet<int> WarnedTintEntities = [];
 
     private static readonly Vector2[] DefaultTextureCoords =
@@ -117,7 +116,8 @@ internal static class SceneRenderPipeline
 
     private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory)
     {
-        foreach (var item in EnumerateModelDrawItems(context, modelFactory, static m => m.AlphaMode != MaterialAlphaMode.Blend))
+        foreach (var item in EnumerateModelDrawItems(
+                     context, modelFactory, static mode => mode != MaterialAlphaMode.Blend))
             IssueDraw(graphics3D, item);
     }
 
@@ -128,7 +128,7 @@ internal static class SceneRenderPipeline
         Vector3 cameraPosition)
     {
         var transparent = EnumerateModelDrawItems(
-                context, modelFactory, static m => m.AlphaMode == MaterialAlphaMode.Blend)
+                context, modelFactory, static mode => mode == MaterialAlphaMode.Blend)
             .ToList();
         if (transparent.Count == 0)
             return;
@@ -175,7 +175,7 @@ internal static class SceneRenderPipeline
     private static IEnumerable<ModelDrawItem> EnumerateModelDrawItems(
         IContext context,
         IModelFactory modelFactory,
-        Func<MeshMaterial, bool> materialFilter)
+        Func<MaterialAlphaMode, bool> alphaFilter)
     {
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
@@ -193,14 +193,15 @@ internal static class SceneRenderPipeline
 
             if (string.Equals(modelRenderer.ModelPath, BuiltinSphereModelPath, StringComparison.OrdinalIgnoreCase))
             {
-                if (materialFilter(BuiltinSphereMaterial))
+                // Graphics3D.DrawBuiltinSphere uses default MeshMaterial (Opaque).
+                if (alphaFilter(MaterialAlphaMode.Opaque))
                 {
                     yield return new ModelDrawItem(
                         ModelDrawKind.BuiltinSphere,
                         transform,
                         worldPosition,
                         null,
-                        BuiltinSphereMaterial,
+                        null,
                         tint,
                         modelRenderer.MetallicOverride ?? 0f,
                         modelRenderer.RoughnessOverride ?? 0.5f,
@@ -228,7 +229,7 @@ internal static class SceneRenderPipeline
 
             foreach (var submesh in EnumerateDrawSubmeshes(model, modelRenderer))
             {
-                if (!materialFilter(submesh.Material))
+                if (!alphaFilter(submesh.Material.AlphaMode))
                     continue;
 
                 var metallic = modelRenderer.MetallicOverride ?? submesh.Material.Metallic;
@@ -247,9 +248,6 @@ internal static class SceneRenderPipeline
             }
         }
     }
-
-    // ponytail: BuiltinSphereMaterial lives in Graphics3D — duplicate reference for filter only
-    private static readonly MeshMaterial BuiltinSphereMaterial = new();
 
     private static void LogModelTintOnce(Entity entity, ModelRendererComponent modelRenderer, Vector4 tint, Model model)
     {

@@ -5,7 +5,6 @@ using Serilog;
 
 namespace Engine.Renderer.Textures.EnvironmentMap;
 
-// ponytail: no locks — generate and lookup happen on the render thread only
 internal sealed class EnvironmentMapFactory(
     IRendererApiConfig apiConfig,
     IShaderFactory shaderFactory,
@@ -14,12 +13,11 @@ internal sealed class EnvironmentMapFactory(
     private static readonly ILogger Logger = Log.ForContext<EnvironmentMapFactory>();
 
     private readonly Dictionary<string, EnvironmentMap?> _cache = new(StringComparer.OrdinalIgnoreCase);
-    private OpenGLEnvironmentGenerator? _generator;
     private Texture2D? _brdfLut;
     private TextureCube? _blackCubemap;
     private bool _disposed;
 
-    private OpenGLEnvironmentGenerator Generator => _generator ??= apiConfig.Type switch
+    private OpenGLEnvironmentGenerator Generator => field ??= apiConfig.Type switch
     {
         ApiType.SilkNet => new OpenGLEnvironmentGenerator(shaderFactory, meshFactory),
         _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")

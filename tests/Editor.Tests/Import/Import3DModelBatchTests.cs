@@ -34,7 +34,6 @@ public class Import3DModelBatchTests : IDisposable
         }
         catch
         {
-            // ponytail: best-effort temp cleanup
         }
     }
 

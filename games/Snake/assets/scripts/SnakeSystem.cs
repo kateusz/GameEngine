@@ -191,8 +191,7 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
             }
         }
     }
-
-    // ponytail: O(n) dict per frame — fine for 16x12; upgrade to dirty-flag sync if grid grows a lot
+    
     public static Dictionary<int, string> BuildSegmentTextures(SnakeGameComponent game)
     {
         var body = game.Body;

@@ -40,7 +40,6 @@ public class MeshCreatorTests : IDisposable
         }
         catch
         {
-            // ponytail: temp cleanup best-effort
         }
     }
 

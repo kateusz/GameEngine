@@ -62,7 +62,6 @@ public class FxaaPassTests : IDisposable
         }
         catch
         {
-            // ponytail: temp cleanup is best-effort
         }
     }
 

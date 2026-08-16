@@ -59,8 +59,6 @@ internal static class TextureRelocator
             fileName = "texture.bin";
 
         var destAbsolute = Path.GetFullPath(Path.Combine(destDir, fileName));
-        // ponytail: IgnoreCase+Exists, not inode. Twin dirs that differ only by case
-        // on a case-sensitive volume would skip a real copy.
         if (!string.Equals(normalizedSource, destAbsolute, StringComparison.OrdinalIgnoreCase)
             || !File.Exists(destAbsolute))
             File.Copy(normalizedSource, destAbsolute, overwrite: true);

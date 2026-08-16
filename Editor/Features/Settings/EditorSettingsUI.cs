@@ -62,7 +62,6 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         var autosaveSeconds = editorPreferences.AutosaveIntervalSeconds;
         if (ImGui.DragInt("Interval (seconds, 0 = off)", ref autosaveSeconds, 1, 0, 3600))
         {
-            // ponytail: 1–4 clamped to MinAutosave; 0 stays off
             if (autosaveSeconds is > 0 and < MinAutosaveIntervalSeconds)
                 autosaveSeconds = MinAutosaveIntervalSeconds;
             editorPreferences.AutosaveIntervalSeconds = autosaveSeconds;

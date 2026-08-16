@@ -20,7 +20,6 @@ public class OrmTexturePackerTests : IDisposable
         }
         catch
         {
-            // ponytail: best-effort temp cleanup
         }
     }
 

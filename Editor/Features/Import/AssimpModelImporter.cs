@@ -434,7 +434,6 @@ internal sealed partial class AssimpModelImporter(Assimp assimp)
             System.Buffer.MemoryCopy(tex->PcData, dst, byteCount, byteCount);
 
         var ext = GuessImageExtension(bytes, ReadFormatHint(tex));
-        // ponytail: content-addressed temp cache; switch to CreateFromMemory if temp files become a problem
         Directory.CreateDirectory(EmbeddedCacheDir);
         var hash = Convert.ToHexString(SHA256.HashData(bytes)).AsSpan(0, 16);
         var cachePath = Path.Combine(EmbeddedCacheDir, $"{hash}{ext}");

@@ -39,7 +39,6 @@ public class TextureRelocatorTests : IDisposable
         }
         catch
         {
-            // ponytail: temp cleanup best-effort
         }
     }
 

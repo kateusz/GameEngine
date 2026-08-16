@@ -12,8 +12,6 @@ public static class MeshReader
     public const uint SupportedVersion = 3;
 
     /// <summary>Hard caps against hostile/corrupt size fields (verification hardening).</summary>
-    // ponytail: one GLB → one .mesh packs every Assimp mesh-bearing node; village packs exceed 2k.
-    // Ceiling: still bounds DoS from a hostile COUNT; raise if a real asset needs more.
     public const uint MaxSubmeshes = 65_536;
     public const uint MaxVerticesPerSubmesh = 5_000_000;
     public const uint MaxIndicesPerSubmesh = 15_000_000;

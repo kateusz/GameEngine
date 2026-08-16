@@ -23,8 +23,7 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
         new(1.0f, 1.0f),
         new(0.0f, 1.0f)
     ];
-
-    // ponytail: fixed screen-ish size via distance scale; upgrade to true pixel size if icons feel off
+    
     private const float IconDistanceScale = 0.06f;
     private const float MinIconSize = 0.15f;
 

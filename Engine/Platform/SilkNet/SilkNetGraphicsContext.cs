@@ -32,7 +32,6 @@ internal sealed class SilkNetGraphicsContext : IGraphicsContext
         try
         {
             _gl = _createGl(window);
-            // ponytail: global static kept for legacy consumers; remove once all call sites resolve GL through DI
             SilkNetContext.GL = _gl;
         }
         catch (Exception ex)
