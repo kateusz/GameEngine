@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Audio\Audio.csproj" />
+        <ProjectReference Include="..\..\ECS\ECS.csproj" />
+        <ProjectReference Include="..\..\Input\Input.csproj" />
+        <ProjectReference Include="..\..\Math\Math.csproj" />
+        <ProjectReference Include="..\..\SceneComponents\SceneComponents.csproj" />
+        <ProjectReference Include="..\..\Scripting\Scripting.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="assets\" />
+        <Folder Include="assets\scenes\" />
+        <Folder Include="assets\sounds\" />
+        <Folder Include="assets\textures\" />
+    </ItemGroup>
+</Project>

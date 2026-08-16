@@ -8,19 +8,26 @@ A modern, component-based game engine built with C# and .NET 10, featuring a vis
 
 ### Core Engine
 - **Entity Component System (ECS)** — data-driven architecture with ordered system execution
-- **2D & 3D Rendering** — OpenGL pipeline with batched sprites, PBR meshes, shadows, skeletal animation, and HDR post-processing
-- **Physics** — 2D rigid-body simulation with collision detection, world queries (raycast/overlap), and debug visualization
+- **Entity Hierarchy** — parent/child transforms, cascade destroy, prefab subtrees, serialized relationships
+- **2D & 3D Rendering** — OpenGL pipeline with batched sprites, PBR meshes, shadows, skeletal animation, IBL, and HDR post-processing
+- **3D Model Import** — Assimp FBX/OBJ import in the editor, runtime `.mesh` assets with materials and skinning
+- **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast & overlap queries, and debug visualization
 - **Hot-Reloadable Scripting** — write game logic in C# and reload without restarting the editor
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
 - **Cross-Platform** — Windows and macOS
 
 ### Editor
-- **Visual Scene Editor** — compose scenes with a hierarchy, viewport, and properties panel
-- **Asset Browser** — browse and manage project assets
+- **Visual Scene Editor** — hierarchy tree, viewport tools (select/move/scale/rotate/ruler), and properties panel
+- **Undo/Redo** — reversible transform, component, and entity-delete operations (Ctrl+Z / Ctrl+Y)
+- **Asset Browser** — browse and manage project assets; drag-drop prefabs and 3D models into scenes
 - **Live Console** — real-time logging while you work
 - **Project Management** — create and open game projects
-- **Game Publishing** — build standalone executables for Windows and macOS
+- **Game Publishing** — build standalone executables for Windows and macOS, with publish validation
 - **Keyboard Shortcuts** — configurable shortcuts with an in-editor reference ([docs](docs/guide/editor/shortcuts.md))
+
+### Status
+
+~**82–86% ready for 2D public alpha** ([readiness analysis](docs/readiness-analysis-2026-08.md)). Core mechanics, hierarchy, physics queries, undo/redo, and publish pipeline are in place. Main remaining gaps: **runtime UI** (menus/HUD), **sprite sort layers**, and **script field serialization**.
 
 ## Getting Started
 
@@ -78,13 +85,21 @@ Twin-stick arena — WASD move, mouse aim, hold LMB to shoot (hitscan raycast), 
 
 Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game over.
 
+### Arena 3D
+3D showcase — imported skeletal mesh, PBR materials, IBL skybox, shadows, HDR post-processing. [`games/Arena3D/`](games/Arena3D/)
+
+Open `assets/scenes/arena3d.scene`, then press Play. WASD to move, mouse to look.
+
 ## Documentation
 
 - [Developer Guide](docs/guide/index.md) — setup, editor, scripting, concepts
 - [Architecture](docs/architecture/README.md) — how the engine is structured
+- [Readiness Analysis (2026-08)](docs/readiness-analysis-2026-08.md) — alpha readiness assessment and priorities
 - [Roadmap](docs/guide/roadmap.md) — planned work
 
 ## Testing
+
+~800 automated tests across ECS, engine, editor, and GPU integration suites.
 
 ```bash
 dotnet test
@@ -98,4 +113,4 @@ dotnet test --filter "Category!=GraphicsIntegration"
 
 ## Dependencies
 
-Silk.NET, ImGui, Box2D, OpenAL, Roslyn, DryIoc, Serilog
+Silk.NET, ImGui, Box2D, OpenAL, Roslyn, DryIoc, Serilog, Assimp

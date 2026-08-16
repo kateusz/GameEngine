@@ -1,0 +1,9 @@
+{
+  "GameAssemblyPath": "GameAssembly.dll",
+  "StartupScenePath": "assets/scenes/arena3d.scene",
+  "WindowWidth": 1280,
+  "WindowHeight": 720,
+  "Fullscreen": false,
+  "GameTitle": "Arena 3D",
+  "TargetFrameRate": 60
+}

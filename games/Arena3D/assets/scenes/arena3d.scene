@@ -1,0 +1,223 @@
+{
+  "Scene": "arena3d",
+  "BackgroundColor": [
+    0.1,
+    0.1,
+    0.1,
+    1
+  ],
+  "PostProcess": {
+    "Exposure": 1,
+    "BloomEnabled": false,
+    "BloomThreshold": 0,
+    "BloomIntensity": 0
+  },
+  "Dimension": "ThreeD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "player",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            -1.5707964,
+            0,
+            0
+          ],
+          "Scale": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "MeshPath": "models/ja-Walking.mesh",
+          "ClipName": "mixamo.com",
+          "Time": 0,
+          "Speed": 1,
+          "Loop": true,
+          "Playing": false,
+          "Name": "SkeletalPlaybackComponent"
+        },
+        {
+          "AudioClipPath": "sounds/walk.wav",
+          "Volume": 1,
+          "Pitch": 1,
+          "Loop": true,
+          "PlayOnAwake": false,
+          "Is3D": true,
+          "MinDistance": 1,
+          "MaxDistance": 100,
+          "Effects": [],
+          "Name": "AudioSourceComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "tripo_node_c2ee69d2",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": "models/ja-Walking.mesh",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": 0.539,
+          "RoughnessOverride": 0.322,
+          "SubmeshStart": 0,
+          "SubmeshCount": 1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.4,
+            2.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.8122449,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        },
+        {
+          "Name": "NativeScriptComponent",
+          "ScriptType": "CameraController"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "skybox",
+      "Components": [
+        {
+          "HdrPath": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net10.0/arena3d/assets/models/sky.hdr",
+          "Intensity": 1,
+          "Name": "SkyLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "ancient_terrain",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "Object_4",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            -0,
+            0
+          ],
+          "Scale": [
+            10,
+            10,
+            10
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": "models/ancient_terrain.mesh",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": 1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "ParentId": 5,
+          "Name": "ParentComponent"
+        }
+      ]
+    }
+  ]
+}

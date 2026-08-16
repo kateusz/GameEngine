@@ -64,6 +64,9 @@ public static class GameAssemblyCompiler
 
         foreach (var scriptPath in scriptFiles)
         {
+            Logger.Debug(
+                "Added game script file: {ScriptPath}",
+                Path.GetRelativePath(scriptsDirectory, scriptPath));
             var scriptContent = File.ReadAllText(scriptPath, Encoding.UTF8);
             var syntaxTree = CSharpSyntaxTree.ParseText(
                 text: scriptContent,
