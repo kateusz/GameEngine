@@ -9,5 +9,4 @@ public class GameConfiguration
     public bool Fullscreen { get; set; }
     public string GameTitle { get; set; } = "My Game";
     public int TargetFrameRate { get; set; } = 60;
-    public float HdrExposure { get; set; } = 1.8f;
 }

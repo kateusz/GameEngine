@@ -47,35 +47,7 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         }
 
         ImGui.Separator();
-        ImGui.SeparatorText("HDR");
-
-        var hdrExposure = editorPreferences.HdrExposure;
-        if (ImGui.DragFloat("Exposure", ref hdrExposure, 0.01f, 0.1f, 8.0f))
-        {
-            editorPreferences.HdrExposure = hdrExposure;
-            editorPreferences.Save();
-        }
-
-        var bloomEnabled = editorPreferences.BloomEnabled;
-        if (ImGui.Checkbox("Bloom", ref bloomEnabled))
-        {
-            editorPreferences.BloomEnabled = bloomEnabled;
-            editorPreferences.Save();
-        }
-
-        var bloomThreshold = editorPreferences.BloomThreshold;
-        if (ImGui.DragFloat("Bloom Threshold", ref bloomThreshold, 0.01f, 0.0f, 10.0f))
-        {
-            editorPreferences.BloomThreshold = bloomThreshold;
-            editorPreferences.Save();
-        }
-
-        var bloomIntensity = editorPreferences.BloomIntensity;
-        if (ImGui.DragFloat("Bloom Intensity", ref bloomIntensity, 0.01f, 0.0f, 8.0f))
-        {
-            editorPreferences.BloomIntensity = bloomIntensity;
-            editorPreferences.Save();
-        }
+        ImGui.SeparatorText("Viewport");
 
         var fxaaEnabled = editorPreferences.FxaaEnabled;
         if (ImGui.Checkbox("FXAA", ref fxaaEnabled))

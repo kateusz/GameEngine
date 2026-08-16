@@ -110,17 +110,13 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
+        var post = sceneContext.ActiveScene?.PostProcess ?? default;
         var spec = _frameBuffer.GetSpecification();
         var displayColorId = postProcessOrchestrator.Run(
             _frameBuffer.GetColorAttachmentRendererId(),
             spec.Width,
             spec.Height,
-            new PostProcessSettings(
-                editorPreferences.HdrExposure,
-                editorPreferences.BloomEnabled,
-                editorPreferences.BloomThreshold,
-                editorPreferences.BloomIntensity,
-                editorPreferences.FxaaEnabled),
+            PostProcessSettings.FromScene(post, editorPreferences.FxaaEnabled),
             _sdrFrameBuffer);
 
         var texturePointer = new IntPtr(displayColorId);

@@ -23,7 +23,6 @@ public class Sandbox3DLayer(
     PostProcessOrchestrator postProcessOrchestrator) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<Sandbox3DLayer>();
-    private const float HdrExposure = 1.8f;
 
     private IScene? _scene;
     private PerspectiveCameraController? _cameraController;
@@ -144,7 +143,7 @@ public class Sandbox3DLayer(
             _hdrFrameBuffer.GetColorAttachmentRendererId(),
             spec.Width,
             spec.Height,
-            new PostProcessSettings(HdrExposure, FxaaEnabled: true),
+            PostProcessSettings.FromScene(_scene!.PostProcess, fxaaEnabled: true),
             _sdrFrameBuffer,
             fxaaToBackbuffer: true);
     }

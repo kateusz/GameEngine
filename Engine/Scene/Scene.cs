@@ -68,6 +68,8 @@ internal sealed class Scene : IScene
 
     public Vector4 BackgroundColor { get; set; } = new(0.1f, 0.1f, 0.1f, 1.0f);
 
+    public ScenePostProcessSettings PostProcess { get; set; } = new();
+
     public SceneDimension Dimension { get; set; } = SceneDimension.TwoD;
 
     public IEnumerable<Entity> Entities => Context.Entities;

@@ -105,7 +105,7 @@ public class GameLayer(
             _hdrFrameBuffer.GetColorAttachmentRendererId(),
             spec.Width,
             spec.Height,
-            new PostProcessSettings(Exposure: gameConfig.HdrExposure),
+            PostProcessSettings.FromScene(scene.PostProcess),
             tonemapTarget: null);
     }
 

@@ -26,6 +26,8 @@ public interface IScene : IDisposable, IEntityHierarchy
 
     Vector4 BackgroundColor { get; set; }
 
+    ScenePostProcessSettings PostProcess { get; set; }
+
     SceneDimension Dimension { get; set; }
 
     /// <summary>

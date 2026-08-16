@@ -29,27 +29,7 @@ public interface IEditorPreferences : IDisposable
     bool ShowFPS { get; set; }
 
     /// <summary>
-    /// Gets or sets HDR tonemapping exposure value.
-    /// </summary>
-    float HdrExposure { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether bloom is applied after the HDR scene pass.
-    /// </summary>
-    bool BloomEnabled { get; set; }
-
-    /// <summary>
-    /// Brightness threshold for bloom extraction (LearnOpenGL default is 1.0).
-    /// </summary>
-    float BloomThreshold { get; set; }
-
-    /// <summary>
-    /// Additive bloom strength before tonemapping.
-    /// </summary>
-    float BloomIntensity { get; set; }
-
-    /// <summary>
-    /// Fast approximate AA after HDR tonemap.
+    /// Fast approximate AA after HDR tonemap (editor viewport preview only).
     /// </summary>
     bool FxaaEnabled { get; set; }
 
