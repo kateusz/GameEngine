@@ -5,6 +5,7 @@ using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using SceneComponents;
+using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using Shouldly;
 
@@ -217,6 +218,40 @@ public class ComponentSerializerRegistryTests
         var loaded = Entity.Create(2, "Game");
         _registry.DeserializeComponent(loaded, array[0]!.AsObject(), _serializerOptions.Options, strict: true);
         loaded.GetComponent<LocalScoreComponent>().Points.ShouldBe(42);
+    }
+
+    [Fact]
+    public void RigidBody3DAndBoxCollider3D_RoundTrip()
+    {
+        var entity = Entity.Create(1, "crate");
+        entity.AddComponent(new RigidBody3DComponent
+        {
+            BodyType = RigidBodyType.Dynamic,
+            FixedRotation = true,
+            GravityScale = 0.5f
+        });
+        entity.AddComponent(new BoxCollider3DComponent
+        {
+            Size = new System.Numerics.Vector3(1, 2, 3),
+            Density = 2f,
+            IsTrigger = true
+        });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+
+        var loaded = Entity.Create(1, "crate");
+        foreach (var node in array)
+            _registry.DeserializeComponent(loaded, node!.AsObject(), _serializerOptions.Options, strict: true);
+
+        var rb = loaded.GetComponent<RigidBody3DComponent>();
+        rb.BodyType.ShouldBe(RigidBodyType.Dynamic);
+        rb.FixedRotation.ShouldBeTrue();
+        rb.GravityScale.ShouldBe(0.5f);
+        var box = loaded.GetComponent<BoxCollider3DComponent>();
+        box.Size.ShouldBe(new System.Numerics.Vector3(1, 2, 3));
+        box.Density.ShouldBe(2f);
+        box.IsTrigger.ShouldBeTrue();
     }
 
     [SerializableComponent]

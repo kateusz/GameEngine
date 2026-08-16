@@ -97,20 +97,6 @@ Open `assets/scenes/arena3d.scene`, then press Play. WASD to move, mouse to look
 - [Readiness Analysis (2026-08)](docs/readiness-analysis-2026-08.md) — alpha readiness assessment and priorities
 - [Roadmap](docs/guide/roadmap.md) — planned work
 
-## Testing
-
-~800 automated tests across ECS, engine, editor, and GPU integration suites.
-
-```bash
-dotnet test
-```
-
-Graphics integration tests skip automatically when OpenGL is unavailable. To run unit tests only:
-
-```bash
-dotnet test --filter "Category!=GraphicsIntegration"
-```
-
 ## Dependencies
 
-Silk.NET, ImGui, Box2D, OpenAL, Roslyn, DryIoc, Serilog, Assimp
+Silk.NET, ImGui, Box2D, BepuPhysics, OpenAL, DryIoc, Serilog, Assimp

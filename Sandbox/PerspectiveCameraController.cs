@@ -28,6 +28,15 @@ public class PerspectiveCameraController
     public Vector3 Position => _position;
     public float Pitch => _pitch;
     public float Yaw => _yaw;
+    public Vector3 Forward
+    {
+        get
+        {
+            var rotationMatrix = MathHelpers.MatrixFromQuaternion(
+                MathHelpers.QuaternionFromEuler(new Vector3(_pitch, _yaw, 0)));
+            return Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitZ, rotationMatrix));
+        }
+    }
 
     public PerspectiveCameraController(Vector3 initialPosition, float initialYaw = 0f, float initialPitch = 0f)
     {

@@ -10,6 +10,7 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using Engine.Scripting;
+using Scripting;
 using Serilog;
 
 namespace Engine.Scene;
@@ -26,40 +27,78 @@ internal sealed class SceneSystemsFactory(
     IPhysicsWorld2DFactory physicsWorld2DFactory) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
-    private static readonly Vector2 DefaultGravity = new(0, -9.8f);
+    private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
+    private static readonly Vector3 DefaultGravity3D = new(0, -9.8f, 0);
 
-    public IPhysicsWorld2D PopulateSystemManager(
+    public IPhysicsQueries PopulateSystemManager(
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue,
-        ScriptRuntimeStore scriptStore)
+        ScriptRuntimeStore scriptStore,
+        SceneDimension dimension = SceneDimension.TwoD)
     {
         var primaryCamera = new PrimaryCameraSystem(context);
+        var contactListener = new SceneContactListener(contactQueue, scriptStore);
 
-        var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity);
-        physicsWorld.SetContactListener(new SceneContactListener(contactQueue, scriptStore));
+        IPhysicsQueries physicsQueries;
+        ISystem[] systems;
+        if (dimension == SceneDimension.ThreeD)
+        {
+            var physicsWorld = physicsWorld2DFactory.Create3D(DefaultGravity3D);
+            physicsWorld.SetContactListener(contactListener);
+            physicsQueries = new PhysicsQueries3DAdapter(physicsWorld);
+            systems = Create3DSystems(physicsWorld, context, primaryCamera);
+        }
+        else
+        {
+            var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity2D);
+            physicsWorld.SetContactListener(contactListener);
+            physicsQueries = physicsWorld;
+            systems = Create2DSystems(physicsWorld, context, bodyStore, primaryCamera);
+        }
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);
 
-        ISystem[] systems =
+        ISystem[] shared =
         [
-            new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
             new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
             new SkeletalAnimationSystem(context, modelFactory),
             primaryCamera,
-            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, modelFactory, context, primaryCamera),
-            new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore, primaryCamera)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, modelFactory, context, primaryCamera)
         ];
 
-        foreach (var system in systems)
+        foreach (var system in systems.Concat(shared))
         {
             systemManager.RegisterSystem(system);
             Logger.Debug("Registered per-scene system: {SystemType}", system.GetType().Name);
         }
 
-        return physicsWorld;
+        return physicsQueries;
+    }
+
+    private ISystem[] Create2DSystems(
+        IPhysicsWorld2D physicsWorld,
+        IContext context,
+        PhysicsRuntimeBodyStore bodyStore,
+        PrimaryCameraSystem primaryCamera) =>
+    [
+        new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
+        new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore, primaryCamera)
+    ];
+
+    private ISystem[] Create3DSystems(
+        IPhysicsWorld3D physicsWorld,
+        IContext context,
+        PrimaryCameraSystem primaryCamera)
+    {
+        var bodyStore3D = new PhysicsRuntimeBodyStore3D();
+        return
+        [
+            new PhysicsSimulationSystem3D(physicsWorld, context, bodyStore3D),
+            new PhysicsDebugRenderSystem3D(graphics3D, context, debugSettings, bodyStore3D, primaryCamera)
+        ];
     }
 }

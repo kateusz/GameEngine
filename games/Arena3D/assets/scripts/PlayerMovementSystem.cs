@@ -5,6 +5,7 @@ using ECS.Systems;
 using Input;
 using SceneComponents;
 using SceneComponents.Camera;
+using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using Scripting;
 
@@ -12,6 +13,7 @@ namespace arena3d;
 
 /// <summary>
 /// WASD movement for the "player" entity, relative to the primary camera (RPG-style).
+/// Pushes <see cref="RigidBody3DComponent.Velocity"/> so the player collides with 3D boxes.
 /// </summary>
 [Register(typeof(IGameSystem))]
 public class PlayerMovementSystem(IContext context, IKeyboardInput keyboard, IAudioPlayback audioPlayback) : IGameSystem
@@ -37,22 +39,20 @@ public class PlayerMovementSystem(IContext context, IKeyboardInput keyboard, IAu
     public void OnUpdate(TimeSpan deltaTime)
     {
         var player = FindPlayer();
-        if (player is null || !player.TryGetComponent<TransformComponent>(out var transform))
+        if (player is null || !player.TryGetComponent<RigidBody3DComponent>(out var body))
             return;
 
         var moveDir = GetCameraRelativeMoveDir(player);
         if (moveDir == Vector3.Zero)
         {
+            body.Velocity = new Vector3(0f, body.Velocity.Y, 0f);
             SyncMovement(player, false);
             return;
         }
 
-        var dt = (float)deltaTime.TotalSeconds;
-        transform.Translation += moveDir * MoveSpeed * dt;
-
-        var yaw = MathF.Atan2(moveDir.X, moveDir.Z);
-        transform.Rotation = new Vector3(transform.Rotation.X, yaw, transform.Rotation.Z);
-
+        body.Velocity = new Vector3(moveDir.X * MoveSpeed, body.Velocity.Y, moveDir.Z * MoveSpeed);
+        if (player.TryGetComponent<TransformComponent>(out var transform))
+            transform.Rotation = new Vector3(-MathF.PI / 2f, MathF.Atan2(moveDir.X, moveDir.Z), 0f);
         SyncMovement(player, true);
     }
 
@@ -75,7 +75,7 @@ public class PlayerMovementSystem(IContext context, IKeyboardInput keyboard, IAu
         else
             forward = Vector3.Normalize(forward);
 
-        var right = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, forward));
+        var right = Vector3.Normalize(Vector3.Cross(forward, Vector3.UnitY));
 
         var dir = Vector3.Zero;
         if (keyboard.IsKeyDown(KeyCodes.W)) dir += forward;
@@ -135,3 +135,4 @@ public class PlayerMovementSystem(IContext context, IKeyboardInput keyboard, IAu
         return null;
     }
 }
+

@@ -84,14 +84,14 @@ public static class SkeletalPlaybackUpdater
         while (true)
         {
             if (current.TryGetComponent<SkeletalPlaybackComponent>(out var playback)
-                && PathsEqual(playback.MeshPath, renderer.ModelPath)
-                && current.TryGetComponent<TransformComponent>(out var transform))
+                && PathsEqual(playback.MeshPath, renderer.ModelPath))
             {
                 var model = MeshAsset.TryLoad(modelFactory, renderer.ModelPath);
                 if (model is { HasSkeleton: true })
                 {
                     renderer.BonePalette = playback.BonePalette;
-                    renderer.SkinningWorld = transform.GetWorldTransform();
+                    if (entity.TryGetComponent<TransformComponent>(out var rendererXf))
+                        renderer.SkinningWorld = rendererXf.GetWorldTransform();
                 }
 
                 return;

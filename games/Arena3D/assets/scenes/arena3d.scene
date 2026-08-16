@@ -20,9 +20,9 @@
       "Components": [
         {
           "Translation": [
-            0,
-            0,
-            0
+            -4.874597,
+            -0.28027582,
+            0.63258755
           ],
           "Rotation": [
             -1.5707964,
@@ -38,8 +38,8 @@
         },
         {
           "MeshPath": "models/ja-Walking.mesh",
-          "ClipName": "mixamo.com",
-          "Time": 0,
+          "ClipName": "Armature|mixamo.com",
+          "Time": 0.053501196,
           "Speed": 1,
           "Loop": true,
           "Playing": false,
@@ -56,6 +56,31 @@
           "MaxDistance": 100,
           "Effects": [],
           "Name": "AudioSourceComponent"
+        },
+        {
+          "Radius": 22,
+          "Length": 70,
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "IsTrigger": false,
+          "Name": "CapsuleCollider3DComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            -9.0183596E-07,
+            0
+          ],
+          "Name": "RigidBody3DComponent"
         }
       ]
     },
@@ -67,7 +92,7 @@
           "Translation": [
             0,
             0,
-            0
+            -57
           ],
           "Rotation": [
             0,
@@ -107,9 +132,9 @@
       "Components": [
         {
           "Translation": [
-            0,
-            1.4,
-            2.2
+            -4.874597,
+            0.18309103,
+            2.8167667
           ],
           "Rotation": [
             0,
@@ -135,10 +160,6 @@
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
-        },
-        {
-          "Name": "NativeScriptComponent",
-          "ScriptType": "CameraController"
         }
       ]
     },
@@ -160,12 +181,12 @@
         {
           "Translation": [
             0,
-            0,
+            -0.95,
             0
           ],
           "Rotation": [
             0,
-            0,
+            -0,
             0
           ],
           "Scale": [
@@ -174,6 +195,34 @@
             1
           ],
           "Name": "TransformComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": false,
+          "GravityScale": 0,
+          "Velocity": [
+            0,
+            0,
+            0
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Size": [
+            10,
+            0.1,
+            10
+          ],
+          "Offset": [
+            -2,
+            -1,
+            -6
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0,
+          "IsTrigger": false,
+          "Name": "BoxCollider3DComponent"
         }
       ]
     },
@@ -183,9 +232,9 @@
       "Components": [
         {
           "Translation": [
-            0,
-            0,
-            0
+            -2.1097672,
+            -0.37588644,
+            -5.6088514
           ],
           "Rotation": [
             0,
@@ -216,6 +265,204 @@
         {
           "ParentId": 5,
           "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            -3.93,
+            -0.7002758,
+            -5.5734935
+          ],
+          "Rotation": [
+            -3.5566106E-10,
+            5.6251315E-07,
+            2.0477439E-10
+          ],
+          "Scale": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": null,
+          "Color": [
+            0.827051,
+            0.22922698,
+            0.22922698,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            1.1738856E-15,
+            -1.0356307E-06,
+            2.793419E-15
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0.7,
+          "IsTrigger": false,
+          "Name": "BoxCollider3DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            -5.67,
+            -0.7002758,
+            -5.647606
+          ],
+          "Rotation": [
+            1.3061026E-10,
+            5.6251525E-07,
+            -1.5879201E-10
+          ],
+          "Scale": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": null,
+          "Color": [
+            0.827051,
+            0.22922698,
+            0.22922698,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            3.3326273E-16,
+            -1.0281801E-06,
+            7.437531E-15
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0.7,
+          "IsTrigger": false,
+          "Name": "BoxCollider3DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 9,
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            -4.89,
+            -0.8,
+            -5.6106725
+          ],
+          "Rotation": [
+            3.0113528E-10,
+            5.625109E-07,
+            -9.7780256E-11
+          ],
+          "Scale": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": null,
+          "Color": [
+            0.827051,
+            0.22922698,
+            0.22922698,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            8.4082546E-22,
+            -1.0356307E-06,
+            -1.7347235E-18
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0.7,
+          "IsTrigger": false,
+          "Name": "BoxCollider3DComponent"
         }
       ]
     }

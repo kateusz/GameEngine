@@ -292,8 +292,14 @@ public sealed class EditorViewport(
                             textureFactory,
                             modelFactory,
                             camera));
-                    if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
-                        PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
+                    if (debugSettings.ShowColliderBounds)
+                    {
+                        if (scene.Dimension == SceneDimension.ThreeD)
+                            PhysicsDebugDrawer3D.Draw(
+                                scene.Context, graphics3D, bodyStore: null, camera, useTransformFallbackWhenNoBody: true);
+                        else if (sceneContext.ActivePhysicsBodyStore is { } bodyStore)
+                            PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
+                    }
                     cameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera);
                 }
                 break;

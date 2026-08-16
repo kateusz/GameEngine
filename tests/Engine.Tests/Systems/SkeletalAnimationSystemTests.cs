@@ -90,7 +90,7 @@ public class SkeletalAnimationSystemTests : IDisposable
         var factory = SkinnedFactory();
         var (context, playback, child) = CreateRigWithChild("models/hero.mesh", "models/hero.mesh");
         var world = Matrix4x4.CreateTranslation(10, 0, 0);
-        context.GetById(1).GetComponent<TransformComponent>().SetWorldTransform(world);
+        child.GetComponent<TransformComponent>().SetWorldTransform(world);
 
         SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
 
@@ -113,15 +113,31 @@ public class SkeletalAnimationSystemTests : IDisposable
     }
 
     [Fact]
+    public void Tick_SkinningWorld_UsesRendererEntityNotPlaybackAncestor()
+    {
+        var factory = SkinnedFactory();
+        var (context, _, child) = CreateRigWithChild("models/hero.mesh", "models/hero.mesh");
+        var parentWorld = Matrix4x4.CreateTranslation(0, 0.62f, 0);
+        var rendererWorld = Matrix4x4.CreateFromAxisAngle(Vector3.UnitX, -MathF.PI / 2f)
+            * Matrix4x4.CreateTranslation(0, -0.57f, 0);
+        context.GetById(1).GetComponent<TransformComponent>().SetWorldTransform(parentWorld);
+        child.GetComponent<TransformComponent>().SetWorldTransform(rendererWorld);
+
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+
+        child.GetComponent<ModelRendererComponent>().SkinningWorld.ShouldBe(rendererWorld);
+    }
+
+    [Fact]
     public void Tick_PathUnchanged_RefreshesSkinningWorld()
     {
         var factory = SkinnedFactory();
         var (context, _, child) = CreateRigWithChild("models/hero.mesh", "models/hero.mesh");
-        var parent = context.GetById(1).GetComponent<TransformComponent>();
-        parent.SetWorldTransform(Matrix4x4.CreateTranslation(1, 0, 0));
+        var rendererXf = child.GetComponent<TransformComponent>();
+        rendererXf.SetWorldTransform(Matrix4x4.CreateTranslation(1, 0, 0));
 
         SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
-        parent.SetWorldTransform(Matrix4x4.CreateTranslation(2, 0, 0));
+        rendererXf.SetWorldTransform(Matrix4x4.CreateTranslation(2, 0, 0));
         SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
 
         child.GetComponent<ModelRendererComponent>().SkinningWorld.M41.ShouldBe(2f);

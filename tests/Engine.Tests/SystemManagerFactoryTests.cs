@@ -4,6 +4,7 @@ using Engine.Physics;
 using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
+using Scripting;
 using Shouldly;
 
 namespace Engine.Tests;
@@ -15,15 +16,22 @@ public class SystemManagerFactoryTests
     [Fact]
     public void Create_ShouldPopulateSystemsForContext()
     {
-        _mockSystemsFactory.PopulateSystemManager(Arg.Any<ISystemManager>(), Arg.Any<IContext>(), Arg.Any<PhysicsRuntimeBodyStore>(), Arg.Any<PhysicsContactQueue>(), Arg.Any<ScriptRuntimeStore>())
-            .Returns(Substitute.For<IPhysicsWorld2D>());
+        _mockSystemsFactory.PopulateSystemManager(
+                Arg.Any<ISystemManager>(),
+                Arg.Any<IContext>(),
+                Arg.Any<PhysicsRuntimeBodyStore>(),
+                Arg.Any<PhysicsContactQueue>(),
+                Arg.Any<ScriptRuntimeStore>(),
+                Arg.Any<SceneDimension>())
+            .Returns(Substitute.For<IPhysicsQueries>());
 
         var context = new Context();
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 
         var build = builder.Create(context);
 
-        _mockSystemsFactory.Received(1).PopulateSystemManager(build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore);
+        _mockSystemsFactory.Received(1).PopulateSystemManager(
+            build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore, SceneDimension.TwoD);
         build.BodyStore.ShouldNotBeNull();
         build.ContactQueue.ShouldNotBeNull();
         build.ScriptStore.ShouldNotBeNull();
@@ -32,8 +40,14 @@ public class SystemManagerFactoryTests
     [Fact]
     public void Create_ShouldReturnNewSystemManagerPerCall()
     {
-        _mockSystemsFactory.PopulateSystemManager(Arg.Any<ISystemManager>(), Arg.Any<IContext>(), Arg.Any<PhysicsRuntimeBodyStore>(), Arg.Any<PhysicsContactQueue>(), Arg.Any<ScriptRuntimeStore>())
-            .Returns(Substitute.For<IPhysicsWorld2D>());
+        _mockSystemsFactory.PopulateSystemManager(
+                Arg.Any<ISystemManager>(),
+                Arg.Any<IContext>(),
+                Arg.Any<PhysicsRuntimeBodyStore>(),
+                Arg.Any<PhysicsContactQueue>(),
+                Arg.Any<ScriptRuntimeStore>(),
+                Arg.Any<SceneDimension>())
+            .Returns(Substitute.For<IPhysicsQueries>());
 
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 

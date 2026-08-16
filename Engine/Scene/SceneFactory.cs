@@ -9,13 +9,15 @@ namespace Engine.Scene;
 [SkipUnitTests]
 public sealed class SceneFactory(ISystemManagerFactory systemManagerFactory, IPointerSurface pointerSurface)
 {
-    public IScene Create(string path, string newSceneName)
+    public IScene Create(string path, string newSceneName, SceneDimension dimension = SceneDimension.TwoD)
     {
         var context = new Context();
-        var build = systemManagerFactory.Create(context);
+        var build = systemManagerFactory.Create(context, dimension);
         ICameraQueries cameraQueries = new CameraQueries(context, pointerSurface);
-        return new Scene(path, newSceneName, context,
-            build.SystemManager, build.BodyStore, build.ContactQueue, build.ScriptStore, build.PhysicsWorld,
+        var scene = new Scene(path, newSceneName, context,
+            build.SystemManager, build.BodyStore, build.ContactQueue, build.ScriptStore, build.PhysicsQueries,
             cameraQueries);
+        scene.Dimension = dimension;
+        return scene;
     }
 }

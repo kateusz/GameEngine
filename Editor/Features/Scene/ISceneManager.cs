@@ -33,12 +33,13 @@ public interface ISceneManager
 
     /// <summary>
     /// Exits play mode, returning to edit mode and stopping runtime systems.
+    /// Preserves the current scene state so play can be resumed.
     /// </summary>
     void Stop();
 
     /// <summary>
-    /// Restarts the scene by stopping and immediately starting play mode again.
-    /// Only works when already in play mode.
+    /// Reloads the scene from the play-mode snapshot and starts play mode.
+    /// Requires that play mode was entered at least once in this session.
     /// </summary>
     void Restart();
 

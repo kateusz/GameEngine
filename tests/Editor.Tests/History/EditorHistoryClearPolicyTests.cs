@@ -151,20 +151,20 @@ public class EditorHistoryClearPolicyTests
     }
 
     [Fact]
-    public void SceneManager_Stop_WhenNoEditorScenePath_ClearsHistory()
+    public void SceneManager_Stop_WhenNotPlaying_IsNoOp()
     {
         var history = Substitute.For<IEditorHistory>();
         var projectContext = Substitute.For<IProjectContext>();
         var scene = Substitute.For<IScene>();
+        _sceneContext.State.Returns(SceneState.Edit);
         _sceneContext.ActiveScene.Returns(scene);
 
         var manager = CreateSceneManager(history, projectContext);
-        // EditorScenePath stays null — Stop takes dispose-without-Open branch
-
         manager.Stop();
 
-        history.Received(1).Clear();
-        scene.Received(1).Dispose();
+        history.DidNotReceive().Clear();
+        scene.DidNotReceive().Dispose();
+        scene.DidNotReceive().OnRuntimeStop();
     }
 
     private SceneManager CreateSceneManager(IEditorHistory history, IProjectContext projectContext)

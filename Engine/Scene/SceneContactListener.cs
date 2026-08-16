@@ -7,16 +7,27 @@ using Serilog;
 
 namespace Engine.Scene;
 
-internal sealed class SceneContactListener(PhysicsContactQueue contactQueue, ScriptRuntimeStore scriptStore) : IPhysicsContactListener
+internal sealed class SceneContactListener(PhysicsContactQueue contactQueue, ScriptRuntimeStore scriptStore)
+    : IPhysicsContactListener, IPhysicsContactListener3D
 {
     private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
 
-    public void OnContactBegin(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger)
+    public void OnContactBegin(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger) =>
+        OnContactBegin(bodyA.Entity, bodyB.Entity, isTrigger);
+
+    public void OnContactEnd(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger) =>
+        OnContactEnd(bodyA.Entity, bodyB.Entity, isTrigger);
+
+    public void OnContactBegin(IPhysicsBody3D bodyA, IPhysicsBody3D bodyB, bool isTrigger) =>
+        OnContactBegin(bodyA.Entity, bodyB.Entity, isTrigger);
+
+    public void OnContactEnd(IPhysicsBody3D bodyA, IPhysicsBody3D bodyB, bool isTrigger) =>
+        OnContactEnd(bodyA.Entity, bodyB.Entity, isTrigger);
+
+    private void OnContactBegin(Entity? entityA, Entity? entityB, bool isTrigger)
     {
         try
         {
-            var entityA = bodyA.Entity;
-            var entityB = bodyB.Entity;
             if (entityA == null || entityB == null)
                 return;
 
@@ -39,12 +50,10 @@ internal sealed class SceneContactListener(PhysicsContactQueue contactQueue, Scr
         }
     }
 
-    public void OnContactEnd(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger)
+    private void OnContactEnd(Entity? entityA, Entity? entityB, bool isTrigger)
     {
         try
         {
-            var entityA = bodyA.Entity;
-            var entityB = bodyB.Entity;
             if (entityA == null || entityB == null)
                 return;
 

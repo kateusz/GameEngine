@@ -20,7 +20,7 @@ internal sealed class Scene : IScene
     private readonly string _path;
     private readonly ISystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
-    private readonly IPhysicsWorld2D _physicsWorld;
+    private readonly IPhysicsQueries _physicsQueries;
     private readonly ICameraQueries _cameraQueries;
 
     // parent Id → ordered child entities (insertion order). Roots are entities with no ParentComponent / null ParentId.
@@ -35,7 +35,7 @@ internal sealed class Scene : IScene
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
         ScriptRuntimeStore scriptRuntimeStore,
-        IPhysicsWorld2D physicsWorld,
+        IPhysicsQueries physicsQueries,
         ICameraQueries cameraQueries)
     {
         _path = path;
@@ -45,7 +45,7 @@ internal sealed class Scene : IScene
         PhysicsBodies = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
         ScriptRuntimeStore = scriptRuntimeStore;
-        _physicsWorld = physicsWorld;
+        _physicsQueries = physicsQueries;
         _cameraQueries = cameraQueries;
 
         // After scripts (110), before audio (120) — locals settle first, then world caches.
@@ -54,7 +54,7 @@ internal sealed class Scene : IScene
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
 
-    public IPhysicsQueries PhysicsQueries => _physicsWorld;
+    public IPhysicsQueries PhysicsQueries => _physicsQueries;
 
     public ICameraQueries CameraQueries => _cameraQueries;
 

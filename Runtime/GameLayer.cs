@@ -57,7 +57,10 @@ public class GameLayer(
 
         Logger.Information("Loading startup scene from: {Path}", startupScenePath);
 
-        var scene = sceneFactory.Create(startupScenePath, Path.GetFileNameWithoutExtension(startupScenePath));
+        var scene = sceneFactory.Create(
+            startupScenePath,
+            Path.GetFileNameWithoutExtension(startupScenePath),
+            sceneSerializer.PeekDimension(startupScenePath));
         try
         {
             sceneSerializer.Deserialize(scene, startupScenePath);

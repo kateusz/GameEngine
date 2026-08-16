@@ -16,7 +16,7 @@ namespace arena3d;
 public class PlayerFollowCameraSystem(IContext context, IMouseInput mouse) : IGameSystem
 {
     private const float FollowDistance = 2.2f;
-    private const float LookAtHeight = 1.1f;
+    private const float LookAtHeight = 0.2f;
     private const float MouseSensitivity = 0.003f;
     private const float MinPitch = -0.85f;
     private const float MaxPitch = 0.85f;

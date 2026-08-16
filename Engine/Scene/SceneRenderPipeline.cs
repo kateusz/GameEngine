@@ -366,7 +366,7 @@ internal static class SceneRenderPipeline
             graphics2D.BeginScene(camera.Camera!, camera.Transform);
     }
 
-    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera)
+    internal static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera)
     {
         if (camera.ViewCamera != null)
             graphics3D.BeginScene(camera.ViewCamera);

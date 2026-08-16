@@ -147,6 +147,10 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<BoxCollider2DComponent>();
         Register<CircleCollider2DComponent>();
         Register<EdgeCollider2DComponent>();
+        Register<RigidBody3DComponent>();
+        Register<BoxCollider3DComponent>();
+        Register<SphereCollider3DComponent>();
+        Register<CapsuleCollider3DComponent>();
         Register<AudioListenerComponent>();
         Register<AudioSourceComponent>();
         Register<ModelRendererComponent>();

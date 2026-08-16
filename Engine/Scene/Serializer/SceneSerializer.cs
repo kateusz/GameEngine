@@ -113,6 +113,48 @@ internal sealed class SceneSerializer(
         scene.RebuildHierarchyIndex();
     }
 
+    public SceneDimension PeekDimension(string path)
+    {
+        if (!File.Exists(path))
+            throw new InvalidSceneJsonException($"Scene file not found: {path}");
+
+        string json;
+        try
+        {
+            json = File.ReadAllText(path);
+        }
+        catch (IOException ex)
+        {
+            throw new InvalidSceneJsonException($"Failed to read scene from {path}: {ex.Message}", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new InvalidSceneJsonException($"Access denied reading from {path}: {ex.Message}", ex);
+        }
+
+        if (string.IsNullOrWhiteSpace(json))
+            return SceneDimension.TwoD;
+
+        JsonNode? parsedNode;
+        try
+        {
+            parsedNode = JsonNode.Parse(json);
+        }
+        catch (JsonException)
+        {
+            return SceneDimension.TwoD;
+        }
+
+        var jsonObj = parsedNode as JsonObject;
+        if (jsonObj is null)
+            return SceneDimension.TwoD;
+
+        if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null)
+            return dimensionNode.Deserialize<SceneDimension>(_options);
+
+        return SceneDimension.TwoD;
+    }
+
     private static JsonArray GetJsonArray(JsonNode jsonObject, string key)
     {
         if (!jsonObject.AsObject().ContainsKey(key))
