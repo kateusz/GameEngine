@@ -34,9 +34,7 @@ public sealed class EditorViewport(
     EditorSettingsUI editorSettingsUI,
     IEditorPreferences editorPreferences,
     IFrameBufferFactory frameBufferFactory,
-    HdrTonemapPass hdrTonemapPass,
-    BloomPass bloomPass,
-    FxaaPass fxaaPass,
+    PostProcessOrchestrator postProcessOrchestrator,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
@@ -84,8 +82,7 @@ public sealed class EditorViewport(
         if (sceneContext.ActiveScene is not null)
             RebuildEntityLookup(sceneContext.ActiveScene);
 
-        bloomPass.Initialize();
-        fxaaPass.Initialize();
+        postProcessOrchestrator.Initialize();
     }
 
     public void Dispose()
@@ -113,32 +110,18 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var hdrColorId = _frameBuffer.GetColorAttachmentRendererId();
-        uint bloomColorId = 0;
-        if (editorPreferences.BloomEnabled && editorPreferences.BloomIntensity > 0f)
-        {
-            var spec = _frameBuffer.GetSpecification();
-            bloomColorId = bloomPass.Apply(
-                hdrColorId,
-                spec.Width,
-                spec.Height,
-                editorPreferences.BloomThreshold).GetColorAttachmentRendererId();
-        }
-
-        hdrTonemapPass.Apply(
-            hdrColorId,
-            _sdrFrameBuffer,
-            editorPreferences.HdrExposure,
-            bloomColorId,
-            editorPreferences.BloomIntensity);
-
-        var displayColorId = _sdrFrameBuffer.GetColorAttachmentRendererId();
-        if (editorPreferences.FxaaEnabled)
-        {
-            var spec = _sdrFrameBuffer.GetSpecification();
-            displayColorId = fxaaPass.Apply(displayColorId, spec.Width, spec.Height)
-                .GetColorAttachmentRendererId();
-        }
+        var spec = _frameBuffer.GetSpecification();
+        var displayColorId = postProcessOrchestrator.Run(
+            _frameBuffer.GetColorAttachmentRendererId(),
+            spec.Width,
+            spec.Height,
+            new PostProcessSettings(
+                editorPreferences.HdrExposure,
+                editorPreferences.BloomEnabled,
+                editorPreferences.BloomThreshold,
+                editorPreferences.BloomIntensity,
+                editorPreferences.FxaaEnabled),
+            _sdrFrameBuffer);
 
         var texturePointer = new IntPtr(displayColorId);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));

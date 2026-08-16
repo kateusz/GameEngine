@@ -20,8 +20,7 @@ public class Sandbox3DLayer(
     IGraphics3D graphics3D,
     SceneFactory sceneFactory,
     IFrameBufferFactory frameBufferFactory,
-    HdrTonemapPass hdrTonemapPass,
-    FxaaPass fxaaPass) : ILayer
+    PostProcessOrchestrator postProcessOrchestrator) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<Sandbox3DLayer>();
     private const float HdrExposure = 1.8f;
@@ -85,7 +84,7 @@ public class Sandbox3DLayer(
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8),
             ])
         });
-        fxaaPass.Initialize();
+        postProcessOrchestrator.Initialize();
 
         for (var m = 0; m < 3; m++)
         {
@@ -140,9 +139,14 @@ public class Sandbox3DLayer(
         graphics3D.Clear();
         _scene?.OnUpdateRuntime(timeSpan);
         _hdrFrameBuffer.Unbind();
-        hdrTonemapPass.Apply(_hdrFrameBuffer.GetColorAttachmentRendererId(), _sdrFrameBuffer, HdrExposure);
-        var spec = _sdrFrameBuffer!.GetSpecification();
-        fxaaPass.ApplyTo(_sdrFrameBuffer.GetColorAttachmentRendererId(), sdrTarget: null, spec.Width, spec.Height);
+        var spec = _hdrFrameBuffer!.GetSpecification();
+        postProcessOrchestrator.Run(
+            _hdrFrameBuffer.GetColorAttachmentRendererId(),
+            spec.Width,
+            spec.Height,
+            new PostProcessSettings(HdrExposure, FxaaEnabled: true),
+            _sdrFrameBuffer,
+            fxaaToBackbuffer: true);
     }
 
     public void HandleInputEvent(InputEvent windowEvent)

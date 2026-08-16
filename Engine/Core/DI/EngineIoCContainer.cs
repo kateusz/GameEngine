@@ -59,6 +59,7 @@ public static class EngineIoCContainer
         container.Register<HdrTonemapPass>(Reuse.Singleton);
         container.Register<BloomPass>(Reuse.Singleton);
         container.Register<FxaaPass>(Reuse.Singleton);
+        container.Register<PostProcessOrchestrator>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);
