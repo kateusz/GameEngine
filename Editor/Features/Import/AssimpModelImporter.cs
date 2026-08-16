@@ -1,10 +1,15 @@
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using Engine.Renderer;
 using Serilog;
 using Silk.NET.Assimp;
 
-namespace Engine.Renderer;
+// Silk.NET.Assimp declares `Mesh`; the engine reserves `Mesh` for the runtime format type —
+// alias the engine type so unqualified names stay Engine.Renderer.
+using Mesh = Engine.Renderer.Mesh;
+
+namespace Editor.Features.Import;
 
 internal sealed partial class AssimpModelImporter(Assimp assimp)
 {
@@ -210,7 +215,7 @@ internal sealed partial class AssimpModelImporter(Assimp assimp)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
 
         // Shader expects glTF ORM (R=AO, G=roughness, B=metallic). FBX Substance
-        // ships separate grayscale maps — pack them at cook so the shader contract holds.
+        // ships separate grayscale maps — pack them at import so the shader contract holds.
         var ormPath = ResolveTexturePath(scene, aiMaterial, TextureType.GltfMetallicRoughness, directory);
         var metalPath = ResolveTexturePath(scene, aiMaterial, TextureType.Metalness, directory);
         var roughPath = ResolveTexturePath(scene, aiMaterial, TextureType.DiffuseRoughness, directory);

@@ -148,7 +148,7 @@ public class MeshComponentEditor : IComponentEditor<MeshComponent>
 
 #### Features
 
-- ✅ Validates `.mesh` only (cooked meshes; use File → Import 3D Model… for FBX/glTF/GLB)
+- ✅ Validates `.mesh` only (imported meshes; use File → Import 3D Model… for FBX/glTF/GLB)
 - ✅ Shows mesh file name or "(None)"
 - ✅ Drag operation visual feedback
 - ✅ Validates mesh can be loaded

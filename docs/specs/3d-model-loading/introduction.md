@@ -1,4 +1,4 @@
-# 3D Model Loading (bake-on-import / `.mesh`) — Introduction
+# 3D Model Loading (import / `.mesh`) — Introduction
 
 ## Problem
 
@@ -6,9 +6,9 @@
 
 ## What this feature delivers
 
-- **Bake-on-import** — **File → Import 3D Model…** cooks supported interchange files (FBX / glTF / GLB) via Assimp into a versioned binary `.mesh`, with textures relocated beside the mesh.
+- **Import** — **File → Import 3D Model…** converts supported interchange files (FBX / glTF / GLB) via Assimp into a versioned binary `.mesh`, with textures relocated beside the mesh.
 - **Split-on-import** — **File → Import 3D Model…** packs Assimp mesh-bearing nodes into one `assets/models/<stem>.mesh` (textures under `models/textures/`), then spawns a parent entity plus one child per part (shared `ModelPath`, per-child submesh range) in the active scene.
-- **`.mesh`-only runtime** — `ModelPath` on the model renderer points at a cooked `.mesh`; `ModelFactory` loads via `MeshReader` and caches by path. No Assimp on the runtime hot path.
+- **`.mesh`-only runtime** — `ModelPath` on the model renderer points at an imported `.mesh`; `ModelFactory` loads via `MeshReader` and caches by path. No Assimp on the runtime hot path.
 - **Per-entity draw** — one child draws a submesh slice of the shared file under that entity’s transform; move a child to move one imported part.
 - **PBR materials** — albedo / metallic-roughness / normal maps (see physically-based-rendering specs); component tint and optional metallic/roughness overrides.
 - **Graceful failure** — missing, corrupt, or non-`.mesh` paths fall back to the unit cube and log; missing individual textures do not fail the whole model.
@@ -16,7 +16,7 @@
 
 ## What this feature explicitly does not do (v1)
 
-- **Animation and skins** — bones, clips, and morph targets are ignored at cook time. Animation/skinning is a **roadmap follow-on**, not part of this bake.
+- **Animation and skins** — bones, clips, and morph targets are ignored at import time. Animation/skinning is a **roadmap follow-on**, not part of this import.
 - **Deep Assimp hierarchy mirroring** — v1 flattens to one parent + N children (node world→local under root), not a full Assimp parent tree.
 - **Runtime Assimp load of raw formats** — `.fbx` / `.gltf` / `.glb` are not valid `ModelPath` values after cutover.
 - **Cameras, lights, and empties from the file** — only meshes and supported material maps.
@@ -28,7 +28,7 @@ Scenes or prefabs that still store raw interchange paths (`.fbx` / `.gltf` / `.g
 
 ## Key terminology
 
-**Cook / bake.** Editor-time Assimp import → node split → texture relocate → write one versioned `.mesh` under `assets/models/`. Implemented by `MeshCreator.CreateSplit` (Assimp only here, not in `ModelFactory`).
+**Import.** Editor-time Assimp import → node split → texture relocate → write one versioned `.mesh` under `assets/models/`. Implemented by `MeshCreator.CreateSplit` (Assimp only here, not in `ModelFactory`).
 
 **`.mesh`.** Versioned little-endian engine mesh container (GEMH magic, VERSION=1) holding submeshes, PBR material fields, and asset-relative texture path strings.
 
@@ -48,21 +48,21 @@ Scenes or prefabs that still store raw interchange paths (`.fbx` / `.gltf` / `.g
 
 **Path on component, resource from factory.** ECS stores the authoring reference; GPU resources live in the factory cache.
 
-**One entity, one file.** Authors attach a whole cooked asset to one transform.
+**One entity, one file.** Authors attach a whole imported asset to one transform.
 
-**Import more, ignore the rest.** Source files may contain animation, cameras, and lights. Cook reads meshes and supported material maps only.
+**Import more, ignore the rest.** Source files may contain animation, cameras, and lights. Import reads meshes and supported material maps only.
 
 **Fail soft for iteration.** Bad paths degrade to the cube; missing maps degrade materials; play mode continues.
 
 **Reuse the texture factory.** Re-homed texture paths resolve through `PathBuilder` + `TextureFactory`.
 
-**Assimp is cook-only.** Runtime load is Assimp-free. The Assimp package may remain linked for cook; behavioral cutover does not require stripping the package in v1.
+**Assimp is import-only.** Runtime load is Assimp-free. Import lives entirely in the **Editor** (`Editor/Features/Import/`) — the Silk.NET.Assimp package and import pipeline are not part of the runtime Engine assembly and never ship in games.
 
 ## Architecture philosophy
 
 **Extend the cube prototype.** Keep the lit cube for empty / failed paths. Add model draw: factory → materials → draw each submesh.
 
-**Bake once, load many.** Authors pay Assimp at import; play mode and published games read a stable binary.
+**Import once, load many.** Authors pay Assimp at import; play mode and published games read a stable binary.
 
 **Materials match existing lighting.** Ambient + directional lights; PBR metal/rough shading on meshes.
 
@@ -70,4 +70,4 @@ Scenes or prefabs that still store raw interchange paths (`.fbx` / `.gltf` / `.g
 
 ## Sample note
 
-The tracked Editor sample under `Editor/assets/models/` is a cooked asset (`.mesh` + textures) and may be large (~94 MB). Source `.glb` is not committed. Workflow: **File → Import 3D Model…**, then assign the cooked path in the inspector.
+The tracked Editor sample under `Editor/assets/models/` is an imported asset (`.mesh` + textures) and may be large (~94 MB). Source `.glb` is not committed. Workflow: **File → Import 3D Model…**, then assign the `.mesh` path in the inspector.

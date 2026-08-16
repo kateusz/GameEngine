@@ -263,18 +263,11 @@ internal static class SceneRenderPipeline
                 "ModelRenderer Color.a={Alpha} makes mesh invisible entity={EntityId} path={Path} color={Color}",
                 tint.W, entity.Id, modelRenderer.ModelPath, tint);
         }
-        else if (tint.X <= 0f && tint.Y <= 0f && tint.Z <= 0f)
+        else if (tint is { X: <= 0f, Y: <= 0f, Z: <= 0f })
         {
             Logger.Warning(
                 "ModelRenderer Color.rgb is black entity={EntityId} path={Path} color={Color} — mesh draws but looks invisible",
                 entity.Id, modelRenderer.ModelPath, tint);
-        }
-        else
-        {
-            Logger.Information(
-                "ModelRenderer draw entity={EntityId} path={Path} tint={Color} hasAlbedo={HasAlbedo} submeshes={Count}",
-                entity.Id, modelRenderer.ModelPath, tint,
-                model.Submeshes[0].Material.HasAlbedoMap, model.Submeshes.Count);
         }
     }
 

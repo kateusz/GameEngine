@@ -1,13 +1,19 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Renderer;
 using Math;
 using Serilog;
 using Silk.NET.Assimp;
 
-namespace Engine.Renderer;
+// Silk.NET.Assimp declares `SkeletonBone`; the engine reserves that name for the runtime format
+// type — alias the engine type so unqualified names stay Engine.Renderer.
+using SkeletonBone = Engine.Renderer.SkeletonBone;
+
+namespace Editor.Features.Import;
 
 /// <summary>
 /// Thin Assimp → texture relocate → <see cref="MeshWriter"/> create façade.
+/// Editor-only import tool — deliberately not part of the runtime engine assembly.
 /// </summary>
 public static class MeshCreator
 {
@@ -154,7 +160,7 @@ public static class MeshCreator
             IReadOnlyList<AnimationClip> clips = [];
             if (skinned is not null)
             {
-                BakePartsToRoot(skinned.Parts);
+                TransformPartsToRoot(skinned.Parts);
                 assimpParts = [.. skinned.Parts];
                 bones = skinned.Bones;
                 clips = skinned.Clips;
@@ -225,7 +231,7 @@ public static class MeshCreator
         return System.IO.File.Exists(meshPath) ? 1 : 0;
     }
 
-    private static void BakePartsToRoot(IReadOnlyList<AssimpModelPart> parts)
+    private static void TransformPartsToRoot(IReadOnlyList<AssimpModelPart> parts)
     {
         foreach (var part in parts)
         {

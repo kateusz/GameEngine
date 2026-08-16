@@ -1,12 +1,11 @@
 using Engine.Platform.OpenGL;
-using Engine.Platform.SilkNet;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Serilog;
 
 namespace Engine.Renderer;
 
-// ponytail: no locks — bake and lookup happen on the render thread only
+// ponytail: no locks — generate and lookup happen on the render thread only
 internal sealed class EnvironmentMapFactory(
     IRendererApiConfig apiConfig,
     IShaderFactory shaderFactory,
@@ -15,14 +14,14 @@ internal sealed class EnvironmentMapFactory(
     private static readonly ILogger Logger = Log.ForContext<EnvironmentMapFactory>();
 
     private readonly Dictionary<string, EnvironmentMap?> _cache = new(StringComparer.OrdinalIgnoreCase);
-    private OpenGLEnvironmentBaker? _baker;
-    private uint _brdfLut;
+    private OpenGLEnvironmentGenerator? _generator;
+    private Texture2D? _brdfLut;
     private TextureCube? _blackCubemap;
     private bool _disposed;
 
-    private OpenGLEnvironmentBaker Baker => _baker ??= apiConfig.Type switch
+    private OpenGLEnvironmentGenerator Generator => _generator ??= apiConfig.Type switch
     {
-        ApiType.SilkNet => new OpenGLEnvironmentBaker(shaderFactory, meshFactory),
+        ApiType.SilkNet => new OpenGLEnvironmentGenerator(shaderFactory, meshFactory),
         _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
     };
 
@@ -37,18 +36,18 @@ internal sealed class EnvironmentMapFactory(
             if (!File.Exists(resolvedHdrPath))
                 Logger.Error("Environment HDR not found: {Path}", resolvedHdrPath);
             else
-                map = Baker.Bake(resolvedHdrPath);
+                map = Generator.Generate(resolvedHdrPath);
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed to bake environment map from {Path}", resolvedHdrPath);
+            Logger.Error(ex, "Failed to generate environment map from {Path}", resolvedHdrPath);
         }
 
         _cache[resolvedHdrPath] = map;
         return map;
     }
 
-    public uint GetBrdfLutId() => _brdfLut != 0 ? _brdfLut : _brdfLut = Baker.BakeBrdfLut();
+    public Texture2D GetBrdfLut() => _brdfLut ??= Generator.GenerateBrdfLut();
 
     public TextureCube GetBlackCubemap() => _blackCubemap ??= OpenGLTextureCube.CreateBlack();
 
@@ -61,11 +60,8 @@ internal sealed class EnvironmentMapFactory(
             map?.Dispose();
         _cache.Clear();
 
-        if (_brdfLut != 0)
-        {
-            SilkNetContext.GL.DeleteTexture(_brdfLut);
-            _brdfLut = 0;
-        }
+        _brdfLut?.Dispose();
+        _brdfLut = null;
 
         _blackCubemap?.Dispose();
         _blackCubemap = null;

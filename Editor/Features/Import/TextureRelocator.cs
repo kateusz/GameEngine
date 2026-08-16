@@ -1,7 +1,8 @@
 using Engine.Core;
+using Engine.Renderer;
 using Serilog;
 
-namespace Engine.Renderer;
+namespace Editor.Features.Import;
 
 /// <summary>
 /// Copies Assimp-resolved texture files into <c>assets/models/textures/</c>

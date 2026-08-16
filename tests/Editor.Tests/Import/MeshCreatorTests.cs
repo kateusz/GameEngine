@@ -2,10 +2,11 @@ using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
 using Engine.Scene.Skeletal;
+using Editor.Features.Import;
 using NSubstitute;
 using Shouldly;
 
-namespace Engine.Tests.Renderer;
+namespace Editor.Tests.Import;
 
 [Trait("Category", "Unit")]
 [Collection("PathBuilder")]

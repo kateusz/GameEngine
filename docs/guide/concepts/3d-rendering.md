@@ -1,6 +1,6 @@
 # 3D Rendering
 
-**Formats (runtime):** cooked `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport — Assimp cooks into `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
+**Formats (runtime):** imported `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport — Assimp writes `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
 
 **Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` (2D shadow map) + first `PointLightComponent` (cubemap shadows, position from transform) per frame. No directional light → white default directional (metals need it; ambient alone leaves metals black).
 
@@ -11,10 +11,10 @@
 1. Scene **3D** (Properties, no selection) or **Create 3D Entity**
 2. Primary **Perspective** camera (included in Create 3D Entity)
 3. **Ambient Light** + **Directional Light** entities
-4. **File → Import 3D Model…** (or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport) to cook sources into `assets/models/`
+4. **File → Import 3D Model…** (or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport) to import sources into `assets/models/`
 5. **Model Renderer** → drag a `.mesh` onto **Model** (or leave empty for cube)
 
-Example: `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh`. Cooked sample under `Editor/assets/models/` may be large (~94 MB).
+Example: `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh`. Imported sample under `Editor/assets/models/` may be large (~94 MB).
 
 ## Models
 
@@ -24,11 +24,11 @@ Inspector tuning: **Color** tint, optional **Metallic** / **Roughness Override**
 
 ### Legacy paths
 
-If `ModelPath` still points at `.fbx` / `.gltf` / `.glb` (etc.), Runtime rejects it and shows the **unit cube**. Re-import the source, then set `ModelPath` to the nested cooked path.
+If `ModelPath` still points at `.fbx` / `.gltf` / `.glb` (etc.), Runtime rejects it and shows the **unit cube**. Re-import the source, then set `ModelPath` to the nested `.mesh` path.
 
 ## PBR
 
-Metal/rough workflow: albedo, metallic-roughness packed map (G=roughness, B=metallic), optional normal. Legacy Phong → heuristic conversion at cook time.
+Metal/rough workflow: albedo, metallic-roughness packed map (G=roughness, B=metallic), optional normal. Legacy Phong → heuristic conversion at import time.
 
 ## Troubleshooting
 
@@ -39,6 +39,6 @@ Metal/rough workflow: albedo, metallic-roughness packed map (G=roughness, B=meta
 | Cube fallback | `ModelPath` is `.mesh` under `assets/`; re-import if still a raw format; console for load/reject logs |
 | Wrong scale | Transform **Scale** |
 | Bad metals | Overrides on component, or fix maps in DCC and re-import |
-| Atlas / face-on-wrong-body | UV double-flip at cook (engine must not FlipUVs when textures use stbi flip). Restart editor after cook fixes to clear model cache. |
+| Atlas / face-on-wrong-body | UV double-flip at import (engine must not FlipUVs when textures use stbi flip). Restart editor after import fixes to clear model cache. |
 
 Details: [Component Inspector](../editor/component-inspector.md#modelrenderercomponent), [Rendering Pipeline](../../architecture/rendering-pipeline.md), [3D model loading specs](../../specs/3d-model-loading/introduction.md).

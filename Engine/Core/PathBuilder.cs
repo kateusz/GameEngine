@@ -35,7 +35,7 @@ public static class PathBuilder
 
     /// <summary>
     /// True when <paramref name="absolutePath"/> resolves under the current <see cref="AssetsPath"/>
-    /// (no <c>..</c> escape). Used to confine cooked texture loads.
+    /// (no <c>..</c> escape). Used to confine imported texture loads.
     /// </summary>
     public static bool IsUnderAssets(string absolutePath)
     {

@@ -42,7 +42,6 @@ uniform sampler2D u_EmissiveMap;
 uniform int u_AlphaMode;
 uniform float u_AlphaCutoff;
 
-const float MAX_REFLECTION_LOD = 4.0;
 const float PI = 3.14159265359;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)

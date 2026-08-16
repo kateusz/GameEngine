@@ -1,9 +1,16 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Engine.Renderer;
 using Serilog;
 using Silk.NET.Assimp;
 
-namespace Engine.Renderer;
+// Silk.NET.Assimp declares `Mesh`/`SkeletonBone`/`VectorKey`; the engine reserves those names for
+// the runtime format types — alias the engine types so unqualified names stay Engine.Renderer.
+using Mesh = Engine.Renderer.Mesh;
+using SkeletonBone = Engine.Renderer.SkeletonBone;
+using VectorKey = Engine.Renderer.VectorKey;
+
+namespace Editor.Features.Import;
 
 internal sealed record AssimpSkinnedImport(
     IReadOnlyList<AssimpModelPart> Parts,

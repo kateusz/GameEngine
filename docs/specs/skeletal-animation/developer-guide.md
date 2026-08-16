@@ -1,16 +1,16 @@
 # Skeletal Animation (v1) — Developer Guide
 
-Implementation guide for cook-time skinning and GPU playback. See `introduction.md` for concepts.
+Implementation guide for import-time skinning and GPU playback. See `introduction.md` for concepts.
 
 ## Glossary (implementation subset)
 
-| Term | Meaning in this bake |
+| Term | Meaning in this import |
 |------|----------------------|
 | Skinning payload | Optional `.mesh` section: weights, skeleton, clips |
 | Palette | 100 skinning matrices; identity when not posing |
 | Playback | Parent component: mesh path, clip name, Playing, Loop, Speed, Time |
-| Root-space bake | Vertices written in skeleton root; child local TRS = identity |
-| Bone cap | 100; cook fails above that |
+| Root-space transform | Vertices written in skeleton root; child local TRS = identity |
+| Bone cap | 100; import fails above that |
 
 ## Step-by-step
 
@@ -22,7 +22,7 @@ Per skinned vertex: four bone indices and four weights (unused = −1 / 0). Then
 
 **Why:** One factory, one path, one cache. Draw and playback open the same file.
 
-### 2. Cook skinned sources
+### 2. Import skinned sources
 
 On import, if any mesh has bones:
 
@@ -32,13 +32,13 @@ On import, if any mesh has bones:
 - Inverse bind from the bone offset matrix, transposed into engine row-vector space. If a clip-only bone has no offset, use the inverse of its bind global.
 - Weights: sort by influence, keep 4, renormalize.
 - Clip times: divide by ticks-per-second (fallback 25). Store quaternions in engine component order after a single Assimp → Numerics conversion.
-- Bake every skinned vertex into skeleton root space so palette and the entity model matrix share one space.
+- Transform every skinned vertex into skeleton root space so palette and the entity model matrix share one space.
 - > 100 bones → fail that source; report it in the import summary.
-- No bones → existing static cook, unchanged.
+- No bones → existing static import, unchanged.
 
 Textures relocate as they do today. Output is still `assets/models/<stem>.mesh`.
 
-**Why:** Assimp stays behind the cook boundary; runtime never sees `aiScene`.
+**Why:** Assimp stays behind the import boundary; runtime never sees `aiScene`.
 
 ### 3. Spawn without auto-playback
 
@@ -48,7 +48,7 @@ Skinned import still spawns a parent plus one child per mesh part. Children get 
 
 ### 4. Playback component and system
 
-Playback fields: path to the cooked `.mesh`, clip name (empty = first clip), Playing, Loop, Speed, Time. Palette is transient and not serialized.
+Playback fields: path to the imported `.mesh`, clip name (empty = first clip), Playing, Loop, Speed, Time. Palette is transient and not serialized.
 
 The skeletal system runs in **Edit and Play**, before scene render:
 
@@ -117,9 +117,9 @@ Publish: if playback has a path, the file must exist under `assets/` — same ru
 
 ```mermaid
 flowchart TB
-  subgraph editor [Editor cook]
+  subgraph editor [Editor import]
     IMP[Import 3D Model]
-    COOK[Skinned cook]
+    SKINIMP[Skinned import]
   end
 
   subgraph asset [One .mesh]
@@ -138,9 +138,9 @@ flowchart TB
     G3D[Graphics3D + lighting vert]
   end
 
-  IMP --> COOK
-  COOK --> GEO
-  COOK --> SKIN
+  IMP --> SKINIMP
+  SKINIMP --> GEO
+  SKINIMP --> SKIN
   PB --> FAC
   MR --> FAC
   FAC --> SYS
@@ -177,7 +177,7 @@ sequenceDiagram
 | Missing renderer `.mesh` | Cube fallback (unchanged) |
 | Empty clip name | First clip |
 | Unknown clip name | Identity palette + log |
-| > 100 bones at cook | That import fails; others in the batch may succeed |
+| > 100 bones at import | That import fails; others in the batch may succeed |
 | Zero-weight vertex | Unskinned bind vertex in the shader |
 | No ancestor playback, or renderer path ≠ playback path | Static draw (entity transform, no skinning) |
 | Re-import same path | Evict factory cache |
@@ -188,7 +188,7 @@ sequenceDiagram
 
 **Invariant (required):** bind palette equals first-key palette on a tiny two-bone clip. CPU pose test always; GPU readback if the graphics host can sample a vertex.
 
-**Cook:** glTF fixture with two bones and one clip — four influences, parent-before-child, times in seconds, root-space vertices. 101 bones fails cook. Bone-free file still writes a static mesh. Current static files still load.
+**Import:** glTF fixture with two bones and one clip — four influences, parent-before-child, times in seconds, root-space vertices. 101 bones fails import. Bone-free file still writes a static mesh. Current static files still load.
 
 **Evaluate:** lerp/slerp between two keys; Loop wraps; Loop off clamps; unknown name → identity. A child bone rotates about its own joint (parent origin does not drift).
 

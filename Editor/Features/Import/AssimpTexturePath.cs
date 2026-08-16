@@ -1,4 +1,4 @@
-namespace Engine.Renderer;
+namespace Editor.Features.Import;
 
 /// <summary>
 /// Resolves Assimp external texture paths. FBX often stores Windows absolute paths from the

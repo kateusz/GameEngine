@@ -2,7 +2,7 @@
 
 ## Problem
 
-Shipped games and templates need menus, HUD text, and clickable buttons. Today the engine has no runtime UI stack. Sample games fake overlays by swapping sprite textures on world entities (pre-baked “banner” images). That works for one or two screens and collapses as soon as you need real text, hover states, or a menu that is not also a gameplay sprite.
+Shipped games and templates need menus, HUD text, and clickable buttons. Today the engine has no runtime UI stack. Sample games fake overlays by swapping sprite textures on world entities (pre-rendered “banner” images). That works for one or two screens and collapses as soon as you need real text, hover states, or a menu that is not also a gameplay sprite.
 
 The editor’s ImGui tooling solves a different problem: tooling UI for developers. It is not available in published builds and must not become a runtime dependency. Games need a **first-class, scene-authored, screen-space UI** that draws through the engine’s own 2D path and talks to the same scripting model as everything else.
 
@@ -11,7 +11,7 @@ The editor’s ImGui tooling solves a different problem: tooling UI for develope
 - **Screen-space canvas** — a scene marker for UI drawn after the world, in window pixels.
 - **Absolute pixel layout** — each widget has an explicit screen rectangle (position and size). No anchors or reference-resolution scaling in this version.
 - **Flat widgets** — labels, images, and buttons as sibling entities under a canvas idea; no nested UI trees (entity hierarchy is a later milestone).
-- **Bitmap text** — BMFont (or equivalent pre-baked atlas) so labels become textured glyph quads.
+- **Bitmap text** — BMFont (or equivalent pre-rendered atlas) so labels become textured glyph quads.
 - **Interactive buttons** — hover / pressed / disabled visuals, click detection, and a script hook on the same entity (`ScriptableEntity`).
 - **Input consumption** — pointer interaction over UI does not also fire as gameplay input.
 - **Editor authoring** — inspectors for the new components so menus are built in the scene, not only in code.
@@ -43,7 +43,7 @@ The editor’s ImGui tooling solves a different problem: tooling UI for develope
 
 **Button.** An interactive widget with visual states and click dispatch to a script on the same entity. Owns its own visual states in v1 (separate from Image).
 
-**BMFont.** A pre-baked bitmap font: a texture atlas plus a metrics file describing glyph UVs, advances, and line metrics. Runtime turns strings into quads; it does not rasterize TrueType at runtime.
+**BMFont.** A pre-rendered bitmap font: a texture atlas plus a metrics file describing glyph UVs, advances, and line metrics. Runtime turns strings into quads; it does not rasterize TrueType at runtime.
 
 **UI render pass.** A second draw pass after world sprites/meshes, using an orthographic screen projection and the existing 2D batcher.
 

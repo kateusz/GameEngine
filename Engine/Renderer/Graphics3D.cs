@@ -81,13 +81,18 @@ internal sealed class Graphics3D(
             PathBuilder.Resolve("assets/shaders/OpenGL/flatColorShader.frag"));
         _texturedShader = shaderFactory.Create(
             PathBuilder.Resolve("assets/shaders/OpenGL/lightingShader.vert"),
-            PathBuilder.Resolve("assets/shaders/OpenGL/lightingShader.frag"));
+            PathBuilder.Resolve("assets/shaders/OpenGL/lightingShader.frag"),
+            [new ShaderDefine("MAX_REFLECTION_LOD",
+                EnvironmentMapConstants.MaxReflectionLod.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))]);
         _skyboxShader = shaderFactory.Create(
             ResolveHostShader("skybox.vert"),
             ResolveHostShader("skybox.frag"));
         _skyboxVao = vertexArrayFactory.Create();
         _cubeMesh = meshFactory.CreateCube();
 
+        // Texture unit contract (must match the sampler uniforms in lightingShader.frag):
+        // 0 albedo, 1 metallicRoughness, 2 normal, 3 irradiance, 4 prefilter, 5 brdf LUT,
+        // 6 directional shadow, 7 point shadow, 8 emissive
         _texturedShader.Bind();
         _texturedShader.SetInt("u_AlbedoMap", 0);
         _texturedShader.SetInt("u_MetallicRoughnessMap", 1);
@@ -216,7 +221,7 @@ internal sealed class Graphics3D(
         _texturedShader.SetInt("u_UseIBL", _environmentMap is not null ? 1 : 0);
         _texturedShader.SetFloat("u_IblIntensity", _envIntensity);
         if (_environmentMap is not null)
-            rendererApi.BindTexture2D(environmentMapFactory.GetBrdfLutId(), 5);
+            environmentMapFactory.GetBrdfLut().Bind(5);
         else
             textureFactory.GetWhiteTexture().Bind(5);
 
@@ -372,9 +377,9 @@ internal sealed class Graphics3D(
     {
         _envIntensity = intensity;
         _environmentMap = resolvedHdrPath is null ? null : environmentMapFactory.GetOrCreate(resolvedHdrPath);
-        // Bake the shared LUT here — doing it inside DrawMesh unbinds the mesh shader (GL_INVALID_OPERATION).
+        // Generate the shared LUT here — doing it inside DrawMesh unbinds the mesh shader (GL_INVALID_OPERATION).
         if (_environmentMap is not null)
-            _ = environmentMapFactory.GetBrdfLutId();
+            _ = environmentMapFactory.GetBrdfLut();
     }
 
     private void ApplyCamera(Matrix4x4 view, Matrix4x4 projection, Vector3 viewPosition)

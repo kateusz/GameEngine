@@ -256,6 +256,19 @@ internal sealed class OpenGLTexture2D : Texture2D
         return new OpenGLTexture2D(rendererId, width, height, internalFormat, dataFormat);
     }
 
+    /// <summary>
+    /// Wraps an existing GPU texture (e.g. a generated BRDF LUT) into the Texture2D abstraction.
+    /// The wrapper takes ownership of the handle — disposal deletes it.
+    /// </summary>
+    internal static Texture2D CreateFromHandle(uint rendererId, int width, int height,
+        InternalFormat internalFormat = InternalFormat.Rgba16f)
+    {
+        if (rendererId == 0)
+            throw new ArgumentException("Cannot wrap a null texture handle", nameof(rendererId));
+
+        return new OpenGLTexture2D(rendererId, width, height, internalFormat, PixelFormat.Rgba);
+    }
+
     public override bool Equals(object? obj)
     {
         if (obj is not OpenGLTexture2D other)

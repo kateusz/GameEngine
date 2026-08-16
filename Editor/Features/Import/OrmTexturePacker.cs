@@ -1,6 +1,6 @@
 using StbImageSharp;
 
-namespace Engine.Renderer;
+namespace Editor.Features.Import;
 
 /// <summary>
 /// Packs AO / roughness / metallic into one glTF ORM texture (R=AO, G=rough, B=metal).

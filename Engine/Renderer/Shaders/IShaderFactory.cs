@@ -16,6 +16,12 @@ public interface IShaderFactory
     IShader Create(string vertPath, string fragPath, string geomPath);
 
     /// <summary>
+    /// Creates a shader with preprocessor defines injected after the #version line of each stage.
+    /// The defines are part of the cache key.
+    /// </summary>
+    IShader Create(string vertPath, string fragPath, IReadOnlyList<ShaderDefine> defines);
+
+    /// <summary>
     /// Clears the shader cache, forcing all subsequent shader requests to recompile.
     /// Useful for development scenarios where shaders need to be reloaded.
     /// </summary>

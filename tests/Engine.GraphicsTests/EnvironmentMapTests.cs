@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Platform.SilkNet;
+using Engine.Renderer;
 using Shouldly;
 using Silk.NET.OpenGL;
 
@@ -7,11 +8,11 @@ namespace Engine.GraphicsTests;
 
 [Trait("Category", "GraphicsIntegration")]
 [Collection("GraphicsIntegration")]
-public class EnvironmentBakeTests(HeadlessGraphicsContextFixture fixture)
+public class EnvironmentMapTests(HeadlessGraphicsContextFixture fixture)
     : IClassFixture<HeadlessGraphicsContextFixture>
 {
     [GraphicsFact]
-    public void Bake_TinyWarmSunOverBlueSky_IrradianceStaysWarm()
+    public void Generate_TinyWarmSunOverBlueSky_IrradianceStaysWarm()
     {
         var path = Path.Combine(Path.GetTempPath(), $"envsun-{Guid.NewGuid():N}.hdr");
         try
@@ -50,9 +51,9 @@ public class EnvironmentBakeTests(HeadlessGraphicsContextFixture fixture)
     }
 
     [GraphicsFact]
-    public void Bake_SolidRedSky_YieldsRedDominantIrradiance()
+    public void Generate_SolidRedSky_YieldsRedDominantIrradiance()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"envbake-{Guid.NewGuid():N}.hdr");
+            var path = Path.Combine(Path.GetTempPath(), $"envmap-{Guid.NewGuid():N}.hdr");
         try
         {
             HdrTestImages.WriteSolidHdr(path, 4, 2, new Vector3(1f, 0f, 0f));
@@ -82,7 +83,7 @@ public class EnvironmentBakeTests(HeadlessGraphicsContextFixture fixture)
     }
 
     [GraphicsFact]
-    public void Bake_SolidRedSky_PrefilterHighMipStaysRed()
+    public void Generate_SolidRedSky_PrefilterHighMipStaysRed()
     {
         var path = Path.Combine(Path.GetTempPath(), $"envpre-{Guid.NewGuid():N}.hdr");
         try
@@ -106,23 +107,23 @@ public class EnvironmentBakeTests(HeadlessGraphicsContextFixture fixture)
     [GraphicsFact]
     public unsafe void BrdfLut_HasSaneSplitSumValues()
     {
-        var lut = fixture.EnvironmentMapFactory.GetBrdfLutId();
-        lut.ShouldNotBe(0u);
+        var lut = fixture.EnvironmentMapFactory.GetBrdfLut();
+        lut.GetRendererId().ShouldNotBe(0u);
 
         var gl = SilkNetContext.GL;
-        gl.BindTexture(TextureTarget.Texture2D, lut);
-        var pixels = new float[512 * 512 * 4];
+        gl.BindTexture(TextureTarget.Texture2D, lut.GetRendererId());
+        var pixels = new float[EnvironmentMapConstants.BrdfLutSize * EnvironmentMapConstants.BrdfLutSize * 4];
         fixed (float* p = pixels)
             gl.GetTexImage(TextureTarget.Texture2D, 0, PixelFormat.Rgba, PixelType.Float, p);
         gl.BindTexture(TextureTarget.Texture2D, 0);
 
-        var idx = (25 * 512 + 480) * 4;
+        var idx = (25 * EnvironmentMapConstants.BrdfLutSize + 480) * 4;
         pixels[idx].ShouldBeGreaterThan(0.8f);
         pixels[idx].ShouldBeLessThan(1.2f);
         pixels[idx + 1].ShouldBeGreaterThanOrEqualTo(0f);
         pixels[idx + 1].ShouldBeLessThan(0.2f);
 
-        var mid = (256 * 512 + 256) * 4;
+        var mid = (256 * EnvironmentMapConstants.BrdfLutSize + 256) * 4;
         float.IsNaN(pixels[mid]).ShouldBeFalse();
         (pixels[mid] + pixels[mid + 1]).ShouldBeLessThanOrEqualTo(1.1f);
         pixels[mid].ShouldBeGreaterThan(0.1f);

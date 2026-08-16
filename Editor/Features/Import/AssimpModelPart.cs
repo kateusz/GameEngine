@@ -1,4 +1,6 @@
-namespace Engine.Renderer;
+using Engine.Renderer;
+
+namespace Editor.Features.Import;
 
 /// <summary>
 /// One Assimp mesh-bearing node: geometry in node-local space, transform relative to import root.

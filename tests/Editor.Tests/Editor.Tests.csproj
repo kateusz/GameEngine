@@ -32,4 +32,8 @@
     <ProjectReference Include="..\..\Engine\Engine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

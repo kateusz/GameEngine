@@ -1,7 +1,7 @@
-using Engine.Renderer;
+using Editor.Features.Import;
 using Shouldly;
 
-namespace Engine.Tests.Renderer;
+namespace Editor.Tests.Import;
 
 [Trait("Category", "Unit")]
 public class AssimpPartNamingTests

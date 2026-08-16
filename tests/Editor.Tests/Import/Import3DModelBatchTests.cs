@@ -125,7 +125,7 @@ public class Import3DModelBatchTests : IDisposable
     }
 
     [Fact]
-    public void TryImportBatch_DuplicateDestinations_AbortsWithoutCooking()
+    public void TryImportBatch_DuplicateDestinations_AbortsWithoutImporting()
     {
         var fbx = Path.Combine(_sourceDir, "robot.fbx");
         var glb = Path.Combine(_sourceDir, "robot.glb");

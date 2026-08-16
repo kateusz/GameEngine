@@ -1,7 +1,7 @@
 namespace Engine.Renderer;
 
 /// <summary>
-/// Creates GPU-ready models from cooked <c>.mesh</c> paths only.
+/// Creates GPU-ready models from imported <c>.mesh</c> paths only.
 /// Returns null on missing/corrupt/rejected paths (pipeline owns fail-soft cube).
 /// </summary>
 public interface IModelFactory

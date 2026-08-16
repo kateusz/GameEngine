@@ -8,7 +8,6 @@ uniform samplerCube u_EnvironmentMap;
 uniform float u_Roughness;
 
 const float PI = 3.14159265359;
-const float ENV_RESOLUTION = 512.0;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {

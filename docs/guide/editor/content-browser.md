@@ -29,9 +29,9 @@ All drop targets accept only files with matching extensions — dropping an inco
 | `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
 | `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
 | `.scene` scene file | Viewport | Opens the scene |
-| `.fbx` / `.gltf` / `.glb` | Viewport | Same as **File → Import 3D Model…** (cook + spawn in the open scene) |
+| `.fbx` / `.gltf` / `.glb` | Viewport | Same as **File → Import 3D Model…** (import + spawn in the open scene) |
 
-Cook interchange formats (`.fbx` / `.gltf` / `.glb`) with **File → Import 3D Model…** or by dropping them from the Content Browser onto the Viewport. That writes `assets/models/<stem>_<part>.mesh` (and spawns the hierarchy). Raw source files are not drop targets for `ModelPath`.
+Import interchange formats (`.fbx` / `.gltf` / `.glb`) with **File → Import 3D Model…** or by dropping them from the Content Browser onto the Viewport. That writes `assets/models/<stem>_<part>.mesh` (and spawns the hierarchy). Raw source files are not drop targets for `ModelPath`.
 
 The Content Browser passes the asset's path relative to the `assets` directory as the drag-and-drop payload. Drop targets resolve the full path by combining this relative path with the project's assets root.
 

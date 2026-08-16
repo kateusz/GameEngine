@@ -94,7 +94,7 @@ For each material slot:
 ```
 if PBR metal/rough present:
   albedo map ← base color texture
-  albedo factor ← base color factor (bake into tint default or store if you add a factor field)
+  albedo factor ← base color factor (store in tint default or add a factor field)
   MR map ← metallic-roughness texture, or Assimp specular slot, or Bistro `_BaseColor` → `_Specular` sibling (packed G=roughness, B=metallic)
   metallic ← metallic factor
   roughness ← roughness factor
@@ -197,7 +197,7 @@ flowchart TB
   G3D --> Shader --> FBO
 ```
 
-Assimp PBR extract runs only at **Editor cook** (`MeshCreator`), not on factory miss. Runtime/`ModelFactory` loads cooked `.mesh` via `MeshReader`.
+Assimp PBR extract runs only at **Editor import** (`MeshCreator`), not on factory miss. Runtime/`ModelFactory` loads imported `.mesh` via `MeshReader`.
 
 ### Draw sequence
 

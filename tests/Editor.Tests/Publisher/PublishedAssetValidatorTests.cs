@@ -152,7 +152,7 @@ public class PublishedAssetValidatorTests : IDisposable
     }
 
     [Fact]
-    public void ValidateAssetReferences_SucceedsWhenCookedMeshExists()
+    public void ValidateAssetReferences_SucceedsWhenImportedMeshExists()
     {
         var assets = CreateAssetsLayout();
         Directory.CreateDirectory(Path.Combine(assets, "models"));

@@ -8,14 +8,20 @@ namespace Engine.Renderer.Shaders;
 /// </summary>
 internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFactory, IDisposable
 {
-    private readonly Dictionary<(string Vert, string Frag, string Geom, DateTime, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
+    private readonly Dictionary<(string Vert, string Frag, string Geom, DateTime, DateTime, DateTime, string Defines), WeakReference<IShader>> _shaderCache = new();
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
     public IShader Create(string vertPath, string fragPath) =>
         Create(vertPath, fragPath, geomPath: "");
 
-    public IShader Create(string vertPath, string fragPath, string geomPath)
+    public IShader Create(string vertPath, string fragPath, string geomPath) =>
+        Create(vertPath, fragPath, geomPath, []);
+
+    public IShader Create(string vertPath, string fragPath, IReadOnlyList<ShaderDefine> defines) =>
+        Create(vertPath, fragPath, "", defines ?? []);
+
+    public IShader Create(string vertPath, string fragPath, string geomPath, IReadOnlyList<ShaderDefine> defines)
     {
         DateTime vertModTime, fragModTime, geomModTime;
         var geom = geomPath ?? "";
@@ -32,7 +38,8 @@ internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFacto
             geomModTime = DateTime.MinValue;
         }
 
-        var key = (vertPath, fragPath, geom, vertModTime, fragModTime, geomModTime);
+        var definesKey = DefinesKey(defines);
+        var key = (vertPath, fragPath, geom, vertModTime, fragModTime, geomModTime, definesKey);
 
         lock (_cacheLock)
         {
@@ -47,9 +54,7 @@ internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFacto
 
         var shader = apiConfig.Type switch
         {
-            ApiType.SilkNet => geom.Length == 0
-                ? new OpenGLShader(vertPath, fragPath)
-                : new OpenGLShader(vertPath, fragPath, geom),
+            ApiType.SilkNet => new OpenGLShader(vertPath, fragPath, string.IsNullOrEmpty(geom) ? null : geom, defines),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
 
@@ -64,6 +69,14 @@ internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFacto
             _shaderCache[key] = new WeakReference<IShader>(shader);
             return shader;
         }
+    }
+
+    private static string DefinesKey(IReadOnlyList<ShaderDefine> defines)
+    {
+        if (defines is null || defines.Count == 0)
+            return "";
+
+        return string.Join(",", defines.Select(d => $"{d.Name}={d.Value}"));
     }
 
     /// <summary>

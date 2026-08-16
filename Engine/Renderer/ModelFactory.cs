@@ -7,8 +7,8 @@ using Serilog;
 namespace Engine.Renderer;
 
 /// <summary>
-/// Loads GPU-ready models from cooked <c>.mesh</c> files only.
-/// Raw interchange (.fbx/.glb/.gltf) must be cooked first — never loaded here.
+/// Loads GPU-ready models from imported <c>.mesh</c> files only.
+/// Raw interchange (.fbx/.glb/.gltf) must be imported first — never loaded here.
 /// </summary>
 internal sealed class ModelFactory : IModelFactory, IDisposable
 {
@@ -60,7 +60,7 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
             if (!IsMeshExtension(normalizedPath))
             {
                 Logger.Warning(
-                    "Rejected non-.mesh model path (cook required): {Path} extension={Extension}",
+                    "Rejected non-.mesh model path (import required): {Path} extension={Extension}",
                     normalizedPath, Path.GetExtension(normalizedPath));
                 return null;
             }

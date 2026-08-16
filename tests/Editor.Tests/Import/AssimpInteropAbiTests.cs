@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using Shouldly;
 using Silk.NET.Assimp;
 
-namespace Engine.Tests.Renderer;
+namespace Editor.Tests.Import;
 
 /// <summary>
 /// Silk.NET.Assimp 2.23 maps assimp 6 (QuatKey = 32 bytes) but Ultz.Native.Assimp still

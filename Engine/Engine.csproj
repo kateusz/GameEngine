@@ -25,7 +25,6 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
-        <PackageReference Include="Silk.NET.Assimp" Version="2.23.0" />
         <PackageReference Include="Silk.NET.Input" Version="2.23.0" />
         <PackageReference Include="Silk.NET.OpenAL" Version="2.23.0" />
         <PackageReference Include="Silk.NET.OpenAL.Extensions.EXT" Version="2.23.0" />

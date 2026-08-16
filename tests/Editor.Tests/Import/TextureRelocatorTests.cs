@@ -1,12 +1,13 @@
 using Engine.Core;
 using Engine.Renderer;
+using Editor.Features.Import;
 using NSubstitute;
 using Shouldly;
 
-namespace Engine.Tests.Renderer;
+namespace Editor.Tests.Import;
 
 /// <summary>
-/// Group 8 gap: TextureRelocator was only covered indirectly via MeshCreator texture cooks.
+/// Group 8 gap: TextureRelocator was only covered indirectly via MeshCreator texture imports.
 /// </summary>
 [Trait("Category", "Unit")]
 [Collection("PathBuilder")]

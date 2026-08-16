@@ -48,18 +48,22 @@ public class Graphics3DWireframeTests : IDisposable
         _skyboxShader = Substitute.For<IShader>();
         _cubeMesh = CreateInitializedMesh("cube");
 
+        IShader ResolveShader(NSubstitute.Core.CallInfo ci)
+        {
+            var vert = (string)ci[0];
+            if (vert.Contains("wireframeShader", StringComparison.OrdinalIgnoreCase))
+                return _wireframeShader;
+            if (vert.Contains("skybox", StringComparison.OrdinalIgnoreCase))
+                return _skyboxShader;
+            if (vert.Contains("lightingShader", StringComparison.OrdinalIgnoreCase))
+                return _texturedShader;
+            return _cubeShader;
+        }
+
         _shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(ci =>
-            {
-                var vert = (string)ci[0];
-                if (vert.Contains("wireframeShader", StringComparison.OrdinalIgnoreCase))
-                    return _wireframeShader;
-                if (vert.Contains("skybox", StringComparison.OrdinalIgnoreCase))
-                    return _skyboxShader;
-                if (vert.Contains("lightingShader", StringComparison.OrdinalIgnoreCase))
-                    return _texturedShader;
-                return _cubeShader;
-            });
+            .Returns(ci => ResolveShader(ci));
+        _shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<ShaderDefine>>())
+            .Returns(ci => ResolveShader(ci));
 
         _meshFactory.CreateCube().Returns(_cubeMesh);
         _textureFactory.GetWhiteTexture().Returns(new Texture2D());

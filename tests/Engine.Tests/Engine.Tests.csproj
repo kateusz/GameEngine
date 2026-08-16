@@ -34,8 +34,4 @@
     <ProjectReference Include="..\..\games\ArenaShooter\ArenaShooter.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="TestAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
 </Project>

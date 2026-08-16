@@ -1,6 +1,6 @@
-# 3D Model Loading (bake-on-import / `.mesh`) — Developer Guide
+# 3D Model Loading (import / `.mesh`) — Developer Guide
 
-Implementation guide for cook-on-import and `.mesh`-only runtime load. See `introduction.md` for conceptual background.
+Implementation guide for editor import and `.mesh`-only runtime load. See `introduction.md` for conceptual background.
 
 ## Glossary (implementation subset)
 
@@ -27,10 +27,10 @@ Animation/skinning is **out of scope for v1** (roadmap follow-on).
 
 ## Create path (`MeshCreator`)
 
-**Files**: `Engine/Renderer/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs`, `MeshWriter.cs`
+**Files**: `Editor/Features/Import/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs` (editor-only import); format codec in `Engine/Renderer/MeshWriter.cs`
 
 ```
-open source with Assimp (cook-time only)
+open source with Assimp (import-time only)
 post-process: triangulate, normals/tangents (no PreTransformVertices; no FlipUVs)
 walk mesh-bearing nodes → parts with local-to-root transforms
 map materials → MeshMaterial (PBR + legacy heuristics)
@@ -42,7 +42,7 @@ Ignore bones, animations, cameras, lights, and empties.
 
 Each spawned child points at that file with `SubmeshStart` / `SubmeshCount` so parts stay independently movable.
 
-**Why:** Assimp stays behind one cook boundary; Runtime never opens raw interchange.
+**Why:** Assimp stays behind one import boundary; Runtime never opens raw interchange.
 
 ---
 
@@ -88,14 +88,14 @@ On `ModelRendererComponent`:
 
 Editor:
 
-- **File → Import 3D Model…** — bake sources into `assets/models/`
+- **File → Import 3D Model…** — write sources into `assets/models/`
 - Inspector MeshDropTarget — **`.mesh` only**
 - Content Browser Type: Model — same allowlist as MeshDropTarget
 - Required project dir: `assets/models`
 
 ### Legacy raw ModelPath (hard cutover)
 
-Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show the **unit cube** until authors **re-import** and update the path to the cooked `.mesh`. Document this break; do not dual-load.
+Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show the **unit cube** until authors **re-import** and update the path to the imported `.mesh`. Document this break; do not dual-load.
 
 ---
 
@@ -105,14 +105,14 @@ Existing scenes with raw `.fbx` / `.gltf` / `.glb` (etc.) on `ModelPath` show th
 
 - `MeshWriter` ↔ `MeshReader` round-trip (geometry + materials)
 - `ModelFactory` accepts `.mesh`, rejects raw extensions
-- Cook/re-home on tiny glTF fixtures; flat `models/<stem>.mesh` layout
+- Import/re-home on tiny glTF fixtures; flat `models/<stem>.mesh` layout
 - Serialization: `ModelPath` + `Color` + submesh range round-trip
 
 **Manual smoke**
 
 - Import → Content Browser shows `.mesh` → drag to Model field → lit mesh
 - Empty / raw / bad path → cube + log
-- Sample `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh` (cooked sample may be large ~94 MB under `Editor/assets/models/`)
+- Sample `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh` (imported sample may be large ~94 MB under `Editor/assets/models/`)
 
 ---
 
@@ -125,7 +125,7 @@ flowchart TB
     MRC[ModelRendererComponent<br/>ModelPath + Submesh range + Color]
   end
 
-  subgraph cook [Cook-time]
+  subgraph import [Import]
     MB[MeshCreator]
     AI[AssimpModelImporter]
     TR[TextureRelocator]
@@ -186,7 +186,7 @@ sequenceDiagram
 | Non-`.mesh` ModelPath (legacy raw) | Reject + log; cube until re-import |
 | Zero meshes in file | Treat as load failure |
 | Missing texture map | Skip that map; draw with remaining material + tint |
-| Unsupported chunks at cook (anim, lights, …) | Ignore |
+| Unsupported chunks at import (anim, lights, …) | Ignore |
 | Single submesh GPU init failure | Drop that submesh; keep others; log |
 
 ---

@@ -8,16 +8,13 @@ using Silk.NET.OpenGL;
 namespace Engine.Platform.OpenGL;
 
 /// <summary>
-/// One-time GPU bakes for IBL: equirect .hdr → environment cubemap → irradiance/prefilter maps + BRDF LUT.
+/// One-time GPU generation for IBL: equirect .hdr → environment cubemap → irradiance/prefilter maps + BRDF LUT.
 /// Uses a private FBO and restores framebuffer/viewport/depth state, so it is safe mid-frame.
+/// Sizes and the prefilter mip count come from EnvironmentMapConstants; the IBL shaders receive
+/// them as injected #defines (see OpenGLShader.InjectDefines).
 /// </summary>
-internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMeshFactory meshFactory)
+internal sealed class OpenGLEnvironmentGenerator(IShaderFactory shaderFactory, IMeshFactory meshFactory)
 {
-    private const int EnvSize = 512;
-    private const int IrradianceSize = 32;
-    private const int PrefilterSize = 128;
-    private const int PrefilterMips = 5;
-    private const int BrdfLutSize = 512;
 
     private static readonly (Vector3 Target, Vector3 Up)[] Faces =
     [
@@ -34,7 +31,7 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
     private IShader? _prefilterShader;
     private IShader? _brdfLutShader;
 
-    public EnvironmentMap Bake(string hdrPath)
+    public EnvironmentMap Generate(string hdrPath)
     {
         var gl = SilkNetContext.GL;
         var prevFbo = (uint)gl.GetInteger(GLEnum.DrawFramebufferBinding);
@@ -52,9 +49,9 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
             uint envCube;
             try
             {
-                envCube = AllocateCubemap(EnvSize, withMips: true);
+                envCube = AllocateCubemap(EnvironmentMapConstants.EnvironmentMapSize, withMips: true);
                 _equirectToCubeShader ??= CreateShader("equirectToCube.frag");
-                RenderToCubemap(_equirectToCubeShader, "u_EquirectMap", envCube, EnvSize, mip: 0,
+                RenderToCubemap(_equirectToCubeShader, "u_EquirectMap", envCube, EnvironmentMapConstants.EnvironmentMapSize, mip: 0,
                     bindInput: () => Bind2D(equirect));
                 gl.BindTexture(TextureTarget.TextureCubeMap, envCube);
                 gl.GenerateMipmap(TextureTarget.TextureCubeMap);
@@ -64,17 +61,17 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
                 gl.DeleteTexture(equirect);
             }
 
-            var irradianceCube = AllocateCubemap(IrradianceSize, withMips: false);
+            var irradianceCube = AllocateCubemap(EnvironmentMapConstants.IrradianceSize, withMips: false);
             _irradianceShader ??= CreateShader("irradianceConvolution.frag");
-            RenderToCubemap(_irradianceShader, "u_EnvironmentMap", irradianceCube, IrradianceSize, mip: 0,
+            RenderToCubemap(_irradianceShader, "u_EnvironmentMap", irradianceCube, EnvironmentMapConstants.IrradianceSize, mip: 0,
                 bindInput: () => BindCube(envCube));
 
-            var prefilteredCube = BakePrefilter(envCube);
+            var prefilteredCube = GeneratePrefilter(envCube);
 
             return new EnvironmentMap(
-                new OpenGLTextureCube(envCube, EnvSize),
-                new OpenGLTextureCube(irradianceCube, IrradianceSize),
-                new OpenGLTextureCube(prefilteredCube, PrefilterSize));
+                new OpenGLTextureCube(envCube, EnvironmentMapConstants.EnvironmentMapSize),
+                new OpenGLTextureCube(irradianceCube, EnvironmentMapConstants.IrradianceSize),
+                new OpenGLTextureCube(prefilteredCube, EnvironmentMapConstants.PrefilterSize));
         }
         finally
         {
@@ -89,14 +86,17 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
         }
     }
 
-    private uint BakePrefilter(uint envCube)
+    private uint GeneratePrefilter(uint envCube)
     {
-        var prefiltered = AllocateCubemap(PrefilterSize, withMips: true);
-        _prefilterShader ??= CreateShader("prefilterEnv.frag");
-        for (var mip = 0; mip < PrefilterMips; mip++)
+        var prefiltered = AllocateCubemap(EnvironmentMapConstants.PrefilterSize, withMips: true);
+        _prefilterShader ??= shaderFactory.Create(
+            ResolveHostShader("envCapture.vert"),
+            ResolveHostShader("prefilterEnv.frag"),
+            [new ShaderDefine("ENV_RESOLUTION", EnvironmentMapConstants.EnvironmentMapSize.ToString(System.Globalization.CultureInfo.InvariantCulture))]);
+        for (var mip = 0; mip < EnvironmentMapConstants.PrefilterMips; mip++)
         {
-            var mipSize = PrefilterSize >> mip;
-            var roughness = mip / (float)(PrefilterMips - 1);
+            var mipSize = EnvironmentMapConstants.PrefilterSize >> mip;
+            var roughness = mip / (float)(EnvironmentMapConstants.PrefilterMips - 1);
             _prefilterShader.Bind();
             _prefilterShader.SetFloat("u_Roughness", roughness);
             RenderToCubemap(_prefilterShader, "u_EnvironmentMap", prefiltered, mipSize, mip,
@@ -105,7 +105,7 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
         return prefiltered;
     }
 
-    public unsafe uint BakeBrdfLut()
+    public unsafe Texture2D GenerateBrdfLut()
     {
         var gl = SilkNetContext.GL;
         var prevFbo = (uint)gl.GetInteger(GLEnum.DrawFramebufferBinding);
@@ -118,7 +118,7 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
         gl.ActiveTexture(TextureUnit.Texture0);
         gl.BindTexture(TextureTarget.Texture2D, lut);
         gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f,
-            BrdfLutSize, BrdfLutSize, 0, PixelFormat.Rgba, PixelType.Float, null);
+            EnvironmentMapConstants.BrdfLutSize, EnvironmentMapConstants.BrdfLutSize, 0, PixelFormat.Rgba, PixelType.Float, null);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
@@ -134,7 +134,7 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
             var status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
             if (status != GLEnum.FramebufferComplete)
                 throw new InvalidOperationException($"IBL BRDF LUT FBO incomplete: {status}");
-            gl.Viewport(0, 0, (uint)BrdfLutSize, (uint)BrdfLutSize);
+            gl.Viewport(0, 0, (uint)EnvironmentMapConstants.BrdfLutSize, (uint)EnvironmentMapConstants.BrdfLutSize);
             gl.Clear(ClearBufferMask.ColorBufferBit);
 
             _brdfLutShader ??= shaderFactory.Create(ResolveHostShader("brdfLut.vert"), ResolveHostShader("brdfLut.frag"));
@@ -143,8 +143,8 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
             gl.DrawArrays(PrimitiveType.Triangles, 0, 3);
             gl.BindVertexArray(0);
             _brdfLutShader.Unbind();
-            OpenGLDebug.CheckError(gl, "BakeBrdfLut");
-            return lut;
+            OpenGLDebug.CheckError(gl, "GenerateBrdfLut");
+            return OpenGLTexture2D.CreateFromHandle(lut, EnvironmentMapConstants.BrdfLutSize, EnvironmentMapConstants.BrdfLutSize);
         }
         finally
         {

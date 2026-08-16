@@ -105,7 +105,7 @@ User-facing setup: [3D Rendering](../guide/concepts/3d-rendering.md).
 
 ## 3D Model Rendering
 
-**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/MeshReader.cs`, `Engine/Renderer/MeshCreator.cs`, `Engine/Renderer/AssimpModelImporter.cs`, `Engine/Renderer/MeshFactory.cs`
+**Files**: `Engine/Renderer/Graphics3D.cs`, `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/MeshReader.cs`, `Engine/Renderer/MeshFactory.cs`
 
 `SceneRenderPipeline` resolves each `ModelRendererComponent` path through `IModelFactory`. On success it draws every submesh with PBR materials under ambient + directional lights. Empty or failed paths (including rejected non-`.mesh` / legacy raw paths) fall back to the shared unit cube.
 
@@ -132,7 +132,7 @@ Metallic/roughness for each draw: component override if set, else imported `Mesh
 
 No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` tracks `DrawCalls` per frame.
 
-### Model factory and cook
+### Model factory and import
 
 **Runtime files**: `Engine/Renderer/IModelFactory.cs`, `Engine/Renderer/ModelFactory.cs`, `Engine/Renderer/MeshReader.cs`
 
@@ -141,12 +141,12 @@ No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` track
 - Whole file → ordered `ModelSubmesh` list (mesh + `MeshMaterial`); no animation / hierarchy explosion
 - Texture paths in the binary are asset-relative; resolve via `PathBuilder.Resolve` then `TextureFactory`
 
-**Cook-time files**: `Engine/Renderer/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs`, `MeshWriter.cs`
+**Import-time files** (editor-only — not in the runtime assembly): `Editor/Features/Import/MeshCreator.cs`, `AssimpModelImporter.cs`, `TextureRelocator.cs`; format codec `Engine/Renderer/MeshWriter.cs`
 
-- Assimp used only in cook: triangulate, generate normals/tangents; split import skips PreTransformVertices and walks nodes
+- Assimp used only at import: triangulate, generate normals/tangents; split import skips PreTransformVertices and walks nodes
 - Output layout: `assets/models/<stem>_<part>.mesh` + relocated textures under models/textures/; editor spawns parent+children
 - Formats at import: FBX, glTF, GLB (and other Assimp-supported types as enumerated by Import)
-- Legacy Phong materials convert heuristically at cook (diffuse→albedo, shininess→roughness, dielectric metallic)
+- Legacy Phong materials convert heuristically at import (diffuse→albedo, shininess→roughness, dielectric metallic)
 
 ### MeshMaterial (PBR)
 
@@ -157,7 +157,7 @@ No 3D batching — one `DrawIndexed` per cube or per submesh. `GetStats()` track
 | Albedo / metallic-roughness / normal maps | Optional textures (slots 0–2) |
 | `Metallic`, `Roughness` | Scalar fallbacks when maps absent (roughness default `0.5`) |
 
-Missing maps bind white (or flat normal for normals). Cook-time Assimp import may map legacy specular textures into the metallic-roughness slot heuristically; the runtime material type exposes only albedo, MR, and normal.
+Missing maps bind white (or flat normal for normals). Import-time Assimp conversion may map legacy specular textures into the metallic-roughness slot heuristically; the runtime material type exposes only albedo, MR, and normal.
 
 ### Mesh
 

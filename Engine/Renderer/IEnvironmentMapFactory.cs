@@ -2,10 +2,13 @@ using Engine.Renderer.Textures;
 
 namespace Engine.Renderer;
 
-/// <summary>Bakes and caches IBL environment maps. GetOrCreate caches failures (null) — errors log once.</summary>
+/// <summary>
+/// Generates and caches IBL environment maps plus shared IBL resources (BRDF LUT, neutral fallback cubemap).
+/// GetOrCreate caches failures (null) — errors log once.
+/// </summary>
 public interface IEnvironmentMapFactory
 {
     EnvironmentMap? GetOrCreate(string resolvedHdrPath);
-    uint GetBrdfLutId();
+    Texture2D GetBrdfLut();
     TextureCube GetBlackCubemap();
 }
