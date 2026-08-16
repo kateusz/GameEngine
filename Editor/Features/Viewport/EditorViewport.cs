@@ -279,8 +279,7 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
-                    ModelAssetResolver.SyncAll(scene.Context, modelFactory);
-                    SkeletalPlaybackUpdater.Tick(scene.Context, deltaTime);
+                    SkeletalPlaybackUpdater.Tick(scene.Context, deltaTime, modelFactory);
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
                     ApplyWireframeDuring(graphics3D, displayMode, () =>
                         SceneRenderPipeline.RenderScene(
@@ -288,6 +287,7 @@ public sealed class EditorViewport(
                             graphics2D,
                             graphics3D,
                             textureFactory,
+                            modelFactory,
                             camera));
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);

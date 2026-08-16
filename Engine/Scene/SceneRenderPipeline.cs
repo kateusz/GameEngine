@@ -66,13 +66,15 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory? textureFactory,
+        IModelFactory modelFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderModels(context, graphics3D, camera);
+        RenderModels(context, graphics3D, modelFactory, camera);
     }
 
-    private static void RenderModels(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
+    private static void RenderModels(
+        IContext context, IGraphics3D graphics3D, IModelFactory modelFactory, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -87,7 +89,7 @@ internal static class SceneRenderPipeline
 
         if (graphics3D.BeginShadowPass())
         {
-            DrawOpaqueModels(context, graphics3D);
+            DrawOpaqueModels(context, graphics3D, modelFactory);
             graphics3D.EndShadowPass();
         }
 
@@ -98,30 +100,32 @@ internal static class SceneRenderPipeline
             for (var face = 0; face < 6; face++)
             {
                 graphics3D.SetPointShadowFace(face);
-                DrawOpaqueModels(context, graphics3D);
+                DrawOpaqueModels(context, graphics3D, modelFactory);
             }
             graphics3D.EndPointShadowPass();
         }
 
         graphics3D.DrawSkybox();
-        DrawOpaqueModels(context, graphics3D);
-        DrawTransparentModels(context, graphics3D, GetCameraPosition(camera));
+        DrawOpaqueModels(context, graphics3D, modelFactory);
+        DrawTransparentModels(context, graphics3D, modelFactory, GetCameraPosition(camera));
 
         graphics3D.EndScene();
     }
 
-    private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D)
+    private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory)
     {
-        foreach (var item in EnumerateModelDrawItems(context, static m => m.AlphaMode != MaterialAlphaMode.Blend))
+        foreach (var item in EnumerateModelDrawItems(context, modelFactory, static m => m.AlphaMode != MaterialAlphaMode.Blend))
             IssueDraw(graphics3D, item);
     }
 
     private static void DrawTransparentModels(
         IContext context,
         IGraphics3D graphics3D,
+        IModelFactory modelFactory,
         Vector3 cameraPosition)
     {
-        var transparent = EnumerateModelDrawItems(context, static m => m.AlphaMode == MaterialAlphaMode.Blend)
+        var transparent = EnumerateModelDrawItems(
+                context, modelFactory, static m => m.AlphaMode == MaterialAlphaMode.Blend)
             .ToList();
         if (transparent.Count == 0)
             return;
@@ -167,6 +171,7 @@ internal static class SceneRenderPipeline
 
     private static IEnumerable<ModelDrawItem> EnumerateModelDrawItems(
         IContext context,
+        IModelFactory modelFactory,
         Func<MeshMaterial, bool> materialFilter)
     {
         foreach (var (entity, modelRenderer, transformComponent) in
@@ -201,15 +206,7 @@ internal static class SceneRenderPipeline
                 continue;
             }
 
-            if (!entity.TryGetComponent<ResolvedModelComponent>(out var resolved)
-                || !string.Equals(resolved.SourcePath, modelRenderer.ModelPath, StringComparison.Ordinal))
-            {
-                yield return new ModelDrawItem(
-                    ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
-                continue;
-            }
-
-            var model = resolved.Model;
+            var model = MeshAsset.TryLoad(modelFactory, modelRenderer.ModelPath);
             if (model == null)
             {
                 yield return new ModelDrawItem(
@@ -219,13 +216,11 @@ internal static class SceneRenderPipeline
 
             LogModelTintOnce(entity, modelRenderer, tint, model);
 
-            Matrix4x4[]? bonePalette = null;
-            if (model.HasSkeleton
-                && TryResolveSkinnedDraw(context, entity, modelRenderer.ModelPath, out var skinnedWorld, out var palette))
+            var bonePalette = modelRenderer.BonePalette;
+            if (bonePalette is not null)
             {
-                transform = skinnedWorld;
+                transform = modelRenderer.SkinningWorld;
                 worldPosition = new Vector3(transform.M41, transform.M42, transform.M43);
-                bonePalette = palette;
             }
 
             foreach (var submesh in EnumerateDrawSubmeshes(model, modelRenderer))
@@ -285,41 +280,6 @@ internal static class SceneRenderPipeline
 
         return all.Skip(start).Take(count);
     }
-
-    private static bool TryResolveSkinnedDraw(
-        IContext context,
-        Entity entity,
-        string? rendererPath,
-        out Matrix4x4 world,
-        out Matrix4x4[]? palette)
-    {
-        world = default;
-        palette = null;
-        var current = entity;
-        while (true)
-        {
-            if (current.TryGetComponent<SkeletalPlaybackComponent>(out var playback)
-                && PathsEqual(playback.MeshPath, rendererPath)
-                && current.TryGetComponent<TransformComponent>(out var transform))
-            {
-                world = transform.GetWorldTransform();
-                palette = playback.Playing ? playback.BonePalette : null;
-                return true;
-            }
-
-            if (!current.TryGetComponent<ParentComponent>(out var parent)
-                || parent.ParentId is not int parentId
-                || !context.Contains(parentId))
-                return false;
-
-            current = context.GetById(parentId);
-        }
-    }
-
-    private static bool PathsEqual(string? a, string? b) =>
-        !string.IsNullOrWhiteSpace(a)
-        && !string.IsNullOrWhiteSpace(b)
-        && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     private static Vector3 GetCameraPosition(in CameraBinding camera) =>
         camera.ViewCamera?.GetPosition()

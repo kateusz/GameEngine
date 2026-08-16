@@ -77,9 +77,6 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         foreach (var component in entity.GetAllComponents())
         {
             var componentType = component.GetType();
-            if (componentType.GetCustomAttribute<RuntimeComponentAttribute>() is not null)
-                continue;
-
             if (!_byType.TryGetValue(componentType, out var serializer))
             {
                 // Hot-reload leaves instances typed from the previous GameAssembly; serializers are

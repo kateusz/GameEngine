@@ -3,9 +3,9 @@ using System.Text.Json;
 using ECS;
 using Engine.Core;
 using Engine.Renderer;
-using Engine.Scene;
 using Engine.Scene.Skeletal;
 using NSubstitute;
+using SceneComponents;
 using SceneComponents.Rendering;
 using Shouldly;
 
@@ -54,7 +54,7 @@ public class SkeletalAnimationSystemTests : IDisposable
         var (context, factory, playback) = CreatePlayingEntity(playing: false);
         playback.BonePalette[0] = Matrix4x4.CreateTranslation(9, 0, 0);
 
-        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.1));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.1), factory);
 
         playback.BonePalette[0].ShouldBe(Matrix4x4.Identity);
         playback.Time.ShouldBe(0f);
@@ -65,7 +65,7 @@ public class SkeletalAnimationSystemTests : IDisposable
     {
         var (context, factory, playback) = CreatePlayingEntity(playing: true);
 
-        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.25));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.25), factory);
 
         playback.Time.ShouldBe(0.25f, 1e-5f);
         var moved = Vector3.Transform(Vector3.Zero, playback.BonePalette[0]);
@@ -78,9 +78,68 @@ public class SkeletalAnimationSystemTests : IDisposable
         var (context, factory, playback) = CreatePlayingEntity(playing: true);
         playback.ClipName = "nope";
 
-        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.1));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.1), factory);
 
         playback.BonePalette[0].ShouldBe(Matrix4x4.Identity);
+    }
+
+    [Fact]
+    public void Tick_MatchingAncestorPlayback_StampsRendererPaletteAndWorld()
+    {
+        var factory = SkinnedFactory();
+        var (context, playback, child) = CreateRigWithChild("models/hero.mesh", "models/hero.mesh");
+        var world = Matrix4x4.CreateTranslation(10, 0, 0);
+        context.GetById(1).GetComponent<TransformComponent>().SetWorldTransform(world);
+
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+
+        var renderer = child.GetComponent<ModelRendererComponent>();
+        renderer.BonePalette.ShouldBeSameAs(playback.BonePalette);
+        renderer.SkinningWorld.ShouldBe(world);
+    }
+
+    [Fact]
+    public void Tick_PathMismatch_DoesNotStampSkinning()
+    {
+        var factory = SkinnedFactory();
+        var (context, _, child) = CreateRigWithChild("models/hero.mesh", "models/crate.mesh");
+
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+
+        var renderer = child.GetComponent<ModelRendererComponent>();
+        renderer.BonePalette.ShouldBeNull();
+        renderer.SkinningWorld.ShouldBe(Matrix4x4.Identity);
+    }
+
+    [Fact]
+    public void Tick_PathUnchanged_RefreshesSkinningWorld()
+    {
+        var factory = SkinnedFactory();
+        var (context, _, child) = CreateRigWithChild("models/hero.mesh", "models/hero.mesh");
+        var parent = context.GetById(1).GetComponent<TransformComponent>();
+        parent.SetWorldTransform(Matrix4x4.CreateTranslation(1, 0, 0));
+
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+        parent.SetWorldTransform(Matrix4x4.CreateTranslation(2, 0, 0));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+
+        child.GetComponent<ModelRendererComponent>().SkinningWorld.M41.ShouldBe(2f);
+    }
+
+    [Fact]
+    public void Tick_ReparentAway_ClearsSkinningStamp()
+    {
+        var factory = SkinnedFactory();
+        var (context, _, child) = CreateRigWithChild("models/hero.mesh", "models/hero.mesh");
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+        child.GetComponent<ModelRendererComponent>().BonePalette.ShouldNotBeNull();
+
+        child.GetComponent<ParentComponent>().ParentId = null;
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.Zero, factory);
+
+        var renderer = child.GetComponent<ModelRendererComponent>();
+        renderer.BonePalette.ShouldBeNull();
+        renderer.SkinningWorld.ShouldBe(Matrix4x4.Identity);
     }
 
     [Fact]
@@ -103,7 +162,55 @@ public class SkeletalAnimationSystemTests : IDisposable
         json.ShouldNotContain("BonePalette");
     }
 
+    [Fact]
+    public void Serialize_ModelRenderer_OmitsPose()
+    {
+        var renderer = new ModelRendererComponent { ModelPath = "models/hero.mesh" };
+        renderer.BonePalette = SkeletalPlaybackComponent.CreateIdentityPalette();
+        renderer.SkinningWorld = Matrix4x4.CreateTranslation(3, 0, 0);
+
+        var json = JsonSerializer.Serialize(renderer);
+        json.ShouldContain("ModelPath");
+        json.ShouldNotContain("BonePalette");
+        json.ShouldNotContain("SkinningWorld");
+    }
+
     private (Context Context, IModelFactory Factory, SkeletalPlaybackComponent Playback) CreatePlayingEntity(bool playing)
+    {
+        var factory = SkinnedFactory();
+        var context = new Context();
+        var entity = Entity.Create(1, "rig");
+        var playback = new SkeletalPlaybackComponent
+        {
+            MeshPath = "models/hero.mesh",
+            Playing = playing,
+            Loop = true,
+            Speed = 1f
+        };
+        entity.AddComponent(playback);
+        context.Register(entity);
+        return (context, factory, playback);
+    }
+
+    private static (Context Context, SkeletalPlaybackComponent Playback, Entity Child)
+        CreateRigWithChild(string playbackPath, string rendererPath)
+    {
+        var context = new Context();
+        var parent = Entity.Create(1, "rig");
+        parent.AddComponent(new TransformComponent());
+        var playback = new SkeletalPlaybackComponent { MeshPath = playbackPath };
+        parent.AddComponent(playback);
+        context.Register(parent);
+
+        var child = Entity.Create(2, "mesh");
+        child.AddComponent(new TransformComponent());
+        child.AddComponent(new ParentComponent(parent.Id));
+        child.AddComponent(new ModelRendererComponent { ModelPath = rendererPath });
+        context.Register(child);
+        return (context, playback, child);
+    }
+
+    private static IModelFactory SkinnedFactory()
     {
         var model = new Model(
             [new ModelSubmesh(new Mesh("m"), new MeshMaterial())],
@@ -116,26 +223,8 @@ public class SkeletalAnimationSystemTests : IDisposable
                     [new RotationKey(0f, Quaternion.Identity)],
                     [new VectorKey(0f, Vector3.One)])
             ])]);
-
         var factory = Substitute.For<IModelFactory>();
         factory.Create(Arg.Any<string>()).Returns(model);
-
-        var context = new Context();
-        var entity = Entity.Create(1, "rig");
-        var playback = new SkeletalPlaybackComponent
-        {
-            MeshPath = "models/hero.mesh",
-            Playing = playing,
-            Loop = true,
-            Speed = 1f
-        };
-        entity.AddComponent(playback);
-        entity.AddComponent(new ResolvedModelComponent
-        {
-            SourcePath = playback.MeshPath,
-            Model = model
-        });
-        context.Register(entity);
-        return (context, factory, playback);
+        return factory;
     }
 }

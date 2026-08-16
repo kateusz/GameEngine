@@ -90,9 +90,9 @@ Do not retarget a clip from another file onto this skeleton in v1.
 
 ### 6. Draw with an ancestor palette
 
-`ModelAssetResolver` (before pose tick) decides skinned vs static. Walk ancestors; if a playback’s `MeshPath` equals this renderer’s path and the `.mesh` has a skeleton, stamp that playback’s palette and the ancestor world matrix onto `ResolvedModelComponent`. Path mismatch, no ancestor, or a static file: leave palette unset.
+`SkeletalPlaybackUpdater` (before draw) decides skinned vs static. Walk ancestors; if a playback’s `MeshPath` equals this renderer’s path and the `.mesh` has a skeleton, stamp that playback’s palette and the ancestor world matrix onto `ModelRendererComponent` (not serialized). Path mismatch, no ancestor, or a static file: leave palette unset.
 
-Draw reads only those stamped fields. It does not know about playback or `Playing`. Bind pose is an identity palette from the skeletal tick, not a second branch in the renderer.
+Draw reads only those stamped fields. It does not know about playback or `Playing`. Bind pose is an identity palette from the skeletal tick, not a second branch in the renderer. Mesh GPU data comes from `IModelFactory` (path cache), not an entity sidecar.
 
 Then: upload palette if stamped, then the usual model / view-projection / material uniforms.
 
@@ -152,7 +152,7 @@ sequenceDiagram
   participant Pipe as Scene render
   participant GPU as Lighting vertex shader
 
-  Note over Sys,Pipe: Resolver already stamped palette + ancestor world on ResolvedModel
+  Note over Sys,Pipe: Updater stamped palette + ancestor world on ModelRenderer
   Sys->>Fac: load .mesh from playback path
   alt missing / no skeleton / unknown clip / not Playing
     Sys->>Sys: identity palette

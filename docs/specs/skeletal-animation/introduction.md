@@ -57,7 +57,7 @@ Without skinning, every walk, idle, or attack is either a static statue or a han
 
 **Path on the component, resources in the factory.** ECS stores the `.mesh` path. GPU meshes and clip tables live in the existing path-keyed cache.
 
-**Parent pose, child draw.** One rig, many submeshes. The resolver stamps the ancestor palette onto the child’s runtime model slot when it draws the same `.mesh` the playback points at. Missing playback, or a different file, means the child’s own transform (static draw, unchanged).
+**Parent pose, child draw.** One rig, many submeshes. The skeletal tick stamps the ancestor palette onto the child’s `ModelRenderer` when it draws the same `.mesh` the playback points at. Missing playback, or a different file, means the child’s own transform (static draw, unchanged).
 
 **Identity palette is bind pose.** Playing off, unknown clip, or missing skeleton must not invent a different rest pose.
 

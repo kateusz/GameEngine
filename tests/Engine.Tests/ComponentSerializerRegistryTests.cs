@@ -181,17 +181,23 @@ public class ComponentSerializerRegistryTests
     }
 
     [Fact]
-    public void SerializeEntity_SkipsRuntimeComponents()
+    public void SerializeEntity_OmitsModelRendererPose()
     {
+        var renderer = new ModelRendererComponent { ModelPath = "models/crate.mesh" };
+        renderer.BonePalette = new[] { System.Numerics.Matrix4x4.Identity };
+        renderer.SkinningWorld = System.Numerics.Matrix4x4.CreateTranslation(1, 0, 0);
         var entity = Entity.Create(1, "imported");
-        entity.AddComponent(new ModelRendererComponent { ModelPath = "models/crate.mesh" });
-        entity.AddComponent(new ResolvedModelComponent { SourcePath = "models/crate.mesh" });
+        entity.AddComponent(renderer);
 
         var array = new JsonArray();
         _registry.SerializeEntity(entity, array, _serializerOptions.Options);
 
         array.Count.ShouldBe(1);
-        array[0]!["Name"]!.GetValue<string>().ShouldBe("ModelRendererComponent");
+        var json = array[0]!.ToJsonString();
+        json.ShouldContain("ModelRendererComponent");
+        json.ShouldContain("models/crate.mesh");
+        json.ShouldNotContain("BonePalette");
+        json.ShouldNotContain("SkinningWorld");
     }
 
     [Fact]
