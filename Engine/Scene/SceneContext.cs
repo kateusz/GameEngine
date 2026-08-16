@@ -12,6 +12,9 @@ public class SceneContext : ISceneContext
     public PhysicsRuntimeBodyStore? ActivePhysicsBodyStore =>
         ActiveScene as Scene is { } scene ? scene.PhysicsBodies : null;
 
+    public PhysicsRuntimeBodyStore3D? ActivePhysicsBodyStore3D =>
+        ActiveScene as Scene is { } scene ? scene.PhysicsBodies3D : null;
+
     public SceneState State { get; private set; } = SceneState.Edit;
 
     public event Action<IScene> SceneChanged;

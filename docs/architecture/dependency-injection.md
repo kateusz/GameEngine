@@ -37,11 +37,12 @@ graph TD
             CTX[IContext delegate]
             PC[IPhysicsContacts delegate]
             PQ[IPhysicsQueries delegate]
+            PQ3[IPhysicsQueries3D delegate]
         end
 
         subgraph "Physics"
             PBC[IPhysicsBackendConfig]
-            PWF[IPhysicsWorld2DFactory]
+            PWF[IPhysicsWorldFactory]
         end
 
         subgraph "Scripting & Project"
@@ -175,13 +176,14 @@ ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` bu
 | `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
 | `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |
 | `IPhysicsQueries` | Delegate from active scene, else `NullPhysicsQueries` | Default | Per-scene physics ray/overlap queries |
+| `IPhysicsQueries3D` | Delegate from active scene, else `NullPhysicsQueries3D` | Default | Per-scene 3D ray/overlap queries |
 
 ### Physics (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `IPhysicsBackendConfig` | `PhysicsBackendConfig(PhysicsBackendType.Box2D)` | Singleton | Backend selection |
-| `IPhysicsWorld2DFactory` | `PhysicsWorld2DFactory` | Singleton | Creates per-scene Box2D worlds |
+| `IPhysicsBackendConfig` | `PhysicsBackendConfig(Box2D, Bepu)` | Singleton | 2D + 3D backend selection (`Type`, `Type3D`) |
+| `IPhysicsWorldFactory` | `PhysicsWorldFactory` | Singleton | Creates per-scene 2D (`Create`) and 3D (`Create3D`) worlds |
 
 ### Serialization (`RegisterCore`)
 
@@ -317,7 +319,7 @@ Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` a
 |----------|-------|----------|
 | Singleton | Most services — shared across entire application lifetime | `IScriptEngine`, all factories, `ISceneSystemsFactory`, all editors |
 | Default (Transient) | Factory-created services where DryIoc resolves once at startup | `IGameWindow`, `IContentScaleProvider` |
-| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts`, `IPhysicsQueries` |
+| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts`, `IPhysicsQueries`, `IPhysicsQueries3D` |
 | Per-scene (not DI singletons) | Created by `ISceneSystemsFactory` per scene | Individual `ISystem` implementations (e.g. physics simulation) |
 
 ## Registration Flow

@@ -74,8 +74,8 @@ public static class EngineIoCContainer
 
         container.Register<SceneFactory>(Reuse.Singleton);
         container.Register<IPhysicsBackendConfig>(Reuse.Singleton,
-            made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D)));
-        container.Register<IPhysicsWorld2DFactory, PhysicsWorld2DFactory>(Reuse.Singleton);
+            made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D, PhysicsBackendType.Bepu)));
+        container.Register<IPhysicsWorldFactory, PhysicsWorldFactory>(Reuse.Singleton);
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
@@ -93,6 +93,10 @@ public static class EngineIoCContainer
         container.RegisterDelegate<IPhysicsQueries>(r =>
             r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries
             ?? NullPhysicsQueries.Instance);
+
+        container.RegisterDelegate<IPhysicsQueries3D>(r =>
+            r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries3D
+            ?? NullPhysicsQueries3D.Instance);
 
         container.RegisterDelegate<IEntityHierarchy>(r =>
             r.Resolve<ISceneContext>().ActiveScene

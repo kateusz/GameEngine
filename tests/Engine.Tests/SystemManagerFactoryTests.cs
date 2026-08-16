@@ -13,42 +13,53 @@ public class SystemManagerFactoryTests
 {
     private readonly ISceneSystemsFactory _mockSystemsFactory = Substitute.For<ISceneSystemsFactory>();
 
-    [Fact]
-    public void Create_ShouldPopulateSystemsForContext()
+    public SystemManagerFactoryTests()
     {
         _mockSystemsFactory.PopulateSystemManager(
                 Arg.Any<ISystemManager>(),
                 Arg.Any<IContext>(),
                 Arg.Any<PhysicsRuntimeBodyStore>(),
+                Arg.Any<PhysicsRuntimeBodyStore3D>(),
                 Arg.Any<PhysicsContactQueue>(),
                 Arg.Any<ScriptRuntimeStore>(),
                 Arg.Any<SceneDimension>())
             .Returns(Substitute.For<IPhysicsQueries>());
+    }
 
+    [Fact]
+    public void Create_ShouldPopulateSystemsForContext()
+    {
         var context = new Context();
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 
         var build = builder.Create(context);
 
         _mockSystemsFactory.Received(1).PopulateSystemManager(
-            build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore, SceneDimension.TwoD);
+            build.SystemManager, context, build.BodyStore, build.BodyStore3D, build.ContactQueue, build.ScriptStore,
+            SceneDimension.TwoD);
         build.BodyStore.ShouldNotBeNull();
+        build.BodyStore3D.ShouldBeNull();
         build.ContactQueue.ShouldNotBeNull();
         build.ScriptStore.ShouldNotBeNull();
     }
 
     [Fact]
+    public void Create_ThreeD_AllocatesBodyStore3DAndPassesItToPopulate()
+    {
+        var context = new Context();
+        var builder = new SystemManagerFactory(_mockSystemsFactory);
+
+        var build = builder.Create(context, SceneDimension.ThreeD);
+
+        build.BodyStore3D.ShouldNotBeNull();
+        _mockSystemsFactory.Received(1).PopulateSystemManager(
+            build.SystemManager, context, build.BodyStore, build.BodyStore3D, build.ContactQueue, build.ScriptStore,
+            SceneDimension.ThreeD);
+    }
+
+    [Fact]
     public void Create_ShouldReturnNewSystemManagerPerCall()
     {
-        _mockSystemsFactory.PopulateSystemManager(
-                Arg.Any<ISystemManager>(),
-                Arg.Any<IContext>(),
-                Arg.Any<PhysicsRuntimeBodyStore>(),
-                Arg.Any<PhysicsContactQueue>(),
-                Arg.Any<ScriptRuntimeStore>(),
-                Arg.Any<SceneDimension>())
-            .Returns(Substitute.For<IPhysicsQueries>());
-
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 
         var first = builder.Create(new Context()).SystemManager;

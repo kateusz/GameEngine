@@ -7,6 +7,7 @@ public interface ISceneContext
     IScene? ActiveScene { get; }
     ScriptRuntimeStore? ActiveScriptRuntimeStore { get; }
     PhysicsRuntimeBodyStore? ActivePhysicsBodyStore { get; }
+    PhysicsRuntimeBodyStore3D? ActivePhysicsBodyStore3D { get; }
     SceneState State { get; }
     event Action<IScene> SceneChanged;
     void SetScene(IScene newScene);

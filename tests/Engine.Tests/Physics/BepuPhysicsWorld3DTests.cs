@@ -32,7 +32,7 @@ public class BepuPhysicsWorld3DTests
     [Fact]
     public void Factory_ThreeD_CreatesBepuWorldAndDropSettles()
     {
-        IPhysicsWorld2DFactory factory = new PhysicsWorld2DFactory(new PhysicsBackendConfig(PhysicsBackendType.Box2D));
+        IPhysicsWorldFactory factory = new PhysicsWorldFactory(new PhysicsBackendConfig(PhysicsBackendType.Box2D));
         using var world = factory.Create3D(new Vector3(0, -9.8f, 0));
 
         var floor = world.CreateBody(FloorDef());
@@ -52,6 +52,15 @@ public class BepuPhysicsWorld3DTests
             world.Step(PhysicsConstants.PhysicsTimestep, 6, 2);
 
         box.Position.Y.ShouldBe(1f, 0.15);
+    }
+
+    [Fact]
+    public void Factory_Create3D_ThrowsWhenType3DIsNone()
+    {
+        IPhysicsWorldFactory factory = new PhysicsWorldFactory(
+            new PhysicsBackendConfig(PhysicsBackendType.Box2D, PhysicsBackendType.None));
+
+        Should.Throw<NotSupportedException>(() => factory.Create3D(new Vector3(0, -9.8f, 0)));
     }
 
     [Fact]

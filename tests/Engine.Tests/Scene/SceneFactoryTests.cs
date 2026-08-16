@@ -16,17 +16,20 @@ public class SceneFactoryTests
     public void Create_ThreeD_PassesDimensionAndSetsSceneDimension()
     {
         var systemManagerFactory = Substitute.For<ISystemManagerFactory>();
+        var store3D = new PhysicsRuntimeBodyStore3D();
         systemManagerFactory.Create(Arg.Any<IContext>(), SceneDimension.ThreeD).Returns(_ => new SceneBuildResult(
             Substitute.For<ISystemManager>(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
             new ScriptRuntimeStore(),
-            Substitute.For<IPhysicsQueries>()));
+            Substitute.For<IPhysicsQueries>(),
+            store3D));
 
         var scene = new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())
             .Create("test", "test", SceneDimension.ThreeD);
 
         scene.Dimension.ShouldBe(SceneDimension.ThreeD);
+        ((Engine.Scene.Scene)scene).PhysicsBodies3D.ShouldBe(store3D);
         systemManagerFactory.Received(1).Create(Arg.Any<IContext>(), SceneDimension.ThreeD);
     }
 

@@ -95,9 +95,9 @@ public class Box2DPhysicsWorld2DTests
     }
 
     [Fact]
-    public void PhysicsWorld2DFactory_Box2DBackend_CreatesWorld()
+    public void PhysicsWorldFactory_Box2DBackend_CreatesWorld()
     {
-        IPhysicsWorld2DFactory factory = new PhysicsWorld2DFactory(new PhysicsBackendConfig(PhysicsBackendType.Box2D));
+        IPhysicsWorldFactory factory = new PhysicsWorldFactory(new PhysicsBackendConfig(PhysicsBackendType.Box2D));
 
         using var world = factory.Create(new Vector2(0, -9.8f));
         var body = world.CreateBody(new PhysicsBodyDef(

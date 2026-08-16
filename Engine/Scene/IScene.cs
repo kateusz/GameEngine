@@ -20,6 +20,8 @@ public interface IScene : IDisposable, IEntityHierarchy
 
     IPhysicsQueries PhysicsQueries { get; }
 
+    IPhysicsQueries3D? PhysicsQueries3D { get; }
+
     ICameraQueries CameraQueries { get; }
 
     public string Name { get; }

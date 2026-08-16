@@ -22,6 +22,7 @@ internal sealed class PhysicsSimulationSystem3D(
 
     private float _physicsAccumulator;
     private bool _disposed;
+    private readonly Dictionary<int, PhysicsBodyIdentity> _identities = [];
 
     private const int MaxPhysicsStepsPerFrame = 5;
 
@@ -85,10 +86,9 @@ internal sealed class PhysicsSimulationSystem3D(
     {
         Logger.Debug("PhysicsSimulationSystem3D shutting down - cleaning up physics bodies");
 
-        foreach (var (_, body) in bodyStore.Snapshot())
-            physicsWorld.DestroyBody(body);
+        foreach (var id in bodyStore.Snapshot().Keys.ToList())
+            DropBody(id);
 
-        bodyStore.Clear();
         Logger.Debug("PhysicsSimulationSystem3D shut down - all physics bodies destroyed");
     }
 
@@ -96,8 +96,14 @@ internal sealed class PhysicsSimulationSystem3D(
     {
         foreach (var (entity, component, transform) in context.View<RigidBody3DComponent, TransformComponent>())
         {
+            var identity = CaptureIdentity(entity, component, transform);
             if (bodyStore.TryGet(entity.Id, out _))
-                continue;
+            {
+                if (_identities.TryGetValue(entity.Id, out var baked) && baked == identity)
+                    continue;
+                DropBody(entity.Id);
+            }
+
             if (!HasCollider(entity))
                 continue;
 
@@ -114,6 +120,7 @@ internal sealed class PhysicsSimulationSystem3D(
 
             body.Entity = entity;
             bodyStore.Set(entity.Id, body);
+            _identities[entity.Id] = identity;
 
             AttachFixture(entity, body, transform);
         }
@@ -215,14 +222,50 @@ internal sealed class PhysicsSimulationSystem3D(
         var activeEntityIds = context.View<RigidBody3DComponent>().Select(v => v.Entity.Id).ToHashSet();
         var staleEntityIds = bodyStore.Snapshot().Keys.Where(id => !activeEntityIds.Contains(id)).ToList();
         foreach (var staleEntityId in staleEntityIds)
-        {
-            if (!bodyStore.TryGet(staleEntityId, out var body))
-                continue;
-
-            physicsWorld.DestroyBody(body);
-            bodyStore.Remove(staleEntityId);
-        }
+            DropBody(staleEntityId);
     }
+
+    private void DropBody(int entityId)
+    {
+        if (!bodyStore.TryGet(entityId, out var body))
+            return;
+
+        // ponytail: recreate drops native angular velocity; linear lives on the component
+        physicsWorld.DestroyBody(body);
+        bodyStore.Remove(entityId);
+        _identities.Remove(entityId);
+    }
+
+    private static PhysicsBodyIdentity CaptureIdentity(
+        Entity entity, RigidBody3DComponent component, TransformComponent transform)
+    {
+        if (entity.TryGetComponent<BoxCollider3DComponent>(out var box))
+            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+                ColliderKind.Box, box.Size, box.Offset, transform.Scale, box.Density, box.IsTrigger);
+        if (entity.TryGetComponent<SphereCollider3DComponent>(out var sphere))
+            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+                ColliderKind.Sphere, new Vector3(sphere.Radius, 0f, 0f), sphere.Offset, transform.Scale,
+                sphere.Density, sphere.IsTrigger);
+        if (entity.TryGetComponent<CapsuleCollider3DComponent>(out var capsule))
+            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+                ColliderKind.Capsule, new Vector3(capsule.Radius, capsule.Length, 0f), capsule.Offset,
+                transform.Scale, capsule.Density, capsule.IsTrigger);
+        return new(component.BodyType, component.FixedRotation, component.GravityScale,
+            ColliderKind.None, default, default, transform.Scale, 0f, false);
+    }
+
+    private enum ColliderKind { None, Box, Sphere, Capsule }
+
+    private readonly record struct PhysicsBodyIdentity(
+        RigidBodyType BodyType,
+        bool FixedRotation,
+        float GravityScale,
+        ColliderKind Kind,
+        Vector3 Size,
+        Vector3 Offset,
+        Vector3 Scale,
+        float Density,
+        bool IsTrigger);
 
     private static PhysicsBodyMotionType ToMotionType(RigidBodyType bodyType) =>
         bodyType switch

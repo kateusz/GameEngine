@@ -296,7 +296,7 @@ public sealed class EditorViewport(
                     {
                         if (scene.Dimension == SceneDimension.ThreeD)
                             PhysicsDebugDrawer3D.Draw(
-                                scene.Context, graphics3D, bodyStore: null, camera, useTransformFallbackWhenNoBody: true);
+                                scene.Context, graphics3D, sceneContext.ActivePhysicsBodyStore3D, camera, useTransformFallbackWhenNoBody: true);
                         else if (sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                             PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
                     }

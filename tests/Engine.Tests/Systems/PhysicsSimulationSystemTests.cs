@@ -199,6 +199,185 @@ public class PhysicsSimulationSystemTests
         mockBody.DidNotReceive().CreateCircleFixture(Arg.Any<PhysicsCircleFixtureDef>());
     }
 
+    [Fact]
+    public void OnUpdate_UnchangedIdentity_DoesNotRecreateBody()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var mockBody = StubBody();
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(mockBody);
+
+        system.OnInit();
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).CreateBody(Arg.Any<PhysicsBodyDef>());
+        world.DidNotReceive().DestroyBody(Arg.Any<IPhysicsBody2D>());
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(mockBody);
+    }
+
+    [Fact]
+    public void OnUpdate_BodyTypeChange_RecreatesBody()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody2DComponent>().BodyType = RigidBodyType.Kinematic;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef>(d => d.MotionType == PhysicsBodyMotionType.Kinematic));
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_BoxSizeChange_RecreatesBody()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider2DComponent>().Size = new Vector2(2f, 2f);
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef>(d => d.HalfWidth == 2f && d.HalfHeight == 2f));
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_ScaleChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<TransformComponent>().Scale = new Vector3(2f);
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef>(d => d.HalfWidth == 1f && d.HalfHeight == 1f));
+    }
+
+    [Fact]
+    public void OnUpdate_GravityScaleChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody2DComponent>().GravityScale = 0f;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef>(d => d.GravityScale == 0f));
+        world.Received(1).DestroyBody(Arg.Any<IPhysicsBody2D>());
+    }
+
+    [Fact]
+    public void OnUpdate_FixedRotationChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody2DComponent>().FixedRotation = true;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef>(d => d.FixedRotation));
+        world.Received(1).DestroyBody(Arg.Any<IPhysicsBody2D>());
+    }
+
+    [Fact]
+    public void OnUpdate_DensityChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider2DComponent>().Density = 4f;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef>(d => d.Density == 4f));
+    }
+
+    [Fact]
+    public void OnUpdate_IsTriggerChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider2DComponent>().IsTrigger = true;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef>(d => d.IsSensor));
+    }
+
+    [Fact]
+    public void OnUpdate_BoxToCircle_RecreatesWithCircleFixture()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.RemoveComponent<BoxCollider2DComponent>();
+        entity.AddComponent(new CircleCollider2DComponent { Radius = 1.25f });
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        first.DidNotReceive().CreateCircleFixture(Arg.Any<PhysicsCircleFixtureDef>());
+        second.Received(1).CreateCircleFixture(Arg.Is<PhysicsCircleFixtureDef>(d => d.Radius == 1.25f));
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_ColliderAddedAfterCreate_AttachesFixture()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithTransformAndRb(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.AddComponent<BoxCollider2DComponent>();
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        first.DidNotReceive().CreateBoxFixture(Arg.Any<PhysicsBoxFixtureDef>());
+        second.Received(1).CreateBoxFixture(Arg.Any<PhysicsBoxFixtureDef>());
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_EdgePointsChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithTransformAndRb(context);
+        entity.AddComponent(new EdgeCollider2DComponent());
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<EdgeCollider2DComponent>().Points = [new Vector2(-2f, 0f), new Vector2(2f, 0f)];
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateEdgeFixture(Arg.Any<PhysicsEdgeFixtureDef>());
+    }
+
     private static (PhysicsSimulationSystem System, IContext Context, IPhysicsWorld2D World, PhysicsRuntimeBodyStore BodyStore) CreateFullSystem()
     {
         var world = Substitute.For<IPhysicsWorld2D>();
@@ -221,5 +400,22 @@ public class PhysicsSimulationSystemTests
         var entity = CreateEntityWithTransformAndRb(context);
         entity.AddComponent<BoxCollider2DComponent>();
         return entity;
+    }
+
+    private static (IPhysicsBody2D First, IPhysicsBody2D Second) ArrangeTwoBodies(IPhysicsWorld2D world)
+    {
+        var first = StubBody();
+        var second = StubBody();
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(first, second);
+        return (first, second);
+    }
+
+    private static IPhysicsBody2D StubBody()
+    {
+        var body = Substitute.For<IPhysicsBody2D>();
+        body.Position.Returns(Vector2.Zero);
+        body.Angle.Returns(0f);
+        body.LinearVelocity.Returns(Vector2.Zero);
+        return body;
     }
 }

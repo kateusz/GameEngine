@@ -42,7 +42,7 @@ public class SceneSystemsFactoryTests
 
     private static List<ISystem> Populate(SceneDimension dimension)
     {
-        var worldFactory = Substitute.For<IPhysicsWorld2DFactory>();
+        var worldFactory = Substitute.For<IPhysicsWorldFactory>();
         worldFactory.Create(Arg.Any<Vector2>()).Returns(Substitute.For<IPhysicsWorld2D>());
         worldFactory.Create3D(Arg.Any<Vector3>()).Returns(Substitute.For<IPhysicsWorld3D>());
 
@@ -66,6 +66,7 @@ public class SceneSystemsFactoryTests
             systemManager,
             new Context(),
             new PhysicsRuntimeBodyStore(),
+            dimension == SceneDimension.ThreeD ? new PhysicsRuntimeBodyStore3D() : null,
             new PhysicsContactQueue(),
             new ScriptRuntimeStore(),
             dimension);

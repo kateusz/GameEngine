@@ -36,7 +36,8 @@ internal sealed class Scene : IScene
         PhysicsContactQueue physicsContactQueue,
         ScriptRuntimeStore scriptRuntimeStore,
         IPhysicsQueries physicsQueries,
-        ICameraQueries cameraQueries)
+        ICameraQueries cameraQueries,
+        PhysicsRuntimeBodyStore3D? physicsRuntimeBodyStore3D = null)
     {
         _path = path;
         Name = sceneName;
@@ -47,6 +48,7 @@ internal sealed class Scene : IScene
         ScriptRuntimeStore = scriptRuntimeStore;
         _physicsQueries = physicsQueries;
         _cameraQueries = cameraQueries;
+        PhysicsBodies3D = physicsRuntimeBodyStore3D;
 
         // After scripts (110), before audio (120) — locals settle first, then world caches.
         _systemManager.RegisterSystem(new TransformHierarchySystem(UpdateWorldTransforms));
@@ -56,9 +58,13 @@ internal sealed class Scene : IScene
 
     public IPhysicsQueries PhysicsQueries => _physicsQueries;
 
+    public IPhysicsQueries3D? PhysicsQueries3D => _physicsQueries as IPhysicsQueries3D;
+
     public ICameraQueries CameraQueries => _cameraQueries;
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
+
+    internal PhysicsRuntimeBodyStore3D? PhysicsBodies3D { get; }
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 

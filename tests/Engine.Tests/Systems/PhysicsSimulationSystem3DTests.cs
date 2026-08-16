@@ -208,6 +208,167 @@ public class PhysicsSimulationSystem3DTests
     }
 
     [Fact]
+    public void OnUpdate_UnchangedIdentity_DoesNotRecreateBody()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var mockBody = StubBody();
+        world.CreateBody(Arg.Any<PhysicsBodyDef3D>()).Returns(mockBody);
+
+        system.OnInit();
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).CreateBody(Arg.Any<PhysicsBodyDef3D>());
+        world.DidNotReceive().DestroyBody(Arg.Any<IPhysicsBody3D>());
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(mockBody);
+    }
+
+    [Fact]
+    public void OnUpdate_BodyTypeChange_RecreatesBody()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody3DComponent>().BodyType = RigidBodyType.Kinematic;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef3D>(d => d.MotionType == PhysicsBodyMotionType.Kinematic));
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_BoxSizeChange_RecreatesBody()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider3DComponent>().Size = new Vector3(2f);
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef3D>(d => d.HalfExtents == new Vector3(2f)));
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_ScaleChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<TransformComponent>().Scale = new Vector3(2f);
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef3D>(d => d.HalfExtents == new Vector3(1f)));
+    }
+
+    [Fact]
+    public void OnUpdate_GravityScaleChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody3DComponent>().GravityScale = 0f;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef3D>(d => d.GravityScale == 0f));
+        world.Received(1).DestroyBody(Arg.Any<IPhysicsBody3D>());
+    }
+
+    [Fact]
+    public void OnUpdate_FixedRotationChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody3DComponent>().FixedRotation = true;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef3D>(d => d.FixedRotation));
+        world.Received(1).DestroyBody(Arg.Any<IPhysicsBody3D>());
+    }
+
+    [Fact]
+    public void OnUpdate_DensityChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider3DComponent>().Density = 4f;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef3D>(d => d.Density == 4f));
+    }
+
+    [Fact]
+    public void OnUpdate_IsTriggerChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider3DComponent>().IsTrigger = true;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef3D>(d => d.IsSensor));
+    }
+
+    [Fact]
+    public void OnUpdate_BoxToSphere_RecreatesWithSphereFixture()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.RemoveComponent<BoxCollider3DComponent>();
+        entity.AddComponent(new SphereCollider3DComponent { Radius = 1.25f });
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        first.DidNotReceive().CreateSphereFixture(Arg.Any<PhysicsSphereFixtureDef3D>());
+        second.Received(1).CreateSphereFixture(Arg.Is<PhysicsSphereFixtureDef3D>(d => d.Radius == 1.25f));
+        bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
+        stored.ShouldBe(second);
+    }
+
+    [Fact]
+    public void OnUpdate_ColliderRemoved_DropsBodyFromStore()
+    {
+        var (system, context, world, bodyStore) = CreateFullSystem();
+        var entity = CreateEntityWithBox(context);
+        var (first, _) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.RemoveComponent<BoxCollider3DComponent>();
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        world.Received(1).CreateBody(Arg.Any<PhysicsBodyDef3D>());
+        bodyStore.TryGet(entity.Id, out _).ShouldBeFalse();
+    }
+
+    [Fact]
     public void RealWorld_DropSettlesOnFloor()
     {
         using var world = new BepuPhysicsWorld3D(new Vector3(0, -9.8f, 0));
@@ -261,6 +422,34 @@ public class PhysicsSimulationSystem3DTests
         box.GetComponent<TransformComponent>().Translation.Y.ShouldBe(2f, 0.2);
     }
 
+    [Fact]
+    public void RealWorld_GravityScaleChange_StopsAccelerating()
+    {
+        using var world = new BepuPhysicsWorld3D(new Vector3(0, -9.8f, 0));
+        var context = new Context();
+        var bodyStore = new PhysicsRuntimeBodyStore3D();
+        var system = new PhysicsSimulationSystem3D(world, context, bodyStore);
+
+        var box = Entity.Create(1, "Box");
+        box.AddComponent(new TransformComponent { Translation = new Vector3(0, 10f, 0) });
+        box.AddComponent(new RigidBody3DComponent { BodyType = RigidBodyType.Dynamic, GravityScale = 1f });
+        box.AddComponent(new BoxCollider3DComponent { Size = new Vector3(0.5f) });
+        context.Register(box);
+
+        system.OnInit();
+        for (var i = 0; i < 20; i++)
+            system.OnUpdate(TimeSpan.FromSeconds(PhysicsConstants.PhysicsTimestep));
+
+        var vyMid = box.GetComponent<RigidBody3DComponent>().Velocity.Y;
+        vyMid.ShouldBeLessThan(-1f);
+
+        box.GetComponent<RigidBody3DComponent>().GravityScale = 0f;
+        for (var i = 0; i < 20; i++)
+            system.OnUpdate(TimeSpan.FromSeconds(PhysicsConstants.PhysicsTimestep));
+
+        box.GetComponent<RigidBody3DComponent>().Velocity.Y.ShouldBe(vyMid, 0.15);
+    }
+
     private static (PhysicsSimulationSystem3D System, IContext Context, IPhysicsWorld3D World, PhysicsRuntimeBodyStore3D BodyStore)
         CreateFullSystem()
     {
@@ -284,5 +473,22 @@ public class PhysicsSimulationSystem3DTests
         var entity = CreateEntityWithTransformAndRb(context);
         entity.AddComponent<BoxCollider3DComponent>();
         return entity;
+    }
+
+    private static (IPhysicsBody3D First, IPhysicsBody3D Second) ArrangeTwoBodies(IPhysicsWorld3D world)
+    {
+        var first = StubBody();
+        var second = StubBody();
+        world.CreateBody(Arg.Any<PhysicsBodyDef3D>()).Returns(first, second);
+        return (first, second);
+    }
+
+    private static IPhysicsBody3D StubBody()
+    {
+        var body = Substitute.For<IPhysicsBody3D>();
+        body.Position.Returns(Vector3.Zero);
+        body.Orientation.Returns(Quaternion.Identity);
+        body.LinearVelocity.Returns(Vector3.Zero);
+        return body;
     }
 }

@@ -21,6 +21,7 @@ internal sealed class PhysicsSimulationSystem(
 
     private float _physicsAccumulator;
     private bool _disposed;
+    private readonly Dictionary<int, PhysicsBodyIdentity> _identities = [];
 
     private const int MaxPhysicsStepsPerFrame = 5;
 
@@ -80,10 +81,9 @@ internal sealed class PhysicsSimulationSystem(
     {
         Logger.Debug("PhysicsSimulationSystem shutting down - cleaning up physics bodies");
 
-        foreach (var (_, body) in bodyStore.Snapshot())
-            physicsWorld.DestroyBody(body);
+        foreach (var id in bodyStore.Snapshot().Keys.ToList())
+            DropBody(id);
 
-        bodyStore.Clear();
         Logger.Debug("PhysicsSimulationSystem shut down - all physics bodies destroyed");
     }
 
@@ -91,8 +91,13 @@ internal sealed class PhysicsSimulationSystem(
     {
         foreach (var (entity, component, transform) in context.View<RigidBody2DComponent, TransformComponent>())
         {
+            var identity = CaptureIdentity(entity, component, transform);
             if (bodyStore.TryGet(entity.Id, out _))
-                continue;
+            {
+                if (_identities.TryGetValue(entity.Id, out var baked) && baked == identity)
+                    continue;
+                DropBody(entity.Id);
+            }
 
             var body = physicsWorld.CreateBody(new PhysicsBodyDef(
                 new Vector2(transform.Translation.X, transform.Translation.Y),
@@ -103,6 +108,7 @@ internal sealed class PhysicsSimulationSystem(
 
             body.Entity = entity;
             bodyStore.Set(entity.Id, body);
+            _identities[entity.Id] = identity;
 
             AttachFixture(entity, body, transform);
         }
@@ -202,14 +208,62 @@ internal sealed class PhysicsSimulationSystem(
         var activeEntityIds = context.View<RigidBody2DComponent>().Select(v => v.Entity.Id).ToHashSet();
         var staleEntityIds = bodyStore.Snapshot().Keys.Where(id => !activeEntityIds.Contains(id)).ToList();
         foreach (var staleEntityId in staleEntityIds)
-        {
-            if (!bodyStore.TryGet(staleEntityId, out var body))
-                continue;
-
-            physicsWorld.DestroyBody(body);
-            bodyStore.Remove(staleEntityId);
-        }
+            DropBody(staleEntityId);
     }
+
+    private void DropBody(int entityId)
+    {
+        if (!bodyStore.TryGet(entityId, out var body))
+            return;
+
+        // ponytail: recreate drops native angular velocity; linear lives on the component
+        physicsWorld.DestroyBody(body);
+        bodyStore.Remove(entityId);
+        _identities.Remove(entityId);
+    }
+
+    private static PhysicsBodyIdentity CaptureIdentity(
+        Entity entity, RigidBody2DComponent component, TransformComponent transform)
+    {
+        if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
+            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+                ColliderKind.Box, box.Size, box.Offset, transform.Scale, box.Density, box.IsTrigger, 0);
+        if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
+            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+                ColliderKind.Circle, new Vector2(circle.Radius, 0f), circle.Offset, transform.Scale,
+                circle.Density, circle.IsTrigger, 0);
+        if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
+            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+                ColliderKind.Edge, default, default, transform.Scale, edge.Density, edge.IsTrigger,
+                HashPoints(edge.Points));
+        return new(component.BodyType, component.FixedRotation, component.GravityScale,
+            ColliderKind.None, default, default, transform.Scale, 0f, false, 0);
+    }
+
+    private static int HashPoints(List<Vector2> points)
+    {
+        var hash = new HashCode();
+        foreach (var point in points)
+        {
+            hash.Add(point.X);
+            hash.Add(point.Y);
+        }
+        return hash.ToHashCode();
+    }
+
+    private enum ColliderKind { None, Box, Circle, Edge }
+
+    private readonly record struct PhysicsBodyIdentity(
+        RigidBodyType BodyType,
+        bool FixedRotation,
+        float GravityScale,
+        ColliderKind Kind,
+        Vector2 Size,
+        Vector2 Offset,
+        Vector3 Scale,
+        float Density,
+        bool IsTrigger,
+        int PointsHash);
 
     private static PhysicsBodyMotionType ToMotionType(RigidBodyType bodyType) =>
         bodyType switch

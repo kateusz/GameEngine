@@ -16,7 +16,7 @@ public sealed class SceneFactory(ISystemManagerFactory systemManagerFactory, IPo
         ICameraQueries cameraQueries = new CameraQueries(context, pointerSurface);
         var scene = new Scene(path, newSceneName, context,
             build.SystemManager, build.BodyStore, build.ContactQueue, build.ScriptStore, build.PhysicsQueries,
-            cameraQueries);
+            cameraQueries, build.BodyStore3D);
         scene.Dimension = dimension;
         return scene;
     }

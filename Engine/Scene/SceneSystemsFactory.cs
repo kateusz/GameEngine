@@ -24,7 +24,7 @@ internal sealed class SceneSystemsFactory(
     IScriptEngine scriptEngine,
     IAudio audio,
     AudioPlaybackService playbackService,
-    IPhysicsWorld2DFactory physicsWorld2DFactory) : ISceneSystemsFactory
+    IPhysicsWorldFactory physicsWorldFactory) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
@@ -34,6 +34,7 @@ internal sealed class SceneSystemsFactory(
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
+        PhysicsRuntimeBodyStore3D? bodyStore3D,
         PhysicsContactQueue contactQueue,
         ScriptRuntimeStore scriptStore,
         SceneDimension dimension = SceneDimension.TwoD)
@@ -45,14 +46,14 @@ internal sealed class SceneSystemsFactory(
         ISystem[] systems;
         if (dimension == SceneDimension.ThreeD)
         {
-            var physicsWorld = physicsWorld2DFactory.Create3D(DefaultGravity3D);
+            var physicsWorld = physicsWorldFactory.Create3D(DefaultGravity3D);
             physicsWorld.SetContactListener(contactListener);
             physicsQueries = new PhysicsQueries3DAdapter(physicsWorld);
-            systems = Create3DSystems(physicsWorld, context, primaryCamera);
+            systems = Create3DSystems(physicsWorld, context, primaryCamera, bodyStore3D!);
         }
         else
         {
-            var physicsWorld = physicsWorld2DFactory.Create(DefaultGravity2D);
+            var physicsWorld = physicsWorldFactory.Create(DefaultGravity2D);
             physicsWorld.SetContactListener(contactListener);
             physicsQueries = physicsWorld;
             systems = Create2DSystems(physicsWorld, context, bodyStore, primaryCamera);
@@ -92,13 +93,10 @@ internal sealed class SceneSystemsFactory(
     private ISystem[] Create3DSystems(
         IPhysicsWorld3D physicsWorld,
         IContext context,
-        PrimaryCameraSystem primaryCamera)
-    {
-        var bodyStore3D = new PhysicsRuntimeBodyStore3D();
-        return
-        [
-            new PhysicsSimulationSystem3D(physicsWorld, context, bodyStore3D),
-            new PhysicsDebugRenderSystem3D(graphics3D, context, debugSettings, bodyStore3D, primaryCamera)
-        ];
-    }
+        PrimaryCameraSystem primaryCamera,
+        PhysicsRuntimeBodyStore3D bodyStore3D) =>
+    [
+        new PhysicsSimulationSystem3D(physicsWorld, context, bodyStore3D),
+        new PhysicsDebugRenderSystem3D(graphics3D, context, debugSettings, bodyStore3D, primaryCamera)
+    ];
 }
