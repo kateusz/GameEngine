@@ -665,7 +665,7 @@ internal sealed class Graphics3D(
         _pointDepthShader = null;
         _wireframeShader?.Dispose();
         _wireframeShader = null;
-        _cubeMesh?.Dispose();
+
         _cubeMesh = null!;
         _shadowMap?.Dispose();
         _shadowMap = null;

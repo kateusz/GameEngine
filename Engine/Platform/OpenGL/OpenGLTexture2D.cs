@@ -274,17 +274,21 @@ internal sealed class OpenGLTexture2D : Texture2D
         if (_disposed)
             return;
 
-        try
+
+        if (disposing)
         {
-            if (_rendererId != 0)
+            try
             {
-                SilkNetContext.GL.DeleteTexture(_rendererId);
-                _rendererId = 0;
+                if (_rendererId != 0)
+                {
+                    SilkNetContext.GL.DeleteTexture(_rendererId);
+                    _rendererId = 0;
+                }
             }
-        }
-        catch (Exception e)
-        {
-            Debug.WriteLine($"Failed to delete OpenGL texture {_rendererId}: {e.Message}");
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Failed to delete OpenGL texture {_rendererId}: {e.Message}");
+            }
         }
 
         _disposed = true;

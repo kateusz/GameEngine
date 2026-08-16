@@ -64,6 +64,13 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     public void OnDetach()
     {
         CleanupTestScene();
+        // Color textures bypass the factory cache (Create(width, height) = caller-owned).
+        // Cached textures ("white", "container") belong to TextureFactory — leave them.
+        foreach (var kvp in _testTextures)
+        {
+            if (kvp.Key.StartsWith("color_", StringComparison.Ordinal))
+                kvp.Value.Dispose();
+        }
         _testTextures.Clear();
     }
 

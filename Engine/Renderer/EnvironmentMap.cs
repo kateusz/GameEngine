@@ -8,14 +8,20 @@ public sealed class EnvironmentMap(TextureCube environment, TextureCube irradian
 {
     public const float MaxReflectionLod = 4f;
 
+    private bool _disposed;
+
     public TextureCube Environment { get; } = environment;
     public TextureCube Irradiance { get; } = irradiance;
     public TextureCube Prefiltered { get; } = prefiltered;
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
         Environment.Dispose();
         Irradiance.Dispose();
         Prefiltered.Dispose();
+        _disposed = true;
     }
 }

@@ -87,8 +87,8 @@ public class Mesh : IDisposable
             return;
 
         _vertexArray?.Dispose();
-        _vertexBuffer?.Dispose();
-        _indexBuffer?.Dispose();
+        _vertexBuffer = null!;
+        _indexBuffer = null!;
         _disposed = true;
         GC.SuppressFinalize(this);
     }
