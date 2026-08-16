@@ -7,6 +7,7 @@ namespace SceneComponents.Rendering;
 public class ModelRendererComponent : IComponent
 {
     public string? ModelPath { get; set; }
+    public string? AlbedoTexturePath { get; set; }
     public Vector4 Color { get; set; } = Vector4.One;
     public float? MetallicOverride { get; set; }
     public float? RoughnessOverride { get; set; }
@@ -36,6 +37,7 @@ public class ModelRendererComponent : IComponent
     public IComponent Clone() => new ModelRendererComponent
     {
         ModelPath = ModelPath,
+        AlbedoTexturePath = AlbedoTexturePath,
         Color = Color,
         MetallicOverride = MetallicOverride,
         RoughnessOverride = RoughnessOverride,

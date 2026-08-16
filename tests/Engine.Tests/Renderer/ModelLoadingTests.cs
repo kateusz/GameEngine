@@ -17,6 +17,7 @@ public class ModelRendererComponentTests
 
         component.Color.ShouldBe(Vector4.One);
         component.ModelPath.ShouldBeNull();
+        component.AlbedoTexturePath.ShouldBeNull();
         component.MetallicOverride.ShouldBeNull();
         component.RoughnessOverride.ShouldBeNull();
     }
@@ -27,6 +28,7 @@ public class ModelRendererComponentTests
         var original = new ModelRendererComponent(new Vector4(0.2f, 0.4f, 0.6f, 0.8f))
         {
             ModelPath = "models/crate.fbx",
+            AlbedoTexturePath = "textures/wood.png",
             MetallicOverride = 0.75f,
             RoughnessOverride = 0.25f
         };
@@ -37,6 +39,7 @@ public class ModelRendererComponentTests
 
         clone.ShouldNotBeSameAs(original);
         clone.ModelPath.ShouldBe("models/crate.fbx");
+        clone.AlbedoTexturePath.ShouldBe("textures/wood.png");
         clone.Color.ShouldBe(Vector4.Zero);
         clone.MetallicOverride.ShouldBe(0f);
         clone.RoughnessOverride.ShouldBe(0.25f);

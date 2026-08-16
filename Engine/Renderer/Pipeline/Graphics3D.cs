@@ -154,8 +154,14 @@ internal sealed class Graphics3D(
         rendererApi.SetPolygonMode(PolygonMode.Fill);
     }
 
-    public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1)
+    public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? albedo = null, float metallic = 0f, float roughness = 0.5f)
     {
+        if (albedo != null)
+        {
+            DrawMesh(transform, _cubeMesh, BuiltinSphereMaterial, color, metallic, roughness, entityId, albedoOverride: albedo);
+            return;
+        }
+
         rendererApi.SetDepthTest(true);
 
         if (_shadowPass)
@@ -178,8 +184,8 @@ internal sealed class Graphics3D(
         _cubeShader.Unbind();
     }
 
-    public void DrawBuiltinSphere(Matrix4x4 transform, Vector4 tint, float metallic, float roughness, int entityId = -1) =>
-        DrawMesh(transform, meshFactory.CreateSphere(), BuiltinSphereMaterial, tint, metallic, roughness, entityId);
+    public void DrawBuiltinSphere(Matrix4x4 transform, Vector4 tint, float metallic, float roughness, int entityId = -1, Texture2D? albedo = null) =>
+        DrawMesh(transform, meshFactory.CreateSphere(), BuiltinSphereMaterial, tint, metallic, roughness, entityId, albedoOverride: albedo);
 
     public void DrawMesh(
         Matrix4x4 transform,
@@ -189,13 +195,14 @@ internal sealed class Graphics3D(
         float metallic,
         float roughness,
         int entityId = -1,
-        Matrix4x4[]? bonePalette = null)
+        Matrix4x4[]? bonePalette = null,
+        Texture2D? albedoOverride = null)
     {
         rendererApi.SetDepthTest(true);
 
         if (_shadowPass)
         {
-            DrawShadowCaster(mesh, transform, material, material.ResolveBaseColor(tint), bonePalette);
+            DrawShadowCaster(mesh, transform, material, material.ResolveBaseColor(tint), bonePalette, albedoOverride);
             return;
         }
 
@@ -206,10 +213,11 @@ internal sealed class Graphics3D(
         }
 
         var baseColor = material.ResolveBaseColor(tint);
+        var albedoMap = albedoOverride ?? material.AlbedoTexture;
         BindCommon(_texturedShader, transform, baseColor, entityId, bonePalette);
         _texturedShader.SetFloat("u_Metallic", metallic);
         _texturedShader.SetFloat("u_Roughness", roughness);
-        _texturedShader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
+        _texturedShader.SetInt("u_HasAlbedoMap", albedoMap != null ? 1 : 0);
         _texturedShader.SetInt("u_HasMetallicRoughnessMap", material.HasMetallicRoughnessMap ? 1 : 0);
         _texturedShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
         _texturedShader.SetInt("u_HasEmissiveMap", material.HasEmissiveMap ? 1 : 0);
@@ -224,7 +232,7 @@ internal sealed class Graphics3D(
         else
             textureFactory.GetWhiteTexture().Bind(5);
 
-        (material.AlbedoTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
+        (albedoMap ?? textureFactory.GetWhiteTexture()).Bind(0);
         (material.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
         (material.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
         (material.EmissiveTexture ?? textureFactory.GetBlackTexture()).Bind(EmissiveMapSlot);
@@ -510,19 +518,21 @@ internal sealed class Graphics3D(
         Matrix4x4 transform,
         MeshMaterial? material = null,
         Vector4 baseColor = default,
-        Matrix4x4[]? bonePalette = null)
+        Matrix4x4[]? bonePalette = null,
+        Texture2D? albedoOverride = null)
     {
         var shader = _pointShadowPass ? _pointDepthShader! : _depthShader;
         shader.SetMat4("u_Model", transform);
         UploadBones(shader, bonePalette);
 
+        var albedoMap = albedoOverride ?? material?.AlbedoTexture;
         if (!_pointShadowPass && material is not null && material.AlphaMode == MaterialAlphaMode.Mask)
         {
-            shader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
+            shader.SetInt("u_HasAlbedoMap", albedoMap != null ? 1 : 0);
             shader.SetInt("u_AlphaMode", (int)material.AlphaMode);
             shader.SetFloat("u_AlphaCutoff", material.AlphaCutoff);
             shader.SetFloat4("u_Color", baseColor == default ? Vector4.One : baseColor);
-            (material.AlbedoTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
+            (albedoMap ?? textureFactory.GetWhiteTexture()).Bind(0);
         }
         else
         {

@@ -35,10 +35,11 @@ All texture maps are optional. Missing slots use shared engine fallbacks: white 
 |-------|------|
 | `ModelPath` | Asset-relative `.mesh` path |
 | `Color` | Tint multiplied with the material base-color factor |
+| `AlbedoTexturePath` | Optional albedo PNG/JPG; when set, replaces mesh/cube/sphere albedo at draw time |
 | `MetallicOverride` / `RoughnessOverride` | Optional per-entity PBR overrides (fall back to mesh values when unset) |
 | `SubmeshStart` / `SubmeshCount` | Draw a slice of submeshes from a shared file (`SubmeshCount = -1` → all) |
 
-Texture slots cannot be overridden from the component — only tint and metallic/roughness.
+Albedo can be overridden from the component (`AlbedoTexturePath`). Other maps (ORM, normal, emissive) stay on the mesh material.
 
 ---
 
@@ -67,7 +68,7 @@ IBL textures are not part of the per-mesh material — they come from `SkyLightC
 ## Serialization
 
 - **`.mesh` binary** — texture paths, scalars, and alpha fields per submesh. GPU texture handles are runtime-only.
-- **Scene JSON** — `ModelRendererComponent` stores model path, color, metallic/roughness overrides, and submesh range. No per-slot texture overrides.
+- **Scene JSON** — `ModelRendererComponent` stores model path, optional albedo path, color, metallic/roughness overrides, and submesh range.
 
 ---
 
@@ -75,7 +76,7 @@ IBL textures are not part of the per-mesh material — they come from `SkyLightC
 
 | Limitation | Detail |
 |------------|--------|
-| No material editor | Inspector edits `ModelRendererComponent` fields only, not texture slots |
+| No material editor | Inspector edits `ModelRendererComponent` fields (including albedo override), not other texture slots |
 | No standalone material assets | Materials live inside `.mesh` files |
 | Fixed texture slots | Nine sampler units; not extensible |
 | No texture streaming | Full load at model load time |

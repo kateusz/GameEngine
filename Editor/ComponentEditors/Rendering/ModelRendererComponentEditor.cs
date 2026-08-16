@@ -2,18 +2,23 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.UI.Elements;
+using Engine.Renderer.Textures;
 using ImGuiNET;
 using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
 
-public class ModelRendererComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<ModelRendererComponent>(history)
+public class ModelRendererComponentEditor(
+    ITextureFactory textureFactory,
+    UIPropertyRenderer propertyRenderer,
+    IEditorHistory history) : ComponentEditor<ModelRendererComponent>(history)
 {
     protected override string DisplayName => "Model Renderer";
 
     protected override void DrawContent(ModelRendererComponent component, Entity entity)
     {
         MeshDropTarget.Draw("Model", path => component.ModelPath = path, component.ModelPath);
+        TextureDropTarget.Draw("Albedo", path => component.AlbedoTexturePath = path, textureFactory, component.AlbedoTexturePath);
         propertyRenderer.DrawPropertyField("Color", component.Color,
             newValue => component.Color = (System.Numerics.Vector4)newValue);
 

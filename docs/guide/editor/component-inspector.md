@@ -338,6 +338,7 @@ Renders a 3D model at the entity's transform. Assign a `ModelPath` to an importe
 | Property | Type | Default | Editor control | Description |
 |---|---|---|---|---|
 | `ModelPath` | string? | null | Mesh drop target (`.mesh` only) | Project path to an imported mesh, e.g. `models/hero.mesh`. Drag from Content Browser or leave empty for the cube fallback |
+| `AlbedoTexturePath` | string? | null | Texture drop target (`.png` / `.jpg`) | Optional albedo override. Drag from Content Browser onto **Albedo**. Applies to the cube fallback, builtin sphere, and imported meshes. Empty = use the mesh material (or untextured cube) |
 | `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Color field | Albedo tint multiplied with the material / cube color |
 | `MetallicOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported metallic for all submeshes |
 | `RoughnessOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported roughness for all submeshes |

@@ -24,7 +24,7 @@ Example: `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh`.
 
 One `ModelRendererComponent` draws a submesh range from a `.mesh` file under its transform. Import may create **multiple entities** (parent + children) sharing one `.mesh` with different `SubmeshStart` / `SubmeshCount` slices.
 
-Textures resolve relative to the project; missing maps use defaults. Inspector tuning: **Color** tint, optional **Metallic** / **Roughness Override** (all submeshes in range). No per-slot texture swap in the editor yet.
+Textures resolve relative to the project; missing maps use defaults. Inspector tuning: **Albedo** drop (PNG/JPG, overrides mesh/cube/sphere albedo), **Color** tint, optional **Metallic** / **Roughness Override** (all submeshes in range).
 
 ### Legacy paths
 

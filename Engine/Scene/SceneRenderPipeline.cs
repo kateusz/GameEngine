@@ -46,7 +46,8 @@ internal static class SceneRenderPipeline
         float Metallic,
         float Roughness,
         int EntityId,
-        Matrix4x4[]? BonePalette = null);
+        Matrix4x4[]? BonePalette = null,
+        Texture2D? AlbedoOverride = null);
 
     internal readonly struct CameraBinding
     {
@@ -72,11 +73,11 @@ internal static class SceneRenderPipeline
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderModels(context, graphics3D, modelFactory, camera);
+        RenderModels(context, graphics3D, modelFactory, textureFactory, camera);
     }
 
     private static void RenderModels(
-        IContext context, IGraphics3D graphics3D, IModelFactory modelFactory, in CameraBinding camera)
+        IContext context, IGraphics3D graphics3D, IModelFactory modelFactory, ITextureFactory? textureFactory, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -91,7 +92,7 @@ internal static class SceneRenderPipeline
 
         if (graphics3D.BeginShadowPass())
         {
-            DrawOpaqueModels(context, graphics3D, modelFactory);
+            DrawOpaqueModels(context, graphics3D, modelFactory, textureFactory);
             graphics3D.EndShadowPass();
         }
 
@@ -102,22 +103,23 @@ internal static class SceneRenderPipeline
             for (var face = 0; face < 6; face++)
             {
                 graphics3D.SetPointShadowFace(face);
-                DrawOpaqueModels(context, graphics3D, modelFactory);
+                DrawOpaqueModels(context, graphics3D, modelFactory, textureFactory);
             }
             graphics3D.EndPointShadowPass();
         }
 
         graphics3D.DrawSkybox();
-        DrawOpaqueModels(context, graphics3D, modelFactory);
-        DrawTransparentModels(context, graphics3D, modelFactory, GetCameraPosition(camera));
+        DrawOpaqueModels(context, graphics3D, modelFactory, textureFactory);
+        DrawTransparentModels(context, graphics3D, modelFactory, textureFactory, GetCameraPosition(camera));
 
         graphics3D.EndScene();
     }
 
-    private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory)
+    private static void DrawOpaqueModels(
+        IContext context, IGraphics3D graphics3D, IModelFactory modelFactory, ITextureFactory? textureFactory)
     {
         foreach (var item in EnumerateModelDrawItems(
-                     context, modelFactory, static mode => mode != MaterialAlphaMode.Blend))
+                     context, modelFactory, textureFactory, static mode => mode != MaterialAlphaMode.Blend))
             IssueDraw(graphics3D, item);
     }
 
@@ -125,10 +127,11 @@ internal static class SceneRenderPipeline
         IContext context,
         IGraphics3D graphics3D,
         IModelFactory modelFactory,
+        ITextureFactory? textureFactory,
         Vector3 cameraPosition)
     {
         var transparent = EnumerateModelDrawItems(
-                context, modelFactory, static mode => mode == MaterialAlphaMode.Blend)
+                context, modelFactory, textureFactory, static mode => mode == MaterialAlphaMode.Blend)
             .ToList();
         if (transparent.Count == 0)
             return;
@@ -152,11 +155,11 @@ internal static class SceneRenderPipeline
         switch (item.Kind)
         {
             case ModelDrawKind.Cube:
-                graphics3D.DrawCube(item.Transform, item.Tint, item.EntityId);
+                graphics3D.DrawCube(item.Transform, item.Tint, item.EntityId, item.AlbedoOverride, item.Metallic, item.Roughness);
                 break;
             case ModelDrawKind.BuiltinSphere:
                 graphics3D.DrawBuiltinSphere(
-                    item.Transform, item.Tint, item.Metallic, item.Roughness, item.EntityId);
+                    item.Transform, item.Tint, item.Metallic, item.Roughness, item.EntityId, item.AlbedoOverride);
                 break;
             case ModelDrawKind.Mesh:
                 graphics3D.DrawMesh(
@@ -167,7 +170,8 @@ internal static class SceneRenderPipeline
                     item.Metallic,
                     item.Roughness,
                     item.EntityId,
-                    item.BonePalette);
+                    item.BonePalette,
+                    item.AlbedoOverride);
                 break;
         }
     }
@@ -175,6 +179,7 @@ internal static class SceneRenderPipeline
     private static IEnumerable<ModelDrawItem> EnumerateModelDrawItems(
         IContext context,
         IModelFactory modelFactory,
+        ITextureFactory? textureFactory,
         Func<MaterialAlphaMode, bool> alphaFilter)
     {
         foreach (var (entity, modelRenderer, transformComponent) in
@@ -183,11 +188,21 @@ internal static class SceneRenderPipeline
             var transform = transformComponent.GetWorldTransform();
             var worldPosition = new Vector3(transform.M41, transform.M42, transform.M43);
             var tint = modelRenderer.Color;
+            var albedo = TryLoadAlbedoOverride(textureFactory, modelRenderer.AlbedoTexturePath);
 
             if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
             {
                 yield return new ModelDrawItem(
-                    ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
+                    ModelDrawKind.Cube,
+                    transform,
+                    worldPosition,
+                    null,
+                    null,
+                    tint,
+                    modelRenderer.MetallicOverride ?? 0f,
+                    modelRenderer.RoughnessOverride ?? 0.5f,
+                    entity.Id,
+                    AlbedoOverride: albedo);
                 continue;
             }
 
@@ -205,7 +220,8 @@ internal static class SceneRenderPipeline
                         tint,
                         modelRenderer.MetallicOverride ?? 0f,
                         modelRenderer.RoughnessOverride ?? 0.5f,
-                        entity.Id);
+                        entity.Id,
+                        AlbedoOverride: albedo);
                 }
                 continue;
             }
@@ -214,7 +230,16 @@ internal static class SceneRenderPipeline
             if (model == null)
             {
                 yield return new ModelDrawItem(
-                    ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
+                    ModelDrawKind.Cube,
+                    transform,
+                    worldPosition,
+                    null,
+                    null,
+                    tint,
+                    modelRenderer.MetallicOverride ?? 0f,
+                    modelRenderer.RoughnessOverride ?? 0.5f,
+                    entity.Id,
+                    AlbedoOverride: albedo);
                 continue;
             }
 
@@ -244,8 +269,32 @@ internal static class SceneRenderPipeline
                     metallic,
                     roughness,
                     entity.Id,
-                    bonePalette);
+                    bonePalette,
+                    albedo);
             }
+        }
+    }
+
+    private static Texture2D? TryLoadAlbedoOverride(ITextureFactory? textureFactory, string? path)
+    {
+        if (textureFactory == null || string.IsNullOrWhiteSpace(path))
+            return null;
+
+        try
+        {
+            var resolved = PathBuilder.Resolve(path);
+            if (!PathBuilder.IsUnderAssets(resolved))
+            {
+                Logger.Warning("Rejected albedo override outside assets root: {Path}", path);
+                return null;
+            }
+
+            return textureFactory.Create(resolved, sRgb: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to load albedo override '{Path}'", path);
+            return null;
         }
     }
 

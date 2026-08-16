@@ -216,7 +216,8 @@ public class Graphics3DWireframeTests : IDisposable
         var viewProjection = Matrix4x4.CreateOrthographic(2f, 2f, 0.1f, 100f);
         var model = Matrix4x4.CreateTranslation(1f, 2f, 3f);
         var camera = Substitute.For<IViewCamera>();
-        camera.GetViewProjectionMatrix().Returns(viewProjection);
+        camera.GetViewMatrix().Returns(Matrix4x4.Identity);
+        camera.GetProjectionMatrix().Returns(viewProjection);
         camera.GetPosition().Returns(Vector3.Zero);
 
         _graphics.BeginScene(camera);
@@ -229,6 +230,18 @@ public class Graphics3DWireframeTests : IDisposable
         _wireframeShader.Received().SetMat4("u_Model", model);
         _wireframeShader.Received().SetFloat4("u_Color", new Vector4(0.85f, 0.85f, 0.85f, 1f));
         _wireframeShader.Received().SetInt("u_EntityID", 9);
+    }
+
+    [Fact]
+    public void DrawCube_WhenAlbedoOverride_UsesTexturedShader()
+    {
+        BeginWithCamera();
+        _texturedShader.ClearReceivedCalls();
+
+        _graphics.DrawCube(Matrix4x4.Identity, Vector4.One, entityId: 4, albedo: new Texture2D());
+
+        _texturedShader.Received().Bind();
+        _texturedShader.Received().SetInt("u_HasAlbedoMap", 1);
     }
 
     [Fact]

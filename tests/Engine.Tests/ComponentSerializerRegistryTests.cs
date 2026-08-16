@@ -43,6 +43,7 @@ public class ComponentSerializerRegistryTests
         entity.AddComponent(new ModelRendererComponent
         {
             ModelPath = "models/crate.mesh",
+            AlbedoTexturePath = "textures/crate.png",
             Color = new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f),
             MetallicOverride = 0.6f,
             RoughnessOverride = 0.3f,
@@ -60,6 +61,7 @@ public class ComponentSerializerRegistryTests
         loaded.HasComponent<ModelRendererComponent>().ShouldBeTrue();
         var modelRenderer = loaded.GetComponent<ModelRendererComponent>();
         modelRenderer.ModelPath.ShouldBe("models/crate.mesh");
+        modelRenderer.AlbedoTexturePath.ShouldBe("textures/crate.png");
         modelRenderer.Color.ShouldBe(new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1f));
         modelRenderer.MetallicOverride.ShouldBe(0.6f);
         modelRenderer.RoughnessOverride.ShouldBe(0.3f);
