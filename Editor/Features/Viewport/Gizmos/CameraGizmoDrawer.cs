@@ -12,7 +12,7 @@ namespace Editor.Features.Viewport.Gizmos;
 /// <summary>
 /// Edit-mode camera icons. Same overlay slot as collider debug.
 /// </summary>
-internal static class CameraGizmoDrawer
+public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(CameraGizmoDrawer));
     private static readonly Vector2[] TextureCoords =
@@ -27,16 +27,15 @@ internal static class CameraGizmoDrawer
     private const float IconDistanceScale = 0.06f;
     private const float MinIconSize = 0.15f;
 
-    private static Texture2D? _icon;
-    private static bool _iconLoadFailed;
+    private Texture2D? _icon;
+    private bool _iconLoadFailed;
 
-    public static void Draw(
+    public void Draw(
         IContext context,
         IGraphics2D graphics2D,
-        EditorCamera editorCamera,
-        ITextureFactory textureFactory)
+        EditorCamera editorCamera)
     {
-        EnsureIcon(textureFactory);
+        EnsureIcon();
         if (_icon == null)
             return;
 
@@ -59,7 +58,7 @@ internal static class CameraGizmoDrawer
         graphics2D.EndScene();
     }
 
-    private static void EnsureIcon(ITextureFactory textureFactory)
+    private void EnsureIcon()
     {
         if (_icon != null || _iconLoadFailed)
             return;
@@ -75,7 +74,7 @@ internal static class CameraGizmoDrawer
         }
     }
 
-    private static void DrawIcon(
+    private void DrawIcon(
         IGraphics2D graphics2D,
         int entityId,
         Vector3 position,

@@ -117,10 +117,11 @@ public static class EngineIoCContainer
             made: Made.Of(
                 r => ServiceInfo.Of<IGameWindowFactory>(),
                 f => f.Create()
-            )
+            ),
+            reuse: Reuse.Singleton
         );
 
-        container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>());
+        container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>(), Reuse.Singleton);
         container.Register<IInputSystemFactory, InputSystemFactory>(Reuse.Singleton);
     }
 

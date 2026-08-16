@@ -40,7 +40,8 @@ public sealed class EditorViewport(
     IEditorCameraController cameraController,
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
-    Import3DModelPopup import3DModelPopup)
+    Import3DModelPopup import3DModelPopup,
+    CameraGizmoDrawer cameraGizmoDrawer)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -299,7 +300,7 @@ public sealed class EditorViewport(
                             camera));
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
-                    CameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera, textureFactory);
+                    cameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera);
                 }
                 break;
             case SceneState.Play:

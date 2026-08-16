@@ -13,8 +13,9 @@ public class ConsolePanel : IConsolePanel, IEditorPanel
     private bool _autoScroll = true;
     private string _filterText = string.Empty;
     private readonly ConsoleTextWriter _consoleWriter;
-    private readonly TextWriter _originalOut;
-    private readonly TextWriter _originalError;
+    private TextWriter _originalOut = null!;
+    private TextWriter _originalError = null!;
+    private bool _consoleRedirected;
     private bool _showInfo = true;
     private bool _showWarnings = true;
     private bool _showErrors = true;
@@ -22,10 +23,18 @@ public class ConsolePanel : IConsolePanel, IEditorPanel
 
     public ConsolePanel()
     {
+        _consoleWriter = new ConsoleTextWriter(this);
+    }
+
+    public void Initialize()
+    {
+        if (_consoleRedirected)
+            return;
+
         _originalOut = Console.Out;
         _originalError = Console.Error;
+        _consoleRedirected = true;
 
-        _consoleWriter = new ConsoleTextWriter(this);
         Console.SetOut(_consoleWriter);
         Console.SetError(_consoleWriter);
     }

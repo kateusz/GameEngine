@@ -22,6 +22,7 @@ var container = new Container();
 ConfigureContainer(container);
 
 var consolePanel = container.Resolve<IConsolePanel>();
+consolePanel.Initialize();
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.WithProperty("Application", "GameEngine")
