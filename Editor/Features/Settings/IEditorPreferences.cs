@@ -49,6 +49,11 @@ public interface IEditorPreferences : IDisposable
     float BloomIntensity { get; set; }
 
     /// <summary>
+    /// Fast approximate AA after HDR tonemap.
+    /// </summary>
+    bool FxaaEnabled { get; set; }
+
+    /// <summary>
     /// Scene autosave interval in seconds. 0 disables autosave.
     /// </summary>
     int AutosaveIntervalSeconds { get; set; }

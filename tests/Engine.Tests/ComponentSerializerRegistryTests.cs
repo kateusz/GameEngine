@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json.Nodes;
 using ECS;
+using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using SceneComponents;
@@ -177,6 +178,20 @@ public class ComponentSerializerRegistryTests
         {
             Directory.Delete(dir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void SerializeEntity_SkipsRuntimeComponents()
+    {
+        var entity = Entity.Create(1, "imported");
+        entity.AddComponent(new ModelRendererComponent { ModelPath = "models/crate.mesh" });
+        entity.AddComponent(new ResolvedModelComponent { SourcePath = "models/crate.mesh" });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+
+        array.Count.ShouldBe(1);
+        array[0]!["Name"]!.GetValue<string>().ShouldBe("ModelRendererComponent");
     }
 
     [Fact]

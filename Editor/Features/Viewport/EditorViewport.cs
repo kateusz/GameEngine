@@ -36,6 +36,7 @@ public sealed class EditorViewport(
     IFrameBufferFactory frameBufferFactory,
     HdrTonemapPass hdrTonemapPass,
     BloomPass bloomPass,
+    FxaaPass fxaaPass,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
@@ -84,6 +85,7 @@ public sealed class EditorViewport(
             RebuildEntityLookup(sceneContext.ActiveScene);
 
         bloomPass.Initialize();
+        fxaaPass.Initialize();
     }
 
     public void Dispose()
@@ -130,7 +132,15 @@ public sealed class EditorViewport(
             bloomColorId,
             editorPreferences.BloomIntensity);
 
-        var texturePointer = new IntPtr(_sdrFrameBuffer.GetColorAttachmentRendererId());
+        var displayColorId = _sdrFrameBuffer.GetColorAttachmentRendererId();
+        if (editorPreferences.FxaaEnabled)
+        {
+            var spec = _sdrFrameBuffer.GetSpecification();
+            displayColorId = fxaaPass.Apply(displayColorId, spec.Width, spec.Height)
+                .GetColorAttachmentRendererId();
+        }
+
+        var texturePointer = new IntPtr(displayColorId);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();

@@ -423,9 +423,10 @@ The editor keeps two framebuffers:
 |--------|--------------|---------|
 | Scene (`_frameBuffer`) | RGBA16F HDR | Scene draw + entity ID + depth |
 | Bloom extract + ping-pong | RGBA16F | Bright-pass extract and Gaussian blur (owned by `BloomPass`) |
-| Display (`_sdrFrameBuffer`) | RGBA8 | Tonemapped image shown in ImGui |
+| Display (`_sdrFrameBuffer`) | RGBA8 | Tonemapped image (FXAA input) |
+| FXAA (owned by `FxaaPass`) | RGBA8 | Anti-aliased image shown in ImGui when enabled |
 
-After `SceneRenderPipeline` renders into the HDR buffer, bloom (optional) extracts pixels brighter than a luminance threshold, blurs them with a separable 5-tap Gaussian (10 ping-pong passes), then `HdrTonemapPass.Apply(...)` additively blends the bloom into the HDR color **before** ACES + gamma. Exposure, bloom enable/threshold/intensity come from `IEditorPreferences`.
+After `SceneRenderPipeline` renders into the HDR buffer, bloom (optional) extracts pixels brighter than a luminance threshold, blurs them with a separable 5-tap Gaussian (10 ping-pong passes), then `HdrTonemapPass.Apply(...)` additively blends the bloom into the HDR color **before** ACES + gamma. Optional `FxaaPass` then anti-aliases the SDR result (NVIDIA FXAA 3.11). Exposure, bloom, and FXAA come from `IEditorPreferences`.
 
 ### Entity Picking
 

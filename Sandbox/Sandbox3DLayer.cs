@@ -20,7 +20,8 @@ public class Sandbox3DLayer(
     IGraphics3D graphics3D,
     SceneFactory sceneFactory,
     IFrameBufferFactory frameBufferFactory,
-    HdrTonemapPass hdrTonemapPass) : ILayer
+    HdrTonemapPass hdrTonemapPass,
+    FxaaPass fxaaPass) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<Sandbox3DLayer>();
     private const float HdrExposure = 1.8f;
@@ -29,6 +30,7 @@ public class Sandbox3DLayer(
     private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
     private IFrameBuffer? _hdrFrameBuffer;
+    private IFrameBuffer? _sdrFrameBuffer;
     private float _fps;
     private float _fpsTimer;
     private int _fpsFrames;
@@ -75,6 +77,15 @@ public class Sandbox3DLayer(
         lamp.AddComponent<PointLightComponent>();
 
         _hdrFrameBuffer = frameBufferFactory.Create();
+        _sdrFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
+            DisplayConfig.DefaultEditorViewportWidth,
+            DisplayConfig.DefaultEditorViewportHeight)
+        {
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8),
+            ])
+        });
+        fxaaPass.Initialize();
 
         for (var m = 0; m < 3; m++)
         {
@@ -100,6 +111,8 @@ public class Sandbox3DLayer(
         _scene?.Dispose();
         _hdrFrameBuffer?.Dispose();
         _hdrFrameBuffer = null;
+        _sdrFrameBuffer?.Dispose();
+        _sdrFrameBuffer = null;
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -127,7 +140,9 @@ public class Sandbox3DLayer(
         graphics3D.Clear();
         _scene?.OnUpdateRuntime(timeSpan);
         _hdrFrameBuffer.Unbind();
-        hdrTonemapPass.Apply(_hdrFrameBuffer.GetColorAttachmentRendererId(), sdrTarget: null, HdrExposure);
+        hdrTonemapPass.Apply(_hdrFrameBuffer.GetColorAttachmentRendererId(), _sdrFrameBuffer, HdrExposure);
+        var spec = _sdrFrameBuffer!.GetSpecification();
+        fxaaPass.ApplyTo(_sdrFrameBuffer.GetColorAttachmentRendererId(), sdrTarget: null, spec.Width, spec.Height);
     }
 
     public void HandleInputEvent(InputEvent windowEvent)
@@ -141,6 +156,7 @@ public class Sandbox3DLayer(
         {
             _scene.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
             _hdrFrameBuffer?.Resize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
+            _sdrFrameBuffer?.Resize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
         }
     }
 

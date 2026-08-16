@@ -29,6 +29,7 @@ public class EditorPreferences : IEditorPreferences
     public bool BloomEnabled { get; set; } = true;
     public float BloomThreshold { get; set; } = 1.0f;
     public float BloomIntensity { get; set; } = 1.0f;
+    public bool FxaaEnabled { get; set; } = true;
 
     // Autosave: 0 = off
     public int AutosaveIntervalSeconds { get; set; } = 60;

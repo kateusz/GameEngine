@@ -141,6 +141,7 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 | `IGraphics3D` | `Graphics3D` | Singleton | 3D rendering API |
 | `HdrTonemapPass` | `HdrTonemapPass` | Singleton | HDR → LDR tonemapping pass |
 | `BloomPass` | `BloomPass` | Singleton | Bright extract + Gaussian blur |
+| `FxaaPass` | `FxaaPass` | Singleton | Fast approximate AA after tonemap |
 
 ### Global Services (`RegisterCore`)
 

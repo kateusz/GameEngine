@@ -6,6 +6,7 @@ namespace Engine.Scene;
 /// <summary>
 /// Runtime-only: mesh path resolved to a factory-owned <see cref="Model"/> at change time. Not serialized.
 /// </summary>
+[RuntimeComponent]
 internal sealed class ResolvedModelComponent : IComponent
 {
     public string? SourcePath { get; set; }
