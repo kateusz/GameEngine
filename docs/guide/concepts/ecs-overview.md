@@ -37,4 +37,4 @@ Per-entity glue: `ScriptableEntity` + `NativeScriptComponent`. `GetComponent<T>(
 
 Create entities in **Scene Hierarchy** → attach components via **Add Component** in Properties. One component per type per entity.
 
-14 built-in component types; 12 serialize to `.scene` / `.prefab` (`TagComponent`, `IdComponent` do not). Full list: [Component Inspector](../editor/component-inspector.md).
+**18** built-in engine component types serialize to `.scene` / `.prefab` (including `ParentComponent`, lights, colliders, and `SkeletalPlaybackComponent`). `TagComponent` and `IdComponent` exist in code but are not exposed in the editor or saved in scene files. Full list: [Component Inspector](../editor/component-inspector.md).

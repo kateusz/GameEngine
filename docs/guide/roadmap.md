@@ -5,6 +5,19 @@ Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026
 **Current baseline:** ~70% foundation — ECS, 2D rendering, scripting, editor, publish pipeline.  
 **Alpha target:** External developers can build a small 2D game in the editor, publish a standalone build, and ship with menus/HUD without hand-rolled quad hacks.
 
+### Shipped since roadmap draft (Aug 2026)
+
+| Area | Status |
+|------|--------|
+| Physics raycast + `OverlapCircle` | Done — `ScriptableEntity` + `IPhysicsQueries` |
+| `CircleCollider2DComponent` + editor | Done |
+| `EdgeCollider2DComponent` + editor | Done |
+| Partial undo/redo (`Ctrl+Z`) | Done — transforms, delete, component add/remove ([Shortcuts](editor/shortcuts.md)) |
+| Parent/child hierarchy | Done — tree panel, `ParentComponent`, drag-reparent |
+| 3D import + PBR + shadows + IBL + skeletal animation | Done — see [3D Rendering](concepts/3d-rendering.md), [Architecture](../architecture/README.md) |
+
+Still open from early phases: `SortingOrder`, publish smoke test in CI, full undo coverage, Runtime UI MVP (M3).
+
 ---
 
 ## Milestones
@@ -19,7 +32,7 @@ Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026
 | **M5 — Public alpha** | External testers | Docs updated, sample "menu + gameplay" template, known-issues list |
 | **M6 — Polish** | Juice and feel | Basic particles, edge collider, script field serialization |
 
-Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope changes. (3D mesh import + PBR are already in; see [OpenGL 3D Workflow](../opengl/opengl-3d-workflow.md).)
+Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope changes. (3D mesh import + PBR are already in; see [3D Rendering](concepts/3d-rendering.md) and [Architecture](../architecture/README.md).)
 
 ---
 
@@ -27,13 +40,13 @@ Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope change
 
 **Goal:** Unlock standard 2D mechanics and CI confidence with minimal diff.
 
-| Task | Effort | Owner hint | Done when |
-|------|--------|------------|-----------|
-| Physics raycast API on `IPhysicsWorld2D` | S | Engine | `Raycast(origin, dir, distance)` returns `RaycastHit2D?`; exposed to `ScriptableEntity` |
-| Circle overlap / point test (minimal) | S | Engine | `OverlapCircle` or `TestPoint` for ground checks |
-| `SortingOrder` on sprite render components | S | Engine | Stable draw order in `Graphics2D`; editor field on inspector |
-| `CircleCollider2DComponent` + gizmo | S | Engine + Editor | Box2D `CircleShape`; serializes; shows in viewport |
-| Publish smoke test (Snake project) | S | Tests | CI asserts exe, `game.config.json`, `GameAssembly.dll`, startup scene exist |
+| Task | Effort | Owner hint | Done when | Status |
+|------|--------|------------|-----------|--------|
+| Physics raycast API on `IPhysicsWorld2D` | S | Engine | `Raycast(origin, dir, distance)` returns `RaycastHit2D?`; exposed to `ScriptableEntity` | **Done** |
+| Circle overlap / point test (minimal) | S | Engine | `OverlapCircle` or `TestPoint` for ground checks | **Done** (`OverlapCircle`) |
+| `SortingOrder` on sprite render components | S | Engine | Stable draw order in `Graphics2D`; editor field on inspector | Open |
+| `CircleCollider2DComponent` + gizmo | S | Engine + Editor | Box2D `CircleShape`; serializes; shows in viewport | **Done** |
+| Publish smoke test (Snake project) | S | Tests | CI asserts exe, `game.config.json`, `GameAssembly.dll`, startup scene exist | Open |
 
 **Milestone:** M1
 
@@ -43,13 +56,15 @@ Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope change
 
 **Goal:** Alpha testers can experiment without fear of unrecoverable mistakes.
 
-| Task | Effort | Owner hint | Done when |
-|------|--------|------------|-----------|
-| Command pattern foundation | M | Editor | `IUndoCommand` + stack with depth limit |
-| Undo: entity transform changes | M | Editor | Move/scale/rotate via viewport tools reversible |
-| Undo: delete entity | S | Editor | Ctrl+Z restores entity + components |
-| Undo: add/remove component | S | Editor | Component ops reversible |
-| Keyboard shortcuts: Ctrl+Z / Ctrl+Y | S | Editor | Wired in shortcut registry |
+| Task | Effort | Owner hint | Done when | Status |
+|------|--------|------------|-----------|--------|
+| Command pattern foundation | M | Editor | `IUndoCommand` + stack with depth limit | **Partial** |
+| Undo: entity transform changes | M | Editor | Move/scale/rotate via viewport tools reversible | **Done** |
+| Undo: delete entity | S | Editor | Ctrl+Z restores entity + components | **Done** |
+| Undo: add/remove component | S | Editor | Component ops reversible | **Done** |
+| Keyboard shortcuts: Ctrl+Z / Ctrl+Y | S | Editor | Wired in shortcut registry | **Done** |
+| Undo: property inspector edits | S | Editor | Inspector field changes reversible | Open |
+| Undo: create entity / duplicate | S | Editor | Create and duplicate reversible | Open |
 
 **Milestone:** M2
 
@@ -80,13 +95,13 @@ Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope change
 
 **Goal:** Composite objects and prefab trees work like users expect.
 
-| Task | Effort | Owner hint | Done when |
-|------|--------|------------|-----------|
-| Parent/child on `Entity` | L | ECS | `SetParent`, `GetChildren`, cycle detection |
-| Local vs world transform | L | SceneComponents | `TransformComponent` propagates on parent change |
-| Hierarchy panel tree view | M | Editor | Indent + expand; drag-drop reparent |
-| Serialize parent refs in scenes/prefabs | M | Engine | Round-trip parent-child in JSON |
-| Prefab + hierarchy | M | Engine | Instantiate preserves tree |
+| Task | Effort | Owner hint | Done when | Status |
+|------|--------|------------|-----------|--------|
+| Parent/child on `Entity` | L | ECS | `SetParent`, `GetChildren`, cycle detection | **Done** |
+| Local vs world transform | L | SceneComponents | `TransformComponent` propagates on parent change | **Done** |
+| Hierarchy panel tree view | M | Editor | Indent + expand; drag-drop reparent | **Done** |
+| Serialize parent refs in scenes/prefabs | M | Engine | Round-trip parent-child in JSON | **Done** |
+| Prefab + hierarchy | M | Engine | Instantiate preserves tree | **Partial** (apply-to-entity drag; spawn-from-prefab not wired) |
 
 **Milestone:** M4
 
@@ -115,7 +130,7 @@ Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope change
 | Task | Effort | Owner hint | Done when |
 |------|--------|------------|-----------|
 | Basic 2D particle emitter | M | Engine | Pooled quads; color/size over lifetime |
-| `EdgeCollider2DComponent` | S | Engine | One-way platforms, slopes |
+| `EdgeCollider2DComponent` | S | Engine | One-way platforms, slopes | **Done** |
 | Script field serialization | M | Engine + Editor | Public fields on `ScriptableEntity` persist in scene |
 | Asset hot-reload (textures) | M | Editor | File watcher reloads changed PNGs in play mode |
 

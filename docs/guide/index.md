@@ -6,12 +6,12 @@ This is a C# game engine built on an Entity Component System (ECS) architecture,
 
 - **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
 - **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
-- **3D rendering** — import to `.mesh` (Assimp at import only), PBR materials, ambient + directional lights; unit-cube fallback when `ModelPath` is empty or not a `.mesh`
+- **3D rendering** — import to `.mesh` (Assimp at import only), PBR materials, directional/point lights, HDR sky/IBL, skeletal animation; unit-cube fallback when `ModelPath` is empty or not a `.mesh`
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
 - **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)
 - **Sprite atlasing** — `SubTextureRendererComponent` for sprite sheets with manual frame selection via grid coordinates
-- **Visual editor** — ImGui editor with flat entity list, properties panel, content browser, and console
+- **Visual editor** — ImGui editor with parent/child hierarchy tree, properties panel, content browser, and console
 - **Publishing** — build standalone Windows and macOS executables from the editor
 
 ## Prerequisites
@@ -34,7 +34,7 @@ cd Editor && dotnet run
 
 The editor window will open. From there you can create a new project, add entities to a scene, attach components, and run the game directly inside the editor viewport.
 
-Sample games live under `games/` (Snake, Flappy Bird). Open one via **Open Project** and select its `project/` folder.
+Sample games live under `games/` (Snake, Flappy Bird, Arena Shooter). Open one via **Open Project** and select its `project/` folder.
 
 ## Where to Go Next
 
@@ -55,7 +55,7 @@ Sample games live under `games/` (Snake, Flappy Bird). Open one via **Open Proje
 - [ECS Overview](concepts/ecs-overview.md) — entities, components, and systems
 - [Scenes and Prefabs](concepts/scenes-and-prefabs.md) — scene lifecycle and reuse
 - [Cameras and Rendering](concepts/cameras-and-rendering.md) — cameras and the 2D draw path
-- [3D Rendering](concepts/3d-rendering.md) — models, lights, and materials
+- [3D Rendering](concepts/3d-rendering.md) — models, lights, materials, animation, IBL
 
 ### Architecture
 - [Architecture overview](../architecture/README.md) — solution structure and system docs
@@ -63,6 +63,7 @@ Sample games live under `games/` (Snake, Flappy Bird). Open one via **Open Proje
 - [Post-Processing Pipeline](../architecture/post-processing-pipeline.md) — HDR bloom, tonemap, anti-aliasing
 - [3D Model Loading Pipeline](../architecture/model-loading-pipeline.md) — import workflow and `.mesh` format
 - [PBR / IBL System](../architecture/pbr-ibl-system.md) — environment lighting and precomputed maps
+- [Animation System](../architecture/animation-system.md) — skeletal playback and skinned meshes
 - [Game Loop](../architecture/game-loop.md) — application lifecycle and frame tick
 - [Scripting Lifecycle](../architecture/scripting-lifecycle.md) — Roslyn compile, assembly reload, editor vs runtime
 

@@ -3,10 +3,11 @@
 
 ## Scene Hierarchy Panel
 
-The Scene Hierarchy panel lists every entity present in the current scene. Entities are displayed by name and can be selected, created, duplicated, or removed from here.
+The Scene Hierarchy panel shows entities in a **parent/child tree**. Root entities appear at the top level; children are indented under their parent.
 
 - **Select an entity** by clicking its name.
-- **Search** using the filter box at the top of the panel to narrow the list.
+- **Search** using the filter box at the top — matching entities stay visible with ancestors expanded.
+- **Drag and drop** an entity onto another to reparent; drop on empty space to promote to root.
 - **Right-click** on empty space in the panel to open the context menu:
   - **Create Empty Entity** — adds a new empty entity to the scene.
   - **Create 3D Entity** — adds an entity with a perspective camera, ambient/directional lights, and a lit cube.

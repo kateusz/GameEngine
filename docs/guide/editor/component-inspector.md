@@ -99,13 +99,13 @@ Provides scene-wide fill lighting for 3D models and cube fallbacks. The renderer
 | Property | Type | Default | Editor control | Description |
 |---|---|---|---|---|
 | `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Ambient light color multiplied into the final shaded result |
-| `Strength` | float | 0.1 | Float field | Intensity of ambient fill. Higher values brighten shadowed areas |
+| `Strength` | float | 0.35 | Float field | Intensity of ambient fill. Higher values brighten shadowed areas |
 
 **When to use:** Add to a dedicated entity (e.g. "Ambient Light") in any 3D scene. Tune `Strength` for base visibility; pair with `DirectionalLightComponent` for readable shading on `ModelRendererComponent` entities.
 
 **Runtime behavior:** The renderer applies `Color` and `Strength` each frame as ambient fill on 3D draws. If no ambient light entity exists, the engine uses its built-in ambient default.
 
-See also: [3D Rendering](../concepts/3d-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [DirectionalLightComponent](#directionallightcomponent)
+See also: [3D Rendering](../concepts/3d-rendering.md), [DirectionalLightComponent](#directionallightcomponent)
 
 ---
 
@@ -121,6 +121,7 @@ Provides a single directional light for 3D models and cube fallbacks (like sunli
 |---|---|---|---|---|
 | `Direction` | Vector3 | (0, -1, 0) | XYZ vector control (axis-colored) | World-space direction the light travels **from**. Does not need to be normalized — the pipeline normalizes it at render time |
 | `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Light color. Set to non-zero RGB or meshes/cubes appear flat/black aside from ambient |
+| `Strength` | float | 1.0 | Float field | Intensity multiplier for directional light and shadow contribution |
 
 **When to use:** Add to a dedicated entity (e.g. "Directional Light") in any 3D scene with `ModelRendererComponent` entities. Adjust `Direction` to change highlight angle; `(0, -1, 0)` shines from above.
 
@@ -128,7 +129,7 @@ Provides a single directional light for 3D models and cube fallbacks (like sunli
 
 **Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent`.
 
-See also: [3D Rendering](../concepts/3d-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [AmbientLightComponent](#ambientlightcomponent)
+See also: [3D Rendering](../concepts/3d-rendering.md), [AmbientLightComponent](#ambientlightcomponent)
 
 ---
 
@@ -152,6 +153,48 @@ See also: [3D Rendering](../concepts/3d-rendering.md), [DirectionalLightComponen
 
 ---
 
+See also: [3D Rendering](../concepts/3d-rendering.md), [PBR / IBL System](../../architecture/pbr-ibl-system.md)
+
+---
+
+## SkyLightComponent
+
+HDR environment for skybox background and image-based lighting (diffuse + specular ambient on PBR meshes). The renderer uses the **first** `SkyLightComponent` each frame.
+
+**Add in editor:** Properties panel → **Add Component** → **Sky Light**
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `HdrPath` | string | — | Project-relative path to an equirectangular `.hdr` radiance map |
+| `Intensity` | float | 1.0 | Scales environment contribution in shading and skybox |
+
+**When to use:** Outdoor or studio HDR lighting where metals and reflections should read from the environment. Pair with ambient + directional lights for direct sun; IBL handles indirect fill.
+
+See also: [3D Rendering](../concepts/3d-rendering.md), [PBR / IBL System](../../architecture/pbr-ibl-system.md)
+
+---
+
+## SkeletalPlaybackComponent
+
+Drives skeletal animation from clips baked into a `.mesh` v3 asset at import. Samples the active clip each frame and feeds bone matrices to a matching `ModelRendererComponent` on the same entity or a child.
+
+**Add in editor:** Properties panel → **Add Component** → **Skeletal Playback**
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `MeshPath` | string | — | Same `.mesh` as the paired `ModelRendererComponent` (must include skeleton + clips) |
+| `ClipName` | string | — | Clip to play; empty uses the first clip in the file |
+| `Playing` | bool | false | When false, mesh stays at bind pose |
+| `Loop` | bool | true | Restart at clip end |
+| `Speed` | float | 1.0 | Playback rate multiplier |
+| `Time` | float | 0 | Current time in the clip (seconds) |
+
+**When to use:** Animated characters imported from FBX/glTF with skinning. Typical setup: parent with `SkeletalPlaybackComponent`, child with `ModelRendererComponent` (or both on one entity) sharing `MeshPath`.
+
+See also: [Animation System](../../architecture/animation-system.md), [ModelRendererComponent](#modelrenderercomponent)
+
+---
+
 ## RigidBody2DComponent
 
 Registers the entity with the 2D physics simulation. The physics system reads this component each frame to apply forces, velocity, and collision response.
@@ -171,7 +214,7 @@ Registers the entity with the 2D physics simulation. The physics system reads th
 | `Dynamic` | Fully simulated — responds to gravity, forces, and collisions. Use for players and projectiles. |
 | `Kinematic` | Moved by code only; not affected by gravity or forces. Use for moving platforms and scripted objects. |
 
-**When to use:** Any entity that needs to participate in physics. Must be paired with a BoxCollider2DComponent on the same entity.
+**When to use:** Any entity that needs to participate in physics. Pair with exactly one 2D collider (`BoxCollider2DComponent`, `CircleCollider2DComponent`, or `EdgeCollider2DComponent`).
 
 See also: [Physics Scripting](../scripting/physics.md)
 
@@ -192,6 +235,37 @@ Defines a rectangular collision shape for the entity. Works in conjunction with 
 | `IsTrigger` | bool | false | When true, the collider detects overlaps but does not produce physical collision response. |
 
 **When to use:** Pair with RigidBody2DComponent on every entity that needs physical collision. Enable collider visualization in Debug Settings to see box bounds in the viewport. Use `IsTrigger` for pick-ups, zones, and sensors that should detect presence without blocking movement.
+
+---
+
+## CircleCollider2DComponent
+
+Circular collision shape. Same material fields as the box collider (`Density`, `Friction`, `Restitution`, `IsTrigger`).
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Radius` | float | 0.5 | Circle radius in world units |
+| `Offset` | Vector2 | (0, 0) | Offset from the entity transform |
+
+**When to use:** Balls, wheels, round characters, or trigger discs. Pair with `RigidBody2DComponent`.
+
+---
+
+## EdgeCollider2DComponent
+
+Open polyline collider (chain of segments). Requires at least two points.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Points` | list of Vector2 | (-0.5, 0) → (0.5, 0) | Vertices in local space; consecutive pairs form segments |
+| `Density` | float | 1.0 | Mass per unit length (when used with a dynamic body) |
+| `Friction` | float | 0.5 | Surface friction |
+| `Restitution` | float | 0.7 | Bounciness |
+| `IsTrigger` | bool | false | Overlap-only sensor |
+
+**When to use:** Ground segments, one-way platforms, slopes. Often paired with a **Static** `RigidBody2DComponent`.
+
+See also: [Physics Scripting](../scripting/physics.md)
 
 ---
 
@@ -270,7 +344,7 @@ Renders a 3D model at the entity's transform. Assign a `ModelPath` to an importe
 
 **When to use:** Imported 3D assets or quick cube blockout. Import sources via **File → Import 3D Model…** first. Requires `TransformComponent`. Add `AmbientLightComponent` and `DirectionalLightComponent` for shading. Prefer a perspective primary camera.
 
-See also: [3D Rendering](../concepts/3d-rendering.md), [Cameras and Rendering](../concepts/cameras-and-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md)
+See also: [3D Rendering](../concepts/3d-rendering.md), [Cameras and Rendering](../concepts/cameras-and-rendering.md), [Animation System](../../architecture/animation-system.md)
 
 ---
 
