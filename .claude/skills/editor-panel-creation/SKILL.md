@@ -210,7 +210,7 @@ public class EditorPanels(
 Register the panel in `Editor/DI/EditorIoCContainer.cs` and add it to `EditorPanels` constructor and `Draw()`.
 
 ### Step 5: Add Menu Integration
-**Location**: `Editor/Features/Shell/EditorMenuBar.cs`
+**Location**: `Editor/Features/Application/EditorMenuBar.cs`
 
 **Add Panel Toggle Menu** (e.g. in View menu or add Window menu):
 ```csharp

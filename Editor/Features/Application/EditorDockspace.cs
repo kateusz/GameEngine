@@ -9,7 +9,7 @@ using Engine.Scene;
 using ImGuiNET;
 using Serilog;
 
-namespace Editor.Features.Shell;
+namespace Editor.Features.Application;
 
 public class EditorDockspace(
     EditorMenuBar menuBar,

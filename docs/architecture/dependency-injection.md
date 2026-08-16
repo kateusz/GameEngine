@@ -89,7 +89,7 @@ graph TD
             CE["Transform, Camera, Sprite, Model, Physics, Audio, Script, Light editors"]
         end
 
-        subgraph "Panels & Shell"
+        subgraph "Panels & Application"
             PAN[SceneHierarchy, Properties, ContentBrowser, Console, ...]
             EMB[EditorMenuBar / EditorDockspace / EditorLifecycle]
         end
@@ -263,7 +263,7 @@ Panel draw order (via `RegisterMany` on concrete panel types):
 | `KeyboardShortcutsPanel` | Singleton | |
 | `RendererStatsPanel` | Singleton | |
 
-Shell types: `EditorMenuBar`, `EditorDockspace`, `EditorInputHandler`, `EditorShortcutRegistrar`, `EditorLifecycle`, `EditorPanels`.
+Application types: `EditorMenuBar`, `EditorDockspace`, `EditorInputHandler`, `EditorShortcutRegistrar`, `EditorLifecycle`, `EditorPanels`.
 
 ### Scene & Viewport
 

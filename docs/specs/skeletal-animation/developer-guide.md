@@ -90,14 +90,11 @@ Do not retarget a clip from another file onto this skeleton in v1.
 
 ### 6. Draw with an ancestor palette
 
-For each `ModelRenderer`, decide skinned vs static:
+`ModelAssetResolver` (before pose tick) decides skinned vs static. Walk ancestors; if a playback’s `MeshPath` equals this renderer’s path and the `.mesh` has a skeleton, stamp that playback’s palette and the ancestor world matrix onto `ResolvedModelComponent`. Path mismatch, no ancestor, or a static file: leave palette unset.
 
-- **Skinned** only when the mesh has a skinning payload **and** a nearest ancestor playback points at **that same** `.mesh` path.
-  - World matrix = that ancestor’s world transform (ignore the child’s local TRS).
-  - Palette = that playback’s palette.
-- **Otherwise** (static file, no ancestor, or path mismatch): existing draw — this entity’s world transform, identity palette / no skinning.
+Draw reads only those stamped fields. It does not know about playback or `Playing`. Bind pose is an identity palette from the skeletal tick, not a second branch in the renderer.
 
-Then: upload palette if skinned, then the usual model / view-projection / material uniforms.
+Then: upload palette if stamped, then the usual model / view-projection / material uniforms.
 
 Vertex shader (skinned draws): four influences; skip index −1; if all weights ~0, use the bind vertex; skin position, normal, and tangent; then existing PBR path. Fragment shader unchanged.
 
@@ -155,14 +152,14 @@ sequenceDiagram
   participant Pipe as Scene render
   participant GPU as Lighting vertex shader
 
+  Note over Sys,Pipe: Resolver already stamped palette + ancestor world on ResolvedModel
   Sys->>Fac: load .mesh from playback path
   alt missing / no skeleton / unknown clip / not Playing
     Sys->>Sys: identity palette
   else Playing
     Sys->>Sys: advance Time, evaluate keys, write palette
   end
-  Pipe->>Pipe: ModelRenderer: same .mesh as ancestor playback?
-  Pipe->>GPU: skinned: parent world + palette; else entity transform
+  Pipe->>GPU: stamped palette: ancestor world + palette; else entity transform
   GPU->>GPU: 4-weight skin, then model and view-projection
 ```
 

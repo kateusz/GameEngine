@@ -20,7 +20,7 @@ using Editor.UI.Elements;
 using Editor.UI.FieldEditors;
 using Editor.Features.Scripting;
 using Editor.Features.Viewport.Gizmos;
-using Editor.Features.Shell;
+using Editor.Features.Application;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;

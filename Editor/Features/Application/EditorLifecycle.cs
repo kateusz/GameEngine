@@ -14,7 +14,7 @@ using Engine.Scene;
 using SceneComponents;
 using Serilog;
 
-namespace Editor.Features.Shell;
+namespace Editor.Features.Application;
 
 public class EditorLifecycle(
     IProjectManager projectManager,

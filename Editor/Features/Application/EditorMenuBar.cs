@@ -10,7 +10,7 @@ using Engine.Core;
 using ImGuiNET;
 using Serilog;
 
-namespace Editor.Features.Shell;
+namespace Editor.Features.Application;
 
 public class EditorMenuBar(
     IProjectManager projectManager,
