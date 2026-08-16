@@ -11,6 +11,8 @@
         <UseWindowsForms Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</UseWindowsForms>
     </PropertyGroup>
 
+    <Import Project="..\Engine\Engine.Shaders.props" />
+
     <ItemGroup>
         <ProjectReference Include="../Engine/Engine.csproj" />
         <ProjectReference Include="../Ui.ImGui/Ui.ImGui.csproj" />

@@ -44,8 +44,38 @@ public class Mesh : IDisposable
     ]);
 
     public string Name { get; set; }
-    public List<Vertex> Vertices { get; set; }
-    public List<uint> Indices { get; set; }
+
+    private List<Vertex> _vertices = [];
+    private List<uint> _indices = [];
+    private int _indexCount;
+
+    public List<Vertex> Vertices
+    {
+        get
+        {
+            EnsureCpuDataAccessible();
+            return _vertices;
+        }
+        set
+        {
+            EnsureCpuDataAccessible();
+            _vertices = value ?? [];
+        }
+    }
+
+    public List<uint> Indices
+    {
+        get
+        {
+            EnsureCpuDataAccessible();
+            return _indices;
+        }
+        set
+        {
+            EnsureCpuDataAccessible();
+            _indices = value ?? [];
+        }
+    }
 
     private IVertexArray _vertexArray = null!;
     private IVertexBuffer _vertexBuffer = null!;
@@ -63,8 +93,6 @@ public class Mesh : IDisposable
     public Mesh(string name = "Unnamed")
     {
         Name = name;
-        Vertices = [];
-        Indices = [];
     }
 
     public void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory, IIndexBufferFactory indexBufferFactory)
@@ -73,14 +101,20 @@ public class Mesh : IDisposable
             throw new InvalidOperationException($"Mesh '{Name}' already initialized. Initialize() should only be called once.");
 
         _vertexArray = vertexArrayFactory.Create();
-        _vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
+        _vertexBuffer = vertexBufferFactory.Create((uint)(_vertices.Count * Vertex.GetSize()));
 
         _vertexBuffer.SetLayout(CreateVertexLayout());
         _vertexArray.AddVertexBuffer(_vertexBuffer);
-        _vertexBuffer.SetMeshData(Vertices, Vertices.Count * Vertex.GetSize());
+        _vertexBuffer.SetMeshData(_vertices, _vertices.Count * Vertex.GetSize());
 
-        _indexBuffer = indexBufferFactory.Create(Indices.ToArray(), Indices.Count);
+        _indexCount = _indices.Count;
+        _indexBuffer = indexBufferFactory.Create(_indices.ToArray(), _indexCount);
         _vertexArray.SetIndexBuffer(_indexBuffer);
+
+        _vertices.Clear();
+        _indices.Clear();
+        _vertices.TrimExcess();
+        _indices.TrimExcess();
 
         _initialized = true;
     }
@@ -95,7 +129,13 @@ public class Mesh : IDisposable
 
     public void Unbind() => _vertexArray.Unbind();
 
-    public int GetIndexCount() => Indices.Count;
+    public int GetIndexCount() => _initialized ? _indexCount : _indices.Count;
+
+    private void EnsureCpuDataAccessible()
+    {
+        if (_initialized)
+            throw new InvalidOperationException($"Mesh '{Name}' CPU data was released after GPU upload.");
+    }
 
     public void Dispose()
     {

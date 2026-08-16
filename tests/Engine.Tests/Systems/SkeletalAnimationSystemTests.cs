@@ -3,6 +3,7 @@ using System.Text.Json;
 using ECS;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Scene;
 using Engine.Scene.Skeletal;
 using NSubstitute;
 using SceneComponents.Rendering;
@@ -53,7 +54,7 @@ public class SkeletalAnimationSystemTests : IDisposable
         var (context, factory, playback) = CreatePlayingEntity(playing: false);
         playback.BonePalette[0] = Matrix4x4.CreateTranslation(9, 0, 0);
 
-        SkeletalPlaybackUpdater.Tick(context, factory, TimeSpan.FromSeconds(0.1));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.1));
 
         playback.BonePalette[0].ShouldBe(Matrix4x4.Identity);
         playback.Time.ShouldBe(0f);
@@ -64,7 +65,7 @@ public class SkeletalAnimationSystemTests : IDisposable
     {
         var (context, factory, playback) = CreatePlayingEntity(playing: true);
 
-        SkeletalPlaybackUpdater.Tick(context, factory, TimeSpan.FromSeconds(0.25));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.25));
 
         playback.Time.ShouldBe(0.25f, 1e-5f);
         var moved = Vector3.Transform(Vector3.Zero, playback.BonePalette[0]);
@@ -77,7 +78,7 @@ public class SkeletalAnimationSystemTests : IDisposable
         var (context, factory, playback) = CreatePlayingEntity(playing: true);
         playback.ClipName = "nope";
 
-        SkeletalPlaybackUpdater.Tick(context, factory, TimeSpan.FromSeconds(0.1));
+        SkeletalPlaybackUpdater.Tick(context, TimeSpan.FromSeconds(0.1));
 
         playback.BonePalette[0].ShouldBe(Matrix4x4.Identity);
     }
@@ -129,6 +130,11 @@ public class SkeletalAnimationSystemTests : IDisposable
             Speed = 1f
         };
         entity.AddComponent(playback);
+        entity.AddComponent(new ResolvedModelComponent
+        {
+            SourcePath = playback.MeshPath,
+            Model = model
+        });
         context.Register(entity);
         return (context, factory, playback);
     }

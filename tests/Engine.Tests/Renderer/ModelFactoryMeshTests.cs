@@ -58,7 +58,8 @@ public class ModelFactoryMeshTests : IDisposable
 
         model.ShouldNotBeNull();
         model!.Submeshes.Count.ShouldBe(1);
-        model.Submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
+        model.Submeshes[0].Mesh.GetIndexCount().ShouldBe(3);
+        Should.Throw<InvalidOperationException>(() => _ = model.Submeshes[0].Mesh.Vertices);
     }
 
     [Fact]

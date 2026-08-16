@@ -55,7 +55,7 @@
       <InternalsVisibleTo Include="Engine.Tests" />
     </ItemGroup>
 
-    <!-- No asset directories needed for Engine project -->
+    <!-- GLSL lives in assets/shaders/OpenGL; hosts import Engine.Shaders.props to copy it. -->
 
     <!-- Copy OpenAL Soft on Windows from NuGet runtimes folder to output root -->
     <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">

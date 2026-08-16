@@ -307,6 +307,8 @@ Within a single batch, `Graphics2D` maintains a `Dictionary<uint, int>` mapping 
 
 ## Shader Management
 
+GLSL sources live in `Engine/assets/shaders/OpenGL`. Editor, Runtime, Sandbox, Benchmark, and graphics tests import `Engine/Engine.Shaders.props` so the same files copy to `assets/shaders/OpenGL/` next to the host exe. Edit them once; do not copy shaders into application projects.
+
 ### ShaderFactory
 
 **File**: `Engine/Renderer/Shaders/ShaderFactory.cs`

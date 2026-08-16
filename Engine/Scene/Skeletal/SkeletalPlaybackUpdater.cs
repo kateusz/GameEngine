@@ -1,5 +1,4 @@
 using ECS;
-using Engine.Core;
 using Engine.Renderer;
 using SceneComponents.Rendering;
 using Serilog;
@@ -11,7 +10,7 @@ public static class SkeletalPlaybackUpdater
     private static readonly ILogger Logger = Log.ForContext(typeof(SkeletalPlaybackUpdater));
     private static readonly HashSet<int> LoggedMissing = [];
 
-    public static void Tick(IContext context, IModelFactory modelFactory, TimeSpan deltaTime)
+    public static void Tick(IContext context, TimeSpan deltaTime)
     {
         var dt = (float)deltaTime.TotalSeconds;
         foreach (var (entity, playback) in context.View<SkeletalPlaybackComponent>())
@@ -30,8 +29,15 @@ public static class SkeletalPlaybackUpdater
                 continue;
             }
 
-            var resolved = PathBuilder.Resolve(playback.MeshPath);
-            var model = modelFactory.Create(resolved);
+            if (!entity.TryGetComponent<ResolvedModelComponent>(out var resolved)
+                || !PathsEqual(resolved.SourcePath, playback.MeshPath))
+            {
+                SkeletalPoseMath.FillIdentity(playback.BonePalette);
+                LogOnce(entity.Id, playback.MeshPath, "model not resolved");
+                continue;
+            }
+
+            var model = resolved.Model;
             if (model is null || !model.HasSkeleton)
             {
                 SkeletalPoseMath.FillIdentity(playback.BonePalette);
@@ -74,6 +80,11 @@ public static class SkeletalPlaybackUpdater
             return;
         playback.BonePalette = SkeletalPlaybackComponent.CreateIdentityPalette();
     }
+
+    private static bool PathsEqual(string? a, string? b) =>
+        !string.IsNullOrWhiteSpace(a)
+        && !string.IsNullOrWhiteSpace(b)
+        && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     private static void LogOnce(int entityId, string? path, string reason)
     {

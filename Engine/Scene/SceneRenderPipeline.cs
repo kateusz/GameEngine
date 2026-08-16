@@ -66,14 +66,13 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory? textureFactory,
-        IModelFactory modelFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderModels(context, graphics3D, modelFactory, camera);
+        RenderModels(context, graphics3D, camera);
     }
 
-    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory, in CameraBinding camera)
+    private static void RenderModels(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -88,7 +87,7 @@ internal static class SceneRenderPipeline
 
         if (graphics3D.BeginShadowPass())
         {
-            DrawOpaqueModels(context, graphics3D, modelFactory);
+            DrawOpaqueModels(context, graphics3D);
             graphics3D.EndShadowPass();
         }
 
@@ -99,31 +98,30 @@ internal static class SceneRenderPipeline
             for (var face = 0; face < 6; face++)
             {
                 graphics3D.SetPointShadowFace(face);
-                DrawOpaqueModels(context, graphics3D, modelFactory);
+                DrawOpaqueModels(context, graphics3D);
             }
             graphics3D.EndPointShadowPass();
         }
 
         graphics3D.DrawSkybox();
-        DrawOpaqueModels(context, graphics3D, modelFactory);
-        DrawTransparentModels(context, graphics3D, modelFactory, GetCameraPosition(camera));
+        DrawOpaqueModels(context, graphics3D);
+        DrawTransparentModels(context, graphics3D, GetCameraPosition(camera));
 
         graphics3D.EndScene();
     }
 
-    private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory)
+    private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D)
     {
-        foreach (var item in EnumerateModelDrawItems(context, modelFactory, static m => m.AlphaMode != MaterialAlphaMode.Blend))
+        foreach (var item in EnumerateModelDrawItems(context, static m => m.AlphaMode != MaterialAlphaMode.Blend))
             IssueDraw(graphics3D, item);
     }
 
     private static void DrawTransparentModels(
         IContext context,
         IGraphics3D graphics3D,
-        IModelFactory modelFactory,
         Vector3 cameraPosition)
     {
-        var transparent = EnumerateModelDrawItems(context, modelFactory, static m => m.AlphaMode == MaterialAlphaMode.Blend)
+        var transparent = EnumerateModelDrawItems(context, static m => m.AlphaMode == MaterialAlphaMode.Blend)
             .ToList();
         if (transparent.Count == 0)
             return;
@@ -169,7 +167,6 @@ internal static class SceneRenderPipeline
 
     private static IEnumerable<ModelDrawItem> EnumerateModelDrawItems(
         IContext context,
-        IModelFactory modelFactory,
         Func<MeshMaterial, bool> materialFilter)
     {
         foreach (var (entity, modelRenderer, transformComponent) in
@@ -204,13 +201,17 @@ internal static class SceneRenderPipeline
                 continue;
             }
 
-            var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-            var model = modelFactory.Create(resolvedPath);
+            if (!entity.TryGetComponent<ResolvedModelComponent>(out var resolved)
+                || !string.Equals(resolved.SourcePath, modelRenderer.ModelPath, StringComparison.Ordinal))
+            {
+                yield return new ModelDrawItem(
+                    ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
+                continue;
+            }
+
+            var model = resolved.Model;
             if (model == null)
             {
-                Logger.Warning(
-                    "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                    modelRenderer.ModelPath, resolvedPath);
                 yield return new ModelDrawItem(
                     ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
                 continue;

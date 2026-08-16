@@ -1,0 +1,9 @@
+<Project>
+  <!-- Hosts import this so PathBuilder still sees assets/shaders/OpenGL next to the exe. -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)assets/shaders/OpenGL/**/*"
+          Link="assets/shaders/OpenGL/%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -19,6 +19,7 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
     private readonly IVertexBufferFactory _vertexBufferFactory;
     private readonly IIndexBufferFactory _indexBufferFactory;
     private readonly Dictionary<string, CachedModel> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _warnedPaths = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly record struct CachedModel(Model Model, DateTime WriteTimeUtc);
     private readonly Lock _cacheLock = new();
@@ -53,15 +54,17 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
             if (!File.Exists(normalizedPath))
             {
-                Logger.Warning("Model file not found: {Path}", normalizedPath);
+                WarnOnce(normalizedPath, () =>
+                    Logger.Warning("Model file not found: {Path}", normalizedPath));
                 return null;
             }
 
             if (!IsMeshExtension(normalizedPath))
             {
-                Logger.Warning(
-                    "Rejected non-.mesh model path (import required): {Path} extension={Extension}",
-                    normalizedPath, Path.GetExtension(normalizedPath));
+                WarnOnce(normalizedPath, () =>
+                    Logger.Warning(
+                        "Rejected non-.mesh model path (import required): {Path} extension={Extension}",
+                        normalizedPath, Path.GetExtension(normalizedPath)));
                 return null;
             }
 
@@ -73,7 +76,8 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
                 if (model.Submeshes.Count == 0)
                 {
-                    Logger.Warning("Model has no meshes: {Path}", normalizedPath);
+                    WarnOnce(normalizedPath, () =>
+                        Logger.Warning("Model has no meshes: {Path}", normalizedPath));
                     return null;
                 }
 
@@ -95,7 +99,8 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
                 if (initialized.Count == 0)
                 {
-                    Logger.Warning("No submeshes initialized for model: {Path}", normalizedPath);
+                    WarnOnce(normalizedPath, () =>
+                        Logger.Warning("No submeshes initialized for model: {Path}", normalizedPath));
                     return null;
                 }
 
@@ -129,6 +134,13 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
     private static bool IsMeshExtension(string path) =>
         Path.GetExtension(path).Equals(".mesh", StringComparison.OrdinalIgnoreCase);
+
+    private void WarnOnce(string path, Action log)
+    {
+        if (!_warnedPaths.Add(path))
+            return;
+        log();
+    }
 
     private void ResolveMaterialTextures(MeshMaterial material)
     {

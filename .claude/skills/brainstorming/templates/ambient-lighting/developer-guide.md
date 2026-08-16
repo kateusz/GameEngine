@@ -170,7 +170,7 @@ sequenceDiagram
 | Serialization | DI registration alongside other scene components |
 | Graphics API | `Engine/Renderer/IGraphics3D.cs`, `Engine/Renderer/Graphics3D.cs` |
 | Pipeline | `Engine/Scene/SceneRenderPipeline.cs` |
-| Shader | `Runtime/assets/shaders/OpenGL/flatColorShader.frag` (+ mirrored asset copies if required by project layout) |
+| Shader | `Engine/assets/shaders/OpenGL/flatColorShader.frag` |
 | Editor | `Editor/ComponentEditors/AmbientLightComponentEditor.cs`, `Editor/DI/EditorIoCContainer.cs` |
 | Sample scene | `Editor/assets/scenes/` (3D test scene) |
 

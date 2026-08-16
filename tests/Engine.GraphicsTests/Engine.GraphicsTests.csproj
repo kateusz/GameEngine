@@ -29,14 +29,13 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <Import Project="..\..\Engine\Engine.Shaders.props" />
+
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\Runtime\assets\shaders\OpenGL\**\*"
-          Link="assets\shaders\OpenGL\%(RecursiveDir)%(Filename)%(Extension)"
-          CopyToOutputDirectory="PreserveNewest" />
     <None Include="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
