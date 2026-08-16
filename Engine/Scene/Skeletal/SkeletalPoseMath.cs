@@ -86,8 +86,7 @@ public static class SkeletalPoseMath
         return rest;
     }
 
-    // Mixamo/Assimp first keys often disagree with inverse-bind rest. Apply motion as
-    // delta from the first key onto rest so t=t0 skins as bind (IB×G = I).
+    // Clip channels replace bone-local TRS. Missing tracks keep inverse-bind rest.
     private static void ApplyChannels(int boneCount, AnimationClip? clip, float time, Matrix4x4[] locals)
     {
         if (clip is null)
@@ -100,27 +99,8 @@ public static class SkeletalPoseMath
 
             var restLocal = locals[channel.BoneIndex];
             Matrix4x4.Decompose(restLocal, out var restS, out var restR, out var restT);
-
-            var t0 = ChannelBindTime(channel);
-            var key0 = SampleChannelLocal(channel, t0, restT, restR, restS);
-            var keyT = SampleChannelLocal(channel, time, restT, restR, restS);
-            if (!Matrix4x4.Invert(key0, out var invKey0))
-                invKey0 = Matrix4x4.Identity;
-
-            locals[channel.BoneIndex] = keyT * invKey0 * restLocal;
+            locals[channel.BoneIndex] = SampleChannelLocal(channel, time, restT, restR, restS);
         }
-    }
-
-    private static float ChannelBindTime(BoneChannel channel)
-    {
-        var t0 = float.MaxValue;
-        if (channel.Positions.Count > 0)
-            t0 = MathF.Min(t0, channel.Positions[0].Time);
-        if (channel.Rotations.Count > 0)
-            t0 = MathF.Min(t0, channel.Rotations[0].Time);
-        if (channel.Scales.Count > 0)
-            t0 = MathF.Min(t0, channel.Scales[0].Time);
-        return t0 == float.MaxValue ? 0f : t0;
     }
 
     private static Matrix4x4 SampleChannelLocal(

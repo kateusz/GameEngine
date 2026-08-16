@@ -42,23 +42,23 @@ public class SkeletalPoseMathTests
     }
 
     [Fact]
-    public void Evaluate_FirstKeysDisagreeWithRest_IsStillIdentityPalette()
+    public void Evaluate_FirstKeysDisagreeWithRest_AppliesTheFirstKey()
     {
         var bones = TwoBoneChain();
-        var clip = new AnimationClip("mixamo-mismatch", 1f,
+        var clip = new AnimationClip("mixamo-first-frame", 1f,
         [
             new BoneChannel(
                 1,
                 [new VectorKey(0f, new Vector3(0, 5, 0))],
-                [new RotationKey(0f, Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0.4f))],
-                [new VectorKey(0f, new Vector3(2, 2, 2))])
+                [new RotationKey(0f, Quaternion.Identity)],
+                [new VectorKey(0f, Vector3.One)])
         ]);
         var palette = SkeletalPoseMath.CreateIdentityPalette();
 
         SkeletalPoseMath.Evaluate(bones, clip, time: 0f, palette);
 
-        AssertNearIdentity(palette[0]);
-        AssertNearIdentity(palette[1]);
+        var joint = Vector3.Transform(new Vector3(0, 1, 0), palette[1]);
+        joint.Y.ShouldBe(5f, 1e-4f);
     }
 
     [Fact]

@@ -246,11 +246,6 @@ internal static class SceneRenderPipeline
             LogModelTintOnce(entity, modelRenderer, tint, model);
 
             var bonePalette = modelRenderer.BonePalette;
-            if (bonePalette is not null)
-            {
-                transform = modelRenderer.SkinningWorld;
-                worldPosition = new Vector3(transform.M41, transform.M42, transform.M43);
-            }
 
             foreach (var submesh in EnumerateDrawSubmeshes(model, modelRenderer))
             {

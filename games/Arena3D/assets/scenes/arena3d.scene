@@ -20,13 +20,13 @@
       "Components": [
         {
           "Translation": [
-            -4.874597,
-            -0.28027582,
-            0.63258755
+            -1.9319959,
+            -1.2802758,
+            1.8781695
           ],
           "Rotation": [
             -1.5707964,
-            0,
+            3.1415908,
             0
           ],
           "Scale": [
@@ -39,7 +39,7 @@
         {
           "MeshPath": "models/ja-Walking.mesh",
           "ClipName": "Armature|mixamo.com",
-          "Time": 0.053501196,
+          "Time": 0.5917024,
           "Speed": 1,
           "Loop": true,
           "Playing": false,
@@ -77,7 +77,7 @@
           "GravityScale": 1,
           "Velocity": [
             0,
-            -9.0183596E-07,
+            -1.0281801E-06,
             0
           ],
           "Name": "RigidBody3DComponent"
@@ -108,6 +108,7 @@
         },
         {
           "ModelPath": "models/ja-Walking.mesh",
+          "AlbedoTexturePath": null,
           "Color": [
             1,
             1,
@@ -132,9 +133,9 @@
       "Components": [
         {
           "Translation": [
-            -4.874597,
-            0.18309103,
-            2.8167667
+            -1.9319959,
+            -0.81690896,
+            4.0623484
           ],
           "Rotation": [
             0,
@@ -156,7 +157,7 @@
           "PerspectiveFOV": 0.7853982,
           "PerspectiveNear": 0.01,
           "PerspectiveFar": 1000,
-          "AspectRatio": 1.8122449,
+          "AspectRatio": 1.8309278,
           "Primary": true,
           "FixedAspectRatio": false,
           "Name": "CameraComponent"
@@ -181,7 +182,7 @@
         {
           "Translation": [
             0,
-            -0.95,
+            -0.95000005,
             0
           ],
           "Rotation": [
@@ -250,6 +251,7 @@
         },
         {
           "ModelPath": "models/ancient_terrain.mesh",
+          "AlbedoTexturePath": null,
           "Color": [
             1,
             1,
@@ -274,14 +276,14 @@
       "Components": [
         {
           "Translation": [
-            -3.93,
-            -0.7002758,
-            -5.5734935
+            -2.9835198,
+            -1.7002758,
+            -0.28108254
           ],
           "Rotation": [
-            -3.5566106E-10,
-            5.6251315E-07,
-            2.0477439E-10
+            -3.9339784E-10,
+            0.224326,
+            3.1415927
           ],
           "Scale": [
             0.3,
@@ -292,10 +294,11 @@
         },
         {
           "ModelPath": null,
+          "AlbedoTexturePath": "textures/jajca-sama-twarz.png",
           "Color": [
-            0.827051,
-            0.22922698,
-            0.22922698,
+            1,
+            1,
+            1,
             1
           ],
           "MetallicOverride": null,
@@ -309,9 +312,9 @@
           "FixedRotation": false,
           "GravityScale": 1,
           "Velocity": [
-            1.1738856E-15,
-            -1.0356307E-06,
-            2.793419E-15
+            4.8495257E-09,
+            -1.0332851E-06,
+            2.75542E-09
           ],
           "Name": "RigidBody3DComponent"
         },
@@ -340,14 +343,14 @@
       "Components": [
         {
           "Translation": [
-            -5.67,
-            -0.7002758,
-            -5.647606
+            4.4693804,
+            -1.7002758,
+            -3.3358688
           ],
           "Rotation": [
-            1.3061026E-10,
-            5.6251525E-07,
-            -1.5879201E-10
+            3.1415927,
+            0.46328202,
+            -3.1415927
           ],
           "Scale": [
             0.3,
@@ -358,10 +361,11 @@
         },
         {
           "ModelPath": null,
+          "AlbedoTexturePath": "textures/jajca-sama-twarz.png",
           "Color": [
-            0.827051,
-            0.22922698,
-            0.22922698,
+            1,
+            1,
+            1,
             1
           ],
           "MetallicOverride": null,
@@ -375,9 +379,9 @@
           "FixedRotation": false,
           "GravityScale": 1,
           "Velocity": [
-            3.3326273E-16,
-            -1.0281801E-06,
-            7.437531E-15
+            -6.4226875E-27,
+            -3.2037497E-06,
+            4.3368087E-19
           ],
           "Name": "RigidBody3DComponent"
         },
@@ -406,14 +410,14 @@
       "Components": [
         {
           "Translation": [
-            -4.89,
-            -0.8,
-            -5.6106725
+            0.57413155,
+            -1.7002758,
+            -7.1120005
           ],
           "Rotation": [
-            3.0113528E-10,
-            5.625109E-07,
-            -9.7780256E-11
+            -2.1839269E-10,
+            -0.7275067,
+            6.5602676E-11
           ],
           "Scale": [
             0.3,
@@ -424,10 +428,11 @@
         },
         {
           "ModelPath": null,
+          "AlbedoTexturePath": "textures/jajca-sama-twarz.png",
           "Color": [
-            0.827051,
-            0.22922698,
-            0.22922698,
+            1,
+            1,
+            1,
             1
           ],
           "MetallicOverride": null,
@@ -441,9 +446,9 @@
           "FixedRotation": false,
           "GravityScale": 1,
           "Velocity": [
-            8.4082546E-22,
-            -1.0356307E-06,
-            -1.7347235E-18
+            3.112561E-09,
+            -3.2192372E-06,
+            7.681073E-11
           ],
           "Name": "RigidBody3DComponent"
         },
@@ -463,6 +468,328 @@
           "Restitution": 0.7,
           "IsTrigger": false,
           "Name": "BoxCollider3DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            3.433081,
+            -1.7002758,
+            -2.2200582
+          ],
+          "Rotation": [
+            3.1415927,
+            -1.1576818,
+            -3.1415927
+          ],
+          "Scale": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": null,
+          "AlbedoTexturePath": "textures/jajca-sama-twarz.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            -3.9E-44,
+            -3.2186508E-06,
+            5.8466615E-18
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0.7,
+          "IsTrigger": false,
+          "Name": "BoxCollider3DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "3D Entity",
+      "Components": [
+        {
+          "Translation": [
+            2.5359864,
+            -1.7002758,
+            -1.0914941
+          ],
+          "Rotation": [
+            -4.9183274E-10,
+            -0.8571974,
+            4.8987474E-11
+          ],
+          "Scale": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": null,
+          "AlbedoTexturePath": "textures/jajca-sama-twarz.png",
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": false,
+          "GravityScale": 1,
+          "Velocity": [
+            2.9758505E-09,
+            -3.220617E-06,
+            2.651267E-10
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0.7,
+          "IsTrigger": false,
+          "Name": "BoxCollider3DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "Lighting",
+      "Components": [
+        {
+          "Direction": [
+            -0.4,
+            -0.7,
+            -0.5
+          ],
+          "Color": [
+            1,
+            1,
+            0.9
+          ],
+          "Strength": 1,
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "stachu",
+      "Components": [
+        {
+          "Translation": [
+            -1.024485,
+            -1.2802758,
+            0.61297613
+          ],
+          "Rotation": [
+            -1.5707964,
+            0,
+            0
+          ],
+          "Scale": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "MeshPath": "models/stachu-walk.mesh",
+          "ClipName": "mixamo.com",
+          "Time": 0.039506577,
+          "Speed": 1,
+          "Loop": true,
+          "Playing": false,
+          "Name": "SkeletalPlaybackComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "Velocity": [
+            0,
+            -1.0281801E-06,
+            0
+          ],
+          "Name": "RigidBody3DComponent"
+        },
+        {
+          "Radius": 22,
+          "Length": 70,
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0.5,
+          "Restitution": 0.7,
+          "IsTrigger": false,
+          "Name": "CapsuleCollider3DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 16,
+      "Name": "tripo_node_e6faf5ba",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": "models/stachu-walk.mesh",
+          "AlbedoTexturePath": null,
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": 1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "ParentId": 15,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 17,
+      "Name": "stachu-walk",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        }
+      ]
+    },
+    {
+      "Id": 18,
+      "Name": "tripo_node_e6faf5ba",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ModelPath": "models/stachu-walk.mesh",
+          "AlbedoTexturePath": null,
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "MetallicOverride": null,
+          "RoughnessOverride": null,
+          "SubmeshStart": 0,
+          "SubmeshCount": 1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "ParentId": 17,
+          "Name": "ParentComponent"
         }
       ]
     }

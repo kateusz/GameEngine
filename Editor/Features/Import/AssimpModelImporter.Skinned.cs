@@ -31,7 +31,7 @@ internal sealed partial class AssimpModelImporter
 
         unsafe
         {
-            var scene = assimp.ImportFile(path, flags);
+            var scene = ImportSkinnedScene(path, flags);
             if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
             {
                 Logger.Error(
@@ -62,6 +62,7 @@ internal sealed partial class AssimpModelImporter
                     return null;
 
                 var clips = ExtractClips(scene, indexByName);
+                AlignRootClipChannelsToMesh(parts, bones, clips);
                 return new AssimpSkinnedImport(parts, bones, clips);
             }
             finally
@@ -69,6 +70,18 @@ internal sealed partial class AssimpModelImporter
                 assimp.ReleaseImport(scene);
             }
         }
+    }
+
+    // Mixamo FBX keeps Maya pre/post-rotation as $AssimpFbx$ dummy nodes (default
+    // PRESERVE_PIVOTS). Those dummies exceed MaxBones and don't match clip channels,
+    // which twists playback vs Mixamo. Bake pivots into node locals + keys.
+    private unsafe Silk.NET.Assimp.Scene* ImportSkinnedScene(string path, uint flags)
+    {
+        var store = assimp.CreatePropertyStore();
+        assimp.SetImportPropertyInteger(store, "IMPORT_FBX_PRESERVE_PIVOTS", 0);
+        var scene = assimp.ImportFileExWithProperties(path, flags, null, store);
+        assimp.ReleasePropertyStore(store);
+        return scene;
     }
 
     private static unsafe void CollectNodesByName(Node* node, Dictionary<string, nint> nodesByName)
@@ -359,6 +372,71 @@ internal sealed partial class AssimpModelImporter
 
         return clips;
     }
+
+    // Mixamo mesh node is often +90° X vs clip root keys (Y-up). Applying those keys as
+    // bone locals stands the clip in Y-up and entity Rotate no longer orients the mesh.
+    // Put root channels into mesh/root space so TRS on the entity is the placement.
+    private static void AlignRootClipChannelsToMesh(
+        IReadOnlyList<AssimpModelPart> parts,
+        IReadOnlyList<SkeletonBone> bones,
+        List<AnimationClip> clips)
+    {
+        if (parts.Count == 0)
+            return;
+        var meshToRoot = parts[0].LocalToRoot;
+        if (IsNearIdentity(meshToRoot))
+            return;
+        if (!Matrix4x4.Decompose(meshToRoot, out _, out var meshRot, out _))
+            return;
+        meshRot = Quaternion.Normalize(meshRot);
+
+        for (var i = 0; i < clips.Count; i++)
+        {
+            var clip = clips[i];
+            var channels = new List<BoneChannel>(clip.Channels.Count);
+            foreach (var channel in clip.Channels)
+            {
+                if ((uint)channel.BoneIndex >= (uint)bones.Count
+                    || bones[channel.BoneIndex].ParentIndex >= 0)
+                {
+                    channels.Add(channel);
+                    continue;
+                }
+
+                channels.Add(new BoneChannel(
+                    channel.BoneIndex,
+                    TransformPositions(channel.Positions, meshToRoot),
+                    TransformRotations(channel.Rotations, meshRot),
+                    channel.Scales));
+            }
+
+            clips[i] = clip with { Channels = channels };
+        }
+    }
+
+    private static List<VectorKey> TransformPositions(IReadOnlyList<VectorKey> keys, Matrix4x4 meshToRoot)
+    {
+        var list = new List<VectorKey>(keys.Count);
+        foreach (var key in keys)
+            list.Add(new VectorKey(key.Time, Vector3.Transform(key.Value, meshToRoot)));
+        return list;
+    }
+
+    private static List<RotationKey> TransformRotations(IReadOnlyList<RotationKey> keys, Quaternion meshRot)
+    {
+        var list = new List<RotationKey>(keys.Count);
+        foreach (var key in keys)
+            list.Add(new RotationKey(key.Time, Quaternion.Normalize(key.Value * meshRot)));
+        return list;
+    }
+
+    private static bool IsNearIdentity(Matrix4x4 m) =>
+        MathF.Abs(m.M11 - 1f) < 1e-4f && MathF.Abs(m.M22 - 1f) < 1e-4f && MathF.Abs(m.M33 - 1f) < 1e-4f
+        && MathF.Abs(m.M12) < 1e-4f && MathF.Abs(m.M13) < 1e-4f && MathF.Abs(m.M14) < 1e-4f
+        && MathF.Abs(m.M21) < 1e-4f && MathF.Abs(m.M23) < 1e-4f && MathF.Abs(m.M24) < 1e-4f
+        && MathF.Abs(m.M31) < 1e-4f && MathF.Abs(m.M32) < 1e-4f && MathF.Abs(m.M34) < 1e-4f
+        && MathF.Abs(m.M41) < 1e-4f && MathF.Abs(m.M42) < 1e-4f && MathF.Abs(m.M43) < 1e-4f
+        && MathF.Abs(m.M44 - 1f) < 1e-4f;
 
     // Silk.NET.Assimp 2.23 QuatKey is 32 bytes (assimp 6 + MInterpolation). The native
     // loaded on macOS is libassimp.5.dylib (5.4.1), where aiQuatKey is 24 bytes. Using
