@@ -103,7 +103,7 @@ Provides scene-wide fill lighting for 3D models and cube fallbacks. The renderer
 
 **When to use:** Add to a dedicated entity (e.g. "Ambient Light") in any 3D scene. Tune `Strength` for base visibility; pair with `DirectionalLightComponent` for readable shading on `ModelRendererComponent` entities.
 
-**Runtime behavior:** `SceneRenderPipeline` uploads `Color` and `Strength` to ambient uniforms on both the cube and mesh shaders. If no ambient light entity exists, defaults are white color at strength `0.1`.
+**Runtime behavior:** The renderer applies `Color` and `Strength` each frame as ambient fill on 3D draws. If no ambient light entity exists, the engine uses its built-in ambient default.
 
 See also: [3D Rendering](../concepts/3d-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [DirectionalLightComponent](#directionallightcomponent)
 
@@ -124,7 +124,7 @@ Provides a single directional light for 3D models and cube fallbacks (like sunli
 
 **When to use:** Add to a dedicated entity (e.g. "Directional Light") in any 3D scene with `ModelRendererComponent` entities. Adjust `Direction` to change highlight angle; `(0, -1, 0)` shines from above.
 
-**Runtime behavior:** `SceneRenderPipeline` uploads normalized direction and `Color` to `u_LightDirection` / `u_LightColor`, then renders a LearnOpenGL-style depth pass so meshes and cubes receive directional shadows. If no directional light exists, directional contribution is zero — only ambient fill remains.
+**Runtime behavior:** Direction and `Color` drive the directional light and optional shadow pass for meshes and cube fallbacks. With no directional light entity, direct sun contribution is zero — only ambient fill remains.
 
 **Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent`.
 
@@ -146,7 +146,7 @@ Omnidirectional light with cubemap shadows (LearnOpenGL point shadows). Position
 | `Strength` | float | 1.0 | Float field | Intensity multiplier |
 | `Range` | float | 25.0 | Float field | Shadow far plane and lighting cutoff |
 
-**Runtime behavior:** `SceneRenderPipeline` uploads world position, color, and range, then renders a geometry-shader cubemap depth pass before the lit draw.
+**Runtime behavior:** World position (from the entity transform), `Color`, and `Range` drive the point light and optional cubemap shadow pass before the lit draw.
 
 See also: [3D Rendering](../concepts/3d-rendering.md), [DirectionalLightComponent](#directionallightcomponent)
 

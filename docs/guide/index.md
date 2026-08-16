@@ -59,7 +59,10 @@ Sample games live under `games/` (Snake, Flappy Bird). Open one via **Open Proje
 
 ### Architecture
 - [Architecture overview](../architecture/README.md) — solution structure and system docs
-- [Rendering Pipeline](../architecture/rendering-pipeline.md) — 2D batching, 3D PBR, framebuffers
+- [Rendering Pipeline](../architecture/rendering-pipeline.md) — 2D batching, 3D PBR, shadows, HDR framebuffers
+- [Post-Processing Pipeline](../architecture/post-processing-pipeline.md) — HDR bloom, tonemap, anti-aliasing
+- [3D Model Loading Pipeline](../architecture/model-loading-pipeline.md) — import workflow and `.mesh` format
+- [PBR / IBL System](../architecture/pbr-ibl-system.md) — environment lighting and precomputed maps
 - [Game Loop](../architecture/game-loop.md) — application lifecycle and frame tick
 - [Scripting Lifecycle](../architecture/scripting-lifecycle.md) — Roslyn compile, assembly reload, editor vs runtime
 

@@ -8,7 +8,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a vis
 
 ### Core Engine
 - **Entity Component System (ECS)** — data-driven architecture with ordered system execution
-- **2D & 3D Rendering** — OpenGL pipeline with batched sprites, model import, and PBR materials
+- **2D & 3D Rendering** — OpenGL pipeline with batched sprites, PBR meshes, shadows, skeletal animation, and HDR post-processing
 - **Physics** — 2D rigid-body simulation with collision detection, world queries (raycast/overlap), and debug visualization
 - **Hot-Reloadable Scripting** — write game logic in C# and reload without restarting the editor
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)

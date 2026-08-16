@@ -48,10 +48,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Lighting\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <InternalsVisibleTo Include="Engine.Tests" />
     </ItemGroup>
 

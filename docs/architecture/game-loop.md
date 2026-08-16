@@ -18,7 +18,7 @@ graph TB
         Compositor["IFrameCompositor (optional)<br/><i>Wraps Draw phase (e.g. ImGui)</i>"]
         LayerStack["Layer Stack<br/><i>Processed in reverse order</i>"]
         EditorLayer["EditorLayer<br/><i>Framebuffer, scene states, mouse picking</i>"]
-        GameLayer["GameLayer<br/><i>Direct rendering, always Play mode</i>"]
+        GameLayer["GameLayer<br/><i>HDR framebuffer, post-process, always Play mode</i>"]
     end
 
     subgraph "Platform"
@@ -73,7 +73,8 @@ sequenceDiagram
         App->>App: IFrameCompositor.BeginFrame(dt) (if set)
         App->>Layers: Draw() — reverse order
         App->>App: IFrameCompositor.EndFrame() (if set)
-        App->>App: KeyboardInput.EndFrame() (if set)
+        App->>App: IKeyboardInput.EndFrame() (if set)
+        App->>App: IMouseInput.EndFrame() (if set)
     end
 
     Win-->>App: OnInputEvent / OnWindowEvent
@@ -122,7 +123,7 @@ sequenceDiagram
 
 The abstract `Application` class manages the core frame loop:
 
-- **Owns**: `IGameWindow`, `IRendererAPI`, `IGraphics2D`, `IGraphics3D`, `IAudio`, `IMeshFactory`; optional `IFrameCompositor` and `IKeyboardInput`
+- **Owns**: `IGameWindow`, `IRendererAPI`, `IGraphics2D`, `IGraphics3D`, `IAudio`, `IMeshFactory`; optional `IFrameCompositor`, `IKeyboardInput`, and `IMouseInput`
 - **Initializes on window load**: `RendererAPI.Init()`, `Graphics2D.Init()`, `Graphics3D.Init()`, `Audio.Initialize()` — before any `layer.OnAttach()`
 - **Manages**: Layer stack — `PushLayer` inserts at index 0, `PushOverlay` appends; `PopLayer` / `PopOverlay` detach and remove; all tick/event processing iterates in **reverse** (overlays first)
 - **Delegates**: Platform loop to `IGameWindow.Run()` (Silk.NET)
@@ -169,6 +170,7 @@ graph TD
     F --> G["For each layer (reverse order):<br/>layer.Draw()"]
     G --> H["IFrameCompositor.EndFrame() (optional)"]
     H --> I["IKeyboardInput.EndFrame() (optional)"]
+    I --> J["IMouseInput.EndFrame() (optional)"]
 ```
 
 ### EditorLayer Frame Tick
@@ -195,15 +197,20 @@ graph TD
 ### GameLayer Frame Tick
 
 **File**: `Runtime/GameLayer.cs`  
-**Application**: `Runtime/RuntimeApplication.cs` — extends `Application` with `keyboardInput` only (no compositor overlay)
+**Application**: `Runtime/RuntimeApplication.cs` — extends `Application` with `IKeyboardInput` and `IMouseInput` (no compositor overlay)
 
 ```mermaid
 graph TD
-    A["OnUpdate(dt)"] --> B["Set clear color + Graphics2D.Clear()"]
-    B --> C["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
+    A["OnUpdate(dt)"] --> B["pointerSurface.Set(0, clientSize)"]
+    B --> C["Bind HDR framebuffer"]
+    C --> D["Set clear color + Graphics2D.Clear()"]
+    D --> E["Clear RED_INTEGER attachment (entity ID)"]
+    E --> F["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
+    F --> G["Unbind framebuffer"]
+    G --> H["PostProcessOrchestrator.Run(hdr color, scene settings)"]
 ```
 
-Simpler than the editor — no framebuffer indirection, no scene state branching, always runs full ECS. `Draw()` is a no-op; rendering is driven by ECS systems during `OnUpdateRuntime`. Input events update `KeyboardInputState` and forward to `IScriptEngine.ProcessEvent`; window resize calls `scene.OnViewportResize`.
+No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` into an HDR off-screen buffer; post-processing runs before presentation. `Draw()` is a no-op. `OnAttach` creates the HDR buffer, loads the startup scene, and calls `RuntimeSceneStarter.Start()`. Input events update `KeyboardInputState` / `MouseInputState` and forward to `IScriptEngine.ProcessEvent`; window resize resizes the HDR buffer and calls `scene.OnViewportResize`.
 
 ---
 
@@ -247,6 +254,7 @@ sequenceDiagram
     participant Layer as EditorLayer / GameLayer
 
     Platform->>App: OnInputEvent(event)
+    Note over App: KeyReleased / MouseButtonReleased<br/>applied to input state first
     App->>ImGui: HandleInputEvent(event)
     alt ImGui consumes event
         ImGui-->>ImGui: event.IsHandled = true
@@ -258,7 +266,8 @@ sequenceDiagram
 
 - Input events propagate from overlays down to base layers
 - Any layer can consume an event by setting `IsHandled = true`
-- `GameLayer` updates `KeyboardInputState` and forwards to `IScriptEngine.ProcessEvent` when `ActiveScriptRuntimeStore` is available
+- `Application` applies `KeyReleasedEvent` / `MouseButtonReleasedEvent` to input state **before** overlay handling so release events are not swallowed by UI capture (prevents stuck keys in Play mode)
+- `GameLayer` updates `KeyboardInputState` / `MouseInputState` and forwards to `IScriptEngine.ProcessEvent` when `ActiveScriptRuntimeStore` is available
 - Window events (resize, close) follow the same reverse-order propagation
 
 ---
@@ -269,14 +278,15 @@ sequenceDiagram
 
 **File**: `Runtime/GameLayer.cs`
 
-1. `GameLayer.OnAttach()` subscribes to `ISceneContext.SceneChanged`
+1. `GameLayer.OnAttach()` initializes `PostProcessOrchestrator`, creates an HDR framebuffer, and subscribes to `ISceneContext.SceneChanged`
 2. Resolves startup scene path from `GameConfiguration.StartupScenePath` (relative to `AppContext.BaseDirectory`)
 3. `SceneFactory.Create()` + `SceneSerializer.Deserialize()`
 4. `sceneContext.SetScene(scene)` then `RuntimeSceneStarter.Start(scene, sceneContext, gameSystems)` — registers `[Register]` `IGameSystem` instances and calls `scene.OnRuntimeStart()`
+5. Sizes the HDR buffer and calls `scene.OnViewportResize` from the current window client size
 
 ### Shutdown Sequence
 
 1. `Application.HandleGameWindowClose` — `OnDetach()` on each layer (reverse order, errors logged via `SafeDetachLayer`), then clears the layer stack
-2. `GameLayer.OnDetach()` — unsubscribes `SceneChanged`, `scene.OnRuntimeStop()`, then `scene.Dispose()`
+2. `GameLayer.OnDetach()` — unsubscribes `SceneChanged`, `scene.OnRuntimeStop()`, `scene.Dispose()`, disposes HDR framebuffer
 3. Application disposes `Graphics2D`, `Graphics3D`, `Audio`; `IMeshFactory.Clear()` (`IRendererAPI` is not disposed here)
 4. Runtime `Program.Main` `finally`: `Log.CloseAndFlush()`, then `container.Dispose()`

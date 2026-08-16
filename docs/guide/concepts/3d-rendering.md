@@ -1,6 +1,6 @@
 # 3D Rendering
 
-**Formats (runtime):** imported `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport — Assimp writes `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
+**Formats (runtime):** imported `.mesh` only — see [3D Model Loading Pipeline](../../architecture/model-loading-pipeline.md). **Import:** **File → Import 3D Model…** or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport — Assimp writes `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
 
 **Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` (2D shadow map) + first `PointLightComponent` (cubemap shadows, position from transform) per frame. No directional light → white default directional (metals need it; ambient alone leaves metals black).
 
@@ -41,4 +41,4 @@ Metal/rough workflow: albedo, metallic-roughness packed map (G=roughness, B=meta
 | Bad metals | Overrides on component, or fix maps in DCC and re-import |
 | Atlas / face-on-wrong-body | UV double-flip at import (engine must not FlipUVs when textures use stbi flip). Restart editor after import fixes to clear model cache. |
 
-Details: [Component Inspector](../editor/component-inspector.md#modelrenderercomponent), [Rendering Pipeline](../../architecture/rendering-pipeline.md), [3D model loading specs](../../specs/3d-model-loading/introduction.md).
+Details: [Component Inspector](../editor/component-inspector.md#modelrenderercomponent), [Rendering Pipeline](../../architecture/rendering-pipeline.md), [3D Model Loading Pipeline](../../architecture/model-loading-pipeline.md), [3D model loading specs](../../specs/3d-model-loading/introduction.md).

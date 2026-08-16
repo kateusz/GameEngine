@@ -20,7 +20,7 @@ Adding the first camera in a scene auto-sets Primary. Only one should be primary
 
 ## 3D
 
-Models, lights, PBR: [3D Rendering](3d-rendering.md).
+Models, lights, PBR, shadows, transparency: [3D Rendering](3d-rendering.md). Pipeline details: [Rendering Pipeline](../../architecture/rendering-pipeline.md).
 
 ## Draw order (2D)
 

@@ -80,7 +80,7 @@ GameEngine/
 │   └── Systems/         # ISystem, SystemManager (priority-sorted execution)
 ├── Engine/              # Core runtime
 │   ├── Core/            # Application, Layer stack, DI setup, Input, Window
-│   ├── Renderer/        # Graphics2D/3D, IRendererAPI, batching, cameras
+│   ├── Renderer/        # 2D/3D graphics, renderer API, batching, cameras
 │   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
 │   ├── Scripting/       # IScriptEngine, Roslyn compilation, hot-reload
 │   └── Audio/           # IAudio loaders/utils, OpenAL integration
@@ -97,11 +97,15 @@ GameEngine/
 |----------|-------|
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
-| [Rendering Pipeline](rendering-pipeline.md) | IRendererAPI, 2D batching, 3D PBR meshes, scene lighting, shaders, textures, cameras, HDR framebuffers |
-| [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, ScriptableEntity, editor vs runtime |
-| [Physics System](physics-system.md) | `IPhysicsWorld2D` abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
+| [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, 3D PBR meshes, shadows, shaders, textures, cameras, HDR framebuffers |
+| [PBR / IBL System](pbr-ibl-system.md) | HDR environment lighting, precomputed cubemaps, split-sum BRDF |
+| [Animation System](animation-system.md) | Skeletal hierarchy, clip sampling, GPU skinning |
+| [Post-Processing Pipeline](post-processing-pipeline.md) | Bloom, ACES tonemap, FXAA, HDR-to-display pass chain |
+| [3D Model Loading Pipeline](model-loading-pipeline.md) | Editor import, `.mesh` runtime format, materials and GPU upload |
+| [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, script entities, editor vs runtime |
+| [Physics System](physics-system.md) | Physics world abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |
-| [Serialization](serialization.md) | Scene/prefab JSON, ComponentSerializerRegistry, custom converters |
+| [Serialization](serialization.md) | Scene/prefab JSON, component serializers, custom converters |
 | [Dependency Injection](dependency-injection.md) | DryIoc setup, service lifetimes, factory pattern |
 
 ---
@@ -112,8 +116,8 @@ GameEngine/
 |---------|-------|
 | **ECS** | Entity (int ID) + Component (data-only) + System (logic, priority-ordered) |
 | **Dependency Injection** | Primary constructor injection via DryIoc — no static singletons |
-| **Factory + Caching** | TextureFactory, ShaderFactory with weak-reference caches |
+| **Factory + Caching** | Texture and shader loaders with path- and file-time caches |
 | **Layer Stack** | Application processes layers in reverse order (overlays first) |
 | **Fixed Timestep** | Physics uses accumulator pattern (60 Hz) while rendering uses variable delta |
-| **Platform Abstraction** | IRendererAPI, IGameWindow isolate OpenGL/Silk.NET from engine core |
+| **Platform Abstraction** | Renderer and window abstractions isolate OpenGL/Silk.NET from engine core |
 | **Singleton vs Per-Scene** | Rendering/scripting systems shared across scenes; physics is per-scene |
