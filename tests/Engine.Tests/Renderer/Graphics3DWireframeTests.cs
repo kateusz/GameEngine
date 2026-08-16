@@ -67,8 +67,10 @@ public class Graphics3DWireframeTests : IDisposable
         _textureFactory.GetFlatNormalTexture().Returns(new Texture2D());
         _environmentMapFactory = Substitute.For<IEnvironmentMapFactory>();
         _environmentMapFactory.GetBlackCubemap().Returns(Substitute.For<TextureCube>());
+        var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
+        vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
 
-        _graphics = new Graphics3D(_rendererApi, _shaderFactory, _meshFactory, _textureFactory, _environmentMapFactory, Substitute.For<IFrameBufferFactory>());
+        _graphics = new Graphics3D(_rendererApi, _shaderFactory, _meshFactory, _textureFactory, _environmentMapFactory, Substitute.For<IFrameBufferFactory>(), vertexArrayFactory);
         _graphics.Init();
     }
 

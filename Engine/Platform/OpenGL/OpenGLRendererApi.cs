@@ -74,7 +74,11 @@ internal sealed class OpenGLRendererApi : IRendererAPI
     public void SetDepthTest(bool enabled)
     {
         if (enabled)
+        {
             SilkNetContext.GL.Enable(EnableCap.DepthTest);
+            // ImGui/2D leave GL_LESS; skybox writes z=w (ndc.z=1) and only passes with LEQUAL.
+            SilkNetContext.GL.DepthFunc(DepthFunction.Lequal);
+        }
         else
             SilkNetContext.GL.Disable(EnableCap.DepthTest);
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthTest");

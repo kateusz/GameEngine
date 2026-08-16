@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Buffers.VertexArray;
@@ -7,24 +8,39 @@ namespace Engine.Renderer;
 
 public class Mesh : IDisposable
 {
+    [StructLayout(LayoutKind.Sequential)]
     public record struct Vertex(
         Vector3 Position,
         Vector3 Normal,
         Vector2 TexCoord,
         Vector3 Tangent,
-        Vector3 Bitangent)
+        Vector3 Bitangent,
+        float BoneId0,
+        float BoneId1,
+        float BoneId2,
+        float BoneId3,
+        Vector4 Weights)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3); // 56 bytes
+        public Vertex(Vector3 position, Vector3 normal, Vector2 texCoord, Vector3 tangent, Vector3 bitangent)
+            : this(position, normal, texCoord, tangent, bitangent, -1f, -1f, -1f, -1f, default)
+        {
+        }
+
+        // 14 floats + 4 bone ids + 4 weights. Must match CreateVertexLayout stride.
+        public static int GetSize() => sizeof(float) * 22;
     }
 
     // Must match Vertex packing exactly — a larger stride causes vertex explosion.
     // Entity ID is a per-draw uniform (u_EntityID), not a mesh vertex attribute.
+    // Bone ids are floats: macOS integer vertex attribs (ivec4 / IPointer) read as 0 or garbage.
     internal static BufferLayout CreateVertexLayout() => new([
         new BufferElement(ShaderDataType.Float3, "a_Position"),
         new BufferElement(ShaderDataType.Float3, "a_Normal"),
         new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
         new BufferElement(ShaderDataType.Float3, "a_Tangent"),
-        new BufferElement(ShaderDataType.Float3, "a_Bitangent")
+        new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
+        new BufferElement(ShaderDataType.Float4, "a_BoneIndexF"),
+        new BufferElement(ShaderDataType.Float4, "a_Weights")
     ]);
 
     public string Name { get; set; }

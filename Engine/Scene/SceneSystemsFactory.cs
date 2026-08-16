@@ -46,6 +46,7 @@ internal sealed class SceneSystemsFactory(
             new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
             new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
+            new SkeletalAnimationSystem(context, modelFactory),
             primaryCamera,
             new SceneRenderSystem(graphics2D, graphics3D, textureFactory, modelFactory, context, primaryCamera),
             new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore, primaryCamera)

@@ -15,6 +15,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Cameras;
+using Engine.Scene.Skeletal;
 using Engine.Scene.Serializer;
 using ImGuiNET;
 using Input;
@@ -289,6 +290,7 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
+                    SkeletalPlaybackUpdater.Tick(scene.Context, modelFactory, deltaTime);
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
                     ApplyWireframeDuring(graphics3D, displayMode, () =>
                         SceneRenderPipeline.RenderScene(

@@ -63,7 +63,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
             _shaderFactory);
         Graphics2D.Init();
 
-        Graphics3D = new Graphics3D(RendererApi, _shaderFactory, _meshFactory, _textureFactory, _environmentMapFactory, FrameBufferFactory);
+        Graphics3D = new Graphics3D(RendererApi, _shaderFactory, _meshFactory, _textureFactory, _environmentMapFactory, FrameBufferFactory, VertexArrayFactory);
         Graphics3D.Init();
     }
 

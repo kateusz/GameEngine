@@ -43,7 +43,8 @@ internal static class SceneRenderPipeline
         Vector4 Tint,
         float Metallic,
         float Roughness,
-        int EntityId);
+        int EntityId,
+        Matrix4x4[]? BonePalette = null);
 
     internal readonly struct CameraBinding
     {
@@ -103,8 +104,8 @@ internal static class SceneRenderPipeline
             graphics3D.EndPointShadowPass();
         }
 
-        DrawOpaqueModels(context, graphics3D, modelFactory);
         graphics3D.DrawSkybox();
+        DrawOpaqueModels(context, graphics3D, modelFactory);
         DrawTransparentModels(context, graphics3D, modelFactory, GetCameraPosition(camera));
 
         graphics3D.EndScene();
@@ -160,7 +161,8 @@ internal static class SceneRenderPipeline
                     item.Tint,
                     item.Metallic,
                     item.Roughness,
-                    item.EntityId);
+                    item.EntityId,
+                    item.BonePalette);
                 break;
         }
     }
@@ -216,6 +218,15 @@ internal static class SceneRenderPipeline
 
             LogModelTintOnce(entity, modelRenderer, tint, model);
 
+            Matrix4x4[]? bonePalette = null;
+            if (model.HasSkeleton
+                && TryResolveSkinnedDraw(context, entity, modelRenderer.ModelPath, out var skinnedWorld, out var palette))
+            {
+                transform = skinnedWorld;
+                worldPosition = new Vector3(transform.M41, transform.M42, transform.M43);
+                bonePalette = palette;
+            }
+
             foreach (var submesh in EnumerateDrawSubmeshes(model, modelRenderer))
             {
                 if (!materialFilter(submesh.Material))
@@ -232,7 +243,8 @@ internal static class SceneRenderPipeline
                     tint,
                     metallic,
                     roughness,
-                    entity.Id);
+                    entity.Id,
+                    bonePalette);
             }
         }
     }
@@ -279,6 +291,41 @@ internal static class SceneRenderPipeline
 
         return all.Skip(start).Take(count);
     }
+
+    private static bool TryResolveSkinnedDraw(
+        IContext context,
+        Entity entity,
+        string? rendererPath,
+        out Matrix4x4 world,
+        out Matrix4x4[]? palette)
+    {
+        world = default;
+        palette = null;
+        var current = entity;
+        while (true)
+        {
+            if (current.TryGetComponent<SkeletalPlaybackComponent>(out var playback)
+                && PathsEqual(playback.MeshPath, rendererPath)
+                && current.TryGetComponent<TransformComponent>(out var transform))
+            {
+                world = transform.GetWorldTransform();
+                palette = playback.Playing ? playback.BonePalette : null;
+                return true;
+            }
+
+            if (!current.TryGetComponent<ParentComponent>(out var parent)
+                || parent.ParentId is not int parentId
+                || !context.Contains(parentId))
+                return false;
+
+            current = context.GetById(parentId);
+        }
+    }
+
+    private static bool PathsEqual(string? a, string? b) =>
+        !string.IsNullOrWhiteSpace(a)
+        && !string.IsNullOrWhiteSpace(b)
+        && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     private static Vector3 GetCameraPosition(in CameraBinding camera) =>
         camera.ViewCamera?.GetPosition()

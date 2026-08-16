@@ -6,9 +6,20 @@ public sealed class Model : IDisposable
 {
     private bool _disposed;
 
-    public Model(IReadOnlyList<ModelSubmesh> submeshes) => Submeshes = submeshes;
+    public Model(
+        IReadOnlyList<ModelSubmesh> submeshes,
+        IReadOnlyList<SkeletonBone>? bones = null,
+        IReadOnlyList<AnimationClip>? clips = null)
+    {
+        Submeshes = submeshes;
+        Bones = bones ?? [];
+        Clips = clips ?? [];
+    }
 
     public IReadOnlyList<ModelSubmesh> Submeshes { get; }
+    public IReadOnlyList<SkeletonBone> Bones { get; }
+    public IReadOnlyList<AnimationClip> Clips { get; }
+    public bool HasSkeleton => Bones.Count > 0;
 
     public void Dispose()
     {

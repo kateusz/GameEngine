@@ -49,7 +49,7 @@ public class MeshFormatRoundTripTests
         loaded.Submeshes.Count.ShouldBe(1);
         var sub = loaded.Submeshes[0];
         sub.Mesh.Name.ShouldBe("Cube");
-        Mesh.Vertex.GetSize().ShouldBe(56);
+        Mesh.Vertex.GetSize().ShouldBe(88);
         sub.Mesh.Vertices.Count.ShouldBe(3);
         sub.Mesh.Vertices[0].ShouldBe(vertex);
         sub.Mesh.Vertices[1].Position.ShouldBe(new Vector3(4, 5, 6));
@@ -165,7 +165,7 @@ public class MeshFormatRoundTripTests
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write("KULA"u8.ToArray());
-            writer.Write(3u);
+            writer.Write(99u);
             writer.Write(0u);
         }
 
@@ -187,7 +187,7 @@ public class MeshFormatRoundTripTests
         var bytes = stream.ToArray();
         bytes.Length.ShouldBeGreaterThanOrEqualTo(8);
         Encoding.ASCII.GetString(bytes, 0, 4).ShouldBe("KULA");
-        bytes[4].ShouldBe((byte)2);
+        bytes[4].ShouldBe((byte)3);
         bytes[5].ShouldBe((byte)0);
         bytes[6].ShouldBe((byte)0);
         bytes[7].ShouldBe((byte)0);
@@ -268,5 +268,86 @@ public class MeshFormatRoundTripTests
         stream.Position = 0;
         Should.Throw<InvalidDataException>(() => MeshReader.Read(stream))
             .Message.ShouldContain("SUBMESH_COUNT");
+    }
+
+    [Fact]
+    public void RoundTrip_Skinned_PreservesWeightsSkeletonAndClip()
+    {
+        var vertex = new Mesh.Vertex(
+            new Vector3(1, 0, 0),
+            Vector3.UnitY,
+            Vector2.Zero,
+            Vector3.UnitX,
+            Vector3.UnitZ,
+            0, 1, -1, -1,
+            new Vector4(0.75f, 0.25f, 0, 0));
+
+        var mesh = new Mesh("Skinned");
+        mesh.Vertices.Add(vertex);
+        mesh.Indices.Add(0);
+
+        var inverseBind = Matrix4x4.CreateTranslation(0, 1, 0);
+        var model = new Model(
+            [new ModelSubmesh(mesh, new MeshMaterial { Metallic = 0.2f })],
+            [
+                new SkeletonBone("root", -1, Matrix4x4.Identity),
+                new SkeletonBone("child", 0, inverseBind)
+            ],
+            [
+                new AnimationClip("walk", 1f,
+                [
+                    new BoneChannel(
+                        0,
+                        [new VectorKey(0f, Vector3.Zero), new VectorKey(1f, Vector3.UnitX)],
+                        [new RotationKey(0f, Quaternion.Identity)],
+                        [new VectorKey(0f, Vector3.One)])
+                ])
+            ]);
+
+        using var stream = new MemoryStream();
+        MeshWriter.Write(stream, model);
+        stream.Position = 0;
+        var loaded = MeshReader.Read(stream);
+
+        loaded.HasSkeleton.ShouldBeTrue();
+        loaded.Bones.Count.ShouldBe(2);
+        loaded.Bones[0].Name.ShouldBe("root");
+        loaded.Bones[0].ParentIndex.ShouldBe(-1);
+        loaded.Bones[1].Name.ShouldBe("child");
+        loaded.Bones[1].ParentIndex.ShouldBe(0);
+        loaded.Bones[1].InverseBind.Translation.ShouldBe(new Vector3(0, 1, 0));
+
+        loaded.Clips.Count.ShouldBe(1);
+        loaded.Clips[0].Name.ShouldBe("walk");
+        loaded.Clips[0].Duration.ShouldBe(1f);
+        loaded.Clips[0].Channels.Count.ShouldBe(1);
+        loaded.Clips[0].Channels[0].BoneIndex.ShouldBe(0);
+        loaded.Clips[0].Channels[0].Positions[1].Value.ShouldBe(Vector3.UnitX);
+
+        var loadedVertex = loaded.Submeshes[0].Mesh.Vertices[0];
+        loadedVertex.BoneId0.ShouldBe(0f);
+        loadedVertex.BoneId1.ShouldBe(1f);
+        loadedVertex.BoneId2.ShouldBe(-1f);
+        loadedVertex.Weights.X.ShouldBe(0.75f);
+        loadedVertex.Weights.Y.ShouldBe(0.25f);
+    }
+
+    [Fact]
+    public void RoundTrip_Static_HasNoSkeletonAndUnskinnedVertices()
+    {
+        var mesh = new Mesh("Static");
+        mesh.Vertices.Add(new Mesh.Vertex(Vector3.Zero, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Indices.Add(0);
+
+        using var stream = new MemoryStream();
+        MeshWriter.Write(stream, new Model([new ModelSubmesh(mesh, new MeshMaterial())]));
+        stream.Position = 0;
+        var loaded = MeshReader.Read(stream);
+
+        loaded.HasSkeleton.ShouldBeFalse();
+        loaded.Bones.Count.ShouldBe(0);
+        loaded.Clips.Count.ShouldBe(0);
+        loaded.Submeshes[0].Mesh.Vertices[0].BoneId0.ShouldBe(-1f);
+        loaded.Submeshes[0].Mesh.Vertices[0].Weights.ShouldBe(Vector4.Zero);
     }
 }

@@ -1,5 +1,7 @@
+using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Scene.Skeletal;
 using NSubstitute;
 using Shouldly;
 
@@ -89,6 +91,59 @@ public class MeshCreatorTests : IDisposable
         var model = MeshReader.Read(stream);
         model.Submeshes.Count.ShouldBe(1);
         model.Submeshes[0].Mesh.Vertices.Count.ShouldBe(3);
+    }
+
+    [Fact]
+    public void CreateSplit_SimpleSkinGltf_WritesSkeletonClipsAndIdentityParts()
+    {
+        var sourcePath = Path.Combine(AppContext.BaseDirectory, "TestAssets", "SimpleSkin.gltf");
+        File.Exists(sourcePath).ShouldBeTrue();
+
+        var result = MeshCreator.CreateSplit(sourcePath, _assetsRoot, "simpleskin");
+
+        result.Success.ShouldBeTrue(result.Error);
+        result.Parts.Count.ShouldBeGreaterThan(0);
+        foreach (var part in result.Parts)
+        {
+            part.Translation.ShouldBe(Vector3.Zero);
+            part.Rotation.ShouldBe(Vector3.Zero);
+            part.Scale.ShouldBe(Vector3.One);
+        }
+
+        using var stream = File.OpenRead(Path.Combine(_assetsRoot, "models", "simpleskin.mesh"));
+        var model = MeshReader.Read(stream);
+        model.HasSkeleton.ShouldBeTrue();
+        model.Bones.Count.ShouldBeGreaterThan(0);
+        model.Bones.Count.ShouldBeLessThanOrEqualTo(SkeletalLimits.MaxBones);
+        model.Clips.Count.ShouldBeGreaterThan(0);
+
+        var weighted = model.Submeshes.SelectMany(s => s.Mesh.Vertices).Count(v => v.Weights != Vector4.Zero);
+        weighted.ShouldBeGreaterThan(0);
+
+        var palette = SkeletalPoseMath.CreateIdentityPalette();
+        SkeletalPoseMath.Evaluate(model.Bones, model.Clips[0], 0f, palette);
+        var bind = SkeletalPoseMath.CreateIdentityPalette();
+        SkeletalPoseMath.Evaluate(model.Bones, clip: null, 0f, bind);
+        for (var i = 0; i < model.Bones.Count; i++)
+        {
+            palette[i].M11.ShouldBe(bind[i].M11, 1e-3f);
+            palette[i].M42.ShouldBe(bind[i].M42, 1e-3f);
+        }
+
+        foreach (var channel in model.Clips[0].Channels)
+        {
+            float? prev = null;
+            foreach (var key in channel.Rotations)
+            {
+                var len = key.Value.Length();
+                len.ShouldBe(1f, 1e-3f);
+                if (prev is not null)
+                    key.Time.ShouldBeGreaterThan(prev.Value);
+                prev = key.Time;
+            }
+
+            channel.Rotations.Count.ShouldBeGreaterThan(1);
+        }
     }
 
     [Fact]

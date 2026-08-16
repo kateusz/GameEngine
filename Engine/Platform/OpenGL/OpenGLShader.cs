@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Shaders;
 using Silk.NET.OpenGL;
@@ -121,6 +122,23 @@ internal sealed class OpenGLShader : IShader
         var matrix = Matrix4x4ToReadOnlySpan(data);
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.UniformMatrix4(location, true, matrix);
+    }
+
+    public void SetMat4Array(string name, Matrix4x4[] matrices)
+    {
+        ArgumentNullException.ThrowIfNull(matrices);
+        if (matrices.Length == 0)
+            return;
+
+        var location = ResolveUniformLocation($"{name}[0]");
+        if (location < 0)
+            location = ResolveUniformLocation(name);
+        if (location < 0)
+            return;
+
+        SilkNetContext.GL.UseProgram(_handle);
+        var floats = MemoryMarshal.Cast<Matrix4x4, float>(matrices);
+        SilkNetContext.GL.UniformMatrix4(location, (uint)matrices.Length, true, floats);
     }
 
     public void SetFloat3(string name, Vector3 data)

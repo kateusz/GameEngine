@@ -42,6 +42,7 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
         gl.GetInteger(GLEnum.Viewport, prevViewport);
         gl.Disable(EnableCap.DepthTest);
         gl.Disable(EnableCap.Blend);
+        gl.Disable(EnableCap.CullFace);
 
         var fbo = gl.GenFramebuffer();
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, fbo);
@@ -84,6 +85,7 @@ internal sealed class OpenGLEnvironmentBaker(IShaderFactory shaderFactory, IMesh
             gl.BindTexture(TextureTarget.Texture2D, 0);
             gl.Enable(EnableCap.DepthTest);
             gl.Enable(EnableCap.Blend);
+            gl.Enable(EnableCap.CullFace);
         }
     }
 

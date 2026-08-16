@@ -136,7 +136,8 @@ public class PublishedAssetValidatorTests : IDisposable
             {
               "Components": [
                 { "AudioClipPath": "sounds/missing.wav" },
-                { "ModelPath": "models/missing.mesh" }
+                { "ModelPath": "models/missing.mesh" },
+                { "MeshPath": "models/also-missing.mesh" }
               ]
             }
             """);
@@ -147,6 +148,7 @@ public class PublishedAssetValidatorTests : IDisposable
         var error = result.ErrorMessage.ShouldNotBeNull();
         error.ShouldContain("sounds/missing.wav");
         error.ShouldContain("models/missing.mesh");
+        error.ShouldContain("models/also-missing.mesh");
     }
 
     [Fact]

@@ -6,7 +6,7 @@ using Silk.NET.Assimp;
 
 namespace Engine.Renderer;
 
-internal sealed class AssimpModelImporter(Assimp assimp)
+internal sealed partial class AssimpModelImporter(Assimp assimp)
 {
     private static readonly ILogger Logger = Log.ForContext<AssimpModelImporter>();
     private static readonly string EmbeddedCacheDir =
@@ -156,7 +156,11 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         {
             var vertex = new Mesh.Vertex
             {
-                Position = aiMesh->MVertices[i]
+                Position = aiMesh->MVertices[i],
+                BoneId0 = -1,
+                BoneId1 = -1,
+                BoneId2 = -1,
+                BoneId3 = -1
             };
 
             min = Vector3.Min(min, vertex.Position);

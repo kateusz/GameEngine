@@ -2,8 +2,10 @@ using System.Numerics;
 using Engine.Core;
 using Engine.Scene.Cameras;
 using Engine.Renderer.Buffers.FrameBuffer;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Serilog;
 
 namespace Engine.Renderer;
 
@@ -13,7 +15,8 @@ internal sealed class Graphics3D(
     IMeshFactory meshFactory,
     ITextureFactory textureFactory,
     IEnvironmentMapFactory environmentMapFactory,
-    IFrameBufferFactory frameBufferFactory) : IGraphics3D
+    IFrameBufferFactory frameBufferFactory,
+    IVertexArrayFactory vertexArrayFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const uint ShadowMapSize = 1024;
@@ -30,6 +33,7 @@ internal sealed class Graphics3D(
     private IShader _cubeShader = null!;
     private IShader _texturedShader = null!;
     private IShader _skyboxShader = null!;
+    private IVertexArray _skyboxVao = null!;
     private IShader _depthShader = null!;
     private IShader? _pointDepthShader;
     private IShader? _wireframeShader;
@@ -81,6 +85,7 @@ internal sealed class Graphics3D(
         _skyboxShader = shaderFactory.Create(
             ResolveHostShader("skybox.vert"),
             ResolveHostShader("skybox.frag"));
+        _skyboxVao = vertexArrayFactory.Create();
         _cubeMesh = meshFactory.CreateCube();
 
         _texturedShader.Bind();
@@ -172,24 +177,32 @@ internal sealed class Graphics3D(
     public void DrawBuiltinSphere(Matrix4x4 transform, Vector4 tint, float metallic, float roughness, int entityId = -1) =>
         DrawMesh(transform, meshFactory.CreateSphere(), BuiltinSphereMaterial, tint, metallic, roughness, entityId);
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, float metallic, float roughness, int entityId = -1)
+    public void DrawMesh(
+        Matrix4x4 transform,
+        Mesh mesh,
+        MeshMaterial material,
+        Vector4 tint,
+        float metallic,
+        float roughness,
+        int entityId = -1,
+        Matrix4x4[]? bonePalette = null)
     {
         rendererApi.SetDepthTest(true);
 
         if (_shadowPass)
         {
-            DrawShadowCaster(mesh, transform, material, material.ResolveBaseColor(tint));
+            DrawShadowCaster(mesh, transform, material, material.ResolveBaseColor(tint), bonePalette);
             return;
         }
 
         if (_wireframe)
         {
-            DrawWireframe(mesh, transform, entityId);
+            DrawWireframe(mesh, transform, entityId, bonePalette);
             return;
         }
 
         var baseColor = material.ResolveBaseColor(tint);
-        BindCommon(_texturedShader, transform, baseColor, entityId);
+        BindCommon(_texturedShader, transform, baseColor, entityId, bonePalette);
         _texturedShader.SetFloat("u_Metallic", metallic);
         _texturedShader.SetFloat("u_Roughness", roughness);
         _texturedShader.SetInt("u_HasAlbedoMap", material.HasAlbedoMap ? 1 : 0);
@@ -203,18 +216,9 @@ internal sealed class Graphics3D(
         _texturedShader.SetInt("u_UseIBL", _environmentMap is not null ? 1 : 0);
         _texturedShader.SetFloat("u_IblIntensity", _envIntensity);
         if (_environmentMap is not null)
-        {
-            _environmentMap.Irradiance.Bind(3);
-            _environmentMap.Prefiltered.Bind(4);
             rendererApi.BindTexture2D(environmentMapFactory.GetBrdfLutId(), 5);
-        }
         else
-        {
-            var blackCube = environmentMapFactory.GetBlackCubemap();
-            blackCube.Bind(3);
-            blackCube.Bind(4);
             textureFactory.GetWhiteTexture().Bind(5);
-        }
 
         (material.AlbedoTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
         (material.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
@@ -241,20 +245,36 @@ internal sealed class Graphics3D(
         if (_environmentMap is null || _wireframe)
             return;
 
-        rendererApi.SetDepthTest(true);
-        var viewNoTranslation = _view;
-        viewNoTranslation.M41 = 0f;
-        viewNoTranslation.M42 = 0f;
-        viewNoTranslation.M43 = 0f;
-        _skyboxShader.Bind();
-        _skyboxShader.SetMat4(ViewProjectionUniform, viewNoTranslation * _projection);
-        _skyboxShader.SetFloat("u_Intensity", _envIntensity);
-        _environmentMap.Environment.Bind(0);
-        _cubeMesh.Bind();
-        rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
-        _stats.DrawCalls++;
-        _skyboxShader.Unbind();
+        rendererApi.SetDepthTest(false);
+        rendererApi.SetDepthWrite(false);
+        rendererApi.SetFaceCulling(false);
+        try
+        {
+            var viewProj = RotationOnly(_view) * _projection;
+            if (!Matrix4x4.Invert(viewProj, out var invViewProj))
+                return;
+
+            _environmentMap.Environment.Bind(0);
+            _skyboxShader.Bind();
+            _skyboxShader.SetMat4("u_InverseViewProjection", invViewProj);
+            _skyboxShader.SetFloat("u_Intensity", _envIntensity);
+            rendererApi.DrawArrays(_skyboxVao, 3);
+            _stats.DrawCalls++;
+            _skyboxShader.Unbind();
+        }
+        finally
+        {
+            rendererApi.SetFaceCulling(true);
+            rendererApi.SetDepthWrite(true);
+            rendererApi.SetDepthTest(true);
+        }
     }
+
+    private static Matrix4x4 RotationOnly(Matrix4x4 view) => new(
+        view.M11, view.M12, view.M13, 0f,
+        view.M21, view.M22, view.M23, 0f,
+        view.M31, view.M32, view.M33, 0f,
+        0f, 0f, 0f, 1f);
 
     public void SetAmbientLight(Vector3 color, float strength)
     {
@@ -381,11 +401,12 @@ internal sealed class Graphics3D(
         }
     }
 
-    private void DrawWireframe(Mesh mesh, Matrix4x4 transform, int entityId)
+    private void DrawWireframe(Mesh mesh, Matrix4x4 transform, int entityId, Matrix4x4[]? bonePalette = null)
     {
         _wireframeShader!.Bind();
         _wireframeShader.SetMat4(ViewProjectionUniform, _viewProjection);
         _wireframeShader.SetMat4("u_Model", transform);
+        UploadBones(_wireframeShader, bonePalette);
         _wireframeShader.SetFloat4("u_Color", RenderingConstants.WireframeEdgeColor);
         _wireframeShader.SetInt("u_EntityID", entityId);
         mesh.Bind();
@@ -433,11 +454,13 @@ internal sealed class Graphics3D(
     private static string ResolveHostShader(string fileName) =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", fileName));
 
-    private void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
+    private void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId, Matrix4x4[]? bonePalette = null)
     {
+        BindIblAndPointShadowCubes();
         shader.Bind();
         shader.SetMat4("u_Model", transform);
         shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
+        UploadBones(shader, bonePalette);
         shader.SetFloat4("u_Color", color);
         shader.SetInt("u_EntityID", entityId);
         shader.SetFloat3("lightColor", _ambientColor);
@@ -454,12 +477,40 @@ internal sealed class Graphics3D(
         shader.SetInt("u_PointShadowsEnabled", _pointShadowsEnabled ? 1 : 0);
         if (_pointShadowsEnabled)
             rendererApi.BindTextureCube(_pointShadowMap!.GetDepthAttachmentRendererId(), PointShadowMapSlot);
+        else
+            environmentMapFactory.GetBlackCubemap().Bind(PointShadowMapSlot);
     }
 
-    private void DrawShadowCaster(Mesh mesh, Matrix4x4 transform, MeshMaterial? material = null, Vector4 baseColor = default)
+    private void BindIblAndPointShadowCubes()
+    {
+        var black = environmentMapFactory.GetBlackCubemap();
+        if (_environmentMap is not null)
+        {
+            _environmentMap.Irradiance.Bind(3);
+            _environmentMap.Prefiltered.Bind(4);
+        }
+        else
+        {
+            black.Bind(3);
+            black.Bind(4);
+        }
+
+        if (_pointShadowsEnabled)
+            rendererApi.BindTextureCube(_pointShadowMap!.GetDepthAttachmentRendererId(), PointShadowMapSlot);
+        else
+            black.Bind(PointShadowMapSlot);
+    }
+
+    private void DrawShadowCaster(
+        Mesh mesh,
+        Matrix4x4 transform,
+        MeshMaterial? material = null,
+        Vector4 baseColor = default,
+        Matrix4x4[]? bonePalette = null)
     {
         var shader = _pointShadowPass ? _pointDepthShader! : _depthShader;
         shader.SetMat4("u_Model", transform);
+        UploadBones(shader, bonePalette);
 
         if (!_pointShadowPass && material is not null && material.AlphaMode == MaterialAlphaMode.Mask)
         {
@@ -477,6 +528,18 @@ internal sealed class Graphics3D(
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
+    }
+
+    private static void UploadBones(IShader shader, Matrix4x4[]? bonePalette)
+    {
+        if (bonePalette is null)
+        {
+            shader.SetInt("u_Skinned", 0);
+            return;
+        }
+
+        shader.SetInt("u_Skinned", 1);
+        shader.SetMat4Array("u_BoneMatrices", bonePalette);
     }
 
     private void EnsureShadowMap()
@@ -659,6 +722,8 @@ internal sealed class Graphics3D(
         _texturedShader = null!;
         _skyboxShader?.Dispose();
         _skyboxShader = null!;
+        _skyboxVao?.Dispose();
+        _skyboxVao = null!;
         _depthShader?.Dispose();
         _depthShader = null!;
         _pointDepthShader?.Dispose();

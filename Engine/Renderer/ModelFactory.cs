@@ -18,7 +18,9 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
     private readonly IVertexArrayFactory _vertexArrayFactory;
     private readonly IVertexBufferFactory _vertexBufferFactory;
     private readonly IIndexBufferFactory _indexBufferFactory;
-    private readonly Dictionary<string, Model> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CachedModel> _cache = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly record struct CachedModel(Model Model, DateTime WriteTimeUtc);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
@@ -41,7 +43,13 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         lock (_cacheLock)
         {
             if (_cache.TryGetValue(normalizedPath, out var cached))
-                return cached;
+            {
+                var writeTime = File.GetLastWriteTimeUtc(normalizedPath);
+                if (writeTime == cached.WriteTimeUtc)
+                    return cached.Model;
+                cached.Model.Dispose();
+                _cache.Remove(normalizedPath);
+            }
 
             if (!File.Exists(normalizedPath))
             {
@@ -91,8 +99,8 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
                     return null;
                 }
 
-                var result = new Model(initialized);
-                _cache[normalizedPath] = result;
+                var result = new Model(initialized, model.Bones, model.Clips);
+                _cache[normalizedPath] = new CachedModel(result, File.GetLastWriteTimeUtc(normalizedPath));
                 return result;
             }
             catch (Exception ex)
@@ -110,8 +118,8 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
 
         lock (_cacheLock)
         {
-            foreach (var model in _cache.Values)
-                model.Dispose();
+            foreach (var cached in _cache.Values)
+                cached.Model.Dispose();
             _cache.Clear();
         }
 

@@ -11,7 +11,8 @@ public static class PublishedAssetValidator
     {
         "TexturePath",
         "AudioClipPath",
-        "ModelPath"
+        "ModelPath",
+        "MeshPath"
     };
 
     public static PublishResult ValidateAssetsDirectory(string projectRoot)

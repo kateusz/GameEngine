@@ -148,7 +148,21 @@ public static class MeshCreator
         {
             using var assimp = Assimp.GetApi();
             var importer = new AssimpModelImporter(assimp);
-            var assimpParts = importer.ImportParts(source);
+            var skinned = importer.ImportSkinned(source);
+            List<AssimpModelPart> assimpParts;
+            IReadOnlyList<SkeletonBone> bones = [];
+            IReadOnlyList<AnimationClip> clips = [];
+            if (skinned is not null)
+            {
+                BakePartsToRoot(skinned.Parts);
+                assimpParts = [.. skinned.Parts];
+                bones = skinned.Bones;
+                clips = skinned.Clips;
+            }
+            else
+            {
+                assimpParts = importer.ImportParts(source);
+            }
 
             if (assimpParts.Count == 0)
                 return SplitResult.Fail($"Assimp produced no mesh nodes for: {source}");
@@ -161,7 +175,7 @@ public static class MeshCreator
 
             var meshAbsolute = Path.Combine(modelsDir, $"{safeStem}.mesh");
             using (var stream = System.IO.File.Create(meshAbsolute))
-                MeshWriter.Write(stream, new Model(allSubmeshes));
+                MeshWriter.Write(stream, new Model(allSubmeshes, bones, clips));
 
             var relative = PathBuilder.ToAssetRelativePath(meshAbsolute);
             var written = new List<SplitPart>(assimpParts.Count);
@@ -176,12 +190,16 @@ public static class MeshCreator
                     scale = Vector3.One;
                 }
 
+                if (bones.Count > 0)
+                {
+                    translation = Vector3.Zero;
+                    rotation = Vector3.Zero;
+                    scale = Vector3.One;
+                }
+
                 var count = part.Submeshes.Count;
                 written.Add(new SplitPart(
                     part.Name, relative, submeshCursor, count, translation, rotation, scale));
-                Logger.Debug(
-                    "Split part source={Source} part={Part} range={Start}+{Count} → {Relative}",
-                    source, part.Name, submeshCursor, count, relative);
                 submeshCursor += count;
             }
 
@@ -205,5 +223,31 @@ public static class MeshCreator
 
         var meshPath = Path.Combine(Path.GetFullPath(projectAssetsRoot), "models", $"{safeStem}.mesh");
         return System.IO.File.Exists(meshPath) ? 1 : 0;
+    }
+
+    private static void BakePartsToRoot(IReadOnlyList<AssimpModelPart> parts)
+    {
+        foreach (var part in parts)
+        {
+            var m = part.LocalToRoot;
+            foreach (var submesh in part.Submeshes)
+            {
+                for (var i = 0; i < submesh.Mesh.Vertices.Count; i++)
+                {
+                    var v = submesh.Mesh.Vertices[i];
+                    v.Position = Vector3.Transform(v.Position, m);
+                    v.Normal = TransformDir(v.Normal, m);
+                    v.Tangent = TransformDir(v.Tangent, m);
+                    v.Bitangent = TransformDir(v.Bitangent, m);
+                    submesh.Mesh.Vertices[i] = v;
+                }
+            }
+        }
+    }
+
+    private static Vector3 TransformDir(Vector3 dir, Matrix4x4 m)
+    {
+        var t = Vector3.TransformNormal(dir, m);
+        return t.LengthSquared() > 1e-12f ? Vector3.Normalize(t) : dir;
     }
 }

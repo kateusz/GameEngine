@@ -4,11 +4,11 @@ using System.Text;
 namespace Engine.Renderer;
 
 /// <summary>
-/// Reads versioned little-endian *.mesh binary (KULA / VERSION=1 or 2).
+/// Reads versioned little-endian *.mesh binary (KULA / VERSION=1, 2, or 3).
 /// </summary>
 public static class MeshReader
 {
-    public const uint SupportedVersion = 2;
+    public const uint SupportedVersion = 3;
 
     /// <summary>Hard caps against hostile/corrupt size fields (verification hardening).</summary>
     // ponytail: one GLB → one .mesh packs every Assimp mesh-bearing node; village packs exceed 2k.
@@ -31,8 +31,8 @@ public static class MeshReader
             throw new InvalidDataException($"Invalid mesh magic '{magic}', expected '{ExpectedMagic}'");
 
         var version = reader.ReadUInt32();
-        if (version is not 1 and not SupportedVersion)
-            throw new NotSupportedException($"Unsupported mesh VERSION {version}; supported: 1 or {SupportedVersion}");
+        if (version is not 1 and not 2 and not SupportedVersion)
+            throw new NotSupportedException($"Unsupported mesh VERSION {version}; supported: 1, 2, or {SupportedVersion}");
 
         var submeshCount = reader.ReadUInt32();
         if (submeshCount > MaxSubmeshes)
@@ -43,7 +43,10 @@ public static class MeshReader
         for (var i = 0; i < submeshCount; i++)
             submeshes.Add(ReadSubmesh(reader, version));
 
-        return new Model(submeshes);
+        var bones = version >= 3 ? ReadBones(reader) : [];
+        var clips = version >= 3 ? ReadClips(reader, bones.Count) : [];
+
+        return new Model(submeshes, bones, clips);
     }
 
     private static ModelSubmesh ReadSubmesh(BinaryReader reader, uint version)
@@ -57,12 +60,12 @@ public static class MeshReader
         if (indexCount > MaxIndicesPerSubmesh)
             throw new InvalidDataException($"INDEX_COUNT {indexCount} exceeds max {MaxIndicesPerSubmesh}");
 
-        EnsureReadable(reader, vertexCount * 14u * sizeof(float) + indexCount * sizeof(uint));
+        EnsureReadable(reader, vertexCount * VertexStrideBytes(version) + indexCount * sizeof(uint));
 
         var mesh = new Mesh(name);
         mesh.Vertices.Capacity = (int)vertexCount;
         for (var i = 0; i < vertexCount; i++)
-            mesh.Vertices.Add(ReadVertex(reader));
+            mesh.Vertices.Add(ReadVertex(reader, version));
 
         mesh.Indices.Capacity = (int)indexCount;
         for (var i = 0; i < indexCount; i++)
@@ -96,6 +99,89 @@ public static class MeshReader
         return new ModelSubmesh(mesh, material);
     }
 
+    private static uint VertexStrideBytes(uint version) =>
+        version >= 3
+            ? 14u * sizeof(float) + 4u * sizeof(int) + 4u * sizeof(float)
+            : 14u * sizeof(float);
+
+    private static List<SkeletonBone> ReadBones(BinaryReader reader)
+    {
+        var count = reader.ReadUInt32();
+        if (count > SkeletalLimits.MaxBones)
+            throw new InvalidDataException($"BONE_COUNT {count} exceeds max {SkeletalLimits.MaxBones}");
+
+        var bones = new List<SkeletonBone>((int)count);
+        for (var i = 0; i < count; i++)
+        {
+            var name = ReadString(reader) ?? string.Empty;
+            var parentIndex = reader.ReadInt32();
+            if (parentIndex < -1 || parentIndex >= (int)count || parentIndex == i)
+                throw new InvalidDataException($"Bone '{name}' has invalid parent index {parentIndex}");
+            bones.Add(new SkeletonBone(name, parentIndex, ReadMatrix(reader)));
+        }
+
+        return bones;
+    }
+
+    private static List<AnimationClip> ReadClips(BinaryReader reader, int boneCount)
+    {
+        var clipCount = reader.ReadUInt32();
+        var clips = new List<AnimationClip>((int)clipCount);
+        for (var c = 0; c < clipCount; c++)
+        {
+            var name = ReadString(reader) ?? string.Empty;
+            var duration = reader.ReadSingle();
+            var channelCount = reader.ReadUInt32();
+            var channels = new List<BoneChannel>((int)channelCount);
+            for (var ch = 0; ch < channelCount; ch++)
+            {
+                var boneIndex = reader.ReadInt32();
+                if (boneIndex < 0 || (boneCount > 0 && boneIndex >= boneCount))
+                    throw new InvalidDataException($"Clip '{name}' channel bone index {boneIndex} out of range");
+
+                var positions = ReadVectorKeys(reader);
+                var rotations = ReadRotationKeys(reader);
+                var scales = ReadVectorKeys(reader);
+                channels.Add(new BoneChannel(boneIndex, positions, rotations, scales));
+            }
+
+            clips.Add(new AnimationClip(name, duration, channels));
+        }
+
+        return clips;
+    }
+
+    private static List<VectorKey> ReadVectorKeys(BinaryReader reader)
+    {
+        var count = reader.ReadUInt32();
+        var keys = new List<VectorKey>((int)count);
+        for (var i = 0; i < count; i++)
+            keys.Add(new VectorKey(reader.ReadSingle(), ReadVector3(reader)));
+        return keys;
+    }
+
+    private static List<RotationKey> ReadRotationKeys(BinaryReader reader)
+    {
+        var count = reader.ReadUInt32();
+        var keys = new List<RotationKey>((int)count);
+        for (var i = 0; i < count; i++)
+        {
+            var time = reader.ReadSingle();
+            var rotation = new Quaternion(
+                reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            keys.Add(new RotationKey(time, rotation));
+        }
+
+        return keys;
+    }
+
+    private static Matrix4x4 ReadMatrix(BinaryReader reader) =>
+        new(
+            reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+            reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+            reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(),
+            reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
     private static Vector4 ReadVector4(BinaryReader reader) =>
         new(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
 
@@ -111,14 +197,20 @@ public static class MeshReader
                 $"Mesh payload needs {byteCount} bytes but only {remaining} remain in stream");
     }
 
-    private static Mesh.Vertex ReadVertex(BinaryReader reader)
+    private static Mesh.Vertex ReadVertex(BinaryReader reader, uint version)
     {
+        var position = ReadVector3(reader);
+        var normal = ReadVector3(reader);
+        var texCoord = new Vector2(reader.ReadSingle(), reader.ReadSingle());
+        var tangent = ReadVector3(reader);
+        var bitangent = ReadVector3(reader);
+        if (version < 3)
+            return new Mesh.Vertex(position, normal, texCoord, tangent, bitangent);
+
         return new Mesh.Vertex(
-            ReadVector3(reader),
-            ReadVector3(reader),
-            new Vector2(reader.ReadSingle(), reader.ReadSingle()),
-            ReadVector3(reader),
-            ReadVector3(reader));
+            position, normal, texCoord, tangent, bitangent,
+            reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(),
+            new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()));
     }
 
     private static Vector3 ReadVector3(BinaryReader reader) =>
