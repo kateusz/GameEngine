@@ -1,4 +1,4 @@
-namespace Engine.Renderer;
+namespace Engine.Renderer.Meshes;
 
 public enum MaterialAlphaMode : byte
 {

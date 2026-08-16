@@ -1,7 +1,8 @@
 using System.Numerics;
+using Engine.Renderer.Meshes;
 using Engine.Scene.Cameras;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Pipeline;
 
 public interface IGraphics3D : IGraphics
 {

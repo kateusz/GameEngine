@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Engine.Renderer.Textures;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Meshes;
 
 public sealed class MeshMaterial
 {

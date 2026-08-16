@@ -1,14 +1,14 @@
+using System.Numerics;
 using Engine.Core;
 using Engine.Renderer.Buffers;
-using Engine.Renderer.Primitives;
+using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Pipeline.Primitives;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Engine.Renderer.Buffers.VertexArray;
-using System.Numerics;
 using Engine.Scene.Cameras;
 using Math;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Pipeline;
 
 internal sealed class Graphics2D(
     IRendererAPI rendererApi,

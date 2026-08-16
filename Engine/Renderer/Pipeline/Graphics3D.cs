@@ -1,13 +1,14 @@
 using System.Numerics;
 using Engine.Core;
-using Engine.Scene.Cameras;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Serilog;
+using Engine.Renderer.Textures.EnvironmentMap;
+using Engine.Scene.Cameras;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Pipeline;
 
 internal sealed class Graphics3D(
     IRendererAPI rendererApi,

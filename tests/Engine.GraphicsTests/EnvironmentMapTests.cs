@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
+using Engine.Renderer.Textures.EnvironmentMap;
 using Shouldly;
 using Silk.NET.OpenGL;
 

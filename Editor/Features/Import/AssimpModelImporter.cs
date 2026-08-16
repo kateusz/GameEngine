@@ -2,12 +2,14 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Serilog;
 using Silk.NET.Assimp;
 
 // Silk.NET.Assimp declares `Mesh`; the engine reserves `Mesh` for the runtime format type —
 // alias the engine type so unqualified names stay Engine.Renderer.
-using Mesh = Engine.Renderer.Mesh;
+using Mesh = Engine.Renderer.Meshes.Mesh;
 
 namespace Editor.Features.Import;
 

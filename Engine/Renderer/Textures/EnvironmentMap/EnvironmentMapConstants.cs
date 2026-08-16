@@ -1,4 +1,4 @@
-namespace Engine.Renderer;
+namespace Engine.Renderer.Textures.EnvironmentMap;
 
 /// <summary>
 /// Single source of truth for IBL map sizes. The values flow into the IBL

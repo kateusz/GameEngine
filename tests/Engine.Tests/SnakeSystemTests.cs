@@ -4,7 +4,7 @@ using Input;
 using NSubstitute;
 using SceneComponents.Rendering;
 using Shouldly;
-using Snake.project.assets.scripts;
+using Snake.assets.scripts;
 
 namespace Engine.Tests;
 

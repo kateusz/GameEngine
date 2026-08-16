@@ -1,8 +1,10 @@
 using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Renderer.Textures.EnvironmentMap;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.OpenGL;

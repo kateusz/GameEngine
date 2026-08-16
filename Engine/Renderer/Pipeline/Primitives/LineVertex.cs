@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace Engine.Renderer.Primitives;
+namespace Engine.Renderer.Pipeline.Primitives;
 
 [StructLayout(LayoutKind.Sequential)]
 public record struct LineVertex

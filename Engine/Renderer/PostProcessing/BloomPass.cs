@@ -3,7 +3,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.PostProcessing;
 
 /// <summary>
 /// Extracts bright HDR regions and applies a two-pass Gaussian blur (LearnOpenGL bloom).

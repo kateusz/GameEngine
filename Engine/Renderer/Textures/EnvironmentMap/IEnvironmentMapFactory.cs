@@ -1,6 +1,4 @@
-using Engine.Renderer.Textures;
-
-namespace Engine.Renderer;
+namespace Engine.Renderer.Textures.EnvironmentMap;
 
 /// <summary>
 /// Generates and caches IBL environment maps plus shared IBL resources (BRDF LUT, neutral fallback cubemap).

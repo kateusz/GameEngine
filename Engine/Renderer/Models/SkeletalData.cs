@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Models;
 
 public static class SkeletalLimits
 {

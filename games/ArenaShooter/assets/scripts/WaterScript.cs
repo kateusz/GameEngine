@@ -1,10 +1,8 @@
 using Audio;
 using ECS;
-using Input;
-using Math;
-using SceneComponents;
-using SceneComponents.Camera;
 using Scripting;
+
+namespace ArenaShooter.assets.scripts;
 
 public class WaterScript : ScriptableEntity
 {

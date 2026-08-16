@@ -1,6 +1,8 @@
 using System.Numerics;
 using System.Text;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Shouldly;
 
 namespace Engine.Tests.Renderer;

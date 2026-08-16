@@ -1,6 +1,6 @@
 using ECS;
 
-namespace FlappyBird.project.assets.scripts;
+namespace FlappyBird.assets.scripts;
 
 [SerializableComponent]
 public class ScoreDigitComponent : IGameComponent

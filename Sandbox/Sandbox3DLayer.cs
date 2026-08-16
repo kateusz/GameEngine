@@ -7,6 +7,8 @@ using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
+using Engine.Renderer.Pipeline;
+using Engine.Renderer.PostProcessing;
 using Engine.Scene;
 using ImGuiNET;
 using SceneComponents;

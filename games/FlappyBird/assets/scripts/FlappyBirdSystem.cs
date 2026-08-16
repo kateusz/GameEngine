@@ -7,7 +7,7 @@ using SceneComponents;
 using SceneComponents.Rendering;
 using Scripting;
 
-namespace FlappyBird.project.assets.scripts;
+namespace FlappyBird.assets.scripts;
 
 [Register(typeof(IGameSystem))]
 public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem

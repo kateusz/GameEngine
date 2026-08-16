@@ -4,7 +4,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.PostProcessing;
 
 /// <summary>
 /// Fast approximate AA on an SDR color attachment (run after tonemap).

@@ -1,7 +1,8 @@
 using System.Numerics;
 using System.Text;
+using Engine.Renderer.Meshes;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Models;
 
 /// <summary>
 /// Writes CPU Model/submesh data to versioned little-endian *.mesh binary (KULA / VERSION=3).

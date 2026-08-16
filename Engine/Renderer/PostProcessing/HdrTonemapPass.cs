@@ -3,7 +3,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.PostProcessing;
 
 /// <summary>
 /// Tonemaps an HDR color attachment into an SDR framebuffer (ACES + gamma).

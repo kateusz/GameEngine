@@ -1,6 +1,6 @@
 using Engine.Scene;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.PostProcessing;
 
 public readonly record struct PostProcessSettings(
     float Exposure = 1.8f,

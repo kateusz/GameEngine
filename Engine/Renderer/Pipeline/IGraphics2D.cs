@@ -2,7 +2,7 @@ using System.Numerics;
 using Engine.Renderer.Textures;
 using Engine.Scene.Cameras;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Pipeline;
 
 public interface IGraphics2D : IGraphics
 {

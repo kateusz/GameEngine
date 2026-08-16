@@ -6,6 +6,9 @@ using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.GraphicsTests.ImageRegression;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Pipeline;
+using Engine.Renderer.Textures.EnvironmentMap;
 using Silk.NET.Windowing;
 
 namespace Engine.GraphicsTests;

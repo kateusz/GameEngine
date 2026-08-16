@@ -1,4 +1,5 @@
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
 using Shouldly;
 
 namespace Engine.Tests.Renderer;

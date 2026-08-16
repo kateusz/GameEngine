@@ -1,9 +1,9 @@
 using Engine.Platform.OpenGL;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
-using Engine.Renderer.Textures;
 using Serilog;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Textures.EnvironmentMap;
 
 // ponytail: no locks — generate and lookup happen on the render thread only
 internal sealed class EnvironmentMapFactory(

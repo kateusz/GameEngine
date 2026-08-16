@@ -1,4 +1,4 @@
-namespace Engine.Renderer;
+namespace Engine.Renderer.Models;
 
 /// <summary>
 /// Creates GPU-ready models from imported <c>.mesh</c> paths only.

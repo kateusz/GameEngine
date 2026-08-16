@@ -1,6 +1,7 @@
 using Editor.Features.Scene;
 using Editor.Features.Viewport;
 using Engine.Renderer;
+using Engine.Renderer.Pipeline;
 using NSubstitute;
 using Shouldly;
 

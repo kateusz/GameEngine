@@ -3,6 +3,7 @@ using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.PostProcessing;
 using Engine.Renderer.Shaders;
 using NSubstitute;
 using Shouldly;

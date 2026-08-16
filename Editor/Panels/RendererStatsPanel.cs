@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Renderer;
+using Engine.Renderer.Pipeline;
 using ImGuiNET;
 
 namespace Editor.Panels;

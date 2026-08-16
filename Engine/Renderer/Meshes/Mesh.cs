@@ -1,10 +1,10 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers;
-using Engine.Renderer.Shaders;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Shaders;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Meshes;
 
 public class Mesh : IDisposable
 {

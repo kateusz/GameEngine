@@ -3,6 +3,7 @@ using ECS.Systems;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer;
+using Engine.Renderer.Pipeline;
 using Serilog;
 
 namespace Engine.Scene.Systems;

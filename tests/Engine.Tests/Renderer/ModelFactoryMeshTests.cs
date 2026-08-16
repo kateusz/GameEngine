@@ -3,6 +3,8 @@ using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Engine.Renderer.Textures;
 using NSubstitute;
 using Shouldly;

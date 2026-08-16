@@ -1,6 +1,4 @@
-using Engine.Renderer.Textures;
-
-namespace Engine.Renderer;
+namespace Engine.Renderer.Textures.EnvironmentMap;
 
 /// <summary>GPU resources for one environment: skybox, diffuse irradiance, GGX-prefiltered specular.</summary>
 public sealed class EnvironmentMap(TextureCube environment, TextureCube irradiance, TextureCube prefiltered)

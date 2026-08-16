@@ -1,4 +1,6 @@
-namespace Engine.Renderer;
+using Engine.Renderer.Meshes;
+
+namespace Engine.Renderer.Models;
 
 public sealed record ModelSubmesh(Mesh Mesh, MeshMaterial Material);
 

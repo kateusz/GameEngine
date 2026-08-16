@@ -1,6 +1,8 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
+using Engine.Renderer.Models;
+using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Serilog;
 

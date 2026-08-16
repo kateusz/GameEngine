@@ -1,6 +1,6 @@
 using ECS;
 
-namespace Snake.project.assets.scripts;
+namespace Snake.assets.scripts;
 
 [SerializableComponent]
 public class SnakeGameComponent : IGameComponent

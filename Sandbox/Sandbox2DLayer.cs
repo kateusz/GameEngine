@@ -4,6 +4,7 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
+using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene.Cameras;
 using Serilog;

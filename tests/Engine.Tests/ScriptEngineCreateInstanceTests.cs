@@ -1,3 +1,4 @@
+using ArenaShooter.assets.scripts;
 using Audio;
 using Engine.Scene;
 using Engine.Scripting;

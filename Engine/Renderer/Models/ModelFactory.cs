@@ -1,10 +1,11 @@
 using Engine.Core;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Textures;
 using Serilog;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Models;
 
 /// <summary>
 /// Loads GPU-ready models from imported <c>.mesh</c> files only.

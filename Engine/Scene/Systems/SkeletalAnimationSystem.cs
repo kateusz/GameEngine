@@ -1,6 +1,7 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer;
+using Engine.Renderer.Models;
 using Engine.Scene.Skeletal;
 
 namespace Engine.Scene.Systems;

@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Pipeline;
 
 public interface IGraphics : IDisposable
 {

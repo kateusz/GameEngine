@@ -6,7 +6,7 @@ using Input;
 using SceneComponents.Rendering;
 using Scripting;
 
-namespace Snake.project.assets.scripts;
+namespace Snake.assets.scripts;
 
 [Register(typeof(IGameSystem))]
 public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem

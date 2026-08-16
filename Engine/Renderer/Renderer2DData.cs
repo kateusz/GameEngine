@@ -1,9 +1,9 @@
 using System.Numerics;
 using Engine.Renderer.Buffers;
-using Engine.Renderer.Primitives;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Pipeline.Primitives;
 
 namespace Engine.Renderer;
 

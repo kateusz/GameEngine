@@ -1,11 +1,12 @@
 using System.Numerics;
-using Engine.Renderer;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Engine.Renderer.Textures;
 using NSubstitute;
 using SceneComponents.Rendering;
 using Shouldly;
 
-namespace Engine.Tests.Components;
+namespace Engine.Tests.Renderer;
 
 public class ModelRendererComponentTests
 {

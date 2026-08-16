@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Renderer;
+using Engine.Renderer.Models;
 using Engine.Scene;
 using SceneComponents;
 using SceneComponents.Rendering;

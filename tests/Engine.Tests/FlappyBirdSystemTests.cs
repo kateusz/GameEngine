@@ -1,4 +1,4 @@
-using FlappyBird.project.assets.scripts;
+using FlappyBird.assets.scripts;
 using Shouldly;
 
 namespace Engine.Tests;

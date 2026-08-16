@@ -1,13 +1,14 @@
 using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
+using Engine.Renderer.Models;
 using Math;
 using Serilog;
 using Silk.NET.Assimp;
 
 // Silk.NET.Assimp declares `SkeletonBone`; the engine reserves that name for the runtime format
 // type — alias the engine type so unqualified names stay Engine.Renderer.
-using SkeletonBone = Engine.Renderer.SkeletonBone;
+using SkeletonBone = Engine.Renderer.Models.SkeletonBone;
 
 namespace Editor.Features.Import;
 

@@ -1,6 +1,6 @@
 using Engine.Renderer.Buffers.FrameBuffer;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.PostProcessing;
 
 /// <summary>
 /// Coordinates HDR post passes: bloom → tonemap → optional FXAA.

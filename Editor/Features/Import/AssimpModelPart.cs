@@ -1,4 +1,5 @@
 using Engine.Renderer;
+using Engine.Renderer.Models;
 
 namespace Editor.Features.Import;
 

@@ -3,7 +3,7 @@ using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Serilog;
 
-namespace Engine.Renderer;
+namespace Engine.Renderer.Meshes;
 
 internal sealed class MeshFactory(
     IVertexArrayFactory vertexArrayFactory,

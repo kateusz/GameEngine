@@ -1,4 +1,5 @@
-using Engine.Renderer.Primitives;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Pipeline.Primitives;
 
 namespace Engine.Renderer.Buffers;
 

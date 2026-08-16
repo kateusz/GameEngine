@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Renderer;
+using Engine.Renderer.Models;
 using Engine.Scene.Skeletal;
 using Shouldly;
 

@@ -3,6 +3,7 @@ using Engine.Core;
 using Engine.Renderer;
 using Engine.Scene.Skeletal;
 using Editor.Features.Import;
+using Engine.Renderer.Models;
 using NSubstitute;
 using Shouldly;
 
