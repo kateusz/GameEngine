@@ -34,6 +34,21 @@ public interface IEditorPreferences : IDisposable
     float HdrExposure { get; set; }
 
     /// <summary>
+    /// Gets or sets whether bloom is applied after the HDR scene pass.
+    /// </summary>
+    bool BloomEnabled { get; set; }
+
+    /// <summary>
+    /// Brightness threshold for bloom extraction (LearnOpenGL default is 1.0).
+    /// </summary>
+    float BloomThreshold { get; set; }
+
+    /// <summary>
+    /// Additive bloom strength before tonemapping.
+    /// </summary>
+    float BloomIntensity { get; set; }
+
+    /// <summary>
     /// Scene autosave interval in seconds. 0 disables autosave.
     /// </summary>
     int AutosaveIntervalSeconds { get; set; }

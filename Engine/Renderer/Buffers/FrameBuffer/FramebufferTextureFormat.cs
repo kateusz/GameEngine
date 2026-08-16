@@ -7,5 +7,7 @@ public enum FrameBufferTextureFormat
     RGBA16F = 2,
     RED_INTEGER = 3,
     DEPTH24STENCIL8 = 4,
-    Depth = DEPTH24STENCIL8
+    Depth = DEPTH24STENCIL8,
+    DepthComponent = 5,
+    DepthCubemap = 6
 }

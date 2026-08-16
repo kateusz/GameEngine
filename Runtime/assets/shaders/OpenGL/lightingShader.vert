@@ -9,11 +9,13 @@ layout(location = 4) in vec3 a_Bitangent;
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Model;
 uniform mat4 u_NormalMatrix;
+uniform mat4 u_LightSpaceMatrix;
 
 out vec3 v_FragPos;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
 out mat3 v_TBN;
+out vec4 v_FragPosLightSpace;
 
 void main()
 {
@@ -36,5 +38,6 @@ void main()
     }
     v_TBN = mat3(T, B, N);
 
+    v_FragPosLightSpace = vec4(v_FragPos, 1.0) * u_LightSpaceMatrix;
     gl_Position = worldPos * u_ViewProjection;
 }

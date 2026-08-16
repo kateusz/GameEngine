@@ -2,6 +2,7 @@ using System.Numerics;
 using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
@@ -20,8 +21,10 @@ public class Graphics3DWireframeTests : IDisposable
     private readonly IShaderFactory _shaderFactory;
     private readonly IMeshFactory _meshFactory;
     private readonly ITextureFactory _textureFactory;
+    private readonly IEnvironmentMapFactory _environmentMapFactory;
     private readonly IShader _cubeShader;
     private readonly IShader _texturedShader;
+    private readonly IShader _skyboxShader;
     private readonly IShader _wireframeShader;
     private readonly Mesh _cubeMesh;
     private readonly Graphics3D _graphics;
@@ -42,6 +45,7 @@ public class Graphics3DWireframeTests : IDisposable
         _cubeShader = Substitute.For<IShader>();
         _texturedShader = Substitute.For<IShader>();
         _wireframeShader = Substitute.For<IShader>();
+        _skyboxShader = Substitute.For<IShader>();
         _cubeMesh = CreateInitializedMesh("cube");
 
         _shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
@@ -50,6 +54,8 @@ public class Graphics3DWireframeTests : IDisposable
                 var vert = (string)ci[0];
                 if (vert.Contains("wireframeShader", StringComparison.OrdinalIgnoreCase))
                     return _wireframeShader;
+                if (vert.Contains("skybox", StringComparison.OrdinalIgnoreCase))
+                    return _skyboxShader;
                 if (vert.Contains("lightingShader", StringComparison.OrdinalIgnoreCase))
                     return _texturedShader;
                 return _cubeShader;
@@ -57,9 +63,12 @@ public class Graphics3DWireframeTests : IDisposable
 
         _meshFactory.CreateCube().Returns(_cubeMesh);
         _textureFactory.GetWhiteTexture().Returns(new Texture2D());
+        _textureFactory.GetBlackTexture().Returns(new Texture2D());
         _textureFactory.GetFlatNormalTexture().Returns(new Texture2D());
+        _environmentMapFactory = Substitute.For<IEnvironmentMapFactory>();
+        _environmentMapFactory.GetBlackCubemap().Returns(Substitute.For<TextureCube>());
 
-        _graphics = new Graphics3D(_rendererApi, _shaderFactory, _meshFactory, _textureFactory);
+        _graphics = new Graphics3D(_rendererApi, _shaderFactory, _meshFactory, _textureFactory, _environmentMapFactory, Substitute.For<IFrameBufferFactory>());
         _graphics.Init();
     }
 

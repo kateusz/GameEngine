@@ -8,57 +8,55 @@ namespace Engine.Renderer.Shaders;
 /// </summary>
 internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFactory, IDisposable
 {
-    private readonly Dictionary<(string, string, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
+    private readonly Dictionary<(string Vert, string Frag, string Geom, DateTime, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
-    public IShader Create(string vertPath, string fragPath)
+    public IShader Create(string vertPath, string fragPath) =>
+        Create(vertPath, fragPath, geomPath: "");
+
+    public IShader Create(string vertPath, string fragPath, string geomPath)
     {
-        DateTime vertModTime, fragModTime;
+        DateTime vertModTime, fragModTime, geomModTime;
+        var geom = geomPath ?? "";
         try
         {
             vertModTime = File.GetLastWriteTimeUtc(vertPath);
             fragModTime = File.GetLastWriteTimeUtc(fragPath);
+            geomModTime = geom.Length == 0 ? DateTime.MinValue : File.GetLastWriteTimeUtc(geom);
         }
         catch (Exception)
         {
-            // If files don't exist or can't be accessed, use DateTime.MinValue
-            // This will force shader creation which will fail appropriately
             vertModTime = DateTime.MinValue;
             fragModTime = DateTime.MinValue;
+            geomModTime = DateTime.MinValue;
         }
 
-        var key = (vertPath, fragPath, vertModTime, fragModTime);
+        var key = (vertPath, fragPath, geom, vertModTime, fragModTime, geomModTime);
 
-        // First check: Look for cached shader
         lock (_cacheLock)
         {
             if (_shaderCache.TryGetValue(key, out var weakRef))
             {
                 if (weakRef.TryGetTarget(out var cachedShader))
-                {
                     return cachedShader;
-                }
 
-                // Weak reference target was collected, remove dead entry
                 _shaderCache.Remove(key);
             }
         }
 
-        // Create shader outside of lock to allow concurrent creation of different shaders
         var shader = apiConfig.Type switch
         {
-            ApiType.SilkNet => new OpenGLShader(vertPath, fragPath),
+            ApiType.SilkNet => geom.Length == 0
+                ? new OpenGLShader(vertPath, fragPath)
+                : new OpenGLShader(vertPath, fragPath, geom),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
 
-        // Second check: Store in cache (double-checked locking pattern)
         lock (_cacheLock)
         {
-            // Another thread may have created and cached this shader while we were compiling
             if (_shaderCache.TryGetValue(key, out var weakRef) && weakRef.TryGetTarget(out var cachedShader))
             {
-                // Another thread won the race; dispose our shader and return the cached one
                 shader.Dispose();
                 return cachedShader;
             }

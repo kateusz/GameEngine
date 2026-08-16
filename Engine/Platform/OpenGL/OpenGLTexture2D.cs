@@ -190,6 +190,8 @@ internal sealed class OpenGLTexture2D : Texture2D
     {
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"ActiveTexture({slot})");
+        // A leftover cubemap on the same unit makes sampler2D draws INVALID_OPERATION (macOS).
+        SilkNetContext.GL.BindTexture(TextureTarget.TextureCubeMap, 0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _rendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture");
     }

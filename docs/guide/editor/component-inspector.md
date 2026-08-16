@@ -124,11 +124,31 @@ Provides a single directional light for 3D models and cube fallbacks (like sunli
 
 **When to use:** Add to a dedicated entity (e.g. "Directional Light") in any 3D scene with `ModelRendererComponent` entities. Adjust `Direction` to change highlight angle; `(0, -1, 0)` shines from above.
 
-**Runtime behavior:** `SceneRenderPipeline` uploads normalized direction and `Color` to `u_LightDirection` / `u_LightColor`. If no directional light exists, directional contribution is zero — only ambient fill remains.
+**Runtime behavior:** `SceneRenderPipeline` uploads normalized direction and `Color` to `u_LightDirection` / `u_LightColor`, then renders a LearnOpenGL-style depth pass so meshes and cubes receive directional shadows. If no directional light exists, directional contribution is zero — only ambient fill remains.
 
 **Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent`.
 
 See also: [3D Rendering](../concepts/3d-rendering.md), [OpenGL 3D Workflow](../../opengl/opengl-3d-workflow.md), [AmbientLightComponent](#ambientlightcomponent)
+
+---
+
+## PointLightComponent
+
+Omnidirectional light with cubemap shadows (LearnOpenGL point shadows). Position comes from the entity `Transform`. The renderer uses the **first** `PointLightComponent` with a transform each frame.
+
+**Add in editor:** Properties panel → **Add Component** → **Point Light** (adds a Transform if missing)
+
+**File**: `Editor/ComponentEditors/PointLightComponentEditor.cs`
+
+| Property | Type | Default | Editor control | Description |
+|---|---|---|---|---|
+| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Light color |
+| `Strength` | float | 1.0 | Float field | Intensity multiplier |
+| `Range` | float | 25.0 | Float field | Shadow far plane and lighting cutoff |
+
+**Runtime behavior:** `SceneRenderPipeline` uploads world position, color, and range, then renders a geometry-shader cubemap depth pass before the lit draw.
+
+See also: [3D Rendering](../concepts/3d-rendering.md), [DirectionalLightComponent](#directionallightcomponent)
 
 ---
 

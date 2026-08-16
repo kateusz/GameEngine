@@ -112,7 +112,7 @@ public class Import3DModelPopup(IProjectContext projectContext, ISceneContext sc
             okLabel: "OK");
     }
 
-    private void BeginFromPath(string path)
+    public void BeginFromPath(string path)
     {
         _sourceDisplay = path;
         _showPathModal = false;

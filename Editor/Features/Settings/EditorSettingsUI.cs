@@ -56,6 +56,27 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.Save();
         }
 
+        var bloomEnabled = editorPreferences.BloomEnabled;
+        if (ImGui.Checkbox("Bloom", ref bloomEnabled))
+        {
+            editorPreferences.BloomEnabled = bloomEnabled;
+            editorPreferences.Save();
+        }
+
+        var bloomThreshold = editorPreferences.BloomThreshold;
+        if (ImGui.DragFloat("Bloom Threshold", ref bloomThreshold, 0.01f, 0.0f, 10.0f))
+        {
+            editorPreferences.BloomThreshold = bloomThreshold;
+            editorPreferences.Save();
+        }
+
+        var bloomIntensity = editorPreferences.BloomIntensity;
+        if (ImGui.DragFloat("Bloom Intensity", ref bloomIntensity, 0.01f, 0.0f, 8.0f))
+        {
+            editorPreferences.BloomIntensity = bloomIntensity;
+            editorPreferences.Save();
+        }
+
         ImGui.Separator();
         ImGui.SeparatorText("Autosave");
 

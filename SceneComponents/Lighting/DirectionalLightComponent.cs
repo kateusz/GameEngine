@@ -7,10 +7,12 @@ public class DirectionalLightComponent : IComponent
 {
     public Vector3 Direction { get; set; } = new(0, -1, 0);
     public Vector3 Color { get; set; } = Vector3.One;
+    public float Strength { get; set; } = 1.0f;
 
     public IComponent Clone() => new DirectionalLightComponent
     {
         Direction = Direction,
-        Color = Color
+        Color = Color,
+        Strength = Strength
     };
 }

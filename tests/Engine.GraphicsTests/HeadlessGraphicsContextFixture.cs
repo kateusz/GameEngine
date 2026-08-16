@@ -23,10 +23,14 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
     public IVertexBufferFactory VertexBufferFactory { get; }
     public IIndexBufferFactory IndexBufferFactory { get; }
     public IVertexArrayFactory VertexArrayFactory { get; }
+    public IShaderFactory ShaderFactory { get; }
+    public IEnvironmentMapFactory EnvironmentMapFactory { get; }
+    public IMeshFactory MeshFactory => _meshFactory;
 
     private readonly TextureFactory _textureFactory;
     private readonly ShaderFactory _shaderFactory;
     private readonly MeshFactory _meshFactory;
+    private readonly EnvironmentMapFactory _environmentMapFactory;
 
     public HeadlessGraphicsContextFixture()
     {
@@ -44,7 +48,10 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
         IndexBufferFactory = new IndexBufferFactory(ApiConfig);
         _textureFactory = new TextureFactory(ApiConfig);
         _shaderFactory = new ShaderFactory(ApiConfig);
+        ShaderFactory = _shaderFactory;
         _meshFactory = new MeshFactory(VertexArrayFactory, VertexBufferFactory, IndexBufferFactory);
+        _environmentMapFactory = new EnvironmentMapFactory(ApiConfig, _shaderFactory, _meshFactory);
+        EnvironmentMapFactory = _environmentMapFactory;
         FrameBufferFactory = new FrameBufferFactory(ApiConfig);
 
         Graphics2D = new Graphics2D(
@@ -56,7 +63,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
             _shaderFactory);
         Graphics2D.Init();
 
-        Graphics3D = new Graphics3D(RendererApi, _shaderFactory, _meshFactory, _textureFactory);
+        Graphics3D = new Graphics3D(RendererApi, _shaderFactory, _meshFactory, _textureFactory, _environmentMapFactory, FrameBufferFactory);
         Graphics3D.Init();
     }
 
@@ -64,6 +71,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
     {
         Graphics2D.Dispose();
         Graphics3D.Dispose();
+        _environmentMapFactory.Dispose();
         _meshFactory.Dispose();
         _shaderFactory.Dispose();
         _textureFactory.Dispose();

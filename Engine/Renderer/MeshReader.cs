@@ -4,11 +4,11 @@ using System.Text;
 namespace Engine.Renderer;
 
 /// <summary>
-/// Reads versioned little-endian *.mesh binary (KULA / VERSION=1)
+/// Reads versioned little-endian *.mesh binary (KULA / VERSION=1 or 2).
 /// </summary>
 public static class MeshReader
 {
-    public const uint SupportedVersion = 1;
+    public const uint SupportedVersion = 2;
 
     /// <summary>Hard caps against hostile/corrupt size fields (verification hardening).</summary>
     // ponytail: one GLB → one .mesh packs every Assimp mesh-bearing node; village packs exceed 2k.
@@ -31,8 +31,8 @@ public static class MeshReader
             throw new InvalidDataException($"Invalid mesh magic '{magic}', expected '{ExpectedMagic}'");
 
         var version = reader.ReadUInt32();
-        if (version != SupportedVersion)
-            throw new NotSupportedException($"Unsupported mesh VERSION {version}; supported: {SupportedVersion}");
+        if (version is not 1 and not SupportedVersion)
+            throw new NotSupportedException($"Unsupported mesh VERSION {version}; supported: 1 or {SupportedVersion}");
 
         var submeshCount = reader.ReadUInt32();
         if (submeshCount > MaxSubmeshes)
@@ -41,12 +41,12 @@ public static class MeshReader
         var submeshes = new List<ModelSubmesh>((int)submeshCount);
 
         for (var i = 0; i < submeshCount; i++)
-            submeshes.Add(ReadSubmesh(reader));
+            submeshes.Add(ReadSubmesh(reader, version));
 
         return new Model(submeshes);
     }
 
-    private static ModelSubmesh ReadSubmesh(BinaryReader reader)
+    private static ModelSubmesh ReadSubmesh(BinaryReader reader, uint version)
     {
         var name = ReadString(reader) ?? string.Empty;
         var vertexCount = reader.ReadUInt32();
@@ -83,8 +83,21 @@ public static class MeshReader
             NormalTexturePath = ReadString(reader)
         };
 
+        if (version >= 2)
+        {
+            material.BaseColorFactor = ReadVector4(reader);
+            material.EmissiveFactor = ReadVector3(reader);
+            material.EmissiveTexturePath = ReadString(reader);
+            material.AlphaMode = (MaterialAlphaMode)reader.ReadByte();
+            material.AlphaCutoff = reader.ReadSingle();
+            material.DoubleSided = reader.ReadBoolean();
+        }
+
         return new ModelSubmesh(mesh, material);
     }
+
+    private static Vector4 ReadVector4(BinaryReader reader) =>
+        new(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
 
     private static void EnsureReadable(BinaryReader reader, ulong byteCount)
     {

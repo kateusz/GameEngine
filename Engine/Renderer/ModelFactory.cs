@@ -127,6 +127,7 @@ internal sealed class ModelFactory : IModelFactory, IDisposable
         material.AlbedoTexture = LoadTexture(material.AlbedoTexturePath, sRgb: true);
         material.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessTexturePath);
         material.NormalTexture = LoadTexture(material.NormalTexturePath);
+        material.EmissiveTexture = LoadTexture(material.EmissiveTexturePath, sRgb: true);
     }
 
     private Texture2D? LoadTexture(string? path, bool sRgb = false)

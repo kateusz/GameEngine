@@ -13,19 +13,29 @@ internal sealed class OpenGLShader : IShader
     private bool _disposed;
 
     public OpenGLShader(string vertPath, string fragPath)
+        : this(vertPath, fragPath, geomPath: null)
+    {
+    }
+
+    public OpenGLShader(string vertPath, string fragPath, string? geomPath)
     {
         var vertex = LoadShader(ShaderType.VertexShader, vertPath);
         var fragment = LoadShader(ShaderType.FragmentShader, fragPath);
+        var geometry = geomPath is null ? 0u : LoadShader(ShaderType.GeometryShader, geomPath);
 
-        //Create the shader program.
         _handle = SilkNetContext.GL.CreateProgram();
         OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
 
-        //Attach the individual shaders.
         SilkNetContext.GL.AttachShader(_handle, vertex);
         OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
         SilkNetContext.GL.AttachShader(_handle, fragment);
         OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
+        if (geometry != 0)
+        {
+            SilkNetContext.GL.AttachShader(_handle, geometry);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(geometry)");
+        }
+
         SilkNetContext.GL.LinkProgram(_handle);
         OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
 
@@ -39,6 +49,11 @@ internal sealed class OpenGLShader : IShader
         OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
         SilkNetContext.GL.DeleteShader(fragment);
         OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
+        if (geometry != 0)
+        {
+            SilkNetContext.GL.DeleteShader(geometry);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(geometry)");
+        }
 
         _uniformLocations = new Dictionary<string, int>();
 
@@ -75,7 +90,8 @@ internal sealed class OpenGLShader : IShader
     /// <param name="data">The data to set</param>
     public void SetInt(string name, int data)
     {
-        if (!_uniformLocations.TryGetValue(name, out var location)) return;
+        var location = ResolveUniformLocation(name);
+        if (location < 0) return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(location, data);
     }
@@ -92,14 +108,16 @@ internal sealed class OpenGLShader : IShader
 
     public void SetFloat(string name, float data)
     {
-        if (!_uniformLocations.TryGetValue(name, out var location)) return;
+        var location = ResolveUniformLocation(name);
+        if (location < 0) return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(location, data);
     }
 
     public void SetMat4(string name, Matrix4x4 data)
     {
-        if (!_uniformLocations.TryGetValue(name, out var location)) return;
+        var location = ResolveUniformLocation(name);
+        if (location < 0) return;
         var matrix = Matrix4x4ToReadOnlySpan(data);
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.UniformMatrix4(location, true, matrix);
@@ -107,16 +125,29 @@ internal sealed class OpenGLShader : IShader
 
     public void SetFloat3(string name, Vector3 data)
     {
-        if (!_uniformLocations.TryGetValue(name, out var location)) return;
+        var location = ResolveUniformLocation(name);
+        if (location < 0) return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform3(location, data);
     }
 
     public void SetFloat4(string name, Vector4 data)
     {
-        if (!_uniformLocations.TryGetValue(name, out var location)) return;
+        var location = ResolveUniformLocation(name);
+        if (location < 0) return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform4(location, data);
+    }
+
+    private int ResolveUniformLocation(string name)
+    {
+        if (_uniformLocations.TryGetValue(name, out var location))
+            return location;
+
+        location = SilkNetContext.GL.GetUniformLocation(_handle, name);
+        if (location >= 0)
+            _uniformLocations[name] = location;
+        return location;
     }
 
     private static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)

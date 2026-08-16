@@ -205,20 +205,63 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         var albedoPath = ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
 
-        var mrPath = ResolveTexturePath(scene, aiMaterial, TextureType.GltfMetallicRoughness, directory)
-            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Metalness, directory)
-            ?? ResolveTexturePath(scene, aiMaterial, TextureType.DiffuseRoughness, directory)
-            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
+        // Shader expects glTF ORM (R=AO, G=roughness, B=metallic). FBX Substance
+        // ships separate grayscale maps — pack them at cook so the shader contract holds.
+        var ormPath = ResolveTexturePath(scene, aiMaterial, TextureType.GltfMetallicRoughness, directory);
+        var metalPath = ResolveTexturePath(scene, aiMaterial, TextureType.Metalness, directory);
+        var roughPath = ResolveTexturePath(scene, aiMaterial, TextureType.DiffuseRoughness, directory);
+        var aoPath = ResolveTexturePath(scene, aiMaterial, TextureType.AmbientOcclusion, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Lightmap, directory);
+
+        var destOrm = Path.Combine(directory, $"mat{materialIndex}_orm.bmp");
+        string? mrPath;
+        try
+        {
+            mrPath = OrmTexturePacker.PackMaterialMaps(destOrm, ormPath, aoPath, roughPath, metalPath)
+                     ?? ormPath;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Material[{Index}] ORM pack failed — falling back to source maps", materialIndex);
+            mrPath = ormPath;
+        }
 
         var normalPath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
+        var emissivePath = ResolveTexturePath(scene, aiMaterial, TextureType.Emissive, directory);
 
         var material = new MeshMaterial
         {
             AlbedoTexturePath = albedoPath,
             MetallicRoughnessTexturePath = mrPath,
-            NormalTexturePath = normalPath
+            NormalTexturePath = normalPath,
+            EmissiveTexturePath = emissivePath
         };
+
+        if (TryGetColor(aiMaterial, Assimp.MatkeyBaseColor, out var baseColor))
+            material.BaseColorFactor = baseColor;
+        else if (TryGetColor(aiMaterial, Assimp.MatkeyColorDiffuse, out var diffuseColor))
+            material.BaseColorFactor = new Vector4(diffuseColor.X, diffuseColor.Y, diffuseColor.Z, diffuseColor.W);
+
+        if (TryGetColor(aiMaterial, Assimp.MatkeyColorEmissive, out var emissiveColor))
+            material.EmissiveFactor = new Vector3(emissiveColor.X, emissiveColor.Y, emissiveColor.Z);
+
+        if (TryGetFloat(aiMaterial, "$mat.twosided", out var twoSided) && twoSided > 0.5f)
+            material.DoubleSided = true;
+
+        if (TryGetString(aiMaterial, "$mat.gltf.alphaMode", out var alphaMode))
+        {
+            if (alphaMode.Equals("MASK", StringComparison.OrdinalIgnoreCase))
+            {
+                material.AlphaMode = MaterialAlphaMode.Mask;
+                if (TryGetFloat(aiMaterial, "$mat.gltf.alphaCutoff", out var cutoff))
+                    material.AlphaCutoff = System.Math.Clamp(cutoff, 0f, 1f);
+            }
+            else if (alphaMode.Equals("BLEND", StringComparison.OrdinalIgnoreCase))
+            {
+                material.AlphaMode = MaterialAlphaMode.Blend;
+            }
+        }
 
         material.Metallic = TryGetFloat(aiMaterial, Assimp.MatkeyMetallicFactor, out var metallic)
             ? System.Math.Clamp(metallic, 0f, 1f)
@@ -233,9 +276,10 @@ internal sealed class AssimpModelImporter(Assimp assimp)
         else
             material.Roughness = 0.5f;
 
-        // glTF default metallicFactor is 1.0. Albedo-only assets that keep that default
-        // render near-black under our no-IBL PBR path — treat as dielectric when no MR map.
-        if (mrPath == null && material.Metallic >= 0.99f)
+        // glTF default metallicFactor is 1.0. Albedo-only (or AO-only pack) assets that
+        // keep that default render near-black — treat as dielectric without a metal/rough map.
+        var packedPbrMaps = ormPath != null || metalPath != null || roughPath != null;
+        if (!packedPbrMaps && material.Metallic >= 0.99f)
         {
             Logger.Warning(
                 "Material[{Index}] metallic=1 with no metallic-roughness map — " +
@@ -245,20 +289,35 @@ internal sealed class AssimpModelImporter(Assimp assimp)
             material.Metallic = 0f;
         }
 
-        var hasBaseColor = TryGetColor(aiMaterial, Assimp.MatkeyBaseColor, out var baseColor);
-        var hasDiffuse = TryGetColor(aiMaterial, Assimp.MatkeyColorDiffuse, out var diffuseColor);
+        var hasBaseColor = TryGetColor(aiMaterial, Assimp.MatkeyBaseColor, out _);
+        var hasDiffuse = TryGetColor(aiMaterial, Assimp.MatkeyColorDiffuse, out var loggedDiffuseColor);
         Logger.Debug(
-            "Material[{Index}] albedoPath={Albedo} mrPath={MR} normalPath={Normal} metallic={Metallic} roughness={Roughness} baseColor={HasBase}:{BaseColor} diffuseColor={HasDiff}:{DiffuseColor}",
+            "Material[{Index}] albedoPath={Albedo} mrPath={MR} normalPath={Normal} emissivePath={Emissive} metallic={Metallic} roughness={Roughness} baseColor={BaseColor} alphaMode={AlphaMode} doubleSided={DoubleSided} diffuseColor={HasDiff}:{DiffuseColor}",
             materialIndex,
             albedoPath ?? "<null>",
             mrPath ?? "<null>",
             normalPath ?? "<null>",
+            emissivePath ?? "<null>",
             material.Metallic,
             material.Roughness,
-            hasBaseColor, baseColor,
-            hasDiffuse, diffuseColor);
+            material.BaseColorFactor,
+            material.AlphaMode,
+            material.DoubleSided,
+            hasDiffuse, loggedDiffuseColor);
 
         return material;
+    }
+
+    private unsafe bool TryGetString(Silk.NET.Assimp.Material* aiMaterial, string key, out string value)
+    {
+        value = string.Empty;
+        AssimpString aiString;
+        var result = assimp.GetMaterialString(aiMaterial, key, 0, 0, &aiString);
+        if (result != Return.Success)
+            return false;
+
+        value = aiString.AsString;
+        return !string.IsNullOrEmpty(value);
     }
 
     private unsafe bool TryGetFloat(Silk.NET.Assimp.Material* aiMaterial, string key, out float value)

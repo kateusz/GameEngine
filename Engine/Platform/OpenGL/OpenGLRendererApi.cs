@@ -24,8 +24,18 @@ internal sealed class OpenGLRendererApi : IRendererAPI
     {
         SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"ActiveTexture({slot})");
+        SilkNetContext.GL.BindTexture(TextureTarget.TextureCubeMap, 0);
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, textureId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
+    }
+
+    public void BindTextureCube(uint textureId, int slot = 0)
+    {
+        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0 + slot);
+        OpenGLDebug.CheckError(SilkNetContext.GL, $"ActiveTexture({slot})");
+        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
+        SilkNetContext.GL.BindTexture(TextureTarget.TextureCubeMap, textureId);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(TextureCubeMap)");
     }
 
     public unsafe void DrawIndexed(IVertexArray vertexArray, uint count)
@@ -70,6 +80,24 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthTest");
     }
 
+    public void SetFaceCulling(bool enabled)
+    {
+        if (enabled)
+        {
+            SilkNetContext.GL.Enable(EnableCap.CullFace);
+            SilkNetContext.GL.CullFace(TriangleFace.Back);
+        }
+        else
+            SilkNetContext.GL.Disable(EnableCap.CullFace);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "SetFaceCulling");
+    }
+
+    public void SetDepthWrite(bool enabled)
+    {
+        SilkNetContext.GL.DepthMask(enabled);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthWrite");
+    }
+
     public void SetPolygonMode(Renderer.PolygonMode mode)
     {
         var glMode = mode switch
@@ -92,8 +120,16 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         SilkNetContext.GL.Enable(EnableCap.DepthTest);
         OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(DepthTest)");
 
+        SilkNetContext.GL.Enable(EnableCap.CullFace);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(CullFace)");
+        SilkNetContext.GL.CullFace(TriangleFace.Back);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "CullFace(Back)");
+
         SilkNetContext.GL.DepthFunc(DepthFunction.Lequal);
         OpenGLDebug.CheckError(SilkNetContext.GL, "DepthFunc");
+
+        SilkNetContext.GL.Enable(EnableCap.TextureCubeMapSeamless);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(TextureCubeMapSeamless)");
     }
 
     public int GetError()

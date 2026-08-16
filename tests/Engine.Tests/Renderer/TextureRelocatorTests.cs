@@ -104,4 +104,34 @@ public class TextureRelocatorTests : IDisposable
         File.ReadAllBytes(Path.Combine(texturesDir, "albedo.png")).ShouldBe(new byte[] { 1 });
         Directory.GetFiles(texturesDir).Length.ShouldBe(1);
     }
+
+    [Fact]
+    public void Relocate_SourceAlreadyAtDestination_RewritesWithoutCopyingOntoSelf()
+    {
+        var texturesDir = Path.Combine(_assetsRoot, "models", "textures");
+        Directory.CreateDirectory(texturesDir);
+        var sourceTex = Path.Combine(texturesDir, "albedo.png");
+        File.WriteAllBytes(sourceTex, [1, 2, 3]);
+
+        var material = new MeshMaterial { AlbedoTexturePath = sourceTex };
+        TextureRelocator.Relocate([new ModelSubmesh(new Mesh("m"), material)], _assetsRoot);
+
+        material.AlbedoTexturePath.ShouldBe("models/textures/albedo.png");
+        File.ReadAllBytes(sourceTex).ShouldBe(new byte[] { 1, 2, 3 });
+    }
+
+    [Fact]
+    public void Relocate_SourceAlreadyAtDestination_DifferentDirectoryCase_RewritesWithoutCopyingOntoSelf()
+    {
+        var onDiskDir = Path.Combine(_assetsRoot, "models", "Textures");
+        Directory.CreateDirectory(onDiskDir);
+        var sourceTex = Path.Combine(onDiskDir, "albedo.png");
+        File.WriteAllBytes(sourceTex, [7]);
+
+        var material = new MeshMaterial { AlbedoTexturePath = sourceTex };
+        TextureRelocator.Relocate([new ModelSubmesh(new Mesh("m"), material)], _assetsRoot);
+
+        material.AlbedoTexturePath.ShouldBe("models/textures/albedo.png");
+        File.ReadAllBytes(sourceTex).ShouldBe(new byte[] { 7 });
+    }
 }

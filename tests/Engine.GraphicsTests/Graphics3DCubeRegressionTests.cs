@@ -25,7 +25,7 @@ public class Graphics3DCubeRegressionTests(HeadlessGraphicsContextFixture fixtur
         fixture.Graphics3D.SetClearColor(new Vector4(0.05f, 0.05f, 0.07f, 1f));
         fixture.Graphics3D.Clear();
         fixture.Graphics3D.SetAmbientLight(new Vector3(1f, 1f, 1f), 0.25f);
-        fixture.Graphics3D.SetDirectionalLight(Vector3.Normalize(new Vector3(-0.4f, -0.8f, -0.3f)), new Vector3(1f, 0.95f, 0.9f));
+        fixture.Graphics3D.SetDirectionalLight(Vector3.Normalize(new Vector3(-0.4f, -0.8f, -0.3f)), new Vector3(1f, 0.95f, 0.9f), 1f);
         fixture.Graphics3D.BeginScene(camera);
         fixture.Graphics3D.DrawCube(Matrix4x4.CreateRotationY(0.6f) * Matrix4x4.CreateRotationX(0.25f), new Vector4(0.2f, 0.55f, 0.95f, 1f));
         fixture.Graphics3D.EndScene();

@@ -93,7 +93,9 @@ Before drawing models, `SceneRenderPipeline` resolves lights from ECS components
 | Component | File | Resolved into |
 |-----------|------|---------------|
 | `AmbientLightComponent` | `SceneComponents/Lighting/AmbientLightComponent.cs` | `IGraphics3D.SetAmbientLight(color, strength)` |
-| `DirectionalLightComponent` | `SceneComponents/Lighting/DirectionalLightComponent.cs` | `IGraphics3D.SetDirectionalLight(direction, color)` |
+| `DirectionalLightComponent` | `SceneComponents/Lighting/DirectionalLightComponent.cs` | `IGraphics3D.SetDirectionalLight(...)` then a depth-only 2D shadow pass |
+| `PointLightComponent` | `SceneComponents/Lighting/PointLightComponent.cs` | `IGraphics3D.SetPointLight(...)` then a cubemap depth pass (`BeginPointShadowPass`) |
+| `SkyLightComponent` | `SceneComponents/Lighting/SkyLightComponent.cs` | `IGraphics3D.SetEnvironment(hdrPath, intensity)` |
 
 Defaults when no component exists: ambient `(Vector3.One, 0.1f)`; directional direction `(0, -1, 0)` with **zero** color (no sun contribution).
 
@@ -418,9 +420,10 @@ The editor keeps two framebuffers:
 | Buffer | Color format | Purpose |
 |--------|--------------|---------|
 | Scene (`_frameBuffer`) | RGBA16F HDR | Scene draw + entity ID + depth |
+| Bloom extract + ping-pong | RGBA16F | Bright-pass extract and Gaussian blur (owned by `BloomPass`) |
 | Display (`_sdrFrameBuffer`) | RGBA8 | Tonemapped image shown in ImGui |
 
-After `SceneRenderPipeline` renders into the HDR buffer, `HdrTonemapPass.Apply(hdrColorId, sdrTarget, exposure)` binds the SDR target, samples the HDR color attachment, and draws a fullscreen triangle with `hdrTonemap.vert` / `hdrTonemap.frag` (ACES + gamma). Exposure comes from `IEditorPreferences.HdrExposure`.
+After `SceneRenderPipeline` renders into the HDR buffer, bloom (optional) extracts pixels brighter than a luminance threshold, blurs them with a separable 5-tap Gaussian (10 ping-pong passes), then `HdrTonemapPass.Apply(...)` additively blends the bloom into the HDR color **before** ACES + gamma. Exposure, bloom enable/threshold/intensity come from `IEditorPreferences`.
 
 ### Entity Picking
 

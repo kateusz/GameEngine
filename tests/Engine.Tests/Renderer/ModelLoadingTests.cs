@@ -55,9 +55,24 @@ public class MeshMaterialTests
 
         material.Metallic.ShouldBe(0f);
         material.Roughness.ShouldBe(0.5f);
+        material.BaseColorFactor.ShouldBe(Vector4.One);
+        material.EmissiveFactor.ShouldBe(Vector3.Zero);
+        material.AlphaMode.ShouldBe(MaterialAlphaMode.Opaque);
+        material.AlphaCutoff.ShouldBe(0.5f);
+        material.DoubleSided.ShouldBeFalse();
         material.HasAlbedoMap.ShouldBeFalse();
         material.HasMetallicRoughnessMap.ShouldBeFalse();
         material.HasNormalMap.ShouldBeFalse();
+        material.HasEmissiveMap.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ResolveBaseColor_MultipliesTintAndFactor()
+    {
+        var material = new MeshMaterial { BaseColorFactor = new Vector4(0.5f, 0.5f, 0.5f, 0.8f) };
+        var tint = new Vector4(2f, 2f, 2f, 0.5f);
+
+        material.ResolveBaseColor(tint).ShouldBe(new Vector4(1f, 1f, 1f, 0.4f));
     }
 }
 

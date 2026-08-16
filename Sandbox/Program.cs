@@ -61,6 +61,8 @@ public class Program
     private static void ConfigureContainer(Container container)
     {
         EngineIoCContainer.RegisterCore(container);
+        // PathBuilder wires via RegisterInitializer on first IProjectContext resolve (same as Runtime).
+        container.Resolve<IProjectContext>().Apply(AppContext.BaseDirectory);
         EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Sandbox", 1280, 720));
         ImGuiIoCContainer.Register(container);
 

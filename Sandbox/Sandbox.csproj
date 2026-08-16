@@ -15,6 +15,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Include="..\Editor\assets\textures\skies\sky_1k.hdr"
+            Link="assets\textures\skies\sky_1k.hdr"
+            CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" />
         <None Update="assets\shaders\OpenGL\flatColorShader.frag">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

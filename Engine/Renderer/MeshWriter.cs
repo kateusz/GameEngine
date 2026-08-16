@@ -4,11 +4,11 @@ using System.Text;
 namespace Engine.Renderer;
 
 /// <summary>
-/// Writes CPU Model/submesh data to versioned little-endian *.mesh binary (KULA / VERSION=1).
+/// Writes CPU Model/submesh data to versioned little-endian *.mesh binary (KULA / VERSION=2).
 /// </summary>
 public static class MeshWriter
 {
-    public const uint Version = 1;
+    public const uint Version = 2;
     private static readonly byte[] Magic = [.. "KULA"u8];
 
     public static void Write(Stream stream, Model model)
@@ -45,6 +45,12 @@ public static class MeshWriter
         WriteString(writer, material.AlbedoTexturePath);
         WriteString(writer, material.MetallicRoughnessTexturePath);
         WriteString(writer, material.NormalTexturePath);
+        WriteVector4(writer, material.BaseColorFactor);
+        WriteVector3(writer, material.EmissiveFactor);
+        WriteString(writer, material.EmissiveTexturePath);
+        writer.Write((byte)material.AlphaMode);
+        writer.Write(material.AlphaCutoff);
+        writer.Write(material.DoubleSided);
     }
 
     private static void WriteVertex(BinaryWriter writer, Mesh.Vertex vertex)
@@ -55,6 +61,14 @@ public static class MeshWriter
         writer.Write(vertex.TexCoord.Y);
         WriteVector3(writer, vertex.Tangent);
         WriteVector3(writer, vertex.Bitangent);
+    }
+
+    private static void WriteVector4(BinaryWriter writer, Vector4 v)
+    {
+        writer.Write(v.X);
+        writer.Write(v.Y);
+        writer.Write(v.Z);
+        writer.Write(v.W);
     }
 
     private static void WriteVector3(BinaryWriter writer, Vector3 v)

@@ -19,6 +19,7 @@ graph TD
             G2D[IGraphics2D]
             G3D[IGraphics3D]
             HDR[HdrTonemapPass]
+            BLOOM[BloomPass]
         end
 
         subgraph "Audio"
@@ -139,6 +140,7 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 | `IGraphics2D` | `Graphics2D` | Singleton | 2D rendering API |
 | `IGraphics3D` | `Graphics3D` | Singleton | 3D rendering API |
 | `HdrTonemapPass` | `HdrTonemapPass` | Singleton | HDR → LDR tonemapping pass |
+| `BloomPass` | `BloomPass` | Singleton | Bright extract + Gaussian blur |
 
 ### Global Services (`RegisterCore`)
 

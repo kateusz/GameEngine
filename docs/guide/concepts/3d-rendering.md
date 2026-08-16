@@ -1,17 +1,17 @@
 # 3D Rendering
 
-**Formats (runtime):** cooked `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** cooks `.fbx` / `.gltf` / `.glb` via Assimp into `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
+**Formats (runtime):** cooked `.mesh` only (`ModelFactory` / `MeshReader`). **Import:** **File → Import 3D Model…** or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport — Assimp cooks into `assets/models/<stem>_<part>.mesh` (textures under models/textures/), spawning parent+children in the open scene. Empty, bad, or legacy raw `ModelPath` → lit 1×1 cube until you re-import and assign the `.mesh`.
 
-**Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` per frame. No directional light → white default directional (metals need it; ambient alone leaves metals black).
+**Lights:** first `AmbientLightComponent` + first `DirectionalLightComponent` (2D shadow map) + first `PointLightComponent` (cubemap shadows, position from transform) per frame. No directional light → white default directional (metals need it; ambient alone leaves metals black).
 
-**Not supported (v1):** animation/skins (roadmap follow-on), IBL, shadows, per-submesh entities.
+**Not supported (v1):** animation/skins (roadmap follow-on), per-submesh entities.
 
 ## Setup
 
 1. Scene **3D** (Properties, no selection) or **Create 3D Entity**
 2. Primary **Perspective** camera (included in Create 3D Entity)
 3. **Ambient Light** + **Directional Light** entities
-4. **File → Import 3D Model…** to cook sources into `assets/models/`
+4. **File → Import 3D Model…** (or drop `.fbx` / `.gltf` / `.glb` from the Content Browser onto the Viewport) to cook sources into `assets/models/`
 5. **Model Renderer** → drag a `.mesh` onto **Model** (or leave empty for cube)
 
 Example: `Editor/assets/scenes/3d.scene` → `models/stachu-light.mesh`. Cooked sample under `Editor/assets/models/` may be large (~94 MB).

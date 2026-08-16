@@ -25,7 +25,10 @@ public class EditorPreferences : IEditorPreferences
     public bool ShowFPS { get; set; } = true;
 
     // HDR Settings
-    public float HdrExposure { get; set; } = 1.0f;
+    public float HdrExposure { get; set; } = 1.8f;
+    public bool BloomEnabled { get; set; } = true;
+    public float BloomThreshold { get; set; } = 1.0f;
+    public float BloomIntensity { get; set; } = 1.0f;
 
     // Autosave: 0 = off
     public int AutosaveIntervalSeconds { get; set; } = 60;

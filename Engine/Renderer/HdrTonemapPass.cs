@@ -17,22 +17,33 @@ public sealed class HdrTonemapPass(
     private IVertexArray? _emptyVao;
     private bool _disposed;
 
-    public void Apply(uint hdrColorAttachmentId, IFrameBuffer sdrTarget, float exposure)
+    /// <param name="sdrTarget">
+    /// SDR destination. Null draws into the currently bound framebuffer (backbuffer after an HDR unbind).
+    /// </param>
+    public void Apply(
+        uint hdrColorAttachmentId,
+        IFrameBuffer? sdrTarget,
+        float exposure,
+        uint bloomColorAttachmentId = 0,
+        float bloomIntensity = 0f)
     {
         EnsureInitialized();
 
-        sdrTarget.Bind();
+        sdrTarget?.Bind();
         rendererApi.SetDepthTest(false);
         rendererApi.SetClearColor(System.Numerics.Vector4.Zero);
         rendererApi.Clear();
 
         _shader!.Bind();
         _shader.SetFloat("u_Exposure", exposure);
+        _shader.SetFloat("u_BloomIntensity", bloomColorAttachmentId == 0 ? 0f : bloomIntensity);
         rendererApi.BindTexture2D(hdrColorAttachmentId, 0);
+        rendererApi.BindTexture2D(
+            bloomColorAttachmentId != 0 ? bloomColorAttachmentId : hdrColorAttachmentId, 1);
         rendererApi.DrawArrays(_emptyVao!, 3);
         _shader.Unbind();
 
-        sdrTarget.Unbind();
+        sdrTarget?.Unbind();
         rendererApi.SetDepthTest(true);
     }
 
@@ -56,6 +67,7 @@ public sealed class HdrTonemapPass(
             PathBuilder.Resolve("assets/shaders/OpenGL/hdrTonemap.frag"));
         _shader.Bind();
         _shader.SetInt("u_HdrBuffer", 0);
+        _shader.SetInt("u_BloomBlur", 1);
         _shader.Unbind();
         
         _emptyVao = vertexArrayFactory.Create();

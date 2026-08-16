@@ -16,4 +16,16 @@ internal static class FramebufferTestSpecs
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.Depth),
             ])
         };
+
+    public static FrameBufferSpecification HdrColor() =>
+        new(Width, Height)
+        {
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA16F)
+                {
+                    Filter = FrameBufferTextureFilter.Linear,
+                    Wrap = FrameBufferTextureWrap.ClampToEdge
+                }
+            ])
+        };
 }

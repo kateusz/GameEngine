@@ -12,6 +12,7 @@ internal sealed class MeshFactory(
 {
     private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private Mesh? _cubeMesh;
+    private Mesh? _sphereMesh;
     private bool _disposed;
 
     public Mesh CreateCube()
@@ -70,10 +71,53 @@ internal sealed class MeshFactory(
         return mesh;
     }
 
+    public Mesh CreateSphere()
+    {
+        if (_sphereMesh != null)
+            return _sphereMesh;
+
+        var mesh = new Mesh("Sphere");
+        const int segments = 32;
+        const int rings = 16;
+        const float radius = 0.5f;
+
+        for (var ring = 0; ring <= rings; ring++)
+        {
+            var theta = MathF.PI * ring / rings;
+            var (sinT, cosT) = MathF.SinCos(theta);
+            for (var seg = 0; seg <= segments; seg++)
+            {
+                var phi = 2f * MathF.PI * seg / segments;
+                var (sinP, cosP) = MathF.SinCos(phi);
+                var normal = new Vector3(sinT * cosP, cosT, sinT * sinP);
+                var tangent = new Vector3(-sinP, 0f, cosP);
+                var bitangent = Vector3.Cross(normal, tangent);
+                mesh.Vertices.Add(new Mesh.Vertex(normal * radius, normal,
+                    new Vector2((float)seg / segments, 1f - (float)ring / rings), tangent, bitangent));
+            }
+        }
+
+        for (var ring = 0; ring < rings; ring++)
+        {
+            for (var seg = 0; seg < segments; seg++)
+            {
+                var a = ring * (segments + 1) + seg;
+                var b = a + segments + 1;
+                mesh.Indices.AddRange([(uint)a, (uint)b, (uint)(a + 1), (uint)(a + 1), (uint)b, (uint)(b + 1)]);
+            }
+        }
+
+        mesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        _sphereMesh = mesh;
+        return mesh;
+    }
+
     public void Clear()
     {
         _cubeMesh?.Dispose();
         _cubeMesh = null;
+        _sphereMesh?.Dispose();
+        _sphereMesh = null;
         _logger.Information("MeshFactory cache cleared and resources disposed");
     }
 

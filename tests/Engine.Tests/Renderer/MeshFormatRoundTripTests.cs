@@ -30,7 +30,13 @@ public class MeshFormatRoundTripTests
             Roughness = 0.35f,
             AlbedoTexturePath = "models/cube/albedo.png",
             MetallicRoughnessTexturePath = "models/cube/mr.png",
-            NormalTexturePath = "models/cube/normal.png"
+            NormalTexturePath = "models/cube/normal.png",
+            EmissiveTexturePath = "models/cube/emissive.png",
+            BaseColorFactor = new Vector4(0.9f, 0.8f, 0.7f, 0.6f),
+            EmissiveFactor = new Vector3(1f, 0.5f, 0.25f),
+            AlphaMode = MaterialAlphaMode.Mask,
+            AlphaCutoff = 0.42f,
+            DoubleSided = true
         };
 
         var model = new Model([new ModelSubmesh(mesh, material)]);
@@ -53,6 +59,12 @@ public class MeshFormatRoundTripTests
         sub.Material.AlbedoTexturePath.ShouldBe("models/cube/albedo.png");
         sub.Material.MetallicRoughnessTexturePath.ShouldBe("models/cube/mr.png");
         sub.Material.NormalTexturePath.ShouldBe("models/cube/normal.png");
+        sub.Material.EmissiveTexturePath.ShouldBe("models/cube/emissive.png");
+        sub.Material.BaseColorFactor.ShouldBe(new Vector4(0.9f, 0.8f, 0.7f, 0.6f));
+        sub.Material.EmissiveFactor.ShouldBe(new Vector3(1f, 0.5f, 0.25f));
+        sub.Material.AlphaMode.ShouldBe(MaterialAlphaMode.Mask);
+        sub.Material.AlphaCutoff.ShouldBe(0.42f);
+        sub.Material.DoubleSided.ShouldBeTrue();
         sub.Material.AlbedoTexture.ShouldBeNull();
         sub.Material.MetallicRoughnessTexture.ShouldBeNull();
         sub.Material.NormalTexture.ShouldBeNull();
@@ -153,7 +165,7 @@ public class MeshFormatRoundTripTests
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             writer.Write("KULA"u8.ToArray());
-            writer.Write(2u);
+            writer.Write(3u);
             writer.Write(0u);
         }
 
@@ -175,10 +187,44 @@ public class MeshFormatRoundTripTests
         var bytes = stream.ToArray();
         bytes.Length.ShouldBeGreaterThanOrEqualTo(8);
         Encoding.ASCII.GetString(bytes, 0, 4).ShouldBe("KULA");
-        bytes[4].ShouldBe((byte)1);
+        bytes[4].ShouldBe((byte)2);
         bytes[5].ShouldBe((byte)0);
         bytes[6].ShouldBe((byte)0);
         bytes[7].ShouldBe((byte)0);
+    }
+
+    [Fact]
+    public void Read_Version1_Mesh_UsesMaterialDefaultsForNewFields()
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write("KULA"u8.ToArray());
+            writer.Write(1u);
+            writer.Write(1u);
+            writer.Write(0u);
+            writer.Write(1u);
+            writer.Write(1u);
+            for (var i = 0; i < 14; i++)
+                writer.Write(0f);
+            writer.Write(0u);
+            writer.Write(0.25f);
+            writer.Write(0.5f);
+            writer.Write(0u);
+            writer.Write(0u);
+            writer.Write(0u);
+        }
+
+        stream.Position = 0;
+        var loaded = MeshReader.Read(stream);
+
+        var mat = loaded.Submeshes[0].Material;
+        mat.BaseColorFactor.ShouldBe(Vector4.One);
+        mat.EmissiveFactor.ShouldBe(Vector3.Zero);
+        mat.EmissiveTexturePath.ShouldBeNull();
+        mat.AlphaMode.ShouldBe(MaterialAlphaMode.Opaque);
+        mat.AlphaCutoff.ShouldBe(0.5f);
+        mat.DoubleSided.ShouldBeFalse();
     }
 
     [Fact]

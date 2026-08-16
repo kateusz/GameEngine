@@ -9,5 +9,7 @@ namespace Engine.Scene.Cameras;
 public interface IViewCamera
 {
     Matrix4x4 GetViewProjectionMatrix();
+    Matrix4x4 GetViewMatrix();
+    Matrix4x4 GetProjectionMatrix();
     Vector3 GetPosition();
 }

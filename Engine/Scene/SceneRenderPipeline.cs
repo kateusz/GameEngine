@@ -15,6 +15,7 @@ namespace Engine.Scene;
 internal static class SceneRenderPipeline
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
+    private const string BuiltinSphereModelPath = "builtin:sphere";
     // ponytail: debug — once-per-entity tint warnings; clear not needed (reload editor resets process)
     private static readonly HashSet<int> WarnedTintEntities = [];
 
@@ -25,6 +26,24 @@ internal static class SceneRenderPipeline
         new(1.0f, 1.0f),
         new(0.0f, 1.0f)
     ];
+
+    private enum ModelDrawKind
+    {
+        Cube,
+        BuiltinSphere,
+        Mesh
+    }
+
+    private readonly record struct ModelDrawItem(
+        ModelDrawKind Kind,
+        Matrix4x4 Transform,
+        Vector3 WorldPosition,
+        Mesh? Mesh,
+        MeshMaterial? Material,
+        Vector4 Tint,
+        float Metallic,
+        float Roughness,
+        int EntityId);
 
     internal readonly struct CameraBinding
     {
@@ -61,18 +80,125 @@ internal static class SceneRenderPipeline
         Begin3DScene(graphics3D, camera);
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
-        var (lightDirection, lightColor) = ResolveDirectional(context);
-        graphics3D.SetDirectionalLight(lightDirection, lightColor);
+        var (lightDirection, lightColor, lightStrength) = ResolveDirectional(context);
+        graphics3D.SetDirectionalLight(lightDirection, lightColor, lightStrength);
+        var (skyLightPath, skyLightIntensity) = ResolveSkyLight(context);
+        graphics3D.SetEnvironment(skyLightPath, skyLightIntensity);
 
+        if (graphics3D.BeginShadowPass())
+        {
+            DrawOpaqueModels(context, graphics3D, modelFactory);
+            graphics3D.EndShadowPass();
+        }
+
+        var (pointPosition, pointColor, pointStrength, pointRange) = ResolvePoint(context);
+        graphics3D.SetPointLight(pointPosition, pointColor, pointStrength, pointRange);
+        if (graphics3D.BeginPointShadowPass())
+        {
+            for (var face = 0; face < 6; face++)
+            {
+                graphics3D.SetPointShadowFace(face);
+                DrawOpaqueModels(context, graphics3D, modelFactory);
+            }
+            graphics3D.EndPointShadowPass();
+        }
+
+        DrawOpaqueModels(context, graphics3D, modelFactory);
+        graphics3D.DrawSkybox();
+        DrawTransparentModels(context, graphics3D, modelFactory, GetCameraPosition(camera));
+
+        graphics3D.EndScene();
+    }
+
+    private static void DrawOpaqueModels(IContext context, IGraphics3D graphics3D, IModelFactory modelFactory)
+    {
+        foreach (var item in EnumerateModelDrawItems(context, modelFactory, static m => m.AlphaMode != MaterialAlphaMode.Blend))
+            IssueDraw(graphics3D, item);
+    }
+
+    private static void DrawTransparentModels(
+        IContext context,
+        IGraphics3D graphics3D,
+        IModelFactory modelFactory,
+        Vector3 cameraPosition)
+    {
+        var transparent = EnumerateModelDrawItems(context, modelFactory, static m => m.AlphaMode == MaterialAlphaMode.Blend)
+            .ToList();
+        if (transparent.Count == 0)
+            return;
+
+        TransparentDrawSort.SortBackToFront(transparent, cameraPosition, static item => item.WorldPosition);
+
+        graphics3D.BeginTransparentPass();
+        try
+        {
+            foreach (var item in transparent)
+                IssueDraw(graphics3D, item);
+        }
+        finally
+        {
+            graphics3D.EndTransparentPass();
+        }
+    }
+
+    private static void IssueDraw(IGraphics3D graphics3D, in ModelDrawItem item)
+    {
+        switch (item.Kind)
+        {
+            case ModelDrawKind.Cube:
+                graphics3D.DrawCube(item.Transform, item.Tint, item.EntityId);
+                break;
+            case ModelDrawKind.BuiltinSphere:
+                graphics3D.DrawBuiltinSphere(
+                    item.Transform, item.Tint, item.Metallic, item.Roughness, item.EntityId);
+                break;
+            case ModelDrawKind.Mesh:
+                graphics3D.DrawMesh(
+                    item.Transform,
+                    item.Mesh!,
+                    item.Material!,
+                    item.Tint,
+                    item.Metallic,
+                    item.Roughness,
+                    item.EntityId);
+                break;
+        }
+    }
+
+    private static IEnumerable<ModelDrawItem> EnumerateModelDrawItems(
+        IContext context,
+        IModelFactory modelFactory,
+        Func<MeshMaterial, bool> materialFilter)
+    {
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
             var transform = transformComponent.GetWorldTransform();
+            var worldPosition = new Vector3(transform.M41, transform.M42, transform.M43);
             var tint = modelRenderer.Color;
 
             if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
             {
-                graphics3D.DrawCube(transform, tint, entity.Id);
+                yield return new ModelDrawItem(
+                    ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
+                continue;
+            }
+
+            if (string.Equals(modelRenderer.ModelPath, BuiltinSphereModelPath, StringComparison.OrdinalIgnoreCase))
+            {
+                if (materialFilter(BuiltinSphereMaterial))
+                {
+                    yield return new ModelDrawItem(
+                        ModelDrawKind.BuiltinSphere,
+                        transform,
+                        worldPosition,
+                        null,
+                        BuiltinSphereMaterial,
+                        tint,
+                        modelRenderer.MetallicOverride ?? 0f,
+                        modelRenderer.RoughnessOverride ?? 0.5f,
+                        entity.Id);
+                }
                 continue;
             }
 
@@ -83,43 +209,61 @@ internal static class SceneRenderPipeline
                 Logger.Warning(
                     "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
                     modelRenderer.ModelPath, resolvedPath);
-                graphics3D.DrawCube(transform, tint, entity.Id);
+                yield return new ModelDrawItem(
+                    ModelDrawKind.Cube, transform, worldPosition, null, null, tint, 0f, 0.5f, entity.Id);
                 continue;
             }
 
-            // ponytail: debug tint/alpha once per entity — Color.a==0 → fully invisible; Color.rgb==0 → black
-            if (WarnedTintEntities.Add(entity.Id))
-            {
-                if (tint.W <= 0f)
-                {
-                    Logger.Warning(
-                        "ModelRenderer Color.a={Alpha} makes mesh invisible entity={EntityId} path={Path} color={Color}",
-                        tint.W, entity.Id, modelRenderer.ModelPath, tint);
-                }
-                else if (tint.X <= 0f && tint.Y <= 0f && tint.Z <= 0f)
-                {
-                    Logger.Warning(
-                        "ModelRenderer Color.rgb is black entity={EntityId} path={Path} color={Color} — mesh draws but looks invisible",
-                        entity.Id, modelRenderer.ModelPath, tint);
-                }
-                else
-                {
-                    Logger.Information(
-                        "ModelRenderer draw entity={EntityId} path={Path} tint={Color} hasAlbedo={HasAlbedo} submeshes={Count}",
-                        entity.Id, modelRenderer.ModelPath, tint,
-                        model.Submeshes[0].Material.HasAlbedoMap, model.Submeshes.Count);
-                }
-            }
+            LogModelTintOnce(entity, modelRenderer, tint, model);
 
             foreach (var submesh in EnumerateDrawSubmeshes(model, modelRenderer))
             {
+                if (!materialFilter(submesh.Material))
+                    continue;
+
                 var metallic = modelRenderer.MetallicOverride ?? submesh.Material.Metallic;
                 var roughness = modelRenderer.RoughnessOverride ?? submesh.Material.Roughness;
-                graphics3D.DrawMesh(transform, submesh.Mesh, submesh.Material, tint, metallic, roughness, entity.Id);
+                yield return new ModelDrawItem(
+                    ModelDrawKind.Mesh,
+                    transform,
+                    worldPosition,
+                    submesh.Mesh,
+                    submesh.Material,
+                    tint,
+                    metallic,
+                    roughness,
+                    entity.Id);
             }
         }
+    }
 
-        graphics3D.EndScene();
+    // ponytail: BuiltinSphereMaterial lives in Graphics3D — duplicate reference for filter only
+    private static readonly MeshMaterial BuiltinSphereMaterial = new();
+
+    private static void LogModelTintOnce(Entity entity, ModelRendererComponent modelRenderer, Vector4 tint, Model model)
+    {
+        if (!WarnedTintEntities.Add(entity.Id))
+            return;
+
+        if (tint.W <= 0f)
+        {
+            Logger.Warning(
+                "ModelRenderer Color.a={Alpha} makes mesh invisible entity={EntityId} path={Path} color={Color}",
+                tint.W, entity.Id, modelRenderer.ModelPath, tint);
+        }
+        else if (tint.X <= 0f && tint.Y <= 0f && tint.Z <= 0f)
+        {
+            Logger.Warning(
+                "ModelRenderer Color.rgb is black entity={EntityId} path={Path} color={Color} — mesh draws but looks invisible",
+                entity.Id, modelRenderer.ModelPath, tint);
+        }
+        else
+        {
+            Logger.Information(
+                "ModelRenderer draw entity={EntityId} path={Path} tint={Color} hasAlbedo={HasAlbedo} submeshes={Count}",
+                entity.Id, modelRenderer.ModelPath, tint,
+                model.Submeshes[0].Material.HasAlbedoMap, model.Submeshes.Count);
+        }
     }
 
     private static IEnumerable<ModelSubmesh> EnumerateDrawSubmeshes(Model model, ModelRendererComponent renderer)
@@ -135,6 +279,10 @@ internal static class SceneRenderPipeline
 
         return all.Skip(start).Take(count);
     }
+
+    private static Vector3 GetCameraPosition(in CameraBinding camera) =>
+        camera.ViewCamera?.GetPosition()
+        ?? new Vector3(camera.Transform.M41, camera.Transform.M42, camera.Transform.M43);
 
     private static void RenderSpritesAndSubTextures(
         IContext context,
@@ -229,20 +377,41 @@ internal static class SceneRenderPipeline
         foreach (var (_, alc) in context.View<AmbientLightComponent>())
             return (alc.Color, alc.Strength);
 
-        return (Vector3.One, 0.1f);
+        return (Vector3.One, 0.35f);
     }
 
-    private static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
+    private static (Vector3 Direction, Vector3 Color, float Strength) ResolveDirectional(IContext context)
     {
         foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
         {
             var direction = dlc.Direction.LengthSquared() < 1e-6f
                 ? new Vector3(0, -1, 0)
                 : Vector3.Normalize(dlc.Direction);
-            return (direction, dlc.Color);
+            return (direction, dlc.Color, dlc.Strength);
         }
 
-        // Metals get zero ambient in the PBR shader; without a directional light they are pure black.
-        return (new Vector3(0, -1, 0), Vector3.One);
+        return (new Vector3(0, -1, 0), Vector3.Zero, 0f);
+    }
+
+    private static (Vector3 Position, Vector3 Color, float Strength, float Range) ResolvePoint(IContext context)
+    {
+        foreach (var (_, plc, transform) in context.View<PointLightComponent, TransformComponent>())
+        {
+            var world = transform.GetWorldTransform();
+            return (new Vector3(world.M41, world.M42, world.M43), plc.Color, plc.Strength, plc.Range);
+        }
+
+        return (Vector3.Zero, Vector3.Zero, 0f, 25f);
+    }
+
+    private static (string? Path, float Intensity) ResolveSkyLight(IContext context)
+    {
+        foreach (var (_, slc) in context.View<SkyLightComponent>())
+        {
+            var path = string.IsNullOrWhiteSpace(slc.HdrPath) ? null : PathBuilder.Resolve(slc.HdrPath);
+            return (path, slc.Intensity);
+        }
+
+        return (null, 1f);
     }
 }

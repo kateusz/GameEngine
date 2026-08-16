@@ -1,3 +1,4 @@
+using SceneComponents.Lighting;
 using System.Numerics;
 using ECS;
 using Engine.Core;
@@ -5,6 +6,7 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Scene;
 using ImGuiNET;
 using SceneComponents;
@@ -16,13 +18,17 @@ namespace Sandbox;
 
 public class Sandbox3DLayer(
     IGraphics3D graphics3D,
-    SceneFactory sceneFactory) : ILayer
+    SceneFactory sceneFactory,
+    IFrameBufferFactory frameBufferFactory,
+    HdrTonemapPass hdrTonemapPass) : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<Sandbox3DLayer>();
+    private const float HdrExposure = 1.8f;
 
     private IScene? _scene;
     private PerspectiveCameraController? _cameraController;
     private Entity? _cameraEntity;
+    private IFrameBuffer? _hdrFrameBuffer;
     private float _fps;
     private float _fpsTimer;
     private int _fpsFrames;
@@ -48,6 +54,42 @@ public class Sandbox3DLayer(
         cubeEntity.AddComponent<TransformComponent>();
         cubeEntity.AddComponent<ModelRendererComponent>(new ModelRendererComponent(Vector4.One));
 
+        var floorEntity = _scene.CreateEntity("Floor");
+        var floorTransform = floorEntity.AddComponent<TransformComponent>();
+        floorTransform.Translation = new Vector3(0f, -0.55f, 0f);
+        floorTransform.Scale = new Vector3(20f, 0.1f, 20f);
+        floorEntity.AddComponent<ModelRendererComponent>(new ModelRendererComponent(new Vector4(0.82f, 0.82f, 0.8f, 1f)));
+
+        var skyEntity = _scene.CreateEntity("Sky");
+        var skyLight = skyEntity.AddComponent<SkyLightComponent>();
+        skyLight.HdrPath = "assets/textures/skies/sky_1k.hdr";
+
+        var sunEntity = _scene.CreateEntity("Sun");
+        var sun = sunEntity.AddComponent<DirectionalLightComponent>();
+        sun.Direction = new Vector3(-0.4f, -0.8f, -0.3f);
+        sun.Color = new Vector3(1f, 0.95f, 0.9f);
+
+        var lamp = _scene.CreateEntity("Point Light");
+        var lampTransform = lamp.AddComponent<TransformComponent>();
+        lampTransform.Translation = new Vector3(0f, 2.5f, 0f);
+        lamp.AddComponent<PointLightComponent>();
+
+        _hdrFrameBuffer = frameBufferFactory.Create();
+
+        for (var m = 0; m < 3; m++)
+        {
+            for (var r = 0; r < 3; r++)
+            {
+                var sphere = _scene.CreateEntity($"Sphere m{m} r{r}");
+                var sphereTransform = sphere.AddComponent<TransformComponent>();
+                sphereTransform.Translation = new Vector3((m - 1) * 1.5f, 0.75f + r * 1.5f, -2f);
+                var renderer = sphere.AddComponent<ModelRendererComponent>(new ModelRendererComponent(Vector4.One));
+                renderer.ModelPath = "builtin:sphere";
+                renderer.MetallicOverride = m / 2f;
+                renderer.RoughnessOverride = 0.1f + 0.4f * r;
+            }
+        }
+
         _cameraController = new PerspectiveCameraController(new Vector3(0f, 2f, 5f), 0f);
         _scene.OnRuntimeStart();
     }
@@ -56,6 +98,8 @@ public class Sandbox3DLayer(
     {
         _scene?.OnRuntimeStop();
         _scene?.Dispose();
+        _hdrFrameBuffer?.Dispose();
+        _hdrFrameBuffer = null;
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -78,9 +122,12 @@ public class Sandbox3DLayer(
             _fpsFrames = 0;
         }
 
+        _hdrFrameBuffer!.Bind();
         graphics3D.SetClearColor(new Vector4(0.1f, 0.1f, 0.15f, 1.0f));
         graphics3D.Clear();
         _scene?.OnUpdateRuntime(timeSpan);
+        _hdrFrameBuffer.Unbind();
+        hdrTonemapPass.Apply(_hdrFrameBuffer.GetColorAttachmentRendererId(), sdrTarget: null, HdrExposure);
     }
 
     public void HandleInputEvent(InputEvent windowEvent)
@@ -91,7 +138,10 @@ public class Sandbox3DLayer(
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
         if (windowEvent is WindowResizeEvent resizeEvent && _scene != null)
+        {
             _scene.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
+            _hdrFrameBuffer?.Resize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
+        }
     }
 
     public void Draw()

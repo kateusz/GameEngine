@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.Import;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
@@ -33,11 +34,13 @@ public sealed class EditorViewport(
     IEditorPreferences editorPreferences,
     IFrameBufferFactory frameBufferFactory,
     HdrTonemapPass hdrTonemapPass,
+    BloomPass bloomPass,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
     ViewportComponents viewport,
-    IPointerSurface pointerSurface)
+    IPointerSurface pointerSurface,
+    Import3DModelPopup import3DModelPopup)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -77,6 +80,8 @@ public sealed class EditorViewport(
 
         if (sceneContext.ActiveScene is not null)
             RebuildEntityLookup(sceneContext.ActiveScene);
+
+        bloomPass.Initialize();
     }
 
     public void Dispose()
@@ -104,10 +109,24 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
+        var hdrColorId = _frameBuffer.GetColorAttachmentRendererId();
+        uint bloomColorId = 0;
+        if (editorPreferences.BloomEnabled && editorPreferences.BloomIntensity > 0f)
+        {
+            var spec = _frameBuffer.GetSpecification();
+            bloomColorId = bloomPass.Apply(
+                hdrColorId,
+                spec.Width,
+                spec.Height,
+                editorPreferences.BloomThreshold).GetColorAttachmentRendererId();
+        }
+
         hdrTonemapPass.Apply(
-            _frameBuffer.GetColorAttachmentRendererId(),
+            hdrColorId,
             _sdrFrameBuffer,
-            editorPreferences.HdrExposure);
+            editorPreferences.HdrExposure,
+            bloomColorId,
+            editorPreferences.BloomIntensity);
 
         var texturePointer = new IntPtr(_sdrFrameBuffer.GetColorAttachmentRendererId());
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
@@ -118,9 +137,17 @@ public sealed class EditorViewport(
 
         PickHoveredEntity();
 
-        var sceneValidator = DragDropDrawer.CreateExtensionValidator([".scene"], checkFileExists: false);
-        DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload, sceneValidator,
-            onDropped: path => sceneManager.Open(PathBuilder.Build(path)));
+        var dropValidator = DragDropDrawer.CreateExtensionValidator(
+            [".scene", ..Import3DModelBatch.SupportedExtensions],
+            checkFileExists: false);
+        DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload, dropValidator,
+            onDropped: path =>
+            {
+                if (Import3DModelBatch.IsSupportedExtension(path))
+                    import3DModelPopup.BeginFromPath(PathBuilder.Build(path));
+                else
+                    sceneManager.Open(PathBuilder.Build(path));
+            });
 
         if (ImGui.IsWindowHovered())
             HandleViewportInput();

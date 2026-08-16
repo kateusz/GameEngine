@@ -57,6 +57,7 @@ public static class EngineIoCContainer
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
         container.Register<HdrTonemapPass>(Reuse.Singleton);
+        container.Register<BloomPass>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);
@@ -127,6 +128,7 @@ public static class EngineIoCContainer
     {
         container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
+        container.Register<IEnvironmentMapFactory, EnvironmentMapFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
         container.Register<IModelFactory, ModelFactory>(Reuse.Singleton);

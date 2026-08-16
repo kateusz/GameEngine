@@ -28,6 +28,7 @@ internal static class TextureRelocator
             material.AlbedoTexturePath = RelocateOne(material.AlbedoTexturePath, destDir, copied);
             material.MetallicRoughnessTexturePath = RelocateOne(material.MetallicRoughnessTexturePath, destDir, copied);
             material.NormalTexturePath = RelocateOne(material.NormalTexturePath, destDir, copied);
+            material.EmissiveTexturePath = RelocateOne(material.EmissiveTexturePath, destDir, copied);
         }
 
         if (copied.Count > 0)
@@ -53,9 +54,13 @@ internal static class TextureRelocator
         var fileName = Path.GetFileName(normalizedSource);
         if (string.IsNullOrEmpty(fileName))
             fileName = "texture.bin";
-        
-        var destAbsolute = Path.Combine(destDir, fileName);
-        File.Copy(normalizedSource, destAbsolute, overwrite: true);
+
+        var destAbsolute = Path.GetFullPath(Path.Combine(destDir, fileName));
+        // ponytail: IgnoreCase+Exists, not inode. Twin dirs that differ only by case
+        // on a case-sensitive volume would skip a real copy.
+        if (!string.Equals(normalizedSource, destAbsolute, StringComparison.OrdinalIgnoreCase)
+            || !File.Exists(destAbsolute))
+            File.Copy(normalizedSource, destAbsolute, overwrite: true);
 
         var relative = PathBuilder.ToAssetRelativePath(destAbsolute);
         copied[normalizedSource] = relative;

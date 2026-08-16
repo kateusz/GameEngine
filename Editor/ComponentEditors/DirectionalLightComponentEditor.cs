@@ -7,7 +7,7 @@ using SceneComponents.Lighting;
 
 namespace Editor.ComponentEditors;
 
-public class DirectionalLightComponentEditor(IEditorHistory history) : ComponentEditor<DirectionalLightComponent>(history)
+public class DirectionalLightComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<DirectionalLightComponent>(history)
 {
     protected override string DisplayName => "Directional Light";
 
@@ -27,5 +27,8 @@ public class DirectionalLightComponentEditor(IEditorHistory history) : Component
                     ImGuiColorEditFlags.NoOptions))
                 component.Color = color;
         });
+
+        propertyRenderer.DrawPropertyField("Strength", component.Strength,
+            newValue => component.Strength = (float)newValue);
     }
 }
