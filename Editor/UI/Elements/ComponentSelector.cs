@@ -51,9 +51,9 @@ public static class ComponentSelector
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity, history);
             DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, history, () =>
             {
-                if (!entity.HasComponent<TransformComponent>())
-                    entity.AddComponent<TransformComponent>();
-                entity.AddComponent<ModelRendererComponent>();
+                history.Execute(new AddComponentCommand(
+                    entity, new ModelRendererComponent(),
+                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
             DrawComponentMenuItem<CircleCollider2DComponent>("Circle Collider 2D", entity, history);
             DrawComponentMenuItem<EdgeCollider2DComponent>("Edge Collider 2D", entity, history);
