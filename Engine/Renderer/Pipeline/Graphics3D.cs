@@ -2,6 +2,7 @@
 using Engine.Core;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
+using Engine.Renderer.Textures;
 using Engine.Scene.Cameras;
 
 namespace Engine.Renderer.Pipeline;
@@ -52,13 +53,21 @@ internal sealed class Graphics3D(
         _meshShader.Unbind();
     }
 
-    public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1)
+    public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
+        float tilingFactor = 1.0f)
     {
         _meshShader.Bind();
         _meshShader.SetMat4("u_Model", transform);
         _meshShader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
         _meshShader.SetFloat4("u_Color", color);
         _meshShader.SetInt("u_EntityID", entityId);
+        _meshShader.SetFloat("u_TilingFactor", tilingFactor);
+        _meshShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
+        if (texture != null)
+        {
+            texture.Bind(0);
+            _meshShader.SetInt("u_Texture", 0);
+        }
 
         _cubeMesh.Bind();
         rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());

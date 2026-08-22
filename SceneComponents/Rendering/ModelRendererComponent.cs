@@ -6,6 +6,8 @@ namespace SceneComponents.Rendering;
 public class ModelRendererComponent : IComponent
 {
     public Vector4 Color { get; set; } = Vector4.One;
+    public string? TexturePath { get; set; }
+    public float TilingFactor { get; set; } = 1.0f;
 
     public ModelRendererComponent() { }
 
@@ -14,5 +16,10 @@ public class ModelRendererComponent : IComponent
         Color = color;
     }
 
-    public IComponent Clone() => new ModelRendererComponent { Color = Color };
+    public IComponent Clone() => new ModelRendererComponent
+    {
+        Color = Color,
+        TexturePath = TexturePath,
+        TilingFactor = TilingFactor
+    };
 }

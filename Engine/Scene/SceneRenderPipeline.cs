@@ -43,11 +43,11 @@ internal static class SceneRenderPipeline
         IContext context,
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
-        ITextureFactory? textureFactory,
+        ITextureFactory textureFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderCubes(context, graphics3D, camera);
+        RenderCubes(context, graphics3D, textureFactory, camera);
     }
     
     internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
@@ -130,7 +130,11 @@ internal static class SceneRenderPipeline
         }
     }
     
-    private static void RenderCubes(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
+    private static void RenderCubes(
+        IContext context,
+        IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
+        in CameraBinding camera)
     {
         if (!camera.IsValid)
             return;
@@ -144,15 +148,43 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
-            graphics3D.DrawCube(
-                transformComponent.GetWorldTransform(),
-                modelRenderer.Color,
-                entity.Id);
+            var transform = transformComponent.GetWorldTransform();
+            if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
+            {
+                DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity);
+            }
+            else
+            {
+                graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id);
+            }
         }
 
         graphics3D.EndScene();
     }
-    
+
+    private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,
+        ModelRendererComponent modelRenderer, Matrix4x4 transform, Entity entity)
+    {
+        try
+        {
+            var texture = textureFactory.Create(
+                PathBuilder.Resolve(modelRenderer.TexturePath!), sRgb: true);
+            graphics3D.DrawCube(
+                transform,
+                modelRenderer.Color,
+                entity.Id,
+                texture,
+                modelRenderer.TilingFactor);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(
+                ex,
+                "Failed to load cube texture '{TexturePath}' — drawing solid color instead",
+                modelRenderer.TexturePath);
+        }
+    }
+
     private static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
     {
         foreach (var (_, alc) in context.View<AmbientLightComponent>())
