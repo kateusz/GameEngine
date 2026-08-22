@@ -213,6 +213,7 @@ public sealed class EditorViewport(
     private void RenderSceneToFramebuffer(TimeSpan deltaTime)
     {
         graphics2D.ResetStats();
+        graphics3D.ResetStats();
         _frameBuffer.Bind();
 
         var clearColor = sceneContext.ActiveScene?.BackgroundColor

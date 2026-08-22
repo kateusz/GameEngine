@@ -82,6 +82,8 @@ internal sealed class Graphics3D(
     private static Matrix4x4 ComputeNormalMatrix(Matrix4x4 model) =>
         Matrix4x4.Invert(model, out var inv) ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
 
+    public void ResetStats() => _stats.DrawCalls = 0;
+
     public Statistics GetStats() => _stats;
 
     public void SetClearColor(Vector4 color) => rendererApi.SetClearColor(color);
