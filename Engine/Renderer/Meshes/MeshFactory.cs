@@ -21,7 +21,8 @@ internal sealed class MeshFactory(
         if (_cubeMesh != null)
             return _cubeMesh;
 
-        var mesh = new Mesh("Cube", textureFactory);
+        var mesh = new Mesh("Cube");
+        mesh.DiffuseTexture = textureFactory?.GetWhiteTexture()!;
         const float size = 0.5f;
 
         var tangentX = Vector3.UnitX;

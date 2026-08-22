@@ -40,12 +40,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\Engine\assets\shaders\OpenGL\mesh.frag">
-      <Link>assets\shaders\OpenGL\mesh.frag</Link>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\cube.frag">
+      <Link>assets\shaders\OpenGL\cube.frag</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\Engine\assets\shaders\OpenGL\mesh.vert">
-      <Link>assets\shaders\OpenGL\mesh.vert</Link>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\cube.vert">
+      <Link>assets\shaders\OpenGL\cube.vert</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\modelShader.frag">
+      <Link>assets\shaders\OpenGL\modelShader.frag</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\modelShader.vert">
+      <Link>assets\shaders\OpenGL\modelShader.vert</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

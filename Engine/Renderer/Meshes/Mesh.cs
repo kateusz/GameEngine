@@ -22,9 +22,16 @@ public class Mesh : IDisposable
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
-    public Texture2D DiffuseTexture { get; set; }
+    public Texture2D? DiffuseTexture { get; set; }
+    public Texture2D? SpecularTexture { get; set; }
+    public Texture2D? NormalTexture { get; set; }
+    public float Shininess { get; set; } = 32.0f;
     public List<Texture2D> Textures { get; set; }
     public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
+    
+    public bool HasDiffuseMap => DiffuseTexture != null;
+    public bool HasSpecularMap => SpecularTexture != null;
+    public bool HasNormalMap => NormalTexture != null;
 
     private IVertexArray _vertexArray;
     private IVertexBuffer _vertexBuffer;
@@ -40,13 +47,12 @@ public class Mesh : IDisposable
             : _vertexArray;
     }
 
-    public Mesh(string name = "Unnamed", ITextureFactory? textureFactory = null)
+    public Mesh(string name = "Unnamed")
     {
         Name = name;
         Vertices = [];
         Indices = [];
         Textures = [];
-        DiffuseTexture = textureFactory?.GetWhiteTexture()!;
     }
 
     public void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory,

@@ -16,6 +16,7 @@ using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
@@ -55,6 +56,8 @@ public static class EngineIoCContainer
         container.Register<DebugSettings>(Reuse.Singleton);
 
         RegisterFactories(container);
+        
+        container.Register<AssimpModelImporter>(Reuse.Singleton);
 
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
@@ -131,6 +134,7 @@ public static class EngineIoCContainer
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
+        container.Register<IModelFactory, ModelFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);
