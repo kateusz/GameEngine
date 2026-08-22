@@ -145,7 +145,7 @@ internal static class SceneRenderPipeline
                  context.View<ModelRendererComponent, TransformComponent>())
         {
             graphics3D.DrawCube(
-                transformComponent.GetTransform(),
+                transformComponent.GetWorldTransform(),
                 modelRenderer.Color,
                 entity.Id);
         }
