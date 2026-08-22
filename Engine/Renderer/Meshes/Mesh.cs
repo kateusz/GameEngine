@@ -26,7 +26,6 @@ public class Mesh : IDisposable
     public Texture2D? SpecularTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public float Shininess { get; set; } = 32.0f;
-    public List<Texture2D> Textures { get; set; }
     public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
     
     public bool HasDiffuseMap => DiffuseTexture != null;
@@ -52,7 +51,6 @@ public class Mesh : IDisposable
         Name = name;
         Vertices = [];
         Indices = [];
-        Textures = [];
     }
 
     public void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory,

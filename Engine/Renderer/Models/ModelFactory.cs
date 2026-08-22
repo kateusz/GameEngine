@@ -1,13 +1,11 @@
 ﻿using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
-using Engine.Renderer.Textures;
 using Serilog;
 
 namespace Engine.Renderer.Models;
 
-internal class ModelFactory(AssimpModelImporter importer, 
-    ITextureFactory textureFactory, 
+internal class ModelFactory(AssimpModelImporter importer,
     IVertexArrayFactory vertexArrayFactory, 
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory) : IModelFactory
@@ -101,21 +99,5 @@ internal class ModelFactory(AssimpModelImporter importer,
         
         _disposed = true;
         GC.SuppressFinalize(this);
-    }
-
-    private Texture2D? LoadTexture(string? path)
-    {
-        if (string.IsNullOrEmpty(path))
-            return null;
-
-        try
-        {
-            return textureFactory.Create(path);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warning(ex, "Failed to load texture {Path}", path);
-            return null;
-        }
     }
 }
