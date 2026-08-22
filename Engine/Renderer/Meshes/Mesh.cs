@@ -63,7 +63,7 @@ public class Mesh : IDisposable
                 $"Mesh '{Name}' already initialized. Initialize() should only be called once.");
 
         _vertexArray = vertexArrayFactory.Create();
-        var vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
+        var vertexBuffer = vertexBufferFactory.Create(Vertices);
 
         var layout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
@@ -76,8 +76,6 @@ public class Mesh : IDisposable
 
         vertexBuffer.SetLayout(layout);
         _vertexArray.AddVertexBuffer(vertexBuffer);
-
-        vertexBuffer.SetMeshData(Vertices);
 
         var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
         _vertexArray.SetIndexBuffer(indexBuffer);

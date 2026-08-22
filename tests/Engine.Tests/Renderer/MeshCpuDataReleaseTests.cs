@@ -22,7 +22,7 @@ public class MeshCpuDataReleaseTests
         var vaoFactory = Substitute.For<IVertexArrayFactory>();
         vaoFactory.Create().Returns(vao);
         var vboFactory = Substitute.For<IVertexBufferFactory>();
-        vboFactory.Create(Arg.Any<uint>()).Returns(vbo);
+        vboFactory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(vbo);
         var iboFactory = Substitute.For<IIndexBufferFactory>();
         iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
 
@@ -51,7 +51,7 @@ public class MeshCpuDataReleaseTests
         var vaoFactory = Substitute.For<IVertexArrayFactory>();
         vaoFactory.Create().Returns(vao);
         var vboFactory = Substitute.For<IVertexBufferFactory>();
-        vboFactory.Create(Arg.Any<uint>()).Returns(vbo);
+        vboFactory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(vbo);
         var iboFactory = Substitute.For<IIndexBufferFactory>();
         iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
 
