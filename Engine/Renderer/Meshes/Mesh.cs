@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
@@ -8,6 +9,7 @@ namespace Engine.Renderer.Meshes;
 
 public class Mesh : IDisposable
 {
+    [StructLayout(LayoutKind.Sequential)]
     public record struct Vertex(
         Vector3 Position,
         Vector3 Normal,
@@ -17,6 +19,15 @@ public class Mesh : IDisposable
         int EntityId = -1)
     {
         public Vertex() : this(default, default, default, default, default) { }
+
+        public static BufferLayout Layout { get; } = new([
+            new BufferElement(ShaderDataType.Float3, "a_Position"),
+            new BufferElement(ShaderDataType.Float3, "a_Normal"),
+            new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
+            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID")
+        ]);
     }
 
     public string Name { get; set; }
@@ -64,17 +75,7 @@ public class Mesh : IDisposable
 
         _vertexArray = vertexArrayFactory.Create();
         var vertexBuffer = vertexBufferFactory.Create(Vertices);
-
-        var layout = new BufferLayout([
-            new BufferElement(ShaderDataType.Float3, "a_Position"),
-            new BufferElement(ShaderDataType.Float3, "a_Normal"),
-            new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
-            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
-            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
-            new BufferElement(ShaderDataType.Int, "a_EntityID")
-        ]);
-
-        vertexBuffer.SetLayout(layout);
+        vertexBuffer.SetLayout(Vertex.Layout);
         _vertexArray.AddVertexBuffer(vertexBuffer);
 
         var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
