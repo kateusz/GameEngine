@@ -18,30 +18,12 @@ public sealed class Entity : IEntity, IEquatable<Entity>
     {
     }
     
-    /// <summary>
-    /// Validates that this entity does not already have a component of the specified type.
-    /// </summary>
-    /// <typeparam name="TComponent">The type of component to validate.</typeparam>
-    /// <exception cref="InvalidOperationException">Thrown when the entity already has a component of the specified type.</exception>
     private void ValidateComponentNotExists<TComponent>() where TComponent : IComponent
     {
         if (_components.ContainsKey(typeof(TComponent)))
             throw new InvalidOperationException($"Entity {Id} ('{Name}') already has component {typeof(TComponent).Name}");
     }
-
-    /// <summary>
-    /// Adds a pre-constructed component instance to this entity with compile-time type safety.
-    /// Use this overload when you want to initialize components with constructor parameters
-    /// while maintaining strong typing and IntelliSense support.
-    /// </summary>
-    /// <typeparam name="TComponent">The compile-time type of component to add.</typeparam>
-    /// <param name="component">The component instance to add.</param>
-    /// <returns>The added component instance.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the entity already has a component of the specified type.</exception>
-    /// <remarks>
-    /// This method stores the component using the compile-time generic type parameter, not the runtime type.
-    /// This ensures consistent behavior when working with component hierarchies.
-    /// </remarks>
+    
     public TComponent AddComponent<TComponent>(TComponent component) where TComponent : IComponent
     {
         ValidateComponentNotExists<TComponent>();
@@ -52,8 +34,6 @@ public sealed class Entity : IEntity, IEquatable<Entity>
 
     /// <summary>
     /// Creates and adds a new component instance to this entity using a parameterless constructor.
-    /// Use this overload when the component type has a parameterless constructor and you want
-    /// to configure properties after creation.
     /// </summary>
     /// <typeparam name="TComponent">The type of component to create and add.</typeparam>
     /// <returns>The newly created component instance.</returns>
@@ -124,36 +104,11 @@ public sealed class Entity : IEntity, IEquatable<Entity>
         return false;
     }
 
-    public bool TryGetComponent(Type componentType, out IComponent? component)
-    {
-        return _components.TryGetValue(componentType, out component);
-    }
+    public bool TryGetComponent(Type componentType, out IComponent? component) => _components.TryGetValue(componentType, out component);
 
-    public bool HasComponent<T>() where T : IComponent
-    {
-        return _components.ContainsKey(typeof(T));
-    }
-    
-    public bool HasComponents(Type[] componentTypes)
-    {
-        foreach (var type in componentTypes)
-        {
-            if (!_components.ContainsKey(type))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+    public bool HasComponent<T>() where T : IComponent => _components.ContainsKey(typeof(T));
 
-    /// <summary>
-    /// Gets all components attached to this entity.
-    /// </summary>
-    /// <returns>An enumerable collection of all components.</returns>
-    public IEnumerable<IComponent> GetAllComponents()
-    {
-        return _components.Values;
-    }
+    public IEnumerable<IComponent> GetAllComponents() => _components.Values;
 
     /// <summary>Component types currently on this entity (for registry indexing).</summary>
     internal IEnumerable<Type> ComponentTypes => _components.Keys;

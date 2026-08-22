@@ -11,7 +11,8 @@ public class RuntimeApplication(
     IGameWindow gameWindow,
     IRendererAPI rendererApi,
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     IAudio audio,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput)
-    : Application(gameWindow, rendererApi, graphics2D, audio, keyboardInput: keyboardInput, mouseInput: mouseInput);
+    : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, keyboardInput: keyboardInput, mouseInput: mouseInput);

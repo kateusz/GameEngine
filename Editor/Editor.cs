@@ -12,8 +12,9 @@ public class Editor(
     IGameWindow gameWindow,
     IRendererAPI rendererApi,
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     IAudio audio,
     IImGuiLayer imGuiLayer,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput)
-    : Application(gameWindow, rendererApi, graphics2D, audio, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);
+    : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);

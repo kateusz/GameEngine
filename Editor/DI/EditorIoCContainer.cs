@@ -5,6 +5,7 @@ using Editor.ComponentEditors;
 using Editor.ComponentEditors.Audio;
 using Editor.ComponentEditors.Core;
 using Editor.ComponentEditors.Physics;
+using Editor.ComponentEditors.Lighting;
 using Editor.ComponentEditors.Rendering;
 using Editor.Features.Components;
 using Editor.Features.History;
@@ -62,7 +63,10 @@ public static class EditorIoCContainer
         // Component editors — registration order = properties panel draw order
         container.RegisterMany<TransformComponentEditor>(Reuse.Singleton);
         container.RegisterMany<CameraComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<AmbientLightComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<DirectionalLightComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SpriteRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<RigidBody2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<BoxCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<CircleCollider2DComponentEditor>(Reuse.Singleton);

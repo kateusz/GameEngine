@@ -6,6 +6,7 @@ using Engine.Scene.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Serilog;
 
@@ -41,10 +42,20 @@ internal static class SceneRenderPipeline
     public static void RenderScene(
         IContext context,
         IGraphics2D graphics2D,
+        IGraphics3D graphics3D,
         ITextureFactory? textureFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
+        RenderCubes(context, graphics3D, camera);
+    }
+    
+    internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
+    {
+        if (camera.ViewCamera != null)
+            graphics2D.BeginScene(camera.ViewCamera);
+        else
+            graphics2D.BeginScene(camera.Camera!, camera.Transform);
     }
     
     private static void RenderSpritesAndSubTextures(
@@ -118,12 +129,54 @@ internal static class SceneRenderPipeline
             graphics2D.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
     }
+    
+    private static void RenderCubes(IContext context, IGraphics3D graphics3D, in CameraBinding camera)
+    {
+        if (!camera.IsValid)
+            return;
 
-    internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
+        Begin3DScene(graphics3D, camera);
+        var (ambientColor, ambientStrength) = ResolveAmbient(context);
+        graphics3D.SetAmbientLight(ambientColor, ambientStrength);
+        var (lightDirection, lightColor) = ResolveDirectional(context);
+        graphics3D.SetDirectionalLight(lightDirection, lightColor);
+
+        foreach (var (entity, modelRenderer, transformComponent) in
+                 context.View<ModelRendererComponent, TransformComponent>())
+        {
+            graphics3D.DrawCube(
+                transformComponent.GetWorldTransform(),
+                modelRenderer.Color,
+                entity.Id);
+        }
+
+        graphics3D.EndScene();
+    }
+    
+    private static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
+    {
+        foreach (var (_, alc) in context.View<AmbientLightComponent>())
+            return (new Vector3(alc.Color.X, alc.Color.Y, alc.Color.Z), alc.Strength);
+
+        return (Vector3.One, 0.1f);
+    }
+
+    private static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
+    {
+        foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
+            return (NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));
+
+        return (new Vector3(0, -1, 0), Vector3.Zero);
+    }
+    
+    private static Vector3 NormalizeDirection(Vector3 direction) =>
+        direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
+    
+    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera)
     {
         if (camera.ViewCamera != null)
-            graphics2D.BeginScene(camera.ViewCamera);
+            graphics3D.BeginScene(camera.ViewCamera);
         else
-            graphics2D.BeginScene(camera.Camera!, camera.Transform);
+            graphics3D.BeginScene(camera.Camera!, camera.Transform);
     }
 }

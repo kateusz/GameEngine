@@ -6,8 +6,6 @@ namespace Engine.Renderer.Pipeline;
 
 public interface IGraphics2D : IGraphics
 {
-    void Init();
-
     /// <summary>
     /// Begins a scene using a projection-only camera and an entity transform.
     /// Used during runtime rendering where the active camera is a <see cref="Camera"/> (e.g., SceneCamera)

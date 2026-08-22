@@ -4,7 +4,7 @@ using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class RendererStatsPanel(IGraphics2D graphics2D)
+public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
 {
     public bool IsVisible { get; set; } = false;
 
@@ -34,6 +34,13 @@ public class RendererStatsPanel(IGraphics2D graphics2D)
         ImGui.Text($"Vertices: {stats2D.GetTotalVertexCount()}");
         ImGui.Text($"Indices: {stats2D.GetTotalIndexCount()}");
 
+        ImGui.Separator();
+
+        // --- Renderer3D Stats ---
+        var stats3D = graphics3D.GetStats();
+        ImGui.Text("Renderer3D Stats:");
+        ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
+        
         ImGui.End();
     }
 }

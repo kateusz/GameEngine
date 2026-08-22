@@ -6,8 +6,7 @@ namespace ECS;
 /// </summary>
 public class Context : IContext
 {
-    private readonly Dictionary<int, Entity> _entitiesById = new();
-    private readonly List<Entity> _entitiesList = [];
+    private readonly OrderedDictionary<int, Entity> _entities = new();
     private readonly Dictionary<Type, HashSet<Entity>> _entitiesByComponentType = new();
     private readonly Lock _lock = new();
 
@@ -15,12 +14,25 @@ public class Context : IContext
     {
         lock (_lock)
         {
-            if (!_entitiesById.TryAdd(entity.Id, entity))
+            if (!_entities.TryAdd(entity.Id, entity))
                 throw new InvalidOperationException($"Entity with ID {entity.Id} is already registered.");
 
-            _entitiesList.Add(entity);
-            entity.ComponentAdded = componentType => IndexAdd(entity, componentType);
-            entity.ComponentRemoved = componentType => IndexRemove(entity, componentType);
+            entity.ComponentAdded = componentType =>
+            {
+                lock (_lock)
+                {
+                    if (_entities.TryGetValue(entity.Id, out var registered) && ReferenceEquals(registered, entity))
+                        IndexAdd(entity, componentType);
+                }
+            };
+            entity.ComponentRemoved = componentType =>
+            {
+                lock (_lock)
+                {
+                    if (_entities.TryGetValue(entity.Id, out var registered) && ReferenceEquals(registered, entity))
+                        IndexRemove(entity, componentType);
+                }
+            };
             IndexEntity(entity);
         }
     }
@@ -29,10 +41,9 @@ public class Context : IContext
     {
         lock (_lock)
         {
-            if (!_entitiesById.Remove(entityId, out var entity))
+            if (!_entities.Remove(entityId, out var entity))
                 return false;
 
-            _entitiesList.Remove(entity);
             entity.ClearComponentHooks();
             IndexRemoveEntity(entity, entity.ComponentTypes);
             return true;
@@ -43,18 +54,17 @@ public class Context : IContext
     {
         lock (_lock)
         {
-            foreach (var entity in _entitiesList)
+            foreach (var entity in _entities.Values)
                 entity.ClearComponentHooks();
 
-            _entitiesById.Clear();
-            _entitiesList.Clear();
+            _entities.Clear();
             _entitiesByComponentType.Clear();
         }
     }
 
-    public Entity GetById(int entityId) => _entitiesById[entityId];
+    public Entity GetById(int entityId) => _entities[entityId];
 
-    public Entity GetByName(string name) => _entitiesList.Single(e => e.Name == name);
+    public Entity GetByName(string name) => _entities.Values.Single(e => e.Name == name);
 
     public IEnumerable<Entity> Entities
     {
@@ -62,7 +72,7 @@ public class Context : IContext
         {
             Entity[] snapshot;
             lock (_lock)
-                snapshot = _entitiesList.ToArray();
+                snapshot = [.. _entities.Values];
 
             foreach (var entity in snapshot)
                 yield return entity;
@@ -72,7 +82,7 @@ public class Context : IContext
     public bool Contains(int entityId)
     {
         lock (_lock)
-            return _entitiesById.ContainsKey(entityId);
+            return _entities.ContainsKey(entityId);
     }
 
     public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent

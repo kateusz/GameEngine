@@ -15,6 +15,7 @@ namespace Engine.Scene;
 
 internal sealed class SceneSystemsFactory(
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     DebugSettings debugSettings,
     IScriptEngine scriptEngine,
@@ -52,7 +53,7 @@ internal sealed class SceneSystemsFactory(
             new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
-            new SceneRenderSystem(graphics2D, textureFactory, context, primaryCamera)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera)
         ];
 
         foreach (var system in systems.Concat(shared))
