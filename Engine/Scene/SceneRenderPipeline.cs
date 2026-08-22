@@ -17,6 +17,8 @@ internal static class SceneRenderPipeline
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
 
+    private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly Vector2[] DefaultTextureCoords =
     [
         new(0.0f, 0.0f),
@@ -242,9 +244,10 @@ internal static class SceneRenderPipeline
             var model = modelFactory.Create(resolvedPath);
             if (model == null)
             {
-                Logger.Warning(
-                    "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                    modelRenderer.ModelPath, resolvedPath);
+                if (WarnedFailedModels.Add(resolvedPath))
+                    Logger.Warning(
+                        "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
+                        modelRenderer.ModelPath, resolvedPath);
                 graphics3D.DrawCube(transform, tint, entity.Id);
                 continue;
             }

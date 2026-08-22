@@ -14,7 +14,7 @@ internal class ModelFactory(AssimpModelImporter importer,
 {
     private static readonly ILogger Logger = Log.ForContext<ModelFactory>();
     
-    private readonly Dictionary<string, Model> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Model?> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
     
@@ -28,6 +28,18 @@ internal class ModelFactory(AssimpModelImporter importer,
                 return cached;
         }
 
+        var model = TryLoadModel(normalizedPath);
+
+        lock (_cacheLock)
+        {
+            _cache[normalizedPath] = model;
+        }
+
+        return model;
+    }
+
+    private Model? TryLoadModel(string normalizedPath)
+    {
         if (!File.Exists(normalizedPath))
         {
             Logger.Warning("Model file not found: {Path}", normalizedPath);
@@ -65,14 +77,7 @@ internal class ModelFactory(AssimpModelImporter importer,
                 return null;
             }
 
-            var model = new Model(normalizedPath, initialized);
-
-            lock (_cacheLock)
-            {
-                _cache[normalizedPath] = model;
-            }
-
-            return model;
+            return new Model(normalizedPath, initialized);
         }
         catch (Exception ex)
         {
@@ -89,7 +94,8 @@ internal class ModelFactory(AssimpModelImporter importer,
         lock (_cacheLock)
         {
             foreach (var model in _cache.Values)
-                model.Dispose();
+                if (model != null)
+                    model.Dispose();
             _cache.Clear();
         }
         

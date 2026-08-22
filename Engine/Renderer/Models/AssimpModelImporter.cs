@@ -9,7 +9,7 @@ using Mesh = Engine.Renderer.Meshes.Mesh;
 
 namespace Engine.Renderer.Models;
 
-internal sealed class AssimpModelImporter(ITextureFactory textureFactory)
+internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<AssimpModelImporter>();
     
@@ -17,10 +17,12 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory)
         Path.Combine(Path.GetTempPath(), "GameEngine", "embedded-textures");
     
     private readonly Assimp _assimp = Assimp.GetApi();
+    private bool _disposed;
 
     public List<Mesh> Import(string path)
     {
         var submeshes = new List<Mesh>();
+        var pendingTextures = new List<(Mesh Mesh, MaterialInfo Material)>();
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
 
         const uint flags = (uint)(PostProcessSteps.Triangulate |
@@ -32,8 +34,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory)
         unsafe
         {
             var scene = _assimp.ImportFile(path, flags);
-
-            if (scene == null || (scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
+            if (scene == null)
             {
                 Logger.Error(
                     "Failed to import model path={Path} assimpError={AssimpError}",
@@ -41,15 +42,45 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory)
                 return submeshes;
             }
 
-            for (uint i = 0; i < scene->MNumMeshes; i++)
+            try
             {
-                var aiMesh = scene->MMeshes[i];
-                var mesh = ExtractMesh(aiMesh);
-                ExtractMaterial(mesh, scene, aiMesh->MMaterialIndex, directory);
-                submeshes.Add(mesh);
-            }
+                if ((scene->MFlags & (uint)SceneFlags.Incomplete) != 0 || scene->MRootNode == null)
+                {
+                    Logger.Error(
+                        "Failed to import model path={Path} assimpError={AssimpError}",
+                        path, _assimp.GetErrorStringS());
+                    return submeshes;
+                }
 
-            _assimp.ReleaseImport(scene);
+                for (uint i = 0; i < scene->MNumMeshes; i++)
+                {
+                    var aiMesh = scene->MMeshes[i];
+                    if (aiMesh->MNumVertices == 0 || aiMesh->MNumFaces == 0)
+                    {
+                        Logger.Debug(
+                            "Skipping empty mesh name={Name} vertices={Vertices} faces={Faces}",
+                            aiMesh->MName.AsString, aiMesh->MNumVertices, aiMesh->MNumFaces);
+                        continue;
+                    }
+
+                    var mesh = ExtractMesh(aiMesh);
+                    var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory);
+                    mesh.Shininess = material.Shininess;
+                    pendingTextures.Add((mesh, material));
+                    submeshes.Add(mesh);
+                }
+            }
+            finally
+            {
+                _assimp.ReleaseImport(scene);
+            }
+        }
+
+        foreach (var (mesh, material) in pendingTextures)
+        {
+            mesh.DiffuseTexture = LoadTexture(material.DiffusePath);
+            mesh.SpecularTexture = LoadTexture(material.SpecularPath);
+            mesh.NormalTexture = LoadTexture(material.NormalPath);
         }
 
         return submeshes;
@@ -97,22 +128,35 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory)
         return mesh;
     }
 
-    private unsafe void ExtractMaterial(Mesh mesh, Silk.NET.Assimp.Scene* scene, uint materialIndex,
+    private readonly record struct MaterialInfo(
+        string? DiffusePath,
+        string? SpecularPath,
+        string? NormalPath,
+        float Shininess);
+
+    private unsafe MaterialInfo ExtractMaterialInfo(Silk.NET.Assimp.Scene* scene, uint materialIndex,
         string directory)
     {
+        if (materialIndex >= scene->MNumMaterials)
+        {
+            Logger.Warning(
+                "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
+                materialIndex, scene->MNumMaterials);
+            return new MaterialInfo(null, null, null, 32.0f);
+        }
+
         var aiMaterial = scene->MMaterials[materialIndex];
 
         var diffuseTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
         var specularTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
         var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
                                 ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
-        mesh.DiffuseTexture = LoadTexture(diffuseTexturePath);
-        mesh.SpecularTexture = LoadTexture(specularTexturePath);
-        mesh.NormalTexture = LoadTexture(normalTexturePath);
 
         var shininess = 32.0f;
         _assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
-        mesh.Shininess = shininess > 0 ? shininess : 32.0f;
+        shininess = shininess > 0 ? shininess : 32.0f;
+
+        return new MaterialInfo(diffuseTexturePath, specularTexturePath, normalTexturePath, shininess);
     }
 
     private unsafe string? ResolveTexturePath(Silk.NET.Assimp.Scene* scene, Material* aiMaterial,
@@ -261,5 +305,15 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory)
             Logger.Warning(ex, "Failed to load texture {Path}", path);
             return null;
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _assimp.Dispose();
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }
