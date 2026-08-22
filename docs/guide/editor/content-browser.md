@@ -9,6 +9,7 @@ To navigate into a folder from the grid, double-click it. When you are inside a 
 | Extension | Type | Display |
 |-----------|------|---------|
 | `.png`, `.jpg` | Texture | Thumbnail (actual image preview) |
+| `.glb`, `.gltf`, `.fbx` | 3D model | File icon |
 | `.wav`, `.ogg` | Audio Clip | File icon |
 | `.scene` | Scene | File icon |
 | `.prefab` | Prefab | File icon (same as other data files) |
@@ -24,6 +25,7 @@ All drop targets accept only files with matching extensions — dropping an inco
 | Drag source | Drop target | Result |
 |-------------|-------------|--------|
 | `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture |
+| `.glb` / `.gltf` / `.fbx` | ModelRendererComponent model field | Assigns the static mesh |
 | `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
 | `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
 | `.scene` scene file | Viewport | Opens the scene |

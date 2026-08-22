@@ -1,6 +1,6 @@
 # Rendering Pipeline
 
-The rendering pipeline flows from ECS rendering systems through a batched 2D graphics layer, abstracted behind a platform-agnostic renderer API that isolates OpenGL from engine core.
+The rendering pipeline flows from ECS rendering systems through a 2D batched graphics layer and a 3D mesh/cube path, abstracted behind a platform-agnostic renderer API that isolates OpenGL from engine core.
 
 ---
 
@@ -15,16 +15,18 @@ graph TB
     end
 
     subgraph "Scene Render Pass"
-        SRP["Scene draw coordinator<br/><i>Sprites, subtextures</i>"]
+        SRP["Scene draw coordinator<br/><i>Sprites, cubes, models</i>"]
     end
 
     subgraph "Graphics Layer"
         G2D["2D graphics<br/><i>Batched quads + lines</i>"]
+        G3D["3D graphics<br/><i>Cubes + indexed meshes</i>"]
     end
 
     subgraph "Resource Loaders"
         TF["Texture cache<br/><i>Path cache + white texture</i>"]
         SF["Shader cache<br/><i>File-time cache, defines, parallel compile</i>"]
+        MF["Model cache<br/><i>Path cache, Assimp import</i>"]
     end
 
     subgraph "Renderer Abstraction"
@@ -42,10 +44,16 @@ graph TB
     PCS --> SRS
     SRS --> SRP
     SRP --> G2D
+    SRP --> G3D
     PDRS --> G2D
     G2D --> API
     G2D --> TF
     G2D --> SF
+    G3D --> API
+    G3D --> TF
+    G3D --> SF
+    G3D --> MF
+    MF --> TF
     API --> OAPI
     OAPI --> VAO
     OAPI --> FB
@@ -57,16 +65,18 @@ graph TB
 
 ## Scene Render Pass
 
-The scene render system (priority 150) draws all drawable entities in one pass:
+The scene render system (priority 150) draws all drawable entities in one frame:
 
 | Pass | Components queried | Graphics path |
 |------|-------------------|---------------|
 | 2D sprites | `SpriteRendererComponent` + `TransformComponent` | Batched textured quads (skips fully transparent tint; failed texture load → solid-color quad) |
 | 2D subtextures | `SubTextureRendererComponent` + `TransformComponent` | Batched quads with atlas coordinates |
+| 3D cubes | `ModelRendererComponent` + `TransformComponent` (empty `ModelPath`) | Unit cube, optional albedo texture |
+| 3D models | `ModelRendererComponent` + `TransformComponent` (set `ModelPath`) | One indexed draw per submesh |
 
 Physics debug draw (priority 151) renders collider outlines when collider debug is enabled. In the editor edit viewport, the same outlines are drawn after the scene pass when that option is on.
 
-**Render order within a frame**: sprites and subtextures share the same camera binding from the primary camera (runtime) or the editor camera (editor).
+**Render order within a frame**: 2D batch, then cubes, then imported models. All passes share the same camera binding from the primary camera (runtime) or the editor camera (editor). 3D passes enable depth test; 2D sprite batch disables it.
 
 User-facing setup: [Cameras and Rendering](../guide/concepts/cameras-and-rendering.md).
 
@@ -175,6 +185,43 @@ sequenceDiagram
 
 ---
 
+## 3D Mesh Path
+
+**File**: `Engine/Renderer/Pipeline/Graphics3D.cs`, `Engine/Renderer/Models/`, `Engine/Renderer/Meshes/Mesh.cs`
+
+3D is a **forward, unbatched** path: one `DrawIndexed` per cube or imported submesh. That is enough for static props and a handful of characters; it is not an instancing or PBR pipeline.
+
+### Draw API
+
+`IGraphics3D` (`Engine/Renderer/Pipeline/IGraphics3D.cs`):
+
+| Call | Role |
+|------|------|
+| `BeginScene` | Bind view-projection (runtime entity camera or editor orbit camera) |
+| `SetAmbientLight` / `SetDirectionalLight` | Scene lights for the pass |
+| `DrawCube` | Shared unit cube mesh (`MeshFactory.CreateCube`) |
+| `DrawMesh` | GPU mesh + optional diffuse/specular/normal maps |
+
+Lighting is Blinn-Phong (`assets/shaders/OpenGL/modelShader.*`, `cube.*`). The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
+
+### Model import
+
+**File**: `Engine/Renderer/Models/AssimpModelImporter.cs`, `ModelFactory.cs`
+
+| Step | What happens |
+|------|----------------|
+| `IModelFactory.Create(path)` | Path cache (including failed loads). Miss → Assimp import + VAO/VBO/EBO |
+| Assimp | Silk.NET Assimp, not AssimpNet. Formats: `.glb`, `.gltf`, `.fbx` |
+| Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs, **pre-transform vertices** (hierarchy baked) |
+| CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (`MNumIndices == 3`) |
+| Materials | Diffuse (albedo), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files |
+| GPU upload | `Mesh.Initialize` — vertex layout below; CPU vertex/index lists cleared after upload |
+
+The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; OpenGL upload must stay on the context thread.
+
+`PreTransformVertices` is a static-model choice: node transforms are baked into vertices. Mesh instancing via the Assimp node graph and skeletal animation need that flag off and a node walk — not implemented.
+---
+
 ## Texture Management
 
 ```mermaid
@@ -239,7 +286,7 @@ classDiagram
 
 ### Runtime scene camera
 
-- Supports **orthographic** projection
+- Supports **orthographic** and **perspective** projection (`CameraComponent.ProjectionType`)
 - **Lazy evaluation**: projection matrix only recomputed when dirty (property changes, viewport resize)
 - Wrapped in `CameraComponent` on an entity; primary flag designates the active camera
 - Primary camera system (priority 145) resolves the primary camera each frame and caches it for rendering systems
@@ -253,7 +300,7 @@ classDiagram
 
 ### Begin-scene integration
 
-2D drawing accepts two camera modes:
+2D drawing accepts two camera modes (3D `BeginScene` uses the same binding):
 
 | Mode | Usage | View matrix source |
 |------|-------|-------------------|
@@ -306,7 +353,7 @@ Framebuffers resize to match the viewport, clamped to max framebuffer size (8192
 
 ## Rendering Statistics
 
-2D graphics tracks per-frame statistics in a shared stats structure.
+2D graphics tracks per-frame statistics in a shared stats structure. 3D graphics tracks draw-call count only (`IGraphics3D.GetStats()`).
 
 | Field | Scope | Meaning |
 |-------|-------|---------|

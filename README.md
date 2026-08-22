@@ -1,6 +1,8 @@
 # Game Engine
 
-A modern, component-based game engine built with C# and .NET 10, featuring a visual editor, hot-reloadable C# scripting, and 2D game development support.
+![3d.png](docs/images/3d.png)
+
+A component-based game engine built with C# and .NET 10, featuring a visual editor, hot-reloadable C# scripting, 2D games, and basic 3D (static meshes).
 
 ## Features
 
@@ -8,6 +10,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a vis
 - **Entity Component System (ECS)** — data-driven architecture with ordered system execution
 - **Entity Hierarchy** — parent/child transforms, cascade destroy, prefab subtrees, serialized relationships
 - **2D Rendering** — OpenGL pipeline with batched sprites
+- **3D Rendering** — static `.glb` / `.gltf` / `.fbx` meshes, unit cubes, perspective camera, ambient + directional light (Blinn-Phong). No skinning or animation yet.
 - **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast & overlap queries, and debug visualization
 - **Hot-Reloadable Scripting** — write game logic in C# and reload without restarting the editor
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
@@ -16,15 +19,11 @@ A modern, component-based game engine built with C# and .NET 10, featuring a vis
 ### Editor
 - **Visual Scene Editor** — hierarchy tree, viewport tools (select/move/scale/rotate/ruler), and properties panel
 - **Undo/Redo** — reversible transform, component, and entity-delete operations (Ctrl+Z / Ctrl+Y)
-- **Asset Browser** — browse and manage project assets; drag-drop textures, audio, and prefabs into scenes
+- **Asset Browser** — browse and manage project assets; drag-drop textures, 3D models, audio, and prefabs into scenes
 - **Live Console** — real-time logging while you work
 - **Project Management** — create and open game projects
 - **Game Publishing** — build standalone executables for Windows and macOS, with publish validation
 - **Keyboard Shortcuts** — configurable shortcuts with an in-editor reference ([docs](docs/guide/editor/shortcuts.md))
-
-### Status
-
-~**82–86% ready for 2D public alpha**. Core mechanics, hierarchy, physics queries, undo/redo, and publish pipeline are in place. Main remaining gaps: **runtime UI** (menus/HUD), **sprite sort layers**, and **script field serialization**.
 
 ## Getting Started
 
@@ -52,7 +51,7 @@ For a fuller walkthrough, see the [Developer Guide](docs/guide/index.md).
 ## Project Layout
 
 ```
-├── Engine/          # Core runtime (rendering, physics, audio, scripting, scenes)
+├── Engine/          # Core runtime (2D/3D rendering, physics, audio, scripting, scenes)
 ├── ECS/             # Entity Component System framework
 ├── Editor/          # Visual editor
 ├── Runtime/         # Standalone game player
@@ -85,9 +84,11 @@ Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game ove
 ## Documentation
 
 - [Developer Guide](docs/guide/index.md) — setup, editor, scripting, concepts
+- [Cameras and Rendering](docs/guide/concepts/cameras-and-rendering.md) — 2D sprites, 3D models, lights, cameras
 - [Architecture](docs/architecture/README.md) — how the engine is structured
+- [Rendering Pipeline](docs/architecture/rendering-pipeline.md) — 2D batching and 3D mesh path
 - [Roadmap](docs/guide/roadmap.md) — planned work
 
 ## Dependencies
 
-Silk.NET, ImGui, Box2D, OpenAL, DryIoc, Serilog
+Silk.NET (OpenGL, Assimp), ImGui, Box2D, OpenAL, DryIoc, Serilog

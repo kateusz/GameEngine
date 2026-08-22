@@ -8,7 +8,7 @@ Architectural documentation for the C# .NET 10.0 game engine. Covers runtime sys
 
 ## C4 Level 1 — System Context
 
-The engine is used by game developers to build 2D games. It provides two deployment modes: a visual **Editor** for development and a standalone **Runtime** player for distribution.
+The engine is used by game developers to build **2D** games and **basic 3D** (static meshes). It provides two deployment modes: a visual **Editor** for development and a standalone **Runtime** player for distribution.
 
 ```mermaid
 C4Context
@@ -80,7 +80,7 @@ GameEngine/
 │   └── Systems/         # ISystem, SystemManager (priority-sorted execution)
 ├── Engine/              # Core runtime
 │   ├── Core/            # Application, Layer stack, DI setup, Input, Window
-│   ├── Renderer/        # 2D graphics, renderer API, batching, cameras
+│   ├── Renderer/        # 2D graphics, 3D meshes/cubes, renderer API, cameras
 │   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
 │   ├── Scripting/       # IScriptEngine, Roslyn compilation, hot-reload
 │   └── Audio/           # IAudio loaders/utils, OpenAL integration
@@ -97,7 +97,7 @@ GameEngine/
 |----------|-------|
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
-| [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, shaders, textures, cameras, framebuffers |
+| [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, 3D mesh import, shaders, textures, cameras, framebuffers |
 | [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, script entities, editor vs runtime |
 | [Physics System](physics-system.md) | Physics world abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |

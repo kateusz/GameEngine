@@ -1,11 +1,12 @@
 # Game Engine Developer Guide
 
-This is a C# game engine built on an Entity Component System (ECS) architecture, offering production-ready **2D** rendering via OpenGL, a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers core game development needs: physics simulation, spatial audio, and sprite atlasing.
+This is a C# game engine built on an Entity Component System (ECS) architecture, offering **2D** batched rendering and **basic 3D** static meshes via OpenGL, a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers core game development needs: physics simulation, spatial audio, and sprite atlasing.
 
 ## Features
 
 - **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
 - **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
+- **3D rendering** — static `.glb` / `.gltf` / `.fbx` models, unit cubes, perspective camera, ambient + directional light (Blinn-Phong)
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
 - **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)
@@ -53,11 +54,11 @@ Sample games live under `games/` (Snake, Flappy Bird, Arena Shooter). Open one v
 ### Concepts
 - [ECS Overview](concepts/ecs-overview.md) — entities, components, and systems
 - [Scenes and Prefabs](concepts/scenes-and-prefabs.md) — scene lifecycle and reuse
-- [Cameras and Rendering](concepts/cameras-and-rendering.md) — cameras and the 2D draw path
+- [Cameras and Rendering](concepts/cameras-and-rendering.md) — cameras, 2D sprites, 3D models, lights
 
 ### Architecture
 - [Architecture overview](../architecture/README.md) — solution structure and system docs
-- [Rendering Pipeline](../architecture/rendering-pipeline.md) — 2D batching, shaders, textures, cameras, framebuffers
+- [Rendering Pipeline](../architecture/rendering-pipeline.md) — 2D batching, 3D meshes, shaders, textures, cameras, framebuffers
 - [Game Loop](../architecture/game-loop.md) — application lifecycle and frame tick
 - [Scripting Lifecycle](../architecture/scripting-lifecycle.md) — Roslyn compile, assembly reload, editor vs runtime
 

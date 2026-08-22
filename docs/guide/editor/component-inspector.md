@@ -61,8 +61,9 @@ Defines a viewpoint for rendering the scene. The scene is rendered from the came
 |---|---|---|---|
 | `Primary` | bool | false | Designates this as the active game camera. Only one camera should be Primary at a time. |
 | `FixedAspectRatio` | bool | false | When enabled, the camera maintains its aspect ratio regardless of viewport size. |
+| `ProjectionType` | enum | Orthographic | `Orthographic` for 2D; `Perspective` for 3D models. |
 
-**Projection settings** are configured through the embedded SceneCamera. Orthographic (default):
+**Orthographic** (default):
 
 | Property | Default | Description |
 |---|---|---|
@@ -70,9 +71,62 @@ Defines a viewpoint for rendering the scene. The scene is rendered from the came
 | `OrthographicNear` | -1.0 | Near clip plane. |
 | `OrthographicFar` | 1.0 | Far clip plane. |
 
-**When to use:** Every scene must have at least one entity with a CameraComponent where `Primary` is true, or nothing will render.
+**Perspective:**
+
+| Property | Default | Description |
+|---|---|---|
+| `PerspectiveFOV` | 45° | Vertical field of view (stored as radians). |
+| `PerspectiveNear` | 0.01 | Near clip plane. |
+| `PerspectiveFar` | 1000.0 | Far clip plane. |
+
+**When to use:** Every scene must have at least one entity with a CameraComponent where `Primary` is true, or nothing will render. Use perspective for 3D meshes.
 
 See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md)
+
+---
+
+## ModelRendererComponent
+
+Draws either a unit cube or a static imported 3D model at the entity's transform.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Tint. White means no tint. |
+| `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from the Content Browser. Empty → cube. |
+| `TexturePath` | string | — | Cube albedo only (ignored when `ModelPath` is set). |
+| `TilingFactor` | float | 1.0 | Cube texture repeat (ignored for imported models). |
+
+Imported models use Blinn-Phong (diffuse / specular / normal maps from the file). Skinning and animation clips are not imported.
+
+**When to use:** 3D props and environments. Pair with a perspective primary camera and optional `AmbientLightComponent` / `DirectionalLightComponent`.
+
+See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md)
+
+---
+
+## AmbientLightComponent
+
+Scene-wide ambient term for 3D shading. The render pass uses the **first** ambient light in the scene.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Color` | Vector4 | (1, 1, 1, 1) | Ambient color (RGB). |
+| `Strength` | float | 0.1 | Scale. If no ambient component exists, the pipeline uses white at 0.1. |
+
+**When to use:** One per 3D scene. 2D sprites ignore this.
+
+---
+
+## DirectionalLightComponent
+
+Scene-wide directional light for 3D diffuse/specular. The render pass uses the **first** directional light in the scene.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Direction` | Vector3 | (0, -1, 0) | Light direction (normalized at draw). |
+| `Color` | Vector4 | (1, 1, 1, 1) | Light color (RGB). If none exists, directional contribution is black. |
+
+**When to use:** One “sun” per 3D scene.
 
 ---
 
