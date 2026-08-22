@@ -15,6 +15,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
@@ -56,6 +57,7 @@ public static class EngineIoCContainer
         RegisterFactories(container);
 
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
+        container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);
@@ -128,6 +130,7 @@ public static class EngineIoCContainer
         container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
+        container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);

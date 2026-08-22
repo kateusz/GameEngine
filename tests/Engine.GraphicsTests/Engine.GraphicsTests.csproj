@@ -39,4 +39,15 @@
     <None Include="Golden\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\mesh.frag">
+      <Link>assets\shaders\OpenGL\mesh.frag</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\mesh.vert">
+      <Link>assets\shaders\OpenGL\mesh.vert</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

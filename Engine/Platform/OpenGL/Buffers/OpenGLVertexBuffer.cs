@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using Engine.Platform.SilkNet;
+using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline.Primitives;
 using Serilog;
 using Silk.NET.OpenGL;
@@ -25,7 +27,6 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
     {
         switch (size)
         {
-            // Validate buffer size to prevent memory allocation issues
             case 0:
                 throw new ArgumentException("Buffer size must be greater than zero", nameof(size));
             case > MaxBufferSize:
@@ -132,6 +133,30 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
             {
                 SilkNetContext.GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)dataSize, pData);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "BufferSubData(LineVertex)");
+            }
+        }
+    }
+
+    public void SetMeshData(List<Mesh.Vertex> vertices)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (vertices.Count == 0)
+            return;
+
+        SilkNetContext.GL.BindBuffer(GLEnum.ArrayBuffer, RendererId);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindBuffer(ArrayBuffer)");
+
+        unsafe
+        {
+            // Use Span<T> for direct memory access without allocations
+            var vertexSpan = CollectionsMarshal.AsSpan(vertices);
+            var byteSpan = MemoryMarshal.Cast<Mesh.Vertex, byte>(vertexSpan);
+            fixed (byte* pData = byteSpan)
+            {
+                SilkNetContext.GL.BufferData(BufferTargetARB.ArrayBuffer, (nuint)byteSpan.Length, pData,
+                    BufferUsageARB.StaticDraw);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "BufferData(MeshVertex)");
             }
         }
     }

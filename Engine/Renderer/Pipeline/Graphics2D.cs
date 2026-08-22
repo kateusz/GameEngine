@@ -18,15 +18,15 @@ internal sealed class Graphics2D(
     ITextureFactory textureFactory,
     IShaderFactory shaderFactory) : IGraphics2D
 {
-    private Renderer2DData _data = new();
     private const string ViewProjectionUniform = "u_ViewProjection";
     private static readonly Vector2[] DefaultTextureCoords =
     [
-        new Vector2(0.0f, 0.0f),
-        new Vector2(1.0f, 0.0f),
-        new Vector2(1.0f, 1.0f),
-        new Vector2(0.0f, 1.0f)
+        new(0.0f, 0.0f),
+        new(1.0f, 0.0f),
+        new(1.0f, 1.0f),
+        new(0.0f, 1.0f)
     ];
+    private Renderer2DData _data = new();
     private bool _disposed;
 
     public void Init()

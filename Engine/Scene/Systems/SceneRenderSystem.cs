@@ -8,6 +8,7 @@ namespace Engine.Scene.Systems;
 
 internal sealed class SceneRenderSystem(
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     IContext context,
     IPrimaryCameraProvider cameraProvider) : ISystem
@@ -24,7 +25,7 @@ internal sealed class SceneRenderSystem(
     public void OnUpdate(TimeSpan deltaTime)
     {
         var camera = SceneRenderPipeline.CameraBinding.FromProvider(cameraProvider);
-        SceneRenderPipeline.RenderScene(context, graphics2D, textureFactory, camera);
+        SceneRenderPipeline.RenderScene(context, graphics2D, graphics3D, textureFactory, camera);
     }
 
     public void OnShutdown() { }

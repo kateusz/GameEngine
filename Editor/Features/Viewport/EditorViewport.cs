@@ -24,6 +24,7 @@ public sealed class EditorViewport(
     ISceneContext sceneContext,
     ISceneManager sceneManager,
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     DebugSettings debugSettings,
     EditorSettingsUI editorSettingsUI,
@@ -227,7 +228,7 @@ public sealed class EditorViewport(
                 {
                     scene.UpdateWorldTransforms();
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
-                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, textureFactory, camera);
+                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, camera);
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
                     cameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera);

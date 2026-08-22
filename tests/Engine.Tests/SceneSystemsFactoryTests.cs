@@ -41,6 +41,7 @@ public class SceneSystemsFactoryTests
 
         var factory = new SceneSystemsFactory(
             Substitute.For<IGraphics2D>(),
+            Substitute.For<IGraphics3D>(),
             Substitute.For<ITextureFactory>(),
             new DebugSettings(),
             Substitute.For<IScriptEngine>(),

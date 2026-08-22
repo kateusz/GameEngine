@@ -17,6 +17,7 @@ public abstract class Application : IApplication
     private readonly IGameWindow _gameWindow;
     private readonly IRendererAPI _rendererApi;
     private readonly IGraphics2D _graphics2D;
+    private readonly IGraphics3D _graphics3D;
     private readonly IFrameCompositor? _frameCompositor;
     private readonly IAudio _audio;
     private readonly IKeyboardInput? _keyboardInput;
@@ -30,8 +31,7 @@ public abstract class Application : IApplication
         IGameWindow gameWindow,
         IRendererAPI rendererApi,
         IGraphics2D graphics2D,
-        IAudio audio,
-        IFrameCompositor? frameCompositor = null,
+        IAudio audio, IGraphics3D graphics3D, IFrameCompositor? frameCompositor = null,
         ILayer? inputOverlay = null,
         IKeyboardInput? keyboardInput = null,
         IMouseInput? mouseInput = null)
@@ -40,6 +40,7 @@ public abstract class Application : IApplication
         _rendererApi = rendererApi;
         _graphics2D = graphics2D;
         _audio = audio;
+        _graphics3D = graphics3D;
         _frameCompositor = frameCompositor;
         _keyboardInput = keyboardInput;
         _mouseInput = mouseInput;
@@ -69,6 +70,7 @@ public abstract class Application : IApplication
     {
         _rendererApi.Init();
         _graphics2D.Init();
+        _graphics3D.Init();
         _audio.Initialize();
 
         _inputSystem = inputSystem;
@@ -181,6 +183,7 @@ public abstract class Application : IApplication
 
         _layersStack.Clear();
         _graphics2D?.Dispose();
+        _graphics3D?.Dispose();
         _audio.Dispose();
     }
 }

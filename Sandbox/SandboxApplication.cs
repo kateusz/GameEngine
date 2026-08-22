@@ -11,6 +11,7 @@ public class SandboxApplication(
     IGameWindow gameWindow,
     IRendererAPI rendererApi,
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     IAudio audio,
     IImGuiLayer imGuiLayer)
-    : Application(gameWindow, rendererApi, graphics2D, audio, imGuiLayer, imGuiLayer);
+    : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, imGuiLayer, imGuiLayer);

@@ -8,6 +8,7 @@ using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Audio;
 using SceneComponents.Camera;
+using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
@@ -16,7 +17,8 @@ namespace Editor.UI.Elements;
 
 public static class ComponentSelector
 {
-    public static void Draw(Entity entity, IScene scene, GameComponentEditor gameComponentEditor, IEditorHistory history)
+    public static void Draw(Entity entity, IScene scene, GameComponentEditor gameComponentEditor,
+        IEditorHistory history)
     {
         ButtonDrawer.DrawButton("Add Component", () => ImGui.OpenPopup("AddComponent"));
 
@@ -47,10 +49,18 @@ public static class ComponentSelector
             });
             DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity, history);
             DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity, history);
+            DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, history, () =>
+            {
+                if (!entity.HasComponent<TransformComponent>())
+                    entity.AddComponent<TransformComponent>();
+                entity.AddComponent<ModelRendererComponent>();
+            });
             DrawComponentMenuItem<CircleCollider2DComponent>("Circle Collider 2D", entity, history);
             DrawComponentMenuItem<EdgeCollider2DComponent>("Edge Collider 2D", entity, history);
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity, history);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity, history);
+            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity, history);
+            DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity, history);
 
             if (ImGui.MenuItem("Game Component"))
             {
