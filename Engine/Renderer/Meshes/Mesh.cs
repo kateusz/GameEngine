@@ -16,7 +16,7 @@ public class Mesh : IDisposable
         Vector3 Bitangent,
         int EntityId = -1)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3) + sizeof(int); // 60 bytes
+        public Vertex() : this(default, default, default, default, default) { }
     }
 
     public string Name { get; set; }
