@@ -87,6 +87,11 @@ public class Mesh : IDisposable
         _vertexArray.SetIndexBuffer(_indexBuffer);
 
         _initialized = true;
+
+        Vertices.Clear();
+        Vertices.TrimExcess();
+        Indices.Clear();
+        Indices.TrimExcess();
     }
 
     public void Bind()
@@ -102,7 +107,7 @@ public class Mesh : IDisposable
         _vertexArray.Unbind();
     }
 
-    public int GetIndexCount() => Indices.Count;
+    public int GetIndexCount() => _initialized ? _indexBuffer.Count : Indices.Count;
 
     public void Dispose()
     {
@@ -132,7 +137,7 @@ public class Mesh : IDisposable
         {
             System.Diagnostics.Debug.WriteLine(
                 $"MESH LEAK: Mesh '{Name}' not disposed! " +
-                $"Vertices: {Vertices.Count}, Indices: {Indices.Count}"
+                $"Indices: {GetIndexCount()}"
             );
         }
 

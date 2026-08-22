@@ -27,6 +27,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
 
         const uint flags = (uint)(PostProcessSteps.Triangulate |
                                   PostProcessSteps.SortByPrimitiveType |
+                                  PostProcessSteps.JoinIdenticalVertices |
                                   PostProcessSteps.GenerateNormals |
                                   PostProcessSteps.CalculateTangentSpace |
                                   PostProcessSteps.FlipUVs |
