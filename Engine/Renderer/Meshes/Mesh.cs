@@ -33,8 +33,6 @@ public class Mesh : IDisposable
     public bool HasNormalMap => NormalTexture != null;
 
     private IVertexArray _vertexArray;
-    private IVertexBuffer _vertexBuffer;
-    private IIndexBuffer _indexBuffer;
     private bool _initialized;
     private bool _disposed;
 
@@ -65,7 +63,7 @@ public class Mesh : IDisposable
                 $"Mesh '{Name}' already initialized. Initialize() should only be called once.");
 
         _vertexArray = vertexArrayFactory.Create();
-        _vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
+        var vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
 
         var layout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
@@ -76,13 +74,13 @@ public class Mesh : IDisposable
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]);
 
-        _vertexBuffer.SetLayout(layout);
-        _vertexArray.AddVertexBuffer(_vertexBuffer);
+        vertexBuffer.SetLayout(layout);
+        _vertexArray.AddVertexBuffer(vertexBuffer);
 
-        _vertexBuffer.SetMeshData(Vertices);
+        vertexBuffer.SetMeshData(Vertices);
 
-        _indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
-        _vertexArray.SetIndexBuffer(_indexBuffer);
+        var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
+        _vertexArray.SetIndexBuffer(indexBuffer);
 
         _initialized = true;
 
@@ -105,7 +103,7 @@ public class Mesh : IDisposable
         _vertexArray.Unbind();
     }
 
-    public int GetIndexCount() => _initialized ? _indexBuffer.Count : Indices.Count;
+    public int GetIndexCount() => _initialized ? _vertexArray.IndexBuffer.Count : Indices.Count;
 
     public void Dispose()
     {
@@ -119,11 +117,7 @@ public class Mesh : IDisposable
             return;
 
         if (disposing)
-        {
             _vertexArray?.Dispose();
-            _vertexBuffer?.Dispose();
-            _indexBuffer?.Dispose();
-        }
 
         _disposed = true;
     }
