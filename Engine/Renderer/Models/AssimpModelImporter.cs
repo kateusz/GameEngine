@@ -26,6 +26,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
 
         const uint flags = (uint)(PostProcessSteps.Triangulate |
+                                  PostProcessSteps.SortByPrimitiveType |
                                   PostProcessSteps.GenerateNormals |
                                   PostProcessSteps.CalculateTangentSpace |
                                   PostProcessSteps.FlipUVs |
@@ -64,6 +65,12 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                     }
 
                     var mesh = ExtractMesh(aiMesh);
+                    if (mesh.Indices.Count == 0)
+                    {
+                        Logger.Debug("Skipping mesh with no triangles name={Name}", mesh.Name);
+                        continue;
+                    }
+
                     var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory);
                     mesh.Shininess = material.Shininess;
                     pendingTextures.Add((mesh, material));
@@ -118,14 +125,25 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             mesh.Vertices.Add(vertex);
         }
 
+        mesh.Indices.Capacity = (int)aiMesh->MNumFaces * 3;
         for (uint i = 0; i < aiMesh->MNumFaces; i++)
         {
             var face = aiMesh->MFaces[i];
-            for (uint j = 0; j < face.MNumIndices; j++)
-                mesh.Indices.Add(face.MIndices[j]);
+            // DrawElements(Triangles) groups EBO by 3. Points/lines shift every later triangle.
+            AddTriangleFace(mesh.Indices, new ReadOnlySpan<uint>(face.MIndices, (int)face.MNumIndices));
         }
 
         return mesh;
+    }
+
+    internal static void AddTriangleFace(List<uint> indices, ReadOnlySpan<uint> face)
+    {
+        if (face.Length != 3)
+            return;
+
+        indices.Add(face[0]);
+        indices.Add(face[1]);
+        indices.Add(face[2]);
     }
 
     private readonly record struct MaterialInfo(
