@@ -1,16 +1,13 @@
 # Game Engine
 
-A modern, component-based game engine built with C# and .NET 10, featuring a visual editor, hot-reloadable C# scripting, and 2D/3D game development support.
-
-<img width="2536" height="1322" alt="image" src="https://github.com/user-attachments/assets/6587c9de-8d17-4457-baf3-e65ae7b97dbc" />
+A modern, component-based game engine built with C# and .NET 10, featuring a visual editor, hot-reloadable C# scripting, and 2D game development support.
 
 ## Features
 
 ### Core Engine
 - **Entity Component System (ECS)** — data-driven architecture with ordered system execution
 - **Entity Hierarchy** — parent/child transforms, cascade destroy, prefab subtrees, serialized relationships
-- **2D & 3D Rendering** — OpenGL pipeline with batched sprites, PBR meshes, shadows, skeletal animation, IBL, and HDR post-processing
-- **3D Model Import** — Assimp FBX/OBJ import in the editor, runtime `.mesh` assets with materials and skinning
+- **2D Rendering** — OpenGL pipeline with batched sprites
 - **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast & overlap queries, and debug visualization
 - **Hot-Reloadable Scripting** — write game logic in C# and reload without restarting the editor
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
@@ -19,7 +16,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a vis
 ### Editor
 - **Visual Scene Editor** — hierarchy tree, viewport tools (select/move/scale/rotate/ruler), and properties panel
 - **Undo/Redo** — reversible transform, component, and entity-delete operations (Ctrl+Z / Ctrl+Y)
-- **Asset Browser** — browse and manage project assets; drag-drop prefabs and 3D models into scenes
+- **Asset Browser** — browse and manage project assets; drag-drop textures, audio, and prefabs into scenes
 - **Live Console** — real-time logging while you work
 - **Project Management** — create and open game projects
 - **Game Publishing** — build standalone executables for Windows and macOS, with publish validation
@@ -27,7 +24,7 @@ A modern, component-based game engine built with C# and .NET 10, featuring a vis
 
 ### Status
 
-~**82–86% ready for 2D public alpha** ([readiness analysis](docs/readiness-analysis-2026-08.md)). Core mechanics, hierarchy, physics queries, undo/redo, and publish pipeline are in place. Main remaining gaps: **runtime UI** (menus/HUD), **sprite sort layers**, and **script field serialization**.
+~**82–86% ready for 2D public alpha**. Core mechanics, hierarchy, physics queries, undo/redo, and publish pipeline are in place. Main remaining gaps: **runtime UI** (menus/HUD), **sprite sort layers**, and **script field serialization**.
 
 ## Getting Started
 
@@ -85,18 +82,12 @@ Twin-stick arena — WASD move, mouse aim, hold LMB to shoot (hitscan raycast), 
 
 Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game over.
 
-### Arena 3D
-3D showcase — imported skeletal mesh, PBR materials, IBL skybox, shadows, HDR post-processing. [`games/Arena3D/`](games/Arena3D/)
-
-Open `assets/scenes/arena3d.scene`, then press Play. WASD to move, mouse to look.
-
 ## Documentation
 
 - [Developer Guide](docs/guide/index.md) — setup, editor, scripting, concepts
 - [Architecture](docs/architecture/README.md) — how the engine is structured
-- [Readiness Analysis (2026-08)](docs/readiness-analysis-2026-08.md) — alpha readiness assessment and priorities
 - [Roadmap](docs/guide/roadmap.md) — planned work
 
 ## Dependencies
 
-Silk.NET, ImGui, Box2D, BepuPhysics, OpenAL, DryIoc, Serilog, Assimp
+Silk.NET, ImGui, Box2D, OpenAL, DryIoc, Serilog

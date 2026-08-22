@@ -19,7 +19,6 @@ public class SystemManagerFactoryTests
                 Arg.Any<ISystemManager>(),
                 Arg.Any<IContext>(),
                 Arg.Any<PhysicsRuntimeBodyStore>(),
-                Arg.Any<PhysicsRuntimeBodyStore3D>(),
                 Arg.Any<PhysicsContactQueue>(),
                 Arg.Any<ScriptRuntimeStore>(),
                 Arg.Any<SceneDimension>())
@@ -35,25 +34,24 @@ public class SystemManagerFactoryTests
         var build = builder.Create(context);
 
         _mockSystemsFactory.Received(1).PopulateSystemManager(
-            build.SystemManager, context, build.BodyStore, build.BodyStore3D, build.ContactQueue, build.ScriptStore,
+            build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore,
             SceneDimension.TwoD);
         build.BodyStore.ShouldNotBeNull();
-        build.BodyStore3D.ShouldBeNull();
         build.ContactQueue.ShouldNotBeNull();
         build.ScriptStore.ShouldNotBeNull();
     }
 
     [Fact]
-    public void Create_ThreeD_AllocatesBodyStore3DAndPassesItToPopulate()
+    public void Create_ThreeD_StillUses2DPhysicsStore()
     {
         var context = new Context();
         var builder = new SystemManagerFactory(_mockSystemsFactory);
 
         var build = builder.Create(context, SceneDimension.ThreeD);
 
-        build.BodyStore3D.ShouldNotBeNull();
+        build.BodyStore.ShouldNotBeNull();
         _mockSystemsFactory.Received(1).PopulateSystemManager(
-            build.SystemManager, context, build.BodyStore, build.BodyStore3D, build.ContactQueue, build.ScriptStore,
+            build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore,
             SceneDimension.ThreeD);
     }
 

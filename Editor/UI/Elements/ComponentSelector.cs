@@ -8,7 +8,6 @@ using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Audio;
 using SceneComponents.Camera;
-using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
@@ -46,38 +45,12 @@ public static class ComponentSelector
                     entity, new SubTextureRendererComponent(),
                     autoAddTransform: !entity.HasComponent<TransformComponent>()));
             });
-            if (scene.Dimension == SceneDimension.TwoD)
-            {
-                DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity, history);
-                DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity, history);
-                DrawComponentMenuItem<CircleCollider2DComponent>("Circle Collider 2D", entity, history);
-                DrawComponentMenuItem<EdgeCollider2DComponent>("Edge Collider 2D", entity, history);
-            }
-            else
-            {
-                DrawComponentMenuItem<RigidBody3DComponent>("Rigidbody 3D", entity, history);
-                DrawComponentMenuItem<BoxCollider3DComponent>("Box Collider 3D", entity, history);
-                DrawComponentMenuItem<SphereCollider3DComponent>("Sphere Collider 3D", entity, history);
-                DrawComponentMenuItem<CapsuleCollider3DComponent>("Capsule Collider 3D", entity, history);
-            }
-            DrawComponentMenuItem<ModelRendererComponent>("Model Renderer", entity, history, () =>
-            {
-                history.Execute(new AddComponentCommand(
-                    entity, new ModelRendererComponent(),
-                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
-            });
-            DrawComponentMenuItem<SkeletalPlaybackComponent>("Skeletal Playback", entity, history);
+            DrawComponentMenuItem<RigidBody2DComponent>("Rigidbody 2D", entity, history);
+            DrawComponentMenuItem<BoxCollider2DComponent>("Box Collider 2D", entity, history);
+            DrawComponentMenuItem<CircleCollider2DComponent>("Circle Collider 2D", entity, history);
+            DrawComponentMenuItem<EdgeCollider2DComponent>("Edge Collider 2D", entity, history);
             DrawComponentMenuItem<AudioSourceComponent>("Audio Source", entity, history);
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity, history);
-            DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity, history);
-            DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity, history);
-            DrawComponentMenuItem<PointLightComponent>("Point Light", entity, history, () =>
-            {
-                history.Execute(new AddComponentCommand(
-                    entity, new PointLightComponent(),
-                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
-            });
-            DrawComponentMenuItem<SkyLightComponent>("Sky Light", entity, history);
 
             if (ImGui.MenuItem("Game Component"))
             {

@@ -1,11 +1,10 @@
 using System.Numerics;
-using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using ImGuiNET;
 
 namespace Editor.Panels;
 
-public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
+public class RendererStatsPanel(IGraphics2D graphics2D)
 {
     public bool IsVisible { get; set; } = false;
 
@@ -22,27 +21,18 @@ public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
         
         renderPerformanceMonitor?.Invoke();
         
-        // Camera info
         ImGui.Text("Editor Camera:");
         ImGui.Text($"Position: ({cameraPosition.X:F2}, {cameraPosition.Y:F2}, {cameraPosition.Z:F2})");
         ImGui.Text($"Rotation: {cameraRotation:F1}°");
 
         ImGui.Separator();
         
-        // --- Renderer2D Stats ---
         var stats2D = graphics2D.GetStats();
         ImGui.Text("Renderer2D Stats:");
         ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
         ImGui.Text($"Quads: {stats2D.QuadCount}");
         ImGui.Text($"Vertices: {stats2D.GetTotalVertexCount()}");
         ImGui.Text($"Indices: {stats2D.GetTotalIndexCount()}");
-
-        ImGui.Separator();
-
-        // --- Renderer3D Stats ---
-        var stats3D = graphics3D.GetStats();
-        ImGui.Text("Renderer3D Stats:");
-        ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
 
         ImGui.End();
     }

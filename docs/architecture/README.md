@@ -8,7 +8,7 @@ Architectural documentation for the C# .NET 10.0 game engine. Covers runtime sys
 
 ## C4 Level 1 — System Context
 
-The engine is used by game developers to build 2D/3D games. It provides two deployment modes: a visual **Editor** for development and a standalone **Runtime** player for distribution.
+The engine is used by game developers to build 2D games. It provides two deployment modes: a visual **Editor** for development and a standalone **Runtime** player for distribution.
 
 ```mermaid
 C4Context
@@ -49,7 +49,7 @@ C4Container
 
     System_Ext(silknet, "Silk.NET", "OpenGL 3.3+ bindings & windowing")
     System_Ext(box2d, "Box2D", "2D rigid-body physics simulation")
-    System_Ext(openal, "OpenAL", "3D spatial audio")
+    System_Ext(openal, "OpenAL", "Spatial audio")
     System_Ext(imgui, "ImGui.NET", "Immediate-mode GUI for editor")
     System_Ext(dryioc, "DryIoc", "Dependency injection container")
     System_Ext(roslyn, "Roslyn", "C# runtime compilation for hot-reload scripting")
@@ -80,7 +80,7 @@ GameEngine/
 │   └── Systems/         # ISystem, SystemManager (priority-sorted execution)
 ├── Engine/              # Core runtime
 │   ├── Core/            # Application, Layer stack, DI setup, Input, Window
-│   ├── Renderer/        # 2D/3D graphics, renderer API, batching, cameras
+│   ├── Renderer/        # 2D graphics, renderer API, batching, cameras
 │   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
 │   ├── Scripting/       # IScriptEngine, Roslyn compilation, hot-reload
 │   └── Audio/           # IAudio loaders/utils, OpenAL integration
@@ -97,11 +97,7 @@ GameEngine/
 |----------|-------|
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
-| [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, 3D PBR meshes, shadows, shaders, textures, cameras, HDR framebuffers |
-| [PBR / IBL System](pbr-ibl-system.md) | HDR environment lighting, precomputed cubemaps, split-sum BRDF |
-| [Animation System](animation-system.md) | Skeletal hierarchy, clip sampling, GPU skinning |
-| [Post-Processing Pipeline](post-processing-pipeline.md) | Bloom, ACES tonemap, FXAA, HDR-to-display pass chain |
-| [3D Model Loading Pipeline](model-loading-pipeline.md) | Editor import, `.mesh` runtime format, materials and GPU upload |
+| [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, shaders, textures, cameras, framebuffers |
 | [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, script entities, editor vs runtime |
 | [Physics System](physics-system.md) | Physics world abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |

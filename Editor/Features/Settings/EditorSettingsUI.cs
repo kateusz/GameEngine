@@ -47,16 +47,6 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         }
 
         ImGui.Separator();
-        ImGui.SeparatorText("Viewport");
-
-        var fxaaEnabled = editorPreferences.FxaaEnabled;
-        if (ImGui.Checkbox("FXAA", ref fxaaEnabled))
-        {
-            editorPreferences.FxaaEnabled = fxaaEnabled;
-            editorPreferences.Save();
-        }
-
-        ImGui.Separator();
         ImGui.SeparatorText("Autosave");
 
         var autosaveSeconds = editorPreferences.AutosaveIntervalSeconds;

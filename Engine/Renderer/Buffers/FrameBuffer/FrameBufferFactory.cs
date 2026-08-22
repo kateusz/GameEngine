@@ -12,7 +12,7 @@ internal sealed class FrameBufferFactory(IRendererApiConfig apiConfig) : IFrameB
             DisplayConfig.DefaultEditorViewportHeight)
         {
             AttachmentsSpec = new FrameBufferAttachmentSpecification([
-                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA16F),
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8),
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.RED_INTEGER),
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.Depth),
             ])

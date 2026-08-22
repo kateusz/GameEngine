@@ -1,6 +1,4 @@
 using Engine.Platform.OpenGL.Buffers;
-using Engine.Renderer;
-using Engine.Renderer.Meshes;
 using Silk.NET.OpenGL;
 using Shouldly;
 
@@ -34,31 +32,6 @@ public class VertexBufferIntegrationTests(HeadlessGraphicsContextFixture fixture
     public void Create_ExceedingMaxSize_ThrowsArgumentException()
     {
         Should.Throw<ArgumentException>(() => fixture.VertexBufferFactory.Create(MaxBufferSize + 1));
-    }
-
-    [GraphicsFact]
-    public void SetMeshData_UploadsStaticDrawUsage()
-    {
-        using var buffer = fixture.VertexBufferFactory.Create((uint)Mesh.Vertex.GetSize());
-        var vertices = new List<Mesh.Vertex> { default };
-
-        buffer.SetMeshData(vertices, vertices.Count * Mesh.Vertex.GetSize());
-
-        var glBuffer = (OpenGLVertexBuffer)buffer;
-        GlBufferQueries.GetBufferUsage(glBuffer.RendererId).ShouldBe(BufferUsageARB.StaticDraw);
-    }
-
-    [GraphicsFact]
-    public void SetMeshData_MatchesUploadedByteSize()
-    {
-        using var buffer = fixture.VertexBufferFactory.Create((uint)Mesh.Vertex.GetSize());
-        var vertices = new List<Mesh.Vertex> { default };
-        var byteSize = vertices.Count * Mesh.Vertex.GetSize();
-
-        buffer.SetMeshData(vertices, byteSize);
-
-        var glBuffer = (OpenGLVertexBuffer)buffer;
-        GlBufferQueries.GetBufferSize(glBuffer.RendererId).ShouldBe(byteSize);
     }
 
     [GraphicsFact]

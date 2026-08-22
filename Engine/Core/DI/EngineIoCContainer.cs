@@ -15,11 +15,7 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using Engine.Renderer.Buffers.VertexArray;
-using Engine.Renderer.Meshes;
-using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
-using Engine.Renderer.PostProcessing;
-using Engine.Renderer.Textures.EnvironmentMap;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
@@ -60,11 +56,6 @@ public static class EngineIoCContainer
         RegisterFactories(container);
 
         container.Register<IGraphics2D, Graphics2D>(Reuse.Singleton);
-        container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
-        container.Register<HdrTonemapPass>(Reuse.Singleton);
-        container.Register<BloomPass>(Reuse.Singleton);
-        container.Register<FxaaPass>(Reuse.Singleton);
-        container.Register<PostProcessOrchestrator>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);
@@ -74,7 +65,7 @@ public static class EngineIoCContainer
 
         container.Register<SceneFactory>(Reuse.Singleton);
         container.Register<IPhysicsBackendConfig>(Reuse.Singleton,
-            made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D, PhysicsBackendType.Bepu)));
+            made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D)));
         container.Register<IPhysicsWorldFactory, PhysicsWorldFactory>(Reuse.Singleton);
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
@@ -93,10 +84,6 @@ public static class EngineIoCContainer
         container.RegisterDelegate<IPhysicsQueries>(r =>
             r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries
             ?? NullPhysicsQueries.Instance);
-
-        container.RegisterDelegate<IPhysicsQueries3D>(r =>
-            r.Resolve<ISceneContext>().ActiveScene?.PhysicsQueries3D
-            ?? NullPhysicsQueries3D.Instance);
 
         container.RegisterDelegate<IEntityHierarchy>(r =>
             r.Resolve<ISceneContext>().ActiveScene
@@ -140,10 +127,7 @@ public static class EngineIoCContainer
     {
         container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
-        container.Register<IEnvironmentMapFactory, EnvironmentMapFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
-        container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
-        container.Register<IModelFactory, ModelFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);

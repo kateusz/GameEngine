@@ -8,7 +8,6 @@ using Editor.ComponentEditors.Physics;
 using Editor.ComponentEditors.Rendering;
 using Editor.Features.Components;
 using Editor.Features.History;
-using Editor.Features.Import;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
@@ -64,25 +63,15 @@ public static class EditorIoCContainer
         container.RegisterMany<TransformComponentEditor>(Reuse.Singleton);
         container.RegisterMany<CameraComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SpriteRendererComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<SkeletalPlaybackComponentEditor>(Reuse.Singleton);
         container.RegisterMany<RigidBody2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<BoxCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<CircleCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<EdgeCollider2DComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<RigidBody3DComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<BoxCollider3DComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<SphereCollider3DComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<CapsuleCollider3DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SubTextureRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioSourceComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioListenerComponentEditor>(Reuse.Singleton);
         container.RegisterMany<GameComponentEditor>(Reuse.Singleton);
         container.RegisterMany<ScriptComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<AmbientLightComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<DirectionalLightComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<PointLightComponentEditor>(Reuse.Singleton);
-        container.RegisterMany<SkyLightComponentEditor>(Reuse.Singleton);
         container.Register<IComponentEditorRegistry, ComponentEditorRegistry>(Reuse.Singleton);
 
         // Panel draw order
@@ -112,7 +101,6 @@ public static class EditorIoCContainer
 
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         container.Register<NewProjectPopup>(Reuse.Singleton);
-        container.Register<Import3DModelPopup>(Reuse.Singleton);
         container.Register<SceneSettingsPopup>(Reuse.Singleton);
         container.Register<SceneToolbar>(Reuse.Singleton);
         container.Register<RendererStatsPanel>(Reuse.Singleton);

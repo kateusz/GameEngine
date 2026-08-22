@@ -3,7 +3,6 @@ using Audio;
 using ECS;
 using NSubstitute;
 using Scripting;
-using Shouldly;
 
 namespace Engine.Tests.Physics;
 
@@ -35,36 +34,5 @@ public class ScriptableEntityPhysicsQueriesTests
         }
 
         public void FireRaycast() => Raycast(Vector2.Zero, Vector2.UnitY, 10f);
-        public RaycastHit3D? FireRaycast3D() => Raycast(Vector3.Zero, Vector3.UnitZ, 10f);
-        public RaycastHit3D? FireOverlapSphere() => OverlapSphere(Vector3.Zero, 1f);
-    }
-
-    [Fact]
-    public void Raycast3D_ForwardsIgnoreSelf()
-    {
-        var queries = Substitute.For<IPhysicsQueries, IPhysicsQueries3D>();
-        var script = new QueryForwardingScript(queries);
-        var self = Entity.Create(7, "Self");
-        script.SetEntity(self);
-
-        script.FireRaycast3D();
-
-        ((IPhysicsQueries3D)queries).Received(1).Raycast(
-            Vector3.Zero,
-            Vector3.UnitZ,
-            10f,
-            self,
-            false);
-    }
-
-    [Fact]
-    public void Raycast3D_WhenQueriesAre2DOnly_ReturnsNull()
-    {
-        var queries = Substitute.For<IPhysicsQueries>();
-        var script = new QueryForwardingScript(queries);
-        script.SetEntity(Entity.Create(7, "Self"));
-
-        script.FireRaycast3D().ShouldBeNull();
-        script.FireOverlapSphere().ShouldBeNull();
     }
 }

@@ -1,6 +1,6 @@
 # GameEngine Roadmap
 
-Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026-07)](../readiness-analysis-2026-07.md).
+Phased plan to reach **public 2D alpha**.
 
 **Current baseline:** ~70% foundation — ECS, 2D rendering, scripting, editor, publish pipeline.  
 **Alpha target:** External developers can build a small 2D game in the editor, publish a standalone build, and ship with menus/HUD without hand-rolled quad hacks.
@@ -14,7 +14,6 @@ Phased plan to reach **public 2D alpha**, derived from [readiness analysis (2026
 | `EdgeCollider2DComponent` + editor | Done |
 | Partial undo/redo (`Ctrl+Z`) | Done — transforms, delete, component add/remove ([Shortcuts](editor/shortcuts.md)) |
 | Parent/child hierarchy | Done — tree panel, `ParentComponent`, drag-reparent |
-| 3D import + PBR + shadows + IBL + skeletal animation | Done — see [3D Rendering](concepts/3d-rendering.md), [Architecture](../architecture/README.md) |
 
 Still open from early phases: `SortingOrder`, publish smoke test in CI, full undo coverage, Runtime UI MVP (M3).
 
@@ -32,7 +31,7 @@ Still open from early phases: `SortingOrder`, publish smoke test in CI, full und
 | **M5 — Public alpha** | External testers | Docs updated, sample "menu + gameplay" template, known-issues list |
 | **M6 — Polish** | Juice and feel | Basic particles, edge collider, script field serialization |
 
-Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope changes. (3D mesh import + PBR are already in; see [3D Rendering](concepts/3d-rendering.md) and [Architecture](../architecture/README.md).)
+Navmesh, gamepad, and asset GUID database are **post-alpha** unless scope changes.
 
 ---
 
@@ -184,6 +183,5 @@ P1 (undo) can run in parallel with late P0 / early P2 if staffed.
 
 ## References
 
-- [Readiness analysis (2026-07)](../readiness-analysis-2026-07.md)
 - [Architecture overview](../architecture/README.md)
 - [Game publishing](../architecture/README.md#tools--publishing) (via README)

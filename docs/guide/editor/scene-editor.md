@@ -10,7 +10,6 @@ The Scene Hierarchy panel shows entities in a **parent/child tree**. Root entiti
 - **Drag and drop** an entity onto another to reparent; drop on empty space to promote to root.
 - **Right-click** on empty space in the panel to open the context menu:
   - **Create Empty Entity** — adds a new empty entity to the scene.
-  - **Create 3D Entity** — adds an entity with a perspective camera, ambient/directional lights, and a lit cube.
 - **Right-click** a selected entity to **Delete Entity**.
 - **Duplicate** the selected entity with `Ctrl+D`.
 
@@ -49,16 +48,7 @@ Gizmo tools control how you interact with selected entities directly in the view
 | Rotate | *(toolbar only)* | Drag the Z-axis ring to rotate the entity. |
 | Ruler | `Shift+E` | Click and drag to measure distances in the viewport. Press `Escape` to clear the measurement. |
 
-The toolbar also provides **2D Grid** and **3D Grid** toggles. Grid and ruler visibility can be changed from the **View** menu.
-
-### Display mode (Wireframe)
-
-Next to the 2D/3D view controls, the toolbar has a **Wireframe** toggle for the editor viewport:
-
-- **Off (Normal)** — meshes and cubes render with normal lighting and materials.
-- **On (Wireframe)** — 3D meshes and cubes draw as flat light-gray edges only (no lighting). Sprites, UI, grid, and gizmos stay solid.
-
-Wireframe is **session-only** (not saved with the scene). It works in edit mode and while Play is running in the editor. Standalone game runtime does not use this toggle.
+The toolbar also provides a **2D Grid** toggle. Grid and ruler visibility can be changed from the **View** menu.
 
 ---
 
@@ -107,6 +97,5 @@ Rulers run along the top and left edges of the viewport and display coordinate p
 
 ## Next Steps
 
-- [3D Rendering](../concepts/3d-rendering.md) - models, lights, and perspective scenes.
 - [Component Inspector](component-inspector.md) - view and edit the components attached to a selected entity.
 - [Keyboard Shortcuts](shortcuts.md) - a complete reference of all editor keyboard shortcuts.

@@ -1,6 +1,6 @@
 # Audio System
 
-OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports 3D spatial audio, WAV/Ogg loading, optional EFX (reverb, echo, low-pass), and one-shot playback. `AudioSystem` runs at priority 120 (after `ScriptUpdateSystem` at 110).
+OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports spatial audio, WAV/Ogg loading, optional EFX (reverb, echo, low-pass), and one-shot playback. `AudioSystem` runs at priority 120 (after `ScriptUpdateSystem` at 110).
 
 **File**: `Engine/Platform/OpenAL/OpenALAudioEngine.cs`, `Engine/Scene/Systems/AudioSystem.cs`
 
@@ -69,7 +69,7 @@ Components live in the `SceneComponents.Audio` namespace. `AudioSystem` reads th
 | `Loop` | Yes | Synced to `IAudioSource.Loop` |
 | `PlayOnAwake` | Yes | Triggers `Play()` on init when clip loads |
 | `Is3D` | Yes | Passed to `SetSpatialMode` |
-| `MinDistance` | Yes | Reference distance for 3D attenuation |
+| `MinDistance` | Yes | Reference distance for spatial attenuation |
 | `MaxDistance` | Yes | Max attenuation distance |
 | `Effects` | Yes | `List<AudioEffectData>` — effect chain sync |
 
@@ -147,7 +147,7 @@ Unbinds from `AudioPlaybackService`, disposes all runtime sources, clears the en
 ## Spatial Audio
 
 - **Listener**: Position and orientation from the first active `AudioListenerComponent` entity's `TransformComponent`. Orientation uses euler → quaternion (forward = −Z, up = +Y).
-- **Sources**: 3D position updated each frame from `TransformComponent.Translation` when `Is3D` is true.
+- **Sources**: Position updated each frame from `TransformComponent.Translation` when `Is3D` is true.
 - **Attenuation**: OpenAL `ReferenceDistance` / `MaxDistance` / `RolloffFactor` set in `OpenALAudioSource.SetSpatialMode`.
 - **2D fallback**: `Is3D = false` sets `SourceRelative` so volume is independent of world position.
 

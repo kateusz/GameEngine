@@ -13,13 +13,6 @@ public interface IShaderFactory
     /// <param name="fragPath">Path to the fragment shader file.</param>
     /// <returns>A shader instance, either from cache or newly created.</returns>
     IShader Create(string vertPath, string fragPath);
-    IShader Create(string vertPath, string fragPath, string geomPath);
-
-    /// <summary>
-    /// Creates a shader with preprocessor defines injected after the #version line of each stage.
-    /// The defines are part of the cache key.
-    /// </summary>
-    IShader Create(string vertPath, string fragPath, IReadOnlyList<ShaderDefine> defines);
 
     /// <summary>
     /// Clears the shader cache, forcing all subsequent shader requests to recompile.

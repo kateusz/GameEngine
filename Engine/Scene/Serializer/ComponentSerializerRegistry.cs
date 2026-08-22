@@ -6,7 +6,6 @@ using Engine.Scripting;
 using SceneComponents;
 using SceneComponents.Audio;
 using SceneComponents.Camera;
-using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 
@@ -147,18 +146,8 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<BoxCollider2DComponent>();
         Register<CircleCollider2DComponent>();
         Register<EdgeCollider2DComponent>();
-        Register<RigidBody3DComponent>();
-        Register<BoxCollider3DComponent>();
-        Register<SphereCollider3DComponent>();
-        Register<CapsuleCollider3DComponent>();
         Register<AudioListenerComponent>();
         Register<AudioSourceComponent>();
-        Register<ModelRendererComponent>();
-        Register<SkeletalPlaybackComponent>();
-        Register<AmbientLightComponent>();
-        Register<DirectionalLightComponent>();
-        Register<PointLightComponent>();
-        Register<SkyLightComponent>();
         RegisterSerializer(new NativeScriptComponentSerializer());
     }
 

@@ -36,8 +36,7 @@ internal sealed class Scene : IScene
         PhysicsContactQueue physicsContactQueue,
         ScriptRuntimeStore scriptRuntimeStore,
         IPhysicsQueries physicsQueries,
-        ICameraQueries cameraQueries,
-        PhysicsRuntimeBodyStore3D? physicsRuntimeBodyStore3D = null)
+        ICameraQueries cameraQueries)
     {
         _path = path;
         Name = sceneName;
@@ -48,7 +47,6 @@ internal sealed class Scene : IScene
         ScriptRuntimeStore = scriptRuntimeStore;
         _physicsQueries = physicsQueries;
         _cameraQueries = cameraQueries;
-        PhysicsBodies3D = physicsRuntimeBodyStore3D;
 
         // After scripts (110), before audio (120) — locals settle first, then world caches.
         _systemManager.RegisterSystem(new TransformHierarchySystem(UpdateWorldTransforms));
@@ -58,13 +56,9 @@ internal sealed class Scene : IScene
 
     public IPhysicsQueries PhysicsQueries => _physicsQueries;
 
-    public IPhysicsQueries3D? PhysicsQueries3D => _physicsQueries as IPhysicsQueries3D;
-
     public ICameraQueries CameraQueries => _cameraQueries;
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
-
-    internal PhysicsRuntimeBodyStore3D? PhysicsBodies3D { get; }
 
     public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 
@@ -73,8 +67,6 @@ internal sealed class Scene : IScene
     public string Name { get; }
 
     public Vector4 BackgroundColor { get; set; } = new(0.1f, 0.1f, 0.1f, 1.0f);
-
-    public ScenePostProcessSettings PostProcess { get; set; } = new();
 
     public SceneDimension Dimension { get; set; } = SceneDimension.TwoD;
 

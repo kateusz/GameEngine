@@ -6,7 +6,7 @@ Reference for every component available in the engine.
 
 The **Properties** panel displays all components attached to the currently selected entity. To add a component, click the **Add Component** button at the bottom of the panel and select from the dropdown. To remove a component, click the **"-"** button on its header.
 
-When no entity is selected, the panel shows scene-level settings (2D/3D dimension and background color). Selected entities can also be saved as prefabs via **Save as Prefab** at the top of the panel.
+When no entity is selected, the panel shows scene-level settings (background color). Selected entities can also be saved as prefabs via **Save as Prefab** at the top of the panel.
 
 ---
 
@@ -55,18 +55,14 @@ Renders a rectangular region of a texture atlas (sprite sheet) rather than the w
 
 ## CameraComponent
 
-Defines a viewpoint for rendering the scene. The scene is rendered from the perspective of the entity that holds the camera marked as Primary.
+Defines a viewpoint for rendering the scene. The scene is rendered from the camera marked as Primary.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `Primary` | bool | false | Designates this as the active game camera. Only one camera should be Primary at a time. |
 | `FixedAspectRatio` | bool | false | When enabled, the camera maintains its aspect ratio regardless of viewport size. |
 
-**Projection settings** are configured through the embedded SceneCamera:
-
-- **Projection Type** — `Orthographic` (2D, no perspective) or `Perspective` (3D, vanishing point).
-
-*Orthographic:*
+**Projection settings** are configured through the embedded SceneCamera. Orthographic (default):
 
 | Property | Default | Description |
 |---|---|---|
@@ -74,124 +70,9 @@ Defines a viewpoint for rendering the scene. The scene is rendered from the pers
 | `OrthographicNear` | -1.0 | Near clip plane. |
 | `OrthographicFar` | 1.0 | Far clip plane. |
 
-*Perspective:*
-
-| Property | Default | Description |
-|---|---|---|
-| `PerspectiveFOV` | 45° | Vertical field of view. Stored internally in radians; the editor displays and accepts degrees. |
-| `PerspectiveNear` | 0.01 | Near clip plane. |
-| `PerspectiveFar` | 1000.0 | Far clip plane. |
-
-**When to use:** Every scene must have at least one entity with a CameraComponent where `Primary` is true, or nothing will render. Use Orthographic for 2D scenes and Perspective for 3D scenes.
+**When to use:** Every scene must have at least one entity with a CameraComponent where `Primary` is true, or nothing will render.
 
 See also: [Cameras and Rendering](../concepts/cameras-and-rendering.md)
-
----
-
-## AmbientLightComponent
-
-Provides scene-wide fill lighting for 3D models and cube fallbacks. The renderer uses the **first** `AmbientLightComponent` found in the scene each frame.
-
-**Add in editor:** Properties panel → **Add Component** → **Ambient Light**
-
-**File**: `Editor/ComponentEditors/AmbientLightComponentEditor.cs`
-
-| Property | Type | Default | Editor control | Description |
-|---|---|---|---|---|
-| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Ambient light color multiplied into the final shaded result |
-| `Strength` | float | 0.35 | Float field | Intensity of ambient fill. Higher values brighten shadowed areas |
-
-**When to use:** Add to a dedicated entity (e.g. "Ambient Light") in any 3D scene. Tune `Strength` for base visibility; pair with `DirectionalLightComponent` for readable shading on `ModelRendererComponent` entities.
-
-**Runtime behavior:** The renderer applies `Color` and `Strength` each frame as ambient fill on 3D draws. If no ambient light entity exists, the engine uses its built-in ambient default.
-
-See also: [3D Rendering](../concepts/3d-rendering.md), [DirectionalLightComponent](#directionallightcomponent)
-
----
-
-## DirectionalLightComponent
-
-Provides a single directional light for 3D models and cube fallbacks (like sunlight). The renderer uses the **first** `DirectionalLightComponent` found in the scene each frame.
-
-**Add in editor:** Properties panel → **Add Component** → **Directional Light**
-
-**File**: `Editor/ComponentEditors/DirectionalLightComponentEditor.cs`
-
-| Property | Type | Default | Editor control | Description |
-|---|---|---|---|---|
-| `Direction` | Vector3 | (0, -1, 0) | XYZ vector control (axis-colored) | World-space direction the light travels **from**. Does not need to be normalized — the pipeline normalizes it at render time |
-| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Light color. Set to non-zero RGB or meshes/cubes appear flat/black aside from ambient |
-| `Strength` | float | 1.0 | Float field | Intensity multiplier for directional light and shadow contribution |
-
-**When to use:** Add to a dedicated entity (e.g. "Directional Light") in any 3D scene with `ModelRendererComponent` entities. Adjust `Direction` to change highlight angle; `(0, -1, 0)` shines from above.
-
-**Runtime behavior:** Direction and `Color` drive the directional light and optional shadow pass for meshes and cube fallbacks. With no directional light entity, direct sun contribution is zero — only ambient fill remains.
-
-**Example scene:** `Editor/assets/scenes/3d.scene` places ambient and directional lights on separate entities alongside a perspective camera and a `ModelRendererComponent`.
-
-See also: [3D Rendering](../concepts/3d-rendering.md), [AmbientLightComponent](#ambientlightcomponent)
-
----
-
-## PointLightComponent
-
-Omnidirectional light with cubemap shadows (LearnOpenGL point shadows). Position comes from the entity `Transform`. The renderer uses the **first** `PointLightComponent` with a transform each frame.
-
-**Add in editor:** Properties panel → **Add Component** → **Point Light** (adds a Transform if missing)
-
-**File**: `Editor/ComponentEditors/PointLightComponentEditor.cs`
-
-| Property | Type | Default | Editor control | Description |
-|---|---|---|---|---|
-| `Color` | Vector3 (RGB) | (1, 1, 1) | RGB color picker | Light color |
-| `Strength` | float | 1.0 | Float field | Intensity multiplier |
-| `Range` | float | 25.0 | Float field | Shadow far plane and lighting cutoff |
-
-**Runtime behavior:** World position (from the entity transform), `Color`, and `Range` drive the point light and optional cubemap shadow pass before the lit draw.
-
-See also: [3D Rendering](../concepts/3d-rendering.md), [DirectionalLightComponent](#directionallightcomponent)
-
----
-
-See also: [3D Rendering](../concepts/3d-rendering.md), [PBR / IBL System](../../architecture/pbr-ibl-system.md)
-
----
-
-## SkyLightComponent
-
-HDR environment for skybox background and image-based lighting (diffuse + specular ambient on PBR meshes). The renderer uses the **first** `SkyLightComponent` each frame.
-
-**Add in editor:** Properties panel → **Add Component** → **Sky Light**
-
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `HdrPath` | string | — | Project-relative path to an equirectangular `.hdr` radiance map |
-| `Intensity` | float | 1.0 | Scales environment contribution in shading and skybox |
-
-**When to use:** Outdoor or studio HDR lighting where metals and reflections should read from the environment. Pair with ambient + directional lights for direct sun; IBL handles indirect fill.
-
-See also: [3D Rendering](../concepts/3d-rendering.md), [PBR / IBL System](../../architecture/pbr-ibl-system.md)
-
----
-
-## SkeletalPlaybackComponent
-
-Drives skeletal animation from clips baked into a `.mesh` v3 asset at import. Samples the active clip each frame and feeds bone matrices to a matching `ModelRendererComponent` on the same entity or a child.
-
-**Add in editor:** Properties panel → **Add Component** → **Skeletal Playback**
-
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `MeshPath` | string | — | Same `.mesh` as the paired `ModelRendererComponent` (must include skeleton + clips) |
-| `ClipName` | string | — | Clip to play; empty uses the first clip in the file |
-| `Playing` | bool | false | When false, mesh stays at bind pose |
-| `Loop` | bool | true | Restart at clip end |
-| `Speed` | float | 1.0 | Playback rate multiplier |
-| `Time` | float | 0 | Current time in the clip (seconds) |
-
-**When to use:** Animated characters imported from FBX/glTF with skinning. Typical setup: parent with `SkeletalPlaybackComponent`, child with `ModelRendererComponent` (or both on one entity) sharing `MeshPath`.
-
-See also: [Animation System](../../architecture/animation-system.md), [ModelRendererComponent](#modelrenderercomponent)
 
 ---
 
@@ -285,7 +166,7 @@ See also: [Scripting Getting Started](../scripting/getting-started.md)
 
 ## AudioSourceComponent
 
-Emits audio from the entity's world position. Supports both 2D (non-positional) and 3D spatial audio with distance-based attenuation.
+Emits audio from the entity's world position. Supports both non-positional and spatial audio with distance-based attenuation.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
@@ -311,41 +192,19 @@ Each effect has an `Enabled` toggle and an `Amount` slider (default 0.5).
 
 **Note:** Use `PlayOnAwake` and `Loop` for declarative playback. The inspector also provides a **Play** button to preview the clip in the editor.
 
-**When to use:** Sound effects, music, ambient audio, and positional sounds in a 3D environment. Disable `Is3D` for UI sounds and background music that should not attenuate with distance.
+**When to use:** Sound effects, music, ambient audio, and positional sounds. Disable `Is3D` for UI sounds and background music that should not attenuate with distance.
 
 ---
 
 ## AudioListenerComponent
 
-Acts as the ears of the scene for 3D spatial audio. The audio system calculates volume and panning relative to the active listener's world position.
+Acts as the ears of the scene for spatial audio. The audio system calculates volume and panning relative to the active listener's world position.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `IsActive` | bool | true | Designates this as the active listener. Only one listener should be active per scene. |
 
-**When to use:** Attach to the primary camera entity so the player hears audio from their viewpoint. If no listener is present, 3D spatial audio will not function correctly.
-
----
-
-## ModelRendererComponent
-
-Renders a 3D model at the entity's transform. Assign a `ModelPath` to an imported `.mesh` (from **File → Import 3D Model…**). Empty path, failed load, or legacy raw interchange paths (`.fbx` / `.gltf` / `.glb`, etc.) fall back to a shared lit unit cube until you re-import and assign `models/<stem>_<part>.mesh`.
-
-**Add in editor:** Properties panel → **Add Component** → **Model Renderer** (adds `TransformComponent` automatically if missing)
-
-**File**: `Editor/ComponentEditors/Rendering/ModelRendererComponentEditor.cs`
-
-| Property | Type | Default | Editor control | Description |
-|---|---|---|---|---|
-| `ModelPath` | string? | null | Mesh drop target (`.mesh` only) | Project path to an imported mesh, e.g. `models/hero.mesh`. Drag from Content Browser or leave empty for the cube fallback |
-| `AlbedoTexturePath` | string? | null | Texture drop target (`.png` / `.jpg`) | Optional albedo override. Drag from Content Browser onto **Albedo**. Applies to the cube fallback, builtin sphere, and imported meshes. Empty = use the mesh material (or untextured cube) |
-| `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Color field | Albedo tint multiplied with the material / cube color |
-| `MetallicOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported metallic for all submeshes |
-| `RoughnessOverride` | float? | null | Optional 0–1 slider | When enabled, replaces imported roughness for all submeshes |
-
-**When to use:** Imported 3D assets or quick cube blockout. Import sources via **File → Import 3D Model…** first. Requires `TransformComponent`. Add `AmbientLightComponent` and `DirectionalLightComponent` for shading. Prefer a perspective primary camera.
-
-See also: [3D Rendering](../concepts/3d-rendering.md), [Cameras and Rendering](../concepts/cameras-and-rendering.md), [Animation System](../../architecture/animation-system.md)
+**When to use:** Attach to the primary camera entity so the player hears audio from their viewpoint. If no listener is present, spatial audio will not function correctly.
 
 ---
 

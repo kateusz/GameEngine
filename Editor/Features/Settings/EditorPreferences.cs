@@ -24,8 +24,6 @@ public class EditorPreferences : IEditorPreferences
     public bool ShowColliderBounds { get; set; }
     public bool ShowFPS { get; set; } = true;
 
-    public bool FxaaEnabled { get; set; } = true;
-
     // Autosave: 0 = off
     public int AutosaveIntervalSeconds { get; set; } = 60;
 

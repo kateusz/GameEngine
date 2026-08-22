@@ -17,7 +17,7 @@ graph TB
     end
 
     subgraph "SceneComponents/ (Built-in Components)"
-        Components["14 Components<br/><i>Transform, Sprite, Physics, Lights, etc.</i>"]
+        Components["Components<br/><i>Transform, Sprite, Physics, Audio, etc.</i>"]
     end
 
     subgraph "Engine/Scene/ (Game Systems)"
@@ -91,14 +91,14 @@ Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponen
 | **TransformComponent** | `SceneComponents/TransformComponent.cs` | Position, rotation, scale with cached transform matrix (dirty flag) |
 | **SpriteRendererComponent** | `SceneComponents/Rendering/SpriteRendererComponent.cs` | Color, texture path, tiling factor for 2D sprite rendering |
 | **SubTextureRendererComponent** | `SceneComponents/Rendering/SubTextureRendererComponent.cs` | Sprite atlas region: texture path, coords, cell/sprite size, optional precomputed UVs |
-| **ModelRendererComponent** | `SceneComponents/Rendering/ModelRendererComponent.cs` | `ModelPath` for imported meshes; `Color` tint; optional `MetallicOverride` / `RoughnessOverride` (unit-cube fallback when path is empty) |
-| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic/perspective projection settings, `Primary` and `FixedAspectRatio` flags |
-| **AmbientLightComponent** | `SceneComponents/Lighting/AmbientLightComponent.cs` | Scene-wide ambient light color and strength |
-| **DirectionalLightComponent** | `SceneComponents/Lighting/DirectionalLightComponent.cs` | Directional light direction and color |
+| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic projection settings, `Primary` and `FixedAspectRatio` flags |
+| **ParentComponent** | `SceneComponents/ParentComponent.cs` | Parent entity id for hierarchy |
 | **RigidBody2DComponent** | `SceneComponents/Physics/RigidBody2DComponent.cs` | Body type (Static/Dynamic/Kinematic), velocity, gravity scale, `FixedRotation` |
 | **BoxCollider2DComponent** | `SceneComponents/Physics/BoxCollider2DComponent.cs` | Collision shape: size, offset, density, friction, restitution, trigger flag |
+| **CircleCollider2DComponent** | `SceneComponents/Physics/CircleCollider2DComponent.cs` | Collision shape: radius, offset, material, trigger flag |
+| **EdgeCollider2DComponent** | `SceneComponents/Physics/EdgeCollider2DComponent.cs` | Open polyline collider: points, material, trigger flag |
 | **NativeScriptComponent** | `SceneComponents/NativeScriptComponent.cs` | Persisted script type name (`ScriptTypeName`) for runtime instantiation |
-| **AudioSourceComponent** | `SceneComponents/Audio/AudioSourceComponent.cs` | Audio clip path, volume, pitch, loop, 3D spatial settings, effects |
+| **AudioSourceComponent** | `SceneComponents/Audio/AudioSourceComponent.cs` | Audio clip path, volume, pitch, loop, spatial settings, effects |
 | **AudioListenerComponent** | `SceneComponents/Audio/AudioListenerComponent.cs` | Active flag marking the scene audio listener |
 
 Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `CameraComponent.CameraViewTransform`, `BoxCollider2DComponent.IsDirty`).
@@ -244,8 +244,8 @@ Custom runtime systems can be added with `Scene.RegisterRuntimeSystem(ISystem)`.
 | 110 | ScriptUpdateSystem | `View<NativeScriptComponent>()`, script OnCreate/OnUpdate via `NativeScriptIteration` |
 | 120 | AudioSystem | Audio listener position, source playback |
 | 145 | PrimaryCameraSystem | Finds entity with `CameraComponent { Primary = true }`, caches for renderers |
-| 150 | SceneRenderSystem | Renders sprites, sub-textures, and models via `SceneRenderPipeline` |
-| 151 | PhysicsDebugRenderSystem | Wireframe collider visualization (color-coded by body type) |
+| 150 | SceneRenderSystem | Renders sprites and sub-textures via `SceneRenderPipeline` |
+| 151 | PhysicsDebugRenderSystem | Collider visualization (color-coded by body type) |
 
 The ordering ensures: **physics runs first** → **scripts see updated positions** → **camera is resolved** → **rendering reads final state**.
 

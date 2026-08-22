@@ -14,20 +14,9 @@ internal sealed class OpenGLShader : IShader
     private bool _disposed;
 
     public OpenGLShader(string vertPath, string fragPath)
-        : this(vertPath, fragPath, geomPath: null)
     {
-    }
-
-    public OpenGLShader(string vertPath, string fragPath, string? geomPath)
-        : this(vertPath, fragPath, geomPath, [])
-    {
-    }
-
-    public OpenGLShader(string vertPath, string fragPath, string? geomPath, IReadOnlyList<ShaderDefine> defines)
-    {
-        var vertex = LoadShader(ShaderType.VertexShader, vertPath, defines);
-        var fragment = LoadShader(ShaderType.FragmentShader, fragPath, defines);
-        var geometry = geomPath is null ? 0u : LoadShader(ShaderType.GeometryShader, geomPath, defines);
+        var vertex = LoadShader(ShaderType.VertexShader, vertPath);
+        var fragment = LoadShader(ShaderType.FragmentShader, fragPath);
 
         _handle = SilkNetContext.GL.CreateProgram();
         OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
@@ -36,11 +25,6 @@ internal sealed class OpenGLShader : IShader
         OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
         SilkNetContext.GL.AttachShader(_handle, fragment);
         OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
-        if (geometry != 0)
-        {
-            SilkNetContext.GL.AttachShader(_handle, geometry);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(geometry)");
-        }
 
         SilkNetContext.GL.LinkProgram(_handle);
         OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
@@ -55,11 +39,6 @@ internal sealed class OpenGLShader : IShader
         OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
         SilkNetContext.GL.DeleteShader(fragment);
         OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
-        if (geometry != 0)
-        {
-            SilkNetContext.GL.DeleteShader(geometry);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(geometry)");
-        }
 
         _uniformLocations = new Dictionary<string, int>();
 
@@ -197,17 +176,9 @@ internal sealed class OpenGLShader : IShader
         return new ReadOnlySpan<float>(matrixArray);
     }
 
-    private static uint LoadShader(ShaderType type, string path, IReadOnlyList<ShaderDefine> defines)
+    private static uint LoadShader(ShaderType type, string path)
     {
-        //To load a single shader we need to:
-        //1) Load the shader from a file.
-        //2) Create the handle.
-        //3) Upload the source to opengl.
-        //4) Compile the shader.
-        //5) Check for errors.
         var src = File.ReadAllText(path);
-        if (defines.Count > 0)
-            src = InjectDefines(src, defines);
 
         var handle = SilkNetContext.GL.CreateShader(type);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");
@@ -222,23 +193,6 @@ internal sealed class OpenGLShader : IShader
         }
 
         return handle;
-    }
-
-    /// <summary>
-    /// Injects #define lines right after the #version directive so IBL constants flow
-    /// from C# (EnvironmentMapConstants) into GLSL with a single source of truth.
-    /// </summary>
-    internal static string InjectDefines(string source, IReadOnlyList<ShaderDefine> defines)
-    {
-        var newline = source.IndexOf('\n');
-        var header = newline >= 0 ? source[..(newline + 1)] : source + "\n";
-        var rest = newline >= 0 ? source[(newline + 1)..] : "";
-
-        var sb = new System.Text.StringBuilder(header);
-        foreach (var define in defines)
-            sb.Append("#define ").Append(define.Name).Append(' ').Append(define.Value).Append('\n');
-        sb.Append(rest);
-        return sb.ToString();
     }
 
     /// <summary>

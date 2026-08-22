@@ -22,7 +22,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
     public bool ShowGrid { get; set; } = true;
     public bool ShowGrid3D { get; set; } = false;
-    public ViewportDisplayMode ViewportDisplayMode { get; set; } = ViewportDisplayMode.Normal;
 
     public void ApplyGridFromScene(IScene scene)
     {
@@ -153,15 +152,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         if (ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
             SetShowGrid3D(showGrid3D);
         LayoutDrawer.DrawTooltip("3D Scene");
-
-        ImGui.SameLine();
-
-        var wireframe = ViewportDisplayMode == ViewportDisplayMode.Wireframe;
-        if (ButtonDrawer.DrawToggleButton("Wireframe", "Wireframe", ref wireframe,
-                width: EditorUIConstants.ToolbarWireframeToggleWidth,
-                height: EditorUIConstants.ToolbarToggleHeight))
-            ViewportDisplayMode = wireframe ? ViewportDisplayMode.Wireframe : ViewportDisplayMode.Normal;
-        LayoutDrawer.DrawTooltip("Wireframe Display");
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 

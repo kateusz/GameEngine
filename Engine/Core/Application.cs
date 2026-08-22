@@ -4,7 +4,6 @@ using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
-using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
 using Input;
 using Serilog;
@@ -18,10 +17,8 @@ public abstract class Application : IApplication
     private readonly IGameWindow _gameWindow;
     private readonly IRendererAPI _rendererApi;
     private readonly IGraphics2D _graphics2D;
-    private readonly IGraphics3D _graphics3D;
     private readonly IFrameCompositor? _frameCompositor;
     private readonly IAudio _audio;
-    private readonly IMeshFactory _meshFactory;
     private readonly IKeyboardInput? _keyboardInput;
     private readonly IMouseInput? _mouseInput;
     private IInputSystem? _inputSystem;
@@ -33,9 +30,7 @@ public abstract class Application : IApplication
         IGameWindow gameWindow,
         IRendererAPI rendererApi,
         IGraphics2D graphics2D,
-        IGraphics3D graphics3D,
         IAudio audio,
-        IMeshFactory meshFactory,
         IFrameCompositor? frameCompositor = null,
         ILayer? inputOverlay = null,
         IKeyboardInput? keyboardInput = null,
@@ -44,9 +39,7 @@ public abstract class Application : IApplication
         _gameWindow = gameWindow;
         _rendererApi = rendererApi;
         _graphics2D = graphics2D;
-        _graphics3D = graphics3D;
         _audio = audio;
-        _meshFactory = meshFactory;
         _frameCompositor = frameCompositor;
         _keyboardInput = keyboardInput;
         _mouseInput = mouseInput;
@@ -66,7 +59,7 @@ public abstract class Application : IApplication
     /// </summary>
     /// <remarks>
     /// INITIALIZATION OWNERSHIP: Application is responsible for initializing all core
-    /// graphics and audio subsystems (RendererAPI, Graphics2D, Graphics3D, AudioEngine).
+    /// graphics and audio subsystems (RendererAPI, Graphics2D, AudioEngine).
     /// Layers should NOT call Init() on these subsystems - they are guaranteed to be
     /// initialized before layer.OnAttach() is called. This prevents double initialization
     /// and ensures consistent resource management across all application types
@@ -76,7 +69,6 @@ public abstract class Application : IApplication
     {
         _rendererApi.Init();
         _graphics2D.Init();
-        _graphics3D.Init();
         _audio.Initialize();
 
         _inputSystem = inputSystem;
@@ -189,8 +181,6 @@ public abstract class Application : IApplication
 
         _layersStack.Clear();
         _graphics2D?.Dispose();
-        _graphics3D?.Dispose();
         _audio.Dispose();
-        _meshFactory.Clear();
     }
 }

@@ -63,24 +63,5 @@ public class PropertiesPanel(
         {
             scene.BackgroundColor = backgroundColor;
         }
-
-        ImGui.Spacing();
-        ImGui.SeparatorText("Post Process");
-
-        var exposure = scene.PostProcess.Exposure;
-        if (ImGui.DragFloat("Exposure", ref exposure, 0.01f, 0.1f, 8f))
-            scene.PostProcess = scene.PostProcess with { Exposure = exposure };
-
-        var bloomEnabled = scene.PostProcess.BloomEnabled;
-        if (ImGui.Checkbox("Bloom", ref bloomEnabled))
-            scene.PostProcess = scene.PostProcess with { BloomEnabled = bloomEnabled };
-
-        var bloomThreshold = scene.PostProcess.BloomThreshold;
-        if (ImGui.DragFloat("Bloom Threshold", ref bloomThreshold, 0.01f, 0f, 10f))
-            scene.PostProcess = scene.PostProcess with { BloomThreshold = bloomThreshold };
-
-        var bloomIntensity = scene.PostProcess.BloomIntensity;
-        if (ImGui.DragFloat("Bloom Intensity", ref bloomIntensity, 0.01f, 0f, 8f))
-            scene.PostProcess = scene.PostProcess with { BloomIntensity = bloomIntensity };
     }
 }

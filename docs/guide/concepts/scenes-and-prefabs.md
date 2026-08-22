@@ -1,6 +1,6 @@
 # Scenes and Prefabs
 
-A **scene** is a `.scene` JSON file: `BackgroundColor`, `Dimension` (2D/3D), and `Entities[]`. Schema: [Serialization](../../architecture/serialization.md).
+A **scene** is a `.scene` JSON file: `BackgroundColor`, `Dimension`, and `Entities[]`. Schema: [Serialization](../../architecture/serialization.md).
 
 ## Edit vs Play
 

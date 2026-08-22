@@ -191,22 +191,6 @@ public abstract class ScriptableEntity
         return _physicsQueries.OverlapCircle(center, radius, self, includeTriggers);
     }
 
-    protected RaycastHit3D? Raycast(Vector3 origin, Vector3 direction, float maxDistance, bool includeTriggers = false)
-    {
-        if (_entity is not Entity self || _physicsQueries is not IPhysicsQueries3D queries)
-            return null;
-
-        return queries.Raycast(origin, direction, maxDistance, self, includeTriggers);
-    }
-
-    protected RaycastHit3D? OverlapSphere(Vector3 center, float radius, bool includeTriggers = false)
-    {
-        if (_entity is not Entity self || _physicsQueries is not IPhysicsQueries3D queries)
-            return null;
-
-        return queries.OverlapSphere(center, radius, self, includeTriggers);
-    }
-
     #endregion
 
     #region Component Utility Methods

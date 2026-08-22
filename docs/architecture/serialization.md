@@ -74,7 +74,7 @@ Components are data-only classes serialized by System.Text.Json through `JsonCom
 | CameraComponent | `CameraViewTransform` | Computed view matrix, not persisted |
 | BoxCollider2DComponent | `IsDirty` | Physics sync flag, not persisted |
 
-Resource paths (`TexturePath`, `ModelPath`, `AudioClipPath`, etc.) are serialized as strings. GPU/audio/model resources are loaded later by their respective systems — not during JSON deserialization.
+Resource paths (`TexturePath`, `AudioClipPath`, etc.) are serialized as strings. GPU/audio resources are loaded later by their respective systems — not during JSON deserialization.
 
 Built-in components **not** registered in `RegisterBuiltins()` (`TagComponent`, `IdComponent`) cannot be saved to scene/prefab JSON — `SerializeEntity()` throws if an entity has an unregistered component type.
 
@@ -100,9 +100,6 @@ Central registry mapping component type names to serializers. Built-in component
 | BoxCollider2DComponent | `JsonComponentSerializer<T>` |
 | AudioListenerComponent | `JsonComponentSerializer<T>` |
 | AudioSourceComponent | `JsonComponentSerializer<T>` |
-| ModelRendererComponent | `JsonComponentSerializer<T>` |
-| AmbientLightComponent | `JsonComponentSerializer<T>` |
-| DirectionalLightComponent | `JsonComponentSerializer<T>` |
 | NativeScriptComponent | `NativeScriptComponentSerializer` |
 
 ### Strict vs lenient deserialization

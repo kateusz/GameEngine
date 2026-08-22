@@ -17,9 +17,6 @@ graph TD
             RAPI[IRendererAPI]
             GCTX[IGraphicsContext]
             G2D[IGraphics2D]
-            G3D[IGraphics3D]
-            HDR[HdrTonemapPass]
-            BLOOM[BloomPass]
         end
 
         subgraph "Audio"
@@ -37,7 +34,6 @@ graph TD
             CTX[IContext delegate]
             PC[IPhysicsContacts delegate]
             PQ[IPhysicsQueries delegate]
-            PQ3[IPhysicsQueries3D delegate]
         end
 
         subgraph "Physics"
@@ -60,8 +56,6 @@ graph TD
         subgraph "Resource Factories"
             TF[ITextureFactory]
             SHF[IShaderFactory]
-            MSF[IMeshFactory]
-            MDF[IModelFactory]
             VBF[IVertexBufferFactory]
             IBF[IIndexBufferFactory]
             FBF[IFrameBufferFactory]
@@ -87,7 +81,7 @@ graph TD
         subgraph "Field & Component Editors"
             FE[Field editors + UIPropertyRenderer]
             CER[IComponentEditorRegistry]
-            CE["Transform, Camera, Sprite, Model, Physics, Audio, Script, Light editors"]
+            CE["Transform, Camera, Sprite, Physics, Audio, Script editors"]
         end
 
         subgraph "Panels & Application"
@@ -107,7 +101,6 @@ graph TD
     PSR --> CSR
     CSR --> SE
     CSR --> TF
-    CSR --> MSF
     CSR --> AE
     SSE --> SO
     PSR --> SO
@@ -139,10 +132,6 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 | `IRendererAPI` | Via `IRendererApiFactory.Create()` | Singleton | Factory-resolved |
 | `IGraphicsContext` | `SilkNetGraphicsContext` | Singleton | OpenGL context wrapper |
 | `IGraphics2D` | `Graphics2D` | Singleton | 2D rendering API |
-| `IGraphics3D` | `Graphics3D` | Singleton | 3D rendering API |
-| `HdrTonemapPass` | `HdrTonemapPass` | Singleton | HDR → LDR tonemapping pass |
-| `BloomPass` | `BloomPass` | Singleton | Bright extract + Gaussian blur |
-| `FxaaPass` | `FxaaPass` | Singleton | Fast approximate AA after tonemap |
 
 ### Global Services (`RegisterCore`)
 
@@ -176,14 +165,13 @@ ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` bu
 | `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
 | `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |
 | `IPhysicsQueries` | Delegate from active scene, else `NullPhysicsQueries` | Default | Per-scene physics ray/overlap queries |
-| `IPhysicsQueries3D` | Delegate from active scene, else `NullPhysicsQueries3D` | Default | Per-scene 3D ray/overlap queries |
 
 ### Physics (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `IPhysicsBackendConfig` | `PhysicsBackendConfig(Box2D, Bepu)` | Singleton | 2D + 3D backend selection (`Type`, `Type3D`) |
-| `IPhysicsWorldFactory` | `PhysicsWorldFactory` | Singleton | Creates per-scene 2D (`Create`) and 3D (`Create3D`) worlds |
+| `IPhysicsBackendConfig` | `PhysicsBackendConfig(Box2D)` | Singleton | 2D backend selection (`Type`) |
+| `IPhysicsWorldFactory` | `PhysicsWorldFactory` | Singleton | Creates per-scene 2D worlds (`Create`) |
 
 ### Serialization (`RegisterCore`)
 
@@ -203,8 +191,6 @@ All registered as singletons. Manage caching and GPU resource lifecycles.
 | `IRendererApiFactory` | `RendererApiFactory` |
 | `ITextureFactory` | `TextureFactory` |
 | `IShaderFactory` | `ShaderFactory` |
-| `IMeshFactory` | `MeshFactory` |
-| `IModelFactory` | `ModelFactory` |
 | `IVertexBufferFactory` | `VertexBufferFactory` |
 | `IIndexBufferFactory` | `IndexBufferFactory` |
 | `IFrameBufferFactory` | `FrameBufferFactory` |
@@ -243,10 +229,9 @@ All singletons via `RegisterMany`. Used by the script inspector for reflected fi
 All singletons via `RegisterMany`. Registration order matches properties panel draw order:
 
 - `TransformComponentEditor`, `CameraComponentEditor`, `SpriteRendererComponentEditor`
-- `ModelRendererComponentEditor`, `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`, `CircleCollider2DComponentEditor`, `EdgeCollider2DComponentEditor`
+- `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`, `CircleCollider2DComponentEditor`, `EdgeCollider2DComponentEditor`
 - `SubTextureRendererComponentEditor`, `AudioSourceComponentEditor`, `AudioListenerComponentEditor`
 - `GameComponentEditor`, `ScriptComponentEditor`
-- `AmbientLightComponentEditor`, `DirectionalLightComponentEditor`
 
 Resolved through `IComponentEditorRegistry` → `ComponentEditorRegistry`.
 
@@ -275,7 +260,6 @@ Application types: `EditorMenuBar`, `EditorDockspace`, `EditorInputHandler`, `Ed
 | `IViewportScaleHelper` | `ViewportScaleHelper` | Singleton | HiDPI coordinate mapping |
 | `ViewportRuler` | `ViewportRuler` | Singleton | Ruler overlay |
 | `ViewportGrid` | `ViewportGrid` | Singleton | 2D grid overlay |
-| `ViewportGrid3D` | `ViewportGrid3D` | Singleton | 3D grid overlay |
 | `ViewportToolManager` | `ViewportToolManager` | Singleton | Active tool management |
 | `SelectionTool` | `SelectionTool` | Singleton | Entity picking |
 | `MoveTool` | `MoveTool` | Singleton | Translate gizmo |
@@ -319,7 +303,7 @@ Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` a
 |----------|-------|----------|
 | Singleton | Most services — shared across entire application lifetime | `IScriptEngine`, all factories, `ISceneSystemsFactory`, all editors |
 | Default (Transient) | Factory-created services where DryIoc resolves once at startup | `IGameWindow`, `IContentScaleProvider` |
-| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts`, `IPhysicsQueries`, `IPhysicsQueries3D` |
+| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts`, `IPhysicsQueries` |
 | Per-scene (not DI singletons) | Created by `ISceneSystemsFactory` per scene | Individual `ISystem` implementations (e.g. physics simulation) |
 
 ## Registration Flow

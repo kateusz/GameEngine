@@ -1,6 +1,5 @@
 using System.Numerics;
 using ECS;
-using Editor.Features.Import;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
@@ -10,16 +9,11 @@ using Engine.Core;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Physics;
-using Engine.Renderer;
 using Engine.Renderer.Buffers.FrameBuffer;
-using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
-using Engine.Renderer.PostProcessing;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Cameras;
-using Engine.Scene.Skeletal;
-using Engine.Scene.Serializer;
 using ImGuiNET;
 using Input;
 using Math;
@@ -30,20 +24,15 @@ public sealed class EditorViewport(
     ISceneContext sceneContext,
     ISceneManager sceneManager,
     IGraphics2D graphics2D,
-    IGraphics3D graphics3D,
     ITextureFactory textureFactory,
-    IModelFactory modelFactory,
     DebugSettings debugSettings,
     EditorSettingsUI editorSettingsUI,
-    IEditorPreferences editorPreferences,
     IFrameBufferFactory frameBufferFactory,
-    PostProcessOrchestrator postProcessOrchestrator,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
-    Import3DModelPopup import3DModelPopup,
     CameraGizmoDrawer cameraGizmoDrawer)
     : IEditorViewport
 {
@@ -51,7 +40,6 @@ public sealed class EditorViewport(
 
     private EditorCamera _editorCamera = null!;
     private IFrameBuffer _frameBuffer = null!;
-    private IFrameBuffer _sdrFrameBuffer = null!;
     private float _contentScale = 1.0f;
     private Vector2 _viewportSize;
     private readonly Dictionary<int, Entity> _entityById = [];
@@ -72,27 +60,16 @@ public sealed class EditorViewport(
         _editorCamera = new EditorCamera();
         cameraController.SetCamera(_editorCamera);
         _frameBuffer = frameBufferFactory.Create();
-        _sdrFrameBuffer = frameBufferFactory.Create(new FrameBufferSpecification(
-            DisplayConfig.DefaultEditorViewportWidth,
-            DisplayConfig.DefaultEditorViewportHeight)
-        {
-            AttachmentsSpec = new FrameBufferAttachmentSpecification([
-                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8),
-            ])
-        });
         _contentScale = contentScaleProvider.ContentScale;
 
         if (sceneContext.ActiveScene is not null)
             RebuildEntityLookup(sceneContext.ActiveScene);
-
-        postProcessOrchestrator.Initialize();
     }
 
     public void Dispose()
     {
         sceneContext.SceneChanged -= _sceneChangedHandler;
         _frameBuffer?.Dispose();
-        _sdrFrameBuffer?.Dispose();
     }
 
     public void LayoutAndRender(TimeSpan deltaTime)
@@ -113,16 +90,7 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var post = sceneContext.ActiveScene?.PostProcess ?? default;
-        var spec = _frameBuffer.GetSpecification();
-        var displayColorId = postProcessOrchestrator.Run(
-            _frameBuffer.GetColorAttachmentRendererId(),
-            spec.Width,
-            spec.Height,
-            PostProcessSettings.FromScene(post, editorPreferences.FxaaEnabled),
-            _sdrFrameBuffer);
-
-        var texturePointer = new IntPtr(displayColorId);
+        var texturePointer = new IntPtr(_frameBuffer.GetColorAttachmentRendererId());
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();
@@ -131,17 +99,9 @@ public sealed class EditorViewport(
 
         PickHoveredEntity();
 
-        var dropValidator = DragDropDrawer.CreateExtensionValidator(
-            [".scene", ..Import3DModelBatch.SupportedExtensions],
-            checkFileExists: false);
+        var dropValidator = DragDropDrawer.CreateExtensionValidator([".scene"], checkFileExists: false);
         DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload, dropValidator,
-            onDropped: path =>
-            {
-                if (Import3DModelBatch.IsSupportedExtension(path))
-                    import3DModelPopup.BeginFromPath(PathBuilder.Build(path));
-                else
-                    sceneManager.Open(PathBuilder.Build(path));
-            });
+            onDropped: path => sceneManager.Open(PathBuilder.Build(path)));
 
         if (ImGui.IsWindowHovered())
             HandleViewportInput();
@@ -245,22 +205,8 @@ public sealed class EditorViewport(
             return;
 
         _frameBuffer.Resize(fbWidth, fbHeight);
-        _sdrFrameBuffer.Resize(fbWidth, fbHeight);
         _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
         sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
-    }
-
-    public static void ApplyWireframeDuring(IGraphics3D graphics3D, ViewportDisplayMode mode, Action scenePass)
-    {
-        try
-        {
-            graphics3D.SetWireframe(mode == ViewportDisplayMode.Wireframe);
-            scenePass();
-        }
-        finally
-        {
-            graphics3D.SetWireframe(false);
-        }
     }
 
     private void RenderSceneToFramebuffer(TimeSpan deltaTime)
@@ -274,38 +220,21 @@ public sealed class EditorViewport(
         graphics2D.Clear();
         _frameBuffer.ClearAttachment(1, -1);
 
-        var displayMode = viewport.SceneToolbar.ViewportDisplayMode;
-
         switch (sceneContext.State)
         {
             case SceneState.Edit:
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
-                    SkeletalPlaybackUpdater.Tick(scene.Context, deltaTime, modelFactory);
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
-                    ApplyWireframeDuring(graphics3D, displayMode, () =>
-                        SceneRenderPipeline.RenderScene(
-                            scene.Context,
-                            graphics2D,
-                            graphics3D,
-                            textureFactory,
-                            modelFactory,
-                            camera));
-                    if (debugSettings.ShowColliderBounds)
-                    {
-                        if (scene.Dimension == SceneDimension.ThreeD)
-                            PhysicsDebugDrawer3D.Draw(
-                                scene.Context, graphics3D, sceneContext.ActivePhysicsBodyStore3D, camera, useTransformFallbackWhenNoBody: true);
-                        else if (sceneContext.ActivePhysicsBodyStore is { } bodyStore)
-                            PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
-                    }
+                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, textureFactory, camera);
+                    if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
+                        PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
                     cameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera);
                 }
                 break;
             case SceneState.Play:
-                ApplyWireframeDuring(graphics3D, displayMode, () =>
-                    sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime));
+                sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime);
                 break;
         }
 

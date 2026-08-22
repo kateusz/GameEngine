@@ -11,8 +11,7 @@ public sealed record SceneBuildResult(
     PhysicsRuntimeBodyStore BodyStore,
     PhysicsContactQueue ContactQueue,
     ScriptRuntimeStore ScriptStore,
-    IPhysicsQueries PhysicsQueries,
-    PhysicsRuntimeBodyStore3D? BodyStore3D = null);
+    IPhysicsQueries PhysicsQueries);
 
 public interface ISystemManagerFactory
 {

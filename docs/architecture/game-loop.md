@@ -14,11 +14,11 @@ graph TB
     end
 
     subgraph "Application Layer"
-        App["Application (abstract)<br/><i>Layer stack, IRendererAPI, Graphics2D/3D, IAudio</i>"]
+        App["Application (abstract)<br/><i>Layer stack, IRendererAPI, Graphics2D, IAudio</i>"]
         Compositor["IFrameCompositor (optional)<br/><i>Wraps Draw phase (e.g. ImGui)</i>"]
         LayerStack["Layer Stack<br/><i>Processed in reverse order</i>"]
         EditorLayer["EditorLayer<br/><i>Framebuffer, scene states, mouse picking</i>"]
-        GameLayer["GameLayer<br/><i>HDR framebuffer, post-process, always Play mode</i>"]
+        GameLayer["GameLayer<br/><i>Always Play mode</i>"]
     end
 
     subgraph "Platform"
@@ -26,7 +26,7 @@ graph TB
     end
 
     subgraph "Scene"
-        Scene["Scene<br/><i>OnUpdateRuntime / OnUpdateEditor</i>"]
+        Scene["Scene<br/><i>OnUpdateRuntime</i>"]
         SM["SystemManager<br/><i>Priority-sorted ECS systems</i>"]
     end
 
@@ -60,7 +60,7 @@ sequenceDiagram
     App->>Win: Run()
 
     Win-->>App: OnWindowLoad(inputSystem)
-    App->>App: RendererAPI.Init(), Graphics2D/3D Init(), Audio.Initialize()
+    App->>App: RendererAPI.Init(), Graphics2D.Init(), Audio.Initialize()
     App->>Layers: OnAttach(inputSystem) for each layer
     Note over Layers: GameLayer OnAttach: deserialize startup scene, RuntimeSceneStarter.Start()
 
@@ -82,7 +82,7 @@ sequenceDiagram
 
     Win-->>App: OnClose
     App->>Layers: OnDetach() for each layer (reverse order)
-    App->>App: Dispose Graphics2D, Graphics3D, Audio; MeshFactory.Clear()
+    App->>App: Dispose Graphics2D, Audio
     Main->>Main: Log.CloseAndFlush(); container.Dispose()
 ```
 
@@ -123,8 +123,8 @@ sequenceDiagram
 
 The abstract `Application` class manages the core frame loop:
 
-- **Owns**: `IGameWindow`, `IRendererAPI`, `IGraphics2D`, `IGraphics3D`, `IAudio`, `IMeshFactory`; optional `IFrameCompositor`, `IKeyboardInput`, and `IMouseInput`
-- **Initializes on window load**: `RendererAPI.Init()`, `Graphics2D.Init()`, `Graphics3D.Init()`, `Audio.Initialize()` — before any `layer.OnAttach()`
+- **Owns**: `IGameWindow`, `IRendererAPI`, `IGraphics2D`, `IAudio`; optional `IFrameCompositor`, `IKeyboardInput`, and `IMouseInput`
+- **Initializes on window load**: `RendererAPI.Init()`, `Graphics2D.Init()`, `Audio.Initialize()` — before any `layer.OnAttach()`
 - **Manages**: Layer stack — `PushLayer` inserts at index 0, `PushOverlay` appends; `PopLayer` / `PopOverlay` detach and remove; all tick/event processing iterates in **reverse** (overlays first)
 - **Delegates**: Platform loop to `IGameWindow.Run()` (Silk.NET)
 - **Constructor**: Optionally `PushOverlay(inputOverlay)` for the input/UI overlay (editor passes `ImGuiLayer`)
@@ -183,14 +183,14 @@ graph TD
     B --> C["Handle framebuffer resize<br/>(logical → physical DPI)"]
     C --> D["Bind framebuffer + clear"]
     D --> E{SceneState?}
-    E -->|Edit| F["scene.OnUpdateEditor(dt, editorCamera)<br/><i>Manual rendering, no ECS systems</i>"]
+    E -->|Edit| F["SceneRenderPipeline.RenderScene<br/><i>Sprites, no ECS systems</i>"]
     E -->|Play| G["scene.OnUpdateRuntime(dt)<br/><i>Full ECS: SystemManager.Update()</i>"]
     F --> H["Mouse picking via<br/>framebuffer entity ID readback"]
     G --> H
     H --> I["Unbind framebuffer"]
 ```
 
-- **Edit mode**: Scene renders manually — iterates entities directly, draws sprites/models without running physics or scripts
+- **Edit mode**: Scene renders via `SceneRenderPipeline` — draws sprites and subtextures without running physics or scripts
 - **Play mode**: Delegates to `SystemManager.Update()` — all ECS systems execute in priority order
 - **Mouse picking**: Framebuffer has a `RED_INTEGER` attachment storing entity IDs per pixel; `ReadPixel()` identifies the clicked entity
 
@@ -202,15 +202,11 @@ graph TD
 ```mermaid
 graph TD
     A["OnUpdate(dt)"] --> B["pointerSurface.Set(0, clientSize)"]
-    B --> C["Bind HDR framebuffer"]
-    C --> D["Set clear color + Graphics2D.Clear()"]
-    D --> E["Clear RED_INTEGER attachment (entity ID)"]
-    E --> F["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
-    F --> G["Unbind framebuffer"]
-    G --> H["PostProcessOrchestrator.Run(hdr color, scene settings)"]
+    B --> C["Set clear color + Graphics2D.Clear()"]
+    C --> D["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
 ```
 
-No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` into an HDR off-screen buffer; post-processing runs before presentation. `Draw()` is a no-op. `OnAttach` creates the HDR buffer, loads the startup scene, and calls `RuntimeSceneStarter.Start()`. Input events update `KeyboardInputState` / `MouseInputState` and forward to `IScriptEngine.ProcessEvent`; window resize resizes the HDR buffer and calls `scene.OnViewportResize`.
+No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` to the backbuffer. `Draw()` is a no-op. `OnAttach` loads the startup scene and calls `RuntimeSceneStarter.Start()`. Input events update `KeyboardInputState` / `MouseInputState` and forward to `IScriptEngine.ProcessEvent`; window resize calls `scene.OnViewportResize`.
 
 ---
 
@@ -231,12 +227,12 @@ public void OnUpdateRuntime(TimeSpan ts)
 
 Systems execute in priority order (100→151), covering physics, scripting, audio, and rendering.
 
-### OnUpdateEditor
+### Editor viewport (edit mode)
 
-Manual rendering without ECS systems:
+The editor viewport draws without ECS systems:
 
-1. `Graphics3D.BeginScene(editorCamera)` → draw all ModelRendererComponent entities → `EndScene()`
-2. `Graphics2D.BeginScene(editorCamera)` → draw all sprites and subtextures → `EndScene()`
+1. `scene.UpdateWorldTransforms()`
+2. `SceneRenderPipeline.RenderScene(...)` — sprites and subtextures
 3. If `DebugSettings.ShowColliderBounds`: draw collider outlines
 4. No physics stepping, no script execution
 
@@ -278,15 +274,15 @@ sequenceDiagram
 
 **File**: `Runtime/GameLayer.cs`
 
-1. `GameLayer.OnAttach()` initializes `PostProcessOrchestrator`, creates an HDR framebuffer, and subscribes to `ISceneContext.SceneChanged`
+1. `GameLayer.OnAttach()` subscribes to `ISceneContext.SceneChanged`
 2. Resolves startup scene path from `GameConfiguration.StartupScenePath` (relative to `AppContext.BaseDirectory`)
 3. `SceneFactory.Create()` + `SceneSerializer.Deserialize()`
 4. `sceneContext.SetScene(scene)` then `RuntimeSceneStarter.Start(scene, sceneContext, gameSystems)` — registers `[Register]` `IGameSystem` instances and calls `scene.OnRuntimeStart()`
-5. Sizes the HDR buffer and calls `scene.OnViewportResize` from the current window client size
+5. Calls `scene.OnViewportResize` from the current window client size
 
 ### Shutdown Sequence
 
 1. `Application.HandleGameWindowClose` — `OnDetach()` on each layer (reverse order, errors logged via `SafeDetachLayer`), then clears the layer stack
-2. `GameLayer.OnDetach()` — unsubscribes `SceneChanged`, `scene.OnRuntimeStop()`, `scene.Dispose()`, disposes HDR framebuffer
-3. Application disposes `Graphics2D`, `Graphics3D`, `Audio`; `IMeshFactory.Clear()` (`IRendererAPI` is not disposed here)
+2. `GameLayer.OnDetach()` — unsubscribes `SceneChanged`, `scene.OnRuntimeStop()`, `scene.Dispose()`
+3. Application disposes `Graphics2D`, `Audio` (`IRendererAPI` is not disposed here)
 4. Runtime `Program.Main` `finally`: `Log.CloseAndFlush()`, then `container.Dispose()`

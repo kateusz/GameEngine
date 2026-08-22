@@ -59,13 +59,12 @@ The engine core depends on interfaces in `Engine/Physics/`; Box2D types stay in 
 | `IPhysicsBody2D` | `Engine/Physics/IPhysicsBody2D.cs` | `Entity`, position, angle, velocity, `MotionType`, fixture create/material update, `IsAwake` / `IsEnabled` |
 | `IPhysicsContactListener` | `Engine/Physics/IPhysicsContactListener.cs` | `OnContactBegin` / `OnContactEnd` with `isTrigger` flag |
 | `IPhysicsQueries` | `Scripting/IPhysicsQueries.cs` | `Raycast`, `OverlapCircle` (optional `ignoreEntity`, `includeTriggers`) |
-| `IPhysicsQueries3D` | `Scripting/IPhysicsQueries3D.cs` | `Raycast`, `OverlapSphere` (optional `ignoreEntity`, `includeTriggers`) |
 | `RaycastHit2D` | `Scripting/RaycastHit2D.cs` | `Entity`, `Point`, `Normal`, `Distance`, `IsTrigger` |
-| `IPhysicsWorldFactory` | `Engine/Physics/IPhysicsWorldFactory.cs` | `Create` (2D) / `Create3D` (3D) for a gravity vector |
-| `PhysicsWorldFactory` | `Engine/Physics/PhysicsWorldFactory.cs` | Selects backend from `IPhysicsBackendConfig.Type` / `Type3D` |
-| `IPhysicsBackendConfig` | `Engine/Physics/IPhysicsBackendConfig.cs` | Exposes `PhysicsBackendType` (`Type`, `Type3D`) |
-| `PhysicsBackendConfig` | `Engine/Physics/PhysicsBackendConfig.cs` | Default DI registration (`Box2D`, `Bepu`) |
-| `PhysicsBackendType` | `Engine/Physics/PhysicsBackendType.cs` | `None`, `Box2D`, `Bepu` |
+| `IPhysicsWorldFactory` | `Engine/Physics/IPhysicsWorldFactory.cs` | `Create` for a gravity vector |
+| `PhysicsWorldFactory` | `Engine/Physics/PhysicsWorldFactory.cs` | Selects backend from `IPhysicsBackendConfig.Type` |
+| `IPhysicsBackendConfig` | `Engine/Physics/IPhysicsBackendConfig.cs` | Exposes `PhysicsBackendType` (`Type`) |
+| `PhysicsBackendConfig` | `Engine/Physics/PhysicsBackendConfig.cs` | Default DI registration (`Box2D`) |
+| `PhysicsBackendType` | `Engine/Physics/PhysicsBackendType.cs` | `None`, `Box2D` |
 | `Box2DPhysicsWorld2D` | `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs` | Wraps Box2D `World`; implements queries via `World.RayCast` / `QueryAABB` |
 | `Box2DPhysicsBody2D` | `Engine/Platform/Box2D/Box2DPhysicsBody2D.cs` | Wraps Box2D `Body`; stores `Entity` on wrapper |
 | `Box2DContactListenerAdapter` | `Engine/Platform/Box2D/Box2DContactListenerAdapter.cs` | Bridges Box2D `ContactListener` to `IPhysicsContactListener` |
@@ -129,7 +128,7 @@ sequenceDiagram
     participant CL as SceneContactListener
     participant PSS as PhysicsSimulationSystem
 
-    SMF->>SMF: new PhysicsRuntimeBodyStore, PhysicsContactQueue; 3D also PhysicsRuntimeBodyStore3D
+    SMF->>SMF: new PhysicsRuntimeBodyStore, PhysicsContactQueue
     SMF->>SSF: PopulateSystemManager(...)
     SSF->>F: Create(gravity: 0, -9.8)
     F-->>W: Box2DPhysicsWorld2D
@@ -140,9 +139,9 @@ sequenceDiagram
 
 Default gravity is `(0, -9.8)` in `SceneSystemsFactory.DefaultGravity`.
 
-`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for tier-2 `IGameSystem` scripts. `Scene.PhysicsQueries` exposes the same scene's `IPhysicsWorld2D` as `IPhysicsQueries`. 3D scenes wrap the world in `PhysicsQueries3DAdapter` and expose it as `IPhysicsQueries3D` via `Scene.PhysicsQueries3D`. Runtime body maps live on `Scene.PhysicsBodies` (2D) and nullable `Scene.PhysicsBodies3D`.
+`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for tier-2 `IGameSystem` scripts. `Scene.PhysicsQueries` exposes the same scene's `IPhysicsWorld2D` as `IPhysicsQueries`. Runtime body maps live on `Scene.PhysicsBodies`.
 
-When no scene is active, DI resolves `NullPhysicsContacts.Instance`, `NullPhysicsQueries.Instance`, and `NullPhysicsQueries3D.Instance` (all return empty/null results).
+When no scene is active, DI resolves `NullPhysicsContacts.Instance` and `NullPhysicsQueries.Instance` (all return empty/null results).
 
 ---
 
@@ -150,11 +149,11 @@ When no scene is active, DI resolves `NullPhysicsContacts.Instance`, `NullPhysic
 
 **File**: `Engine/Scene/Systems/PhysicsSimulationSystem.cs`
 
-Bodies are created lazily in `EnsureBodiesCreated()` — called from `OnInit` and every `OnUpdate`. An entity with `RigidBody2DComponent` + `TransformComponent` gets a body when it enters the store's view; if it also has a collider, a fixture is added immediately. `PhysicsSimulationSystem3D` does the same for 3D, but skips create until a collider is present.
+Bodies are created lazily in `EnsureBodiesCreated()` — called from `OnInit` and every `OnUpdate`. An entity with `RigidBody2DComponent` + `TransformComponent` gets a body when it enters the store's view; if it also has a collider, a fixture is added immediately.
 
 If authored identity differs from what was baked at create (`BodyType`, collider kind/size/offset, scale, `GravityScale`, `FixedRotation`, density, `IsTrigger`, edge points), the stored body is destroyed and dropped so the create path remakes it. Friction and restitution still update in place each frame via `UpdateFixtureMaterial`. Linear velocity survives on the rigidbody component; native angular velocity does not.
 
-`CleanupOrphanedBodies()` destroys bodies whose entity no longer has a rigidbody component. Removing the last 3D collider also drops the body (identity becomes no-collider).
+`CleanupOrphanedBodies()` destroys bodies whose entity no longer has a rigidbody component.
 
 | Event | What happens |
 |---|---|

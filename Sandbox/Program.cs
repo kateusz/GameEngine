@@ -67,7 +67,7 @@ public class Program
         ImGuiIoCContainer.Register(container);
 
         container.Register<SandboxApplication>(Reuse.Singleton);
-        container.Register<ILayer, BepuPhysics3DLayer>(Reuse.Singleton);
+        container.Register<ILayer, Sandbox2DLayer>(Reuse.Singleton);
 
         container.ValidateAndThrow();
     }

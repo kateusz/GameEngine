@@ -8,7 +8,7 @@ using Serilog;
 namespace Engine.Scene;
 
 internal sealed class SceneContactListener(PhysicsContactQueue contactQueue, ScriptRuntimeStore scriptStore)
-    : IPhysicsContactListener, IPhysicsContactListener3D
+    : IPhysicsContactListener
 {
     private static readonly ILogger Logger = Log.ForContext<SceneContactListener>();
 
@@ -16,12 +16,6 @@ internal sealed class SceneContactListener(PhysicsContactQueue contactQueue, Scr
         OnContactBegin(bodyA.Entity, bodyB.Entity, isTrigger);
 
     public void OnContactEnd(IPhysicsBody2D bodyA, IPhysicsBody2D bodyB, bool isTrigger) =>
-        OnContactEnd(bodyA.Entity, bodyB.Entity, isTrigger);
-
-    public void OnContactBegin(IPhysicsBody3D bodyA, IPhysicsBody3D bodyB, bool isTrigger) =>
-        OnContactBegin(bodyA.Entity, bodyB.Entity, isTrigger);
-
-    public void OnContactEnd(IPhysicsBody3D bodyA, IPhysicsBody3D bodyB, bool isTrigger) =>
         OnContactEnd(bodyA.Entity, bodyB.Entity, isTrigger);
 
     private void OnContactBegin(Entity? entityA, Entity? entityB, bool isTrigger)

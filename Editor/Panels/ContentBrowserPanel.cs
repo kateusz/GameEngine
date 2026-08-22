@@ -419,8 +419,6 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         }
         else if (isDirectory)
             TextDrawer.DrawInfoText("Type: Directory");
-        else if (MeshDropTarget.IsSupported(filename))
-            TextDrawer.DrawInfoText("Type: Model");
         else
             TextDrawer.DrawInfoText($"Type: {Path.GetExtension(filename)}");
     }

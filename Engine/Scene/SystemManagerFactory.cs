@@ -11,13 +11,11 @@ internal sealed class SystemManagerFactory(ISceneSystemsFactory sceneSystemsFact
     public SceneBuildResult Create(IContext context, SceneDimension dimension = SceneDimension.TwoD)
     {
         var bodyStore = new PhysicsRuntimeBodyStore();
-        // ponytail: unused 2D store on 3D scenes; dual-nullable stores if a second backend cares
-        var bodyStore3D = dimension == SceneDimension.ThreeD ? new PhysicsRuntimeBodyStore3D() : null;
         var contactQueue = new PhysicsContactQueue();
         var scriptStore = new ScriptRuntimeStore();
         var systemManager = new SystemManager();
         var physicsWorld = sceneSystemsFactory.PopulateSystemManager(
-            systemManager, context, bodyStore, bodyStore3D, contactQueue, scriptStore, dimension);
-        return new SceneBuildResult(systemManager, bodyStore, contactQueue, scriptStore, physicsWorld, bodyStore3D);
+            systemManager, context, bodyStore, contactQueue, scriptStore, dimension);
+        return new SceneBuildResult(systemManager, bodyStore, contactQueue, scriptStore, physicsWorld);
     }
 }
