@@ -1,4 +1,6 @@
+using System.Numerics;
 using Engine.Platform.OpenGL.Buffers;
+using Engine.Renderer.Meshes;
 using Silk.NET.OpenGL;
 using Shouldly;
 
@@ -20,6 +22,19 @@ public class VertexBufferIntegrationTests(HeadlessGraphicsContextFixture fixture
         glBuffer.RendererId.ShouldNotBe(0u);
         GlBufferQueries.IsBufferAlive(glBuffer.RendererId).ShouldBeTrue();
         GlBufferQueries.GetBufferUsage(glBuffer.RendererId).ShouldBe(BufferUsageARB.DynamicDraw);
+    }
+
+    [GraphicsFact]
+    public void Create_MeshVertices_AllocatesStaticDrawBuffer()
+    {
+        using var buffer = fixture.VertexBufferFactory.Create(
+        [
+            new Mesh.Vertex(Vector3.Zero, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ)
+        ]);
+        var glBuffer = (OpenGLVertexBuffer)buffer;
+
+        glBuffer.RendererId.ShouldNotBe(0u);
+        GlBufferQueries.GetBufferUsage(glBuffer.RendererId).ShouldBe(BufferUsageARB.StaticDraw);
     }
 
     [GraphicsFact]

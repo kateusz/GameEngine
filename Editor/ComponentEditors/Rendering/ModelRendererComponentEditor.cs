@@ -2,12 +2,14 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.UI.Elements;
+using Engine.Renderer.Models;
 using Engine.Renderer.Textures;
 using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
 
 public class ModelRendererComponentEditor(
+    IModelFactory modelFactory,
     ITextureFactory textureFactory,
     UIPropertyRenderer propertyRenderer,
     IEditorHistory history) : ComponentEditor<ModelRendererComponent>(history)
@@ -16,6 +18,10 @@ public class ModelRendererComponentEditor(
 
     protected override void DrawContent(ModelRendererComponent component, Entity entity)
     {
+        ModelDropTarget.Draw("Model", relativePath =>
+        {
+            component.ModelPath = relativePath;
+        }, modelFactory, component.ModelPath);
         propertyRenderer.DrawPropertyField("Color", component.Color,
             newValue => component.Color = (System.Numerics.Vector4)newValue);
         TextureDropTarget.Draw("Texture", relativePath =>

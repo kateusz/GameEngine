@@ -10,6 +10,7 @@ using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Physics;
 using Engine.Renderer.Buffers.FrameBuffer;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
@@ -34,7 +35,8 @@ public sealed class EditorViewport(
     IEditorCameraController cameraController,
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
-    CameraGizmoDrawer cameraGizmoDrawer)
+    CameraGizmoDrawer cameraGizmoDrawer,
+    IModelFactory modelFactory)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -229,7 +231,7 @@ public sealed class EditorViewport(
                 {
                     scene.UpdateWorldTransforms();
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
-                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, camera);
+                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, camera);
                     if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
                         PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
                     cameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera);

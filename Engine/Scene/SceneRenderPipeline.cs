@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Core;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Scene.Cameras;
 using Engine.Renderer.Textures;
@@ -15,6 +16,8 @@ namespace Engine.Scene;
 internal static class SceneRenderPipeline
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
+
+    private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly Vector2[] DefaultTextureCoords =
     [
@@ -44,10 +47,12 @@ internal static class SceneRenderPipeline
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
+        IModelFactory  modelFactory,
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
         RenderCubes(context, graphics3D, textureFactory, camera);
+        RenderModels(context, graphics3D, modelFactory, camera);
     }
     
     internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
@@ -148,6 +153,9 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
+            if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+                continue;
+
             var transform = transformComponent.GetWorldTransform();
             if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
             {
@@ -211,4 +219,44 @@ internal static class SceneRenderPipeline
         else
             graphics3D.BeginScene(camera.Camera!, camera.Transform);
     }
+    
+    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory? modelFactory, in CameraBinding camera)
+    {
+        if (!camera.IsValid)
+            return;
+
+        Begin3DScene(graphics3D, camera);
+        var (ambientColor, ambientStrength) = ResolveAmbient(context);
+        graphics3D.SetAmbientLight(ambientColor, ambientStrength);
+        var (lightDirection, lightColor) = ResolveDirectional(context);
+        graphics3D.SetDirectionalLight(lightDirection, lightColor);
+
+        foreach (var (entity, modelRenderer, transformComponent) in
+                 context.View<ModelRendererComponent, TransformComponent>())
+        {
+            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath) || modelFactory == null)
+                continue;
+
+            var transform = transformComponent.GetWorldTransform();
+            var tint = modelRenderer.Color;
+
+            var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+            var model = modelFactory.Create(resolvedPath);
+            if (model == null)
+            {
+                if (WarnedFailedModels.Add(resolvedPath))
+                    Logger.Warning(
+                        "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
+                        modelRenderer.ModelPath, resolvedPath);
+                graphics3D.DrawCube(transform, tint, entity.Id);
+                continue;
+            }
+
+            foreach (var submesh in model.Submeshes)
+                graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
+        }
+
+        graphics3D.EndScene();
+    }
+
 }

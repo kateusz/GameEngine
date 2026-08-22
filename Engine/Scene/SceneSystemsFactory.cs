@@ -4,6 +4,7 @@ using ECS;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Physics;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
@@ -21,7 +22,8 @@ internal sealed class SceneSystemsFactory(
     IScriptEngine scriptEngine,
     IAudio audio,
     AudioPlaybackService playbackService,
-    IPhysicsWorldFactory physicsWorldFactory) : ISceneSystemsFactory
+    IPhysicsWorldFactory physicsWorldFactory,
+    IModelFactory modelFactory) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
@@ -53,7 +55,7 @@ internal sealed class SceneSystemsFactory(
             new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
-            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera, modelFactory)
         ];
 
         foreach (var system in systems.Concat(shared))

@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
@@ -8,6 +9,7 @@ namespace Engine.Renderer.Meshes;
 
 public class Mesh : IDisposable
 {
+    [StructLayout(LayoutKind.Sequential)]
     public record struct Vertex(
         Vector3 Position,
         Vector3 Normal,
@@ -16,19 +18,32 @@ public class Mesh : IDisposable
         Vector3 Bitangent,
         int EntityId = -1)
     {
-        public static int GetSize() => sizeof(float) * (3 + 3 + 2 + 3 + 3) + sizeof(int); // 60 bytes
+        public Vertex() : this(default, default, default, default, default) { }
+
+        public static BufferLayout Layout { get; } = new([
+            new BufferElement(ShaderDataType.Float3, "a_Position"),
+            new BufferElement(ShaderDataType.Float3, "a_Normal"),
+            new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
+            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID")
+        ]);
     }
 
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
-    public Texture2D DiffuseTexture { get; set; }
-    public List<Texture2D> Textures { get; set; }
+    public Texture2D? DiffuseTexture { get; set; }
+    public Texture2D? SpecularTexture { get; set; }
+    public Texture2D? NormalTexture { get; set; }
+    public float Shininess { get; set; } = 32.0f;
     public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
+    
+    public bool HasDiffuseMap => DiffuseTexture != null;
+    public bool HasSpecularMap => SpecularTexture != null;
+    public bool HasNormalMap => NormalTexture != null;
 
     private IVertexArray _vertexArray;
-    private IVertexBuffer _vertexBuffer;
-    private IIndexBuffer _indexBuffer;
     private bool _initialized;
     private bool _disposed;
 
@@ -40,13 +55,11 @@ public class Mesh : IDisposable
             : _vertexArray;
     }
 
-    public Mesh(string name = "Unnamed", ITextureFactory? textureFactory = null)
+    public Mesh(string name = "Unnamed")
     {
         Name = name;
         Vertices = [];
         Indices = [];
-        Textures = [];
-        DiffuseTexture = textureFactory?.GetWhiteTexture()!;
     }
 
     public void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory,
@@ -61,26 +74,19 @@ public class Mesh : IDisposable
                 $"Mesh '{Name}' already initialized. Initialize() should only be called once.");
 
         _vertexArray = vertexArrayFactory.Create();
-        _vertexBuffer = vertexBufferFactory.Create((uint)(Vertices.Count * Vertex.GetSize()));
+        var vertexBuffer = vertexBufferFactory.Create(Vertices);
+        vertexBuffer.SetLayout(Vertex.Layout);
+        _vertexArray.AddVertexBuffer(vertexBuffer);
 
-        var layout = new BufferLayout([
-            new BufferElement(ShaderDataType.Float3, "a_Position"),
-            new BufferElement(ShaderDataType.Float3, "a_Normal"),
-            new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
-            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
-            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
-            new BufferElement(ShaderDataType.Int, "a_EntityID")
-        ]);
-
-        _vertexBuffer.SetLayout(layout);
-        _vertexArray.AddVertexBuffer(_vertexBuffer);
-
-        _vertexBuffer.SetMeshData(Vertices);
-
-        _indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
-        _vertexArray.SetIndexBuffer(_indexBuffer);
+        var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
+        _vertexArray.SetIndexBuffer(indexBuffer);
 
         _initialized = true;
+
+        Vertices.Clear();
+        Vertices.TrimExcess();
+        Indices.Clear();
+        Indices.TrimExcess();
     }
 
     public void Bind()
@@ -96,7 +102,7 @@ public class Mesh : IDisposable
         _vertexArray.Unbind();
     }
 
-    public int GetIndexCount() => Indices.Count;
+    public int GetIndexCount() => _initialized ? _vertexArray.IndexBuffer.Count : Indices.Count;
 
     public void Dispose()
     {
@@ -110,11 +116,7 @@ public class Mesh : IDisposable
             return;
 
         if (disposing)
-        {
             _vertexArray?.Dispose();
-            _vertexBuffer?.Dispose();
-            _indexBuffer?.Dispose();
-        }
 
         _disposed = true;
     }
@@ -126,7 +128,7 @@ public class Mesh : IDisposable
         {
             System.Diagnostics.Debug.WriteLine(
                 $"MESH LEAK: Mesh '{Name}' not disposed! " +
-                $"Vertices: {Vertices.Count}, Indices: {Indices.Count}"
+                $"Indices: {GetIndexCount()}"
             );
         }
 

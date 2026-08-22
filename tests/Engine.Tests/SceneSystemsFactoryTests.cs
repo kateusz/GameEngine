@@ -4,6 +4,7 @@ using ECS;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Physics;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
@@ -47,7 +48,8 @@ public class SceneSystemsFactoryTests
             Substitute.For<IScriptEngine>(),
             Substitute.For<IAudio>(),
             new AudioPlaybackService(),
-            worldFactory);
+            worldFactory,
+            Substitute.For<IModelFactory>());
 
         var registered = new List<ISystem>();
         var systemManager = Substitute.For<ISystemManager>();
