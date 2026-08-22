@@ -17,8 +17,22 @@ public class Context : IContext
             if (!_entities.TryAdd(entity.Id, entity))
                 throw new InvalidOperationException($"Entity with ID {entity.Id} is already registered.");
 
-            entity.ComponentAdded = componentType => { lock (_lock) IndexAdd(entity, componentType); };
-            entity.ComponentRemoved = componentType => { lock (_lock) IndexRemove(entity, componentType); };
+            entity.ComponentAdded = componentType =>
+            {
+                lock (_lock)
+                {
+                    if (_entities.TryGetValue(entity.Id, out var registered) && ReferenceEquals(registered, entity))
+                        IndexAdd(entity, componentType);
+                }
+            };
+            entity.ComponentRemoved = componentType =>
+            {
+                lock (_lock)
+                {
+                    if (_entities.TryGetValue(entity.Id, out var registered) && ReferenceEquals(registered, entity))
+                        IndexRemove(entity, componentType);
+                }
+            };
             IndexEntity(entity);
         }
     }
