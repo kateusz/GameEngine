@@ -643,22 +643,30 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     private void SetupPhysics2DStressTest()
     {
+        const float boxSize = 0.5f;
+        const float spacing = 0.52f;
+        const int maxRows = 3;
+        const float spawnBaseY = 10f;
+
+        var cols = System.Math.Max(1, (int)System.Math.Ceiling(_entityCount / (double)maxRows));
+        var groundWidth = cols * spacing + 2f;
+
         var ground = _currentTestScene!.CreateEntity("Ground");
         ground.AddComponent<TransformComponent>();
         var groundTransform = ground.GetComponent<TransformComponent>();
         groundTransform.Translation = new Vector3(0, -8, 0);
-        groundTransform.Scale = new Vector3(30, 1, 1);
+        groundTransform.Scale = new Vector3(groundWidth, 1, 1);
 
         var groundBody = ground.AddComponent<RigidBody2DComponent>();
         groundBody.BodyType = RigidBodyType.Static;
 
         var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
-        groundCollider.Size = new Vector2(30, 1);
+        groundCollider.Size = new Vector2(groundWidth, 1);
 
         var groundSprite = ground.AddComponent<SpriteRendererComponent>();
         groundSprite.Color = new Vector4(0.3f, 0.3f, 0.35f, 1f);
 
-        var cols = System.Math.Max(1, (int)System.Math.Ceiling(System.Math.Sqrt(_entityCount)));
+        var xOffset = (cols - 1) * spacing * 0.5f;
         for (var i = 0; i < _entityCount; i++)
         {
             var row = i / cols;
@@ -668,15 +676,15 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             entity.AddComponent<TransformComponent>();
             var transform = entity.GetComponent<TransformComponent>();
             transform.Translation = new Vector3(
-                col * 0.55f - cols * 0.275f,
-                row * 0.55f + 2,
+                col * spacing - xOffset,
+                spawnBaseY + row * spacing,
                 0);
 
             var body = entity.AddComponent<RigidBody2DComponent>();
             body.BodyType = RigidBodyType.Dynamic;
 
             var collider = entity.AddComponent<BoxCollider2DComponent>();
-            collider.Size = new Vector2(0.5f, 0.5f);
+            collider.Size = new Vector2(boxSize, boxSize);
 
             var sprite = entity.AddComponent<SpriteRendererComponent>();
             sprite.Color = new Vector4(

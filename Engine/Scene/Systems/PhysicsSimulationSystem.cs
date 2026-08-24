@@ -118,7 +118,8 @@ internal sealed class PhysicsSimulationSystem(
                 transform.Rotation.Z,
                 ToMotionType(component.BodyType),
                 component.FixedRotation,
-                component.GravityScale));
+                component.GravityScale,
+                component.IsBullet));
 
             body.Entity = entity;
             bodyStore.Set(entity.Id, body);
@@ -245,17 +246,17 @@ internal sealed class PhysicsSimulationSystem(
         Entity entity, RigidBody2DComponent component, TransformComponent transform)
     {
         if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
-            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+            return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
                 ColliderKind.Box, box.Size, box.Offset, transform.Scale, box.Density, box.IsTrigger, 0);
         if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
-            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+            return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
                 ColliderKind.Circle, new Vector2(circle.Radius, 0f), circle.Offset, transform.Scale,
                 circle.Density, circle.IsTrigger, 0);
         if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
-            return new(component.BodyType, component.FixedRotation, component.GravityScale,
+            return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
                 ColliderKind.Edge, default, default, transform.Scale, edge.Density, edge.IsTrigger,
                 HashPoints(edge.Points));
-        return new(component.BodyType, component.FixedRotation, component.GravityScale,
+        return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
             ColliderKind.None, default, default, transform.Scale, 0f, false, 0);
     }
 
@@ -276,6 +277,7 @@ internal sealed class PhysicsSimulationSystem(
         RigidBodyType BodyType,
         bool FixedRotation,
         float GravityScale,
+        bool IsBullet,
         ColliderKind Kind,
         Vector2 Size,
         Vector2 Offset,

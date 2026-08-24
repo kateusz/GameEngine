@@ -36,7 +36,7 @@ internal sealed class Box2DPhysicsWorld2D : IPhysicsWorld2D
             position = def.Position,
             angle = def.Angle,
             type = ToNativeBodyType(def.MotionType),
-            bullet = def.MotionType == PhysicsBodyMotionType.Dynamic,
+            bullet = def.IsBullet,
             gravityScale = def.GravityScale
         };
 
