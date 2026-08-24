@@ -43,7 +43,7 @@ internal struct ComponentIndexScope(Context context)
 /// <summary>
 /// Zero-allocation view over entities with <typeparamref name="TComponent"/>.
 /// </summary>
-public readonly struct ComponentView<TComponent> : IEnumerable<(Entity Entity, TComponent Component)>
+public readonly struct ComponentView<TComponent>
     where TComponent : IComponent
 {
     private readonly Context _context;
@@ -52,20 +52,13 @@ public readonly struct ComponentView<TComponent> : IEnumerable<(Entity Entity, T
 
     public Enumerator GetEnumerator() => new(_context);
 
-    IEnumerator<(Entity Entity, TComponent Component)> IEnumerable<(Entity Entity, TComponent Component)>.GetEnumerator() =>
-        GetEnumerator();
-
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public struct Enumerator : IEnumerator<(Entity Entity, TComponent Component)>
+    public struct Enumerator
     {
         private ComponentIndexScope _scope;
 
         internal Enumerator(Context context) => _scope = new ComponentIndexScope(context);
 
         public (Entity Entity, TComponent Component) Current { get; private set; }
-
-        object System.Collections.IEnumerator.Current => Current;
 
         public bool MoveNext()
         {
@@ -82,8 +75,6 @@ public readonly struct ComponentView<TComponent> : IEnumerable<(Entity Entity, T
             return false;
         }
 
-        public void Reset() => throw new NotSupportedException();
-
         public void Dispose() => _scope.Dispose();
     }
 }
@@ -91,7 +82,7 @@ public readonly struct ComponentView<TComponent> : IEnumerable<(Entity Entity, T
 /// <summary>
 /// Zero-allocation view over entities with both component types (iterates the smaller index).
 /// </summary>
-public readonly struct DualComponentView<T1, T2> : IEnumerable<(Entity Entity, T1 Component1, T2 Component2)>
+public readonly struct DualComponentView<T1, T2>
     where T1 : IComponent
     where T2 : IComponent
 {
@@ -101,20 +92,13 @@ public readonly struct DualComponentView<T1, T2> : IEnumerable<(Entity Entity, T
 
     public Enumerator GetEnumerator() => new(_context);
 
-    IEnumerator<(Entity Entity, T1 Component1, T2 Component2)> IEnumerable<(Entity Entity, T1 Component1, T2 Component2)>.GetEnumerator() =>
-        GetEnumerator();
-
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public struct Enumerator : IEnumerator<(Entity Entity, T1 Component1, T2 Component2)>
+    public struct Enumerator
     {
         private ComponentIndexScope _scope;
 
         internal Enumerator(Context context) => _scope = new ComponentIndexScope(context);
 
         public (Entity Entity, T1 Component1, T2 Component2) Current { get; private set; }
-
-        object System.Collections.IEnumerator.Current => Current;
 
         public bool MoveNext()
         {
@@ -130,8 +114,6 @@ public readonly struct DualComponentView<T1, T2> : IEnumerable<(Entity Entity, T
             Current = default;
             return false;
         }
-
-        public void Reset() => throw new NotSupportedException();
 
         public void Dispose() => _scope.Dispose();
     }

@@ -5,11 +5,10 @@ namespace SceneComponents.Rendering;
 
 public class SubTextureRendererComponent : IComponent
 {
-    /// <summary>Runtime cache key; not serialized.</summary>
-    internal int TexCoordsCacheKey;
+    internal const int ManualTexCoordsKey = int.MinValue;
 
-    /// <summary>When true, <see cref="TexCoords"/> were set explicitly (animation / prefab UVs).</summary>
-    internal bool TexCoordsManual;
+    /// <summary>Runtime cache key; 0 = stale, <see cref="ManualTexCoordsKey"/> = explicit UVs.</summary>
+    internal int TexCoordsCacheKey;
 
     public Vector2 Coords
     {
@@ -70,7 +69,6 @@ public class SubTextureRendererComponent : IComponent
     /// <summary>
     /// Optional pre-calculated texture coordinates (4 vertices).
     /// If set, these will be used directly instead of calculating from Coords/CellSize/SpriteSize.
-    /// This is useful for animations with pre-calculated UV coords.
     /// Order: [bottom-left, bottom-right, top-right, top-left]
     /// </summary>
     public Vector2[]? TexCoords
@@ -79,16 +77,11 @@ public class SubTextureRendererComponent : IComponent
         set
         {
             field = value;
-            TexCoordsManual = value != null;
-            TexCoordsCacheKey = 0;
+            TexCoordsCacheKey = value != null ? ManualTexCoordsKey : 0;
         }
     }
 
-    private void InvalidateTexCoordCache()
-    {
-        TexCoordsManual = false;
-        TexCoordsCacheKey = 0;
-    }
+    internal void InvalidateTexCoordCache() => TexCoordsCacheKey = 0;
 
     public IComponent Clone()
     {
@@ -99,7 +92,7 @@ public class SubTextureRendererComponent : IComponent
             CellSize = CellSize,
             SpriteSize = SpriteSize,
             TexCoords = (Vector2[])TexCoords?.Clone(),
-            TexCoordsManual = TexCoordsManual,
+            TexCoordsCacheKey = TexCoordsCacheKey,
         };
     }
 }

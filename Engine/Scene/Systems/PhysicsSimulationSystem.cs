@@ -23,6 +23,8 @@ internal sealed class PhysicsSimulationSystem(
     private bool _disposed;
     private readonly Dictionary<int, PhysicsBodyIdentity> _identities = [];
 
+    private readonly HashSet<int> _activeBodyIds = [];
+
     private const int MaxPhysicsStepsPerFrame = 5;
 
     public int Priority => SystemPriorities.PhysicsSimulationSystem;
@@ -205,10 +207,15 @@ internal sealed class PhysicsSimulationSystem(
 
     private void CleanupOrphanedBodies()
     {
-        var activeEntityIds = context.View<RigidBody2DComponent>().Select(v => v.Entity.Id).ToHashSet();
-        var staleEntityIds = bodyStore.Snapshot().Keys.Where(id => !activeEntityIds.Contains(id)).ToList();
-        foreach (var staleEntityId in staleEntityIds)
-            DropBody(staleEntityId);
+        _activeBodyIds.Clear();
+        foreach (var (entity, _) in context.View<RigidBody2DComponent>())
+            _activeBodyIds.Add(entity.Id);
+
+        foreach (var id in bodyStore.Snapshot().Keys)
+        {
+            if (!_activeBodyIds.Contains(id))
+                DropBody(id);
+        }
     }
 
     private void DropBody(int entityId)

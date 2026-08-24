@@ -46,8 +46,10 @@ internal sealed class Graphics2D(
                 LineVertexArray = vertexArrayFactory.Create()
             };
 
+#if DEBUG
             _quadGpuTimer = new OpenGLGpuTimer();
             _lineGpuTimer = new OpenGLGpuTimer();
+#endif
 
             InitBuffers();
             InitWhiteTexture();

@@ -23,8 +23,8 @@ public class SubTextureRendererTexCoordsTests
             SpriteSize = Vector2.One,
         };
 
-        var first = SubTextureRendererTexCoords.Get(component, texture);
-        var second = SubTextureRendererTexCoords.Get(component, texture);
+        var first = SceneRenderPipeline.GetSubTextureTexCoords(component, texture);
+        var second = SceneRenderPipeline.GetSubTextureTexCoords(component, texture);
 
         ReferenceEquals(first, second).ShouldBeTrue();
         first[0].X.ShouldBe(0.125f, 0.0001f);
@@ -44,9 +44,9 @@ public class SubTextureRendererTexCoordsTests
             SpriteSize = Vector2.One,
         };
 
-        var first = SubTextureRendererTexCoords.Get(component, texture);
+        var first = SceneRenderPipeline.GetSubTextureTexCoords(component, texture);
         component.Coords = new Vector2(1, 1);
-        var second = SubTextureRendererTexCoords.Get(component, texture);
+        var second = SceneRenderPipeline.GetSubTextureTexCoords(component, texture);
 
         ReferenceEquals(first, second).ShouldBeTrue();
         second[0].X.ShouldBe(0.125f, 0.0001f);
@@ -68,7 +68,7 @@ public class SubTextureRendererTexCoordsTests
         };
 
         var component = new SubTextureRendererComponent { TexCoords = manual };
-        var result = SubTextureRendererTexCoords.Get(component, texture);
+        var result = SceneRenderPipeline.GetSubTextureTexCoords(component, texture);
 
         ReferenceEquals(result, manual).ShouldBeTrue();
     }
