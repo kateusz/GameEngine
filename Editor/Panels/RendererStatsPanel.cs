@@ -29,10 +29,18 @@ public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
         
         var stats2D = graphics2D.GetStats();
         ImGui.Text("Renderer2D Stats:");
-        ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
+        ImGui.Indent();
+        ImGui.Text($"Quad Draw Calls: {stats2D.DrawCalls}");
+        ImGui.Text($"Line Draw Calls: {stats2D.LineDrawCalls}");
         ImGui.Text($"Quads: {stats2D.QuadCount}");
+        ImGui.Text($"Line Vertices: {stats2D.LineVertexCount}");
         ImGui.Text($"Vertices: {stats2D.GetTotalVertexCount()}");
-        ImGui.Text($"Indices: {stats2D.GetTotalIndexCount()}");
+        ImGui.Text($"Batch Count: {stats2D.BatchCount}");
+        ImGui.Text($"Texture Binds: {stats2D.TextureBinds}");
+        ImGui.Text($"Upload: {stats2D.UploadBytes / 1024.0:F1} KB");
+        ImGui.Text($"CPU Flush: {stats2D.FlushMs:F3} ms");
+        ImGui.Text($"GPU Quad Pass: {stats2D.GpuQuadPassMs:F3} ms");
+        ImGui.Unindent();
 
         ImGui.Separator();
 

@@ -63,5 +63,5 @@ public interface IGraphics2D : IGraphics
     void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId);
     void DrawRect(Matrix4x4 transform, Vector4 color, int entityId);
     void ResetStats();
-    Statistics GetStats();
+    Graphics2DStats GetStats();
 }
