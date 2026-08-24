@@ -24,7 +24,19 @@ internal static class PhysicsDebugDrawer
             return;
 
         SceneRenderPipeline.Begin2DScene(graphics2D, camera);
+        DrawColliders(context, graphics2D, bodyStore, useTransformFallbackWhenNoBody);
+        graphics2D.EndScene();
+    }
 
+    /// <summary>
+    /// Draws collider outlines into an already-open 2D scene (no BeginScene/EndScene).
+    /// </summary>
+    public static void DrawColliders(
+        IContext context,
+        IGraphics2D graphics2D,
+        PhysicsRuntimeBodyStore bodyStore,
+        bool useTransformFallbackWhenNoBody)
+    {
         foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
         {
             if (bodyStore.TryGet(entity.Id, out var body))
@@ -75,8 +87,6 @@ internal static class PhysicsDebugDrawer
                     GetEditorColliderColor(entity));
             }
         }
-
-        graphics2D.EndScene();
     }
 
     private static void DrawBox(

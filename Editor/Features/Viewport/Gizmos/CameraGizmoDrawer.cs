@@ -39,8 +39,6 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
         if (_icon == null)
             return;
 
-        graphics2D.BeginScene(editorCamera);
-
         var editorPos = editorCamera.GetPosition();
         var right = editorCamera.GetRightDirection();
         var up = editorCamera.GetUpDirection();
@@ -54,8 +52,6 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
 
             DrawIcon(graphics2D, entity.Id, transform.GetWorldTransform().Translation, editorPos, right, up, face);
         }
-
-        graphics2D.EndScene();
     }
 
     private void EnsureIcon()
