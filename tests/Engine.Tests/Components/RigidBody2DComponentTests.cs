@@ -15,6 +15,7 @@ public class RigidBody2DComponentTests
         component.BodyType.ShouldBe(RigidBodyType.Static);
         component.FixedRotation.ShouldBeFalse();
         component.GravityScale.ShouldBe(1f);
+        component.IsBullet.ShouldBeFalse();
     }
 
     [Fact]
@@ -51,7 +52,8 @@ public class RigidBody2DComponentTests
         {
             BodyType = RigidBodyType.Kinematic,
             FixedRotation = true,
-            GravityScale = 0.5f
+            GravityScale = 0.5f,
+            IsBullet = true
         };
 
         // Act
@@ -62,6 +64,7 @@ public class RigidBody2DComponentTests
         clone.BodyType.ShouldBe(RigidBodyType.Kinematic);
         clone.FixedRotation.ShouldBeTrue();
         clone.GravityScale.ShouldBe(0.5f);
+        clone.IsBullet.ShouldBeTrue();
     }
 
     [Theory]
