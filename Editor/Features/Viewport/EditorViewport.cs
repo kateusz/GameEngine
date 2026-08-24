@@ -18,6 +18,7 @@ using Engine.Scene.Cameras;
 using ImGuiNET;
 using Input;
 using Math;
+using SceneComponents.Camera;
 using Ui.ImGui;
 
 namespace Editor.Features.Viewport;
@@ -45,6 +46,7 @@ public sealed class EditorViewport(
     private EditorCamera _editorCamera = null!;
     private IFrameBuffer _frameBuffer = null!;
     private float _contentScale = 1.0f;
+    private Vector2 _lastPickMousePos = new(float.NaN);
     private Vector2 _viewportSize;
     private readonly Dictionary<int, Entity> _entityById = [];
     private readonly HashSet<int> _pressedMouseButtons = [];
@@ -233,9 +235,7 @@ public sealed class EditorViewport(
                     scene.UpdateWorldTransforms();
                     var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
                     SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, camera);
-                    if (debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is { } bodyStore)
-                        PhysicsDebugDrawer.Draw(scene.Context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: true);
-                    cameraGizmoDrawer.Draw(scene.Context, graphics2D, _editorCamera);
+                    RenderEditor2DOverlays(scene.Context, camera);
                 }
                 break;
             case SceneState.Play:
@@ -243,14 +243,37 @@ public sealed class EditorViewport(
                 break;
         }
 
-        if (sceneContext.State == SceneState.Edit && viewport.SceneToolbar.ShowGrid3D)
-        {
-            graphics2D.BeginScene(_editorCamera);
-            viewport.ViewportGrid3D.Render(graphics2D, _editorCamera);
-            graphics2D.EndScene();
-        }
-
         _frameBuffer.Unbind();
+    }
+
+    private void RenderEditor2DOverlays(IContext context, in SceneRenderPipeline.CameraBinding camera)
+    {
+        var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
+        var drawGrid3D = viewport.SceneToolbar.ShowGrid3D;
+        var drawCameraGizmos = HasCameraEntities(context);
+
+        if (!drawColliders && !drawGrid3D && !drawCameraGizmos)
+            return;
+
+        SceneRenderPipeline.Begin2DScene(graphics2D, camera);
+
+        if (drawColliders)
+            PhysicsDebugDrawer.DrawColliders(context, graphics2D, sceneContext.ActivePhysicsBodyStore!, useTransformFallbackWhenNoBody: true);
+
+        if (drawCameraGizmos)
+            cameraGizmoDrawer.Draw(context, graphics2D, _editorCamera);
+
+        if (drawGrid3D)
+            viewport.ViewportGrid3D.Render(graphics2D, _editorCamera);
+
+        graphics2D.EndScene();
+    }
+
+    private static bool HasCameraEntities(IContext context)
+    {
+        foreach (var _ in context.View<CameraComponent>())
+            return true;
+        return false;
     }
 
     private void PickHoveredEntity()
@@ -258,6 +281,9 @@ public sealed class EditorViewport(
         HoveredEntity = null;
 
         var mousePos = ImGui.GetMousePos();
+        if (mousePos == _lastPickMousePos) 
+            return;
+        _lastPickMousePos = mousePos;
         var mx = (mousePos.X - _viewportBounds[0].X) * _contentScale;
         var my = (mousePos.Y - _viewportBounds[0].Y) * _contentScale;
         var physicalWidth = (_viewportBounds[1].X - _viewportBounds[0].X) * _contentScale;
