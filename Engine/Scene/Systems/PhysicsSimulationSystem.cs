@@ -24,6 +24,7 @@ internal sealed class PhysicsSimulationSystem(
     private readonly Dictionary<int, PhysicsBodyIdentity> _identities = [];
 
     private readonly HashSet<int> _activeBodyIds = [];
+    private uint _syncedRevision;
 
     private const int MaxPhysicsStepsPerFrame = 5;
 
@@ -32,7 +33,8 @@ internal sealed class PhysicsSimulationSystem(
     public void OnInit()
     {
         _physicsAccumulator = 0f;
-        EnsureBodiesCreated();
+        CleanupOrphanedBodies();
+        SyncBodiesIfNeeded();
         Logger.Debug("PhysicsSimulationSystem initialized with priority {Priority}", Priority);
     }
 
@@ -44,8 +46,8 @@ internal sealed class PhysicsSimulationSystem(
 
         _physicsAccumulator += deltaSeconds;
 
-        EnsureBodiesCreated();
         CleanupOrphanedBodies();
+        SyncBodiesIfNeeded();
 
         var stepCount = 0;
         while (_physicsAccumulator >= PhysicsConstants.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
@@ -87,6 +89,16 @@ internal sealed class PhysicsSimulationSystem(
             DropBody(id);
 
         Logger.Debug("PhysicsSimulationSystem shut down - all physics bodies destroyed");
+    }
+
+    private void SyncBodiesIfNeeded()
+    {
+        if (_syncedRevision == PhysicsBodyRevision.Value
+            && bodyStore.Snapshot().Count == _activeBodyIds.Count)
+            return;
+
+        EnsureBodiesCreated();
+        _syncedRevision = PhysicsBodyRevision.Value;
     }
 
     private void EnsureBodiesCreated()

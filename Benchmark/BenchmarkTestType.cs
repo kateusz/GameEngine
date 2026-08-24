@@ -7,4 +7,5 @@ public enum BenchmarkTestType
     TextureSwitching,
     DrawCallOptimization,
     Profiling2D,
+    Physics2DStress,
 }
