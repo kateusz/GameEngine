@@ -50,6 +50,13 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     private bool _isRunning;
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = [];
+    private readonly Random _rng = new();
+    private readonly Graphics2DStatsAggregator _statsAggregator = new();
+    private readonly Queue<float> _flushMsHistory = new();
+    private readonly Queue<float> _gpuQuadMsHistory = new();
+    private readonly float[] _flushMsPlotBuffer = new float[MaxFrameSamples];
+    private readonly float[] _gpuQuadMsPlotBuffer = new float[MaxFrameSamples];
+    private int _profilingPhase;
 
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -69,7 +76,8 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         // Cached textures ("white", "container") belong to TextureFactory — leave them.
         foreach (var kvp in _testTextures)
         {
-            if (kvp.Key.StartsWith("color_", StringComparison.Ordinal))
+            if (kvp.Key.StartsWith("color_", StringComparison.Ordinal)
+                || kvp.Key.StartsWith("profile_", StringComparison.Ordinal))
                 kvp.Value.Dispose();
         }
         _testTextures.Clear();
@@ -96,7 +104,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         // Render current test scene if active
         if (_currentTestScene != null && _isRunning)
         {
+            graphics2D.ResetStats();
             RenderTestScene();
+            RecordRendererStats(graphics2D.GetStats());
         }
 
         _frameTimer.Stop();
@@ -161,6 +171,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
             if (ImGui.Button("Draw Call Test"))
                 StartBenchmark(BenchmarkTestType.DrawCallOptimization);
+
+            if (ImGui.Button("Profiling2D Preset (5k sprites)"))
+                StartProfiling2DBenchmark();
         }
         else
         {
@@ -328,12 +341,38 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         // Renderer stats
         var stats2D = graphics2D.GetStats();
         ImGui.Separator();
-        ImGui.Text("Renderer2D Stats:");
+        ImGui.Text("Renderer2D Stats (direct draw, not ECS path):");
         ImGui.Indent();
-        ImGui.Text($"Draw Calls: {stats2D.DrawCalls}");
+        ImGui.Text($"Quad Draw Calls: {stats2D.DrawCalls}");
+        ImGui.Text($"Line Draw Calls: {stats2D.LineDrawCalls}");
         ImGui.Text($"Quads: {stats2D.QuadCount}");
+        ImGui.Text($"Line Vertices: {stats2D.LineVertexCount}");
         ImGui.Text($"Vertices: {stats2D.GetTotalVertexCount()}");
-        ImGui.Text($"Indices: {stats2D.GetTotalIndexCount()}");
+        ImGui.Text($"Batch Count: {stats2D.BatchCount}");
+        ImGui.Text($"Texture Binds: {stats2D.TextureBinds}");
+        ImGui.Text($"Program Switches: {stats2D.ProgramSwitches}");
+        ImGui.Text($"Upload: {stats2D.UploadBytes / 1024.0:F1} KB");
+        ImGui.Text($"CPU BatchFill: {stats2D.BatchFillMs:F3} ms");
+        ImGui.Text($"CPU Flush: {stats2D.FlushMs:F3} ms");
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("GPU times are from the previous frame (timer query lag).");
+        ImGui.Text($"GPU Quad Pass: {stats2D.GpuQuadPassMs:F3} ms");
+        ImGui.Text($"GPU Line Pass: {stats2D.GpuLinePassMs:F3} ms");
+
+        if (_flushMsHistory.Count > 1)
+        {
+            CopyQueueToPlotBuffer(_flushMsHistory, _flushMsPlotBuffer);
+            ImGui.PlotLines("Flush Ms", ref _flushMsPlotBuffer[0], _flushMsHistory.Count, 0,
+                null, 0, _flushMsPlotBuffer.Max() * 1.2f, new Vector2(0, 60));
+        }
+
+        if (_gpuQuadMsHistory.Count > 1)
+        {
+            CopyQueueToPlotBuffer(_gpuQuadMsHistory, _gpuQuadMsPlotBuffer);
+            ImGui.PlotLines("GPU Quad Ms (lag 1f)", ref _gpuQuadMsPlotBuffer[0], _gpuQuadMsHistory.Count, 0,
+                null, 0, MathF.Max(_gpuQuadMsPlotBuffer.Max() * 1.2f, 0.01f), new Vector2(0, 60));
+        }
+
         ImGui.Unindent();
 
         ImGui.End();
@@ -348,9 +387,20 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         _frameTimes.Clear();
         _cpuUsageSamples.Clear();
         _memorySamples.Clear();
+        _statsAggregator.Clear();
+        _flushMsHistory.Clear();
+        _gpuQuadMsHistory.Clear();
 
         CleanupTestScene();
         SetupTestScene(testType);
+    }
+
+    private void StartProfiling2DBenchmark()
+    {
+        _entityCount = 5000;
+        _testDurationInSeconds = 5.0f;
+        _profilingPhase = 1;
+        StartBenchmark(BenchmarkTestType.Profiling2D);
     }
 
     private void StopBenchmark()
@@ -358,10 +408,31 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
         {
             FinalizeBenchmark();
+
+            if (_currentTestType == BenchmarkTestType.Profiling2D && _profilingPhase == 1)
+            {
+                _profilingPhase = 2;
+                _testElapsedTime = 0;
+                _frameCount = 0;
+                _frameTimes.Clear();
+                _cpuUsageSamples.Clear();
+                _memorySamples.Clear();
+                _statsAggregator.Clear();
+                CleanupTestScene();
+                SetupProfiling2DTest(multiTexture: true);
+                return;
+            }
+
+            if (_currentTestType == BenchmarkTestType.Profiling2D && _profilingPhase == 2)
+            {
+                _profilingPhase = 0;
+                ExportResultsToMarkdown();
+            }
         }
 
         _isRunning = false;
         _currentTestType = BenchmarkTestType.None;
+        _profilingPhase = 0;
         CleanupTestScene();
     }
 
@@ -388,6 +459,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
                 case BenchmarkTestType.TextureSwitching:
                     UpdateTextureSwitching();
                     break;
+                case BenchmarkTestType.Profiling2D:
+                    UpdateRenderer2DStress();
+                    break;
             }
         }
 
@@ -402,7 +476,6 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     {
         if (_currentTestScene == null) return;
 
-        var random = new Random();
         var textures = _testTextures.Values.ToArray();
 
         foreach (var entity in _currentTestScene.Entities)
@@ -410,18 +483,16 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             if (!entity.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
-            // Slightly animate position or rotation to force updates
             transform.Translation += new Vector3(
-                (float)(random.NextDouble() * 0.02 - 0.01),
-                (float)(random.NextDouble() * 0.02 - 0.01),
+                (float)(_rng.NextDouble() * 0.02 - 0.01),
+                (float)(_rng.NextDouble() * 0.02 - 0.01),
                 0);
 
             transform.Rotation = transform.Rotation with { Z = transform.Rotation.Z + 0.01f };
 
-            // Optionally, cycle textures to break batching and increase draw calls
-            if (textures.Length > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite) && random.NextDouble() < 0.05) // 5% chance per frame
+            if (textures.Length > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite) && _rng.NextDouble() < 0.05)
             {
-                sprite.TexturePath = textures[random.Next(textures.Length)].Path;
+                sprite.TexturePath = textures[_rng.Next(textures.Length)].Path;
             }
         }
     }
@@ -446,6 +517,48 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             case BenchmarkTestType.DrawCallOptimization:
                 SetupDrawCallTest();
                 break;
+            case BenchmarkTestType.Profiling2D:
+                SetupProfiling2DTest(multiTexture: _profilingPhase == 2);
+                break;
+        }
+    }
+
+    private void SetupProfiling2DTest(bool multiTexture)
+    {
+        EnsureProfilingTextures();
+        var texturePaths = _testTextures.Values.Select(t => t.Path).Where(p => !string.IsNullOrEmpty(p)).ToArray();
+        if (texturePaths.Length == 0)
+            texturePaths = [_testTextures["white"].Path!];
+
+        var singlePath = texturePaths[0];
+
+        for (var i = 0; i < _entityCount; i++)
+        {
+            var entity = _currentTestScene!.CreateEntity($"ProfileSprite_{i}");
+            entity.AddComponent<TransformComponent>();
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                (float)(_rng.NextDouble() * 20 - 10),
+                (float)(_rng.NextDouble() * 20 - 10),
+                0);
+            transform.Scale = new Vector3(0.5f, 0.5f, 1.0f);
+
+            var sprite = entity.AddComponent<SpriteRendererComponent>();
+            sprite.TexturePath = multiTexture
+                ? texturePaths[i % texturePaths.Length]
+                : singlePath;
+            sprite.Color = Vector4.One;
+        }
+    }
+
+    private void EnsureProfilingTextures()
+    {
+        while (_testTextures.Count < 32)
+        {
+            var i = _testTextures.Count;
+            var texture = textureFactory.Create(1, 1);
+            texture.SetData((uint)(0xFF000000 | (uint)(i * 8 % 256) << 16 | (uint)(i * 4 % 256) << 8 | (uint)(i * 2 % 256)), sizeof(uint));
+            _testTextures[$"profile_{i}"] = texture;
         }
     }
 
@@ -537,15 +650,13 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     private void UpdateTextureSwitching()
     {
-        // Randomly switch textures to stress texture binding
-        var random = new Random();
         var textureValues = _testTextures.Values.ToArray();
 
         foreach (var entity in _currentTestScene!.Entities)
         {
-            if (random.NextDouble() < 0.1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
+            if (_rng.NextDouble() < 0.1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
             {
-                sprite.TexturePath = textureValues[random.Next(textureValues.Length)].Path;
+                sprite.TexturePath = textureValues[_rng.Next(textureValues.Length)].Path;
             }
         }
     }
@@ -594,6 +705,29 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         // Dispose scene to cleanup resources (physics, systems, etc.)
         _currentTestScene?.Dispose();
         _currentTestScene = null;
+    }
+
+    private void RecordRendererStats(Graphics2DStats stats)
+    {
+        if (!_isRunning)
+            return;
+
+        _statsAggregator.AddSample(stats);
+
+        _flushMsHistory.Enqueue((float)stats.FlushMs);
+        if (_flushMsHistory.Count > MaxFrameSamples)
+            _flushMsHistory.Dequeue();
+
+        _gpuQuadMsHistory.Enqueue((float)stats.GpuQuadPassMs);
+        if (_gpuQuadMsHistory.Count > MaxFrameSamples)
+            _gpuQuadMsHistory.Dequeue();
+    }
+
+    private static void CopyQueueToPlotBuffer(Queue<float> source, float[] buffer)
+    {
+        var i = 0;
+        foreach (var value in source)
+            buffer[i++] = value;
     }
 
     private void RecordFrameTime(float frameTimeMs)
@@ -668,7 +802,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         var result = new BenchmarkResult
         {
-            TestName = _currentTestType.ToString(),
+            TestName = GetBenchmarkResultName(),
             TotalFrames = _frameCount,
             AverageFrameTime = frameTimes.Average(),
             MinFPS = 1000.0f / frameTimes.Max(),
@@ -688,18 +822,18 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             MinMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Min() : 0
         };
 
-        // Add test-specific metrics
-        switch (_currentTestType)
-        {
-            case BenchmarkTestType.Renderer2DStress:
-                var stats = graphics2D.GetStats();
-                result.CustomMetrics["Avg Draw Calls"] = stats.DrawCalls.ToString();
-                result.CustomMetrics["Avg Quads"] = stats.QuadCount.ToString();
-                break;
-        }
+        _statsAggregator.ApplyTo(result);
+        result.CustomMetrics["Render Path"] = "direct draw (BenchmarkLayer)";
 
         _results.Add(result);
     }
+
+    private string GetBenchmarkResultName() => _currentTestType switch
+    {
+        BenchmarkTestType.Profiling2D when _profilingPhase == 1 => "Profiling2D_SingleTexture",
+        BenchmarkTestType.Profiling2D when _profilingPhase == 2 => "Profiling2D_MultiTexture",
+        _ => _currentTestType.ToString()
+    };
 
     /// <summary>
     /// Formats benchmark results as Markdown and saves to a file.
