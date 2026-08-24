@@ -419,7 +419,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
                 _memorySamples.Clear();
                 _statsAggregator.Clear();
                 CleanupTestScene();
-                SetupProfiling2DTest(multiTexture: true);
+                SetupTestScene(BenchmarkTestType.Profiling2D);
                 return;
             }
 
