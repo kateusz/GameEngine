@@ -1,8 +1,8 @@
-using Engine.Platform.OpenGL;
+using Engine.Renderer.Textures;
 
-namespace Engine.Renderer.Textures;
+namespace Engine.Platform.OpenGL;
 
-internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFactory, IDisposable
+internal sealed class TextureFactory : ITextureFactory, IDisposable
 {
     private Texture2D? _whiteTexture;
     private readonly Lock _whiteLock = new();
@@ -21,20 +21,18 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
 
         lock (_whiteLock)
         {
-            // Double-check pattern to avoid race conditions
             if (_whiteTexture != null)
                 return _whiteTexture;
 
             _whiteTexture = Create(1, 1);
 
-            // Set white pixel data (0xFFFFFFFF = white in RGBA format)
             var white = 0xFFFFFFFF;
             _whiteTexture.SetData(white, 4);
 
             return _whiteTexture;
         }
     }
-    
+
     public Texture2D GetBlackTexture()
     {
         if (_blackTexture != null)
@@ -69,7 +67,6 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
 
     public Texture2D Create(string path, bool sRgb = false)
     {
-        // Normalize the path to ensure cache consistency across different path representations
         var normalizedPath = Path.GetFullPath(path);
         var cacheKey = sRgb ? normalizedPath + "#srgb" : normalizedPath;
 
@@ -78,26 +75,17 @@ internal sealed class TextureFactory(IRendererApiConfig apiConfig) : ITextureFac
             if (_textureCache.TryGetValue(cacheKey, out var cachedTexture))
                 return cachedTexture;
 
-            var texture = apiConfig.Type switch
-            {
-                ApiType.SilkNet => OpenGLTexture2D.Create(path, sRgb),
-                _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
-            };
-
+            var texture = OpenGLTexture2D.Create(path, sRgb);
             _textureCache[cacheKey] = texture;
             return texture;
         }
     }
-    
+
     public Texture2D Create(int width, int height)
     {
-        return apiConfig.Type switch
-        {
-            ApiType.SilkNet => OpenGLTexture2D.Create(width, height),
-            _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
-        };
+        return OpenGLTexture2D.Create(width, height);
     }
-    
+
     public void ClearCache()
     {
         lock (_cacheLock)

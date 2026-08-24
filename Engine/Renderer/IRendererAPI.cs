@@ -19,6 +19,7 @@ public interface IRendererAPI
     /// <summary>When enabled, back faces are culled. Disable for double-sided materials.</summary>
     void SetFaceCulling(bool enabled);
     void SetPolygonMode(PolygonMode mode);
+    void SetViewport(int x, int y, uint width, uint height);
     void Init();
     int GetError();
 }

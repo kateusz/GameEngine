@@ -1,3 +1,4 @@
+using Engine.Platform.OpenGL;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
@@ -5,7 +6,6 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
-using Engine.Renderer.Textures;
 using Engine.GraphicsTests.ImageRegression;
 using Silk.NET.Windowing;
 
@@ -13,8 +13,6 @@ namespace Engine.GraphicsTests;
 
 public sealed class HeadlessGraphicsContextFixture : IDisposable
 {
-    private static readonly IRendererApiConfig ApiConfig = new RendererApiConfig(ApiType.SilkNet);
-
     public IGraphicsContext GraphicsContext { get; }
     public IWindow Window { get; }
     public IRendererAPI RendererApi { get; }
@@ -33,19 +31,19 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
         GraphicsTestAssets.EnsureInitialized();
 
         Window = HeadlessWindow.Create("Engine.GraphicsTests");
-        GraphicsContext = new SilkNetGraphicsContext();
-        GraphicsContext.Create(Window);
+        GraphicsContext = new SilkNetGraphicsContext(Window);
+        GraphicsContext.Create();
 
-        RendererApi = new RendererApiFactory(ApiConfig).Create();
+        RendererApi = new OpenGLRendererApi();
         RendererApi.Init();
 
-        VertexArrayFactory = new VertexArrayFactory(ApiConfig);
-        VertexBufferFactory = new VertexBufferFactory(ApiConfig);
-        IndexBufferFactory = new IndexBufferFactory(ApiConfig);
-        _textureFactory = new TextureFactory(ApiConfig);
-        _shaderFactory = new ShaderFactory(ApiConfig);
+        VertexArrayFactory = new VertexArrayFactory();
+        VertexBufferFactory = new VertexBufferFactory();
+        IndexBufferFactory = new IndexBufferFactory();
+        _textureFactory = new TextureFactory();
+        _shaderFactory = new ShaderFactory();
         ShaderFactory = _shaderFactory;
-        FrameBufferFactory = new FrameBufferFactory(ApiConfig);
+        FrameBufferFactory = new FrameBufferFactory();
 
         Graphics2D = new Graphics2D(
             RendererApi,

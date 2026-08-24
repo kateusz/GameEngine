@@ -15,7 +15,8 @@ namespace Engine.Platform.SilkNet;
 internal sealed class SilkNetGameWindow(
     IWindow window,
     IInputSystemFactory inputSystemFactory,
-    IGraphicsContext graphicsContext) : IGameWindow
+    IGraphicsContext graphicsContext,
+    IRendererAPI rendererApi) : IGameWindow
 {
     private static readonly ILogger Logger = Log.ForContext<SilkNetGameWindow>();
 
@@ -58,7 +59,7 @@ internal sealed class SilkNetGameWindow(
 
     private void WindowOnLoad()
     {
-        graphicsContext.Create(window);
+        graphicsContext.Create();
         SilkNetContext.Window = window;
 
         Logger.Information("SilkNet window loaded");
@@ -93,10 +94,9 @@ internal sealed class SilkNetGameWindow(
 
     private void OnFrameBufferResize(Vector2D<int> newSize)
     {
-        Logger.Information("OnFrameBufferResize called, setting OpenGL viewport to: {Width}x{Height}", newSize.X, newSize.Y);
+        Logger.Information("OnFrameBufferResize called, setting viewport to: {Width}x{Height}", newSize.X, newSize.Y);
 
-        //Update aspect ratios, clipping regions, viewports, etc.
-        SilkNetContext.GL.Viewport(newSize);
+        rendererApi.SetViewport(0, 0, (uint)newSize.X, (uint)newSize.Y);
 
         var @event = new WindowResizeEvent(newSize.X, newSize.Y);
         OnWindowEvent(@event);

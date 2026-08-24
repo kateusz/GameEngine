@@ -24,8 +24,8 @@ public sealed class GraphicsFactAttribute : FactAttribute
         try
         {
             var window = HeadlessWindow.Create("GL probe", new Vector2D<int>(1, 1));
-            var context = new SilkNetGraphicsContext();
-            context.Create(window);
+            var context = new SilkNetGraphicsContext(window);
+            context.Create();
             context.Dispose();
             window.Dispose();
             return true;

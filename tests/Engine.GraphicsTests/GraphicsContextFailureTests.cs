@@ -12,21 +12,19 @@ namespace Engine.GraphicsTests;
 public class GraphicsContextFailureTests
 {
     [Fact]
-    public void Create_WithNullWindow_ThrowsArgumentNullException()
+    public void Constructor_WithNullWindow_ThrowsArgumentNullException()
     {
-        var context = new SilkNetGraphicsContext();
-
-        Should.Throw<ArgumentNullException>(() => context.Create(null!));
+        Should.Throw<ArgumentNullException>(() => new SilkNetGraphicsContext(null!));
     }
 
     [Fact]
     public void Create_WhenGLFactoryThrows_WrapsInRendererInitializationException()
     {
         var inner = new InvalidOperationException("no GPU");
-        var context = new SilkNetGraphicsContext(_ => throw inner);
         var window = Substitute.For<IWindow>();
+        var context = new SilkNetGraphicsContext(window, _ => throw inner);
 
-        var ex = Should.Throw<RendererInitializationException>(() => context.Create(window));
+        var ex = Should.Throw<RendererInitializationException>(context.Create);
         ex.InnerException.ShouldBe(inner);
     }
 
@@ -34,10 +32,10 @@ public class GraphicsContextFailureTests
     public void Create_WhenAlreadyCreated_ThrowsInvalidOperationException()
     {
         var window = HeadlessWindow.Create("Engine.GraphicsTests.DoubleCreate", new Vector2D<int>(1, 1));
-        var context = new SilkNetGraphicsContext();
-        context.Create(window);
+        var context = new SilkNetGraphicsContext(window);
+        context.Create();
 
-        Should.Throw<InvalidOperationException>(() => context.Create(window));
+        Should.Throw<InvalidOperationException>(context.Create);
 
         context.Dispose();
         window.Dispose();

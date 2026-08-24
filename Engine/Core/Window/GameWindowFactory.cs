@@ -9,13 +9,14 @@ internal sealed class GameWindowFactory(
     IRendererApiConfig apiConfig,
     IWindow window,
     IInputSystemFactory inputSystemFactory,
-    IGraphicsContext graphicsContext) : IGameWindowFactory
+    IGraphicsContext graphicsContext,
+    IRendererAPI rendererApi) : IGameWindowFactory
 {
     public IGameWindow Create()
     {
         return apiConfig.Type switch
         {
-            ApiType.SilkNet => new SilkNetGameWindow(window, inputSystemFactory, graphicsContext),
+            ApiType.SilkNet => new SilkNetGameWindow(window, inputSystemFactory, graphicsContext, rendererApi),
             _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
         };
     }

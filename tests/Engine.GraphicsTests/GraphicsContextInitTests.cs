@@ -27,7 +27,8 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
         gl.GetStringS(GLEnum.Version).ShouldNotBeNullOrWhiteSpace();
         gl.GetError().ShouldBe(GLEnum.NoError);
 
-        gl.Viewport(0, 0, 1, 1);
+        fixture.RendererApi.SetViewport(0, 0, 1, 1);
+        fixture.RendererApi.GetError().ShouldBe(0);
         gl.ClearColor(0, 0, 0, 1);
         gl.Clear(ClearBufferMask.ColorBufferBit);
         gl.GetError().ShouldBe(GLEnum.NoError);
@@ -37,8 +38,8 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
     public void Dispose_ReleasesContext()
     {
         var window = HeadlessWindow.Create("Engine.GraphicsTests.Dispose");
-        var context = new SilkNetGraphicsContext();
-        context.Create(window);
+        var context = new SilkNetGraphicsContext(window);
+        context.Create();
 
         context.Dispose();
         context.IsCreated.ShouldBeFalse();

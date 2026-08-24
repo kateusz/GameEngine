@@ -1,6 +1,8 @@
 using System.Numerics;
 using Editor.UI.Constants;
+using Engine.Renderer.Textures;
 using ImGuiNET;
+using Ui.ImGui;
 
 namespace Editor.UI.Drawers;
 
@@ -194,19 +196,19 @@ public static class ButtonDrawer
     /// Commonly used for toolbar icons and mode selectors.
     /// </summary>
     /// <param name="id">Unique identifier for the button</param>
-    /// <param name="textureId">OpenGL texture ID</param>
+    /// <param name="texture">Icon texture</param>
     /// <param name="size">Button size</param>
     /// <param name="isSelected">Whether this button is currently selected</param>
     /// <param name="onClick">Callback when button is clicked</param>
     /// <param name="tooltip">Optional tooltip text</param>
     /// <returns>True if the button was clicked</returns>
-    public static bool DrawIconButton(string id, uint textureId, Vector2 size,
+    public static bool DrawIconButton(string id, Texture texture, Vector2 size,
         bool isSelected = false, Action? onClick = null, string? tooltip = null)
     {
         if (isSelected)
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.4f, 0.8f, 0.8f));
 
-        var clicked = ImGui.ImageButton(id, (IntPtr)textureId, size,
+        var clicked = ImGui.ImageButton(id, ImGuiNativeTexture.From(texture), size,
             new Vector2(0, 0), new Vector2(1, 1),
             new Vector4(0, 0, 0, 0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -227,12 +229,12 @@ public static class ButtonDrawer
     /// Used for toolbar buttons with minimal visual weight.
     /// </summary>
     /// <param name="id">Unique identifier for the button</param>
-    /// <param name="textureId">OpenGL texture ID</param>
+    /// <param name="texture">Icon texture</param>
     /// <param name="size">Button size</param>
     /// <param name="onClick">Callback when button is clicked</param>
     /// <param name="tooltip">Optional tooltip text</param>
     /// <returns>True if the button was clicked</returns>
-    public static bool DrawTransparentIconButton(string id, uint textureId, Vector2 size,
+    public static bool DrawTransparentIconButton(string id, Texture texture, Vector2 size,
         Action? onClick = null, string? tooltip = null)
     {
         var colors = ImGui.GetStyle().Colors;
@@ -243,7 +245,7 @@ public static class ButtonDrawer
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, buttonHovered with { W = 0.5f });
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, buttonActive with { W = 0.5f });
 
-        var clicked = ImGui.ImageButton(id, (IntPtr)textureId, size,
+        var clicked = ImGui.ImageButton(id, ImGuiNativeTexture.From(texture), size,
             new Vector2(0, 0), new Vector2(1, 1),
             new Vector4(0, 0, 0, 0), new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 

@@ -18,6 +18,7 @@ using Engine.Scene.Cameras;
 using ImGuiNET;
 using Input;
 using Math;
+using Ui.ImGui;
 
 namespace Editor.Features.Viewport;
 
@@ -93,7 +94,7 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var texturePointer = new IntPtr(_frameBuffer.GetColorAttachmentRendererId());
+        var texturePointer = ImGuiNativeTexture.FromColorAttachment(_frameBuffer);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();

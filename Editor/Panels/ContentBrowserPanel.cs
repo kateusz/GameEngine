@@ -8,6 +8,7 @@ using Engine.Renderer.Textures;
 using Engine.Scripting;
 using ImGuiNET;
 using Serilog;
+using Ui.ImGui;
 
 namespace Editor.Panels;
 
@@ -339,17 +340,16 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
             ImGui.PushID(filenameString);
 
             var (icon, isImage, isPrefab) = ResolveIcon(info, entry, isDirectory);
-            var pointer = new IntPtr(icon.GetRendererId());
 
             ButtonDrawer.DrawTransparentIconButton(
                 filenameString,
-                icon.GetRendererId(),
+                icon,
                 new Vector2(thumbnailSize, thumbnailSize));
 
             DragDropDrawer.CreateDragDropSource(
                 "CONTENT_BROWSER_ITEM",
                 relativePath,
-                () => RenderDragDropPreview(filenameString, pointer, isImage, isPrefab, isDirectory));
+                () => RenderDragDropPreview(filenameString, icon, isImage, isPrefab, isDirectory));
 
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) &&
                 !File.Exists(info.FullName))
@@ -404,18 +404,18 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         return (_fileIcon, false, false);
     }
 
-    private static void RenderDragDropPreview(string filename, IntPtr pointer, bool isImage, bool isPrefab, bool isDirectory)
+    private static void RenderDragDropPreview(string filename, Texture icon, bool isImage, bool isPrefab, bool isDirectory)
     {
         ImGui.Text($"Dragging: {filename}");
         if (isImage)
         {
             TextDrawer.DrawInfoText("Type: Texture");
-            ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
+            ImGui.Image(ImGuiNativeTexture.From(icon), new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
         }
         else if (isPrefab)
         {
             TextDrawer.DrawInfoText("Type: Prefab");
-            ImGui.Image(pointer, new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
+            ImGui.Image(ImGuiNativeTexture.From(icon), new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
         }
         else if (isDirectory)
             TextDrawer.DrawInfoText("Type: Directory");

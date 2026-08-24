@@ -113,6 +113,12 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetPolygonMode");
     }
 
+    public void SetViewport(int x, int y, uint width, uint height)
+    {
+        SilkNetContext.GL.Viewport(x, y, width, height);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "Viewport");
+    }
+
     public void Init()
     {
         SilkNetContext.GL.Enable(EnableCap.Blend);

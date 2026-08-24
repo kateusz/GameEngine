@@ -7,31 +7,33 @@ namespace Engine.Platform.SilkNet;
 
 internal sealed class SilkNetGraphicsContext : IGraphicsContext
 {
+    private readonly IWindow _window;
     private readonly Func<IWindow, GL> _createGl;
     private GL? _gl;
 
-    public SilkNetGraphicsContext()
-        : this(window => window.CreateOpenGL())
+    public SilkNetGraphicsContext(IWindow window)
+        : this(window, w => w.CreateOpenGL())
     {
     }
 
-    internal SilkNetGraphicsContext(Func<IWindow, GL> createGl)
+    internal SilkNetGraphicsContext(IWindow window, Func<IWindow, GL> createGl)
     {
+        ArgumentNullException.ThrowIfNull(window);
+        ArgumentNullException.ThrowIfNull(createGl);
+        _window = window;
         _createGl = createGl;
     }
 
     public bool IsCreated => _gl is not null;
 
-    public void Create(IWindow window)
+    public void Create()
     {
-        ArgumentNullException.ThrowIfNull(window);
-
         if (IsCreated)
             throw new InvalidOperationException("Graphics context has already been created.");
 
         try
         {
-            _gl = _createGl(window);
+            _gl = _createGl(_window);
             SilkNetContext.GL = _gl;
         }
         catch (Exception ex)

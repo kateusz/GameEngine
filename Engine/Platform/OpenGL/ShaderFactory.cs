@@ -1,17 +1,17 @@
-using Engine.Platform.OpenGL;
+using Engine.Renderer.Shaders;
 
-namespace Engine.Renderer.Shaders;
+namespace Engine.Platform.OpenGL;
 
 /// <summary>
 /// Factory for creating and managing shader resources with automatic caching.
 /// Uses weak references to allow garbage collection when shaders are no longer in use.
 /// </summary>
-internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFactory, IDisposable
+internal sealed class ShaderFactory : IShaderFactory, IDisposable
 {
     private readonly Dictionary<(string Vert, string Frag, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
     private readonly Lock _cacheLock = new();
     private bool _disposed;
-    
+
     public IShader Create(string vertPath, string fragPath)
     {
         DateTime vertModTime, fragModTime;
@@ -39,11 +39,7 @@ internal sealed class ShaderFactory(IRendererApiConfig apiConfig) : IShaderFacto
             }
         }
 
-        var shader = apiConfig.Type switch
-        {
-            ApiType.SilkNet => new OpenGLShader(vertPath, fragPath),
-            _ => throw new NotSupportedException($"Unsupported Render API type: {apiConfig.Type}")
-        };
+        var shader = new OpenGLShader(vertPath, fragPath);
 
         lock (_cacheLock)
         {

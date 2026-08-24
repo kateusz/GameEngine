@@ -90,7 +90,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         // Left side: Mode selection buttons
         ImGui.SetCursorPosX(10.0f);
 
-        if (ButtonDrawer.DrawIconButton("select", _iconSelect.GetRendererId(), new Vector2(15, 15),
+        if (ButtonDrawer.DrawIconButton("select", _iconSelect, new Vector2(15, 15),
                 isSelected: CurrentMode == EditorMode.Select,
                 onClick: () => CurrentMode = EditorMode.Select,
                 tooltip: "Select Mode"))
@@ -100,7 +100,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        if (ButtonDrawer.DrawIconButton("move", _iconMove.GetRendererId(), new Vector2(15, 15),
+        if (ButtonDrawer.DrawIconButton("move", _iconMove, new Vector2(15, 15),
                 isSelected: CurrentMode == EditorMode.Move,
                 onClick: () => CurrentMode = EditorMode.Move,
                 tooltip: "Move Mode"))
@@ -110,7 +110,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        if (ButtonDrawer.DrawIconButton("scale", _iconScale.GetRendererId(), new Vector2(15, 15),
+        if (ButtonDrawer.DrawIconButton("scale", _iconScale, new Vector2(15, 15),
                 isSelected: CurrentMode == EditorMode.Scale,
                 onClick: () => CurrentMode = EditorMode.Scale,
                 tooltip: "Scale Mode"))
@@ -120,7 +120,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        if (ButtonDrawer.DrawIconButton("rotate", _iconRotate.GetRendererId(), new Vector2(15, 15),
+        if (ButtonDrawer.DrawIconButton("rotate", _iconRotate, new Vector2(15, 15),
                 isSelected: CurrentMode == EditorMode.Rotate,
                 onClick: () => CurrentMode = EditorMode.Rotate,
                 tooltip: "Rotate Mode"))
@@ -130,7 +130,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        if (ButtonDrawer.DrawIconButton("ruler", _iconRuler.GetRendererId(), new Vector2(15, 15),
+        if (ButtonDrawer.DrawIconButton("ruler", _iconRuler, new Vector2(15, 15),
                 isSelected: CurrentMode == EditorMode.Ruler,
                 onClick: () => CurrentMode = EditorMode.Ruler,
                 tooltip: "Ruler Mode"))
@@ -158,7 +158,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X * 0.5f) - (size * 0.5f));
         ImGui.SetCursorPosY(2.0f);
 
-        _ = ButtonDrawer.DrawTransparentIconButton("playstop", icon.GetRendererId(), new Vector2(20, 20),
+        _ = ButtonDrawer.DrawTransparentIconButton("playstop", icon, new Vector2(20, 20),
                 onClick: () =>
                 {
                     switch (sceneContext.State)
@@ -175,7 +175,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
 
         ImGui.SameLine();
 
-        _ = ButtonDrawer.DrawTransparentIconButton("restart", _iconRestart.GetRendererId(), new Vector2(20, 20),
+        _ = ButtonDrawer.DrawTransparentIconButton("restart", _iconRestart, new Vector2(20, 20),
                 onClick: OnRestartScene,
                 tooltip: "Restart Scene");
 

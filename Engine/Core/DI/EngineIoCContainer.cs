@@ -6,6 +6,7 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
+using Engine.Platform.OpenGL;
 using Engine.Platform.SilkNet;
 using Silk.NET.OpenAL;
 using Engine.Physics;
@@ -36,12 +37,7 @@ public static class EngineIoCContainer
         container.Register<IRendererApiConfig>(Reuse.Singleton,
             made: Made.Of(() => new RendererApiConfig(ApiType.SilkNet))
         );
-        container.Register<IRendererAPI>(Reuse.Singleton,
-            made: Made.Of(
-                r => ServiceInfo.Of<IRendererApiFactory>(),
-                f => f.Create()
-            )
-        );
+        container.Register<IRendererAPI, OpenGLRendererApi>(Reuse.Singleton);
         container.Register<IGraphicsContext, SilkNetGraphicsContext>(Reuse.Singleton);
 
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
@@ -130,7 +126,6 @@ public static class EngineIoCContainer
 
     private static void RegisterFactories(Container container)
     {
-        container.Register<IRendererApiFactory, RendererApiFactory>(Reuse.Singleton);
         container.Register<ITextureFactory, TextureFactory>(Reuse.Singleton);
         container.Register<IShaderFactory, ShaderFactory>(Reuse.Singleton);
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
