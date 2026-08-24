@@ -17,6 +17,10 @@ internal sealed class AudioSystem(
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();
     private readonly Dictionary<int, AudioRuntimeState> _runtimeByEntityId = [];
+    private readonly HashSet<int> _activeEntityIds = [];
+    private readonly List<int> _staleEntityIds = [];
+    private readonly Dictionary<AudioEffectType, AudioEffectData> _desiredEffects = [];
+    private readonly List<AudioEffectType> _effectsToRemove = [];
 
     public int Priority => SystemPriorities.AudioSystem;
 
@@ -150,10 +154,10 @@ internal sealed class AudioSystem(
 
     private void UpdateAudioSources()
     {
-        var activeEntityIds = new HashSet<int>();
+        _activeEntityIds.Clear();
         foreach (var (entity, component) in context.View<AudioSourceComponent>())
         {
-            activeEntityIds.Add(entity.Id);
+            _activeEntityIds.Add(entity.Id);
             try
             {
                 var runtimeState = EnsureRuntimeState(entity);
@@ -166,7 +170,7 @@ internal sealed class AudioSystem(
             }
         }
 
-        CleanupOrphanedRuntime(activeEntityIds);
+        CleanupOrphanedRuntime();
     }
 
     private void ApplyComponentToSource(
@@ -259,22 +263,26 @@ internal sealed class AudioSystem(
         }
     }
 
-    private static void SyncEffects(IAudioSource source, AudioSourceComponent component)
+    private void SyncEffects(IAudioSource source, AudioSourceComponent component)
     {
-        var desiredEffects = new Dictionary<AudioEffectType, AudioEffectData>();
+        _desiredEffects.Clear();
         foreach (var effect in component.Effects)
         {
             if (effect.Enabled)
-                desiredEffects[effect.Type] = effect;
+                _desiredEffects[effect.Type] = effect;
         }
 
-        foreach (var type in source.GetActiveEffectTypes().ToList())
+        _effectsToRemove.Clear();
+        foreach (var type in source.GetActiveEffectTypes())
         {
-            if (!desiredEffects.ContainsKey(type))
-                source.RemoveEffect(type);
+            if (!_desiredEffects.ContainsKey(type))
+                _effectsToRemove.Add(type);
         }
 
-        foreach (var config in desiredEffects.Values)
+        foreach (var type in _effectsToRemove)
+            source.RemoveEffect(type);
+
+        foreach (var config in _desiredEffects.Values)
         {
             if (!source.HasEffect(config.Type))
                 source.AddEffect(config.Type, config.Amount);
@@ -293,10 +301,16 @@ internal sealed class AudioSystem(
         return runtimeState;
     }
 
-    private void CleanupOrphanedRuntime(HashSet<int> activeEntityIds)
+    private void CleanupOrphanedRuntime()
     {
-        var staleEntityIds = _runtimeByEntityId.Keys.Where(id => !activeEntityIds.Contains(id)).ToList();
-        foreach (var staleEntityId in staleEntityIds)
+        _staleEntityIds.Clear();
+        foreach (var id in _runtimeByEntityId.Keys)
+        {
+            if (!_activeEntityIds.Contains(id))
+                _staleEntityIds.Add(id);
+        }
+
+        foreach (var staleEntityId in _staleEntityIds)
         {
             _runtimeByEntityId[staleEntityId].Source.Dispose();
             _runtimeByEntityId.Remove(staleEntityId);

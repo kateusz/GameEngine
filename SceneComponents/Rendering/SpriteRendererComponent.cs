@@ -5,6 +5,11 @@ namespace SceneComponents.Rendering;
 
 public class SpriteRendererComponent : IComponent
 {
+    /// <summary>Runtime cache of resolved absolute texture path; not serialized.</summary>
+    internal string? ResolvedTexturePath;
+
+    internal string? ResolvedTexturePathSource;
+
     public Vector4 Color { get; set; }
     public string? TexturePath { get; set; }
     public float TilingFactor { get; set; }
