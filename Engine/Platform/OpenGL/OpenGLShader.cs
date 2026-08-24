@@ -103,8 +103,8 @@ internal sealed class OpenGLShader : IShader
     {
         var location = ResolveUniformLocation(name);
         if (location < 0) return;
-        var matrix = Matrix4x4ToReadOnlySpan(data);
         SilkNetContext.GL.UseProgram(_handle);
+        var matrix = MemoryMarshal.CreateReadOnlySpan(ref data.M11, 16);
         SilkNetContext.GL.UniformMatrix4(location, true, matrix);
     }
 
@@ -150,30 +150,6 @@ internal sealed class OpenGLShader : IShader
         if (location >= 0)
             _uniformLocations[name] = location;
         return location;
-    }
-
-    private static ReadOnlySpan<float> Matrix4x4ToReadOnlySpan(Matrix4x4 matrix)
-    {
-        var matrixArray = new float[16];
-        
-        matrixArray[0] = matrix.M11;
-        matrixArray[1] = matrix.M12;
-        matrixArray[2] = matrix.M13;
-        matrixArray[3] = matrix.M14;
-        matrixArray[4] = matrix.M21;
-        matrixArray[5] = matrix.M22;
-        matrixArray[6] = matrix.M23;
-        matrixArray[7] = matrix.M24;
-        matrixArray[8] = matrix.M31;
-        matrixArray[9] = matrix.M32;
-        matrixArray[10] = matrix.M33;
-        matrixArray[11] = matrix.M34;
-        matrixArray[12] = matrix.M41;
-        matrixArray[13] = matrix.M42;
-        matrixArray[14] = matrix.M43;
-        matrixArray[15] = matrix.M44;
-
-        return new ReadOnlySpan<float>(matrixArray);
     }
 
     private static uint LoadShader(ShaderType type, string path)
