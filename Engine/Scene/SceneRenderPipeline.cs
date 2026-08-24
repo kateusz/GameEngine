@@ -52,8 +52,7 @@ internal static class SceneRenderPipeline
         in CameraBinding camera)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        RenderCubes(context, graphics3D, textureFactory, camera);
-        RenderModels(context, graphics3D, modelFactory, camera);
+        Render3D(context, graphics3D, textureFactory, modelFactory, camera);
     }
     
     internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
@@ -133,10 +132,11 @@ internal static class SceneRenderPipeline
         }
     }
     
-    private static void RenderCubes(
+    private static void Render3D(
         IContext context,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
+        IModelFactory? modelFactory,
         in CameraBinding camera)
     {
         if (!camera.IsValid)
@@ -151,18 +151,35 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
-            if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+            var transform = transformComponent.GetWorldTransform();
+
+            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+            {
+                if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
+                    DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity);
+                else
+                    graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id);
+                continue;
+            }
+
+            if (modelFactory == null)
                 continue;
 
-            var transform = transformComponent.GetWorldTransform();
-            if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
+            var tint = modelRenderer.Color;
+            var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+            var model = modelFactory.Create(resolvedPath);
+            if (model == null)
             {
-                DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity);
+                if (WarnedFailedModels.Add(resolvedPath))
+                    Logger.Warning(
+                        "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
+                        modelRenderer.ModelPath, resolvedPath);
+                graphics3D.DrawCube(transform, tint, entity.Id);
+                continue;
             }
-            else
-            {
-                graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id);
-            }
+
+            foreach (var submesh in model.Submeshes)
+                graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
         }
 
         graphics3D.EndScene();
@@ -216,45 +233,6 @@ internal static class SceneRenderPipeline
             graphics3D.BeginScene(camera.ViewCamera);
         else
             graphics3D.BeginScene(camera.Camera!, camera.Transform);
-    }
-    
-    private static void RenderModels(IContext context, IGraphics3D graphics3D, IModelFactory? modelFactory, in CameraBinding camera)
-    {
-        if (!camera.IsValid)
-            return;
-
-        Begin3DScene(graphics3D, camera);
-        var (ambientColor, ambientStrength) = ResolveAmbient(context);
-        graphics3D.SetAmbientLight(ambientColor, ambientStrength);
-        var (lightDirection, lightColor) = ResolveDirectional(context);
-        graphics3D.SetDirectionalLight(lightDirection, lightColor);
-
-        foreach (var (entity, modelRenderer, transformComponent) in
-                 context.View<ModelRendererComponent, TransformComponent>())
-        {
-            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath) || modelFactory == null)
-                continue;
-
-            var transform = transformComponent.GetWorldTransform();
-            var tint = modelRenderer.Color;
-
-            var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-            var model = modelFactory.Create(resolvedPath);
-            if (model == null)
-            {
-                if (WarnedFailedModels.Add(resolvedPath))
-                    Logger.Warning(
-                        "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                        modelRenderer.ModelPath, resolvedPath);
-                graphics3D.DrawCube(transform, tint, entity.Id);
-                continue;
-            }
-
-            foreach (var submesh in model.Submeshes)
-                graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
-        }
-
-        graphics3D.EndScene();
     }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
