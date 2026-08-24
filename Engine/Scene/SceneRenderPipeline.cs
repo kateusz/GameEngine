@@ -125,11 +125,7 @@ internal static class SceneRenderPipeline
 
             var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
             var transform = transformComponent.GetWorldTransform();
-            var texCoords = subtextureComponent.TexCoords ?? SubTexture2D.CreateFromCoords(
-                texture,
-                subtextureComponent.Coords,
-                subtextureComponent.CellSize,
-                subtextureComponent.SpriteSize).TexCoords;
+            var texCoords = SubTextureRendererTexCoords.Get(subtextureComponent, texture);
 
             graphics2D.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
