@@ -11,6 +11,7 @@ using Engine.Scene.Cameras;
 using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Camera;
+using SceneComponents.Physics;
 using SceneComponents.Rendering;
 
 namespace Benchmark;
@@ -57,6 +58,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     private readonly float[] _flushMsPlotBuffer = new float[MaxFrameSamples];
     private readonly float[] _gpuQuadMsPlotBuffer = new float[MaxFrameSamples];
     private int _profilingPhase;
+    private bool _ecsRuntimeStarted;
 
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -105,7 +107,12 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         if (_currentTestScene != null && _isRunning)
         {
             graphics2D.ResetStats();
-            RenderTestScene();
+
+            if (UsesEcsRuntime(_currentTestType))
+                _currentTestScene.OnUpdateRuntime(timeSpan);
+            else
+                RenderTestScene();
+
             RecordRendererStats(graphics2D.GetStats());
         }
 
@@ -174,6 +181,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
             if (ImGui.Button("Profiling2D Preset (5k sprites)"))
                 StartProfiling2DBenchmark();
+
+            if (ImGui.Button("Physics2D Stress Test"))
+                StartPhysics2DBenchmark();
         }
         else
         {
@@ -403,6 +413,13 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         StartBenchmark(BenchmarkTestType.Profiling2D);
     }
 
+    private void StartPhysics2DBenchmark()
+    {
+        _entityCount = 500;
+        _testDurationInSeconds = 5.0f;
+        StartBenchmark(BenchmarkTestType.Physics2DStress);
+    }
+
     private void StopBenchmark()
     {
         if (_isRunning && _currentTestType != BenchmarkTestType.None)
@@ -442,12 +459,8 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         _frameCount++;
 
         // Update test scene
-        if (_currentTestScene != null)
+        if (_currentTestScene != null && !UsesEcsRuntime(_currentTestType))
         {
-            // TODO: align to 2d camera
-            //_currentTestScene.OnUpdateEditor(ts, new Engine.Renderer.EditorCamera()); // Fixed: use OnUpdateEditor instead of OnUpdateRuntime
-
-            // Add test-specific updates
             switch (_currentTestType)
             {
                 case BenchmarkTestType.Renderer2DStress:
@@ -504,7 +517,12 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         // Add camera entity
         var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
         cameraEntity.AddComponent<TransformComponent>(); // Add required TransformComponent
-        cameraEntity.AddComponent<CameraComponent>();
+        var cameraComponent = cameraEntity.AddComponent<CameraComponent>();
+        if (UsesEcsRuntime(testType))
+        {
+            cameraComponent.Primary = true;
+            cameraComponent.OrthographicSize = 20f;
+        }
 
         switch (testType)
         {
@@ -520,6 +538,19 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             case BenchmarkTestType.Profiling2D:
                 SetupProfiling2DTest(multiTexture: _profilingPhase == 2);
                 break;
+            case BenchmarkTestType.Physics2DStress:
+                SetupPhysics2DStressTest();
+                break;
+        }
+
+        if (UsesEcsRuntime(testType))
+        {
+            _currentTestScene.OnRuntimeStart();
+            _ecsRuntimeStarted = true;
+        }
+        else
+        {
+            _ecsRuntimeStarted = false;
         }
     }
 
@@ -607,6 +638,52 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
             var sprite = entity.AddComponent<SpriteRendererComponent>();
             sprite.TexturePath = _testTextures[textureKeys[i % textureKeys.Length]].Path;
+        }
+    }
+
+    private void SetupPhysics2DStressTest()
+    {
+        var ground = _currentTestScene!.CreateEntity("Ground");
+        ground.AddComponent<TransformComponent>();
+        var groundTransform = ground.GetComponent<TransformComponent>();
+        groundTransform.Translation = new Vector3(0, -8, 0);
+        groundTransform.Scale = new Vector3(30, 1, 1);
+
+        var groundBody = ground.AddComponent<RigidBody2DComponent>();
+        groundBody.BodyType = RigidBodyType.Static;
+
+        var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
+        groundCollider.Size = new Vector2(30, 1);
+
+        var groundSprite = ground.AddComponent<SpriteRendererComponent>();
+        groundSprite.Color = new Vector4(0.3f, 0.3f, 0.35f, 1f);
+
+        var cols = System.Math.Max(1, (int)System.Math.Ceiling(System.Math.Sqrt(_entityCount)));
+        for (var i = 0; i < _entityCount; i++)
+        {
+            var row = i / cols;
+            var col = i % cols;
+
+            var entity = _currentTestScene.CreateEntity($"PhysicsBox_{i}");
+            entity.AddComponent<TransformComponent>();
+            var transform = entity.GetComponent<TransformComponent>();
+            transform.Translation = new Vector3(
+                col * 0.55f - cols * 0.275f,
+                row * 0.55f + 2,
+                0);
+
+            var body = entity.AddComponent<RigidBody2DComponent>();
+            body.BodyType = RigidBodyType.Dynamic;
+
+            var collider = entity.AddComponent<BoxCollider2DComponent>();
+            collider.Size = new Vector2(0.5f, 0.5f);
+
+            var sprite = entity.AddComponent<SpriteRendererComponent>();
+            sprite.Color = new Vector4(
+                (float)(_rng.NextDouble() * 0.5 + 0.5),
+                (float)(_rng.NextDouble() * 0.5 + 0.5),
+                (float)(_rng.NextDouble() * 0.5 + 0.5),
+                1f);
         }
     }
 
@@ -702,10 +779,21 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     private void CleanupTestScene()
     {
-        // Dispose scene to cleanup resources (physics, systems, etc.)
-        _currentTestScene?.Dispose();
-        _currentTestScene = null;
+        if (_currentTestScene != null)
+        {
+            if (_ecsRuntimeStarted)
+            {
+                _currentTestScene.OnRuntimeStop();
+                _ecsRuntimeStarted = false;
+            }
+
+            _currentTestScene.Dispose();
+            _currentTestScene = null;
+        }
     }
+
+    private static bool UsesEcsRuntime(BenchmarkTestType testType) =>
+        testType is BenchmarkTestType.Physics2DStress;
 
     private void RecordRendererStats(Graphics2DStats stats)
     {
@@ -823,7 +911,12 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         };
 
         _statsAggregator.ApplyTo(result);
-        result.CustomMetrics["Render Path"] = "direct draw (BenchmarkLayer)";
+        result.CustomMetrics["Render Path"] = UsesEcsRuntime(_currentTestType)
+            ? "ECS (SceneRenderPipeline)"
+            : "direct draw (BenchmarkLayer)";
+
+        if (_currentTestType == BenchmarkTestType.Physics2DStress)
+            result.CustomMetrics["Physics Bodies"] = (_entityCount + 1).ToString();
 
         _results.Add(result);
     }

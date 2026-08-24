@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Text.Json.Serialization;
 using ECS;
 
 namespace SceneComponents.Physics;
@@ -10,73 +9,75 @@ public class BoxCollider2DComponent : IComponent
     private float _friction;
     private float _restitution;
 
-    public Vector2 Size { get; set; }
-    public Vector2 Offset { get; set; }
+    public Vector2 Size
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    } = new(0.5f, 0.5f);
+
+    public Vector2 Offset
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    }
 
     public float Density
     {
         get => _density;
         set
         {
-            if (!_density.Equals(value))
-            {
-                _density = value;
-                IsDirty = true;
-            }
+            if (_density.Equals(value))
+                return;
+            _density = value;
+            PhysicsBodyRevision.Bump();
         }
     }
 
     public float Friction
     {
         get => _friction;
-        set
-        {
-            if (!_friction.Equals(value))
-            {
-                _friction = value;
-                IsDirty = true;
-            }
-        }
+        set => _friction = value;
     }
 
     public float Restitution
     {
         get => _restitution;
-        set
-        {
-            if (!_restitution.Equals(value))
-            {
-                _restitution = value;
-                IsDirty = true;
-            }
-        }
+        set => _restitution = value;
     }
 
     public float RestitutionThreshold { get; set; }
-    public bool IsTrigger { get; set; }
 
-    /// <summary>
-    /// Indicates whether fixture properties (Density, Friction, Restitution) have been modified
-    /// and need to be synchronized with the Box2D fixture.
-    /// </summary>
-    [JsonIgnore]
-    public bool IsDirty { get; private set; }
-
-    /// <summary>
-    /// Clears the dirty flag after fixture properties have been synchronized.
-    /// </summary>
-    public void ClearDirtyFlag() => IsDirty = false;
+    public bool IsTrigger
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    }
 
     public BoxCollider2DComponent()
     {
-        Size = new Vector2(0.5f, 0.5f);
         Offset = Vector2.Zero;
         _density = 1.0f;
         _friction = 0.5f;
         _restitution = 0.7f;
         RestitutionThreshold = 0.5f;
-        IsTrigger = false;
-        IsDirty = true; // Initially dirty to ensure first-time setup
     }
 
     public BoxCollider2DComponent(Vector2 size, Vector2 offset, float density, float friction, float restitution, float restitutionThreshold, bool isTrigger)
@@ -88,7 +89,6 @@ public class BoxCollider2DComponent : IComponent
         _restitution = restitution;
         RestitutionThreshold = restitutionThreshold;
         IsTrigger = isTrigger;
-        IsDirty = true; // Initially dirty to ensure first-time setup
     }
 
     public IComponent Clone()
