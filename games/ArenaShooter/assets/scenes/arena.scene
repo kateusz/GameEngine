@@ -85,24 +85,24 @@
       "Name": "Game",
       "Components": [
         {
-          "Phase": 0,
-          "Health": 3,
-          "Score": 0,
+          "Phase": 1,
+          "Health": 0,
+          "Score": 4,
           "Facing": [
-            1,
-            0
+            0.14714257,
+            0.98911536
           ],
-          "FireCooldown": 0,
-          "SpawnTimer": 0,
-          "InvulnTimer": 0,
-          "TracerTimer": 0,
+          "FireCooldown": 0.018264096,
+          "SpawnTimer": 0.18347573,
+          "InvulnTimer": 0.8,
+          "TracerTimer": -0.0009582024,
           "TracerStart": [
-            0,
-            0
+            -0.3974324,
+            0.18330541
           ],
           "TracerEnd": [
-            0,
-            0
+            0.03402832,
+            4.5
           ],
           "WalkPlaying": false,
           "InWater": false,
@@ -131,8 +131,8 @@
       "Components": [
         {
           "Translation": [
-            0,
-            0,
+            -0.3974324,
+            0.05601708,
             0
           ],
           "Rotation": [
@@ -149,10 +149,10 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
-            1
+            0,
+            0,
+            0,
+            0
           ],
           "TexturePath": "textures/stachu.png",
           "TilingFactor": 1,
@@ -448,8 +448,8 @@
       "Components": [
         {
           "Translation": [
-            1000,
-            1000,
+            -1.7792052,
+            1.9055194,
             0
           ],
           "Rotation": [
@@ -466,9 +466,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": "textures/gucz.png",
@@ -502,7 +502,7 @@
           "Name": "BoxCollider2DComponent"
         },
         {
-          "Alive": false,
+          "Alive": true,
           "Name": "EnemyComponent"
         }
       ]
@@ -513,8 +513,8 @@
       "Components": [
         {
           "Translation": [
-            1000,
-            1000,
+            2.8679047,
+            2.909966,
             0
           ],
           "Rotation": [
@@ -531,9 +531,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": "textures/gucz.png",
@@ -567,7 +567,7 @@
           "Name": "BoxCollider2DComponent"
         },
         {
-          "Alive": false,
+          "Alive": true,
           "Name": "EnemyComponent"
         }
       ]
@@ -578,8 +578,8 @@
       "Components": [
         {
           "Translation": [
-            1000,
-            1000,
+            0.17611586,
+            1.7602471,
             0
           ],
           "Rotation": [
@@ -596,9 +596,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": "textures/gucz.png",
@@ -632,7 +632,7 @@
           "Name": "BoxCollider2DComponent"
         },
         {
-          "Alive": false,
+          "Alive": true,
           "Name": "EnemyComponent"
         }
       ]
@@ -661,9 +661,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": "textures/gucz.png",
@@ -726,9 +726,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": "textures/gucz.png",
@@ -773,8 +773,8 @@
       "Components": [
         {
           "Translation": [
-            1000,
-            1000,
+            -4.8035073,
+            -2.889153,
             0
           ],
           "Rotation": [
@@ -791,9 +791,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": "textures/gucz.png",
@@ -827,7 +827,7 @@
           "Name": "BoxCollider2DComponent"
         },
         {
-          "Alive": false,
+          "Alive": true,
           "Name": "EnemyComponent"
         }
       ]
@@ -838,14 +838,14 @@
       "Components": [
         {
           "Translation": [
-            0.55,
-            0,
+            -0.31650397,
+            0.60003054,
             0.1
           ],
           "Rotation": [
             0,
             0,
-            0
+            1.4231175
           ],
           "Scale": [
             0.25,
@@ -856,10 +856,10 @@
         },
         {
           "Color": [
-            1,
-            0.9,
-            0.25,
-            1
+            0,
+            0,
+            0,
+            0
           ],
           "TexturePath": "textures/ak47.png",
           "TilingFactor": 1,
@@ -885,17 +885,17 @@
       "Components": [
         {
           "Translation": [
-            0,
-            0,
+            -0.18170203,
+            2.3416526,
             0.1
           ],
           "Rotation": [
             0,
             0,
-            0
+            1.4711756
           ],
           "Scale": [
-            0.001,
+            4.338204,
             0.06,
             1
           ],
@@ -903,9 +903,9 @@
         },
         {
           "Color": [
-            1,
-            1,
-            0.85,
+            0,
+            0,
+            0,
             0
           ],
           "TexturePath": null,
@@ -938,10 +938,10 @@
         },
         {
           "Color": [
-            0.32,
-            0.9,
-            0.42,
-            1
+            0,
+            0,
+            0,
+            0
           ],
           "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
@@ -973,10 +973,10 @@
         },
         {
           "Color": [
-            0.32,
-            0.9,
-            0.42,
-            1
+            0,
+            0,
+            0,
+            0
           ],
           "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
@@ -1008,10 +1008,10 @@
         },
         {
           "Color": [
-            0.32,
-            0.9,
-            0.42,
-            1
+            0,
+            0,
+            0,
+            0
           ],
           "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
@@ -1043,10 +1043,10 @@
         },
         {
           "Color": [
-            1,
-            1,
-            1,
-            0
+            0.82,
+            0.12,
+            0.12,
+            0.92
           ],
           "TexturePath": "textures/UI/gameover.png",
           "TilingFactor": 1,
@@ -1083,7 +1083,7 @@
             1,
             1
           ],
-          "TexturePath": "textures/UI/Numbers/0.png",
+          "TexturePath": "textures/UI/Numbers/4.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -1099,7 +1099,7 @@
       "Components": [
         {
           "Translation": [
-            0,
+            0.17,
             4.15,
             0.5
           ],
@@ -1111,7 +1111,7 @@
           "Scale": [
             0,
             0,
-            1
+            0
           ],
           "Name": "TransformComponent"
         },
@@ -1150,7 +1150,7 @@
           "Scale": [
             0,
             0,
-            1
+            0
           ],
           "Name": "TransformComponent"
         },
@@ -1189,7 +1189,7 @@
           "Scale": [
             0,
             0,
-            1
+            0
           ],
           "Name": "TransformComponent"
         },

@@ -14,6 +14,7 @@ internal sealed class Graphics3D(
     ITextureFactory textureFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
+    private const float DefaultCubeShininess = 32.0f;
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
     private Mesh _cubeMesh = null!;
@@ -75,6 +76,8 @@ internal sealed class Graphics3D(
         rendererApi.SetDepthTest(true);
         BindCommon(_cubeShader, transform, color, entityId);
         
+        _cubeShader.SetFloat3("u_ViewPosition", _viewPosition);
+        _cubeShader.SetFloat("u_Shininess", DefaultCubeShininess);
         _cubeShader.SetFloat("u_TilingFactor", tilingFactor);
         _cubeShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
         if (texture != null)

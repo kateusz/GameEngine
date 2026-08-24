@@ -204,7 +204,11 @@ internal static class SceneRenderPipeline
     private static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
     {
         foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
-            return (NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));
+        {
+            var intensity = MathF.Max(0f, dlc.Intensity);
+            var color = new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z) * intensity;
+            return (NormalizeDirection(dlc.Direction), color);
+        }
 
         return (new Vector3(0, -1, 0), Vector3.Zero);
     }

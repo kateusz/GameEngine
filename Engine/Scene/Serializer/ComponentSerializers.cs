@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ECS;
 using SceneComponents;
+using SceneComponents.Lighting;
 
 namespace Engine.Scene.Serializer;
 
@@ -45,8 +46,24 @@ internal sealed class JsonComponentSerializer<T> : IComponentSerializer where T 
         if (component is null)
             return false;
 
+        if (component is DirectionalLightComponent directionalLight)
+            ApplyDirectionalLightJsonDefaults(directionalLight, componentJson);
+
         entity.AddComponent(component);
         return true;
+    }
+
+    private static void ApplyDirectionalLightJsonDefaults(
+        DirectionalLightComponent component,
+        JsonObject componentJson)
+    {
+        if (componentJson.ContainsKey(nameof(DirectionalLightComponent.Intensity)))
+            return;
+
+        if (componentJson.TryGetPropertyValue("Strength", out var strengthNode) && strengthNode is JsonValue)
+            component.Intensity = strengthNode.GetValue<float>();
+        else
+            component.Intensity = 1.0f;
     }
 }
 

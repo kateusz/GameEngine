@@ -5,6 +5,7 @@ using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Shouldly;
 
@@ -33,6 +34,61 @@ public class ComponentSerializerRegistryTests
         loaded.HasComponent<TransformComponent>().ShouldBeTrue();
         loaded.HasComponent<SpriteRendererComponent>().ShouldBeTrue();
         loaded.GetComponent<SpriteRendererComponent>().TexturePath.ShouldBe("textures/test.png");
+    }
+
+    [Fact]
+    public void DirectionalLightComponent_RoundTrip_PreservesIntensity()
+    {
+        var entity = Entity.Create(1, "sun");
+        entity.AddComponent(new DirectionalLightComponent
+        {
+            Direction = new System.Numerics.Vector3(1, 0, 0),
+            Color = new System.Numerics.Vector4(1, 1, 1, 1),
+            Intensity = 0.5f
+        });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+
+        var loaded = Entity.Create(1, "sun");
+        _registry.DeserializeComponent(loaded, array[0]!.AsObject(), _serializerOptions.Options, strict: true);
+
+        loaded.GetComponent<DirectionalLightComponent>().Intensity.ShouldBe(0.5f);
+    }
+
+    [Fact]
+    public void DirectionalLightComponent_DeserializeWithoutIntensity_DefaultsToOne()
+    {
+        var json = JsonNode.Parse("""
+            {
+              "Name": "DirectionalLightComponent",
+              "Direction": [0, -1, 0],
+              "Color": [1, 1, 1, 1]
+            }
+            """)!.AsObject();
+
+        var entity = Entity.Create(1, "sun");
+        _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: true);
+
+        entity.GetComponent<DirectionalLightComponent>().Intensity.ShouldBe(1.0f);
+    }
+
+    [Fact]
+    public void DirectionalLightComponent_DeserializeLegacyStrength_UsesAsIntensity()
+    {
+        var json = JsonNode.Parse("""
+            {
+              "Name": "DirectionalLightComponent",
+              "Direction": [0, -1, 0],
+              "Color": [1, 1, 1, 1],
+              "Strength": 0.75
+            }
+            """)!.AsObject();
+
+        var entity = Entity.Create(1, "sun");
+        _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: true);
+
+        entity.GetComponent<DirectionalLightComponent>().Intensity.ShouldBe(0.75f);
     }
 
     [Fact]

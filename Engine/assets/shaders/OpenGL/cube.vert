@@ -10,6 +10,7 @@ uniform mat4 u_Model;
 uniform mat4 u_NormalMatrix;
 uniform float u_TilingFactor;
 
+out vec3 v_FragPos;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
 flat out int v_EntityID;
@@ -17,6 +18,7 @@ flat out int v_EntityID;
 void main()
 {
     vec4 worldPos = vec4(a_Position, 1.0) * u_Model;
+    v_FragPos = worldPos.xyz;
     v_Normal = normalize(a_Normal * mat3(u_NormalMatrix));
     v_TexCoord = a_TexCoord * u_TilingFactor;
     v_EntityID = a_EntityID;
