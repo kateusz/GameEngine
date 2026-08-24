@@ -47,7 +47,7 @@ public class ContextViewTests : IDisposable
         var view = _context.View<TestComponentA>();
 
         // Assert
-        view.ShouldBeEmpty();
+        IsEmpty(view).ShouldBeTrue();
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class ContextViewTests : IDisposable
         var view = _context.View<TestComponentA>();
         
         // Assert
-        view.ShouldBeEmpty();
+        IsEmpty(view).ShouldBeTrue();
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class ContextViewTests : IDisposable
         
         // Act
         var view = _context.View<TestComponentA>();
-        var results = view.ToList();
+        var results = Materialize(view);
         
         // Assert
         results.Count.ShouldBe(2);
@@ -122,7 +122,7 @@ public class ContextViewTests : IDisposable
         
         // Act - Query for ComponentA
         var viewA = _context.View<TestComponentA>();
-        var resultsA = viewA.ToList();
+        var resultsA = Materialize(viewA);
         
         // Assert - Should get ComponentA
         resultsA.Count.ShouldBe(1);
@@ -131,7 +131,7 @@ public class ContextViewTests : IDisposable
         
         // Act - Query for ComponentB
         var viewB = _context.View<TestComponentB>();
-        var resultsB = viewB.ToList();
+        var resultsB = Materialize(viewB);
         
         // Assert - Should get ComponentB
         resultsB.Count.ShouldBe(1);
@@ -150,7 +150,7 @@ public class ContextViewTests : IDisposable
         
         // Act
         var view = _context.View<TestComponentA>();
-        var result = view.First();
+        var result = Materialize(view)[0];
         
         // Modify through view result
         result.Component.Value = 200;
@@ -172,8 +172,8 @@ public class ContextViewTests : IDisposable
         
         // Act
         var view = _context.View<TestComponentA>();
-        var firstPass = view.ToList();
-        var secondPass = view.ToList();
+        var firstPass = Materialize(view);
+        var secondPass = Materialize(view);
         
         // Assert - Both passes should return same results
         firstPass.Count.ShouldBe(2);
@@ -198,7 +198,7 @@ public class ContextViewTests : IDisposable
         
         // Act
         var view = _context.View<TestComponentA>();
-        var results = view.ToList();
+        var results = Materialize(view);
         
         // Assert
         results.Count.ShouldBe(entityCount);
@@ -242,9 +242,9 @@ public class ContextViewTests : IDisposable
         var view2 = _context.View<TestComponentA>();
         var view3 = _context.View<TestComponentA>();
         
-        var results1 = view1.ToList();
-        var results2 = view2.ToList();
-        var results3 = view3.ToList();
+        var results1 = Materialize(view1);
+        var results2 = Materialize(view2);
+        var results3 = Materialize(view3);
         
         // Assert - All calls should return same data
         results1.Count.ShouldBe(1);
@@ -263,7 +263,7 @@ public class ContextViewTests : IDisposable
 
         entity.RemoveComponent<TestComponentA>();
 
-        _context.View<TestComponentA>().ShouldBeEmpty();
+        IsEmpty(_context.View<TestComponentA>()).ShouldBeTrue();
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public class ContextViewTests : IDisposable
         _context.Register(entity);
         entity.AddComponent<TestComponentA>().Value = 7;
 
-        var results = _context.View<TestComponentA>().ToList();
+        var results = Materialize(_context.View<TestComponentA>());
 
         results.Count.ShouldBe(1);
         results[0].Component.Value.ShouldBe(7);
@@ -292,7 +292,7 @@ public class ContextViewTests : IDisposable
         _context.Register(withBoth);
         _context.Register(onlyA);
 
-        var results = _context.View<TestComponentA, TestComponentB>().ToList();
+        var results = Materialize(_context.View<TestComponentA, TestComponentB>());
 
         results.Count.ShouldBe(1);
         results[0].Entity.Id.ShouldBe(1);
@@ -310,7 +310,7 @@ public class ContextViewTests : IDisposable
 
         entity.RemoveComponent<TestComponentB>();
 
-        var results = _context.View<TestComponentA, TestComponentB>().ToList();
+        var results = Materialize(_context.View<TestComponentA, TestComponentB>());
 
         results.ShouldBeEmpty();
     }
@@ -330,9 +330,12 @@ public class ContextViewTests : IDisposable
         _context.Register(complete);
         _context.Register(partial);
 
-        var results = _context.View<TestComponentA, TestComponentB>()
-            .Where(tuple => tuple.Entity.HasComponent<TestComponentC>())
-            .ToList();
+        var results = new List<(Entity Entity, TestComponentA Component1, TestComponentB Component2)>();
+        foreach (var tuple in _context.View<TestComponentA, TestComponentB>())
+        {
+            if (tuple.Entity.HasComponent<TestComponentC>())
+                results.Add(tuple);
+        }
 
         results.Count.ShouldBe(1);
         results[0].Entity.Id.ShouldBe(1);
@@ -356,7 +359,7 @@ public class ContextViewTests : IDisposable
             _context.Register(entity);
         }
 
-        _context.View<TestComponentA>().Count().ShouldBe(withA);
+        Count(_context.View<TestComponentA>()).ShouldBe(withA);
     }
 
     [Fact]
@@ -426,5 +429,41 @@ public class ContextViewTests : IDisposable
         _context.Remove(entity.Id);
 
         _context.Contains(entity.Id).ShouldBeFalse();
+    }
+
+    private static bool IsEmpty<TComponent>(ComponentView<TComponent> view)
+        where TComponent : IComponent
+    {
+        foreach (var _ in view)
+            return false;
+        return true;
+    }
+
+    private static int Count<TComponent>(ComponentView<TComponent> view)
+        where TComponent : IComponent
+    {
+        var n = 0;
+        foreach (var _ in view)
+            n++;
+        return n;
+    }
+
+    private static List<(Entity Entity, TComponent Component)> Materialize<TComponent>(ComponentView<TComponent> view)
+        where TComponent : IComponent
+    {
+        var results = new List<(Entity, TComponent)>();
+        foreach (var item in view)
+            results.Add(item);
+        return results;
+    }
+
+    private static List<(Entity Entity, T1 Component1, T2 Component2)> Materialize<T1, T2>(DualComponentView<T1, T2> view)
+        where T1 : IComponent
+        where T2 : IComponent
+    {
+        var results = new List<(Entity, T1, T2)>();
+        foreach (var item in view)
+            results.Add(item);
+        return results;
     }
 }

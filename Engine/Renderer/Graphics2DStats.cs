@@ -3,7 +3,7 @@ namespace Engine.Renderer;
 /// <summary>
 /// Per-frame 2D renderer statistics (batching, uploads, CPU and GPU timing).
 /// </summary>
-public class Graphics2DStats
+public record Graphics2DStats
 {
     public uint DrawCalls { get; set; }
     public uint QuadCount { get; set; }
@@ -15,9 +15,9 @@ public class Graphics2DStats
     public long UploadBytes { get; set; }
     public double BatchFillMs { get; set; }
     public double FlushMs { get; set; }
-    /// <summary>GPU time for quad draw pass from the previous frame (timer query lag).</summary>
+    /// <summary>GPU quad pass ms from previous frame (DEBUG timer queries only).</summary>
     public double GpuQuadPassMs { get; set; }
-    /// <summary>GPU time for line draw pass from the previous frame (timer query lag).</summary>
+    /// <summary>GPU line pass ms from previous frame (DEBUG timer queries only).</summary>
     public double GpuLinePassMs { get; set; }
 
     public uint GetTotalVertexCount() => QuadCount * RenderingConstants.QuadVertexCount;

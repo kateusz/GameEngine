@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Core;
+using Engine.Renderer;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Scene.Cameras;
@@ -94,7 +95,8 @@ internal static class SceneRenderPipeline
             {
                 try
                 {
-                    var texture = textureFactory.Create(PathBuilder.Resolve(spriteRendererComponent.TexturePath));
+                    var resolved = GetResolvedSpriteTexturePath(spriteRendererComponent);
+                    var texture = textureFactory.Create(resolved);
                     graphics2D.DrawQuad(transform, texture, DefaultTextureCoords, spriteRendererComponent.TilingFactor,
                         spriteRendererComponent.Color, entity.Id);
                     continue;
@@ -125,7 +127,7 @@ internal static class SceneRenderPipeline
 
             var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
             var transform = transformComponent.GetWorldTransform();
-            var texCoords = SubTextureRendererTexCoords.Get(subtextureComponent, texture);
+            var texCoords = GetSubTextureTexCoords(subtextureComponent, texture);
 
             graphics2D.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
         }
@@ -253,6 +255,44 @@ internal static class SceneRenderPipeline
         }
 
         graphics3D.EndScene();
+    }
+
+    internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
+    {
+        if (component.TexCoordsCacheKey == SubTextureRendererComponent.ManualTexCoordsKey && component.TexCoords != null)
+            return component.TexCoords;
+
+        var key = HashSubTextureTexCoords(component, texture);
+        if (component.TexCoords != null && component.TexCoordsCacheKey == key)
+            return component.TexCoords;
+
+        if (component.TexCoords is not { Length: RenderingConstants.QuadVertexCount })
+            component.TexCoords = new Vector2[RenderingConstants.QuadVertexCount];
+
+        SubTexture2D.FillTexCoordsFromCoords(
+            texture, component.Coords, component.CellSize, component.SpriteSize, component.TexCoords);
+        component.TexCoordsCacheKey = key;
+        return component.TexCoords;
+    }
+
+    private static int HashSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture) =>
+        HashCode.Combine(
+            component.Coords.X, component.Coords.Y,
+            component.CellSize.X, component.CellSize.Y,
+            component.SpriteSize.X, component.SpriteSize.Y,
+            texture.Width, texture.Height);
+
+    internal static string? GetResolvedSpriteTexturePath(SpriteRendererComponent component)
+    {
+        var path = component.TexturePath;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            component.ResolvedTexturePath = null;
+            return null;
+        }
+
+        component.ResolvedTexturePath ??= PathBuilder.Resolve(path);
+        return component.ResolvedTexturePath;
     }
 
 }
