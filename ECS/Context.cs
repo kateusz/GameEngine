@@ -85,55 +85,43 @@ public class Context : IContext
             return _entities.ContainsKey(entityId);
     }
 
-    public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent
-    {
-        var snapshot = Snapshot<TComponent>();
-        foreach (var entity in snapshot)
-        {
-            if (entity.TryGetComponent<TComponent>(out var component))
-                yield return (entity, component);
-        }
-    }
+    public ComponentView<TComponent> View<TComponent>() where TComponent : IComponent =>
+        new(this);
 
-    public IEnumerable<(Entity Entity, T1 Component1, T2 Component2)> View<T1, T2>()
+    public DualComponentView<T1, T2> View<T1, T2>()
         where T1 : IComponent
-        where T2 : IComponent
+        where T2 : IComponent =>
+        new(this);
+
+    internal void EnterViewIndex(
+        Type primary,
+        Type? secondary,
+        out HashSet<Entity>.Enumerator enumerator,
+        out bool empty)
     {
-        Entity[] snapshot;
-        lock (_lock)
+        _lock.Enter();
+        empty = true;
+        enumerator = default;
+
+        var queryType = primary;
+        if (secondary is not null)
         {
-            snapshot = Count<T1>() <= Count<T2>()
-                ? SnapshotUnlocked<T1>()
-                : SnapshotUnlocked<T2>();
+            var count1 = CountUnlocked(primary);
+            var count2 = CountUnlocked(secondary);
+            queryType = count1 <= count2 ? primary : secondary;
         }
 
-        foreach (var entity in snapshot)
-        {
-            if (!entity.TryGetComponent<T1>(out var component1) || !entity.TryGetComponent<T2>(out var component2))
-                continue;
+        if (!_entitiesByComponentType.TryGetValue(queryType, out var entities) || entities.Count == 0)
+            return;
 
-            yield return (entity, component1, component2);
-        }
+        empty = false;
+        enumerator = entities.GetEnumerator();
     }
 
-    private Entity[] Snapshot<TComponent>() where TComponent : IComponent
-    {
-        lock (_lock)
-            return SnapshotUnlocked<TComponent>();
-    }
+    internal void ExitViewIndex() => _lock.Exit();
 
-    private Entity[] SnapshotUnlocked<TComponent>() where TComponent : IComponent
-    {
-        if (!_entitiesByComponentType.TryGetValue(typeof(TComponent), out var entities) || entities.Count == 0)
-            return [];
-
-        var snapshot = new Entity[entities.Count];
-        entities.CopyTo(snapshot);
-        return snapshot;
-    }
-
-    private int Count<TComponent>() where TComponent : IComponent =>
-        _entitiesByComponentType.TryGetValue(typeof(TComponent), out var entities) ? entities.Count : 0;
+    private int CountUnlocked(Type componentType) =>
+        _entitiesByComponentType.TryGetValue(componentType, out var entities) ? entities.Count : 0;
 
     private void IndexAdd(Entity entity, Type componentType)
     {

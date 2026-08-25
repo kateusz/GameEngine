@@ -63,6 +63,24 @@ public class SubTexture2DTests
     }
 
     [Fact]
+    public void SubTexture2D_FillTexCoordsFromCoords_MatchesCreateFromCoords()
+    {
+        var mockTexture = Substitute.For<Texture2D>();
+        mockTexture.Width.Returns(256);
+        mockTexture.Height.Returns(256);
+
+        var coords = new Vector2(1, 1);
+        var cellSize = new Vector2(32, 32);
+        var spriteSize = Vector2.One;
+
+        var fromRecord = SubTexture2D.CreateFromCoords(mockTexture, coords, cellSize, spriteSize);
+        var filled = new Vector2[4];
+        SubTexture2D.FillTexCoordsFromCoords(mockTexture, coords, cellSize, spriteSize, filled);
+
+        filled.ShouldBe(fromRecord.TexCoords);
+    }
+
+    [Fact]
     public void SubTexture2D_CreateFromCoords_ShouldCalculateCorrectUVs()
     {
         // Arrange

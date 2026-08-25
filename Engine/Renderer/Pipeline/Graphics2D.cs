@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
+using Engine.Platform.OpenGL;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Pipeline.Primitives;
@@ -28,6 +30,10 @@ internal sealed class Graphics2D(
     ];
     private Renderer2DData _data = new();
     private bool _disposed;
+    private readonly Stopwatch _batchFillSw = new();
+    private readonly Stopwatch _flushSw = new();
+    private OpenGLGpuTimer? _quadGpuTimer;
+    private OpenGLGpuTimer? _lineGpuTimer;
 
     public void Init()
     {
@@ -36,9 +42,14 @@ internal sealed class Graphics2D(
             _data = new Renderer2DData
             {
                 QuadVertexArray = vertexArrayFactory.Create(),
-                Stats = new Statistics(),
+                Stats = new Graphics2DStats(),
                 LineVertexArray = vertexArrayFactory.Create()
             };
+
+#if DEBUG
+            _quadGpuTimer = new OpenGLGpuTimer();
+            _lineGpuTimer = new OpenGLGpuTimer();
+#endif
 
             InitBuffers();
             InitWhiteTexture();
@@ -63,9 +74,11 @@ internal sealed class Graphics2D(
         var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4(ViewProjectionUniform, viewProj);
+        _data.Stats.ProgramSwitches++;
 
         _data.LineShader.Bind();
         _data.LineShader.SetMat4(ViewProjectionUniform, viewProj);
+        _data.Stats.ProgramSwitches++;
 
         StartBatch();
     }
@@ -76,9 +89,11 @@ internal sealed class Graphics2D(
 
         _data.QuadShader.Bind();
         _data.QuadShader.SetMat4(ViewProjectionUniform, viewProj);
+        _data.Stats.ProgramSwitches++;
 
         _data.LineShader.Bind();
         _data.LineShader.SetMat4(ViewProjectionUniform, viewProj);
+        _data.Stats.ProgramSwitches++;
 
         StartBatch();
     }
@@ -170,6 +185,8 @@ internal sealed class Graphics2D(
             throw new ArgumentException("Transform contains invalid values (NaN or Infinity)", nameof(transform));
         #endif
 
+        _batchFillSw.Restart();
+
         tintColor ??= Vector4.One;
 
         if (_data.QuadIndexBufferCount >= Renderer2DData.MaxIndices)
@@ -217,10 +234,15 @@ internal sealed class Graphics2D(
 
         _data.QuadIndexBufferCount += RenderingConstants.QuadIndexCount;
         _data.Stats.QuadCount++;
+
+        _batchFillSw.Stop();
+        _data.Stats.BatchFillMs += _batchFillSw.Elapsed.TotalMilliseconds;
     }
 
     public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId)
     {
+        _batchFillSw.Restart();
+
         // Check if we need to flush before adding 2 more vertices
         if (_data.CurrentLineVertexBufferIndex + 2 >= Renderer2DData.MaxVertices)
             NextBatch();
@@ -243,6 +265,9 @@ internal sealed class Graphics2D(
 
         _data.CurrentLineVertexBufferIndex++;
         _data.LineVertexCount += 2;
+
+        _batchFillSw.Stop();
+        _data.Stats.BatchFillMs += _batchFillSw.Elapsed.TotalMilliseconds;
     }
 
     public void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId)
@@ -292,52 +317,71 @@ internal sealed class Graphics2D(
 
     private void NextBatch()
     {
+        _data.Stats.BatchCount++;
         Flush();
         StartBatch();
     }
 
     private void Flush()
     {
+        _flushSw.Restart();
+
+        if (_quadGpuTimer?.TryGetElapsedMs(out var quadGpuMs) == true)
+            _data.Stats.GpuQuadPassMs = quadGpuMs;
+        if (_lineGpuTimer?.TryGetElapsedMs(out var lineGpuMs) == true)
+            _data.Stats.GpuLinePassMs = lineGpuMs;
+
         if (_data.QuadIndexBufferCount > 0)
         {
             var vertexCount = _data.CurrentVertexBufferIndex;
             var dataSize = vertexCount * QuadVertex.GetSize();
 
             _data.QuadShader.Bind();
+            _data.Stats.ProgramSwitches++;
             _data.QuadVertexArray.Bind();
 
             var usedVertices = _data.QuadVertexBufferBase.AsSpan(0, vertexCount);
             _data.QuadVertexBuffer.SetData(usedVertices, dataSize);
+            _data.Stats.UploadBytes += dataSize;
 
             for (var i = 0; i < _data.TextureSlotIndex; i++)
+            {
                 _data.TextureSlots[i].Bind(i);
+                _data.Stats.TextureBinds++;
+            }
 
             rendererApi.SetDepthTest(false);
+            _quadGpuTimer?.Begin();
             rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
+            _quadGpuTimer?.End();
             rendererApi.SetDepthTest(true);
             _data.Stats.DrawCalls++;
         }
 
         if (_data.LineVertexCount > 0)
         {
-            // Switch to line shader
             _data.LineShader.Bind();
+            _data.Stats.ProgramSwitches++;
 
-            // Explicitly bind line vertex array
             _data.LineVertexArray.Bind();
 
-            // Calculate actual data size (already known from index)
             var lineVertexCount = _data.CurrentLineVertexBufferIndex;
             var dataSize = lineVertexCount * LineVertex.GetSize();
 
-            // Upload only used portion to GPU
             var usedLineVertices = _data.LineVertexBufferBase.AsSpan(0, lineVertexCount);
             _data.LineVertexBuffer.SetData(usedLineVertices, dataSize);
+            _data.Stats.UploadBytes += dataSize;
 
             rendererApi.SetLineWidth(Renderer2DData.LineWidth);
+            _lineGpuTimer?.Begin();
             rendererApi.DrawLines(_data.LineVertexArray, _data.LineVertexCount);
-            _data.Stats.DrawCalls++;
+            _lineGpuTimer?.End();
+            _data.Stats.LineDrawCalls++;
+            _data.Stats.LineVertexCount += _data.LineVertexCount;
         }
+
+        _flushSw.Stop();
+        _data.Stats.FlushMs += _flushSw.Elapsed.TotalMilliseconds;
     }
 
     private void InitBuffers()
@@ -447,14 +491,10 @@ internal sealed class Graphics2D(
 
     public void ResetStats()
     {
-        _data.Stats.QuadCount = 0;
-        _data.Stats.DrawCalls = 0;
+        _data.Stats = new Graphics2DStats();
     }
 
-    public Statistics GetStats()
-    {
-        return _data.Stats;
-    }
+    public Graphics2DStats GetStats() => _data.Stats;
 
     #endregion
 
@@ -473,6 +513,8 @@ internal sealed class Graphics2D(
         // VertexArray owns and disposes its vertex buffers and index buffer
         _data.QuadVertexArray?.Dispose();
         _data.LineVertexArray?.Dispose();
+        _quadGpuTimer?.Dispose();
+        _lineGpuTimer?.Dispose();
 
         // textures are disposed at factory
         Array.Clear(_data.TextureSlots, 0, _data.TextureSlots.Length);

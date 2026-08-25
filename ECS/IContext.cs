@@ -46,12 +46,12 @@ public interface IContext
     /// <summary>
     /// Entities with <typeparamref name="TComponent"/> (indexed; O(matches) not O(all entities)).
     /// </summary>
-    IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>() where TComponent : IComponent;
+    ComponentView<TComponent> View<TComponent>() where TComponent : IComponent;
 
     /// <summary>
     /// Entities with both component types. Iterates the smaller index.
     /// </summary>
-    IEnumerable<(Entity Entity, T1 Component1, T2 Component2)> View<T1, T2>()
+    DualComponentView<T1, T2> View<T1, T2>()
         where T1 : IComponent
         where T2 : IComponent;
 }

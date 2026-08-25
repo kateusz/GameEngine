@@ -12,4 +12,9 @@
       <ProjectReference Include="..\Math\Math.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <InternalsVisibleTo Include="Engine" />
+      <InternalsVisibleTo Include="Engine.Tests" />
+    </ItemGroup>
+
 </Project>

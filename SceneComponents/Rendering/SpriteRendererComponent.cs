@@ -5,8 +5,25 @@ namespace SceneComponents.Rendering;
 
 public class SpriteRendererComponent : IComponent
 {
+    internal string? ResolvedTexturePath;
+
+    private string? _texturePath;
+
     public Vector4 Color { get; set; }
-    public string? TexturePath { get; set; }
+
+    public string? TexturePath
+    {
+        get => _texturePath;
+        set
+        {
+            if (string.Equals(_texturePath, value, StringComparison.Ordinal))
+                return;
+
+            _texturePath = value;
+            ResolvedTexturePath = null;
+        }
+    }
+
     public float TilingFactor { get; set; }
 
     public SpriteRendererComponent()

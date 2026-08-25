@@ -1,4 +1,7 @@
 using System.Numerics;
+using Engine.Core;
+using Engine.Scene;
+using NSubstitute;
 using SceneComponents.Rendering;
 using Shouldly;
 
@@ -101,5 +104,43 @@ public class SpriteRendererComponentTests
         clone.TexturePath.ShouldBe("textures/player.png");
         original.Color.ShouldBe(color);
         clone.Color.ShouldBe(Vector4.Zero);
+    }
+
+    [Fact]
+    public void TexturePath_Change_ClearsResolvedTexturePath()
+    {
+        var component = new SpriteRendererComponent { TexturePath = "textures/a.png" };
+        component.ResolvedTexturePath = "/cached/path.png";
+
+        component.TexturePath = "textures/b.png";
+
+        component.ResolvedTexturePath.ShouldBeNull();
+    }
+}
+
+[Collection("PathBuilder")]
+public class SpriteRendererResolvedTexturePathTests : IDisposable
+{
+    private static string GameAssets =>
+        OperatingSystem.IsWindows() ? @"C:\game\assets" : "/game/assets";
+
+    public SpriteRendererResolvedTexturePathTests()
+    {
+        var context = Substitute.For<IProjectContext>();
+        context.AssetsPath.Returns(GameAssets);
+        PathBuilder.UseProjectContext(context);
+    }
+
+    public void Dispose() => PathBuilder.UseProjectContext(Substitute.For<IProjectContext>());
+
+    [Fact]
+    public void GetResolvedSpriteTexturePath_ReusesCache_WhenTexturePathUnchanged()
+    {
+        var component = new SpriteRendererComponent { TexturePath = "textures/player.png" };
+
+        var first = SceneRenderPipeline.GetResolvedSpriteTexturePath(component);
+        var second = SceneRenderPipeline.GetResolvedSpriteTexturePath(component);
+
+        ReferenceEquals(first, second).ShouldBeTrue();
     }
 }
