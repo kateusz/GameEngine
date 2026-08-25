@@ -48,6 +48,7 @@ public class RendererStatsPanel(IGraphics2D graphics2D, IGraphics3D graphics3D)
         var stats3D = graphics3D.GetStats();
         ImGui.Text("Renderer3D Stats:");
         ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
+        ImGui.Text($"Culled Draws: {stats3D.CulledDraws}");
         
         ImGui.End();
     }
