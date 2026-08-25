@@ -15,12 +15,12 @@
         <PackageReference Include="DryIoc" Version="5.4.3" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
-        <PackageReference Include="Myra" Version="1.6.5" />
         <PackageReference Include="NVorbis" Version="0.10.5" />
         <PackageReference Include="OpenAL.Soft" Version="1.23.1">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Pfim" Version="0.11.3" />
+        <PackageReference Include="Prowl.Paper" Version="3.1.0" />
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
@@ -43,10 +43,12 @@
         <ProjectReference Include="../ECS/ECS.csproj" />
         <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />
         <ProjectReference Include="..\Scripting\Scripting.csproj" />
+        <ProjectReference Include="..\UI.Paper\UI.Paper.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <Compile Remove="Platform\OpenTK\Audio\OpenTKAudioClip.cs" />
+      <Compile Remove="Platform\OpenGL\Paper\_upstream\**\*.cs" />
     </ItemGroup>
 
     <ItemGroup>

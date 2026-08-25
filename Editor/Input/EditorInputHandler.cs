@@ -3,6 +3,7 @@ using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Scene;
 using Engine.Scripting;
+using Engine.UI.Paper;
 using ImGuiNET;
 using Input;
 
@@ -13,6 +14,8 @@ public class EditorInputHandler(
     IScriptEngine scriptEngine,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput,
+    PaperInputAdapter paperInputAdapter,
+    PaperInputGate paperInputGate,
     ShortcutManager shortcutManager,
     IEditorViewport editorViewport)
 {
@@ -35,11 +38,19 @@ public class EditorInputHandler(
             editorViewport.HandleWindowInput(windowEvent);
         else if (sceneContext.State == SceneState.Play)
         {
+            paperInputAdapter.Apply(windowEvent);
+
             if (keyboardInput is KeyboardInputState keyboardState)
                 keyboardState.Apply(windowEvent);
 
             if (mouseInput is MouseInputState mouseState)
                 mouseState.Apply(windowEvent);
+
+            if (PaperInputGate.Blocks(windowEvent, paperInputGate))
+            {
+                windowEvent.IsHandled = true;
+                return;
+            }
 
             if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
                 scriptEngine.ProcessEvent(windowEvent, scene.Context, store);

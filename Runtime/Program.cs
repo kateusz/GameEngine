@@ -5,6 +5,7 @@ using Engine.Core;
 using Engine.Core.DI;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
+using Engine.UI.Paper;
 using Serilog;
 
 namespace Runtime;

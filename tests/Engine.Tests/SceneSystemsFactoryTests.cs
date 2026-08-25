@@ -3,13 +3,18 @@ using Audio;
 using ECS;
 using ECS.Systems;
 using Engine.Core;
+using Engine.Core.Window;
 using Engine.Physics;
+using Engine.Platform.OpenGL.Paper;
+using Engine.Renderer;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Systems;
 using Engine.Scripting;
+using Engine.UI.Paper;
+using Input;
 using NSubstitute;
 using Shouldly;
 
@@ -35,6 +40,13 @@ public class SceneSystemsFactoryTests
         registered.ShouldContain(s => s is PhysicsDebugRenderSystem);
     }
 
+    [Fact]
+    public void Populate_TwoD_RegistersPaperHostSystem()
+    {
+        var registered = Populate(SceneDimension.TwoD);
+        registered.ShouldContain(s => s is PaperHostSystem);
+    }
+
     private static List<ISystem> Populate(SceneDimension dimension)
     {
         var worldFactory = Substitute.For<IPhysicsWorldFactory>();
@@ -49,7 +61,15 @@ public class SceneSystemsFactoryTests
             Substitute.For<IAudio>(),
             new AudioPlaybackService(),
             worldFactory,
-            Substitute.For<IModelFactory>());
+            Substitute.For<IModelFactory>(),
+            new PaperHostServices(new PaperCanvasRenderer(), Substitute.For<IGraphicsContext>()),
+            new PaperInputAdapter(),
+            new PaperInputGate(),
+            Substitute.For<IPointerSurface>(),
+            Substitute.For<IContentScaleProvider>(),
+            Substitute.For<IMouseInput>(),
+            Substitute.For<IKeyboardInput>(),
+            () => []);
 
         var registered = new List<ISystem>();
         var systemManager = Substitute.For<ISystemManager>();

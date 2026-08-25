@@ -1,4 +1,5 @@
 using Editor.Features.Application;
+using Editor.Features.Scene;
 using Editor.Input;
 using Engine.Core;
 using Engine.Core.Input;
@@ -9,7 +10,8 @@ namespace Editor;
 public class EditorLayer(
     EditorLifecycle lifecycle,
     EditorDockspace dockspace,
-    EditorInputHandler inputHandler) : ILayer
+    EditorInputHandler inputHandler,
+    ISceneManager sceneManager) : ILayer
 {
     private TimeSpan _delta;
 
@@ -17,7 +19,11 @@ public class EditorLayer(
 
     public void OnDetach() => lifecycle.Detach();
 
-    public void OnUpdate(TimeSpan timeSpan) => _delta = timeSpan;
+    public void OnUpdate(TimeSpan timeSpan)
+    {
+        _delta = timeSpan;
+        sceneManager.FlushPendingRuntimeStart();
+    }
 
     public void Draw() => dockspace.Draw(_delta);
 

@@ -13,5 +13,10 @@
         <ProjectReference Include="..\..\Math\Math.csproj" />
         <ProjectReference Include="..\..\SceneComponents\SceneComponents.csproj" />
         <ProjectReference Include="..\..\Scripting\Scripting.csproj" />
+        <ProjectReference Include="..\..\UI.Paper\UI.Paper.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Prowl.Paper" Version="3.1.0" />
     </ItemGroup>
 </Project>

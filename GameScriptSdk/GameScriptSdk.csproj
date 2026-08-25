@@ -15,10 +15,15 @@
         <ProjectReference Include="..\SceneComponents\SceneComponents.csproj" />
         <ProjectReference Include="..\Scripting\Scripting.csproj" />
         <ProjectReference Include="..\Math\Math.csproj" />
+        <ProjectReference Include="..\UI.Paper\UI.Paper.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha" GeneratePathProperty="true" />
+        <PackageReference Include="Prowl.Paper" Version="3.1.0" GeneratePathProperty="true" />
+        <PackageReference Include="Prowl.Quill" Version="3.1.0" GeneratePathProperty="true" />
+        <PackageReference Include="Prowl.Scribe" Version="3.1.0" GeneratePathProperty="true" />
+        <PackageReference Include="Prowl.Vector" Version="3.1.0" GeneratePathProperty="true" />
     </ItemGroup>
 
     <Target Name="StageGameScriptSdk" AfterTargets="Build">
@@ -32,8 +37,16 @@
         <Copy SourceFiles="@(_StagePdb)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" />
         <PropertyGroup>
             <_Box2DFromPkg>$(PkgBox2D_NetStandard)\lib\netstandard2.1\Box2D.NetStandard.dll</_Box2DFromPkg>
+            <_PaperFromPkg>$(PkgProwl_Paper)\lib\net10.0\Paper.dll</_PaperFromPkg>
+            <_QuillFromPkg>$(PkgProwl_Quill)\lib\net10.0\Quill.dll</_QuillFromPkg>
+            <_ScribeFromPkg>$(PkgProwl_Scribe)\lib\net10.0\Scribe.dll</_ScribeFromPkg>
+            <_VectorFromPkg>$(PkgProwl_Vector)\lib\net10.0\Vector.dll</_VectorFromPkg>
         </PropertyGroup>
         <Copy SourceFiles="$(_Box2DFromPkg)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" Condition="Exists('$(_Box2DFromPkg)')" />
+        <Copy SourceFiles="$(_PaperFromPkg)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" Condition="Exists('$(_PaperFromPkg)')" />
+        <Copy SourceFiles="$(_QuillFromPkg)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" Condition="Exists('$(_QuillFromPkg)')" />
+        <Copy SourceFiles="$(_ScribeFromPkg)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" Condition="Exists('$(_ScribeFromPkg)')" />
+        <Copy SourceFiles="$(_VectorFromPkg)" DestinationFolder="$(GameScriptSdkStagingDir)" SkipUnchangedFiles="false" Condition="Exists('$(_VectorFromPkg)')" />
         <Message Importance="high" Text="Game script SDK staged to $(GameScriptSdkStagingDir)" />
     </Target>
 

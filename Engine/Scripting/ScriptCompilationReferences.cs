@@ -16,7 +16,12 @@ internal static class ScriptCompilationReferences
         "Scripting",
         "SceneComponents",
         "Input",
-        "Math"
+        "Math",
+        "UI.Paper",
+        "Paper",
+        "Quill",
+        "Scribe",
+        "Vector"
     ];
 
     private static readonly string[] EssentialRuntimeAssemblies =
@@ -158,6 +163,10 @@ internal static class ScriptCompilationReferences
 
         if (assemblySimpleName.StartsWith("Engine", StringComparison.Ordinal) ||
             assemblySimpleName.StartsWith("ECS", StringComparison.Ordinal) ||
+            assemblySimpleName.Equals("Paper", StringComparison.Ordinal) ||
+            assemblySimpleName.Equals("Quill", StringComparison.Ordinal) ||
+            assemblySimpleName.Equals("Scribe", StringComparison.Ordinal) ||
+            assemblySimpleName.Equals("Vector", StringComparison.Ordinal) ||
             assemblySimpleName.StartsWith("Editor", StringComparison.Ordinal))
             return true;
 

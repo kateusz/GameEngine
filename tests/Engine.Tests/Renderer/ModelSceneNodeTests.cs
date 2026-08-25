@@ -12,6 +12,13 @@ public class ModelSceneNodeTests
         params ModelSceneNode[] children) =>
         new(name, meshIndices, children);
 
+    private static ModelSceneNode Node(
+        string name,
+        IReadOnlyList<int> meshIndices,
+        Matrix4x4 localTransform,
+        params ModelSceneNode[] children) =>
+        new(name, meshIndices, children, localTransform);
+
     [Fact]
     public void ShouldUnpack_SingleMesh_ReturnsFalse()
     {
@@ -30,7 +37,7 @@ public class ModelSceneNodeTests
     public void TryGetMeshWorldTransform_DeepChild_ReturnsAccumulatedTransform()
     {
         var graph = Node("Root", [],
-            localTransform: Matrix4x4.CreateTranslation(1, 0, 0),
+            Matrix4x4.CreateTranslation(1, 0, 0),
             Node("Chair", [0], Matrix4x4.CreateTranslation(2, 0, 0)));
 
         graph.TryGetMeshWorldTransform(0, out var world).ShouldBeTrue();
