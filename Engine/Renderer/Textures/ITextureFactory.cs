@@ -39,6 +39,10 @@ public interface ITextureFactory
     /// <returns>A texture instance, either from cache or newly created.</returns>
     Texture2D Create(string path, bool sRgb = false);
 
+    (byte[] Data, int Width, int Height) DecodePreview(string path);
+
+    Texture2D CreateFromRgba(byte[] rgba, int width, int height);
+
     /// <summary>
     /// Creates a new procedural texture with the specified dimensions.
     /// Procedural textures are not cached as they may have different content despite identical dimensions.

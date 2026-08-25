@@ -53,6 +53,12 @@ internal sealed class OpenGLTexture2D : Texture2D
         return UploadTexture(path, decoded);
     }
 
+    public static Texture2D CreateFromRgba(byte[] rgba, int width, int height)
+    {
+        return UploadTexture(string.Empty, rgba, width, height, InternalFormat.Rgba8, PixelFormat.Rgba,
+            PixelType.UnsignedByte, generateMipmaps: false);
+    }
+
     private static Texture2D UploadTexture(string path, TextureFileDecoder.DecodedImage decoded)
     {
         return UploadTexture(path, decoded.Data, decoded.Width, decoded.Height, decoded.InternalFormat,
@@ -60,7 +66,8 @@ internal sealed class OpenGLTexture2D : Texture2D
     }
 
     private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
-        InternalFormat internalFormat, PixelFormat dataFormat, PixelType dataType = PixelType.UnsignedByte)
+        InternalFormat internalFormat, PixelFormat dataFormat, PixelType dataType = PixelType.UnsignedByte,
+        bool generateMipmaps = true)
     {
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
@@ -79,8 +86,11 @@ internal sealed class OpenGLTexture2D : Texture2D
             }
 
             var isHdr = dataType == PixelType.Float;
+            var minFilter = generateMipmaps && !isHdr
+                ? TextureMinFilter.LinearMipmapLinear
+                : TextureMinFilter.Linear;
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)(isHdr ? TextureMinFilter.Linear : TextureMinFilter.LinearMipmapLinear));
+                (int)minFilter);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                 (int)TextureMagFilter.Linear);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
@@ -90,7 +100,7 @@ internal sealed class OpenGLTexture2D : Texture2D
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)wrap);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
 
-            if (!isHdr)
+            if (generateMipmaps && !isHdr)
             {
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
                 SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);

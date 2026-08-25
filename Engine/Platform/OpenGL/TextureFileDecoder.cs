@@ -10,6 +10,7 @@ namespace Engine.Platform.OpenGL;
 
 internal static class TextureFileDecoder
 {
+    private static readonly Lock DecodeLock = new();
     private const int StbiFlipVerticallyEnabled = 1;
 
     private static readonly HashSet<string> PfimExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -35,10 +36,13 @@ internal static class TextureFileDecoder
         if (!File.Exists(path))
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
-        var ext = Path.GetExtension(path);
-        if (HdrExtensions.Contains(ext))
-            return DecodeHdr(path);
-        return PfimExtensions.Contains(ext) ? DecodePfim(path, sRgb) : DecodeStb(path, sRgb);
+        lock (DecodeLock)
+        {
+            var ext = Path.GetExtension(path);
+            if (HdrExtensions.Contains(ext))
+                return DecodeHdr(path);
+            return PfimExtensions.Contains(ext) ? DecodePfim(path, sRgb) : DecodeStb(path, sRgb);
+        }
     }
 
     private static DecodedImage DecodeHdr(string path)
