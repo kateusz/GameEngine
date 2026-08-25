@@ -24,20 +24,7 @@ internal sealed class SceneSerializer(
 
     public void Serialize(IScene scene, string path)
     {
-        var sceneName = Path.GetFileNameWithoutExtension(path);
-        var jsonObj = new JsonObject
-        {
-            [SceneKey] = sceneName,
-            [BackgroundColorKey] = JsonSerializer.SerializeToNode(scene.BackgroundColor, _options),
-            [DimensionKey] = JsonSerializer.SerializeToNode(scene.Dimension, _options),
-            [EntitiesKey] = new JsonArray()
-        };
-
-        var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
-        foreach (var entity in scene.Entities)
-            SerializeEntity(jsonEntities, entity);
-
-        var jsonString = jsonObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+        var jsonString = SerializeToJson(scene);
 
         try
         {
@@ -55,6 +42,23 @@ internal sealed class SceneSerializer(
         {
             throw new InvalidSceneJsonException($"Access denied writing to {path}: {ex.Message}", ex);
         }
+    }
+
+    private string SerializeToJson(IScene scene)
+    {
+        var jsonObj = new JsonObject
+        {
+            [SceneKey] = scene.Name,
+            [BackgroundColorKey] = JsonSerializer.SerializeToNode(scene.BackgroundColor, _options),
+            [DimensionKey] = JsonSerializer.SerializeToNode(scene.Dimension, _options),
+            [EntitiesKey] = new JsonArray()
+        };
+
+        var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
+        foreach (var entity in scene.Entities)
+            SerializeEntity(jsonEntities, entity);
+
+        return jsonObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
     public void Deserialize(IScene scene, string path)
