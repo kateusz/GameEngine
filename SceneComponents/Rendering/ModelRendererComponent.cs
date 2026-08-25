@@ -9,6 +9,10 @@ public class ModelRendererComponent : IComponent
     public string? TexturePath { get; set; }
     public float TilingFactor { get; set; } = 1.0f;
     public string? ModelPath { get; set; }
+    /// <summary>When set, only this submesh index from the model file is drawn. Used by hierarchy unpack.</summary>
+    public int? MeshIndex { get; set; }
+    /// <summary>Skip drawing this renderer; children draw the unpacked submeshes instead.</summary>
+    public bool SuppressDraw { get; set; }
 
     public ModelRendererComponent() { }
 
@@ -22,6 +26,8 @@ public class ModelRendererComponent : IComponent
         Color = Color,
         TexturePath = TexturePath,
         TilingFactor = TilingFactor,
-        ModelPath = ModelPath
+        ModelPath = ModelPath,
+        MeshIndex = MeshIndex,
+        SuppressDraw = SuppressDraw
     };
 }

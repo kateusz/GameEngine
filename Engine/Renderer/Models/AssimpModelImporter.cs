@@ -5,6 +5,7 @@ using Engine.Renderer.Textures;
 using Serilog;
 using Silk.NET.Assimp;
 using AssimpMesh = Silk.NET.Assimp.Mesh;
+using AssimpNode = Silk.NET.Assimp.Node;
 using Mesh = Engine.Renderer.Meshes.Mesh;
 
 namespace Engine.Renderer.Models;
@@ -19,7 +20,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
     private readonly Assimp _assimp = Assimp.GetApi();
     private bool _disposed;
 
-    public List<Mesh> Import(string path)
+    public (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) Import(string path)
     {
         var submeshes = new List<Mesh>();
         var pendingTextures = new List<(Mesh Mesh, MaterialInfo Material)>();
@@ -30,8 +31,9 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                                   PostProcessSteps.JoinIdenticalVertices |
                                   PostProcessSteps.GenerateNormals |
                                   PostProcessSteps.CalculateTangentSpace |
-                                  PostProcessSteps.FlipUVs |
-                                  PostProcessSteps.PreTransformVertices);
+                                  PostProcessSteps.FlipUVs);
+
+        ModelSceneNode? sceneGraph = null;
 
         unsafe
         {
@@ -41,7 +43,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                 Logger.Error(
                     "Failed to import model path={Path} assimpError={AssimpError}",
                     path, _assimp.GetErrorStringS());
-                return submeshes;
+                return ([], null);
             }
 
             try
@@ -51,9 +53,10 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                     Logger.Error(
                         "Failed to import model path={Path} assimpError={AssimpError}",
                         path, _assimp.GetErrorStringS());
-                    return submeshes;
+                    return ([], null);
                 }
 
+                var meshIndexMap = new Dictionary<uint, int>();
                 for (uint i = 0; i < scene->MNumMeshes; i++)
                 {
                     var aiMesh = scene->MMeshes[i];
@@ -75,8 +78,11 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                     var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory);
                     mesh.Shininess = material.Shininess;
                     pendingTextures.Add((mesh, material));
+                    meshIndexMap[i] = submeshes.Count;
                     submeshes.Add(mesh);
                 }
+
+                sceneGraph = WalkNode(scene->MRootNode, meshIndexMap);
             }
             finally
             {
@@ -91,10 +97,36 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             mesh.NormalTexture = LoadTexture(material.NormalPath);
         }
 
-        return submeshes;
+        return (submeshes, sceneGraph);
     }
 
-    private unsafe Mesh ExtractMesh(AssimpMesh* aiMesh)
+    private static unsafe ModelSceneNode WalkNode(
+        AssimpNode* node,
+        IReadOnlyDictionary<uint, int> meshIndexMap)
+    {
+        var meshIndices = new List<int>();
+        for (uint i = 0; i < node->MNumMeshes; i++)
+        {
+            var assimpMeshIndex = node->MMeshes[i];
+            if (!meshIndexMap.TryGetValue(assimpMeshIndex, out var compactIndex))
+                continue;
+
+            meshIndices.Add(compactIndex);
+        }
+
+        var children = new List<ModelSceneNode>((int)node->MNumChildren);
+        for (uint i = 0; i < node->MNumChildren; i++)
+            children.Add(WalkNode(node->MChildren[i], meshIndexMap));
+
+        var name = string.IsNullOrWhiteSpace(node->MName.AsString) ? "Node" : node->MName.AsString;
+        var localTransform = ToEngineMatrix(node->MTransformation);
+        return new ModelSceneNode(name, meshIndices, children, localTransform);
+    }
+
+    private static Matrix4x4 ToEngineMatrix(Matrix4x4 assimpMatrix) =>
+        Matrix4x4.Transpose(assimpMatrix);
+
+    private static unsafe Mesh ExtractMesh(AssimpMesh* aiMesh)
     {
         var mesh = new Mesh(aiMesh->MName.AsString);
 

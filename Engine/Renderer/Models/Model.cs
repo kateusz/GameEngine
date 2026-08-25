@@ -6,14 +6,16 @@ public sealed class Model : IDisposable
 {
     private bool _disposed;
 
-    public Model(string path, IReadOnlyList<Mesh> submeshes)
+    public Model(string path, IReadOnlyList<Mesh> submeshes, ModelSceneNode? sceneGraph = null)
     {
         Path = path;
         Submeshes = submeshes;
+        SceneGraph = sceneGraph;
     }
 
     public string Path { get; }
     public IReadOnlyList<Mesh> Submeshes { get; }
+    public ModelSceneNode? SceneGraph { get; }
 
     public void Dispose()
     {

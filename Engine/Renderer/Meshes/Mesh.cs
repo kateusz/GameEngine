@@ -37,7 +37,6 @@ public class Mesh : IDisposable
     public Texture2D? SpecularTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public float Shininess { get; set; } = 32.0f;
-    public Matrix4x4 NodeTransform { get; set; } = Matrix4x4.Identity;
     
     public bool HasDiffuseMap => DiffuseTexture != null;
     public bool HasSpecularMap => SpecularTexture != null;

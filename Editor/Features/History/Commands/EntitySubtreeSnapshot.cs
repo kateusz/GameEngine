@@ -34,6 +34,9 @@ internal sealed class EntitySubtreeSnapshot
         return new EntitySubtreeSnapshot(entries);
     }
 
+    public static List<EntitySubtreeSnapshot> CaptureChildren(IScene scene, Entity root) =>
+        scene.GetChildren(root).Select(child => Capture(scene, child)).ToList();
+
     /// <summary>Recreates entities with new IDs; returns remapped root id.</summary>
     public int Restore(IScene scene)
     {
