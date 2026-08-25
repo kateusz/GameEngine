@@ -63,6 +63,13 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                         continue;
                     }
 
+                    var meshName = aiMesh->MName.AsString;
+                    if (IsUnrealCollisionMesh(meshName))
+                    {
+                        Logger.Debug("Skipping Unreal collision mesh name={Name}", meshName);
+                        continue;
+                    }
+
                     var mesh = ExtractMesh(aiMesh);
                     if (mesh.Indices.Count == 0)
                     {
@@ -182,6 +189,17 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         indices.Add(face[2]);
     }
 
+    internal static bool IsUnrealCollisionMesh(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return false;
+
+        return name.StartsWith("UCX_", StringComparison.OrdinalIgnoreCase)
+               || name.StartsWith("UBX_", StringComparison.OrdinalIgnoreCase)
+               || name.StartsWith("USP_", StringComparison.OrdinalIgnoreCase)
+               || name.StartsWith("UCP_", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsGltfPath(string path)
     {
         var ext = Path.GetExtension(path);
@@ -228,6 +246,18 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             : ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
         var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
                                 ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
+
+        if (diffuseTexturePath == null && normalTexturePath != null)
+        {
+            var inferred = AssimpTexturePath.InferAlbedoFromNormal(normalTexturePath, directory);
+            if (inferred != null)
+            {
+                Logger.Debug(
+                    "Texture type=Diffuse inferred from normal {Normal} → {Path}",
+                    normalTexturePath, inferred);
+                diffuseTexturePath = inferred;
+            }
+        }
 
         var shininess = 32.0f;
         _assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
