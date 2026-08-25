@@ -92,7 +92,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
 
         foreach (var (mesh, material) in pendingTextures)
         {
-            mesh.DiffuseTexture = LoadTexture(material.DiffusePath);
+            mesh.DiffuseTexture = LoadTexture(material.DiffusePath, sRgb: true);
             mesh.SpecularTexture = LoadTexture(material.SpecularPath);
             mesh.NormalTexture = LoadTexture(material.NormalPath);
         }
@@ -198,7 +198,13 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
 
         var aiMaterial = scene->MMaterials[materialIndex];
 
-        var diffuseTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
+        // glTF/GLB puts albedo on BASE_COLOR. Assimp often also stuffs the first
+        // image (a normal map, if that node is first) into DIFFUSE — using that as
+        // color looks like random mosaic UVs.
+        var diffuseTexturePath =
+            ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
+        // Phong specular ≠ glTF metallic-roughness. Leave ORM maps out of this slot.
         var specularTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
         var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
                                 ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
@@ -342,14 +348,14 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         return sb.ToString();
     }
     
-    private Texture2D? LoadTexture(string? path)
+    private Texture2D? LoadTexture(string? path, bool sRgb = false)
     {
         if (string.IsNullOrEmpty(path))
             return null;
 
         try
         {
-            return textureFactory.Create(path);
+            return textureFactory.Create(path, sRgb);
         }
         catch (Exception ex)
         {
