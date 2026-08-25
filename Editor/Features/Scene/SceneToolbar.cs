@@ -9,7 +9,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
+public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory)
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -50,10 +50,6 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                 scene.Dimension = SceneDimension.ThreeD;
         }
     }
-
-    public event Action OnPlayScene;
-    public event Action OnStopScene;
-    public event Action OnRestartScene;
 
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
     
@@ -164,10 +160,10 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                     switch (sceneContext.State)
                     {
                         case SceneState.Edit:
-                            OnPlayScene();
+                            sceneManager.Play();
                             break;
                         case SceneState.Play:
-                            OnStopScene();
+                            sceneManager.Stop();
                             break;
                     }
                 },
@@ -176,7 +172,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         ImGui.SameLine();
 
         _ = ButtonDrawer.DrawTransparentIconButton("restart", _iconRestart, new Vector2(20, 20),
-                onClick: OnRestartScene,
+                onClick: sceneManager.Restart,
                 tooltip: "Restart Scene");
 
         ImGui.PopStyleVar(2);

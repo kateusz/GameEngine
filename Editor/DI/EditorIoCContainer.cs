@@ -136,6 +136,9 @@ public static class EditorIoCContainer
         container.Register<EditorDockspace>(Reuse.Singleton);
         container.Register<EditorInputHandler>(Reuse.Singleton);
         container.Register<EditorShortcutRegistrar>(Reuse.Singleton);
+        container.RegisterMany<ProjectLifecycleCoordinator>(Reuse.Singleton);
+        container.RegisterMany<SceneEditCoordinator>(Reuse.Singleton);
+        container.RegisterMany<SelectionViewportCoordinator>(Reuse.Singleton);
         container.Register<EditorLifecycle>(Reuse.Singleton);
         
         container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
