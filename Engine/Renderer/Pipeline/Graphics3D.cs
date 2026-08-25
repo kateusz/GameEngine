@@ -1,9 +1,11 @@
 ﻿using System.Numerics;
 using Engine.Core;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Serilog;
 
 namespace Engine.Renderer.Pipeline;
 
@@ -12,12 +14,20 @@ internal sealed class Graphics3D(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     ITextureFactory textureFactory,
-    IVertexArrayFactory vertexArrayFactory) : IGraphics3D
+    IVertexArrayFactory vertexArrayFactory,
+    IFrameBufferFactory frameBufferFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
+    private const uint ShadowMapSize = 1024;
+    private const int ShadowMapTextureSlot = 3;
+
+    private static readonly ILogger Logger = Log.ForContext<Graphics3D>();
+
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
     private IShader _skyboxShader = null!;
+    private IShader? _depthShader;
+    private IFrameBuffer? _shadowFramebuffer;
     private Mesh _cubeMesh = null!;
     private IVertexArray _skyboxVertexArray = null!;
 
@@ -27,6 +37,12 @@ internal sealed class Graphics3D(
     private float _ambientStrength = 0.1f;
     private Vector3 _lightDirection = new(0, -1, 0);
     private Vector3 _lightColor = Vector3.Zero;
+    private Matrix4x4 _lightSpaceMatrix = Matrix4x4.Identity;
+    private bool _shadowsEnabled;
+    private bool _shadowsAvailable;
+    private bool _shadowPassActive;
+    private bool _inShadowPass;
+    private bool _skipFrustumCulling;
 
     private IShader? _boundShader;
     private bool _cubeSceneUniformsUploaded;
@@ -54,11 +70,18 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_DiffuseMap", 0);
         _modelShader.SetInt("u_SpecularMap", 1);
         _modelShader.SetInt("u_NormalMap", 2);
+        _modelShader.SetInt("u_ShadowMap", ShadowMapTextureSlot);
         _modelShader.Unbind();
+
+        _cubeShader.Bind();
+        _cubeShader.SetInt("u_ShadowMap", ShadowMapTextureSlot);
+        _cubeShader.Unbind();
 
         _skyboxShader.Bind();
         _skyboxShader.SetInt("u_EquirectMap", 0);
         _skyboxShader.Unbind();
+
+        TryInitShadowResources();
     }
 
     public void BeginScene(in SceneView view)
@@ -79,9 +102,50 @@ internal sealed class Graphics3D(
         _modelSceneUniformsUploaded = false;
     }
 
+    public bool BeginShadowPass(Matrix4x4 lightSpaceMatrix)
+    {
+        if (!_shadowsAvailable || _depthShader == null || _shadowFramebuffer == null)
+            return false;
+
+        _lightSpaceMatrix = lightSpaceMatrix;
+        _shadowFramebuffer.Bind();
+        rendererApi.SetViewport(0, 0, ShadowMapSize, ShadowMapSize);
+        rendererApi.Clear();
+        rendererApi.SetFaceCulling(true, cullFrontFaces: true);
+
+        _depthShader.Bind();
+        _boundShader = _depthShader;
+        _depthShader.SetMat4("u_LightSpaceMatrix", lightSpaceMatrix);
+
+        _inShadowPass = true;
+        _skipFrustumCulling = true;
+        _shadowPassActive = true;
+        return true;
+    }
+
+    public void EndShadowPass()
+    {
+        if (!_shadowPassActive)
+            return;
+
+        _shadowFramebuffer?.Unbind();
+        rendererApi.SetFaceCulling(true, cullFrontFaces: false);
+
+        _inShadowPass = false;
+        _skipFrustumCulling = false;
+        _shadowPassActive = false;
+        _boundShader = null;
+    }
+
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
         float tilingFactor = 1.0f)
     {
+        if (_inShadowPass)
+        {
+            DrawDepth(_cubeMesh, transform);
+            return;
+        }
+
         if (ShouldSkipDraw(transform, _cubeMesh))
             return;
 
@@ -103,6 +167,12 @@ internal sealed class Graphics3D(
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1)
     {
+        if (_inShadowPass)
+        {
+            DrawDepth(mesh, transform);
+            return;
+        }
+
         if (ShouldSkipDraw(transform, mesh))
             return;
 
@@ -130,10 +200,12 @@ internal sealed class Graphics3D(
         InvalidateSceneUniforms();
     }
 
-    public void SetDirectionalLight(Vector3 direction, Vector3 color)
+    public void SetDirectionalLight(Vector3 direction, Vector3 color, Matrix4x4? lightSpaceMatrix = null)
     {
         _lightDirection = direction;
         _lightColor = color;
+        _shadowsEnabled = lightSpaceMatrix.HasValue && _shadowsAvailable;
+        _lightSpaceMatrix = lightSpaceMatrix ?? Matrix4x4.Identity;
         InvalidateSceneUniforms();
     }
 
@@ -162,6 +234,46 @@ internal sealed class Graphics3D(
         _stats.DrawCalls++;
     }
 
+    private void DrawDepth(Mesh mesh, Matrix4x4 transform)
+    {
+        if (mesh.GetIndexCount() == 0 || _depthShader == null)
+            return;
+
+        _depthShader.SetMat4("u_Model", transform);
+        mesh.Bind();
+        rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+        _stats.DrawCalls++;
+    }
+
+    private void TryInitShadowResources()
+    {
+        try
+        {
+            var depthSpec = new FrameBufferTextureSpecification(FrameBufferTextureFormat.DepthComponent)
+            {
+                Filter = FrameBufferTextureFilter.Nearest,
+                Wrap = FrameBufferTextureWrap.ClampToBorder
+            };
+            _shadowFramebuffer = frameBufferFactory.Create(new FrameBufferSpecification(ShadowMapSize, ShadowMapSize)
+            {
+                AttachmentsSpec = new FrameBufferAttachmentSpecification([depthSpec])
+            });
+            _depthShader = shaderFactory.Create(
+                PathBuilder.Resolve("assets/shaders/OpenGL/shadowDepth.vert"),
+                PathBuilder.Resolve("assets/shaders/OpenGL/shadowDepth.frag"));
+            _shadowsAvailable = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Shadow mapping disabled: failed to create shadow framebuffer or depth shader");
+            _shadowsAvailable = false;
+            _shadowFramebuffer?.Dispose();
+            _shadowFramebuffer = null;
+            _depthShader?.Dispose();
+            _depthShader = null;
+        }
+    }
+
     private void BeginSceneState()
     {
         rendererApi.SetDepthTest(true);
@@ -175,6 +287,9 @@ internal sealed class Graphics3D(
     {
         if (mesh.GetIndexCount() == 0)
             return true;
+
+        if (_skipFrustumCulling)
+            return false;
 
         if (mesh.LocalAabb is not { } local)
             return false;
@@ -215,12 +330,16 @@ internal sealed class Graphics3D(
     private void UploadSceneUniforms(IShader shader, bool isModelShader)
     {
         shader.SetMat4(ViewProjectionUniform, _viewProjection);
+        shader.SetMat4("u_LightSpaceMatrix", _lightSpaceMatrix);
         if (isModelShader)
             shader.SetFloat3("u_ViewPosition", _viewPosition);
         shader.SetFloat3("u_AmbientColor", _ambientColor);
         shader.SetFloat("u_AmbientStrength", _ambientStrength);
         shader.SetFloat3("u_LightDirection", _lightDirection);
         shader.SetFloat3("u_LightColor", _lightColor);
+        shader.SetInt("u_ShadowsEnabled", _shadowsEnabled ? 1 : 0);
+        if (_shadowsEnabled)
+            rendererApi.BindTexture2D(_shadowFramebuffer!.GetDepthAttachmentRendererId(), ShadowMapTextureSlot);
     }
 
     private static void BindPerDraw(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
@@ -257,6 +376,10 @@ internal sealed class Graphics3D(
         _modelShader = null!;
         _skyboxShader?.Dispose();
         _skyboxShader = null!;
+        _depthShader?.Dispose();
+        _depthShader = null;
+        _shadowFramebuffer?.Dispose();
+        _shadowFramebuffer = null;
         _cubeMesh?.Dispose();
         _cubeMesh = null!;
 

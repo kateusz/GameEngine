@@ -93,12 +93,12 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetBlend");
     }
 
-    public void SetFaceCulling(bool enabled)
+    public void SetFaceCulling(bool enabled, bool cullFrontFaces = false)
     {
         if (enabled)
         {
             SilkNetContext.GL.Enable(EnableCap.CullFace);
-            SilkNetContext.GL.CullFace(TriangleFace.Back);
+            SilkNetContext.GL.CullFace(cullFrontFaces ? TriangleFace.Front : TriangleFace.Back);
         }
         else
             SilkNetContext.GL.Disable(EnableCap.CullFace);

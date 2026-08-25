@@ -32,7 +32,7 @@ public class SkyboxGraphicsTests(HeadlessGraphicsContextFixture fixture)
         var meshFactory = new MeshFactory(textureFactory, vertexArrayFactory, new VertexBufferFactory(),
             new IndexBufferFactory());
         var graphics3D = new Graphics3D(fixture.RendererApi, fixture.ShaderFactory, meshFactory, textureFactory,
-            vertexArrayFactory);
+            vertexArrayFactory, fixture.FrameBufferFactory);
         graphics3D.Init();
 
         using var framebuffer = fixture.FrameBufferFactory.Create(FramebufferTestSpecs.ColorAndEntityId());

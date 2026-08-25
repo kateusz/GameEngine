@@ -3,6 +3,7 @@ using Engine.Core;
 using Engine.Platform;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
@@ -35,9 +36,10 @@ public class Graphics3DTests : IDisposable
         var cubeShader = Substitute.For<IShader>();
         var modelShader = Substitute.For<IShader>();
         var skyboxShader = Substitute.For<IShader>();
+        var depthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader, skyboxShader);
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount: 36);
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -47,7 +49,13 @@ public class Graphics3DTests : IDisposable
         var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
         vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
 
-        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, textureFactory, vertexArrayFactory);
+        var shadowFramebuffer = Substitute.For<IFrameBuffer>();
+        shadowFramebuffer.GetDepthAttachmentRendererId().Returns(99u);
+        var frameBufferFactory = Substitute.For<IFrameBufferFactory>();
+        frameBufferFactory.Create(Arg.Any<FrameBufferSpecification>()).Returns(shadowFramebuffer);
+
+        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, textureFactory, vertexArrayFactory,
+            frameBufferFactory);
         graphics3D.Init();
 
         var camera = new SceneCamera();
@@ -62,8 +70,8 @@ public class Graphics3DTests : IDisposable
         graphics3D.EndScene();
 
         rendererApi.Received(1).SetDepthTest(true);
-        cubeShader.Received(1).Bind();
-        cubeShader.Received(1).Unbind();
+        cubeShader.Received(2).Bind();
+        cubeShader.Received(2).Unbind();
         cubeShader.Received(1).SetMat4("u_ViewProjection", Arg.Any<Matrix4x4>());
         cubeShader.Received(2).SetMat4("u_Model", Arg.Any<Matrix4x4>());
         rendererApi.Received(2).DrawIndexed(Arg.Any<IVertexArray>(), Arg.Any<uint>());
@@ -122,9 +130,10 @@ public class Graphics3DTests : IDisposable
         var cubeShader = Substitute.For<IShader>();
         var modelShader = Substitute.For<IShader>();
         var skyboxShader = Substitute.For<IShader>();
+        var depthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader, skyboxShader);
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount);
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -133,8 +142,13 @@ public class Graphics3DTests : IDisposable
         var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
         vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
 
+        var shadowFramebuffer = Substitute.For<IFrameBuffer>();
+        shadowFramebuffer.GetDepthAttachmentRendererId().Returns(99u);
+        var frameBufferFactory = Substitute.For<IFrameBufferFactory>();
+        frameBufferFactory.Create(Arg.Any<FrameBufferSpecification>()).Returns(shadowFramebuffer);
+
         var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>(),
-            vertexArrayFactory);
+            vertexArrayFactory, frameBufferFactory);
         graphics3D.Init();
         return (graphics3D, rendererApi);
     }

@@ -6,7 +6,8 @@ internal readonly record struct SceneLighting(
     Vector3 AmbientColor,
     float AmbientStrength,
     Vector3 DirectionalDirection,
-    Vector3 DirectionalColor)
+    Vector3 DirectionalColor,
+    Matrix4x4? ShadowLightSpace = null)
 {
     public static SceneLighting Default { get; } = new(
         Vector3.One,
