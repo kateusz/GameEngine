@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Renderer;
 
 namespace Engine.Scene;
 
@@ -7,7 +8,9 @@ internal readonly record struct SceneLighting(
     float AmbientStrength,
     Vector3 DirectionalDirection,
     Vector3 DirectionalColor,
-    Matrix4x4? ShadowLightSpace = null)
+    Matrix4x4? ShadowLightSpace = null,
+    PointLightUniform[]? PointLights = null,
+    SpotLightUniform[]? SpotLights = null)
 {
     public static SceneLighting Default { get; } = new(
         Vector3.One,

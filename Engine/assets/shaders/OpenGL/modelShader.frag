@@ -27,6 +27,29 @@ uniform sampler2D u_SpecularMap;
 uniform sampler2D u_NormalMap;
 uniform sampler2D u_ShadowMap;
 
+struct PointLight {
+    vec3 position;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+};
+uniform PointLight u_PointLights[4]; // keep in sync with LightingMath.MaxPointLights
+uniform int u_PointLightCount;
+
+struct SpotLight {
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+    float innerCos;
+    float outerCos;
+};
+uniform SpotLight u_SpotLights[2]; // keep in sync with LightingMath.MaxSpotLights
+uniform int u_SpotLightCount;
+
 float ShadowCalculation(vec3 normal, vec3 lightDir)
 {
     vec3 projCoords = v_FragPosLightSpace.xyz / v_FragPosLightSpace.w;
@@ -36,7 +59,7 @@ float ShadowCalculation(vec3 normal, vec3 lightDir)
 
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
+    vec2 texelSize = 1.0 / vec2(textureSize(u_ShadowMap, 0));
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; ++y)
@@ -46,6 +69,26 @@ float ShadowCalculation(vec3 normal, vec3 lightDir)
         }
     }
     return shadow / 9.0;
+}
+
+vec3 PointContribution(vec3 lightPos, vec3 lightColor, float constant, float linear, float quadratic,
+                       vec3 N, vec3 V, vec3 fragPos, vec3 diffuseColor, vec3 specularColor, float shininess)
+{
+    vec3 toLight = lightPos - fragPos;
+    float distance = length(toLight);
+    vec3 L = toLight / max(distance, 1e-4);
+    float attenuation = 1.0 / max(constant + linear * distance + quadratic * distance * distance, 1e-4);
+    float ndotl = max(dot(N, L), 0.0);
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(N, H), 0.0), shininess);
+    return (ndotl * lightColor * diffuseColor + spec * lightColor * specularColor) * attenuation;
+}
+
+float SpotCone(vec3 lightPos, vec3 spotDir, vec3 fragPos, float innerCos, float outerCos)
+{
+    vec3 lightDir = normalize(lightPos - fragPos);
+    float theta = dot(lightDir, normalize(-spotDir));
+    return clamp((theta - outerCos) / max(innerCos - outerCos, 1e-4), 0.0, 1.0);
 }
 
 void main()
@@ -84,6 +127,22 @@ void main()
     float shadow = u_ShadowsEnabled != 0 ? ShadowCalculation(norm, L) : 0.0;
     vec3 directional = (1.0 - shadow) * (diffuse + specular);
 
-    o_Color = vec4(ambient + directional, u_Color.a);
+    vec3 color = ambient + directional;
+    for (int i = 0; i < u_PointLightCount; i++)
+    {
+        color += PointContribution(u_PointLights[i].position, u_PointLights[i].color,
+            u_PointLights[i].constant, u_PointLights[i].linear, u_PointLights[i].quadratic,
+            norm, V, v_FragPos, diffuseColor, specularColor, u_Shininess);
+    }
+    for (int i = 0; i < u_SpotLightCount; i++)
+    {
+        color += PointContribution(u_SpotLights[i].position, u_SpotLights[i].color,
+            u_SpotLights[i].constant, u_SpotLights[i].linear, u_SpotLights[i].quadratic,
+            norm, V, v_FragPos, diffuseColor, specularColor, u_Shininess)
+            * SpotCone(u_SpotLights[i].position, u_SpotLights[i].direction, v_FragPos,
+                u_SpotLights[i].innerCos, u_SpotLights[i].outerCos);
+    }
+
+    o_Color = vec4(color, u_Color.a);
     o_EntityID = u_EntityID;
 }

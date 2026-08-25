@@ -28,4 +28,11 @@ public class LightingMathTests
 
         LightingMath.NormalizeDirection(direction).ShouldBe(LightingMath.DefaultDirection);
     }
+
+    [Fact]
+    public void NormalizeDirection_ZeroVector_WithForwardFallback_ReturnsForward()
+    {
+        LightingMath.NormalizeDirection(Vector3.Zero, LightingMath.DefaultForward)
+            .ShouldBe(LightingMath.DefaultForward);
+    }
 }

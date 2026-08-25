@@ -37,12 +37,12 @@ internal sealed class Graphics3D(
     private float _ambientStrength = 0.1f;
     private Vector3 _lightDirection = new(0, -1, 0);
     private Vector3 _lightColor = Vector3.Zero;
+    private PointLightUniform[] _pointLights = [];
+    private SpotLightUniform[] _spotLights = [];
     private Matrix4x4 _lightSpaceMatrix = Matrix4x4.Identity;
     private bool _shadowsEnabled;
     private bool _shadowsAvailable;
-    private bool _shadowPassActive;
     private bool _inShadowPass;
-    private bool _skipFrustumCulling;
 
     private IShader? _boundShader;
     private bool _cubeSceneUniformsUploaded;
@@ -109,7 +109,6 @@ internal sealed class Graphics3D(
 
         _lightSpaceMatrix = lightSpaceMatrix;
         _shadowFramebuffer.Bind();
-        rendererApi.SetViewport(0, 0, ShadowMapSize, ShadowMapSize);
         rendererApi.Clear();
         rendererApi.SetFaceCulling(true, cullFrontFaces: true);
 
@@ -118,22 +117,18 @@ internal sealed class Graphics3D(
         _depthShader.SetMat4("u_LightSpaceMatrix", lightSpaceMatrix);
 
         _inShadowPass = true;
-        _skipFrustumCulling = true;
-        _shadowPassActive = true;
         return true;
     }
 
     public void EndShadowPass()
     {
-        if (!_shadowPassActive)
+        if (!_inShadowPass)
             return;
 
         _shadowFramebuffer?.Unbind();
         rendererApi.SetFaceCulling(true, cullFrontFaces: false);
 
         _inShadowPass = false;
-        _skipFrustumCulling = false;
-        _shadowPassActive = false;
         _boundShader = null;
     }
 
@@ -206,6 +201,18 @@ internal sealed class Graphics3D(
         _lightColor = color;
         _shadowsEnabled = lightSpaceMatrix.HasValue && _shadowsAvailable;
         _lightSpaceMatrix = lightSpaceMatrix ?? Matrix4x4.Identity;
+        InvalidateSceneUniforms();
+    }
+
+    public void SetPointLights(PointLightUniform[] lights)
+    {
+        _pointLights = lights ?? [];
+        InvalidateSceneUniforms();
+    }
+
+    public void SetSpotLights(SpotLightUniform[] lights)
+    {
+        _spotLights = lights ?? [];
         InvalidateSceneUniforms();
     }
 
@@ -288,7 +295,7 @@ internal sealed class Graphics3D(
         if (mesh.GetIndexCount() == 0)
             return true;
 
-        if (_skipFrustumCulling)
+        if (_inShadowPass)
             return false;
 
         if (mesh.LocalAabb is not { } local)
@@ -320,26 +327,60 @@ internal sealed class Graphics3D(
         if (uploaded)
             return;
 
-        UploadSceneUniforms(shader, isModelShader);
+        UploadSceneUniforms(shader);
         if (isModelShader)
             _modelSceneUniformsUploaded = true;
         else
             _cubeSceneUniformsUploaded = true;
     }
 
-    private void UploadSceneUniforms(IShader shader, bool isModelShader)
+    private void UploadSceneUniforms(IShader shader)
     {
         shader.SetMat4(ViewProjectionUniform, _viewProjection);
         shader.SetMat4("u_LightSpaceMatrix", _lightSpaceMatrix);
-        if (isModelShader)
-            shader.SetFloat3("u_ViewPosition", _viewPosition);
+        shader.SetFloat3("u_ViewPosition", _viewPosition);
         shader.SetFloat3("u_AmbientColor", _ambientColor);
         shader.SetFloat("u_AmbientStrength", _ambientStrength);
         shader.SetFloat3("u_LightDirection", _lightDirection);
         shader.SetFloat3("u_LightColor", _lightColor);
         shader.SetInt("u_ShadowsEnabled", _shadowsEnabled ? 1 : 0);
+        UploadPointLights(shader);
+        UploadSpotLights(shader);
         if (_shadowsEnabled)
             rendererApi.BindTexture2D(_shadowFramebuffer!.GetDepthAttachmentRendererId(), ShadowMapTextureSlot);
+    }
+
+    private void UploadPointLights(IShader shader)
+    {
+        var count = System.Math.Min(_pointLights.Length, LightingMath.MaxPointLights);
+        shader.SetInt("u_PointLightCount", count);
+        for (var i = 0; i < count; i++)
+        {
+            var light = _pointLights[i];
+            shader.SetFloat3($"u_PointLights[{i}].position", light.Position);
+            shader.SetFloat3($"u_PointLights[{i}].color", light.Color);
+            shader.SetFloat($"u_PointLights[{i}].constant", light.Constant);
+            shader.SetFloat($"u_PointLights[{i}].linear", light.Linear);
+            shader.SetFloat($"u_PointLights[{i}].quadratic", light.Quadratic);
+        }
+    }
+
+    private void UploadSpotLights(IShader shader)
+    {
+        var count = System.Math.Min(_spotLights.Length, LightingMath.MaxSpotLights);
+        shader.SetInt("u_SpotLightCount", count);
+        for (var i = 0; i < count; i++)
+        {
+            var light = _spotLights[i];
+            shader.SetFloat3($"u_SpotLights[{i}].position", light.Position);
+            shader.SetFloat3($"u_SpotLights[{i}].direction", light.Direction);
+            shader.SetFloat3($"u_SpotLights[{i}].color", light.Color);
+            shader.SetFloat($"u_SpotLights[{i}].constant", light.Constant);
+            shader.SetFloat($"u_SpotLights[{i}].linear", light.Linear);
+            shader.SetFloat($"u_SpotLights[{i}].quadratic", light.Quadratic);
+            shader.SetFloat($"u_SpotLights[{i}].innerCos", light.InnerCutoffCos);
+            shader.SetFloat($"u_SpotLights[{i}].outerCos", light.OuterCutoffCos);
+        }
     }
 
     private static void BindPerDraw(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)

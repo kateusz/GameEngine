@@ -1,0 +1,282 @@
+{
+  "Scene": "light-casters",
+  "BackgroundColor": [
+    0.05,
+    0.05,
+    0.07,
+    1
+  ],
+  "Dimension": "ThreeD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.5,
+            8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Ambient",
+      "Components": [
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "Strength": 0.05,
+          "Name": "AmbientLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Sun",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            10,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Direction": [
+            0.2,
+            -1,
+            -0.3
+          ],
+          "Color": [
+            0.2,
+            0.2,
+            0.22,
+            1
+          ],
+          "OrthoSize": 20,
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Lamp",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            2,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            0.85,
+            0.6,
+            1
+          ],
+          "Constant": 1,
+          "Linear": 0.09,
+          "Quadratic": 0.032,
+          "Name": "PointLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Flashlight",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.5,
+            4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.8,
+            0.9,
+            1,
+            1
+          ],
+          "Constant": 1,
+          "Linear": 0.09,
+          "Quadratic": 0.032,
+          "Direction": [
+            0,
+            0,
+            -1
+          ],
+          "InnerCutoff": 12.5,
+          "OuterCutoff": 17.5,
+          "Name": "SpotLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "CubeNear",
+      "Components": [
+        {
+          "Translation": [
+            -1.2,
+            0.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.85,
+            0.85,
+            0.85,
+            1
+          ],
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "CubeMid",
+      "Components": [
+        {
+          "Translation": [
+            1.2,
+            0.5,
+            -2
+          ],
+          "Rotation": [
+            0,
+            0.4,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.85,
+            0.85,
+            0.85,
+            1
+          ],
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "CubeFar",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.5,
+            -5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.85,
+            0.85,
+            0.85,
+            1
+          ],
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    }
+  ]
+}

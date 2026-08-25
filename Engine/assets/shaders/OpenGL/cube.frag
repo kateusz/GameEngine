@@ -3,6 +3,7 @@
 layout(location = 0) out vec4 o_Color;
 layout(location = 1) out int  o_EntityID;
 
+in vec3 v_FragPos;
 in vec3 v_Normal;
 in vec2 v_TexCoord;
 in vec4 v_FragPosLightSpace;
@@ -14,10 +15,34 @@ uniform vec3 u_AmbientColor;
 uniform float u_AmbientStrength;
 uniform vec3 u_LightDirection;
 uniform vec3 u_LightColor;
+uniform vec3 u_ViewPosition;
 uniform sampler2D u_Texture;
 uniform sampler2D u_ShadowMap;
 uniform int u_UseTexture;
 uniform int u_ShadowsEnabled;
+
+struct PointLight {
+    vec3 position;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+};
+uniform PointLight u_PointLights[4]; // keep in sync with LightingMath.MaxPointLights
+uniform int u_PointLightCount;
+
+struct SpotLight {
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+    float innerCos;
+    float outerCos;
+};
+uniform SpotLight u_SpotLights[2]; // keep in sync with LightingMath.MaxSpotLights
+uniform int u_SpotLightCount;
 
 float ShadowCalculation(vec3 normal, vec3 lightDir)
 {
@@ -28,7 +53,7 @@ float ShadowCalculation(vec3 normal, vec3 lightDir)
 
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
+    vec2 texelSize = 1.0 / vec2(textureSize(u_ShadowMap, 0));
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; ++y)
@@ -40,6 +65,26 @@ float ShadowCalculation(vec3 normal, vec3 lightDir)
     return shadow / 9.0;
 }
 
+vec3 PointContribution(vec3 lightPos, vec3 lightColor, float constant, float linear, float quadratic,
+                       vec3 N, vec3 V, vec3 fragPos, vec3 diffuseColor, vec3 specularColor, float shininess)
+{
+    vec3 toLight = lightPos - fragPos;
+    float distance = length(toLight);
+    vec3 L = toLight / max(distance, 1e-4);
+    float attenuation = 1.0 / max(constant + linear * distance + quadratic * distance * distance, 1e-4);
+    float ndotl = max(dot(N, L), 0.0);
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(N, H), 0.0), shininess);
+    return (ndotl * lightColor * diffuseColor + spec * lightColor * specularColor) * attenuation;
+}
+
+float SpotCone(vec3 lightPos, vec3 spotDir, vec3 fragPos, float innerCos, float outerCos)
+{
+    vec3 lightDir = normalize(lightPos - fragPos);
+    float theta = dot(lightDir, normalize(-spotDir));
+    return clamp((theta - outerCos) / max(innerCos - outerCos, 1e-4), 0.0, 1.0);
+}
+
 void main()
 {
     vec4 baseColor = u_UseTexture == 1
@@ -49,11 +94,28 @@ void main()
     vec3 ambient = u_AmbientStrength * u_AmbientColor;
 
     vec3 N = normalize(v_Normal);
+    vec3 V = normalize(u_ViewPosition - v_FragPos);
     vec3 L = normalize(-u_LightDirection);
     float ndotl = max(dot(N, L), 0.0);
     float shadow = u_ShadowsEnabled != 0 ? ShadowCalculation(N, L) : 0.0;
     vec3 diffuse = (1.0 - shadow) * ndotl * u_LightColor;
 
-    o_Color = vec4((ambient + diffuse) * albedo, baseColor.a);
+    vec3 lit = ambient + diffuse;
+    for (int i = 0; i < u_PointLightCount; i++)
+    {
+        lit += PointContribution(u_PointLights[i].position, u_PointLights[i].color,
+            u_PointLights[i].constant, u_PointLights[i].linear, u_PointLights[i].quadratic,
+            N, V, v_FragPos, vec3(1.0), vec3(0.0), 1.0);
+    }
+    for (int i = 0; i < u_SpotLightCount; i++)
+    {
+        lit += PointContribution(u_SpotLights[i].position, u_SpotLights[i].color,
+            u_SpotLights[i].constant, u_SpotLights[i].linear, u_SpotLights[i].quadratic,
+            N, V, v_FragPos, vec3(1.0), vec3(0.0), 1.0)
+            * SpotCone(u_SpotLights[i].position, u_SpotLights[i].direction, v_FragPos,
+                u_SpotLights[i].innerCos, u_SpotLights[i].outerCos);
+    }
+
+    o_Color = vec4(lit * albedo, baseColor.a);
     o_EntityID = u_EntityID;
 }

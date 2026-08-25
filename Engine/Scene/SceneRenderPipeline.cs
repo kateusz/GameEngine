@@ -198,6 +198,8 @@ internal static class SceneRenderPipeline
 
         graphics3D.BeginScene(view);
         graphics3D.SetAmbientLight(lighting.AmbientColor, lighting.AmbientStrength);
+        graphics3D.SetPointLights(lighting.PointLights ?? []);
+        graphics3D.SetSpotLights(lighting.SpotLights ?? []);
         DrawAllModelRenderers(context, graphics3D, textureFactory, modelFactory);
         RenderSkybox(context, graphics3D, textureFactory);
         graphics3D.EndScene();

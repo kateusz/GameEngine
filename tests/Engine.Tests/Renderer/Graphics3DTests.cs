@@ -124,6 +124,76 @@ public class Graphics3DTests : IDisposable
         graphics3D.GetStats().CulledDraws.ShouldBe(0u);
     }
 
+    [Fact]
+    public void SetPointLights_UploadsCountAndIndexedUniforms()
+    {
+        var rendererApi = Substitute.For<IRendererAPI>();
+        var cubeShader = Substitute.For<IShader>();
+        var modelShader = Substitute.For<IShader>();
+        var skyboxShader = Substitute.For<IShader>();
+        var depthShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
+
+        var cubeMesh = CreateInitializedMesh("cube", indexCount: 36);
+        var meshFactory = Substitute.For<IMeshFactory>();
+        meshFactory.CreateCube().Returns(cubeMesh);
+
+        var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
+        vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
+        var frameBufferFactory = Substitute.For<IFrameBufferFactory>();
+        frameBufferFactory.Create(Arg.Any<FrameBufferSpecification>()).Returns(Substitute.For<IFrameBuffer>());
+
+        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>(),
+            vertexArrayFactory, frameBufferFactory);
+        graphics3D.Init();
+        BeginPerspective(graphics3D);
+
+        graphics3D.SetPointLights([
+            new PointLightUniform(new Vector3(1, 2, 3), Vector3.One, 1f, 0.09f, 0.032f)
+        ]);
+        graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One);
+        graphics3D.EndScene();
+
+        cubeShader.Received().SetInt("u_PointLightCount", 1);
+        cubeShader.Received().SetFloat3("u_PointLights[0].position", new Vector3(1, 2, 3));
+        cubeShader.Received().SetInt("u_SpotLightCount", 0);
+    }
+
+    [Fact]
+    public void SetPointLights_ClampsCountToMax()
+    {
+        var rendererApi = Substitute.For<IRendererAPI>();
+        var cubeShader = Substitute.For<IShader>();
+        var modelShader = Substitute.For<IShader>();
+        var skyboxShader = Substitute.For<IShader>();
+        var depthShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
+
+        var cubeMesh = CreateInitializedMesh("cube", 36);
+        var meshFactory = Substitute.For<IMeshFactory>();
+        meshFactory.CreateCube().Returns(cubeMesh);
+        var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
+        vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
+        var frameBufferFactory = Substitute.For<IFrameBufferFactory>();
+        frameBufferFactory.Create(Arg.Any<FrameBufferSpecification>()).Returns(Substitute.For<IFrameBuffer>());
+
+        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>(),
+            vertexArrayFactory, frameBufferFactory);
+        graphics3D.Init();
+        BeginPerspective(graphics3D);
+
+        var extra = new PointLightUniform(Vector3.Zero, Vector3.One, 1f, 0f, 0f);
+        graphics3D.SetPointLights(Enumerable.Repeat(extra, LightingMath.MaxPointLights + 1).ToArray());
+        graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One);
+
+        cubeShader.Received().SetInt("u_PointLightCount", LightingMath.MaxPointLights);
+        cubeShader.DidNotReceive().SetFloat3($"u_PointLights[{LightingMath.MaxPointLights}].position", Arg.Any<Vector3>());
+    }
+
     private static (Graphics3D Graphics, IRendererAPI RendererApi) CreateGraphics3D(int indexCount = 36)
     {
         var rendererApi = Substitute.For<IRendererAPI>();

@@ -66,6 +66,8 @@ public static class EditorIoCContainer
         container.RegisterMany<CameraComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AmbientLightComponentEditor>(Reuse.Singleton);
         container.RegisterMany<DirectionalLightComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<PointLightComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<SpotLightComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SkyboxComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SpriteRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
