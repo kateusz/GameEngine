@@ -245,7 +245,37 @@ internal static class SceneRenderPipeline
                 graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
         }
 
+        RenderSkybox(context, graphics3D, textureFactory);
+
         graphics3D.EndScene();
+    }
+
+    private static void RenderSkybox(IContext context, IGraphics3D graphics3D, ITextureFactory textureFactory)
+    {
+        SkyboxComponent? skybox = null;
+        Entity? skyboxEntity = null;
+        foreach (var (entity, component) in context.View<SkyboxComponent>())
+        {
+            skybox = component;
+            skyboxEntity = entity;
+            break;
+        }
+
+        if (skybox == null || string.IsNullOrWhiteSpace(skybox.HdrPath))
+            return;
+
+        try
+        {
+            var hdr = textureFactory.Create(PathBuilder.Resolve(skybox.HdrPath), sRgb: false);
+            var yaw = skyboxEntity!.TryGetComponent<TransformComponent>(out var transform)
+                ? transform.Rotation.Y
+                : 0f;
+            graphics3D.DrawSkybox(hdr, skybox.Intensity, yaw);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to load skybox HDR '{HdrPath}'", skybox.HdrPath);
+        }
     }
 
     private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,

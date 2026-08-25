@@ -169,9 +169,9 @@
       "Name": "skybox",
       "Components": [
         {
-          "HdrPath": "/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net10.0/arena3d/assets/models/sky.hdr",
+          "HdrPath": "assets/models/sky.hdr",
           "Intensity": 1,
-          "Name": "SkyLightComponent"
+          "Name": "SkyboxComponent"
         }
       ]
     },

@@ -50,12 +50,17 @@ internal sealed class OpenGLTexture2D : Texture2D
     public static Texture2D Create(string path, bool sRgb = false)
     {
         var decoded = TextureFileDecoder.Decode(path, sRgb);
+        return UploadTexture(path, decoded);
+    }
+
+    private static Texture2D UploadTexture(string path, TextureFileDecoder.DecodedImage decoded)
+    {
         return UploadTexture(path, decoded.Data, decoded.Width, decoded.Height, decoded.InternalFormat,
-            decoded.DataFormat);
+            decoded.DataFormat, decoded.DataType);
     }
 
     private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
-        InternalFormat internalFormat, PixelFormat dataFormat)
+        InternalFormat internalFormat, PixelFormat dataFormat, PixelType dataType = PixelType.UnsignedByte)
     {
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
@@ -69,32 +74,34 @@ internal sealed class OpenGLTexture2D : Texture2D
             fixed (byte* ptr = data)
             {
                 SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
-                    (uint)height, 0, dataFormat, PixelType.UnsignedByte, ptr);
+                    (uint)height, 0, dataFormat, dataType, ptr);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
             }
 
+            var isHdr = dataType == PixelType.Float;
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)TextureMinFilter.LinearMipmapLinear);
+                (int)(isHdr ? TextureMinFilter.Linear : TextureMinFilter.LinearMipmapLinear));
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                 (int)TextureMagFilter.Linear);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
 
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
-                (int)TextureWrapMode.Repeat);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
-                (int)TextureWrapMode.Repeat);
+            var wrap = isHdr ? TextureWrapMode.ClampToEdge : TextureWrapMode.Repeat;
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)wrap);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)wrap);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
 
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
+            if (!isHdr)
+            {
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
 
-            SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+                SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
 
-            // Anisotropic filtering for sharp textures at oblique angles
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
-                (TextureParameterName)0x84FE, 16.0f); // GL_TEXTURE_MAX_ANISOTROPY_EXT
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                    (TextureParameterName)0x84FE, 16.0f);
+            }
         }
 
         return new OpenGLTexture2D(path, handle, width, height, internalFormat,

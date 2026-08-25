@@ -1,8 +1,10 @@
+using System.Runtime.InteropServices;
 using Pfim;
 using StbImageSharp;
 using Buffer = System.Buffer;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
+using PixelType = Silk.NET.OpenGL.PixelType;
 
 namespace Engine.Platform.OpenGL;
 
@@ -15,12 +17,18 @@ internal static class TextureFileDecoder
         ".dds", ".tga"
     };
 
+    private static readonly HashSet<string> HdrExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".hdr"
+    };
+
     internal readonly record struct DecodedImage(
         byte[] Data,
         int Width,
         int Height,
         InternalFormat InternalFormat,
-        PixelFormat DataFormat);
+        PixelFormat DataFormat,
+        PixelType DataType = PixelType.UnsignedByte);
 
     public static DecodedImage Decode(string path, bool sRgb)
     {
@@ -28,7 +36,22 @@ internal static class TextureFileDecoder
             throw new FileNotFoundException($"Texture file not found: {path}", path);
 
         var ext = Path.GetExtension(path);
+        if (HdrExtensions.Contains(ext))
+            return DecodeHdr(path);
         return PfimExtensions.Contains(ext) ? DecodePfim(path, sRgb) : DecodeStb(path, sRgb);
+    }
+
+    private static DecodedImage DecodeHdr(string path)
+    {
+        StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
+
+        ImageResultFloat image;
+        using (var stream = File.OpenRead(path))
+            image = ImageResultFloat.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+
+        var byteData = MemoryMarshal.AsBytes(image.Data.AsSpan()).ToArray();
+        return new DecodedImage(byteData, image.Width, image.Height, InternalFormat.Rgba32f, PixelFormat.Rgba,
+            PixelType.Float);
     }
 
     private static DecodedImage DecodeStb(string path, bool sRgb)
