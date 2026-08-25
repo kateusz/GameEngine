@@ -412,3 +412,12 @@ FodyWeavers.xsd
 Builds/
 
 .maister/tasks
+
+# ImGuizmo native build (cimgui 1.90.8dock clone + compiler junk)
+Editor/native/imguizmo/cimgui/
+Editor/native/imguizmo/imgui/
+Editor/native/imguizmo/ImGuizmo/
+Editor/native/imguizmo/*.obj
+Editor/native/imguizmo/*.exp
+Editor/native/imguizmo/*.lib
+Editor/native/imguizmo/*.pdb

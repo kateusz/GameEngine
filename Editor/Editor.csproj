@@ -62,6 +62,15 @@
         <Copy SourceFiles="@(_SdkFiles)" DestinationFolder="$(_SdkDest)" SkipUnchangedFiles="true" Condition="'@(_SdkFiles)' != ''" />
     </Target>
 
+    <!-- Overlay ImGui.NET's cimgui.dll with the Windows x64 build that includes ImGuizmo. -->
+    <Target Name="CopyImGuizmoCimgui" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <PropertyGroup>
+            <ImGuizmoCimgui>$(MSBuildThisFileDirectory)native\imguizmo\cimgui.dll</ImGuizmoCimgui>
+        </PropertyGroup>
+        <Copy SourceFiles="$(ImGuizmoCimgui)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(ImGuizmoCimgui)')" />
+        <Copy SourceFiles="$(ImGuizmoCimgui)" DestinationFolder="$(OutputPath)runtimes\win-x64\native\" SkipUnchangedFiles="true" Condition="Exists('$(ImGuizmoCimgui)') AND Exists('$(OutputPath)runtimes\win-x64\native')" />
+    </Target>
+
     <!-- Copy OpenAL Soft on Windows from NuGet runtimes folder to output root -->
     <Target Name="CopyOpenALNative" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
         <PropertyGroup>
