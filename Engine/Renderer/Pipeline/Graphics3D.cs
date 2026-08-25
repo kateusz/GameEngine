@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Engine.Core;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
@@ -11,12 +12,15 @@ internal sealed class Graphics3D(
     IRendererAPI rendererApi,
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
-    ITextureFactory textureFactory) : IGraphics3D
+    ITextureFactory textureFactory,
+    IVertexArrayFactory vertexArrayFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
+    private IShader _skyboxShader = null!;
     private Mesh _cubeMesh = null!;
+    private IVertexArray _skyboxVertexArray = null!;
 
     private Matrix4x4 _viewProjection = Matrix4x4.Identity;
     private Vector3 _viewPosition;
@@ -41,13 +45,21 @@ internal sealed class Graphics3D(
         _modelShader = shaderFactory.Create(
             PathBuilder.Resolve("assets/shaders/OpenGL/modelShader.vert"),
             PathBuilder.Resolve("assets/shaders/OpenGL/modelShader.frag"));
+        _skyboxShader = shaderFactory.Create(
+            PathBuilder.Resolve("assets/shaders/OpenGL/skybox.vert"),
+            PathBuilder.Resolve("assets/shaders/OpenGL/skybox.frag"));
         _cubeMesh = meshFactory.CreateCube();
+        _skyboxVertexArray = vertexArrayFactory.Create();
 
         _modelShader.Bind();
         _modelShader.SetInt("u_DiffuseMap", 0);
         _modelShader.SetInt("u_SpecularMap", 1);
         _modelShader.SetInt("u_NormalMap", 2);
         _modelShader.Unbind();
+
+        _skyboxShader.Bind();
+        _skyboxShader.SetInt("u_EquirectMap", 0);
+        _skyboxShader.Unbind();
     }
 
     public void BeginScene(Camera camera, Matrix4x4 transform)
@@ -140,6 +152,31 @@ internal sealed class Graphics3D(
         _lightDirection = direction;
         _lightColor = color;
         InvalidateSceneUniforms();
+    }
+
+    public void DrawSkybox(Texture2D hdrTexture, float intensity, float yawRadians)
+    {
+        if (_boundShader != _skyboxShader)
+        {
+            _skyboxShader.Bind();
+            _boundShader = _skyboxShader;
+        }
+
+        if (!Matrix4x4.Invert(_viewProjection, out var inverseVp))
+            return;
+
+        _skyboxShader.SetMat4("u_InverseViewProjection", inverseVp);
+        _skyboxShader.SetFloat("u_Intensity", intensity);
+        _skyboxShader.SetFloat("u_Yaw", yawRadians);
+
+        hdrTexture.Bind(0);
+
+        rendererApi.SetDepthWrite(false);
+        _skyboxVertexArray.Bind();
+        rendererApi.DrawArrays(_skyboxVertexArray, 3);
+        rendererApi.SetDepthWrite(true);
+
+        _stats.DrawCalls++;
     }
 
     private void BeginSceneState()
@@ -235,6 +272,8 @@ internal sealed class Graphics3D(
         _cubeShader = null!;
         _modelShader?.Dispose();
         _modelShader = null!;
+        _skyboxShader?.Dispose();
+        _skyboxShader = null!;
         _cubeMesh?.Dispose();
         _cubeMesh = null!;
 

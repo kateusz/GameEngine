@@ -154,6 +154,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<TiledObjectComponent>();
         Register<AmbientLightComponent>();
         Register<DirectionalLightComponent>();
+        Register<SkyboxComponent>();
         RegisterSerializer(new NativeScriptComponentSerializer());
     }
 

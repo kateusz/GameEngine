@@ -52,8 +52,16 @@
       <Link>assets\shaders\OpenGL\modelShader.frag</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\Engine\assets\shaders\OpenGL\modelShader.vert">
-      <Link>assets\shaders\OpenGL\modelShader.vert</Link>
+    <Content Include="..\..\games\Arena3D\assets\models\sky.hdr">
+      <Link>assets\textures\sky.hdr</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\skybox.frag">
+      <Link>assets\shaders\OpenGL\skybox.frag</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\skybox.vert">
+      <Link>assets\shaders\OpenGL\skybox.vert</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

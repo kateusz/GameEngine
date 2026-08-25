@@ -34,17 +34,20 @@ public class Graphics3DTests : IDisposable
         var rendererApi = Substitute.For<IRendererAPI>();
         var cubeShader = Substitute.For<IShader>();
         var modelShader = Substitute.For<IShader>();
+        var skyboxShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader);
+            .Returns(cubeShader, modelShader, skyboxShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount: 36);
         var meshFactory = Substitute.For<IMeshFactory>();
         meshFactory.CreateCube().Returns(cubeMesh);
 
         var textureFactory = Substitute.For<ITextureFactory>();
+        var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
+        vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
 
-        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, textureFactory);
+        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, textureFactory, vertexArrayFactory);
         graphics3D.Init();
 
         var camera = new SceneCamera();
@@ -121,15 +124,20 @@ public class Graphics3DTests : IDisposable
         var rendererApi = Substitute.For<IRendererAPI>();
         var cubeShader = Substitute.For<IShader>();
         var modelShader = Substitute.For<IShader>();
+        var skyboxShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader);
+            .Returns(cubeShader, modelShader, skyboxShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount);
         var meshFactory = Substitute.For<IMeshFactory>();
         meshFactory.CreateCube().Returns(cubeMesh);
 
-        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>());
+        var vertexArrayFactory = Substitute.For<IVertexArrayFactory>();
+        vertexArrayFactory.Create().Returns(Substitute.For<IVertexArray>());
+
+        var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>(),
+            vertexArrayFactory);
         graphics3D.Init();
         return (graphics3D, rendererApi);
     }
