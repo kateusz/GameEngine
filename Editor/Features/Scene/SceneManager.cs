@@ -24,6 +24,8 @@ public class SceneManager(
 
     private string? _playSnapshotPath;
     private bool _playPaused;
+    private Action? _deferredRuntimeStart;
+    private bool _pendingRuntimeStop;
 
     public string? EditorScenePath { get; private set; }
 
@@ -100,21 +102,45 @@ public class SceneManager(
         }
 
         _playPaused = false;
-        RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
-        Logger.Information(isResume ? "▶️ Scene play resumed" : "▶️ Scene play started");
+        var resume = isResume;
+        _deferredRuntimeStart = () =>
+        {
+            RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
+            Logger.Information(resume ? "▶️ Scene play resumed" : "▶️ Scene play started");
+        };
+    }
+
+    public void FlushPendingRuntimeStart()
+    {
+        if (_pendingRuntimeStop)
+        {
+            _pendingRuntimeStop = false;
+            sceneContext.ActiveScene?.OnRuntimeStop();
+            if (_deferredRuntimeStart is null)
+            {
+                scriptWorkspace.RestoreEditAssembly();
+                Logger.Information("⏹️ Scene play stopped");
+            }
+        }
+
+        if (_deferredRuntimeStart is null)
+            return;
+
+        var start = _deferredRuntimeStart;
+        _deferredRuntimeStart = null;
+        start();
     }
 
     public void Stop()
     {
+        _deferredRuntimeStart = null;
+
         if (sceneContext.State != SceneState.Play)
             return;
 
         sceneContext.SetState(SceneState.Edit);
-        sceneContext.ActiveScene?.OnRuntimeStop();
-        scriptWorkspace.RestoreEditAssembly();
         _playPaused = true;
-
-        Logger.Information("⏹️ Scene play stopped");
+        _pendingRuntimeStop = true;
     }
 
     public void Restart()
@@ -129,15 +155,18 @@ public class SceneManager(
         var wasPlaying = sceneContext.State == SceneState.Play;
 
         if (wasPlaying)
-            scene.OnRuntimeStop();
+            _pendingRuntimeStop = true;
 
         if (!TryCompileAndLoadPlayAssembly(out _))
             return;
 
         ReloadEntitiesFromSnapshot(scene, _playSnapshotPath);
         _playPaused = false;
-        RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
-        Logger.Information("🔄 Scene restarted");
+        _deferredRuntimeStart = () =>
+        {
+            RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
+            Logger.Information("🔄 Scene restarted");
+        };
     }
 
     public void DuplicateEntity(Entity entity)
@@ -188,5 +217,7 @@ public class SceneManager(
 
         _playSnapshotPath = null;
         _playPaused = false;
+        _deferredRuntimeStart = null;
+        _pendingRuntimeStop = false;
     }
 }

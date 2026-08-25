@@ -5,6 +5,8 @@ namespace Snake.assets.scripts;
 [SerializableComponent]
 public class SnakeGameComponent : IGameComponent
 {
+    public bool Paused;
+    
     public const int Up = 0;
     public const int Right = 1;
     public const int Down = 2;
@@ -31,6 +33,7 @@ public class SnakeGameComponent : IGameComponent
         PendingDirection = Right;
         Score = 0;
         GameOver = false;
+        Paused = false;
         TickAccumulator = 0;
         FoodIndex = -1;
     }
@@ -45,6 +48,7 @@ public class SnakeGameComponent : IGameComponent
         PendingDirection = PendingDirection,
         Score = Score,
         GameOver = GameOver,
+        Paused = Paused,
         TickAccumulator = TickAccumulator,
         TickInterval = TickInterval
     };

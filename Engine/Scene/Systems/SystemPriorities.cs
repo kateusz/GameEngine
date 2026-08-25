@@ -13,4 +13,5 @@ public static class SystemPriorities
     public const int PrimaryCameraSystem = 145;
     public const int SceneRenderSystem = 150;
     public const int PhysicsDebugRenderSystem = 151;
+    public const int PaperHostSystem = 160;
 }

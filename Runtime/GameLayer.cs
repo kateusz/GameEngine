@@ -9,6 +9,7 @@ using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
+using Engine.UI.Paper;
 using Input;
 using Scripting;
 using Serilog;
@@ -24,6 +25,8 @@ public class GameLayer(
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput,
     IPointerSurface pointerSurface,
+    PaperInputAdapter paperInputAdapter,
+    PaperInputGate paperInputGate,
     IGameWindow gameWindow,
     GameConfiguration gameConfig,
     Func<IEnumerable<IGameSystem>> resolveGameSystems)
@@ -94,11 +97,19 @@ public class GameLayer(
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
+        paperInputAdapter.Apply(windowEvent);
+
         if (keyboardInput is KeyboardInputState keyboardState)
             keyboardState.Apply(windowEvent);
 
         if (mouseInput is MouseInputState mouseState)
             mouseState.Apply(windowEvent);
+
+        if (PaperInputGate.Blocks(windowEvent, paperInputGate))
+        {
+            windowEvent.IsHandled = true;
+            return;
+        }
 
         if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
             scriptEngine.ProcessEvent(windowEvent, scene.Context, store);

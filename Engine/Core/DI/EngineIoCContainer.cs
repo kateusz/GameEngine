@@ -7,6 +7,7 @@ using Engine.Core.Window;
 using Engine.Platform.OpenAL;
 using Engine.Platform.OpenAL.Effects;
 using Engine.Platform.OpenGL;
+using Engine.Platform.OpenGL.Paper;
 using Engine.Platform.SilkNet;
 using Silk.NET.OpenAL;
 using Engine.Physics;
@@ -23,10 +24,12 @@ using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
 using Engine.Scripting;
+using Engine.UI.Paper;
 using Input;
 using Scripting;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
+using UI.Paper;
 
 namespace Engine.Core.DI;
 
@@ -71,6 +74,14 @@ public static class EngineIoCContainer
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
         container.Register<SystemManagerFactory>(Reuse.Singleton);
         container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
+
+        container.Register<PaperCanvasRenderer>(Reuse.Singleton);
+        container.Register<PaperHostServices>(Reuse.Singleton);
+        container.Register<PaperInputAdapter>(Reuse.Singleton);
+        container.Register<PaperInputGate>(Reuse.Singleton);
+        container.RegisterDelegate<Func<IEnumerable<IPaperUi>>>(
+            r => () => r.ResolveMany<IPaperUi>(),
+            Reuse.Singleton);
 
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
 

@@ -8,7 +8,6 @@ using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using Input;
 
 namespace Engine.Platform.SilkNet;
 
@@ -82,15 +81,7 @@ internal sealed class SilkNetGameWindow(
         OnUpdate(deltaTime);
     }
 
-    private void OnInputReceived(InputEvent inputEvent)
-    {
-        if (inputEvent is KeyPressedEvent { KeyCode: KeyCodes.Escape })
-        {
-            window.Close();
-        }
-
-        OnInputEvent(inputEvent);
-    }
+    private void OnInputReceived(InputEvent inputEvent) => OnInputEvent(inputEvent);
 
     private void OnFrameBufferResize(Vector2D<int> newSize)
     {

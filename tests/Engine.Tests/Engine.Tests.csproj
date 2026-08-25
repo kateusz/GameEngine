@@ -28,6 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="_scratch\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Engine\Engine.csproj" />
     <ProjectReference Include="..\..\games\Snake\Snake.csproj" />
     <ProjectReference Include="..\..\games\FlappyBird\FlappyBird.csproj" />

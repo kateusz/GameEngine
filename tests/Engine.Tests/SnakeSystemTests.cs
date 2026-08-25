@@ -62,13 +62,34 @@ public class SnakeSystemTests
         game.Body = [1, 2, 3, 4, 5];
         game.Score = 9;
         game.GameOver = true;
+        game.Paused = true;
 
         SnakeSystem.ResetGame(game);
 
         game.GameOver.ShouldBeFalse();
+        game.Paused.ShouldBeFalse();
         game.Score.ShouldBe(0);
         game.Body.Length.ShouldBe(3);
         game.FoodIndex.ShouldBeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public void OnUpdate_WhenPaused_DoesNotTickOrTurn()
+    {
+        var keyboard = Substitute.For<IKeyboardInput>();
+        keyboard.WasKeyPressed(KeyCodes.Up).Returns(true);
+
+        var (system, game) = CreateSystemWithGame(keyboard);
+        var body = (int[])game.Body.Clone();
+        game.Paused = true;
+        game.TickAccumulator = 10;
+        game.PendingDirection = SnakeGameComponent.Right;
+
+        system.OnUpdate(TimeSpan.FromSeconds(1));
+
+        game.Body.ShouldBe(body);
+        game.PendingDirection.ShouldBe(SnakeGameComponent.Right);
+        game.TickAccumulator.ShouldBe(10);
     }
 
     [Fact]

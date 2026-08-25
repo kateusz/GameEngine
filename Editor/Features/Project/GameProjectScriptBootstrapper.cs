@@ -42,7 +42,9 @@ public sealed class GameProjectScriptBootstrapper : IGameProjectScriptBootstrapp
     public void TryEnsureScriptSdkAfterOpen(string projectRoot)
     {
         var sdkDir = GetSdkDirectory(projectRoot);
-        if (Directory.Exists(sdkDir) && Directory.EnumerateFiles(sdkDir, "*.dll").Any())
+        if (Directory.Exists(sdkDir) &&
+            Directory.EnumerateFiles(sdkDir, "*.dll").Any() &&
+            HasPaperUiSdkDlls(sdkDir))
             return;
 
         if (!TryCopySdkFromStaging(projectRoot, out _, out _, out var err))
@@ -56,6 +58,11 @@ public sealed class GameProjectScriptBootstrapper : IGameProjectScriptBootstrapp
 
     private static string GetSdkDirectory(string projectRoot) =>
         Path.Combine(projectRoot, "assets", "scripts", ".engine", "sdk");
+
+    private static bool HasPaperUiSdkDlls(string sdkDir) =>
+        File.Exists(Path.Combine(sdkDir, "Paper.dll")) &&
+        File.Exists(Path.Combine(sdkDir, "Scribe.dll")) &&
+        File.Exists(Path.Combine(sdkDir, "Vector.dll"));
 
     private static bool TryCopySdkFromStaging(
         string projectRoot,
@@ -147,6 +154,15 @@ public sealed class GameProjectScriptBootstrapper : IGameProjectScriptBootstrapp
         sb.AppendLine("        </Reference>");
         sb.AppendLine("        <Reference Include=\"Box2D.NetStandard\">");
         sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Box2D.NetStandard.dll</HintPath>");
+        sb.AppendLine("        </Reference>");
+        sb.AppendLine("        <Reference Include=\"Paper\">");
+        sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Paper.dll</HintPath>");
+        sb.AppendLine("        </Reference>");
+        sb.AppendLine("        <Reference Include=\"Scribe\">");
+        sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Scribe.dll</HintPath>");
+        sb.AppendLine("        </Reference>");
+        sb.AppendLine("        <Reference Include=\"Vector\">");
+        sb.AppendLine("            <HintPath>$(MSBuildProjectDirectory)/.engine/sdk/Vector.dll</HintPath>");
         sb.AppendLine("        </Reference>");
         sb.AppendLine("    </ItemGroup>");
         sb.AppendLine();

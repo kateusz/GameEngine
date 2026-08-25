@@ -52,7 +52,10 @@ public class EditorLifecycle(
         _projectClosingHandler = () =>
         {
             if (sceneContext.State == SceneState.Play)
+            {
                 sceneManager.Stop();
+                sceneManager.FlushPendingRuntimeStart();
+            }
             else
                 sceneContext.ActiveScene?.Dispose();
 

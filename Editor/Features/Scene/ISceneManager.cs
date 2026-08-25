@@ -32,6 +32,12 @@ public interface ISceneManager
     void Play();
 
     /// <summary>
+    /// Runs deferred play/stop queued by <see cref="Play"/>, <see cref="Stop"/>, or <see cref="Restart"/>.
+    /// Call once per frame from the editor update loop (not from ImGui draw handlers).
+    /// </summary>
+    void FlushPendingRuntimeStart();
+
+    /// <summary>
     /// Exits play mode, returning to edit mode and stopping runtime systems.
     /// Preserves the current scene state so play can be resumed.
     /// </summary>

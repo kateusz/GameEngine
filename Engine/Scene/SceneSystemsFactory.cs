@@ -3,14 +3,18 @@ using Audio;
 using ECS;
 using ECS.Systems;
 using Engine.Core;
+using Engine.Core.Window;
 using Engine.Physics;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using Engine.Scripting;
+using Engine.UI.Paper;
+using Input;
 using Scripting;
 using Serilog;
+using UI.Paper;
 
 namespace Engine.Scene;
 
@@ -23,7 +27,15 @@ internal sealed class SceneSystemsFactory(
     IAudio audio,
     AudioPlaybackService playbackService,
     IPhysicsWorldFactory physicsWorldFactory,
-    IModelFactory modelFactory) : ISceneSystemsFactory
+    IModelFactory modelFactory,
+    PaperHostServices paperHostServices,
+    PaperInputAdapter paperInputAdapter,
+    PaperInputGate paperInputGate,
+    IPointerSurface pointerSurface,
+    IContentScaleProvider contentScaleProvider,
+    IMouseInput mouseInput,
+    IKeyboardInput keyboardInput,
+    Func<IEnumerable<IPaperUi>> resolvePaperUi) : ISceneSystemsFactory
 {
     private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
@@ -55,7 +67,16 @@ internal sealed class SceneSystemsFactory(
             new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
-            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera, modelFactory)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera, modelFactory),
+            new PaperHostSystem(
+                paperHostServices,
+                paperInputAdapter,
+                paperInputGate,
+                pointerSurface,
+                contentScaleProvider,
+                mouseInput,
+                keyboardInput,
+                resolvePaperUi)
         ];
 
         foreach (var system in systems.Concat(shared))

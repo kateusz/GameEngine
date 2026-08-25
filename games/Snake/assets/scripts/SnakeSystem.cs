@@ -25,15 +25,14 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
         if (game == null)
             return;
 
-        if (game.FoodIndex < 0 && !game.GameOver && game.Body.Length > 0)
+        if (game.FoodIndex < 0 && !game.GameOver && !game.Paused && game.Body.Length > 0)
             SpawnFood(game);
 
         HandleInput(game);
 
-        if (game.GameOver)
+        if (game.Paused || game.GameOver)
         {
             SyncCellVisuals(game);
-            SyncBanners(game);
             return;
         }
 
@@ -55,7 +54,6 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
         }
 
         SyncCellVisuals(game);
-        SyncBanners(game);
     }
 
     public void OnShutdown() { }
@@ -75,7 +73,7 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
             return;
         }
 
-        if (game.GameOver)
+        if (game.Paused || game.GameOver)
             return;
 
         var next = game.PendingDirection;
@@ -253,21 +251,6 @@ public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio 
         var tx = to % game.GridWidth;
         var ty = to / game.GridWidth;
         return (tx - fx, ty - fy);
-    }
-
-    private void SyncBanners(SnakeGameComponent game)
-    {
-        SetBanner("GameOverBanner", game.GameOver ? "textures/gameover.png" : null);
-    }
-
-    private void SetBanner(string entityName, string? texturePath)
-    {
-        var entity = context.GetByName(entityName);
-        if (!entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
-            return;
-
-        sprite.TexturePath = texturePath;
-        sprite.Color = texturePath == null ? Vector4.Zero : Vector4.One;
     }
 
     private static bool TryGetNextIndex(SnakeGameComponent game, int index, int direction, out int next)
