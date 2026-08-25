@@ -1,7 +1,5 @@
 using Editor.UI.Drawers;
 using Engine.Core;
-using Engine.Renderer.Models;
-using Serilog;
 
 namespace Editor.UI.Elements;
 
@@ -10,13 +8,11 @@ namespace Editor.UI.Elements;
 /// </summary>
 public static class ModelDropTarget
 {
-    private static readonly ILogger Logger = Log.ForContext(typeof(ModelDropTarget));
     private static readonly string[] SupportedExtensions = [".glb", ".gltf", ".fbx"];
 
     public static void Draw(
         string label,
-        Action<string, Model> onModelDropped,
-        IModelFactory modelFactory,
+        Action<string> onModelPathDropped,
         string? currentModelPath = null)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
@@ -34,18 +30,7 @@ public static class ModelDropTarget
                     var modelPath = PathBuilder.Resolve(path);
                     return DragDropDrawer.IsValidFile(modelPath, SupportedExtensions);
                 },
-                path =>
-                {
-                    var modelPath = PathBuilder.Resolve(path);
-                    var model = modelFactory.Create(modelPath);
-                    if (model == null)
-                    {
-                        Logger.Warning("Failed to load model from {Path}", modelPath);
-                        return;
-                    }
-
-                    onModelDropped(PathBuilder.ToAssetRelativePath(path), model);
-                });
+                path => onModelPathDropped(PathBuilder.ToAssetRelativePath(path)));
         });
     }
 }

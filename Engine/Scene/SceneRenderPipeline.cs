@@ -220,7 +220,7 @@ internal static class SceneRenderPipeline
 
             var tint = modelRenderer.Color;
             var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-            var model = modelFactory.Create(resolvedPath);
+            var model = modelFactory.Create(resolvedPath, modelRenderer.MergeByMaterial);
             if (model == null)
             {
                 if (WarnedFailedModels.Add(resolvedPath))

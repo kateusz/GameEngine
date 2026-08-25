@@ -14,6 +14,8 @@ public sealed class ImportModelHierarchyCommand(
     Model model,
     string relativeModelPath) : IUndoCommand
 {
+    private readonly bool _oldMergeByMaterial = component.MergeByMaterial;
+
     private List<EntitySubtreeSnapshot>? _oldChildren;
     private string? _oldModelPath;
     private int? _oldMeshIndex;
@@ -61,6 +63,7 @@ public sealed class ImportModelHierarchyCommand(
         component.ModelPath = _oldModelPath;
         component.MeshIndex = _oldMeshIndex;
         component.SuppressDraw = _oldSuppressDraw;
+        component.MergeByMaterial = _oldMergeByMaterial;
 
         if (_oldChildren is null)
             return;

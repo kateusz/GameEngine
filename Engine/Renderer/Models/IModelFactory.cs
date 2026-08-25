@@ -2,6 +2,6 @@
 
 public interface IModelFactory
 {
-    Model? Create(string path);
+    Model? Create(string path, bool mergeByMaterial = false);
     void Dispose();
 }

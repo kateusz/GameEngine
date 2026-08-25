@@ -13,6 +13,8 @@ public class ModelRendererComponent : IComponent
     public int? MeshIndex { get; set; }
     /// <summary>Skip drawing this renderer; children draw the unpacked submeshes instead.</summary>
     public bool SuppressDraw { get; set; }
+    /// <summary>When true, load a material-merged variant of the model (fewer draw calls, no hierarchy unpack).</summary>
+    public bool MergeByMaterial { get; set; }
 
     public ModelRendererComponent() { }
 
@@ -28,6 +30,7 @@ public class ModelRendererComponent : IComponent
         TilingFactor = TilingFactor,
         ModelPath = ModelPath,
         MeshIndex = MeshIndex,
-        SuppressDraw = SuppressDraw
+        SuppressDraw = SuppressDraw,
+        MergeByMaterial = MergeByMaterial
     };
 }
