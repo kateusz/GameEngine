@@ -8,7 +8,6 @@ using Engine.Scene.Cameras;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using SceneComponents;
-using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Serilog;
 
@@ -196,10 +195,9 @@ internal static class SceneRenderPipeline
             return;
 
         Begin3DScene(graphics3D, camera);
-        var (ambientColor, ambientStrength) = ResolveAmbient(context);
-        graphics3D.SetAmbientLight(ambientColor, ambientStrength);
-        var (lightDirection, lightColor) = ResolveDirectional(context);
-        graphics3D.SetDirectionalLight(lightDirection, lightColor);
+        var lighting = SceneLightingResolver.Resolve(context);
+        graphics3D.SetAmbientLight(lighting.AmbientColor, lighting.AmbientStrength);
+        graphics3D.SetDirectionalLight(lighting.DirectionalDirection, lighting.DirectionalColor);
 
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
@@ -301,25 +299,6 @@ internal static class SceneRenderPipeline
         }
     }
 
-    private static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
-    {
-        foreach (var (_, alc) in context.View<AmbientLightComponent>())
-            return (new Vector3(alc.Color.X, alc.Color.Y, alc.Color.Z), alc.Strength);
-
-        return (Vector3.One, 0.1f);
-    }
-
-    private static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
-    {
-        foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
-            return (NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));
-
-        return (new Vector3(0, -1, 0), Vector3.Zero);
-    }
-    
-    private static Vector3 NormalizeDirection(Vector3 direction) =>
-        direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
-    
     private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera) =>
         graphics3D.BeginScene(camera.ToSceneView());
 
