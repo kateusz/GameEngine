@@ -7,4 +7,5 @@ public readonly record struct PhysicsBodyDef(
     float Angle,
     PhysicsBodyMotionType MotionType,
     bool FixedRotation,
-    float GravityScale);
+    float GravityScale,
+    bool IsBullet = false);

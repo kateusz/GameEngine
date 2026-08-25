@@ -32,5 +32,7 @@ public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer, IEd
             newValue => component.FixedRotation = (bool)newValue);
         propertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
             newValue => component.GravityScale = (float)newValue);
+        propertyRenderer.DrawPropertyField("Bullet (CCD)", component.IsBullet,
+            newValue => component.IsBullet = (bool)newValue);
     }
 }

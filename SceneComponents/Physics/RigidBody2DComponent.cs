@@ -12,15 +12,55 @@ public enum RigidBodyType
 
 public class RigidBody2DComponent : IComponent
 {
-    public RigidBodyType BodyType { get; set; }
-    public bool FixedRotation { get; set; }
-    public float GravityScale { get; set; }
-    public Vector2 Velocity { get; set; }
-
-    public RigidBody2DComponent()
+    public RigidBodyType BodyType
     {
-        GravityScale = 1f;
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
     }
+
+    public bool FixedRotation
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    }
+
+    public float GravityScale
+    {
+        get;
+        set
+        {
+            if (field.Equals(value))
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    } = 1f;
+
+    public bool IsBullet
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    }
+
+    public Vector2 Velocity { get; set; }
 
     public IComponent Clone()
     {
@@ -29,6 +69,7 @@ public class RigidBody2DComponent : IComponent
             BodyType = BodyType,
             FixedRotation = FixedRotation,
             GravityScale = GravityScale,
+            IsBullet = IsBullet,
             Velocity = Velocity
         };
     }

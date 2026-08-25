@@ -5,11 +5,42 @@ namespace SceneComponents.Physics;
 
 public class EdgeCollider2DComponent : IComponent
 {
-    public List<Vector2> Points { get; set; } = [new Vector2(-0.5f, 0f), new Vector2(0.5f, 0f)];
-    public float Density { get; set; } = 1.0f;
+    public List<Vector2> Points
+    {
+        get;
+        set
+        {
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    } = [new Vector2(-0.5f, 0f), new Vector2(0.5f, 0f)];
+
+    public float Density
+    {
+        get;
+        set
+        {
+            if (field.Equals(value))
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    } = 1.0f;
+
     public float Friction { get; set; } = 0.5f;
     public float Restitution { get; set; } = 0.7f;
-    public bool IsTrigger { get; set; }
+
+    public bool IsTrigger
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            PhysicsBodyRevision.Bump();
+        }
+    }
 
     public IComponent Clone() => new EdgeCollider2DComponent
     {

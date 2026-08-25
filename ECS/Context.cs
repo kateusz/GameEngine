@@ -6,6 +6,8 @@ namespace ECS;
 /// </summary>
 public class Context : IContext
 {
+    public static event Action<Type>? ComponentIndexed;
+
     private readonly OrderedDictionary<int, Entity> _entities = new();
     private readonly Dictionary<Type, HashSet<Entity>> _entitiesByComponentType = new();
     private readonly Lock _lock = new();
@@ -24,6 +26,7 @@ public class Context : IContext
                     if (_entities.TryGetValue(entity.Id, out var registered) && ReferenceEquals(registered, entity))
                         IndexAdd(entity, componentType);
                 }
+                ComponentIndexed?.Invoke(componentType);
             };
             entity.ComponentRemoved = componentType =>
             {
@@ -32,6 +35,7 @@ public class Context : IContext
                     if (_entities.TryGetValue(entity.Id, out var registered) && ReferenceEquals(registered, entity))
                         IndexRemove(entity, componentType);
                 }
+                ComponentIndexed?.Invoke(componentType);
             };
             IndexEntity(entity);
         }
