@@ -1,4 +1,3 @@
-using System.Numerics;
 using Editor.UI.Drawers;
 using Engine.Core;
 using ImGuiNET;
@@ -17,17 +16,6 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         if (!ModalDrawer.BeginCenteredModal("Editor Settings", ref _open))
             return;
         
-        ImGui.Text("Editor Background Color");
-        var backgroundColor = editorPreferences.BackgroundColor;
-        if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
-                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
-                ImGuiColorEditFlags.NoOptions))
-        {
-            editorPreferences.BackgroundColor = backgroundColor;
-            editorPreferences.Save();
-        }
-
-        ImGui.Separator();
         ImGui.SeparatorText("Debug Visualization");
 
         var showColliders = editorPreferences.ShowColliderBounds;
@@ -60,9 +48,4 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
 
         ModalDrawer.EndModal();
     }
-
-    /// <summary>
-    /// Gets the current background color from preferences.
-    /// </summary>
-    public Vector4 GetBackgroundColor() => editorPreferences.BackgroundColor;
 }
