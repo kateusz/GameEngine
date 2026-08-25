@@ -2,8 +2,8 @@ using ECS;
 using ECS.Systems;
 using Engine.Core;
 using Engine.Physics;
-using Engine.Renderer;
 using Engine.Renderer.Pipeline;
+using Engine.Scene.Cameras;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -29,8 +29,13 @@ internal sealed class PhysicsDebugRenderSystem(
         if (!debugSettings.ShowColliderBounds)
             return;
 
-        var camera = SceneRenderPipeline.CameraBinding.FromProvider(cameraProvider);
-        PhysicsDebugDrawer.Draw(context, graphics2D, bodyStore, camera, useTransformFallbackWhenNoBody: false);
+        if (cameraProvider.Camera is not { } cam)
+            return;
+
+        PhysicsDebugDrawer.Draw(
+            context, graphics2D, bodyStore,
+            CameraViews.From(cam, cameraProvider.Transform),
+            useTransformFallbackWhenNoBody: false);
     }
 
     public void OnShutdown() { }

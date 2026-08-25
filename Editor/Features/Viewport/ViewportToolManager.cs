@@ -1,7 +1,6 @@
 using System.Numerics;
 using ECS;
 using Editor.Features.Viewport.Tools;
-using Engine.Scene.Cameras;
 
 namespace Editor.Features.Viewport;
 
@@ -66,7 +65,7 @@ public class ViewportToolManager(
         }
     }
 
-    public void HandleMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void HandleMouseDown(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         _activeTool.OnMouseDown(mousePos, viewportBounds, camera);
     }
@@ -74,7 +73,7 @@ public class ViewportToolManager(
     /// <summary>
     /// Handles mouse move event and delegates to active tool.
     /// </summary>
-    public void HandleMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void HandleMouseMove(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         _activeTool.OnMouseMove(mousePos, viewportBounds, camera);
     }
@@ -82,7 +81,7 @@ public class ViewportToolManager(
     /// <summary>
     /// Handles mouse up event and delegates to active tool.
     /// </summary>
-    public void HandleMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void HandleMouseUp(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         _activeTool.OnMouseUp(mousePos, viewportBounds, camera);
     }
@@ -90,7 +89,7 @@ public class ViewportToolManager(
     /// <summary>
     /// Renders the active tool's overlays (gizmos, measurements, etc.).
     /// </summary>
-    public void RenderActiveTool(Vector2[] viewportBounds, IViewCamera camera)
+    public void RenderActiveTool(Vector2[] viewportBounds, EditorCamera camera)
     {
         _activeTool.Render(viewportBounds, camera);
     }

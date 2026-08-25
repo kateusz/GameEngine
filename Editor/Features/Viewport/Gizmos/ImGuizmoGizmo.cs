@@ -3,7 +3,6 @@ using ECS;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Engine.Scene;
-using Engine.Scene.Cameras;
 using ImGuiNET;
 using SceneComponents;
 
@@ -27,7 +26,7 @@ public static class ImGuizmoGizmo
         TransformComponent transform,
         Entity entity,
         Vector2[] viewportBounds,
-        IViewCamera camera,
+        EditorCamera camera,
         IEditorHistory history,
         ISceneContext sceneContext)
     {
