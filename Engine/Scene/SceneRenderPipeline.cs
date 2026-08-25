@@ -39,8 +39,13 @@ internal static class SceneRenderPipeline
         public static CameraBinding FromProvider(IPrimaryCameraProvider provider) =>
             new() { Camera = provider.Camera, Transform = provider.Transform };
 
-        public static CameraBinding FromEditor(EditorCamera camera) =>
+        public static CameraBinding FromViewCamera(IViewCamera camera) =>
             new() { ViewCamera = camera };
+
+        public SceneView ToSceneView() =>
+            ViewCamera != null
+                ? new SceneView(ViewCamera.GetViewProjectionMatrix(), ViewCamera.GetPosition())
+                : CameraViews.From(Camera!, Transform);
     }
 
     public static void RenderScene(
@@ -55,13 +60,8 @@ internal static class SceneRenderPipeline
         Render3D(context, graphics3D, textureFactory, modelFactory, camera);
     }
     
-    internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
-    {
-        if (camera.ViewCamera != null)
-            graphics2D.BeginScene(camera.ViewCamera);
-        else
-            graphics2D.BeginScene(camera.Camera!, camera.Transform);
-    }
+    internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera) =>
+        graphics2D.BeginScene(camera.ToSceneView());
     
     private static void RenderSpritesAndSubTextures(
         IContext context,
@@ -320,13 +320,8 @@ internal static class SceneRenderPipeline
     private static Vector3 NormalizeDirection(Vector3 direction) =>
         direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
     
-    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera)
-    {
-        if (camera.ViewCamera != null)
-            graphics3D.BeginScene(camera.ViewCamera);
-        else
-            graphics3D.BeginScene(camera.Camera!, camera.Transform);
-    }
+    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera) =>
+        graphics3D.BeginScene(camera.ToSceneView());
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
     {

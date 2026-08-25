@@ -1,7 +1,5 @@
 using System.Numerics;
-using Engine.Renderer;
 using Engine.Renderer.Pipeline;
-using Engine.Scene.Cameras;
 
 namespace Editor.Features.Viewport;
 
@@ -16,7 +14,7 @@ public class ViewportGrid3D
     private const int MajorEvery = 10;
     private const int HalfCount  = 10;
 
-    public void Render(IGraphics2D graphics2D, EditorCamera camera)
+    public static void Render(IGraphics2D graphics2D, EditorCamera camera)
     {
         var spacing = CalculateSpacing(camera.Distance);
         var majorSpacing = spacing * MajorEvery;

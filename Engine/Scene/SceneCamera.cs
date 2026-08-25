@@ -246,6 +246,12 @@ public class SceneCamera : Camera
         OrthographicSize = size;
     }
 
+    public void AdjustOrthographicSize(float scrollDelta)
+    {
+        var factor = scrollDelta > 0 ? 0.9f : 1.1f;
+        SetOrthographicSize(MathF.Max(1f, OrthographicSize * factor));
+    }
+
     private void RecalculateProjection()
     {
         if (_projectionType == ProjectionType.Perspective)

@@ -1,8 +1,9 @@
 using System.Numerics;
+using Editor.Features.Viewport;
 using Engine.Scene.Cameras;
 using Shouldly;
 
-namespace Engine.Tests.Cameras;
+namespace Editor.Tests.Cameras;
 
 public class EditorCameraTests
 {

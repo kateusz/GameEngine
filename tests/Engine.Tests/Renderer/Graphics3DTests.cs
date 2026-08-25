@@ -54,7 +54,7 @@ public class Graphics3DTests : IDisposable
         camera.SetOrthographic(10f, -10f, 10f);
         camera.SetViewportSize(800, 600);
 
-        graphics3D.BeginScene(camera, Matrix4x4.Identity);
+        graphics3D.BeginScene(CameraViews.From(camera, Matrix4x4.Identity));
         graphics3D.SetAmbientLight(Vector3.One, 0.1f);
         graphics3D.SetDirectionalLight(new Vector3(0, -1, 0), Vector3.Zero);
         graphics3D.DrawCube(Matrix4x4.Identity, Vector4.One);
@@ -90,13 +90,10 @@ public class Graphics3DTests : IDisposable
     public void NonFiniteViewProjection_DrawsInsteadOfCulling()
     {
         var (graphics3D, rendererApi) = CreateGraphics3D();
-        var viewCamera = Substitute.For<IViewCamera>();
         var nan = Matrix4x4.Identity;
         nan.M11 = float.NaN;
-        viewCamera.GetViewProjectionMatrix().Returns(nan);
-        viewCamera.GetPosition().Returns(Vector3.Zero);
 
-        graphics3D.BeginScene(viewCamera);
+        graphics3D.BeginScene(new SceneView(nan, Vector3.Zero));
         graphics3D.DrawCube(Matrix4x4.CreateTranslation(100f, 0f, -5f), Vector4.One);
         graphics3D.EndScene();
 
@@ -147,7 +144,7 @@ public class Graphics3DTests : IDisposable
         var camera = new SceneCamera();
         camera.SetPerspective(MathF.PI / 4f, 0.1f, 100f);
         camera.SetViewportSize(800, 600);
-        graphics3D.BeginScene(camera, Matrix4x4.Identity);
+        graphics3D.BeginScene(CameraViews.From(camera, Matrix4x4.Identity));
     }
 
     private static Mesh CreateInitializedMesh(string name, int indexCount)

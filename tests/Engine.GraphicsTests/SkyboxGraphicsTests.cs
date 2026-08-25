@@ -44,7 +44,7 @@ public class SkyboxGraphicsTests(HeadlessGraphicsContextFixture fixture)
         framebuffer.Bind();
         graphics3D.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
         graphics3D.Clear();
-        graphics3D.BeginScene(camera, Matrix4x4.Identity);
+        graphics3D.BeginScene(CameraViews.From(camera, Matrix4x4.Identity));
         graphics3D.DrawSkybox(hdr, 1f, 0f);
         graphics3D.EndScene();
         framebuffer.Unbind();
