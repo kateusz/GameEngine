@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using Engine.Core;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
-using Editor.UI.Elements;
 using Engine.Renderer.Textures;
 using Engine.Scripting;
 using ImGuiNET;
@@ -29,6 +28,9 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     private Texture2D _fileIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
     private readonly Dictionary<string, Texture2D> _folderIconCache = new();
+    private readonly Queue<string> _pendingThumbnails = new();
+    private readonly HashSet<string> _pendingThumbnailPaths = new(StringComparer.OrdinalIgnoreCase);
+    private const int MaxThumbnailsPerFrame = 4;
 
     private const string CreateAssetPopupId = "ContentBrowserCreateAsset";
 
@@ -299,6 +301,8 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
 
     private void DrawContentGrid()
     {
+        ProcessPendingThumbnails();
+
         ImGui.TextWrapped($"Current Path: {_currentDirectory}");
         ImGui.Separator();
 
@@ -370,6 +374,37 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     {
         _currentDirectory = directory;
         _folderFilter = string.Empty;
+        _pendingThumbnails.Clear();
+        _pendingThumbnailPaths.Clear();
+    }
+
+    private void ProcessPendingThumbnails()
+    {
+        for (var i = 0; i < MaxThumbnailsPerFrame && _pendingThumbnails.Count > 0; i++)
+        {
+            var entry = _pendingThumbnails.Dequeue();
+            _pendingThumbnailPaths.Remove(entry);
+
+            if (_imageCache.ContainsKey(entry))
+                continue;
+
+            try
+            {
+                _imageCache[entry] = _textureFactory.Create(entry);
+            }
+            catch
+            {
+                _imageCache[entry] = _fileIcon;
+            }
+        }
+    }
+
+    private void RequestThumbnail(string entry)
+    {
+        if (_imageCache.ContainsKey(entry) || !_pendingThumbnailPaths.Add(entry))
+            return;
+
+        _pendingThumbnails.Enqueue(entry);
     }
 
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
@@ -385,20 +420,11 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
             info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
         {
-            if (!_imageCache.TryGetValue(entry, out var cached))
-            {
-                try
-                {
-                    cached = _textureFactory.Create(entry);
-                }
-                catch
-                {
-                    cached = _fileIcon;
-                }
+            if (_imageCache.TryGetValue(entry, out var cached))
+                return (cached, true, false);
 
-                _imageCache[entry] = cached;
-            }
-            return (cached, true, false);
+            RequestThumbnail(entry);
+            return (_fileIcon, true, false);
         }
 
         return (_fileIcon, false, false);
