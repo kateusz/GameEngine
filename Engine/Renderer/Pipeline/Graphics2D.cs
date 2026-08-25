@@ -351,9 +351,12 @@ internal sealed class Graphics2D(
             }
 
             rendererApi.SetDepthTest(false);
+            // Integer entity-ID attachment can't blend; later quads must replace the ID.
+            rendererApi.SetBlend(false);
             _quadGpuTimer?.Begin();
             rendererApi.DrawIndexed(_data.QuadVertexArray, _data.QuadIndexBufferCount);
             _quadGpuTimer?.End();
+            rendererApi.SetBlend(true);
             rendererApi.SetDepthTest(true);
             _data.Stats.DrawCalls++;
         }

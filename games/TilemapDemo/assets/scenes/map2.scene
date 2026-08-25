@@ -1,0 +1,11 @@
+{
+  "Scene": "map2",
+  "BackgroundColor": [
+    0.1,
+    0.1,
+    0.1,
+    1
+  ],
+  "Dimension": "TwoD",
+  "Entities": []
+}
