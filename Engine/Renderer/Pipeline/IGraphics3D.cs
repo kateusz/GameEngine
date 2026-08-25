@@ -1,14 +1,12 @@
 ﻿using System.Numerics;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Textures;
-using Engine.Scene.Cameras;
 
 namespace Engine.Renderer.Pipeline;
 
 public interface IGraphics3D : IGraphics
 {
-    void BeginScene(Camera camera, Matrix4x4 transform);
-    void BeginScene(IViewCamera camera);
+    void BeginScene(in SceneView view);
     void EndScene();
     void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
         float tilingFactor = 1.0f);

@@ -242,7 +242,7 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
-                    var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
+                    var camera = SceneRenderPipeline.CameraBinding.FromViewCamera(_editorCamera);
                     SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, camera);
                     RenderEditor2DOverlays(scene.Context, camera);
                 }
@@ -273,7 +273,7 @@ public sealed class EditorViewport(
             cameraGizmoDrawer.Draw(context, graphics2D, _editorCamera);
 
         if (drawGrid3D)
-            viewport.ViewportGrid3D.Render(graphics2D, _editorCamera);
+            ViewportGrid3D.Render(graphics2D, _editorCamera);
 
         graphics2D.EndScene();
     }

@@ -1,11 +1,7 @@
 using ECS;
 using Editor.ComponentEditors;
-using Editor.Features.Components;
-using Editor.Features.Project;
-using Editor.Features.Scene;
-using Editor.Input;
+using Editor.Features.Viewport;
 using Editor.Panels;
-using Engine.Scene.Cameras;
 using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
 
 namespace Editor;

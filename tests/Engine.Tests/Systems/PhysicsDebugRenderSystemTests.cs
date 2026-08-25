@@ -2,10 +2,8 @@ using System.Numerics;
 using ECS;
 using Engine.Core;
 using Engine.Physics;
-using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
-using Engine.Scene.Cameras;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
@@ -23,8 +21,7 @@ public class PhysicsDebugRenderSystemTests
 
         system.OnUpdate(TimeSpan.Zero);
 
-        graphics2D.DidNotReceive().BeginScene(Arg.Any<Camera>(), Arg.Any<Matrix4x4>());
-        graphics2D.DidNotReceive().BeginScene(Arg.Any<IViewCamera>());
+        graphics2D.DidNotReceive().BeginScene(Arg.Any<SceneView>());
         graphics2D.DidNotReceive().EndScene();
     }
 
@@ -50,7 +47,7 @@ public class PhysicsDebugRenderSystemTests
 
         system.OnUpdate(TimeSpan.Zero);
 
-        graphics2D.Received(1).BeginScene(Arg.Any<Camera>(), Arg.Any<Matrix4x4>());
+        graphics2D.Received(1).BeginScene(Arg.Any<SceneView>());
         graphics2D.Received(1).EndScene();
         graphics2D.Received(1).DrawRect(Arg.Any<Matrix4x4>(), Arg.Any<Vector4>(), 1);
     }

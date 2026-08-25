@@ -6,7 +6,7 @@ using Engine.Events.Window;
 using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
-using Engine.Scene.Cameras;
+using Engine.Scene;
 using Serilog;
 
 namespace Sandbox;
@@ -49,7 +49,7 @@ public class Sandbox2DLayer : ILayer
 
     private readonly IGraphics2D _graphics2D;
     private readonly ITextureFactory _textureFactory;
-    private EditorCamera _editorCamera = null!;
+    private SceneCamera _camera = null!;
 
     private readonly Dictionary<char, SubTexture2D> _textureMap = new();
     private readonly char[,] _mapArray;
@@ -66,7 +66,8 @@ public class Sandbox2DLayer : ILayer
     {
         Logger.Debug("Sandbox2DLayer OnAttach.");
 
-        _editorCamera = new EditorCamera();
+        _camera = new SceneCamera();
+        _camera.SetOrthographic(12f, -1f, 1f);
         _spriteSheet = _textureFactory.Create("assets/textures/RPGpack_sheet_2X.png");
 
         _textureMap['D'] =
@@ -86,7 +87,7 @@ public class Sandbox2DLayer : ILayer
         _graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         _graphics2D.Clear();
 
-        _graphics2D.BeginScene(_editorCamera);
+        _graphics2D.BeginScene(new SceneView(_camera.GetProjectionMatrix()));
 
         for (var row = 0; row < _mapHeight; row++)
         {
@@ -106,14 +107,14 @@ public class Sandbox2DLayer : ILayer
     public void HandleInputEvent(InputEvent windowEvent)
     {
         if (windowEvent is MouseScrolledEvent scrollEvent)
-            _editorCamera.OnMouseScroll(scrollEvent.YOffset);
+            _camera.AdjustOrthographicSize(scrollEvent.YOffset);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
     {
         if (windowEvent is WindowResizeEvent resizeEvent && resizeEvent.Width > 0 && resizeEvent.Height > 0)
         {
-            _editorCamera.SetViewportSize(resizeEvent.Width, resizeEvent.Height);
+            _camera.SetViewportSize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
         }
     }
 
