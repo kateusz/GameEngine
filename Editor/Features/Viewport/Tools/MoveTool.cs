@@ -19,7 +19,7 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
     private Vector3 _dragStartScale;
 
     public EditorMode Mode => EditorMode.Move;
-    public bool IsActive => _activeAxis != GizmoAxis.None;
+    public bool IsActive => ImGuizmoGizmo.IsAvailable ? ImGuizmoGizmo.IsUsing : _activeAxis != GizmoAxis.None;
 
     public void SetTargetEntity(Entity? entity) => _targetEntity = entity;
 
@@ -33,6 +33,8 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
 
     public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
+        if (ImGuizmoGizmo.IsAvailable)
+            return;
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
@@ -55,6 +57,8 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
 
     public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
+        if (ImGuizmoGizmo.IsAvailable)
+            return;
         if (_activeAxis == GizmoAxis.None || _targetEntity == null) return;
         if (!_targetEntity.TryGetComponent<TransformComponent>(out var transform)) return;
 
@@ -74,6 +78,8 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
 
     public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
     {
+        if (ImGuizmoGizmo.IsAvailable)
+            return;
         if (_activeAxis != GizmoAxis.None
             && _targetEntity is not null
             && _targetEntity.TryGetComponent<TransformComponent>(out var transform)
@@ -94,6 +100,11 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
     public void Render(Vector2[] viewportBounds, IViewCamera camera)
     {
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
+            return;
+
+        if (ImGuizmoGizmo.TryRender(
+                ImGuizmoOperation.Translate, transform, _targetEntity,
+                viewportBounds, camera, history, sceneContext))
             return;
 
         var worldPos = transform.GetWorldTransform().Translation;

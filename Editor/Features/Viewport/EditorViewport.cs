@@ -354,7 +354,9 @@ public sealed class EditorViewport(
             viewport.ViewportToolManager.HandleMouseDown(localMousePos, _viewportBounds, _editorCamera);
             if (HoveredEntity != null
                 && currentMode != EditorMode.Ruler
-                && currentMode != EditorMode.Select)
+                && currentMode != EditorMode.Select
+                && !ImGuizmoGizmo.IsOver
+                && !ImGuizmoGizmo.IsUsing)
             {
                 selection.Select(HoveredEntity, SelectionSource.Viewport);
             }
