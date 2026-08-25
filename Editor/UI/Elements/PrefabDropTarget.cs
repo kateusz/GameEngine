@@ -10,16 +10,14 @@ namespace Editor.UI.Elements;
 public class PrefabDropTarget(IPrefabSerializer prefabSerializer, ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(PrefabDropTarget));
+    private static readonly Func<string, bool> PrefabFile =
+        DragDropDrawer.CreateExtensionValidator([".prefab"]);
 
     public void HandleEntityDrop(Entity entity)
     {
-        var validator = DragDropDrawer.CreateExtensionValidator(
-            [".prefab"],
-            checkFileExists: false);
-
         DragDropDrawer.HandleFileDropTarget(
             DragDropDrawer.ContentBrowserItemPayload,
-            validator,
+            PrefabFile,
             onDropped: path =>
             {
                 try
