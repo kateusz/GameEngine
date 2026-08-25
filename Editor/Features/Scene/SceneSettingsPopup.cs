@@ -1,5 +1,6 @@
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Scene;
 using ImGuiNET;
 
 namespace Editor.Features.Scene;
@@ -7,10 +8,11 @@ namespace Editor.Features.Scene;
 /// <summary>
 /// Handles scene-related UI popups and modals in the editor.
 /// </summary>
-public class SceneSettingsPopup(ISceneManager sceneManager)
+public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneContext)
 {
     private bool _showNewScenePopup;
     private bool _showCloseConfirmation;
+    private bool _showProperties;
     private string _newSceneName = string.Empty;
     private string _newSceneError = string.Empty;
 
@@ -21,6 +23,13 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
 
     public void ShowCloseConfirmation() => _showCloseConfirmation = true;
 
+    public void ShowProperties()
+    {
+        if (sceneContext.ActiveScene is null)
+            return;
+        _showProperties = true;
+    }
+
     /// <summary>
     /// Renders all scene-related modals.
     /// Must be called from the main render loop.
@@ -29,6 +38,7 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
     {
         RenderNewScenePopup();
         RenderCloseConfirmationModal();
+        RenderPropertiesModal();
     }
 
     private void RenderNewScenePopup()
@@ -87,6 +97,26 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
         ImGui.SameLine();
         if (ButtonDrawer.DrawModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
             _showCloseConfirmation = false;
+
+        ModalDrawer.EndModal();
+    }
+
+    private void RenderPropertiesModal()
+    {
+        if (!ModalDrawer.BeginCenteredModal("Scene Properties", ref _showProperties))
+            return;
+
+        if (sceneContext.ActiveScene is not { } scene)
+        {
+            ModalDrawer.EndModal();
+            return;
+        }
+
+        var backgroundColor = scene.BackgroundColor;
+        if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
+                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
+                ImGuiColorEditFlags.NoOptions))
+            scene.BackgroundColor = backgroundColor;
 
         ModalDrawer.EndModal();
     }

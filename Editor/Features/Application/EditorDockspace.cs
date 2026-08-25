@@ -24,6 +24,7 @@ public class EditorDockspace(
     ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorDockspace>();
+    internal const uint DockspaceId = 0x3BC79352;
     private const int MinAutosaveIntervalSeconds = 5;
 
     private TimeSpan _timeSinceAutosave;
@@ -50,8 +51,7 @@ public class EditorDockspace(
         ImGui.PopStyleVar(3);
         {
             // Fixed id — must match DockSpace ID in imgui.ini (GetID changes when window name changes).
-            const uint dockspaceId = 0x3BC79352;
-            ImGui.DockSpace(dockspaceId, new Vector2(0.0f, 0.0f), ImGuiDockNodeFlags.None);
+            ImGui.DockSpace(DockspaceId, new Vector2(0.0f, 0.0f), ImGuiDockNodeFlags.None);
 
             menuBar.Render();
             panels.Draw(editorViewport.HoveredEntity, editorViewport.Camera, deltaTime);

@@ -1,6 +1,7 @@
 using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Scripting;
+using Editor.Panels;
 using Engine.Core;
 using Serilog;
 
@@ -11,7 +12,8 @@ public class ProjectManager(
     IProjectContext projectContext,
     GameScriptWorkspace scriptWorkspace,
     IGameProjectScriptBootstrapper gameProjectScriptBootstrapper,
-    ISceneManager sceneManager)
+    ISceneManager sceneManager,
+    ScriptEditorPanel? scriptEditor = null)
     : IProjectManager
 {
     private static readonly ILogger Logger = Log.ForContext<ProjectManager>();
@@ -95,6 +97,9 @@ public class ProjectManager(
                 return false;
             }
 
+            if (!TryContinueWithUnsavedScript(out error))
+                return false;
+
             CloseProject();
             ApplyProjectPaths(projectDir);
             InitializeScripts();
@@ -135,6 +140,9 @@ public class ProjectManager(
                 Logger.Warning("⚠️ 'assets' directory not found. Falling back to project root as assets path.");
             }
 
+            if (!TryContinueWithUnsavedScript(out error))
+                return false;
+
             CloseProject();
             ApplyProjectPaths(full);
             InitializeScripts();
@@ -160,9 +168,21 @@ public class ProjectManager(
         if (!projectContext.HasProject)
             return;
 
+        scriptEditor?.Close();
         ProjectClosing?.Invoke();
         projectContext.Clear();
         ProjectClosed?.Invoke();
+    }
+
+    private bool TryContinueWithUnsavedScript(out string error)
+    {
+        error = string.Empty;
+        if (scriptEditor is not { IsDirty: true })
+            return true;
+
+        error = "Save or discard script changes first.";
+        scriptEditor.RequestSaveThen(() => { });
+        return false;
     }
 
     private void ApplyProjectPaths(string projectDir)

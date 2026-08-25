@@ -1,5 +1,6 @@
 {
   "Scene": "flappybird",
+  "Dimension": "TwoD",
   "Entities": [
     {
       "Id": 1,

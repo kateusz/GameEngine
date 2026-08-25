@@ -1,11 +1,10 @@
-using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Scripting;
+using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Scene;
@@ -20,7 +19,8 @@ public class ScriptComponentEditor(
     IScriptEngine scriptEngine,
     GameScriptWorkspace scriptWorkspace,
     ISceneContext sceneContext,
-    IEditorHistory history) : IComponentEditor
+    IEditorHistory history,
+    ScriptEditorPanel scriptEditor) : IComponentEditor
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ScriptComponentEditor));
 
@@ -90,7 +90,7 @@ public class ScriptComponentEditor(
         TextDrawer.DrawWarningText($"Script: {scriptTypeName}");
 
         ImGui.SameLine();
-        ButtonDrawer.DrawButton($"Edit##{scriptTypeName}", 0, 0, () => OpenScriptInExternalEditor(scriptTypeName));
+        ButtonDrawer.DrawButton($"Edit##{scriptTypeName}", 0, 0, () => scriptEditor.Open(scriptTypeName));
 
         if (ImGui.BeginPopupContextItem($"ScriptContextMenu_{scriptTypeName}"))
         {
@@ -102,28 +102,6 @@ public class ScriptComponentEditor(
             }
 
             ImGui.EndPopup();
-        }
-    }
-
-    private void OpenScriptInExternalEditor(string scriptName)
-    {
-        var filePath = scriptWorkspace.GetScriptFilePath(scriptName);
-        if (filePath == null)
-        {
-            Logger.Warning("Script file not found for {ScriptName}", scriptName);
-            return;
-        }
-
-        try
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                Process.Start("open", filePath);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to open script {ScriptName} in external editor", scriptName);
         }
     }
 

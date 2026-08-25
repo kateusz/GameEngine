@@ -23,6 +23,7 @@ public class EditorMenuBar(
     RecentProjectsPanel recentProjectsPanel,
     RendererStatsPanel rendererStatsPanel,
     KeyboardShortcutsPanel keyboardShortcutsPanel,
+    ScriptEditorPanel scriptEditor,
     ViewportComponents viewport,
     IEditorCameraController cameraController)
 {
@@ -52,8 +53,17 @@ public class EditorMenuBar(
             newProjectPopup.ShowOpenProjectPopup();
         if (ImGui.MenuItem("Close Project", enabled: projectContext.HasProject))
         {
-            projectManager.CloseProject();
-            recentProjectsPanel.Show();
+            if (scriptEditor.IsDirty)
+                scriptEditor.RequestSaveThen(() =>
+                {
+                    projectManager.CloseProject();
+                    recentProjectsPanel.Show();
+                });
+            else
+            {
+                projectManager.CloseProject();
+                recentProjectsPanel.Show();
+            }
         }
 
         ImGui.Separator();
@@ -115,6 +125,10 @@ public class EditorMenuBar(
             else
                 sceneManager.Close();
         }
+
+        ImGui.Separator();
+        if (ImGui.MenuItem("Properties"))
+            sceneSettingsPopup.ShowProperties();
         ImGui.EndMenu();
     }
 

@@ -90,6 +90,7 @@ public static class EditorIoCContainer
         container.RegisterMany<ConsolePanel>(Reuse.Singleton);
         container.RegisterMany<RecentProjectsPanel>(Reuse.Singleton);
         container.RegisterMany<KeyboardShortcutsPanel>(Reuse.Singleton);
+        container.RegisterMany<ScriptEditorPanel>(Reuse.Singleton);
 
         container.Register<IEntityContextMenu, EntityContextMenu>(Reuse.Singleton);
         

@@ -32,10 +32,7 @@ public class PropertiesPanel(
     private void DrawEntityProperties()
     {
         if (selection.SelectedEntity is not { } selectedEntity)
-        {
-            DrawSceneProperties();
             return;
-        }
 
         EntityNameEditor.Draw(selectedEntity);
         ImGui.Spacing();
@@ -47,21 +44,5 @@ public class PropertiesPanel(
             () => prefabManager.ShowSavePrefabPopup(selectedEntity));
 
         componentEditors.DrawAllComponents(selectedEntity);
-    }
-
-    private void DrawSceneProperties()
-    {
-        if (sceneContext.ActiveScene is not { } scene)
-            return;
-
-        ImGui.SeparatorText("Scene");
-
-        var backgroundColor = scene.BackgroundColor;
-        if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
-                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
-                ImGuiColorEditFlags.NoOptions))
-        {
-            scene.BackgroundColor = backgroundColor;
-        }
     }
 }

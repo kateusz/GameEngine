@@ -17,6 +17,7 @@
         <ProjectReference Include="../Engine/Engine.csproj" />
         <ProjectReference Include="../Ui.ImGui/Ui.ImGui.csproj" />
         <ProjectReference Include="../GameScriptSdk/GameScriptSdk.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="../ThirdParty/ImGuiColorTextEditNet/ImGuiColorTextEditNet.csproj" />
     </ItemGroup>
 
     <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">

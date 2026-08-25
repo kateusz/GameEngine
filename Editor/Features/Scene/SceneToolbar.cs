@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
@@ -9,7 +10,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory)
+public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory, ScriptEditorPanel scriptEditor)
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -160,7 +161,10 @@ public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager
                     switch (sceneContext.State)
                     {
                         case SceneState.Edit:
-                            sceneManager.Play();
+                            if (scriptEditor.IsDirty)
+                                scriptEditor.RequestSaveThen(sceneManager.Play, "Save and Play");
+                            else
+                                sceneManager.Play();
                             break;
                         case SceneState.Play:
                             sceneManager.Stop();
