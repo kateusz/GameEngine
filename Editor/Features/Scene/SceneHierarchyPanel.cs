@@ -14,6 +14,8 @@ using SceneComponents;
 
 namespace Editor.Features.Scene;
 
+internal readonly record struct HierarchyRow(Entity Entity, int Depth, bool HasChildren);
+
 public class SceneHierarchyPanel(
     PrefabDropTarget prefabDropTarget,
     IEntityContextMenu entityContextMenu,
@@ -29,11 +31,14 @@ public class SceneHierarchyPanel(
     private string _searchQuery = string.Empty;
     private readonly HashSet<int> _filterVisibleIds = [];
     private readonly HashSet<int> _filterMatchIds = [];
+    private readonly HashSet<int> _expandedIds = [];
+    private readonly List<HierarchyRow> _rows = [];
     private bool _isFilterActive;
 
     public void SetScene(IScene scene)
     {
         _scene = scene;
+        _expandedIds.Clear();
         selection.Select(null, SelectionSource.Code);
     }
 
@@ -42,7 +47,7 @@ public class SceneHierarchyPanel(
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");
 
-        RenderSearchInput();
+        LayoutDrawer.DrawSearchInput("Search entities...", ref _searchQuery, ApplyFilter);
 
         if (_isFilterActive)
             RenderFilterStatus();
@@ -73,72 +78,130 @@ public class SceneHierarchyPanel(
         ImGui.End();
     }
 
-    private void RenderEntityHierarchy()
+    private unsafe void RenderEntityHierarchy()
     {
         var roots = _scene.GetRootEntities();
-        if (_isFilterActive)
+        if (_isFilterActive && _filterVisibleIds.Count == 0)
         {
-            if (_filterVisibleIds.Count == 0)
-            {
-                ImGui.TextUnformatted("No entities match your search");
-                return;
-            }
-
-            foreach (var root in roots)
-            {
-                if (_filterVisibleIds.Contains(root.Id))
-                    DrawEntityNode(root, filtered: true);
-            }
-
+            ImGui.TextUnformatted("No entities match your search");
             return;
         }
 
+        _rows.Clear();
+        var filter = _isFilterActive ? _filterVisibleIds : null;
         foreach (var root in roots)
-            DrawEntityNode(root, filtered: false);
+            CollectVisibleRows(_scene, root, 0, _expandedIds, filter, _rows);
+
+        var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
+        try
+        {
+            clipper.Begin(_rows.Count);
+            while (clipper.Step())
+            {
+                for (var i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+                    DrawRow(_rows[i]);
+            }
+        }
+        finally
+        {
+            clipper.Destroy();
+        }
     }
 
-    private void DrawEntityNode(Entity entity, bool filtered)
+    internal static void CollectVisibleRows(
+        IScene scene,
+        Entity entity,
+        int depth,
+        HashSet<int> expandedIds,
+        HashSet<int>? filterVisibleIds,
+        List<HierarchyRow> dest)
     {
-        var children = _scene.GetChildren(entity)
-            .Where(c => !filtered || _filterVisibleIds.Contains(c.Id))
-            .ToList();
+        if (filterVisibleIds is not null && !filterVisibleIds.Contains(entity.Id))
+            return;
+
+        var children = scene.GetChildren(entity);
+        var hasChildren = filterVisibleIds is null
+            ? children.Count > 0
+            : children.Any(c => filterVisibleIds.Contains(c.Id));
+
+        dest.Add(new HierarchyRow(entity, depth, hasChildren));
+
+        if (!hasChildren || !expandedIds.Contains(entity.Id))
+            return;
+
+        foreach (var child in children)
+            CollectVisibleRows(scene, child, depth + 1, expandedIds, filterVisibleIds, dest);
+    }
+
+    private void DrawRow(HierarchyRow row)
+    {
+        var entity = row.Entity;
+        if (!_scene.Context.Contains(entity.Id))
+            return;
 
         var isSelected = selection.SelectedEntity?.Id == entity.Id;
-        var isMatch = filtered && _filterMatchIds.Contains(entity.Id);
-        var entityDeleted = false;
-        var createChild = false;
+        var isMatch = _isFilterActive && _filterMatchIds.Contains(entity.Id);
 
-        var flags = children.Count == 0
-            ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen
-            : ImGuiTreeNodeFlags.OpenOnArrow;
+        var flags = ImGuiTreeNodeFlags.NoTreePushOnOpen
+                    | ImGuiTreeNodeFlags.SpanAvailWidth
+                    | ImGuiTreeNodeFlags.OpenOnArrow;
+        if (!row.HasChildren)
+            flags |= ImGuiTreeNodeFlags.Leaf;
+        if (isSelected)
+            flags |= ImGuiTreeNodeFlags.Selected;
+
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + row.Depth * ImGui.GetTreeNodeToLabelSpacing());
+        ImGui.PushID(entity.Id);
+        if (row.HasChildren)
+            ImGui.SetNextItemOpen(_expandedIds.Contains(entity.Id));
 
         if (isMatch)
-            flags |= ImGuiTreeNodeFlags.DefaultOpen;
+            ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
 
-        Action onContextMenu = () =>
+        var opened = ImGui.TreeNodeEx(entity.Name, flags);
+
+        if (isMatch)
+            ImGui.PopStyleColor();
+
+        if (row.HasChildren && ImGui.IsItemToggledOpen())
+        {
+            if (opened)
+                _expandedIds.Add(entity.Id);
+            else
+                _expandedIds.Remove(entity.Id);
+        }
+
+        if (ImGui.IsItemClicked())
+            selection.Select(entity, SelectionSource.Hierarchy);
+
+        if (ImGui.BeginPopupContextItem())
         {
             if (ImGui.MenuItem("Create Child Entity"))
-                createChild = true;
+            {
+                var child = _scene.CreateEntity("Empty Entity");
+                child.AddComponent<TransformComponent>();
+                _scene.SetParent(child, entity);
+                _expandedIds.Add(entity.Id);
+                selection.Select(child, SelectionSource.Hierarchy);
+            }
+
             if (ImGui.MenuItem("Delete Entity"))
-                entityDeleted = true;
-        };
+            {
+                var deletedId = entity.Id;
+                _expandedIds.Remove(deletedId);
+                history.Execute(new DestroyEntitySubtreeCommand(_scene, deletedId));
+                if (selection.SelectedEntity?.Id == deletedId)
+                    selection.Select(null, SelectionSource.Code);
+                ApplyFilter(_searchQuery);
+            }
 
-        var opened = isMatch
-            ? TreeDrawer.DrawColoredTreeNode(
-                label: entity.Name,
-                color: EditorUIConstants.InfoColor,
-                isSelected: isSelected,
-                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
-                onContextMenu: onContextMenu,
-                flags: flags)
-            : TreeDrawer.DrawSelectableTreeNode(
-                label: entity.Name,
-                isSelected: isSelected,
-                onClicked: () => selection.Select(entity, SelectionSource.Hierarchy),
-                onContextMenu: onContextMenu,
-                flags: flags);
+            ImGui.EndPopup();
+        }
 
-        DragDropDrawer.CreateDragDropSource(EntityDragPayload, entity.Id.ToString(), () => ImGui.TextUnformatted(entity.Name));
+        DragDropDrawer.CreateDragDropSource(
+            EntityDragPayload,
+            entity.Id.ToString(),
+            () => ImGui.TextUnformatted(entity.Name));
 
         if (ImGui.BeginDragDropTarget())
         {
@@ -148,30 +211,7 @@ public class SceneHierarchyPanel(
         }
 
         prefabDropTarget.HandleEntityDrop(entity);
-
-        if (opened && children.Count > 0)
-        {
-            foreach (var child in children)
-                DrawEntityNode(child, filtered);
-            ImGui.TreePop();
-        }
-
-        if (createChild)
-        {
-            var child = _scene.CreateEntity("Empty Entity");
-            child.AddComponent<TransformComponent>();
-            _scene.SetParent(child, entity);
-            selection.Select(child, SelectionSource.Hierarchy);
-        }
-
-        if (entityDeleted)
-        {
-            var deletedId = entity.Id;
-            history.Execute(new DestroyEntitySubtreeCommand(_scene, deletedId));
-            if (selection.SelectedEntity?.Id == deletedId)
-                selection.Select(null, SelectionSource.Code);
-            ApplyFilter(_searchQuery);
-        }
+        ImGui.PopID();
     }
 
     private unsafe void TryAcceptEntityDrop(Entity? parent)
@@ -208,16 +248,9 @@ public class SceneHierarchyPanel(
         tiledImport.ImportFromContentPath(path);
     }
 
-    private void RenderSearchInput()
-    {
-        LayoutDrawer.DrawSearchInput("Search entities...", ref _searchQuery, ApplyFilter);
-    }
-
     private void RenderFilterStatus()
     {
-        var totalCount = _scene.Entities.Count();
-        var statusText = $"Filtering: {_filterMatchIds.Count} of {totalCount} entities";
-        TextDrawer.DrawInfoText(statusText);
+        TextDrawer.DrawInfoText($"Filtering: {_filterMatchIds.Count} of {_scene.Entities.Count()} entities");
         ImGui.Separator();
     }
 
@@ -237,10 +270,11 @@ public class SceneHierarchyPanel(
 
         foreach (var entity in _scene.Entities)
         {
-            if (!MatchesFilter(entity, normalizedQuery))
+            if (!entity.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
                 continue;
 
             _filterMatchIds.Add(entity.Id);
+            _expandedIds.Add(entity.Id);
             // Include match + ancestors so nested hits stay visible in context
             for (Entity? current = entity; current is not null; current = _scene.GetParent(current))
             {
@@ -248,10 +282,5 @@ public class SceneHierarchyPanel(
                     break;
             }
         }
-    }
-
-    private static bool MatchesFilter(Entity entity, string query)
-    {
-        return entity.Name.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -14,11 +14,6 @@ public interface IEditorPreferences : IDisposable
     List<RecentProject> RecentProjects { get; init; }
 
     /// <summary>
-    /// Gets or sets the editor viewport background color.
-    /// </summary>
-    Vector4 BackgroundColor { get; set; }
-
-    /// <summary>
     /// Gets or sets whether to show collider bounds in the viewport.
     /// </summary>
     bool ShowColliderBounds { get; set; }
