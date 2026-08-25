@@ -166,11 +166,49 @@ internal static class SceneRenderPipeline
         IModelFactory? modelFactory,
         in SceneView view)
     {
-        graphics3D.BeginScene(view);
         var lighting = SceneLightingResolver.Resolve(context);
-        graphics3D.SetAmbientLight(lighting.AmbientColor, lighting.AmbientStrength);
-        graphics3D.SetDirectionalLight(lighting.DirectionalDirection, lighting.DirectionalColor);
 
+        if (lighting.ShadowLightSpace is { } lightSpace)
+        {
+            try
+            {
+                if (graphics3D.BeginShadowPass(lightSpace))
+                {
+                    DrawAllModelRenderers(context, graphics3D, textureFactory, modelFactory);
+                    graphics3D.EndShadowPass();
+                    graphics3D.SetDirectionalLight(
+                        lighting.DirectionalDirection, lighting.DirectionalColor, lightSpace);
+                }
+                else
+                {
+                    graphics3D.SetDirectionalLight(lighting.DirectionalDirection, lighting.DirectionalColor);
+                }
+            }
+            finally
+            {
+                graphics3D.EndShadowPass();
+            }
+        }
+        else
+        {
+            graphics3D.SetDirectionalLight(lighting.DirectionalDirection, lighting.DirectionalColor);
+        }
+
+        graphics3D.BeginScene(view);
+        graphics3D.SetAmbientLight(lighting.AmbientColor, lighting.AmbientStrength);
+
+        DrawAllModelRenderers(context, graphics3D, textureFactory, modelFactory);
+        RenderSkybox(context, graphics3D, textureFactory);
+
+        graphics3D.EndScene();
+    }
+
+    private static void DrawAllModelRenderers(
+        IContext context,
+        IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
+        IModelFactory? modelFactory)
+    {
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
@@ -214,10 +252,6 @@ internal static class SceneRenderPipeline
             foreach (var submesh in model.Submeshes)
                 graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
         }
-
-        RenderSkybox(context, graphics3D, textureFactory);
-
-        graphics3D.EndScene();
     }
 
     private static void RenderSkybox(IContext context, IGraphics3D graphics3D, ITextureFactory textureFactory)

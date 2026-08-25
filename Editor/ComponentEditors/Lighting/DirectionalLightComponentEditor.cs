@@ -17,5 +17,7 @@ public class DirectionalLightComponentEditor(UIPropertyRenderer propertyRenderer
             newValue => component.Direction = (System.Numerics.Vector3)newValue);
         propertyRenderer.DrawPropertyField("Color", component.Color,
             newValue => component.Color = (System.Numerics.Vector4)newValue);
+        propertyRenderer.DrawPropertyField("Ortho Size", component.OrthoSize,
+            newValue => component.OrthoSize = (float)newValue);
     }
 }

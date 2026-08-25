@@ -10,10 +10,12 @@ layout(location = 5) in int  a_EntityID;
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Model;
 uniform mat4 u_NormalMatrix;
+uniform mat4 u_LightSpaceMatrix;
 
 out vec3 v_FragPos;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
+out vec4 v_FragPosLightSpace;
 out mat3 v_TBN;
 flat out int v_EntityID;
 
@@ -23,6 +25,7 @@ void main()
     v_FragPos  = worldPos.xyz;
     v_Normal   = normalize(a_Normal * mat3(u_NormalMatrix));
     v_TexCoord = a_TexCoord;
+    v_FragPosLightSpace = worldPos * u_LightSpaceMatrix;
     v_EntityID = a_EntityID;
 
     vec3 T = normalize(a_Tangent * mat3(u_NormalMatrix));
