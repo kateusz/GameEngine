@@ -21,5 +21,7 @@ public class PointLightComponentEditor(UIPropertyRenderer propertyRenderer, IEdi
             newValue => component.Linear = (float)newValue);
         propertyRenderer.DrawPropertyField("Quadratic", component.Quadratic,
             newValue => component.Quadratic = (float)newValue);
+        propertyRenderer.DrawPropertyField("Range", component.Range,
+            newValue => component.Range = (float)newValue);
     }
 }

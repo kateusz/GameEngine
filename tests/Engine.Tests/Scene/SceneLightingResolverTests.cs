@@ -126,6 +126,7 @@ public class SceneLightingResolverTests
         lighting.PointLights[0].Constant.ShouldBe(1f);
         lighting.PointLights[0].Linear.ShouldBe(0.09f);
         lighting.PointLights[0].Quadratic.ShouldBe(0.032f);
+        lighting.PointLights[0].Range.ShouldBe(25f);
     }
 
     [Fact]

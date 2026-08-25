@@ -34,6 +34,15 @@ public class LightSpaceMatrixTests
     }
 
     [Fact]
+    public void CreateCubemapFaces_ProducesSixFiniteMatrices()
+    {
+        var faces = LightSpaceMatrix.CreateCubemapFaces(new Vector3(0, 5, 0), 25f);
+        faces.Length.ShouldBe(6);
+        foreach (var face in faces)
+            LightSpaceMatrix.IsFinite(face).ShouldBeTrue();
+    }
+
+    [Fact]
     public void IsFinite_NaNMatrix_ReturnsFalse()
     {
         var matrix = Matrix4x4.Identity;

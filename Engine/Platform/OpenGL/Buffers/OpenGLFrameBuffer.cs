@@ -348,7 +348,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         gl.BindTexture(TextureTarget.TextureCubeMap, id);
         for (var face = 0; face < 6; face++)
         {
-            gl.TexImage2D(TextureTarget.TextureCubeMapPositiveX + face, 0, InternalFormat.DepthComponent,
+            gl.TexImage2D(TextureTarget.TextureCubeMapPositiveX + face, 0, InternalFormat.DepthComponent32f,
                 width, height, 0, PixelFormat.DepthComponent, PixelType.Float, (void*)0);
         }
 

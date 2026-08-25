@@ -17,6 +17,21 @@ internal static class LightSpaceMatrix
         return view * projection;
     }
 
+    public static Matrix4x4[] CreateCubemapFaces(Vector3 lightPos, float farPlane)
+    {
+        const float near = 1f;
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2f, 1f, near, farPlane);
+        return
+        [
+            Matrix4x4.CreateLookAt(lightPos, lightPos + Vector3.UnitX, -Vector3.UnitY) * projection,
+            Matrix4x4.CreateLookAt(lightPos, lightPos - Vector3.UnitX, -Vector3.UnitY) * projection,
+            Matrix4x4.CreateLookAt(lightPos, lightPos + Vector3.UnitY, Vector3.UnitZ) * projection,
+            Matrix4x4.CreateLookAt(lightPos, lightPos - Vector3.UnitY, -Vector3.UnitZ) * projection,
+            Matrix4x4.CreateLookAt(lightPos, lightPos + Vector3.UnitZ, -Vector3.UnitY) * projection,
+            Matrix4x4.CreateLookAt(lightPos, lightPos - Vector3.UnitZ, -Vector3.UnitY) * projection
+        ];
+    }
+
     public static bool IsFinite(Matrix4x4 matrix) =>
         float.IsFinite(matrix.M11) && float.IsFinite(matrix.M12) && float.IsFinite(matrix.M13) &&
         float.IsFinite(matrix.M14) && float.IsFinite(matrix.M22) && float.IsFinite(matrix.M23) &&

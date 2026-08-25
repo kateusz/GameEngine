@@ -1,7 +1,5 @@
 using System.Numerics;
 using ECS;
-using Editor.Features.Viewport;
-using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using SceneComponents;
@@ -16,16 +14,6 @@ namespace Editor.Features.Viewport.Gizmos;
 public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(CameraGizmoDrawer));
-    private static readonly Vector2[] TextureCoords =
-    [
-        new(0.0f, 0.0f),
-        new(1.0f, 0.0f),
-        new(1.0f, 1.0f),
-        new(0.0f, 1.0f)
-    ];
-    
-    private const float IconDistanceScale = 0.06f;
-    private const float MinIconSize = 0.15f;
 
     private Texture2D? _icon;
     private bool _iconLoadFailed;
@@ -42,7 +30,6 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
         var editorPos = editorCamera.GetPosition();
         var right = editorCamera.GetRightDirection();
         var up = editorCamera.GetUpDirection();
-        // Quad lies in XY; face the view so +Z points toward the editor camera.
         var face = -editorCamera.GetForwardDirection();
 
         foreach (var (entity, _) in context.View<CameraComponent>())
@@ -50,7 +37,11 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
             if (!entity.TryGetComponent<TransformComponent>(out var transform))
                 continue;
 
-            DrawIcon(graphics2D, entity.Id, transform.GetWorldTransform().Translation, editorPos, right, up, face);
+            var billboard = BillboardGizmoHelper.BuildBillboard(
+                transform.GetWorldTransform().Translation, editorPos, right, up, face);
+
+            graphics2D.DrawQuad(billboard, _icon, BillboardGizmoHelper.TextureCoords,
+                tilingFactor: 1.0f, tintColor: Vector4.One, entity.Id);
         }
     }
 
@@ -68,26 +59,5 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
             _iconLoadFailed = true;
             Logger.Warning(ex, "Failed to load camera gizmo icon; icons skipped");
         }
-    }
-
-    private void DrawIcon(
-        IGraphics2D graphics2D,
-        int entityId,
-        Vector3 position,
-        Vector3 editorPos,
-        Vector3 right,
-        Vector3 up,
-        Vector3 face)
-    {
-        var distance = Vector3.Distance(editorPos, position);
-        var size = MathF.Max(MinIconSize, distance * IconDistanceScale);
-
-        var billboard = new Matrix4x4(
-            right.X * size, right.Y * size, right.Z * size, 0.0f,
-            up.X * size, up.Y * size, up.Z * size, 0.0f,
-            face.X * size, face.Y * size, face.Z * size, 0.0f,
-            position.X, position.Y, position.Z, 1.0f);
-
-        graphics2D.DrawQuad(billboard, _icon, TextureCoords, tilingFactor: 1.0f, tintColor: Vector4.One, entityId);
     }
 }

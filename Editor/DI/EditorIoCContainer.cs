@@ -135,6 +135,7 @@ public static class EditorIoCContainer
         container.Register<IEditorCameraController, EditorCameraController>(Reuse.Singleton);
         container.Register<IEditorViewport, EditorViewport>(Reuse.Singleton);
         container.Register<CameraGizmoDrawer>(Reuse.Singleton);
+        container.Register<LightGizmoDrawer>(Reuse.Singleton);
         container.Register<EditorMenuBar>(Reuse.Singleton);
         container.Register<EditorDockspace>(Reuse.Singleton);
         container.Register<EditorInputHandler>(Reuse.Singleton);

@@ -37,9 +37,10 @@ public class Graphics3DTests : IDisposable
         var modelShader = Substitute.For<IShader>();
         var skyboxShader = Substitute.For<IShader>();
         var depthShader = Substitute.For<IShader>();
+        var pointDepthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader, pointDepthShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount: 36);
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -132,9 +133,10 @@ public class Graphics3DTests : IDisposable
         var modelShader = Substitute.For<IShader>();
         var skyboxShader = Substitute.For<IShader>();
         var depthShader = Substitute.For<IShader>();
+        var pointDepthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader, pointDepthShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount: 36);
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -151,13 +153,14 @@ public class Graphics3DTests : IDisposable
         BeginPerspective(graphics3D);
 
         graphics3D.SetPointLights([
-            new PointLightUniform(new Vector3(1, 2, 3), Vector3.One, 1f, 0.09f, 0.032f)
+            new PointLightUniform(new Vector3(1, 2, 3), Vector3.One, 1f, 0.09f, 0.032f, 25f)
         ]);
         graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One);
         graphics3D.EndScene();
 
         cubeShader.Received().SetInt("u_PointLightCount", 1);
         cubeShader.Received().SetFloat3("u_PointLights[0].position", new Vector3(1, 2, 3));
+        cubeShader.Received().SetFloat("u_PointLights[0].range", 25f);
         cubeShader.Received().SetInt("u_SpotLightCount", 0);
     }
 
@@ -169,9 +172,10 @@ public class Graphics3DTests : IDisposable
         var modelShader = Substitute.For<IShader>();
         var skyboxShader = Substitute.For<IShader>();
         var depthShader = Substitute.For<IShader>();
+        var pointDepthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader, pointDepthShader);
 
         var cubeMesh = CreateInitializedMesh("cube", 36);
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -186,7 +190,7 @@ public class Graphics3DTests : IDisposable
         graphics3D.Init();
         BeginPerspective(graphics3D);
 
-        var extra = new PointLightUniform(Vector3.Zero, Vector3.One, 1f, 0f, 0f);
+        var extra = new PointLightUniform(Vector3.Zero, Vector3.One, 1f, 0f, 0f, 25f);
         graphics3D.SetPointLights(Enumerable.Repeat(extra, LightingMath.MaxPointLights + 1).ToArray());
         graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One);
 
@@ -201,9 +205,10 @@ public class Graphics3DTests : IDisposable
         var modelShader = Substitute.For<IShader>();
         var skyboxShader = Substitute.For<IShader>();
         var depthShader = Substitute.For<IShader>();
+        var pointDepthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(cubeShader, modelShader, skyboxShader, depthShader);
+            .Returns(cubeShader, modelShader, skyboxShader, depthShader, pointDepthShader);
 
         var cubeMesh = CreateInitializedMesh("cube", indexCount);
         var meshFactory = Substitute.For<IMeshFactory>();

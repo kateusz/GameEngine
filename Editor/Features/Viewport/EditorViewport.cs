@@ -19,6 +19,7 @@ using ImGuiNET;
 using Input;
 using Math;
 using SceneComponents.Camera;
+using SceneComponents.Lighting;
 using Serilog;
 using Ui.ImGui;
 
@@ -38,6 +39,7 @@ public sealed class EditorViewport(
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
+    LightGizmoDrawer lightGizmoDrawer,
     IModelFactory modelFactory,
     TiledMapImportService tiledImport)
     : IEditorViewport
@@ -258,8 +260,9 @@ public sealed class EditorViewport(
         var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
         var drawGrid3D = viewport.SceneToolbar.ShowGrid3D;
         var drawCameraGizmos = HasCameraEntities(context);
+        var drawLightGizmos = HasLightEntities(context);
 
-        if (!drawColliders && !drawGrid3D && !drawCameraGizmos)
+        if (!drawColliders && !drawGrid3D && !drawCameraGizmos && !drawLightGizmos)
             return;
 
         SceneRenderPipeline.Begin2DScene(graphics2D, view);
@@ -270,6 +273,9 @@ public sealed class EditorViewport(
         if (drawCameraGizmos)
             cameraGizmoDrawer.Draw(context, graphics2D, _editorCamera);
 
+        if (drawLightGizmos)
+            lightGizmoDrawer.Draw(context, graphics2D, _editorCamera);
+
         if (drawGrid3D)
             ViewportGrid3D.Render(graphics2D, _editorCamera);
 
@@ -279,6 +285,15 @@ public sealed class EditorViewport(
     private static bool HasCameraEntities(IContext context)
     {
         foreach (var _ in context.View<CameraComponent>())
+            return true;
+        return false;
+    }
+
+    private static bool HasLightEntities(IContext context)
+    {
+        foreach (var _ in context.View<PointLightComponent>())
+            return true;
+        foreach (var _ in context.View<SpotLightComponent>())
             return true;
         return false;
     }

@@ -22,10 +22,12 @@ uniform int u_HasDiffuseMap;
 uniform int u_HasSpecularMap;
 uniform int u_HasNormalMap;
 uniform int u_ShadowsEnabled;
+uniform int u_PointShadowsEnabled;
 uniform sampler2D u_DiffuseMap;
 uniform sampler2D u_SpecularMap;
 uniform sampler2D u_NormalMap;
 uniform sampler2D u_ShadowMap;
+uniform samplerCube u_PointShadowMap;
 
 struct PointLight {
     vec3 position;
@@ -33,6 +35,7 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
+    float range;
 };
 uniform PointLight u_PointLights[4]; // keep in sync with LightingMath.MaxPointLights
 uniform int u_PointLightCount;
@@ -71,17 +74,24 @@ float ShadowCalculation(vec3 normal, vec3 lightDir)
     return shadow / 9.0;
 }
 
-vec3 PointContribution(vec3 lightPos, vec3 lightColor, float constant, float linear, float quadratic,
+#include "pointShadowPCF.glsl"
+
+vec3 PointContribution(vec3 lightPos, vec3 lightColor, float constant, float linear, float quadratic, float range,
                        vec3 N, vec3 V, vec3 fragPos, vec3 diffuseColor, vec3 specularColor, float shininess)
 {
     vec3 toLight = lightPos - fragPos;
     float distance = length(toLight);
+    if (range > 0.0 && distance > range)
+        return vec3(0.0);
     vec3 L = toLight / max(distance, 1e-4);
     float attenuation = 1.0 / max(constant + linear * distance + quadratic * distance * distance, 1e-4);
+    float rangeFade = range > 0.0
+        ? clamp(1.0 - pow(distance / range, 4.0), 0.0, 1.0)
+        : 1.0;
     float ndotl = max(dot(N, L), 0.0);
     vec3 H = normalize(L + V);
     float spec = pow(max(dot(N, H), 0.0), shininess);
-    return (ndotl * lightColor * diffuseColor + spec * lightColor * specularColor) * attenuation;
+    return (ndotl * lightColor * diffuseColor + spec * lightColor * specularColor) * attenuation * rangeFade;
 }
 
 float SpotCone(vec3 lightPos, vec3 spotDir, vec3 fragPos, float innerCos, float outerCos)
@@ -130,14 +140,19 @@ void main()
     vec3 color = ambient + directional;
     for (int i = 0; i < u_PointLightCount; i++)
     {
-        color += PointContribution(u_PointLights[i].position, u_PointLights[i].color,
-            u_PointLights[i].constant, u_PointLights[i].linear, u_PointLights[i].quadratic,
+        vec3 contribution = PointContribution(u_PointLights[i].position, u_PointLights[i].color,
+            u_PointLights[i].constant, u_PointLights[i].linear, u_PointLights[i].quadratic, u_PointLights[i].range,
             norm, V, v_FragPos, diffuseColor, specularColor, u_Shininess);
+        if (i == 0 && u_PointShadowsEnabled != 0)
+        {
+            contribution *= 1.0 - PointShadowPCF(v_FragPos, norm, u_PointLights[0].position, u_PointLights[0].range);
+        }
+        color += contribution;
     }
     for (int i = 0; i < u_SpotLightCount; i++)
     {
         color += PointContribution(u_SpotLights[i].position, u_SpotLights[i].color,
-            u_SpotLights[i].constant, u_SpotLights[i].linear, u_SpotLights[i].quadratic,
+            u_SpotLights[i].constant, u_SpotLights[i].linear, u_SpotLights[i].quadratic, 0.0,
             norm, V, v_FragPos, diffuseColor, specularColor, u_Shininess)
             * SpotCone(u_SpotLights[i].position, u_SpotLights[i].direction, v_FragPos,
                 u_SpotLights[i].innerCos, u_SpotLights[i].outerCos);

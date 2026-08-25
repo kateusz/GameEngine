@@ -196,6 +196,26 @@ internal static class SceneRenderPipeline
             graphics3D.SetDirectionalLight(lighting.DirectionalDirection, lighting.DirectionalColor);
         }
 
+        if (lighting.PointLights is { Length: > 0 } pointLights
+            && pointLights[0].Range > 0f
+            && pointLights[0].Color.LengthSquared() >= 1e-10f)
+        {
+            var caster = pointLights[0];
+            try
+            {
+                for (var face = 0; face < 6; face++)
+                {
+                    if (!graphics3D.BeginPointShadowPass(caster.Position, caster.Range, face))
+                        break;
+                    DrawAllModelRenderers(context, graphics3D, textureFactory, modelFactory);
+                }
+            }
+            finally
+            {
+                graphics3D.EndPointShadowPass();
+            }
+        }
+
         graphics3D.BeginScene(view);
         graphics3D.SetAmbientLight(lighting.AmbientColor, lighting.AmbientStrength);
         graphics3D.SetPointLights(lighting.PointLights ?? []);

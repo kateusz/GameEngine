@@ -65,6 +65,37 @@ public class Graphics3DShadowRegressionTests(HeadlessGraphicsContextFixture fixt
         var shadowLuma = SampleLuma(pixels, FramebufferTestSpecs.Width / 2, FramebufferTestSpecs.Height * 3 / 4);
         var litLuma = SampleLuma(pixels, FramebufferTestSpecs.Width / 2, FramebufferTestSpecs.Height / 4);
         shadowLuma.ShouldBeLessThan(litLuma * 0.85f);
+
+        var lightPos = new Vector3(0f, 5f, 0f);
+        var pointCube = Matrix4x4.CreateScale(2f, 2f, 2f) * Matrix4x4.CreateTranslation(0f, 1f, 0f);
+
+        framebuffer.Bind();
+        graphics3D.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
+        graphics3D.Clear();
+
+        for (var face = 0; face < 6; face++)
+        {
+            graphics3D.BeginPointShadowPass(lightPos, 25f, face).ShouldBeTrue();
+            graphics3D.DrawCube(floor, Vector4.One);
+            graphics3D.DrawCube(pointCube, Vector4.One);
+        }
+        graphics3D.EndPointShadowPass();
+
+        graphics3D.BeginScene(CameraViews.From(camera, Matrix4x4.CreateTranslation(0f, 2f, 8f)));
+        graphics3D.SetAmbientLight(Vector3.Zero, 0f);
+        graphics3D.SetDirectionalLight(new Vector3(0, -1, 0), Vector3.Zero);
+        graphics3D.SetPointLights([
+            new PointLightUniform(lightPos, new Vector3(2f, 2f, 2f), 1f, 0.09f, 0.032f, 25f)
+        ]);
+        graphics3D.DrawCube(floor, new Vector4(0.8f, 0.8f, 0.8f, 1f));
+        graphics3D.DrawCube(pointCube, new Vector4(0.9f, 0.9f, 0.9f, 1f));
+        graphics3D.EndScene();
+        framebuffer.Unbind();
+
+        pixels = GlFramebufferCapture.ReadColorRgba8(framebuffer);
+        var pointShadowLuma = SampleLuma(pixels, FramebufferTestSpecs.Width / 2, FramebufferTestSpecs.Height * 3 / 4);
+        var pointLitLuma = SampleLuma(pixels, FramebufferTestSpecs.Width * 3 / 4, FramebufferTestSpecs.Height * 3 / 4);
+        pointShadowLuma.ShouldBeLessThan(pointLitLuma * 0.75f);
     }
 
     private static float SampleLuma(byte[] pixels, int x, int y)

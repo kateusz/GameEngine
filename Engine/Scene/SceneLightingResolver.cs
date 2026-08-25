@@ -68,7 +68,8 @@ internal static class SceneLightingResolver
                 Rgb(plc.Color),
                 plc.Constant,
                 plc.Linear,
-                plc.Quadratic);
+                plc.Quadratic,
+                plc.Range);
             if (count == LightingMath.MaxPointLights)
                 break;
         }

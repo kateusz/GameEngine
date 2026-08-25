@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Shaders;
 using Silk.NET.OpenGL;
@@ -152,9 +153,27 @@ internal sealed class OpenGLShader : IShader
         return location;
     }
 
+    private static readonly Regex IncludeRegex = new(@"^\s*#include\s+""([^""]+)""\s*$", RegexOptions.Multiline);
+
+    private static string PreprocessIncludes(string filePath, string source, HashSet<string>? visited = null)
+    {
+        visited ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var baseDir = Path.GetDirectoryName(filePath) ?? ".";
+
+        return IncludeRegex.Replace(source, match =>
+        {
+            var includePath = Path.GetFullPath(Path.Combine(baseDir, match.Groups[1].Value));
+            if (!visited.Add(includePath))
+                throw new InvalidOperationException($"Circular shader include detected: {includePath}");
+
+            var included = File.ReadAllText(includePath);
+            return PreprocessIncludes(includePath, included, visited);
+        });
+    }
+
     private static uint LoadShader(ShaderType type, string path)
     {
-        var src = File.ReadAllText(path);
+        var src = PreprocessIncludes(path, File.ReadAllText(path));
 
         var handle = SilkNetContext.GL.CreateShader(type);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");

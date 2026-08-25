@@ -7,7 +7,8 @@ public readonly record struct PointLightUniform(
     Vector3 Color,
     float Constant,
     float Linear,
-    float Quadratic);
+    float Quadratic,
+    float Range);
 
 public readonly record struct SpotLightUniform(
     Vector3 Position,
