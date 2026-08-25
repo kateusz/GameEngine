@@ -13,6 +13,7 @@ namespace Editor.Features.Application;
 
 public class EditorMenuBar(
     IProjectManager projectManager,
+    IProjectContext projectContext,
     IEditorPreferences editorPreferences,
     EditorSettingsUI editorSettingsUI,
     ISceneManager sceneManager,
@@ -49,6 +50,11 @@ public class EditorMenuBar(
             newProjectPopup.ShowNewProjectPopup();
         if (ImGui.MenuItem("Open Project"))
             newProjectPopup.ShowOpenProjectPopup();
+        if (ImGui.MenuItem("Close Project", enabled: projectContext.HasProject))
+        {
+            projectManager.CloseProject();
+            recentProjectsPanel.Show();
+        }
 
         ImGui.Separator();
 
