@@ -16,27 +16,31 @@ internal class ModelFactory(AssimpModelImporter importer,
     private readonly Lock _cacheLock = new();
     private bool _disposed;
     
-    public Model? Create(string path)
+    public Model? Create(string path, bool mergeByMaterial = false)
     {
         var normalizedPath = Path.GetFullPath(path);
+        var cacheKey = BuildCacheKey(normalizedPath, mergeByMaterial);
 
         lock (_cacheLock)
         {
-            if (_cache.TryGetValue(normalizedPath, out var cached))
+            if (_cache.TryGetValue(cacheKey, out var cached))
                 return cached;
         }
 
-        var model = TryLoadModel(normalizedPath);
+        var model = TryLoadModel(normalizedPath, mergeByMaterial);
 
         lock (_cacheLock)
         {
-            _cache[normalizedPath] = model;
+            _cache[cacheKey] = model;
         }
 
         return model;
     }
 
-    private Model? TryLoadModel(string normalizedPath)
+    private static string BuildCacheKey(string normalizedPath, bool mergeByMaterial) =>
+        mergeByMaterial ? $"{normalizedPath}|m" : $"{normalizedPath}|r";
+
+    private Model? TryLoadModel(string normalizedPath, bool mergeByMaterial)
     {
         if (!File.Exists(normalizedPath))
         {
@@ -46,7 +50,7 @@ internal class ModelFactory(AssimpModelImporter importer,
 
         try
         {
-            var (submeshes, sceneGraph) = importer.Import(normalizedPath);
+            var (submeshes, sceneGraph) = importer.Import(normalizedPath, mergeByMaterial);
             if (submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);

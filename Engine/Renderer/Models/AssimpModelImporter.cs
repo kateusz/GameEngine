@@ -20,19 +20,13 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
     private readonly Assimp _assimp = Assimp.GetApi();
     private bool _disposed;
 
-    public (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) Import(string path)
+    public (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) Import(string path, bool mergeByMaterial = false)
     {
         var submeshes = new List<Mesh>();
-        var pendingTextures = new List<(Mesh Mesh, MaterialInfo Material)>();
+        var pendingTextures = new List<(Mesh Mesh, MeshMaterialMerger.ModelMaterialInfo Material)>();
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
-
-        const uint flags = (uint)(PostProcessSteps.Triangulate |
-                                  PostProcessSteps.SortByPrimitiveType |
-                                  PostProcessSteps.JoinIdenticalVertices |
-                                  PostProcessSteps.GenerateNormals |
-                                  PostProcessSteps.CalculateTangentSpace |
-                                  PostProcessSteps.FlipUVs |
-                                  PostProcessSteps.OptimizeMeshes);
+        var isGltf = IsGltfPath(path);
+        var flags = BuildImportFlags(isGltf);
 
         ModelSceneNode? sceneGraph = null;
 
@@ -76,7 +70,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                         continue;
                     }
 
-                    var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory);
+                    var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory, isGltf);
                     mesh.Shininess = material.Shininess;
                     pendingTextures.Add((mesh, material));
                     meshIndexMap[i] = submeshes.Count;
@@ -98,7 +92,15 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             mesh.NormalTexture = LoadTexture(material.NormalPath);
         }
 
-        return (submeshes, sceneGraph);
+        if (!mergeByMaterial)
+            return (submeshes, sceneGraph);
+
+        var materialInfos = pendingTextures.Select(static t => t.Material).ToList();
+        var merged = MeshMaterialMerger.Merge(submeshes, sceneGraph, materialInfos);
+        foreach (var mesh in submeshes)
+            mesh.Dispose();
+
+        return (merged, null);
     }
 
     private static unsafe ModelSceneNode WalkNode(
@@ -180,21 +182,36 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         indices.Add(face[2]);
     }
 
-    private readonly record struct MaterialInfo(
-        string? DiffusePath,
-        string? SpecularPath,
-        string? NormalPath,
-        float Shininess);
+    private static bool IsGltfPath(string path)
+    {
+        var ext = Path.GetExtension(path);
+        return ext.Equals(".glb", StringComparison.OrdinalIgnoreCase)
+               || ext.Equals(".gltf", StringComparison.OrdinalIgnoreCase);
+    }
 
-    private unsafe MaterialInfo ExtractMaterialInfo(Silk.NET.Assimp.Scene* scene, uint materialIndex,
-        string directory)
+    private static uint BuildImportFlags(bool isGltf)
+    {
+        var flags = PostProcessSteps.Triangulate |
+                    PostProcessSteps.SortByPrimitiveType |
+                    PostProcessSteps.JoinIdenticalVertices |
+                    PostProcessSteps.GenerateNormals |
+                    PostProcessSteps.CalculateTangentSpace |
+                    PostProcessSteps.OptimizeMeshes;
+        // glTF UVs are already OpenGL-style; FlipUVs + stbi vertical flip smears albedo on GLB.
+        if (!isGltf)
+            flags |= PostProcessSteps.FlipUVs;
+        return (uint)flags;
+    }
+
+    private unsafe MeshMaterialMerger.ModelMaterialInfo ExtractMaterialInfo(Silk.NET.Assimp.Scene* scene, uint materialIndex,
+        string directory, bool isGltf)
     {
         if (materialIndex >= scene->MNumMaterials)
         {
             Logger.Warning(
                 "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
                 materialIndex, scene->MNumMaterials);
-            return new MaterialInfo(null, null, null, 32.0f);
+            return new MeshMaterialMerger.ModelMaterialInfo(null, null, null, 32.0f);
         }
 
         var aiMaterial = scene->MMaterials[materialIndex];
@@ -205,8 +222,10 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         var diffuseTexturePath =
             ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
-        // Phong specular ≠ glTF metallic-roughness. Leave ORM maps out of this slot.
-        var specularTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
+        // Phong specular ≠ glTF metallic-roughness; binding MR as specular muddies the look.
+        var specularTexturePath = isGltf
+            ? null
+            : ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
         var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
                                 ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
 
@@ -214,7 +233,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         _assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
         shininess = shininess > 0 ? shininess : 32.0f;
 
-        return new MaterialInfo(diffuseTexturePath, specularTexturePath, normalTexturePath, shininess);
+        return new MeshMaterialMerger.ModelMaterialInfo(diffuseTexturePath, specularTexturePath, normalTexturePath, shininess);
     }
 
     private unsafe string? ResolveTexturePath(Silk.NET.Assimp.Scene* scene, Material* aiMaterial,

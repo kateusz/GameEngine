@@ -219,8 +219,11 @@ Lighting is Blinn-Phong (`assets/shaders/OpenGL/modelShader.*`, `cube.*`). The p
 | CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (`MNumIndices == 3`) |
 | Materials | Diffuse (albedo), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files |
 | GPU upload | `Mesh.Initialize` — vertex layout below; CPU vertex/index lists cleared after upload |
+| Optional merge | Editor asks after model drop (**Merge** vs **Keep hierarchy**). `ModelRendererComponent.MergeByMaterial` persists the choice; `IModelFactory.Create(path, mergeByMaterial)` caches raw and merged variants separately |
 
-The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; OpenGL upload must stay on the context thread. `OptimizeMeshes` reduces submesh count but preserves the Assimp node graph (no `OptimizeGraph` — hierarchy unpacking in the editor needs per-node transforms).
+Default import keeps the Assimp scene graph and editor hierarchy unpack. **Merge** combines all submeshes with the same material into one mesh per material, bakes node transforms into vertices (root Assimp transform skipped — entity transform applies), sets `SceneGraph` to null, and skips hierarchy unpack.
+
+The first `Create` for a path runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; OpenGL upload must stay on the context thread.
 ---
 
 ## Texture Management
