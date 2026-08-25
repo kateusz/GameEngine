@@ -191,16 +191,19 @@ sequenceDiagram
 
 3D is a **forward, unbatched** path: one `DrawIndexed` per cube or imported submesh. That is enough for static props and a handful of characters; it is not an instancing or PBR pipeline.
 
+Scene-wide GL state is sticky within a pass: `BeginScene` enables depth test once; view-projection, camera position (model shader), and lighting uniforms upload once per shader program on first use; `EndScene` unbinds the active program. Per-draw work is model matrix, tint, textures, and VAO bind only.
+
 ### Draw API
 
 `IGraphics3D` (`Engine/Renderer/Pipeline/IGraphics3D.cs`):
 
 | Call | Role |
 |------|------|
-| `BeginScene` | Bind view-projection (runtime entity camera or editor orbit camera) |
-| `SetAmbientLight` / `SetDirectionalLight` | Scene lights for the pass |
+| `BeginScene` | Store view-projection and camera position; enable depth test once for the pass |
+| `SetAmbientLight` / `SetDirectionalLight` | Scene lights for the pass (re-uploaded on next draw if changed mid-scene) |
 | `DrawCube` | Shared unit cube mesh (`MeshFactory.CreateCube`) |
 | `DrawMesh` | GPU mesh + optional diffuse/specular/normal maps |
+| `EndScene` | Unbind active shader program |
 
 Lighting is Blinn-Phong (`assets/shaders/OpenGL/modelShader.*`, `cube.*`). The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
 
@@ -212,14 +215,12 @@ Lighting is Blinn-Phong (`assets/shaders/OpenGL/modelShader.*`, `cube.*`). The p
 |------|----------------|
 | `IModelFactory.Create(path)` | Path cache (including failed loads). Miss → Assimp import + VAO/VBO/EBO |
 | Assimp | Silk.NET Assimp, not AssimpNet. Formats: `.glb`, `.gltf`, `.fbx` |
-| Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs, **pre-transform vertices** (hierarchy baked) |
+| Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs, **optimize meshes** (merge same-material meshes on a node) |
 | CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (`MNumIndices == 3`) |
 | Materials | Diffuse (albedo), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files |
 | GPU upload | `Mesh.Initialize` — vertex layout below; CPU vertex/index lists cleared after upload |
 
-The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; OpenGL upload must stay on the context thread.
-
-`PreTransformVertices` is a static-model choice: node transforms are baked into vertices. Mesh instancing via the Assimp node graph and skeletal animation need that flag off and a node walk — not implemented.
+The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; OpenGL upload must stay on the context thread. `OptimizeMeshes` reduces submesh count but preserves the Assimp node graph (no `OptimizeGraph` — hierarchy unpacking in the editor needs per-node transforms).
 ---
 
 ## Texture Management

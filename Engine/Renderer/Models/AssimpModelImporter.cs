@@ -31,7 +31,8 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                                   PostProcessSteps.JoinIdenticalVertices |
                                   PostProcessSteps.GenerateNormals |
                                   PostProcessSteps.CalculateTangentSpace |
-                                  PostProcessSteps.FlipUVs);
+                                  PostProcessSteps.FlipUVs |
+                                  PostProcessSteps.OptimizeMeshes);
 
         ModelSceneNode? sceneGraph = null;
 

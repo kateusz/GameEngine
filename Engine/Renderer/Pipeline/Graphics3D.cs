@@ -25,6 +25,10 @@ internal sealed class Graphics3D(
     private Vector3 _lightDirection = new(0, -1, 0);
     private Vector3 _lightColor = Vector3.Zero;
 
+    private IShader? _boundShader;
+    private bool _cubeSceneUniformsUploaded;
+    private bool _modelSceneUniformsUploaded;
+
     private readonly Statistics _stats = new();
     private bool _disposed;
 
@@ -57,24 +61,33 @@ internal sealed class Graphics3D(
 
         _viewProjection = viewMatrix * camera.GetProjectionMatrix();
         _viewPosition = new Vector3(transform.M41, transform.M42, transform.M43);
+        BeginSceneState();
     }
 
     public void BeginScene(IViewCamera camera)
     {
         _viewProjection = camera.GetViewProjectionMatrix();
         _viewPosition = camera.GetPosition();
+        BeginSceneState();
     }
 
     public void EndScene()
     {
+        if (_boundShader == null)
+            return;
+
+        _boundShader.Unbind();
+        _boundShader = null;
+        _cubeSceneUniformsUploaded = false;
+        _modelSceneUniformsUploaded = false;
     }
 
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
         float tilingFactor = 1.0f)
     {
-        rendererApi.SetDepthTest(true);
-        BindCommon(_cubeShader, transform, color, entityId);
-        
+        EnsureShaderBound(_cubeShader, isModelShader: false);
+        BindPerDraw(_cubeShader, transform, color, entityId);
+
         _cubeShader.SetFloat("u_TilingFactor", tilingFactor);
         _cubeShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
         if (texture != null)
@@ -86,15 +99,13 @@ internal sealed class Graphics3D(
         _cubeMesh.Bind();
         rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
         _stats.DrawCalls++;
-        _cubeShader.Unbind();
     }
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1)
     {
-        rendererApi.SetDepthTest(true);
-        BindCommon(_modelShader, transform, tint, entityId);
-        
-        _modelShader.SetFloat3("u_ViewPosition", _viewPosition);
+        EnsureShaderBound(_modelShader, isModelShader: true);
+        BindPerDraw(_modelShader, transform, tint, entityId);
+
         _modelShader.SetFloat("u_Shininess", mesh.Shininess);
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
         _modelShader.SetInt("u_HasSpecularMap", mesh.HasSpecularMap ? 1 : 0);
@@ -107,33 +118,72 @@ internal sealed class Graphics3D(
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
-        _modelShader.Unbind();
     }
 
     public void SetAmbientLight(Vector3 color, float strength)
     {
         _ambientColor = color;
         _ambientStrength = strength;
+        InvalidateSceneUniforms();
     }
 
     public void SetDirectionalLight(Vector3 direction, Vector3 color)
     {
         _lightDirection = direction;
         _lightColor = color;
+        InvalidateSceneUniforms();
     }
 
-    private void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
+    private void BeginSceneState()
     {
-        shader.Bind();
+        rendererApi.SetDepthTest(true);
+        _boundShader = null;
+        _cubeSceneUniformsUploaded = false;
+        _modelSceneUniformsUploaded = false;
+    }
+
+    private void InvalidateSceneUniforms()
+    {
+        _cubeSceneUniformsUploaded = false;
+        _modelSceneUniformsUploaded = false;
+    }
+
+    private void EnsureShaderBound(IShader shader, bool isModelShader)
+    {
+        if (_boundShader != shader)
+        {
+            shader.Bind();
+            _boundShader = shader;
+        }
+
+        var uploaded = isModelShader ? _modelSceneUniformsUploaded : _cubeSceneUniformsUploaded;
+        if (uploaded)
+            return;
+
+        UploadSceneUniforms(shader, isModelShader);
+        if (isModelShader)
+            _modelSceneUniformsUploaded = true;
+        else
+            _cubeSceneUniformsUploaded = true;
+    }
+
+    private void UploadSceneUniforms(IShader shader, bool isModelShader)
+    {
         shader.SetMat4(ViewProjectionUniform, _viewProjection);
-        shader.SetMat4("u_Model", transform);
-        shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
-        shader.SetFloat4("u_Color", color);
-        shader.SetInt("u_EntityID", entityId);
+        if (isModelShader)
+            shader.SetFloat3("u_ViewPosition", _viewPosition);
         shader.SetFloat3("u_AmbientColor", _ambientColor);
         shader.SetFloat("u_AmbientStrength", _ambientStrength);
         shader.SetFloat3("u_LightDirection", _lightDirection);
         shader.SetFloat3("u_LightColor", _lightColor);
+    }
+
+    private static void BindPerDraw(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
+    {
+        shader.SetMat4("u_Model", transform);
+        shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
+        shader.SetFloat4("u_Color", color);
+        shader.SetInt("u_EntityID", entityId);
     }
 
     private static Matrix4x4 ComputeNormalMatrix(Matrix4x4 model) =>
