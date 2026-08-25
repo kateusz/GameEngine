@@ -3,6 +3,7 @@ using ECS;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
+using Editor.Features.Tiled;
 using Editor.Features.Viewport.Gizmos;
 using Editor.UI.Drawers;
 using Engine.Core;
@@ -19,6 +20,7 @@ using ImGuiNET;
 using Input;
 using Math;
 using SceneComponents.Camera;
+using Serilog;
 using Ui.ImGui;
 
 namespace Editor.Features.Viewport;
@@ -38,9 +40,11 @@ public sealed class EditorViewport(
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
-    IModelFactory modelFactory)
+    IModelFactory modelFactory,
+    TiledMapImportService tiledImport)
     : IEditorViewport
 {
+    private static readonly ILogger Logger = Log.ForContext<EditorViewport>();
     private readonly Vector2[] _viewportBounds = new Vector2[2];
 
     private EditorCamera _editorCamera = null!;
@@ -105,9 +109,15 @@ public sealed class EditorViewport(
 
         PickHoveredEntity();
 
-        var dropValidator = DragDropDrawer.CreateExtensionValidator([".scene"], checkFileExists: false);
+        var dropValidator = DragDropDrawer.CreateExtensionValidator([".scene", ".tmj"], checkFileExists: false);
         DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload, dropValidator,
-            onDropped: path => sceneManager.Open(PathBuilder.Build(path)));
+            onDropped: path =>
+            {
+                if (path.EndsWith(".tmj", StringComparison.OrdinalIgnoreCase))
+                    tiledImport.ImportFromContentPath(path);
+                else
+                    sceneManager.Open(PathBuilder.Build(path));
+            });
 
         if (ImGui.IsWindowHovered())
             HandleViewportInput();
@@ -278,11 +288,12 @@ public sealed class EditorViewport(
 
     private void PickHoveredEntity()
     {
-        HoveredEntity = null;
-
         var mousePos = ImGui.GetMousePos();
-        if (mousePos == _lastPickMousePos) 
+        var clicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+        if (mousePos == _lastPickMousePos && !clicked)
             return;
+
+        HoveredEntity = null;
         _lastPickMousePos = mousePos;
         var mx = (mousePos.X - _viewportBounds[0].X) * _contentScale;
         var my = (mousePos.Y - _viewportBounds[0].Y) * _contentScale;
@@ -294,8 +305,16 @@ public sealed class EditorViewport(
         var mouseY = (int)my;
 
         if (mouseX < 0 || mouseY < 0 || mouseX >= (int)physicalWidth || mouseY >= (int)physicalHeight)
+        {
+            if (clicked)
+                Logger.Information(
+                    "[TilePick] click outside fb mouse=({Mx:0.#},{My:0.#}) bounds=({X0:0.#},{Y0:0.#})-({X1:0.#},{Y1:0.#}) fb=({FbX},{FbY}) size=({W:0.#}x{H:0.#}) scale={Scale}",
+                    mousePos.X, mousePos.Y, _viewportBounds[0].X, _viewportBounds[0].Y,
+                    _viewportBounds[1].X, _viewportBounds[1].Y, mouseX, mouseY, physicalWidth, physicalHeight, _contentScale);
             return;
+        }
 
+        var spec = _frameBuffer.GetSpecification();
         var entityId = _frameBuffer.ReadPixel(1, mouseX, mouseY);
         Entity? entity = null;
         if (entityId > 0)
@@ -306,6 +325,34 @@ public sealed class EditorViewport(
                 if (entity is not null)
                     _entityById[entity.Id] = entity;
             }
+        }
+
+        var gpuEntity = entity;
+        Vector2? world = null;
+        if (sceneContext.ActiveScene is { } scene)
+        {
+            var local = new Vector2(mousePos.X - _viewportBounds[0].X, mousePos.Y - _viewportBounds[0].Y);
+            world = ViewportCoordinateConverter.ScreenToWorld2D(
+                local, _viewportBounds, _editorCamera.GetViewProjectionMatrix());
+            if (world is { } worldPos)
+                entity = TiledMapPicking.Resolve(scene, entity, worldPos);
+        }
+
+        if (clicked)
+        {
+            Logger.Information(
+                "[TilePick] click fb=({FbX},{FbY}) spec={SpecW}x{SpecH} physical={PhysW:0.#}x{PhysH:0.#} scale={Scale} gpuId={GpuId} gpu={Gpu} world={World} hover={Hover} mode={Mode} hoveredWindow={Hovered} lookupCount={LookupCount} scene={Scene}",
+                mouseX, mouseY, spec.Width, spec.Height, physicalWidth, physicalHeight, _contentScale,
+                entityId,
+                gpuEntity is null ? "null" : $"{gpuEntity.Id} '{gpuEntity.Name}'",
+                world is { } w ? $"({w.X:0.###},{w.Y:0.###})" : "null",
+                entity is null ? "null" : $"{entity.Id} '{entity.Name}'",
+                viewport.SceneToolbar.CurrentMode,
+                IsHovered,
+                _entityById.Count,
+                sceneContext.ActiveScene?.Name ?? "null");
+            if (sceneContext.ActiveScene is { } logScene && world is { } logWorld)
+                TiledMapPicking.LogClick(logScene, gpuEntity, logWorld);
         }
 
         HoveredEntity = entity;

@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.GraphicsTests.ImageRegression;
 using Engine.Scene;
+using Shouldly;
 
 namespace Engine.GraphicsTests;
 
@@ -32,5 +33,29 @@ public class Graphics2DQuadRegressionTests(HeadlessGraphicsContextFixture fixtur
             pixels,
             FramebufferTestSpecs.Width,
             FramebufferTestSpecs.Height);
+    }
+
+    [GraphicsFact]
+    public void OverlappingQuads_LaterEntityIdWinsPickBuffer()
+    {
+        using var framebuffer = fixture.FrameBufferFactory.Create(FramebufferTestSpecs.ColorAndEntityId());
+
+        var camera = new SceneCamera();
+        camera.SetOrthographic(1f, -1f, 1f);
+        camera.SetViewportSize(FramebufferTestSpecs.Width, FramebufferTestSpecs.Height);
+
+        framebuffer.Bind();
+        fixture.Graphics2D.SetClearColor(new Vector4(0f, 0f, 0f, 1f));
+        fixture.Graphics2D.Clear();
+        framebuffer.ClearAttachment(1, -1);
+        fixture.Graphics2D.BeginScene(camera, Matrix4x4.Identity);
+        fixture.Graphics2D.DrawQuad(Matrix4x4.CreateScale(2f), new Vector4(1f, 0f, 0f, 1f), 10);
+        fixture.Graphics2D.DrawQuad(Matrix4x4.CreateScale(0.5f), new Vector4(0f, 1f, 0f, 0.5f), 20);
+        fixture.Graphics2D.EndScene();
+
+        var entityId = framebuffer.ReadPixel(1, FramebufferTestSpecs.Width / 2, FramebufferTestSpecs.Height / 2);
+        framebuffer.Unbind();
+
+        entityId.ShouldBe(20);
     }
 }

@@ -73,9 +73,62 @@ internal static class SceneRenderPipeline
             return;
 
         Begin2DScene(graphics2D, camera);
+        RenderTileMapsInternal(context, graphics2D, textureFactory);
         RenderSpritesInternal(context, graphics2D, textureFactory);
         RenderSubTexturesInternal(context, graphics2D, textureFactory);
         graphics2D.EndScene();
+    }
+
+    private static void RenderTileMapsInternal(
+        IContext context,
+        IGraphics2D graphics2D,
+        ITextureFactory? textureFactory)
+    {
+        var uv = new Vector2[RenderingConstants.QuadVertexCount];
+        foreach (var (entity, tilemap, transformComponent) in
+                 context.View<TileMapComponent, TransformComponent>())
+        {
+            tilemap.Repair();
+            var mapWorld = transformComponent.GetWorldTransform();
+            foreach (var layer in tilemap.Layers)
+            {
+                if (!layer.Visible || textureFactory == null || string.IsNullOrWhiteSpace(layer.TexturePath))
+                    continue;
+
+                Texture2D texture;
+                try
+                {
+                    texture = textureFactory.Create(PathBuilder.Resolve(layer.TexturePath!));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning(ex, "Failed to load tilemap texture '{TexturePath}'", layer.TexturePath);
+                    continue;
+                }
+
+                var tileSize = layer.TileSize > 0 ? layer.TileSize : tilemap.TileSize;
+                for (var y = 0; y < tilemap.Height; y++)
+                {
+                    for (var x = 0; x < tilemap.Width; x++)
+                    {
+                        var i = y * tilemap.Width + x;
+                        if ((uint)i >= (uint)layer.Tiles.Length)
+                            continue;
+
+                        var flags = (uint)i < (uint)layer.Flags.Length ? layer.Flags[i] : (byte)0;
+                        if (!TilesetUv.TryGetUvRect(
+                                layer.Tiles[i], texture.Width, texture.Height, tileSize, layer.Margin, layer.Spacing,
+                                (flags & TileMapComponent.FlipH) != 0,
+                                (flags & TileMapComponent.FlipV) != 0,
+                                uv))
+                            continue;
+
+                        var cell = Matrix4x4.CreateTranslation(x + 0.5f, y + 0.5f, 0f) * mapWorld;
+                        graphics2D.DrawQuad(cell, texture, uv, 1f, Vector4.One, entity.Id);
+                    }
+                }
+            }
+        }
     }
 
     private static void RenderSpritesInternal(

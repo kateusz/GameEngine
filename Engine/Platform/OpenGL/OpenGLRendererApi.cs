@@ -84,6 +84,15 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetDepthTest");
     }
 
+    public void SetBlend(bool enabled)
+    {
+        if (enabled)
+            SilkNetContext.GL.Enable(EnableCap.Blend);
+        else
+            SilkNetContext.GL.Disable(EnableCap.Blend);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "SetBlend");
+    }
+
     public void SetFaceCulling(bool enabled)
     {
         if (enabled)

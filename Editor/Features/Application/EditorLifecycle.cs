@@ -1,4 +1,5 @@
 using ECS;
+using SceneComponents.Rendering;
 using Editor.Features.History;
 using Editor.Features.Scripting;
 using Editor.Features.Project;
@@ -130,8 +131,13 @@ public class EditorLifecycle(
     {
         if (source != SelectionSource.Hierarchy || entity is null)
             return;
+        if (sceneContext.ActiveScene is not { } scene)
+            return;
 
-        if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
-            editorViewport.Camera.SetFocalPoint(transformComponent.Translation);
+        var focusTarget = entity;
+        if (scene.GetParent(entity) is { } parent && parent.HasComponent<TileMapComponent>())
+            focusTarget = parent;
+
+        editorViewport.Camera.SetFocalPoint(scene.GetWorldPosition(focusTarget));
     }
 }

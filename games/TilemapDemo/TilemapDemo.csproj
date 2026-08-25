@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Audio\Audio.csproj" />
+        <ProjectReference Include="..\..\ECS\ECS.csproj" />
+        <ProjectReference Include="..\..\Input\Input.csproj" />
+        <ProjectReference Include="..\..\Math\Math.csproj" />
+        <ProjectReference Include="..\..\SceneComponents\SceneComponents.csproj" />
+        <ProjectReference Include="..\..\Scripting\Scripting.csproj" />
+        <ProjectReference Include="..\..\UI.Paper\UI.Paper.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Prowl.Paper" Version="3.1.0" />
+    </ItemGroup>
+</Project>

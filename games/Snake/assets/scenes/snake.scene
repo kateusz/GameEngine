@@ -53,16 +53,17 @@
           "GridWidth": 16,
           "GridHeight": 12,
           "Body": [
-            98,
-            97,
-            96
+            70,
+            71,
+            72,
+            73
           ],
-          "FoodIndex": -1,
-          "Direction": 1,
-          "PendingDirection": 1,
-          "Score": 0,
+          "FoodIndex": 139,
+          "Direction": 3,
+          "PendingDirection": 3,
+          "Score": 1,
           "GameOver": false,
-          "TickAccumulator": 0,
+          "TickAccumulator": 0.09274280000000017,
           "TickInterval": 0.12,
           "CellCount": 192,
           "Name": "SnakeGameComponent"
@@ -3103,12 +3104,12 @@
         },
         {
           "Color": [
-            0.08,
-            0.12,
-            0.08,
+            1,
+            1,
+            1,
             1
           ],
-          "TexturePath": "textures/cell.png",
+          "TexturePath": "textures/snake/head_left.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -3146,12 +3147,12 @@
         },
         {
           "Color": [
-            0.08,
-            0.12,
-            0.08,
+            1,
+            1,
+            1,
             1
           ],
-          "TexturePath": "textures/cell.png",
+          "TexturePath": "textures/snake/body_horizontal.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -3189,12 +3190,12 @@
         },
         {
           "Color": [
-            0.08,
-            0.12,
-            0.08,
+            1,
+            1,
+            1,
             1
           ],
-          "TexturePath": "textures/cell.png",
+          "TexturePath": "textures/snake/body_horizontal.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -3232,12 +3233,12 @@
         },
         {
           "Color": [
-            0.08,
-            0.12,
-            0.08,
+            1,
+            1,
+            1,
             1
           ],
-          "TexturePath": "textures/cell.png",
+          "TexturePath": "textures/snake/tail_right.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },
@@ -6070,12 +6071,12 @@
         },
         {
           "Color": [
-            0.08,
-            0.12,
-            0.08,
+            1,
+            1,
+            1,
             1
           ],
-          "TexturePath": "textures/cell.png",
+          "TexturePath": "textures/snake/apple.png",
           "TilingFactor": 1,
           "Name": "SpriteRendererComponent"
         },

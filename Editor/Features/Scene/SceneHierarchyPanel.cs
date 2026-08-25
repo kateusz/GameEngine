@@ -3,6 +3,7 @@ using ECS;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Selection;
+using Editor.Features.Tiled;
 using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -17,7 +18,8 @@ public class SceneHierarchyPanel(
     PrefabDropTarget prefabDropTarget,
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection,
-    IEditorHistory history)
+    IEditorHistory history,
+    TiledMapImportService tiledImport)
     : ISceneHierarchyPanel, IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
@@ -58,6 +60,7 @@ public class SceneHierarchyPanel(
             if (ImGui.BeginDragDropTarget())
             {
                 TryAcceptEntityDrop(parent: null);
+                TryAcceptTiledMapDrop();
                 ImGui.EndDragDropTarget();
             }
         }
@@ -140,6 +143,7 @@ public class SceneHierarchyPanel(
         if (ImGui.BeginDragDropTarget())
         {
             TryAcceptEntityDrop(parent: entity);
+            TryAcceptTiledMapDrop();
             ImGui.EndDragDropTarget();
         }
 
@@ -189,6 +193,19 @@ public class SceneHierarchyPanel(
 
         if (_isFilterActive)
             ApplyFilter(_searchQuery);
+    }
+
+    private unsafe void TryAcceptTiledMapDrop()
+    {
+        var payload = ImGui.AcceptDragDropPayload(DragDropDrawer.ContentBrowserItemPayload);
+        if (payload.NativePtr == null)
+            return;
+
+        var path = DragDropDrawer.ExtractStringFromPayload(payload.Data);
+        if (path is null || !path.EndsWith(".tmj", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        tiledImport.ImportFromContentPath(path);
     }
 
     private void RenderSearchInput()

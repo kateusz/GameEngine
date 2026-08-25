@@ -31,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Editor\Editor.csproj" />
     <ProjectReference Include="..\..\Engine\Engine.csproj" />
+    <ProjectReference Include="..\Engine.Tests\Engine.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>

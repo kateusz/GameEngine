@@ -13,6 +13,7 @@ using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
+using Editor.Features.Tiled;
 using Editor.Input;
 using Editor.Panels;
 using Editor.Publisher;
@@ -72,6 +73,8 @@ public static class EditorIoCContainer
         container.RegisterMany<CircleCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<EdgeCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SubTextureRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<TileMapComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<TiledObjectComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioSourceComponentEditor>(Reuse.Singleton);
         container.RegisterMany<AudioListenerComponentEditor>(Reuse.Singleton);
         container.RegisterMany<GameComponentEditor>(Reuse.Singleton);
@@ -135,6 +138,8 @@ public static class EditorIoCContainer
         container.Register<EditorLifecycle>(Reuse.Singleton);
         
         container.Register<IPrefabManager, PrefabManager>(Reuse.Singleton);
+
+        container.Register<TiledMapImportService>(Reuse.Singleton);
 
         container.Register<EditorPanels>(Reuse.Singleton);
         container.Register<ViewportComponents>(Reuse.Singleton);
