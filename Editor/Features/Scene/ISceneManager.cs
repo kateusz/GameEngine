@@ -26,6 +26,10 @@ public interface ISceneManager
     /// <param name="compileScripts">When true, compiles/applies scripts before serialize (Ctrl+S). Autosave passes false.</param>
     void Save(bool compileScripts = true);
 
+    void Close();
+
+    bool IsDirty { get; }
+
     /// <summary>
     /// Enters play mode, initializing runtime systems and physics.
     /// </summary>

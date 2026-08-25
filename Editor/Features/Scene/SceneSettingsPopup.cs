@@ -1,5 +1,6 @@
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
@@ -9,6 +10,7 @@ namespace Editor.Features.Scene;
 public class SceneSettingsPopup(ISceneManager sceneManager)
 {
     private bool _showNewScenePopup;
+    private bool _showCloseConfirmation;
     private string _newSceneName = string.Empty;
     private string _newSceneError = string.Empty;
 
@@ -17,6 +19,8 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
     /// </summary>
     public void ShowNewScenePopup() => _showNewScenePopup = true;
 
+    public void ShowCloseConfirmation() => _showCloseConfirmation = true;
+
     /// <summary>
     /// Renders all scene-related modals.
     /// Must be called from the main render loop.
@@ -24,6 +28,7 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
     public void Render()
     {
         RenderNewScenePopup();
+        RenderCloseConfirmationModal();
     }
 
     private void RenderNewScenePopup()
@@ -65,10 +70,31 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
             okLabel: "Create");
     }
 
+    private void RenderCloseConfirmationModal()
+    {
+        const string title = "Close Scene";
+        if (!ModalDrawer.BeginCenteredModal(title, ref _showCloseConfirmation))
+            return;
+
+        ImGui.TextWrapped("Save changes to the current scene before closing?");
+        ImGui.Separator();
+
+        if (ButtonDrawer.DrawModalButton("Save", () => { sceneManager.Save(); sceneManager.Close(); }))
+            _showCloseConfirmation = false;
+        ImGui.SameLine();
+        if (ButtonDrawer.DrawModalButton("Don't Save", sceneManager.Close))
+            _showCloseConfirmation = false;
+        ImGui.SameLine();
+        if (ButtonDrawer.DrawModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
+            _showCloseConfirmation = false;
+
+        ModalDrawer.EndModal();
+    }
+
     /// <summary>
     /// Validates a scene name.
     /// </summary>
-    private bool IsValidSceneName(string name)
+    private static bool IsValidSceneName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return false;

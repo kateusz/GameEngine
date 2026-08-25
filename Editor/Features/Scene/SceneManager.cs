@@ -24,20 +24,25 @@ public class SceneManager(
 
     private string? _playSnapshotPath;
     private bool _playPaused;
+    private string? _cleanSnapshotPath;
 
     public string? EditorScenePath { get; private set; }
 
+    public bool IsDirty =>
+        _cleanSnapshotPath is not null
+        && File.Exists(_cleanSnapshotPath)
+        && sceneContext.ActiveScene is not null
+        && SceneDiffersFromSnapshot();
+
     public void New(string sceneName)
     {
-        ClearPlaySession();
-        sceneContext.ActiveScene?.Dispose();
-        EditorScenePath = null;
-
-        sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
+        ReplaceActiveScene(sceneName);
         Logger.Information("📄 New scene created");
 
         if (!string.IsNullOrWhiteSpace(sceneName) && projectContext.HasProject)
             Save();
+
+        CaptureCleanSnapshot();
     }
 
     public void Open(string path)
@@ -58,6 +63,7 @@ public class SceneManager(
 
         sceneSerializer.Deserialize(scene, path);
         sceneContext.SetScene(scene);
+        CaptureCleanSnapshot();
         Logger.Information("📂 Scene opened: {Path}", path);
     }
 
@@ -74,7 +80,18 @@ public class SceneManager(
         }
 
         sceneSerializer.Serialize(sceneContext.ActiveScene!, EditorScenePath);
+        CaptureCleanSnapshot();
         Logger.Information("💾 Scene saved: {EditorScenePath}", EditorScenePath);
+    }
+
+    public void Close()
+    {
+        if (sceneContext.State == SceneState.Play)
+            Stop();
+
+        ReplaceActiveScene("");
+        CaptureCleanSnapshot();
+        Logger.Information("Scene closed");
     }
 
     public void Play()
@@ -151,6 +168,30 @@ public class SceneManager(
 
     public string? GetCurrentScenePath() => EditorScenePath;
 
+    private void ReplaceActiveScene(string sceneName)
+    {
+        ClearPlaySession();
+        sceneContext.ActiveScene?.Dispose();
+        EditorScenePath = null;
+        sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
+    }
+
+    private bool SceneDiffersFromSnapshot()
+    {
+        var checkPath = _cleanSnapshotPath + ".check";
+        try
+        {
+            sceneSerializer.Serialize(sceneContext.ActiveScene!, checkPath);
+            return !File.ReadAllBytes(_cleanSnapshotPath!).AsSpan()
+                .SequenceEqual(File.ReadAllBytes(checkPath));
+        }
+        finally
+        {
+            if (File.Exists(checkPath))
+                File.Delete(checkPath);
+        }
+    }
+
     private void ReloadEntitiesFromSnapshot(IScene scene, string snapshotPath)
     {
         var destroyed = 0;
@@ -188,5 +229,23 @@ public class SceneManager(
 
         _playSnapshotPath = null;
         _playPaused = false;
+    }
+
+    private void CaptureCleanSnapshot()
+    {
+        DeleteCleanSnapshot();
+        if (sceneContext.ActiveScene is null)
+            return;
+
+        _cleanSnapshotPath = Path.Combine(Path.GetTempPath(), $"ge-clean-{Guid.NewGuid():N}.scene");
+        sceneSerializer.Serialize(sceneContext.ActiveScene, _cleanSnapshotPath);
+    }
+
+    private void DeleteCleanSnapshot()
+    {
+        if (_cleanSnapshotPath is not null && File.Exists(_cleanSnapshotPath))
+            File.Delete(_cleanSnapshotPath);
+
+        _cleanSnapshotPath = null;
     }
 }
