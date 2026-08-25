@@ -1,10 +1,7 @@
 using System.Diagnostics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Textures;
-using Pfim;
 using Silk.NET.OpenGL;
-using StbImageSharp;
-using Buffer = System.Buffer;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 using PixelType = Silk.NET.OpenGL.PixelType;
@@ -19,8 +16,6 @@ namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLTexture2D : Texture2D
 {
-    private const int StbiFlipVerticallyEnabled = 1;
-
     private uint _rendererId;
     private readonly int _hashCode;
     private readonly InternalFormat _internalFormat;
@@ -52,91 +47,11 @@ internal sealed class OpenGLTexture2D : Texture2D
         return _rendererId;
     }
 
-    private static readonly HashSet<string> PfimExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".dds", ".tga"
-    };
-
     public static Texture2D Create(string path, bool sRgb = false)
     {
-        if (!File.Exists(path))
-            throw new FileNotFoundException($"Texture file not found: {path}", path);
-
-        var ext = System.IO.Path.GetExtension(path);
-        if (PfimExtensions.Contains(ext))
-            return CreateFromPfim(path, sRgb);
-
-        return CreateFromStb(path, sRgb);
-    }
-
-    private static Texture2D CreateFromStb(string path, bool sRgb)
-    {
-        StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
-
-        ImageResult image;
-        using (var stream = File.OpenRead(path))
-        {
-            image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
-        }
-
-        var internalFormat = sRgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8;
-        return UploadTexture(path, image.Data, image.Width, image.Height, internalFormat, PixelFormat.Rgba);
-    }
-
-    private static Texture2D CreateFromPfim(string path, bool sRgb)
-    {
-        using var pfimImage = Pfimage.FromFile(path);
-        if (pfimImage.Compressed)
-            pfimImage.Decompress();
-
-        var (internalFormat, dataFormat) = pfimImage.Format switch
-        {
-            Pfim.ImageFormat.Rgba32 => (sRgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8, PixelFormat.Bgra),
-            Pfim.ImageFormat.Rgb24 => (sRgb ? InternalFormat.Srgb8 : InternalFormat.Rgb8, PixelFormat.Bgr),
-            Pfim.ImageFormat.R5g5b5 => (InternalFormat.Rgb5, PixelFormat.Bgr),
-            Pfim.ImageFormat.R5g6b5 => (InternalFormat.Rgb565, PixelFormat.Bgr),
-            Pfim.ImageFormat.R5g5b5a1 => (InternalFormat.Rgb5A1, PixelFormat.Bgra),
-            Pfim.ImageFormat.Rgba16 => (InternalFormat.Rgba4, PixelFormat.Bgra),
-            _ => throw new NotSupportedException($"Unsupported Pfim format '{pfimImage.Format}' for texture: {path}")
-        };
-
-        var bytesPerPixel = pfimImage.BitsPerPixel / 8;
-        if (bytesPerPixel == 0)
-            throw new NotSupportedException(
-                $"Pfim reported BitsPerPixel=0 for '{pfimImage.Format}' in texture: {path}");
-
-        var tightStride = pfimImage.Width * bytesPerPixel;
-        byte[] data;
-
-        if (pfimImage.Stride != tightStride)
-        {
-            data = new byte[tightStride * pfimImage.Height];
-            for (var row = 0; row < pfimImage.Height; row++)
-            {
-                Buffer.BlockCopy(pfimImage.Data, row * pfimImage.Stride, data, row * tightStride, tightStride);
-            }
-        }
-        else
-        {
-            data = pfimImage.Data;
-        }
-
-        FlipVertically(data, pfimImage.Height, tightStride);
-
-        return UploadTexture(path, data, pfimImage.Width, pfimImage.Height, internalFormat, dataFormat);
-    }
-
-    private static void FlipVertically(byte[] data, int height, int stride)
-    {
-        var tempRow = new byte[stride];
-        for (var y = 0; y < height / 2; y++)
-        {
-            var topOffset = y * stride;
-            var bottomOffset = (height - 1 - y) * stride;
-            Buffer.BlockCopy(data, topOffset, tempRow, 0, stride);
-            Buffer.BlockCopy(data, bottomOffset, data, topOffset, stride);
-            Buffer.BlockCopy(tempRow, 0, data, bottomOffset, stride);
-        }
+        var decoded = TextureFileDecoder.Decode(path, sRgb);
+        return UploadTexture(path, decoded.Data, decoded.Width, decoded.Height, decoded.InternalFormat,
+            decoded.DataFormat);
     }
 
     private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
