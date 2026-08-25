@@ -108,6 +108,13 @@ public class EditorMenuBar(
             sceneSettingsPopup.ShowNewScenePopup();
         if (ImGui.MenuItem("Save", "Ctrl+S"))
             sceneManager.Save();
+        if (ImGui.MenuItem("Close"))
+        {
+            if (sceneManager.IsDirty)
+                sceneSettingsPopup.ShowCloseConfirmation();
+            else
+                sceneManager.Close();
+        }
         ImGui.EndMenu();
     }
 
