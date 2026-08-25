@@ -37,7 +37,8 @@ public class Mesh : IDisposable
     public Texture2D? SpecularTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public float Shininess { get; set; } = 32.0f;
-    
+    public Aabb? LocalAabb { get; private set; }
+
     public bool HasDiffuseMap => DiffuseTexture != null;
     public bool HasSpecularMap => SpecularTexture != null;
     public bool HasNormalMap => NormalTexture != null;
@@ -80,6 +81,7 @@ public class Mesh : IDisposable
         var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
         _vertexArray.SetIndexBuffer(indexBuffer);
 
+        LocalAabb = Vertices.Count == 0 ? null : ComputeLocalAabb(Vertices);
         _initialized = true;
 
         Vertices.Clear();
@@ -102,6 +104,19 @@ public class Mesh : IDisposable
     }
 
     public int GetIndexCount() => _initialized ? _vertexArray.IndexBuffer.Count : Indices.Count;
+
+    private static Aabb ComputeLocalAabb(List<Vertex> vertices)
+    {
+        var min = vertices[0].Position;
+        var max = min;
+        for (var i = 1; i < vertices.Count; i++)
+        {
+            min = Vector3.Min(min, vertices[i].Position);
+            max = Vector3.Max(max, vertices[i].Position);
+        }
+
+        return new Aabb(min, max);
+    }
 
     public void Dispose()
     {

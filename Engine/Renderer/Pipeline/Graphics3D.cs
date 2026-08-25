@@ -28,6 +28,7 @@ internal sealed class Graphics3D(
     private IShader? _boundShader;
     private bool _cubeSceneUniformsUploaded;
     private bool _modelSceneUniformsUploaded;
+    private Frustum _frustum;
 
     private readonly Statistics _stats = new();
     private bool _disposed;
@@ -56,6 +57,7 @@ internal sealed class Graphics3D(
             Serilog.Log.ForContext<Graphics3D>().Error(
                 "Failed to invert camera transform matrix (M11={M11}, M22={M22}, M33={M33}, M44={M44}). Skipping scene.",
                 transform.M11, transform.M22, transform.M33, transform.M44);
+            _frustum = default;
             return;
         }
 
@@ -85,6 +87,9 @@ internal sealed class Graphics3D(
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
         float tilingFactor = 1.0f)
     {
+        if (ShouldSkipDraw(transform, _cubeMesh))
+            return;
+
         EnsureShaderBound(_cubeShader, isModelShader: false);
         BindPerDraw(_cubeShader, transform, color, entityId);
 
@@ -103,6 +108,9 @@ internal sealed class Graphics3D(
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1)
     {
+        if (ShouldSkipDraw(transform, mesh))
+            return;
+
         EnsureShaderBound(_modelShader, isModelShader: true);
         BindPerDraw(_modelShader, transform, tint, entityId);
 
@@ -140,6 +148,23 @@ internal sealed class Graphics3D(
         _boundShader = null;
         _cubeSceneUniformsUploaded = false;
         _modelSceneUniformsUploaded = false;
+        _frustum = Frustum.FromViewProjection(_viewProjection);
+    }
+
+    private bool ShouldSkipDraw(Matrix4x4 transform, Mesh mesh)
+    {
+        if (mesh.GetIndexCount() == 0)
+            return true;
+
+        if (mesh.LocalAabb is not { } local)
+            return false;
+
+        var world = local.Transform(transform);
+        if (!world.IsFinite || _frustum.Intersects(world))
+            return false;
+
+        _stats.CulledDraws++;
+        return true;
     }
 
     private void InvalidateSceneUniforms()
@@ -192,6 +217,7 @@ internal sealed class Graphics3D(
     public void ResetStats()
     {
         _stats.DrawCalls = 0;
+        _stats.CulledDraws = 0;
     }
 
     public Statistics GetStats() => _stats;
