@@ -46,7 +46,7 @@ internal class ModelFactory(AssimpModelImporter importer,
 
         try
         {
-            var submeshes = importer.Import(normalizedPath);
+            var (submeshes, sceneGraph) = importer.Import(normalizedPath);
             if (submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);
@@ -75,7 +75,7 @@ internal class ModelFactory(AssimpModelImporter importer,
                 return null;
             }
 
-            return new Model(normalizedPath, initialized);
+            return new Model(normalizedPath, initialized, sceneGraph);
         }
         catch (Exception ex)
         {

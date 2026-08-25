@@ -178,6 +178,16 @@ internal static class SceneRenderPipeline
                 continue;
             }
 
+            if (modelRenderer.MeshIndex is int meshIndex)
+            {
+                if (meshIndex >= 0 && meshIndex < model.Submeshes.Count)
+                    graphics3D.DrawMesh(transform, model.Submeshes[meshIndex], tint, entity.Id);
+                continue;
+            }
+
+            if (modelRenderer.SuppressDraw)
+                continue;
+
             foreach (var submesh in model.Submeshes)
                 graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
         }

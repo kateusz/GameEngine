@@ -15,7 +15,7 @@ public static class ModelDropTarget
 
     public static void Draw(
         string label,
-        Action<string> onModelPathChanged,
+        Action<string, Model> onModelDropped,
         IModelFactory modelFactory,
         string? currentModelPath = null)
     {
@@ -37,13 +37,14 @@ public static class ModelDropTarget
                 path =>
                 {
                     var modelPath = PathBuilder.Resolve(path);
-                    if (modelFactory.Create(modelPath) == null)
+                    var model = modelFactory.Create(modelPath);
+                    if (model == null)
                     {
                         Logger.Warning("Failed to load model from {Path}", modelPath);
                         return;
                     }
 
-                    onModelPathChanged(PathBuilder.ToAssetRelativePath(path));
+                    onModelDropped(PathBuilder.ToAssetRelativePath(path), model);
                 });
         });
     }
