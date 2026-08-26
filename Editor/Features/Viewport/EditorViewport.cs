@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
+using Editor.Features.Settings;
 using Editor.Features.Tiled;
 using Editor.Features.Viewport.Gizmos;
 using Editor.UI.Drawers;
@@ -32,6 +33,7 @@ public sealed class EditorViewport(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     DebugSettings debugSettings,
+    IEditorPreferences editorPreferences,
     IFrameBufferFactory frameBufferFactory,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
@@ -265,6 +267,7 @@ public sealed class EditorViewport(
 
     private void RenderSceneToFramebuffer(TimeSpan deltaTime)
     {
+        graphics3D.Wireframe = editorPreferences.ShowWireframe;
         graphics2D.ResetStats();
         graphics3D.ResetStats();
         _frameBuffer.Bind();

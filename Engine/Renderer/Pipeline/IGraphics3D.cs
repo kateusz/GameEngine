@@ -20,6 +20,7 @@ public interface IGraphics3D : IGraphics
     void SetPointLights(PointLightUniform[] lights);
     void SetSpotLights(SpotLightUniform[] lights);
     void DrawSkybox(Texture2D hdrTexture, float intensity, float yawRadians);
+    bool Wireframe { get; set; }
     void ResetStats();
     Statistics GetStats();
 }

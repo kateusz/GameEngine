@@ -18,7 +18,7 @@ internal sealed class Graphics3D(
     IFrameBufferFactory frameBufferFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
-    private const uint ShadowMapSize = 1024;
+    private const uint ShadowMapSize = 2048;
     private const uint PointShadowMapSize = 512;
     private const int ShadowMapTextureSlot = 3;
     private const int PointShadowMapTextureSlot = 4;
@@ -51,6 +51,8 @@ internal sealed class Graphics3D(
     private bool _inShadowPass;
     private bool _inPointShadowPass;
     private Matrix4x4[] _pointShadowFaceMatrices = [];
+
+    public bool Wireframe { get; set; }
 
     private IShader? _boundShader;
     private bool _cubeSceneUniformsUploaded;
@@ -112,6 +114,8 @@ internal sealed class Graphics3D(
             _modelSceneUniformsUploaded = false;
         }
 
+        if (Wireframe)
+            rendererApi.SetPolygonMode(PolygonMode.Fill);
         _pointShadowMapReady = false;
     }
 
@@ -202,10 +206,11 @@ internal sealed class Graphics3D(
         BindPerDraw(_cubeShader, transform, color, entityId);
 
         _cubeShader.SetFloat("u_TilingFactor", tilingFactor);
-        _cubeShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
-        if (texture != null)
+        var useTexture = !Wireframe && texture != null;
+        _cubeShader.SetInt("u_UseTexture", useTexture ? 1 : 0);
+        if (useTexture)
         {
-            texture.Bind(0);
+            texture!.Bind(0);
             _cubeShader.SetInt("u_Texture", 0);
         }
 
@@ -229,13 +234,17 @@ internal sealed class Graphics3D(
         BindPerDraw(_modelShader, transform, tint, entityId);
 
         _modelShader.SetFloat("u_Shininess", mesh.Shininess);
-        _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
-        _modelShader.SetInt("u_HasSpecularMap", mesh.HasSpecularMap ? 1 : 0);
-        _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
+        var useMaps = !Wireframe;
+        _modelShader.SetInt("u_HasDiffuseMap", useMaps && mesh.HasDiffuseMap ? 1 : 0);
+        _modelShader.SetInt("u_HasSpecularMap", useMaps && mesh.HasSpecularMap ? 1 : 0);
+        _modelShader.SetInt("u_HasNormalMap", useMaps && mesh.HasNormalMap ? 1 : 0);
 
-        (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
-        (mesh.SpecularTexture ?? textureFactory.GetBlackTexture()).Bind(1);
-        (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+        if (useMaps)
+        {
+            (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
+            (mesh.SpecularTexture ?? textureFactory.GetBlackTexture()).Bind(1);
+            (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+        }
 
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
@@ -272,6 +281,8 @@ internal sealed class Graphics3D(
 
     public void DrawSkybox(Texture2D hdrTexture, float intensity, float yawRadians)
     {
+        rendererApi.SetPolygonMode(PolygonMode.Fill);
+
         if (_boundShader != _skyboxShader)
         {
             _skyboxShader.Bind();
@@ -373,6 +384,8 @@ internal sealed class Graphics3D(
     private void BeginSceneState()
     {
         rendererApi.SetDepthTest(true);
+        if (Wireframe)
+            rendererApi.SetPolygonMode(PolygonMode.Line);
         _boundShader = null;
         _cubeSceneUniformsUploaded = false;
         _modelSceneUniformsUploaded = false;

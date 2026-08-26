@@ -83,7 +83,7 @@ public class Graphics3DTests : IDisposable
     [Fact]
     public void DrawCube_InFront_IncrementsDrawCalls_OffToTheSide_IncrementsCulledOnly()
     {
-        var (graphics3D, rendererApi, _) = CreateGraphics3D();
+        var (graphics3D, rendererApi, _, _, _) = CreateGraphics3D();
         BeginPerspective(graphics3D);
 
         graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One);
@@ -98,7 +98,7 @@ public class Graphics3DTests : IDisposable
     [Fact]
     public void NonFiniteViewProjection_DrawsInsteadOfCulling()
     {
-        var (graphics3D, rendererApi, _) = CreateGraphics3D();
+        var (graphics3D, rendererApi, _, _, _) = CreateGraphics3D();
         var nan = Matrix4x4.Identity;
         nan.M11 = float.NaN;
 
@@ -114,7 +114,7 @@ public class Graphics3DTests : IDisposable
     [Fact]
     public void EmptyMesh_SkipsDrawWithoutCountingAsCulled()
     {
-        var (graphics3D, rendererApi, _) = CreateGraphics3D(indexCount: 0);
+        var (graphics3D, rendererApi, _, _, _) = CreateGraphics3D(indexCount: 0);
         BeginPerspective(graphics3D);
 
         graphics3D.DrawMesh(Matrix4x4.CreateTranslation(0f, 0f, -5f), CreateInitializedMesh("empty", 0), Vector4.One);
@@ -199,9 +199,45 @@ public class Graphics3DTests : IDisposable
     }
 
     [Fact]
+    public void Wireframe_DrawCubeAndSkybox_SetsPolygonMode()
+    {
+        var (graphics3D, rendererApi, cubeShader, _, _) = CreateGraphics3D();
+        var cubeTexture = Substitute.For<Texture2D>();
+        var skyboxTexture = Substitute.For<Texture2D>();
+        graphics3D.Wireframe = true;
+        BeginPerspective(graphics3D);
+
+        graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One, texture: cubeTexture);
+        graphics3D.DrawSkybox(skyboxTexture, 1f, 0f);
+        graphics3D.EndScene();
+
+        rendererApi.Received(1).SetPolygonMode(PolygonMode.Line);
+        rendererApi.Received(2).SetPolygonMode(PolygonMode.Fill);
+        cubeShader.Received(1).SetInt("u_UseTexture", 0);
+        cubeTexture.DidNotReceive().Bind(Arg.Any<int>());
+    }
+
+    [Fact]
+    public void Wireframe_DrawMesh_DisablesMaterialMaps()
+    {
+        var (graphics3D, _, _, modelShader, _) = CreateGraphics3D();
+        var mesh = CreateInitializedMesh("model", 36);
+        mesh.DiffuseTexture = Substitute.For<Texture2D>();
+        graphics3D.Wireframe = true;
+        BeginPerspective(graphics3D);
+
+        graphics3D.DrawMesh(Matrix4x4.CreateTranslation(0f, 0f, -5f), mesh, Vector4.One);
+
+        modelShader.Received(1).SetInt("u_HasDiffuseMap", 0);
+        modelShader.Received(1).SetInt("u_HasSpecularMap", 0);
+        modelShader.Received(1).SetInt("u_HasNormalMap", 0);
+        mesh.DiffuseTexture!.DidNotReceive().Bind(Arg.Any<int>());
+    }
+
+    [Fact]
     public void BeginPointShadowPass_FaceZero_EnablesFrontFaceCullAndDepthTest()
     {
-        var (graphics3D, rendererApi, pointDepthShader) = CreateGraphics3D();
+        var (graphics3D, rendererApi, _, _, pointDepthShader) = CreateGraphics3D();
 
         graphics3D.BeginPointShadowPass(new Vector3(0, 5, 0), 25f, 0).ShouldBeTrue();
 
@@ -210,7 +246,7 @@ public class Graphics3DTests : IDisposable
         pointDepthShader.Received(1).SetFloat("u_FarPlane", 25f);
     }
 
-    private static (Graphics3D Graphics, IRendererAPI RendererApi, IShader PointDepthShader) CreateGraphics3D(int indexCount = 36)
+    private static (Graphics3D Graphics, IRendererAPI RendererApi, IShader CubeShader, IShader ModelShader, IShader PointDepthShader) CreateGraphics3D(int indexCount = 36)
     {
         var rendererApi = Substitute.For<IRendererAPI>();
         var cubeShader = Substitute.For<IShader>();
@@ -237,7 +273,7 @@ public class Graphics3DTests : IDisposable
         var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>(),
             vertexArrayFactory, frameBufferFactory);
         graphics3D.Init();
-        return (graphics3D, rendererApi, pointDepthShader);
+        return (graphics3D, rendererApi, cubeShader, modelShader, pointDepthShader);
     }
 
     private static void BeginPerspective(Graphics3D graphics3D)

@@ -26,6 +26,13 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.Save();
         }
 
+        var showWireframe = editorPreferences.ShowWireframe;
+        if (ImGui.Checkbox("Show Wireframe", ref showWireframe))
+        {
+            editorPreferences.ShowWireframe = showWireframe;
+            editorPreferences.Save();
+        }
+
         var showFps = editorPreferences.ShowFPS;
         if (ImGui.Checkbox("Show FPS Counter", ref showFps))
         {

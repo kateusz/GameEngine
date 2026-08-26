@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Features.Settings;
 using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -10,7 +11,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory, ScriptEditorPanel scriptEditor)
+public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory, IEditorPreferences editorPreferences, ScriptEditorPanel scriptEditor)
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -149,6 +150,16 @@ public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager
         if (ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
             SetShowGrid3D(showGrid3D);
         LayoutDrawer.DrawTooltip("3D Scene");
+
+        ImGui.SameLine();
+
+        var showWireframe = editorPreferences.ShowWireframe;
+        if (ButtonDrawer.DrawToggleButton("Wire", "Wire", ref showWireframe, width: EditorUIConstants.ToolbarWireframeToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
+        {
+            editorPreferences.ShowWireframe = showWireframe;
+            editorPreferences.Save();
+        }
+        LayoutDrawer.DrawTooltip("Wireframe");
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 

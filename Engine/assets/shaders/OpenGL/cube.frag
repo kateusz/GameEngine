@@ -54,18 +54,27 @@ float ShadowCalculation(vec3 normal, vec3 lightDir)
     if (projCoords.z > 1.0)
         return 0.0;
 
+    // ponytail: bilinear PCF; integer-offset PCF is constant per texel → stairs
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    vec2 mapSize = vec2(textureSize(u_ShadowMap, 0));
+    vec2 texelSize = 1.0 / mapSize;
+    vec2 uv = projCoords.xy * mapSize - 0.5;
+    vec2 f = fract(uv);
+    vec2 origin = (floor(uv) + 0.5) * texelSize;
+
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(u_ShadowMap, 0));
-    for (int x = -1; x <= 1; ++x)
+    for (int x = 0; x <= 1; ++x)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int y = 0; y <= 1; ++y)
         {
-            float pcfDepth = texture(u_ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += projCoords.z - bias > pcfDepth ? 1.0 : 0.0;
+            float closest = texture(u_ShadowMap, origin + vec2(x, y) * texelSize).r;
+            float blocked = projCoords.z - bias > closest ? 1.0 : 0.0;
+            float wx = x == 0 ? 1.0 - f.x : f.x;
+            float wy = y == 0 ? 1.0 - f.y : f.y;
+            shadow += blocked * wx * wy;
         }
     }
-    return shadow / 9.0;
+    return shadow;
 }
 
 #include "pointShadowPCF.glsl"

@@ -17,6 +17,7 @@ public interface IEditorPreferences : IDisposable
     /// Gets or sets whether to show collider bounds in the viewport.
     /// </summary>
     bool ShowColliderBounds { get; set; }
+    bool ShowWireframe { get; set; }
 
     /// <summary>
     /// Gets or sets whether to show FPS counter.

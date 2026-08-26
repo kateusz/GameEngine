@@ -22,6 +22,7 @@ public class EditorPreferences : IEditorPreferences
 
     // Debug Settings
     public bool ShowColliderBounds { get; set; }
+    public bool ShowWireframe { get; set; }
     public bool ShowFPS { get; set; } = true;
 
     // Autosave: 0 = off
