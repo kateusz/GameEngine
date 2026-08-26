@@ -33,6 +33,27 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.Save();
         }
 
+        var showVignette = editorPreferences.ShowVignette;
+        if (ImGui.Checkbox("Show Vignette", ref showVignette))
+        {
+            editorPreferences.ShowVignette = showVignette;
+            editorPreferences.Save();
+        }
+
+        var vignetteIntensity = editorPreferences.VignetteIntensity;
+        if (ImGui.SliderFloat("Vignette Intensity", ref vignetteIntensity, 0f, 1f))
+        {
+            editorPreferences.VignetteIntensity = vignetteIntensity;
+            editorPreferences.Save();
+        }
+
+        var vignetteRadius = editorPreferences.VignetteRadius;
+        if (ImGui.SliderFloat("Vignette Radius", ref vignetteRadius, 0f, 1f))
+        {
+            editorPreferences.VignetteRadius = vignetteRadius;
+            editorPreferences.Save();
+        }
+
         var showFps = editorPreferences.ShowFPS;
         if (ImGui.Checkbox("Show FPS Counter", ref showFps))
         {

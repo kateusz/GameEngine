@@ -32,13 +32,16 @@ public class GameLayer(
     GameConfiguration gameConfig,
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
     IFrameBufferFactory frameBufferFactory,
-    FxaaPass fxaaPass)
+    FxaaPass fxaaPass,
+    VignettePass vignettePass)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
+    private const bool RuntimeVignetteEnabled = false;
 
     private readonly Action<IScene> _sceneChangedHandler = _ => Logger.Information("Active scene changed");
     private IFrameBuffer? _sceneFrameBuffer;
+    private IFrameBuffer? _resolveFrameBuffer;
 
     public void OnAttach(IInputSystem inputSystem)
     {
@@ -75,7 +78,9 @@ public class GameLayer(
         var size = gameWindow.ClientSize;
         scene.OnViewportResize((uint)size.X, (uint)size.Y);
         fxaaPass.Init();
+        vignettePass.Init();
         TryCreateSceneFramebuffer();
+        TryCreateResolveFramebuffer();
         Logger.Information("Startup scene loaded successfully");
     }
 
@@ -89,6 +94,8 @@ public class GameLayer(
         sceneContext.ActiveScene?.Dispose();
         _sceneFrameBuffer?.Dispose();
         _sceneFrameBuffer = null;
+        _resolveFrameBuffer?.Dispose();
+        _resolveFrameBuffer = null;
     }
 
     public void OnUpdate(TimeSpan timeSpan)
@@ -99,7 +106,7 @@ public class GameLayer(
         pointerSurface.Set(Vector2.Zero, gameWindow.ClientSize);
 
         var (fbWidth, fbHeight) = FramebufferPixelSize();
-        if (fxaaPass.Available && _sceneFrameBuffer != null && fbWidth > 0 && fbHeight > 0)
+        if (_sceneFrameBuffer != null && fbWidth > 0 && fbHeight > 0)
         {
             EnsureSceneFramebufferSize(fbWidth, fbHeight);
             _sceneFrameBuffer.Bind();
@@ -107,7 +114,7 @@ public class GameLayer(
             graphics2D.Clear();
             scene.OnUpdateRuntime(timeSpan);
             _sceneFrameBuffer.Unbind();
-            fxaaPass.Apply(_sceneFrameBuffer.GetColorAttachmentRendererId(), fbWidth, fbHeight, dest: null);
+            ApplyPostProcessChain(fbWidth, fbHeight);
         }
         else
         {
@@ -144,7 +151,10 @@ public class GameLayer(
             Logger.Information("GameLayer: Window resized: {Width}x{Height}", resizeEvent.Width, resizeEvent.Height);
             sceneContext.ActiveScene?.OnViewportResize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
             if (resizeEvent.Width > 0 && resizeEvent.Height > 0)
-                EnsureSceneFramebufferSize((uint)resizeEvent.Width, (uint)resizeEvent.Height);
+            {
+                var (width, height) = FramebufferPixelSize();
+                EnsureSceneFramebufferSize(width, height);
+            }
         }
     }
 
@@ -159,7 +169,7 @@ public class GameLayer(
 
     private void TryCreateSceneFramebuffer()
     {
-        if (!fxaaPass.Available)
+        if (!fxaaPass.Available && !vignettePass.Available)
             return;
 
         var (width, height) = FramebufferPixelSize();
@@ -172,8 +182,54 @@ public class GameLayer(
         }
         catch (Exception ex)
         {
-            Logger.Warning(ex, "FXAA scene framebuffer failed");
+            Logger.Warning(ex, "Post-process scene framebuffer failed");
             _sceneFrameBuffer = null;
+        }
+    }
+
+    private void TryCreateResolveFramebuffer()
+    {
+        if (_resolveFrameBuffer != null || !fxaaPass.Available || !vignettePass.Available)
+            return;
+
+        var (width, height) = FramebufferPixelSize();
+        if (width == 0 || height == 0)
+            return;
+
+        try
+        {
+            _resolveFrameBuffer = frameBufferFactory.Create(ResolveColorSpec(width, height));
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Post-process resolve framebuffer failed");
+            _resolveFrameBuffer = null;
+        }
+    }
+
+    private void ApplyPostProcessChain(uint width, uint height)
+    {
+        if (_sceneFrameBuffer == null)
+            return;
+
+        var sourceId = _sceneFrameBuffer.GetColorAttachmentRendererId();
+        var runVignette = RuntimeVignetteEnabled && vignettePass.Available;
+
+        if (fxaaPass.Available && runVignette && _resolveFrameBuffer != null)
+        {
+            fxaaPass.Apply(sourceId, width, height, _resolveFrameBuffer);
+            sourceId = _resolveFrameBuffer.GetColorAttachmentRendererId();
+        }
+        else if (fxaaPass.Available)
+        {
+            fxaaPass.Apply(sourceId, width, height, dest: null);
+            return;
+        }
+
+        if (runVignette)
+        {
+            vignettePass.Apply(sourceId, width, height, dest: null, VignettePass.DefaultIntensity,
+                VignettePass.DefaultRadius);
         }
     }
 
@@ -187,7 +243,20 @@ public class GameLayer(
             return;
 
         _sceneFrameBuffer.Resize(width, height);
+        _resolveFrameBuffer?.Resize(width, height);
     }
+
+    private static FrameBufferSpecification ResolveColorSpec(uint width, uint height) =>
+        new(width, height)
+        {
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8)
+                {
+                    Filter = FrameBufferTextureFilter.Linear,
+                    Wrap = FrameBufferTextureWrap.ClampToEdge
+                }
+            ])
+        };
 
     private static FrameBufferSpecification SceneColorDepthSpec(uint width, uint height) =>
         new(width, height)

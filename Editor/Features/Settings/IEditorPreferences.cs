@@ -18,6 +18,9 @@ public interface IEditorPreferences : IDisposable
     /// </summary>
     bool ShowColliderBounds { get; set; }
     bool ShowWireframe { get; set; }
+    bool ShowVignette { get; set; }
+    float VignetteIntensity { get; set; }
+    float VignetteRadius { get; set; }
 
     /// <summary>
     /// Gets or sets whether to show FPS counter.

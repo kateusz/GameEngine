@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Engine.Renderer.Pipeline;
 using Engine.Scene.Serializer;
 using Serilog;
 
@@ -23,6 +24,9 @@ public class EditorPreferences : IEditorPreferences
     // Debug Settings
     public bool ShowColliderBounds { get; set; }
     public bool ShowWireframe { get; set; }
+    public bool ShowVignette { get; set; }
+    public float VignetteIntensity { get; set; } = VignettePass.DefaultIntensity;
+    public float VignetteRadius { get; set; } = VignettePass.DefaultRadius;
     public bool ShowFPS { get; set; } = true;
 
     // Autosave: 0 = off

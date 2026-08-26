@@ -44,7 +44,8 @@ public sealed class EditorViewport(
     LightGizmoDrawer lightGizmoDrawer,
     IModelFactory modelFactory,
     TiledMapImportService tiledImport,
-    FxaaPass fxaaPass)
+    FxaaPass fxaaPass,
+    VignettePass vignettePass)
     : IEditorViewport
 {
     private static readonly ILogger Logger = Log.ForContext<EditorViewport>();
@@ -75,19 +76,8 @@ public sealed class EditorViewport(
         cameraController.SetCamera(_editorCamera);
         _frameBuffer = frameBufferFactory.Create();
         fxaaPass.Init();
-        if (fxaaPass.Available)
-        {
-            try
-            {
-                var spec = _frameBuffer.GetSpecification();
-                _resolveFrameBuffer = frameBufferFactory.Create(ColorOnlySpec(spec.Width, spec.Height));
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex, "FXAA resolve framebuffer failed");
-                _resolveFrameBuffer = null;
-            }
-        }
+        vignettePass.Init();
+        EnsureResolveFramebuffer();
         _contentScale = contentScaleProvider.ContentScale;
 
         if (sceneContext.ActiveScene is not null)
@@ -118,14 +108,9 @@ public sealed class EditorViewport(
 
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
+        EnsureResolveFramebuffer();
 
-        var display = _frameBuffer;
-        if (fxaaPass.Available && _resolveFrameBuffer != null)
-        {
-            var spec = _frameBuffer.GetSpecification();
-            fxaaPass.Apply(_frameBuffer.GetColorAttachmentRendererId(), spec.Width, spec.Height, _resolveFrameBuffer);
-            display = _resolveFrameBuffer;
-        }
+        var display = ApplyPostProcessChain();
 
         var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
@@ -249,8 +234,53 @@ public sealed class EditorViewport(
 
         _frameBuffer.Resize(fbWidth, fbHeight);
         _resolveFrameBuffer?.Resize(fbWidth, fbHeight);
+        EnsureResolveFramebuffer();
         _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
         sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
+    }
+
+    private void EnsureResolveFramebuffer()
+    {
+        if (_resolveFrameBuffer != null || (!fxaaPass.Available && !vignettePass.Available))
+            return;
+
+        try
+        {
+            var spec = _frameBuffer.GetSpecification();
+            _resolveFrameBuffer = frameBufferFactory.Create(ColorOnlySpec(spec.Width, spec.Height));
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Post-process resolve framebuffer failed");
+            _resolveFrameBuffer = null;
+        }
+    }
+
+    private IFrameBuffer ApplyPostProcessChain()
+    {
+        var (width, height, _, _) = _frameBuffer.GetSpecification();
+        var display = _frameBuffer;
+
+        if (fxaaPass.Available && _resolveFrameBuffer != null)
+        {
+            fxaaPass.Apply(display.GetColorAttachmentRendererId(), width, height, _resolveFrameBuffer);
+            display = _resolveFrameBuffer;
+        }
+
+        if (editorPreferences.ShowVignette && vignettePass.Available && _resolveFrameBuffer != null)
+        {
+            var dest = display == _frameBuffer ? _resolveFrameBuffer : _frameBuffer;
+            vignettePass.Apply(
+                display.GetColorAttachmentRendererId(),
+                width,
+                height,
+                dest,
+                editorPreferences.VignetteIntensity,
+                editorPreferences.VignetteRadius);
+            display = dest;
+        }
+
+        return display;
     }
 
     private static FrameBufferSpecification ColorOnlySpec(uint width, uint height) =>
