@@ -19,7 +19,7 @@ internal static class LightSpaceMatrix
 
     public static Matrix4x4[] CreateCubemapFaces(Vector3 lightPos, float farPlane)
     {
-        const float near = 1f;
+        var near = MathF.Min(0.05f, farPlane * 0.5f);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2f, 1f, near, farPlane);
         return
         [

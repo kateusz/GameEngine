@@ -145,7 +145,7 @@ void main()
             norm, V, v_FragPos, diffuseColor, specularColor, u_Shininess);
         if (i == 0 && u_PointShadowsEnabled != 0)
         {
-            contribution *= 1.0 - PointShadowPCF(v_FragPos, norm, u_PointLights[0].position, u_PointLights[0].range);
+            contribution *= 1.0 - PointShadowPCF(v_FragPos, v_Normal, u_PointLights[0].position, u_PointLights[0].range);
         }
         color += contribution;
     }

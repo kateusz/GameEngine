@@ -83,7 +83,7 @@ public class Graphics3DTests : IDisposable
     [Fact]
     public void DrawCube_InFront_IncrementsDrawCalls_OffToTheSide_IncrementsCulledOnly()
     {
-        var (graphics3D, rendererApi) = CreateGraphics3D();
+        var (graphics3D, rendererApi, _) = CreateGraphics3D();
         BeginPerspective(graphics3D);
 
         graphics3D.DrawCube(Matrix4x4.CreateTranslation(0f, 0f, -5f), Vector4.One);
@@ -98,7 +98,7 @@ public class Graphics3DTests : IDisposable
     [Fact]
     public void NonFiniteViewProjection_DrawsInsteadOfCulling()
     {
-        var (graphics3D, rendererApi) = CreateGraphics3D();
+        var (graphics3D, rendererApi, _) = CreateGraphics3D();
         var nan = Matrix4x4.Identity;
         nan.M11 = float.NaN;
 
@@ -114,7 +114,7 @@ public class Graphics3DTests : IDisposable
     [Fact]
     public void EmptyMesh_SkipsDrawWithoutCountingAsCulled()
     {
-        var (graphics3D, rendererApi) = CreateGraphics3D(indexCount: 0);
+        var (graphics3D, rendererApi, _) = CreateGraphics3D(indexCount: 0);
         BeginPerspective(graphics3D);
 
         graphics3D.DrawMesh(Matrix4x4.CreateTranslation(0f, 0f, -5f), CreateInitializedMesh("empty", 0), Vector4.One);
@@ -198,7 +198,19 @@ public class Graphics3DTests : IDisposable
         cubeShader.DidNotReceive().SetFloat3($"u_PointLights[{LightingMath.MaxPointLights}].position", Arg.Any<Vector3>());
     }
 
-    private static (Graphics3D Graphics, IRendererAPI RendererApi) CreateGraphics3D(int indexCount = 36)
+    [Fact]
+    public void BeginPointShadowPass_FaceZero_EnablesFrontFaceCullAndDepthTest()
+    {
+        var (graphics3D, rendererApi, pointDepthShader) = CreateGraphics3D();
+
+        graphics3D.BeginPointShadowPass(new Vector3(0, 5, 0), 25f, 0).ShouldBeTrue();
+
+        rendererApi.Received(1).SetDepthTest(true);
+        rendererApi.Received(1).SetFaceCulling(true, cullFrontFaces: true);
+        pointDepthShader.Received(1).SetFloat("u_FarPlane", 25f);
+    }
+
+    private static (Graphics3D Graphics, IRendererAPI RendererApi, IShader PointDepthShader) CreateGraphics3D(int indexCount = 36)
     {
         var rendererApi = Substitute.For<IRendererAPI>();
         var cubeShader = Substitute.For<IShader>();
@@ -225,7 +237,7 @@ public class Graphics3DTests : IDisposable
         var graphics3D = new Graphics3D(rendererApi, shaderFactory, meshFactory, Substitute.For<ITextureFactory>(),
             vertexArrayFactory, frameBufferFactory);
         graphics3D.Init();
-        return (graphics3D, rendererApi);
+        return (graphics3D, rendererApi, pointDepthShader);
     }
 
     private static void BeginPerspective(Graphics3D graphics3D)

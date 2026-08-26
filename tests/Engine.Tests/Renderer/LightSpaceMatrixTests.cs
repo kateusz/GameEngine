@@ -33,10 +33,13 @@ public class LightSpaceMatrixTests
         LightSpaceMatrix.IsFinite(matrix).ShouldBeTrue();
     }
 
-    [Fact]
-    public void CreateCubemapFaces_ProducesSixFiniteMatrices()
+    [Theory]
+    [InlineData(25f)]
+    [InlineData(0.5f)]
+    [InlineData(1f)]
+    public void CreateCubemapFaces_ProducesSixFiniteMatrices(float farPlane)
     {
-        var faces = LightSpaceMatrix.CreateCubemapFaces(new Vector3(0, 5, 0), 25f);
+        var faces = LightSpaceMatrix.CreateCubemapFaces(new Vector3(0, 5, 0), farPlane);
         faces.Length.ShouldBe(6);
         foreach (var face in faces)
             LightSpaceMatrix.IsFinite(face).ShouldBeTrue();

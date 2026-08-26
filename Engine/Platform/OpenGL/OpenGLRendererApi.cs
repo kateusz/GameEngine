@@ -38,6 +38,19 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(TextureCubeMap)");
     }
 
+    public void BindDefaultFramebuffer()
+    {
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer(0)");
+    }
+
+    public void SetBoundTexture2DFilterLinear()
+    {
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(Linear)");
+    }
+
     public unsafe void DrawIndexed(IVertexArray vertexArray, uint count)
     {
         var indexBuffer = vertexArray.IndexBuffer;

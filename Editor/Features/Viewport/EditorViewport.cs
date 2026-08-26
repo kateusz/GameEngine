@@ -41,7 +41,8 @@ public sealed class EditorViewport(
     CameraGizmoDrawer cameraGizmoDrawer,
     LightGizmoDrawer lightGizmoDrawer,
     IModelFactory modelFactory,
-    TiledMapImportService tiledImport)
+    TiledMapImportService tiledImport,
+    FxaaPass fxaaPass)
     : IEditorViewport
 {
     private static readonly ILogger Logger = Log.ForContext<EditorViewport>();
@@ -49,6 +50,7 @@ public sealed class EditorViewport(
 
     private EditorCamera _editorCamera = null!;
     private IFrameBuffer _frameBuffer = null!;
+    private IFrameBuffer? _resolveFrameBuffer;
     private float _contentScale = 1.0f;
     private Vector2 _lastPickMousePos = new(float.NaN);
     private Vector2 _viewportSize;
@@ -70,6 +72,20 @@ public sealed class EditorViewport(
         _editorCamera = new EditorCamera();
         cameraController.SetCamera(_editorCamera);
         _frameBuffer = frameBufferFactory.Create();
+        fxaaPass.Init();
+        if (fxaaPass.Available)
+        {
+            try
+            {
+                var spec = _frameBuffer.GetSpecification();
+                _resolveFrameBuffer = frameBufferFactory.Create(ColorOnlySpec(spec.Width, spec.Height));
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "FXAA resolve framebuffer failed");
+                _resolveFrameBuffer = null;
+            }
+        }
         _contentScale = contentScaleProvider.ContentScale;
 
         if (sceneContext.ActiveScene is not null)
@@ -79,6 +95,7 @@ public sealed class EditorViewport(
     public void Dispose()
     {
         sceneContext.SceneChanged -= _sceneChangedHandler;
+        _resolveFrameBuffer?.Dispose();
         _frameBuffer?.Dispose();
     }
 
@@ -100,7 +117,15 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var texturePointer = ImGuiNativeTexture.FromColorAttachment(_frameBuffer);
+        var display = _frameBuffer;
+        if (fxaaPass.Available && _resolveFrameBuffer != null)
+        {
+            var spec = _frameBuffer.GetSpecification();
+            fxaaPass.Apply(_frameBuffer.GetColorAttachmentRendererId(), spec.Width, spec.Height, _resolveFrameBuffer);
+            display = _resolveFrameBuffer;
+        }
+
+        var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();
@@ -221,9 +246,22 @@ public sealed class EditorViewport(
             return;
 
         _frameBuffer.Resize(fbWidth, fbHeight);
+        _resolveFrameBuffer?.Resize(fbWidth, fbHeight);
         _editorCamera.SetViewportSize(_viewportSize.X, _viewportSize.Y);
         sceneContext.ActiveScene?.OnViewportResize(fbWidth, fbHeight);
     }
+
+    private static FrameBufferSpecification ColorOnlySpec(uint width, uint height) =>
+        new(width, height)
+        {
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8)
+                {
+                    Filter = FrameBufferTextureFilter.Linear,
+                    Wrap = FrameBufferTextureWrap.ClampToEdge
+                }
+            ])
+        };
 
     private void RenderSceneToFramebuffer(TimeSpan deltaTime)
     {

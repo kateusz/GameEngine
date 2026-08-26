@@ -154,14 +154,16 @@ internal sealed class Graphics3D(
 
         if (face == 0)
         {
-            _pointShadowFaceMatrices = LightSpaceMatrix.CreateCubemapFaces(lightPosition, farPlane);
+            var far = MathF.Max(farPlane, 1e-3f);
+            _pointShadowFaceMatrices = LightSpaceMatrix.CreateCubemapFaces(lightPosition, far);
             _pointShadowFramebuffer.Bind();
-            rendererApi.SetFaceCulling(true, cullFrontFaces: false);
+            rendererApi.SetDepthTest(true);
+            rendererApi.SetFaceCulling(true, cullFrontFaces: true);
 
             _pointDepthShader.Bind();
             _boundShader = _pointDepthShader;
             _pointDepthShader.SetFloat3("u_LightPos", lightPosition);
-            _pointDepthShader.SetFloat("u_FarPlane", farPlane);
+            _pointDepthShader.SetFloat("u_FarPlane", far);
             _inPointShadowPass = true;
         }
 
