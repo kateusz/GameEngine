@@ -24,12 +24,8 @@ public class GameLayer(
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
 
-    private readonly Action<IScene> _sceneChangedHandler = _ => Logger.Information("Active scene changed");
-
     public void OnAttach()
     {
-        sceneContext.SceneChanged += _sceneChangedHandler;
-
         Logger.Information("Game layer attached.");
 
         var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
@@ -42,10 +38,7 @@ public class GameLayer(
 
         Logger.Information("Loading startup scene from: {Path}", startupScenePath);
 
-        var scene = sceneFactory.Create(
-            startupScenePath,
-            Path.GetFileNameWithoutExtension(startupScenePath),
-            sceneSerializer.PeekDimension(startupScenePath));
+        var scene = sceneFactory.Create(Path.GetFileNameWithoutExtension(startupScenePath));
         try
         {
             sceneSerializer.Deserialize(scene, startupScenePath);
@@ -65,8 +58,6 @@ public class GameLayer(
 
     public void OnDetach()
     {
-        sceneContext.SceneChanged -= _sceneChangedHandler;
-
         Logger.Information("Game layer detached.");
 
         sceneContext.ActiveScene?.OnRuntimeStop();

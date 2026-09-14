@@ -68,8 +68,8 @@ public class EditorShortcutRegistrar(
             KeyCodes.D, KeyModifiers.CtrlOnly,
             () =>
             {
-                if (selection.SelectedEntity is { } entity)
-                    sceneManager.DuplicateEntity(entity);
+                if (sceneContext.State == SceneState.Edit && selection.SelectedEntity is { } entity)
+                    sceneContext.ActiveScene?.DuplicateEntity(entity);
             },
             "Duplicate entity", "Edit"));
         

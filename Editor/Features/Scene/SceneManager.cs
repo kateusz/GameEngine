@@ -1,4 +1,3 @@
-using ECS;
 using ECS.Systems;
 using Editor.Features.History;
 using Editor.Features.Scripting;
@@ -25,15 +24,14 @@ public class SceneManager(
 
     private string? _playSnapshotPath;
     private bool _playPaused;
-    private string? _cleanSnapshotPath;
+    private string? _cleanJson;
 
     public string? EditorScenePath { get; private set; }
 
     public bool IsDirty =>
-        _cleanSnapshotPath is not null
-        && File.Exists(_cleanSnapshotPath)
+        _cleanJson is not null
         && sceneContext.ActiveScene is not null
-        && SceneDiffersFromSnapshot();
+        && sceneSerializer.SerializeToString(sceneContext.ActiveScene) != _cleanJson;
 
     public void New(string sceneName)
     {
@@ -56,8 +54,7 @@ public class SceneManager(
         EditorScenePath = null;
 
         EditorScenePath = path;
-        var dimension = sceneSerializer.PeekDimension(path);
-        var scene = sceneFactory.Create(path, Path.GetFileNameWithoutExtension(path), dimension);
+        var scene = sceneFactory.Create(Path.GetFileNameWithoutExtension(path));
 
         if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
             scriptWorkspace.EnsureScriptsCompiledAndApplied();
@@ -158,15 +155,6 @@ public class SceneManager(
         Logger.Information("🔄 Scene restarted");
     }
 
-    public void DuplicateEntity(Entity entity)
-    {
-        if (sceneContext.State != SceneState.Edit)
-            return;
-
-        sceneContext.ActiveScene?.DuplicateEntity(entity);
-        Logger.Information("📋 Entity duplicated: {EntityName}", entity.Name);
-    }
-
     public string? GetCurrentScenePath() => EditorScenePath;
 
     private void ReplaceActiveScene(string sceneName)
@@ -174,23 +162,7 @@ public class SceneManager(
         ClearPlaySession();
         sceneContext.ActiveScene?.Dispose();
         EditorScenePath = null;
-        sceneContext.SetScene(sceneFactory.Create(path: "", sceneName));
-    }
-
-    private bool SceneDiffersFromSnapshot()
-    {
-        var checkPath = _cleanSnapshotPath + ".check";
-        try
-        {
-            sceneSerializer.Serialize(sceneContext.ActiveScene!, checkPath);
-            return !File.ReadAllBytes(_cleanSnapshotPath!).AsSpan()
-                .SequenceEqual(File.ReadAllBytes(checkPath));
-        }
-        finally
-        {
-            if (File.Exists(checkPath))
-                File.Delete(checkPath);
-        }
+        sceneContext.SetScene(sceneFactory.Create(sceneName));
     }
 
     private void ReloadEntitiesFromSnapshot(IScene scene, string snapshotPath)
@@ -232,21 +204,8 @@ public class SceneManager(
         _playPaused = false;
     }
 
-    private void CaptureCleanSnapshot()
-    {
-        DeleteCleanSnapshot();
-        if (sceneContext.ActiveScene is null)
-            return;
-
-        _cleanSnapshotPath = Path.Combine(Path.GetTempPath(), $"ge-clean-{Guid.NewGuid():N}.scene");
-        sceneSerializer.Serialize(sceneContext.ActiveScene, _cleanSnapshotPath);
-    }
-
-    private void DeleteCleanSnapshot()
-    {
-        if (_cleanSnapshotPath is not null && File.Exists(_cleanSnapshotPath))
-            File.Delete(_cleanSnapshotPath);
-
-        _cleanSnapshotPath = null;
-    }
+    private void CaptureCleanSnapshot() =>
+        _cleanJson = sceneContext.ActiveScene is null
+            ? null
+            : sceneSerializer.SerializeToString(sceneContext.ActiveScene);
 }

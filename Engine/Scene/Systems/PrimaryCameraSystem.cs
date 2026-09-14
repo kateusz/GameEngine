@@ -70,16 +70,7 @@ internal sealed class PrimaryCameraSystem(IContext context) : ISystem, IPrimaryC
             _runtimeCameras[entityId] = camera;
         }
 
-        camera.ProjectionType = component.ProjectionType == CameraProjectionTypeData.Perspective
-            ? ProjectionType.Perspective
-            : ProjectionType.Orthographic;
-        camera.OrthographicSize = component.OrthographicSize;
-        camera.OrthographicNear = component.OrthographicNear;
-        camera.OrthographicFar = component.OrthographicFar;
-        camera.PerspectiveFOV = component.PerspectiveFOV;
-        camera.PerspectiveNear = component.PerspectiveNear;
-        camera.PerspectiveFar = component.PerspectiveFar;
-        camera.AspectRatio = component.AspectRatio;
+        camera.Apply(component);
         return camera;
     }
 }

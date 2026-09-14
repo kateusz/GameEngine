@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Engine.Scene.Cameras;
 using Math;
+using SceneComponents.Camera;
 using Serilog;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
@@ -250,6 +251,20 @@ public class SceneCamera : Camera
     {
         var factor = scrollDelta > 0 ? 0.9f : 1.1f;
         SetOrthographicSize(MathF.Max(1f, OrthographicSize * factor));
+    }
+
+    internal void Apply(CameraComponent component)
+    {
+        ProjectionType = component.ProjectionType == CameraProjectionTypeData.Perspective
+            ? ProjectionType.Perspective
+            : ProjectionType.Orthographic;
+        OrthographicSize = component.OrthographicSize;
+        OrthographicNear = component.OrthographicNear;
+        OrthographicFar = component.OrthographicFar;
+        PerspectiveFOV = component.PerspectiveFOV;
+        PerspectiveNear = component.PerspectiveNear;
+        PerspectiveFar = component.PerspectiveFar;
+        AspectRatio = component.AspectRatio;
     }
 
     private void RecalculateProjection()

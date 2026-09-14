@@ -1,5 +1,3 @@
-using ECS;
-
 namespace Editor.Features.Scene;
 
 /// <summary>
@@ -46,12 +44,6 @@ public interface ISceneManager
     /// Requires that play mode was entered at least once in this session.
     /// </summary>
     void Restart();
-
-    /// <summary>
-    /// Duplicates the currently selected entity in the scene hierarchy.
-    /// Only works in edit mode.
-    /// </summary>
-    void DuplicateEntity(Entity entity);
 
     /// <summary>
     /// Gets the current scene file path.

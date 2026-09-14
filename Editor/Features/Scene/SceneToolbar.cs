@@ -9,7 +9,7 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFactory)
+public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory)
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -20,43 +20,8 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
     private Texture2D _iconRuler;
     private Texture2D _iconRestart;
 
-    public bool ShowGrid { get; set; } = true;
-    public bool ShowGrid3D { get; set; } = false;
-
-    public void ApplyGridFromScene(IScene scene)
-    {
-        ShowGrid = scene.Dimension == SceneDimension.TwoD;
-        ShowGrid3D = scene.Dimension == SceneDimension.ThreeD;
-    }
-
-    public void SetShowGrid(bool show)
-    {
-        ShowGrid = show;
-        if (show)
-        {
-            ShowGrid3D = false;
-            if (sceneContext.ActiveScene is { } scene)
-                scene.Dimension = SceneDimension.TwoD;
-        }
-    }
-
-    public void SetShowGrid3D(bool show)
-    {
-        ShowGrid3D = show;
-        if (show)
-        {
-            ShowGrid = false;
-            if (sceneContext.ActiveScene is { } scene)
-                scene.Dimension = SceneDimension.ThreeD;
-        }
-    }
-
-    public event Action OnPlayScene;
-    public event Action OnStopScene;
-    public event Action OnRestartScene;
-
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
-    
+
     public void Init()
     {
         _iconPlay = textureFactory.Create("Resources/Icons/PlayButton.png");
@@ -86,71 +51,49 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
             ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         var size = ImGui.GetWindowHeight() - 4.0f;
-        
-        // Left side: Mode selection buttons
+
         ImGui.SetCursorPosX(10.0f);
 
-        if (ButtonDrawer.DrawIconButton("select", _iconSelect, new Vector2(15, 15),
-                isSelected: CurrentMode == EditorMode.Select,
-                onClick: () => CurrentMode = EditorMode.Select,
-                tooltip: "Select Mode"))
-        {
-            // Mode already set in onClick
-        }
-
+        ButtonDrawer.DrawIconButton("select", _iconSelect, new Vector2(15, 15),
+            isSelected: CurrentMode == EditorMode.Select,
+            onClick: () => CurrentMode = EditorMode.Select,
+            tooltip: "Select Mode");
+        ImGui.SameLine();
+        ButtonDrawer.DrawIconButton("move", _iconMove, new Vector2(15, 15),
+            isSelected: CurrentMode == EditorMode.Move,
+            onClick: () => CurrentMode = EditorMode.Move,
+            tooltip: "Move Mode");
+        ImGui.SameLine();
+        ButtonDrawer.DrawIconButton("scale", _iconScale, new Vector2(15, 15),
+            isSelected: CurrentMode == EditorMode.Scale,
+            onClick: () => CurrentMode = EditorMode.Scale,
+            tooltip: "Scale Mode");
+        ImGui.SameLine();
+        ButtonDrawer.DrawIconButton("rotate", _iconRotate, new Vector2(15, 15),
+            isSelected: CurrentMode == EditorMode.Rotate,
+            onClick: () => CurrentMode = EditorMode.Rotate,
+            tooltip: "Rotate Mode");
+        ImGui.SameLine();
+        ButtonDrawer.DrawIconButton("ruler", _iconRuler, new Vector2(15, 15),
+            isSelected: CurrentMode == EditorMode.Ruler,
+            onClick: () => CurrentMode = EditorMode.Ruler,
+            tooltip: "Ruler Mode");
         ImGui.SameLine();
 
-        if (ButtonDrawer.DrawIconButton("move", _iconMove, new Vector2(15, 15),
-                isSelected: CurrentMode == EditorMode.Move,
-                onClick: () => CurrentMode = EditorMode.Move,
-                tooltip: "Move Mode"))
-        {
-            // Mode already set in onClick
-        }
-
-        ImGui.SameLine();
-
-        if (ButtonDrawer.DrawIconButton("scale", _iconScale, new Vector2(15, 15),
-                isSelected: CurrentMode == EditorMode.Scale,
-                onClick: () => CurrentMode = EditorMode.Scale,
-                tooltip: "Scale Mode"))
-        {
-            // Mode already set in onClick
-        }
-
-        ImGui.SameLine();
-
-        if (ButtonDrawer.DrawIconButton("rotate", _iconRotate, new Vector2(15, 15),
-                isSelected: CurrentMode == EditorMode.Rotate,
-                onClick: () => CurrentMode = EditorMode.Rotate,
-                tooltip: "Rotate Mode"))
-        {
-            // Mode already set in onClick
-        }
-
-        ImGui.SameLine();
-
-        if (ButtonDrawer.DrawIconButton("ruler", _iconRuler, new Vector2(15, 15),
-                isSelected: CurrentMode == EditorMode.Ruler,
-                onClick: () => CurrentMode = EditorMode.Ruler,
-                tooltip: "Ruler Mode"))
-        {
-            // Mode already set in onClick
-        }
-
-        ImGui.SameLine();
-
-        // Grid toggles — only one of 2D/3D can be active
-        var showGrid = ShowGrid;
-        if (ButtonDrawer.DrawToggleButton("2D", "2D", ref showGrid, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
-            SetShowGrid(showGrid);
+        var is2d = sceneContext.ActiveScene?.Dimension != SceneDimension.ThreeD;
+        if (ButtonDrawer.DrawToggleButton("2D", "2D", ref is2d, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight)
+            && is2d
+            && sceneContext.ActiveScene is { } scene2d)
+            scene2d.Dimension = SceneDimension.TwoD;
         LayoutDrawer.DrawTooltip("2D Scene");
 
         ImGui.SameLine();
 
-        var showGrid3D = ShowGrid3D;
-        if (ButtonDrawer.DrawToggleButton("3D", "3D", ref showGrid3D, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight))
-            SetShowGrid3D(showGrid3D);
+        var is3d = sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
+        if (ButtonDrawer.DrawToggleButton("3D", "3D", ref is3d, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight)
+            && is3d
+            && sceneContext.ActiveScene is { } scene3d)
+            scene3d.Dimension = SceneDimension.ThreeD;
         LayoutDrawer.DrawTooltip("3D Scene");
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
@@ -164,10 +107,10 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
                     switch (sceneContext.State)
                     {
                         case SceneState.Edit:
-                            OnPlayScene();
+                            sceneManager.Play();
                             break;
                         case SceneState.Play:
-                            OnStopScene();
+                            sceneManager.Stop();
                             break;
                     }
                 },
@@ -176,7 +119,7 @@ public class SceneToolbar(ISceneContext sceneContext, ITextureFactory textureFac
         ImGui.SameLine();
 
         _ = ButtonDrawer.DrawTransparentIconButton("restart", _iconRestart, new Vector2(20, 20),
-                onClick: OnRestartScene,
+                onClick: sceneManager.Restart,
                 tooltip: "Restart Scene");
 
         ImGui.PopStyleVar(2);

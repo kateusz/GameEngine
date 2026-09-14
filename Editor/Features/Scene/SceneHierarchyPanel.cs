@@ -20,7 +20,7 @@ public class SceneHierarchyPanel(
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection,
     IEditorHistory history)
-    : ISceneHierarchyPanel, IEditorPanel
+    : IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
 

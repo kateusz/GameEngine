@@ -48,26 +48,12 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
             if (!Matrix4x4.Invert(transform, out var viewMatrix))
                 return false;
 
-            ApplyComponentToScratch(cameraComponent);
+            _scratchCamera.Apply(cameraComponent);
             viewProjection = viewMatrix * _scratchCamera.GetProjectionMatrix();
             return true;
         }
 
         return false;
-    }
-
-    private void ApplyComponentToScratch(CameraComponent component)
-    {
-        _scratchCamera.ProjectionType = component.ProjectionType == CameraProjectionTypeData.Perspective
-            ? ProjectionType.Perspective
-            : ProjectionType.Orthographic;
-        _scratchCamera.OrthographicSize = component.OrthographicSize;
-        _scratchCamera.OrthographicNear = component.OrthographicNear;
-        _scratchCamera.OrthographicFar = component.OrthographicFar;
-        _scratchCamera.PerspectiveFOV = component.PerspectiveFOV;
-        _scratchCamera.PerspectiveNear = component.PerspectiveNear;
-        _scratchCamera.PerspectiveFar = component.PerspectiveFar;
-        _scratchCamera.AspectRatio = component.AspectRatio;
     }
 }
 

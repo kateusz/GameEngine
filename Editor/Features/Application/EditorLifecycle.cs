@@ -28,7 +28,7 @@ public class EditorLifecycle(
     IEditorSelection selection,
     IEditorHistory history,
     IEditorViewport editorViewport,
-    ISceneHierarchyPanel sceneHierarchyPanel,
+    SceneHierarchyPanel sceneHierarchyPanel,
     IContentBrowserPanel contentBrowserPanel,
     IConsolePanel consolePanel,
     ViewportComponents viewport)
@@ -36,9 +36,6 @@ public class EditorLifecycle(
     private static readonly ILogger Logger = Log.ForContext<EditorLifecycle>();
 
     private Action<IScene> _sceneChangedHandler = null!;
-    private Action _playSceneHandler = null!;
-    private Action _stopSceneHandler = null!;
-    private Action _restartSceneHandler = null!;
     private Action<Entity?, SelectionSource> _selectionChangedHandler = null!;
     private Action _projectOpenedHandler = null!;
     private Action _projectClosingHandler = null!;
@@ -74,19 +71,12 @@ public class EditorLifecycle(
         _sceneChangedHandler = newScene =>
         {
             sceneHierarchyPanel.SetScene(newScene);
-            viewport.SceneToolbar.ApplyGridFromScene(newScene);
             history.Clear();
         };
-        _playSceneHandler = sceneManager.Play;
-        _stopSceneHandler = sceneManager.Stop;
-        _restartSceneHandler = sceneManager.Restart;
         _selectionChangedHandler = OnSelectionChanged;
 
         sceneContext.SceneChanged += _sceneChangedHandler;
         selection.SelectionChanged += _selectionChangedHandler;
-        viewport.SceneToolbar.OnPlayScene += _playSceneHandler;
-        viewport.SceneToolbar.OnStopScene += _stopSceneHandler;
-        viewport.SceneToolbar.OnRestartScene += _restartSceneHandler;
 
         editorViewport.Initialize();
 
@@ -113,9 +103,6 @@ public class EditorLifecycle(
         projectManager.ProjectClosed -= _projectClosedHandler;
         sceneContext.SceneChanged -= _sceneChangedHandler;
         selection.SelectionChanged -= _selectionChangedHandler;
-        viewport.SceneToolbar.OnPlayScene -= _playSceneHandler;
-        viewport.SceneToolbar.OnStopScene -= _stopSceneHandler;
-        viewport.SceneToolbar.OnRestartScene -= _restartSceneHandler;
 
         sceneContext.ActiveScene?.Dispose();
         editorViewport.Dispose();

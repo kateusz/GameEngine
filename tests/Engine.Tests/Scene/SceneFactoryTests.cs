@@ -1,7 +1,6 @@
 using ECS;
 using ECS.Systems;
 using Engine.Core.Window;
-using Engine.Physics;
 using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
@@ -13,36 +12,31 @@ namespace Engine.Tests.Scene;
 public class SceneFactoryTests
 {
     [Fact]
-    public void Create_ThreeD_PassesDimensionAndSetsSceneDimension()
+    public void Create_ThreeD_SetsSceneDimension()
     {
-        var systemManagerFactory = Substitute.For<ISystemManagerFactory>();
-        systemManagerFactory.Create(Arg.Any<IContext>(), SceneDimension.ThreeD).Returns(_ => new SceneBuildResult(
-            Substitute.For<ISystemManager>(),
-            new PhysicsRuntimeBodyStore(),
-            new PhysicsContactQueue(),
-            Substitute.For<IPhysicsQueries>()));
-
-        var scene = new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())
-            .Create("test", "test", SceneDimension.ThreeD);
+        var scene = CreateFactory().Create("test", SceneDimension.ThreeD);
 
         scene.Dimension.ShouldBe(SceneDimension.ThreeD);
-        systemManagerFactory.Received(1).Create(Arg.Any<IContext>(), SceneDimension.ThreeD);
     }
 
     [Fact]
     public void Create_Default_IsTwoD()
     {
-        var systemManagerFactory = Substitute.For<ISystemManagerFactory>();
-        systemManagerFactory.Create(Arg.Any<IContext>(), Arg.Any<SceneDimension>()).Returns(_ => new SceneBuildResult(
-            Substitute.For<ISystemManager>(),
-            new PhysicsRuntimeBodyStore(),
-            new PhysicsContactQueue(),
-            Substitute.For<IPhysicsQueries>()));
-
-        var scene = new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())
-            .Create("test", "test");
+        var scene = CreateFactory().Create("test");
 
         scene.Dimension.ShouldBe(SceneDimension.TwoD);
-        systemManagerFactory.Received(1).Create(Arg.Any<IContext>(), SceneDimension.TwoD);
+    }
+
+    private static SceneFactory CreateFactory()
+    {
+        var systemsFactory = Substitute.For<ISceneSystemsFactory>();
+        systemsFactory.PopulateSystemManager(
+                Arg.Any<ISystemManager>(),
+                Arg.Any<IContext>(),
+                Arg.Any<PhysicsRuntimeBodyStore>(),
+                Arg.Any<PhysicsContactQueue>())
+            .Returns(Substitute.For<IPhysicsQueries>());
+
+        return new SceneFactory(systemsFactory, Substitute.For<IPointerSurface>());
     }
 }

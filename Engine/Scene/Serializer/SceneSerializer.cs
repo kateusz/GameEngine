@@ -24,7 +24,7 @@ internal sealed class SceneSerializer(
 
     public void Serialize(IScene scene, string path)
     {
-        var jsonString = SerializeToJson(scene);
+        var jsonString = SerializeToString(scene);
 
         try
         {
@@ -44,7 +44,7 @@ internal sealed class SceneSerializer(
         }
     }
 
-    private string SerializeToJson(IScene scene)
+    public string SerializeToString(IScene scene)
     {
         var jsonObj = new JsonObject
         {
@@ -99,7 +99,7 @@ internal sealed class SceneSerializer(
         if (jsonObj.TryGetPropertyValue(BackgroundColorKey, out var backgroundColorNode) && backgroundColorNode != null)
             scene.BackgroundColor = backgroundColorNode.Deserialize<Vector4>(_options)!;
 
-        if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null);
+        if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null)
             scene.Dimension = dimensionNode.Deserialize<SceneDimension>(_options)!;
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
@@ -110,48 +110,6 @@ internal sealed class SceneSerializer(
         }
 
         scene.RebuildHierarchyIndex();
-    }
-
-    public SceneDimension PeekDimension(string path)
-    {
-        if (!File.Exists(path))
-            throw new InvalidSceneJsonException($"Scene file not found: {path}");
-
-        string json;
-        try
-        {
-            json = File.ReadAllText(path);
-        }
-        catch (IOException ex)
-        {
-            throw new InvalidSceneJsonException($"Failed to read scene from {path}: {ex.Message}", ex);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new InvalidSceneJsonException($"Access denied reading from {path}: {ex.Message}", ex);
-        }
-
-        if (string.IsNullOrWhiteSpace(json))
-            return SceneDimension.TwoD;
-
-        JsonNode? parsedNode;
-        try
-        {
-            parsedNode = JsonNode.Parse(json);
-        }
-        catch (JsonException)
-        {
-            return SceneDimension.TwoD;
-        }
-
-        var jsonObj = parsedNode as JsonObject;
-        if (jsonObj is null)
-            return SceneDimension.TwoD;
-
-        if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null)
-            return dimensionNode.Deserialize<SceneDimension>(_options);
-
-        return SceneDimension.TwoD;
     }
 
     private static JsonArray GetJsonArray(JsonNode jsonObject, string key)
