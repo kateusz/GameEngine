@@ -3,10 +3,10 @@ using ECS;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer.Pipeline;
-using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
+using SceneComponents.Camera;
 using SceneComponents.Physics;
 
 namespace Engine.Tests.Systems;
@@ -17,7 +17,7 @@ public class PhysicsDebugRenderSystemTests
     public void OnUpdate_WhenShowColliderBoundsFalse_DoesNotDraw()
     {
         var debugSettings = new DebugSettings { ShowColliderBounds = false };
-        var (system, graphics2D, _, _, _) = CreateFullSystem(debugSettings);
+        var (system, graphics2D, _, _) = CreateFullSystem(debugSettings);
 
         system.OnUpdate(TimeSpan.Zero);
 
@@ -29,10 +29,7 @@ public class PhysicsDebugRenderSystemTests
     public void OnUpdate_WithValidCameraAndColliderEntity_DrawsDebugVisuals()
     {
         var debugSettings = new DebugSettings { ShowColliderBounds = true };
-        var (system, graphics2D, context, bodyStore, cameraProvider) = CreateFullSystem(debugSettings);
-
-        cameraProvider.Camera.Returns(new SceneCamera());
-        cameraProvider.Transform.Returns(Matrix4x4.Identity);
+        var (system, graphics2D, context, bodyStore) = CreateFullSystem(debugSettings);
 
         var entity = Entity.Create(1, "test");
         entity.AddComponent<BoxCollider2DComponent>();
@@ -56,10 +53,7 @@ public class PhysicsDebugRenderSystemTests
     public void OnUpdate_WithCircleCollider_DrawsCircleOutline()
     {
         var debugSettings = new DebugSettings { ShowColliderBounds = true };
-        var (system, graphics2D, context, bodyStore, cameraProvider) = CreateFullSystem(debugSettings);
-
-        cameraProvider.Camera.Returns(new SceneCamera());
-        cameraProvider.Transform.Returns(Matrix4x4.Identity);
+        var (system, graphics2D, context, bodyStore) = CreateFullSystem(debugSettings);
 
         var entity = Entity.Create(2, "circle");
         entity.AddComponent(new CircleCollider2DComponent { Radius = 1f });
@@ -77,13 +71,18 @@ public class PhysicsDebugRenderSystemTests
         graphics2D.Received().DrawLine(Arg.Any<Vector3>(), Arg.Any<Vector3>(), Arg.Any<Vector4>(), 2);
     }
 
-    private static (PhysicsDebugRenderSystem, IGraphics2D, IContext, PhysicsRuntimeBodyStore, IPrimaryCameraProvider) CreateFullSystem(DebugSettings debugSettings)
+    private static (PhysicsDebugRenderSystem, IGraphics2D, IContext, PhysicsRuntimeBodyStore) CreateFullSystem(DebugSettings debugSettings)
     {
         var graphics2D = Substitute.For<IGraphics2D>();
         var context = new Context();
         var bodyStore = new PhysicsRuntimeBodyStore();
-        var cameraProvider = Substitute.For<IPrimaryCameraProvider>();
-        var system = new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore, cameraProvider);
-        return (system, graphics2D, context, bodyStore, cameraProvider);
+
+        var camera = Entity.Create(99, "camera");
+        camera.AddComponent(new CameraComponent { Primary = true });
+        camera.AddComponent<TransformComponent>();
+        context.Register(camera);
+
+        var system = new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore);
+        return (system, graphics2D, context, bodyStore);
     }
 }

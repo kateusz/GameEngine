@@ -100,12 +100,8 @@ Authoritative source: `Engine/Scene/Systems/SystemPriorities.cs`
 | 100 | PhysicsSimulationSystem |
 | 115 | TransformHierarchySystem |
 | 120 | AudioSystem |
-| 145 | PrimaryCameraSystem |
-| 150 | SpriteRenderSystem |
-| 160 | SubTextureRenderSystem |
-| 165 | LightingSystem |
-| 170 | ModelRenderSystem |
-| 180 | PhysicsDebugRenderSystem |
+| 150 | SceneRenderSystem |
+| 151 | PhysicsDebugRenderSystem |
 
 When adding a new system, pick a value that fits between existing ones and register it in `SystemPriorities.cs`. When in doubt: physics/simulation ~100–130, game logic ~115, rendering ~150–180.
 

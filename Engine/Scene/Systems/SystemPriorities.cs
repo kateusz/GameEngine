@@ -9,7 +9,6 @@ public static class SystemPriorities
     public const int TransformHierarchySystem = 115;
     public const int AudioSystem = 120;
     public const int SkeletalAnimationSystem = 135;
-    public const int PrimaryCameraSystem = 145;
     public const int SceneRenderSystem = 150;
     public const int PhysicsDebugRenderSystem = 151;
 }

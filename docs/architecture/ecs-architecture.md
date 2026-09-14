@@ -236,11 +236,10 @@ Custom runtime systems can be added with `Scene.RegisterRuntimeSystem(ISystem)`.
 | 100 | PhysicsSimulationSystem | Fixed-timestep Box2D stepping, syncs physics bodies → TransformComponent |
 | 115 | TransformHierarchySystem | World-transform caches |
 | 120 | AudioSystem | Audio listener position, source playback |
-| 145 | PrimaryCameraSystem | Finds entity with `CameraComponent { Primary = true }`, caches for renderers |
 | 150 | SceneRenderSystem | Renders sprites and sub-textures via `SceneRenderPipeline` |
 | 151 | PhysicsDebugRenderSystem | Collider visualization (color-coded by body type) |
 
-The ordering ensures: **physics runs first** → **scripts see updated positions** → **camera is resolved** → **rendering reads final state**.
+The ordering ensures: **physics runs first** → **scripts see updated positions** → **rendering reads final transforms and the primary `CameraComponent`**.
 
 ---
 
@@ -251,19 +250,16 @@ graph LR
     Physics["PhysicsSimulation<br/>(100)"]
     Scripts["ScriptUpdate<br/>(110)"]
     Audio["Audio<br/>(120)"]
-    Camera["PrimaryCamera<br/>(145)"]
     Render["SceneRender<br/>(150)"]
     Debug["PhysicsDebug<br/>(151)"]
 
     Physics -->|"updates TransformComponent"| Scripts
     Scripts -->|"may modify any component"| Audio
-    Audio --> Camera
-    Camera -->|"provides camera + transform"| Render
+    Audio --> Render
     Render --> Debug
 ```
 
-Each system reads/writes components on entities via the shared `Context`. Systems communicate through three mechanisms:
+Each system reads/writes components on entities via the shared `Context`. Systems communicate through two mechanisms:
 
 1. **Shared component state** (primary) — systems write components that downstream systems read in the same frame, ordered by priority
 2. **EventBus** — global pub/sub for decoupled notifications across engine subsystems
-3. **Shared service interfaces** — DI-injected services like `IPrimaryCameraProvider` allow systems to expose computed state without direct coupling

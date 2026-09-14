@@ -126,7 +126,7 @@ sequenceDiagram
     F-->>W: Box2DPhysicsWorld2D
     SSF->>W: SetContactListener(SceneContactListener)
     SSF->>PSS: new PhysicsSimulationSystem(world, context, bodyStore)
-    SSF->>SMF: Register PhysicsSimulationSystem,<br/>AudioSystem, PrimaryCameraSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
+    SSF->>SMF: Register PhysicsSimulationSystem,<br/>AudioSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
 ```
 
 Default gravity is `(0, -9.8)` in `SceneSystemsFactory.DefaultGravity`.
@@ -204,7 +204,6 @@ After all steps, for each entity with rigidbody, collider, and a stored body:
 | 100 | `PhysicsSimulationSystem` |
 | 115 | `TransformHierarchySystem` |
 | 120 | `AudioSystem` |
-| 145 | `PrimaryCameraSystem` |
 | 150 | `SceneRenderSystem` |
 | 151 | `PhysicsDebugRenderSystem` |
 

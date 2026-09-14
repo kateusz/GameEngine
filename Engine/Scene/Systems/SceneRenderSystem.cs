@@ -3,7 +3,6 @@ using ECS.Systems;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
-using Engine.Scene.Cameras;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -13,10 +12,10 @@ internal sealed class SceneRenderSystem(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     IContext context,
-    IPrimaryCameraProvider cameraProvider,
     IModelFactory modelFactory) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<SceneRenderSystem>();
+    private readonly SceneCamera _scratchCamera = new();
 
     public int Priority => SystemPriorities.SceneRenderSystem;
 
@@ -27,12 +26,12 @@ internal sealed class SceneRenderSystem(
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (cameraProvider.Camera is not { } cam)
+        if (!CameraQueries.TryGetPrimaryView(context, _scratchCamera, out var view))
             return;
 
         SceneRenderPipeline.RenderScene(
             context, graphics2D, graphics3D, textureFactory, modelFactory,
-            CameraViews.From(cam, cameraProvider.Transform));
+            view);
     }
 
     public void OnShutdown() { }
