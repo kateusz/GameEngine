@@ -38,8 +38,6 @@ internal sealed class SilkNetGameWindow(
 
     public void Run()
     {
-        window.WindowState = WindowState.Maximized;
-
         window.Load += WindowOnLoad;
         window.Update += WindowOnUpdate;
         window.Closing += OnWindowClosing;

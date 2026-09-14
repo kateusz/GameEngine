@@ -72,6 +72,13 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return buildResult;
             }
 
+            var renameResult = RenamePublishedExecutable(tempOutputPath, settings.RuntimeIdentifier, gameConfig.GameTitle);
+            if (!renameResult.Success)
+            {
+                CleanupTempDirectory(tempOutputPath);
+                return renameResult;
+            }
+
             ReportProgress(progress, "Copying assets...", 0.5f);
             var copyAssetsResult = CopyAssets(tempOutputPath, settings);
             if (!copyAssetsResult.Success)
@@ -182,6 +189,33 @@ public partial class GamePublisher(IProjectContext projectContext)
 
     private string GetDefaultOutputPath()
         => Path.Combine(projectContext.Root ?? Environment.CurrentDirectory, "Builds");
+
+    private static PublishResult RenamePublishedExecutable(string outputPath, string runtimeIdentifier, string gameTitle)
+    {
+        var produced = Path.Combine(outputPath, PlatformDetection.GetExecutableName(runtimeIdentifier));
+        var shipped = Path.Combine(outputPath, PlatformDetection.GetPublishedExecutableName(runtimeIdentifier, gameTitle));
+
+        if (string.Equals(produced, shipped, StringComparison.OrdinalIgnoreCase))
+            return new PublishResult { Success = true };
+
+        if (!File.Exists(produced))
+            return PublishResult.Failed($"Published executable not found at {produced}");
+
+        try
+        {
+            if (File.Exists(shipped))
+                File.Delete(shipped);
+            File.Move(produced, shipped);
+            Logger.Information("Renamed published executable to {Path}", shipped);
+            return new PublishResult { Success = true };
+        }
+        catch (Exception ex)
+        {
+            var error = $"Failed to rename published executable to {shipped}: {ex.Message}";
+            Logger.Error(ex, "Failed to rename published executable");
+            return PublishResult.Failed(error);
+        }
+    }
 
     /// <summary>
     /// Moves the temp build into the final output path. Creates the parent folder when missing

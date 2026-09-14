@@ -106,6 +106,13 @@ public static class EngineIoCContainer
         var windowOptions = WindowOptions.Default;
         windowOptions.Size = new Vector2D<int>(hostOptions.WindowWidth, hostOptions.WindowHeight);
         windowOptions.Title = hostOptions.WindowTitle;
+        windowOptions.WindowState = hostOptions.Fullscreen
+            ? WindowState.Fullscreen
+            : hostOptions.Maximized
+                ? WindowState.Maximized
+                : WindowState.Normal;
+        if (hostOptions.TargetFrameRate > 0)
+            windowOptions.FramesPerSecond = hostOptions.TargetFrameRate;
 
         container.Register<IWindow>(Reuse.Singleton,
             made: Made.Of(() => Silk.NET.Windowing.Window.Create(windowOptions)),
