@@ -35,7 +35,7 @@ public class GameComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHis
         {
             UIPropertyRenderer.DrawPropertyRow(fieldName, () =>
             {
-                var inputLabel = $"{fieldName}##{componentId}_{fieldName}";
+                var inputLabel = $"##{componentId}_{fieldName}";
                 if (!propertyRenderer.TryDrawFieldEditor(inputLabel, fieldType, fieldValue, out var newValue))
                     return;
 
