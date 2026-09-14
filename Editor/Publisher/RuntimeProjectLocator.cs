@@ -36,7 +36,6 @@ internal static class RuntimeProjectLocator
             return fullPath;
         }
 
-        Logger.Error("Could not find Runtime.csproj in any known location");
         return null;
     }
 
@@ -52,7 +51,6 @@ internal static class RuntimeProjectLocator
             dir = dir.Parent;
         }
 
-        Logger.Warning("Could not find .sln file");
         return null;
     }
 }

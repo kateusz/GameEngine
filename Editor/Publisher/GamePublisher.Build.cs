@@ -58,26 +58,16 @@ public partial class GamePublisher
             {
                 var error = $"Build failed with exit code {process.ExitCode}. Check build output for details.";
                 Logger.Error(error);
-                return new PublishResult
-                {
-                    Success = false,
-                    ErrorMessage = error,
-                    BuildOutput = buildOutput
-                };
+                return PublishResult.Failed(error, buildOutput);
             }
 
-            return new PublishResult { Success = true, BuildOutput = buildOutput };
+            return PublishResult.Ok(buildOutput);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             var error = $"Failed to execute dotnet publish: {ex.Message}";
             Logger.Error(ex, "dotnet publish execution failed");
-            return new PublishResult
-            {
-                Success = false,
-                ErrorMessage = error,
-                BuildOutput = buildOutput
-            };
+            return PublishResult.Failed(error, buildOutput);
         }
     }
 

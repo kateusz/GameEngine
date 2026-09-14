@@ -20,7 +20,7 @@ public partial class GamePublisher
             return PublishResult.Failed(error);
         }
 
-        return new PublishResult { Success = true };
+        return PublishResult.Ok();
     }
 
     private static PublishResult ValidateSettings(PublishSettings settings)
@@ -36,14 +36,14 @@ public partial class GamePublisher
         if (string.IsNullOrWhiteSpace(settings.Configuration))
             return PublishResult.Failed("Build configuration cannot be empty.");
 
-        return new PublishResult { Success = true };
+        return PublishResult.Ok();
     }
 
     private PublishResult ValidateStartupScene(GameConfiguration gameConfig)
     {
         var startupScenePath = Path.Combine(projectContext.Root!, gameConfig.StartupScenePath);
         if (File.Exists(startupScenePath))
-            return new PublishResult { Success = true };
+            return PublishResult.Ok();
 
         var error = $"Startup scene not found: {startupScenePath}";
         Logger.Error(error);

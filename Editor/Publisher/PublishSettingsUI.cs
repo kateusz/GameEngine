@@ -168,7 +168,7 @@ public class PublishSettingsUI(
         ImGui.SameLine();
         TextDrawer.DrawColoredText(
             PlatformDetection.GetPlatformDisplayName(_selectedPlatform),
-            new Vector4(0.7f, 0.7f, 0.7f, 1f));
+            EditorUIConstants.InfoColor);
 
         ImGui.Spacing();
 
@@ -178,7 +178,7 @@ public class PublishSettingsUI(
             var locationLabel = projectContext.Root is not null
                 ? ResolveOutputPath(projectContext.Root)
                 : (string.IsNullOrWhiteSpace(_outputPath) ? "(no folder selected)" : _outputPath);
-            TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
+            TextDrawer.DrawColoredText(locationLabel, EditorUIConstants.InfoColor);
 
             ImGui.Spacing();
             if (ImGui.Button("Select Folder..."))
@@ -201,7 +201,7 @@ public class PublishSettingsUI(
                 ImGui.Spacing();
                 TextDrawer.DrawColoredText(
                     ResolveOutputPath(projectContext.Root),
-                    new Vector4(0.7f, 0.7f, 0.7f, 1f));
+                    EditorUIConstants.InfoColor);
             }
         }
 
