@@ -1,43 +1,51 @@
 # Cameras and Rendering
 
-Play mode renders through the **Primary** `CameraComponent`. No primary camera → nothing draws (edit mode uses the editor camera).
+Play mode renders through the **Primary** `CameraComponent`. If none is marked Primary when Play starts, the engine promotes the first camera it finds (and logs a warning). No `CameraComponent` at all → nothing draws.
 
-Adding the first camera in a scene auto-sets Primary. Only one should be primary; the editor enforces this.
+`SetPrimaryCamera` keeps a single Primary flag. Duplicate/add paths that copy a Primary camera re-run that rule.
 
 ## Orthographic vs perspective
 
 | Field | Role |
 |---|---|
 | `ProjectionType` | `Orthographic` (default, 2D) or `Perspective` (3D) |
-| `OrthographicSize` (**Size**) | Half-height of the view volume. Smaller values zoom in. |
-| `PerspectiveFOV` | Vertical field of view (radians in data; degrees in the inspector) |
+| `OrthographicSize` (**Size**) | Half-height of the view volume. Smaller values zoom in. Defaults: size 10, near −100, far 100 |
+| `PerspectiveFOV` | Vertical field of view (radians in data; degrees in the inspector). Default 45° |
 | `PerspectiveNear` / `PerspectiveFar` | Clip planes for perspective (defaults 0.01 / 1000) |
 
-`FixedAspectRatio` is available for both projections in the inspector.
+`FixedAspectRatio` skips viewport-driven aspect updates (`OnViewportResize`) for that camera.
 
 For 3D models, switch the primary camera to **Perspective** or they will look flattened.
 
+## Screen to world (2D)
+
+`scene.CameraQueries.ScreenToWorld2D(windowPosition)` converts a pointer in window space to the Z=0 plane of the primary camera. Positions outside the game view return null.
+
 ## 2D sprites
 
-- **SpriteRendererComponent** — full texture quad; optional `TexturePath`, `Color` tint
+- **SpriteRendererComponent** — full texture quad; optional `TexturePath`, `Color` tint (alpha 0 skips the draw)
 - **SubTextureRendererComponent** — atlas cell via `Coords` / `CellSize` / `SpriteSize`
 
-Sprites draw in **entity iteration order**; depth test is off — **Z does not sort**. `SortingOrder` is planned ([Roadmap](../roadmap.md)).
+Sprites draw in **entity iteration order**; depth test is off — **Z does not sort**. `SortingOrder` is not implemented.
 
 ## 3D models and cubes
 
 **ModelRendererComponent** on an entity with a transform:
 
-| `ModelPath` | What draws |
+| Setup | What draws |
 |---|---|
-| Empty | Unit cube. Optional `TexturePath` (sRGB albedo) and `TilingFactor` |
-| `.glb` / `.gltf` / `.fbx` | Static imported mesh (drag from Content Browser) |
+| Empty `ModelPath` | Unit cube. Optional `TexturePath` (sRGB albedo) and `TilingFactor` |
+| `.glb` / `.gltf` / `.fbx`, no `MeshIndex` | Every imported submesh at this entity's world transform |
+| Same, with `MeshIndex` | That submesh only (use when a model is split across child entities) |
+| `SuppressDraw` | Skip the all-submeshes draw |
 
-`Color` tints both paths. The first draw of a model path imports via Assimp and uploads GPU buffers; later frames use a path cache. Failed import draws a unit cube instead.
+`Color` tints both paths. The first draw of a model path imports via Assimp and uploads GPU buffers; later frames use a path cache. Failed import draws a unit cube instead (one warning per path).
+
+Import keeps the Assimp node graph (transforms are not baked into vertices). Unreal collision mesh names (`UCX_`, `UBX_`, …) are skipped. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture name.
 
 **Supported today:** triangle meshes, diffuse / specular / normal maps, Blinn-Phong lighting. **Not supported:** skinning, animation clips, PBR metallic-roughness as a lighting model, transparent mesh sort.
 
-Put models under `assets/models/`. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture file name.
+Put models under `assets/models/`.
 
 ## Lights
 
