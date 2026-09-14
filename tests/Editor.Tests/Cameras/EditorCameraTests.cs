@@ -1,8 +1,9 @@
 using System.Numerics;
+using Editor.Features.Viewport;
 using Engine.Scene.Cameras;
 using Shouldly;
 
-namespace Engine.Tests.Cameras;
+namespace Editor.Tests.Cameras;
 
 public class EditorCameraTests
 {
@@ -22,8 +23,8 @@ public class EditorCameraTests
     public void ViewMatrix_IsInverseOfTransform()
     {
         var camera = new EditorCamera();
-        camera.SetPitch(0.5f);
-        camera.SetYaw(1.0f);
+        camera.Pitch = 0.5f;
+        camera.Yaw = 1.0f;
 
         var view = camera.GetViewMatrix();
         var position = camera.GetPosition();
@@ -37,39 +38,39 @@ public class EditorCameraTests
     }
 
     [Fact]
-    public void SetYaw_ChangesPosition()
+    public void Yaw_ChangesPosition()
     {
         var camera = new EditorCamera();
         var initialPos = camera.GetPosition();
 
-        camera.SetYaw(0.5f);
+        camera.Yaw = 0.5f;
 
         var newPos = camera.GetPosition();
         newPos.ShouldNotBe(initialPos);
     }
 
     [Fact]
-    public void SetDistance_ClampsToRange()
+    public void Distance_ClampsToRange()
     {
         var camera = new EditorCamera();
 
-        camera.SetDistance(0.1f);
+        camera.Distance = 0.1f;
         camera.Distance.ShouldBe(CameraConfig.MinEditorDistance);
 
-        camera.SetDistance(1000.0f);
+        camera.Distance = 1000.0f;
         camera.Distance.ShouldBe(CameraConfig.MaxEditorDistance);
 
-        camera.SetDistance(5.0f);
+        camera.Distance = 5.0f;
         camera.Distance.ShouldBe(5.0f);
     }
 
     [Fact]
-    public void SetFocalPoint_MovesFocalPoint()
+    public void FocalPoint_MovesFocalPoint()
     {
         var camera = new EditorCamera();
         var target = new Vector3(5, 5, 0);
 
-        camera.SetFocalPoint(target);
+        camera.FocalPoint = target;
 
         camera.FocalPoint.ShouldBe(target);
     }
@@ -78,8 +79,8 @@ public class EditorCameraTests
     public void ViewProjectionMatrix_IsViewTimesProjection()
     {
         var camera = new EditorCamera();
-        camera.SetPitch(0.3f);
-        camera.SetYaw(0.7f);
+        camera.Pitch = 0.3f;
+        camera.Yaw = 0.7f;
 
         var vp = camera.GetViewProjectionMatrix();
         var expected = camera.GetViewMatrix() * camera.GetProjectionMatrix();

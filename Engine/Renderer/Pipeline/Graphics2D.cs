@@ -7,7 +7,6 @@ using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Pipeline.Primitives;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Engine.Scene.Cameras;
 using Math;
 
 namespace Engine.Renderer.Pipeline;
@@ -62,37 +61,14 @@ internal sealed class Graphics2D(
         }
     }
 
-    public void BeginScene(Camera camera, Matrix4x4 transform)
+    public void BeginScene(in SceneView view)
     {
-        if (!Matrix4x4.Invert(transform, out var viewMatrix))
-        {
-            Serilog.Log.ForContext<Graphics2D>().Error(
-                "Failed to invert camera transform matrix (M11={M11}, M22={M22}, M33={M33}, M44={M44}). Skipping scene.",
-                transform.M11, transform.M22, transform.M33, transform.M44);
-            return;
-        }
-        var viewProj = viewMatrix * camera.GetProjectionMatrix();
         _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4(ViewProjectionUniform, viewProj);
+        _data.QuadShader.SetMat4(ViewProjectionUniform, view.ViewProjection);
         _data.Stats.ProgramSwitches++;
 
         _data.LineShader.Bind();
-        _data.LineShader.SetMat4(ViewProjectionUniform, viewProj);
-        _data.Stats.ProgramSwitches++;
-
-        StartBatch();
-    }
-
-    public void BeginScene(IViewCamera camera)
-    {
-        var viewProj = camera.GetViewProjectionMatrix();
-
-        _data.QuadShader.Bind();
-        _data.QuadShader.SetMat4(ViewProjectionUniform, viewProj);
-        _data.Stats.ProgramSwitches++;
-
-        _data.LineShader.Bind();
-        _data.LineShader.SetMat4(ViewProjectionUniform, viewProj);
+        _data.LineShader.SetMat4(ViewProjectionUniform, view.ViewProjection);
         _data.Stats.ProgramSwitches++;
 
         StartBatch();

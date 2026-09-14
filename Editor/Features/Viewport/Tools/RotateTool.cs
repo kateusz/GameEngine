@@ -4,7 +4,6 @@ using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Viewport.Gizmos;
 using Engine.Scene;
-using Engine.Scene.Cameras;
 using SceneComponents;
 
 namespace Editor.Features.Viewport.Tools;
@@ -32,7 +31,7 @@ public class RotateTool(IEditorHistory history, ISceneContext sceneContext) : IE
         _targetEntity = null;
     }
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (ImGuizmoGizmo.IsAvailable)
             return;
@@ -57,7 +56,7 @@ public class RotateTool(IEditorHistory history, ISceneContext sceneContext) : IE
         _dragStartScale = transform.Scale;
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (ImGuizmoGizmo.IsAvailable)
             return;
@@ -75,7 +74,7 @@ public class RotateTool(IEditorHistory history, ISceneContext sceneContext) : IE
         transform.Rotation = transform.Rotation with { Z = _startRotZ - delta };
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (ImGuizmoGizmo.IsAvailable)
             return;
@@ -96,7 +95,7 @@ public class RotateTool(IEditorHistory history, ISceneContext sceneContext) : IE
         _isRotating = false;
     }
 
-    public void Render(Vector2[] viewportBounds, IViewCamera camera)
+    public void Render(Vector2[] viewportBounds, EditorCamera camera)
     {
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;

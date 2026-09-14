@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.GraphicsTests;
 using Engine.Scene;
+using Engine.Scene.Cameras;
 
 namespace Engine.GraphicsTests;
 
@@ -17,7 +18,7 @@ public class Graphics2DStatsTests(HeadlessGraphicsContextFixture fixture)
         camera.SetViewportSize(800, 600);
 
         fixture.Graphics2D.ResetStats();
-        fixture.Graphics2D.BeginScene(camera, Matrix4x4.Identity);
+        fixture.Graphics2D.BeginScene(CameraViews.From(camera, Matrix4x4.Identity));
 
         for (var i = 0; i < 100; i++)
         {
@@ -45,7 +46,7 @@ public class Graphics2DStatsTests(HeadlessGraphicsContextFixture fixture)
         camera.SetViewportSize(800, 600);
 
         fixture.Graphics2D.ResetStats();
-        fixture.Graphics2D.BeginScene(camera, Matrix4x4.Identity);
+        fixture.Graphics2D.BeginScene(CameraViews.From(camera, Matrix4x4.Identity));
         fixture.Graphics2D.DrawLine(Vector3.Zero, Vector3.UnitX, Vector4.One, entityId: 1);
         fixture.Graphics2D.EndScene();
 

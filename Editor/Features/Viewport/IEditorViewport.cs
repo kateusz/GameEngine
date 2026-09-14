@@ -1,6 +1,5 @@
 using ECS;
 using Engine.Events.Input;
-using Engine.Scene.Cameras;
 
 namespace Editor.Features.Viewport;
 

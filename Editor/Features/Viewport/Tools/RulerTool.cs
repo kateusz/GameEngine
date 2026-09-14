@@ -1,5 +1,4 @@
 using System.Numerics;
-using Engine.Scene.Cameras;
 using ImGuiNET;
 
 namespace Editor.Features.Viewport.Tools;
@@ -24,7 +23,7 @@ public class RulerTool : IViewportTool
 
     public void OnDeactivate() => ClearMeasurement();
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         // Start new measurement
         var worldPos = ViewportCoordinateConverter.ScreenToWorld2D(mousePos, viewportBounds, camera.GetViewProjectionMatrix());
@@ -35,7 +34,7 @@ public class RulerTool : IViewportTool
         _isMeasuring = true;
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (!_isMeasuring)
             return;
@@ -44,7 +43,7 @@ public class RulerTool : IViewportTool
         if (endPos is not null) _endPoint = endPos.Value;
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         // End measurement
         _isMeasuring = false;
@@ -60,7 +59,7 @@ public class RulerTool : IViewportTool
         _hasStartPoint = false;
     }
 
-    public void Render(Vector2[] viewportBounds, IViewCamera camera)
+    public void Render(Vector2[] viewportBounds, EditorCamera camera)
     {
         if (!_hasStartPoint)
             return;

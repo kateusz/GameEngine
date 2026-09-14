@@ -7,7 +7,6 @@ using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
-using Engine.Scene.Cameras;
 using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Camera;
@@ -35,7 +34,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     // Test scenes
     private IScene? _currentTestScene;
-    private EditorCamera? _cameraController;
+    private SceneCamera? _cameraController;
     private readonly Dictionary<string, Texture2D> _testTextures = new();
 
     // Benchmark configurations
@@ -62,7 +61,9 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     public void OnAttach(IInputSystem inputSystem)
     {
-        _cameraController = new EditorCamera();
+        _cameraController = new SceneCamera();
+        _cameraController.SetOrthographic(10f, -10f, 10f);
+        _cameraController.SetViewportSize(800, 600);
         LoadTestAssets();
 
         // Initialize process monitoring
@@ -130,7 +131,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     public void HandleInputEvent(InputEvent windowEvent)
     {
         if (windowEvent is MouseScrolledEvent scrollEvent)
-            _cameraController?.OnMouseScroll(scrollEvent.YOffset);
+            _cameraController!.AdjustOrthographicSize(scrollEvent.YOffset);
     }
 
     private void LoadTestAssets()
@@ -750,7 +751,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     {
         if (_cameraController == null) return;
 
-        graphics2D.BeginScene(_cameraController);
+        graphics2D.BeginScene(new SceneView(_cameraController.GetProjectionMatrix()));
 
         foreach (var entity in _currentTestScene!.Entities)
         {

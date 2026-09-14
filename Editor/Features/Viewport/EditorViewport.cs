@@ -2,7 +2,6 @@ using System.Numerics;
 using ECS;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
-using Editor.Features.Settings;
 using Editor.Features.Viewport.Gizmos;
 using Editor.UI.Drawers;
 using Engine.Core;
@@ -30,7 +29,6 @@ public sealed class EditorViewport(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     DebugSettings debugSettings,
-    EditorSettingsUI editorSettingsUI,
     IFrameBufferFactory frameBufferFactory,
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
@@ -232,9 +230,9 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
-                    var camera = SceneRenderPipeline.CameraBinding.FromEditor(_editorCamera);
-                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, camera);
-                    RenderEditor2DOverlays(scene.Context, camera);
+                    var view = new SceneView(_editorCamera.GetViewProjectionMatrix(), _editorCamera.GetPosition());
+                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view);
+                    RenderEditor2DOverlays(scene.Context, view);
                 }
                 break;
             case SceneState.Play:
@@ -245,7 +243,7 @@ public sealed class EditorViewport(
         _frameBuffer.Unbind();
     }
 
-    private void RenderEditor2DOverlays(IContext context, in SceneRenderPipeline.CameraBinding camera)
+    private void RenderEditor2DOverlays(IContext context, in SceneView view)
     {
         var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
         var drawGrid3D = viewport.SceneToolbar.ShowGrid3D;
@@ -254,7 +252,7 @@ public sealed class EditorViewport(
         if (!drawColliders && !drawGrid3D && !drawCameraGizmos)
             return;
 
-        SceneRenderPipeline.Begin2DScene(graphics2D, camera);
+        graphics2D.BeginScene(view);
 
         if (drawColliders)
             PhysicsDebugDrawer.DrawColliders(context, graphics2D, sceneContext.ActivePhysicsBodyStore!, useTransformFallbackWhenNoBody: true);
@@ -263,7 +261,7 @@ public sealed class EditorViewport(
             cameraGizmoDrawer.Draw(context, graphics2D, _editorCamera);
 
         if (drawGrid3D)
-            viewport.ViewportGrid3D.Render(graphics2D, _editorCamera);
+            ViewportGrid3D.Render(graphics2D, _editorCamera);
 
         graphics2D.EndScene();
     }

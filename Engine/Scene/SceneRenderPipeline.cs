@@ -4,9 +4,7 @@ using Engine.Core;
 using Engine.Renderer;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
-using Engine.Scene.Cameras;
 using Engine.Renderer.Textures;
-using Engine.Scene.Systems;
 using SceneComponents;
 using SceneComponents.Lighting;
 using SceneComponents.Rendering;
@@ -28,51 +26,25 @@ internal static class SceneRenderPipeline
         new(0.0f, 1.0f)
     ];
 
-    internal readonly struct CameraBinding
-    {
-        public Camera? Camera { get; init; }
-        public Matrix4x4 Transform { get; init; }
-        public IViewCamera? ViewCamera { get; init; }
-
-        public bool IsValid => ViewCamera != null || Camera != null;
-
-        public static CameraBinding FromProvider(IPrimaryCameraProvider provider) =>
-            new() { Camera = provider.Camera, Transform = provider.Transform };
-
-        public static CameraBinding FromEditor(EditorCamera camera) =>
-            new() { ViewCamera = camera };
-    }
-
     public static void RenderScene(
         IContext context,
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory  modelFactory,
-        in CameraBinding camera)
+        in SceneView view)
     {
-        RenderSpritesAndSubTextures(context, graphics2D, textureFactory, camera);
-        Render3D(context, graphics3D, textureFactory, modelFactory, camera);
-    }
-    
-    internal static void Begin2DScene(IGraphics2D graphics2D, in CameraBinding camera)
-    {
-        if (camera.ViewCamera != null)
-            graphics2D.BeginScene(camera.ViewCamera);
-        else
-            graphics2D.BeginScene(camera.Camera!, camera.Transform);
+        RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
+        Render3D(context, graphics3D, textureFactory, modelFactory, view);
     }
     
     private static void RenderSpritesAndSubTextures(
         IContext context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory,
-        in CameraBinding camera)
+        in SceneView view)
     {
-        if (!camera.IsValid)
-            return;
-
-        Begin2DScene(graphics2D, camera);
+        graphics2D.BeginScene(view);
         RenderSpritesInternal(context, graphics2D, textureFactory);
         RenderSubTexturesInternal(context, graphics2D, textureFactory);
         graphics2D.EndScene();
@@ -137,12 +109,9 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
-        in CameraBinding camera)
+        in SceneView view)
     {
-        if (!camera.IsValid)
-            return;
-
-        Begin3DScene(graphics3D, camera);
+        graphics3D.BeginScene(view);
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
         var (lightDirection, lightColor) = ResolveDirectional(context);
@@ -233,17 +202,9 @@ internal static class SceneRenderPipeline
 
         return (new Vector3(0, -1, 0), Vector3.Zero);
     }
-    
+
     private static Vector3 NormalizeDirection(Vector3 direction) =>
         direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
-    
-    private static void Begin3DScene(IGraphics3D graphics3D, in CameraBinding camera)
-    {
-        if (camera.ViewCamera != null)
-            graphics3D.BeginScene(camera.ViewCamera);
-        else
-            graphics3D.BeginScene(camera.Camera!, camera.Transform);
-    }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
     {
