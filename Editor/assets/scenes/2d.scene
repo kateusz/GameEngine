@@ -168,10 +168,6 @@
           "RestitutionThreshold": 0.5,
           "IsTrigger": false,
           "Name": "BoxCollider2DComponent"
-        },
-        {
-          "Name": "NativeScriptComponent",
-          "ScriptType": "PhysicsQueryTest"
         }
       ]
     },

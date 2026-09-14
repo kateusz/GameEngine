@@ -12,7 +12,6 @@ graph TD
         CSR[ComponentSerializerRegistry]
         SO[SerializerOptions]
         JCS[JsonComponentSerializer T]
-        NSC[NativeScriptComponentSerializer]
     end
 
     subgraph "Custom Converters"
@@ -27,7 +26,6 @@ graph TD
     SS -->|reads options| SO
     PS -->|reads options| SO
     CSR --> JCS
-    CSR --> NSC
     SO --> V2
     SO --> V3
     SO --> V4
@@ -78,12 +76,6 @@ Resource paths (`TexturePath`, `AudioClipPath`, etc.) are serialized as strings.
 
 Built-in components **not** registered in `RegisterBuiltins()` (`TagComponent`, `IdComponent`) cannot be saved to scene/prefab JSON — `SerializeEntity()` throws if an entity has an unregistered component type.
 
-**NativeScriptComponent** uses a dedicated `NativeScriptComponentSerializer` instead of generic JSON deserialization. It persists only:
-
-- `ScriptType`: the script class name string (`ScriptTypeName` property)
-
-Script field values are not stored in scene/prefab JSON. Scripts are instantiated at runtime by the scripting system from the type name.
-
 ## ComponentSerializerRegistry
 
 **File:** `Engine/Scene/Serializer/ComponentSerializerRegistry.cs`
@@ -100,7 +92,6 @@ Central registry mapping component type names to serializers. Built-in component
 | BoxCollider2DComponent | `JsonComponentSerializer<T>` |
 | AudioListenerComponent | `JsonComponentSerializer<T>` |
 | AudioSourceComponent | `JsonComponentSerializer<T>` |
-| NativeScriptComponent | `NativeScriptComponentSerializer` |
 
 ### Strict vs lenient deserialization
 
@@ -230,7 +221,7 @@ sequenceDiagram
 | `Engine/Scene/Serializer/SceneSerializer.cs` | Scene save/load |
 | `Engine/Scene/Serializer/PrefabSerializer.cs` | Prefab save/load/apply |
 | `Engine/Scene/Serializer/ComponentSerializerRegistry.cs` | Polymorphic component dispatch and registration |
-| `Engine/Scene/Serializer/ComponentSerializers.cs` | `IComponentSerializer`, `JsonComponentSerializer<T>`, `NativeScriptComponentSerializer` |
+| `Engine/Scene/Serializer/ComponentSerializers.cs` | `IComponentSerializer`, `JsonComponentSerializer<T>` |
 | `Engine/Scene/Serializer/IComponentSerializerRegistry.cs` | Public registration API |
 | `Engine/Scene/Serializer/SerializerOptions.cs` | Shared JSON options with converters |
 | `Engine/Scene/Serializer/Vector2Converter.cs` | Vector2 as JSON array |

@@ -9,7 +9,6 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Systems;
-using Engine.Scripting;
 using NSubstitute;
 using Shouldly;
 
@@ -45,7 +44,6 @@ public class SceneSystemsFactoryTests
             Substitute.For<IGraphics3D>(),
             Substitute.For<ITextureFactory>(),
             new DebugSettings(),
-            Substitute.For<IScriptEngine>(),
             Substitute.For<IAudio>(),
             new AudioPlaybackService(),
             worldFactory,
@@ -61,7 +59,6 @@ public class SceneSystemsFactoryTests
             new Context(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
-            new ScriptRuntimeStore(),
             dimension);
 
         return registered;

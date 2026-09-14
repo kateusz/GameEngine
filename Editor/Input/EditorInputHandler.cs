@@ -2,7 +2,6 @@ using Editor.Features.Viewport;
 using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Scene;
-using Engine.Scripting;
 using ImGuiNET;
 using Input;
 
@@ -10,7 +9,6 @@ namespace Editor.Input;
 
 public class EditorInputHandler(
     ISceneContext sceneContext,
-    IScriptEngine scriptEngine,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput,
     ShortcutManager shortcutManager,
@@ -40,9 +38,6 @@ public class EditorInputHandler(
 
             if (mouseInput is MouseInputState mouseState)
                 mouseState.Apply(windowEvent);
-
-            if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
-                scriptEngine.ProcessEvent(windowEvent, scene.Context, store);
         }
     }
 

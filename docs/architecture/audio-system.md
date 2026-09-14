@@ -1,6 +1,6 @@
 # Audio System
 
-OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports spatial audio, WAV/Ogg loading, optional EFX (reverb, echo, low-pass), and one-shot playback. `AudioSystem` runs at priority 120 (after `ScriptUpdateSystem` at 110).
+OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports spatial audio, WAV/Ogg loading, optional EFX (reverb, echo, low-pass), and one-shot playback. `AudioSystem` runs at priority 120.
 
 **File**: `Engine/Platform/OpenAL/OpenALAudioEngine.cs`, `Engine/Scene/Systems/AudioSystem.cs`
 
@@ -10,7 +10,6 @@ OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports spatial audi
 
 | Priority | System | Role |
 |---:|---|---|
-| 110 | `ScriptUpdateSystem` | Runs before audio so gameplay can trigger playback |
 | 120 | `AudioSystem` | Listener pose, source sync, effect chains |
 
 Constants: `Engine/Scene/Systems/SystemPriorities.cs`

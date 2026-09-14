@@ -1,6 +1,6 @@
 # Physics System
 
-2D physics via a platform-abstracted `IPhysicsWorld2D` API (Box2D backend in `Engine/Platform/Box2D/`). Each scene owns its own physics world, body store, and contact queue. `PhysicsSimulationSystem` runs at priority 100 so scripts (110) and rendering (150+) see updated transforms.
+2D physics via a platform-abstracted `IPhysicsWorld2D` API (Box2D backend in `Engine/Platform/Box2D/`). Each scene owns its own physics world, body store, and contact queue. `PhysicsSimulationSystem` runs at priority 100 so rendering (150+) sees updated transforms.
 
 ---
 
@@ -24,20 +24,12 @@ graph TB
         CC[CircleCollider2DComponent]
         EC[EdgeCollider2DComponent]
         TC[TransformComponent]
-        NSC[NativeScriptComponent]
-    end
-
-    subgraph "Script Layer"
-        SRS[ScriptRuntimeStore]
-        SE[ScriptableEntity]
     end
 
     PSS -->|"Step()"| PW
     PW --> CLA
     CLA --> SCL
     SCL -->|"Enqueue"| CQ
-    SCL -->|"OnTrigger*/OnCollision*"| SRS
-    SRS --> SE
     PSS <-->|"entityId ↔ IPhysicsBody2D"| BS
     PSS -->|"read/write position, angle, velocity"| RB
     PSS -->|"write X, Y, Rotation.Z"| TC
@@ -134,12 +126,12 @@ sequenceDiagram
     F-->>W: Box2DPhysicsWorld2D
     SSF->>W: SetContactListener(SceneContactListener)
     SSF->>PSS: new PhysicsSimulationSystem(world, context, bodyStore)
-    SSF->>SMF: Register PhysicsSimulationSystem, ScriptUpdateSystem,<br/>AudioSystem, PrimaryCameraSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
+    SSF->>SMF: Register PhysicsSimulationSystem,<br/>AudioSystem, PrimaryCameraSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
 ```
 
 Default gravity is `(0, -9.8)` in `SceneSystemsFactory.DefaultGravity`.
 
-`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for tier-2 `IGameSystem` scripts. `Scene.PhysicsQueries` exposes the same scene's `IPhysicsWorld2D` as `IPhysicsQueries`. Runtime body maps live on `Scene.PhysicsBodies`.
+`Scene.PhysicsContacts` exposes the per-scene `PhysicsContactQueue` as `IPhysicsContacts` for `IGameSystem`. `Scene.PhysicsQueries` exposes the same scene's `IPhysicsWorld2D` as `IPhysicsQueries`. Runtime body maps live on `Scene.PhysicsBodies`.
 
 When no scene is active, DI resolves `NullPhysicsContacts.Instance` and `NullPhysicsQueries.Instance` (all return empty/null results).
 
@@ -210,7 +202,7 @@ After all steps, for each entity with rigidbody, collider, and a stored body:
 | Priority | System |
 |---|---|
 | 100 | `PhysicsSimulationSystem` |
-| 110 | `ScriptUpdateSystem` |
+| 115 | `TransformHierarchySystem` |
 | 120 | `AudioSystem` |
 | 145 | `PrimaryCameraSystem` |
 | 150 | `SceneRenderSystem` |
@@ -224,10 +216,7 @@ After all steps, for each entity with rigidbody, collider, and a stored body:
 
 Box2D fires during `World.Step()`. The adapter resolves `IPhysicsBody2D` wrappers and whether **either** fixture is a sensor.
 
-`SceneContactListener` then:
-
-1. Enqueues a `PhysicsContact` record on `PhysicsContactQueue` (for `IPhysicsContacts.DrainContacts()`).
-2. Notifies `ScriptableEntity` via `ScriptRuntimeStore` when the entity has `NativeScriptComponent`.
+`SceneContactListener` enqueues a `PhysicsContact` on `PhysicsContactQueue` for `IPhysicsContacts.DrainContacts()` (both entity orders).
 
 ```mermaid
 sequenceDiagram
@@ -235,21 +224,13 @@ sequenceDiagram
     participant A as Box2DContactListenerAdapter
     participant CL as SceneContactListener
     participant Q as PhysicsContactQueue
-    participant SE as ScriptableEntity
 
     W->>A: BeginContact / EndContact
     A->>CL: OnContactBegin / OnContactEnd(bodyA, bodyB, isTrigger)
-
-    alt isTrigger
-        CL->>Q: Enqueue(PhysicsContact)
-        CL->>SE: OnTriggerEnter / OnTriggerExit (both entities)
-    else solid collision
-        CL->>Q: Enqueue(PhysicsContact)
-        CL->>SE: OnCollisionBegin / OnCollisionEnd (both entities)
-    end
+    CL->>Q: Enqueue(PhysicsContact) x2
 ```
 
-Callbacks are bidirectional (A notified about B and B about A). Errors are logged via Serilog and do not propagate. `PreSolve` and `PostSolve` in the adapter are no-ops.
+Errors are logged via Serilog and do not propagate. `PreSolve` and `PostSolve` in the adapter are no-ops.
 
 **File**: `Scripting/IPhysicsContacts.cs`
 
@@ -261,9 +242,9 @@ public readonly record struct PhysicsContact(Entity Self, Entity Other, bool IsT
 
 ## World Queries
 
-**Files**: `Scripting/IPhysicsQueries.cs`, `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs`, `Scripting/ScriptableEntity.cs`
+**Files**: `Scripting/IPhysicsQueries.cs`, `Engine/Platform/Box2D/Box2DPhysicsWorld2D.cs`
 
-`IPhysicsWorld2D` extends `IPhysicsQueries`. Queries are synchronous reads during the current frame — they do not enqueue contacts or fire script callbacks.
+`IPhysicsWorld2D` extends `IPhysicsQueries`. Queries are synchronous reads during the current frame — they do not enqueue contacts.
 
 | Method | Behavior |
 |---|---|
@@ -272,10 +253,7 @@ public readonly record struct PhysicsContact(Entity Self, Entity Other, bool IsT
 
 `Box2DPhysicsWorld2D` resolves fixtures through body `UserData` (`Box2DPhysicsBody2D.Entity`). Invalid rays/circles (non-finite values, zero length/radius) return null.
 
-Access paths:
-
-- **Tier 2** — inject `IPhysicsQueries` from DI (`Scene.PhysicsQueries` when a scene is active).
-- **Scripts** — `ScriptableEntity` protected `Raycast` / `OverlapCircle` forward to DI with `ignoreEntity` set to the script's entity.
+Access paths: inject `IPhysicsQueries` from DI (`Scene.PhysicsQueries` when a scene is active).
 
 ---
 
@@ -291,7 +269,7 @@ When `DebugSettings.ShowColliderBounds` is true, draws collider rectangles via `
 
 | Event | What happens |
 |---|---|
-| Scene construction | `SystemManagerFactory` creates body store, contact queue, script store; `SceneSystemsFactory` registers per-scene systems including physics world |
+| Scene construction | `SystemManagerFactory` creates body store and contact queue; `SceneSystemsFactory` registers per-scene systems including physics world |
 | `OnRuntimeStart()` | `SystemManager.Initialize()` → `PhysicsSimulationSystem.OnInit()` creates initial bodies |
 | `OnUpdateRuntime(ts)` | `SystemManager.Update(ts)` — physics steps first (100) |
 | `OnRuntimeStop()` | `SystemManager.Shutdown()` destroys all bodies |

@@ -97,17 +97,10 @@ Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponen
 | **BoxCollider2DComponent** | `SceneComponents/Physics/BoxCollider2DComponent.cs` | Collision shape: size, offset, density, friction, restitution, trigger flag |
 | **CircleCollider2DComponent** | `SceneComponents/Physics/CircleCollider2DComponent.cs` | Collision shape: radius, offset, material, trigger flag |
 | **EdgeCollider2DComponent** | `SceneComponents/Physics/EdgeCollider2DComponent.cs` | Open polyline collider: points, material, trigger flag |
-| **NativeScriptComponent** | `SceneComponents/NativeScriptComponent.cs` | Persisted script type name (`ScriptTypeName`) for runtime instantiation |
 | **AudioSourceComponent** | `SceneComponents/Audio/AudioSourceComponent.cs` | Audio clip path, volume, pitch, loop, spatial settings, effects |
 | **AudioListenerComponent** | `SceneComponents/Audio/AudioListenerComponent.cs` | Active flag marking the scene audio listener |
 
 Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `CameraComponent.CameraViewTransform`, `BoxCollider2DComponent.IsDirty`).
-
-### ComponentAccessor
-
-**File**: `ECS/IComponentAccessor.cs`
-
-`IComponentAccessor` / `ComponentAccessor` provide a thin proxy for reading and mutating components on a bound `Entity`. Used where code needs component access without holding the entity directly (e.g., script glue).
 
 ---
 
@@ -241,7 +234,7 @@ Custom runtime systems can be added with `Scene.RegisterRuntimeSystem(ISystem)`.
 | Priority | System | Responsibility |
 |----------|--------|---------------|
 | 100 | PhysicsSimulationSystem | Fixed-timestep Box2D stepping, syncs physics bodies → TransformComponent |
-| 110 | ScriptUpdateSystem | `View<NativeScriptComponent>()`, script OnCreate/OnUpdate via `NativeScriptIteration` |
+| 115 | TransformHierarchySystem | World-transform caches |
 | 120 | AudioSystem | Audio listener position, source playback |
 | 145 | PrimaryCameraSystem | Finds entity with `CameraComponent { Primary = true }`, caches for renderers |
 | 150 | SceneRenderSystem | Renders sprites and sub-textures via `SceneRenderPipeline` |

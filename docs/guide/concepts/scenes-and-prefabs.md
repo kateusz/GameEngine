@@ -30,4 +30,4 @@ Play needs a project with `assets/scripts/`. No Primary camera → engine picks 
 
 ## Hierarchy
 
-Entities can have a parent (`ParentComponent` in scene JSON). Child transforms compose with the parent world matrix. The editor hierarchy panel shows the tree and supports drag-reparent. Scripts can use `Parent`, `Children`, and `SetParent` on `ScriptableEntity` — [API Reference](../scripting/api-reference.md#hierarchy).
+Entities can have a parent (`ParentComponent` in scene JSON). Child transforms compose with the parent world matrix. The editor hierarchy panel shows the tree and supports drag-reparent. Systems use `IEntityHierarchy` on the scene (`GetParent`, `GetChildren`, `SetParent`) — [API Reference](../scripting/api-reference.md).

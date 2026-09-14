@@ -135,7 +135,7 @@ See [references/elements-api.md](references/elements-api.md) for complete API re
 
 ### FieldEditors
 
-**What**: Non-generic, boxing-based editors for types discovered via reflection at runtime. Used exclusively by the **script inspector** (`ScriptComponentEditor`) to render public fields of `NativeScript` subclasses.
+**What**: Non-generic, boxing-based editors for types discovered via reflection at runtime. Used by the game-component inspector to render public fields.
 
 **When**: Use when implementing custom rendering for a new type in the script inspector. Do **not** use in component editors — component editors use `UIPropertyRenderer` and `VectorPanel` instead (see below).
 

@@ -8,9 +8,7 @@ using Engine.Events.Window;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
-using Engine.Scripting;
 using Input;
-using Scripting;
 using Serilog;
 
 namespace Runtime;
@@ -20,7 +18,6 @@ public class GameLayer(
     ISceneContext sceneContext,
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
-    IScriptEngine scriptEngine,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput,
     IPointerSurface pointerSurface,
@@ -99,9 +96,6 @@ public class GameLayer(
 
         if (mouseInput is MouseInputState mouseState)
             mouseState.Apply(windowEvent);
-
-        if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
-            scriptEngine.ProcessEvent(windowEvent, scene.Context, store);
     }
 
     public void HandleWindowEvent(WindowEvent windowEvent)

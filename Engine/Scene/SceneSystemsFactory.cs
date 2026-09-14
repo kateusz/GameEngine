@@ -8,7 +8,6 @@ using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
-using Engine.Scripting;
 using Scripting;
 using Serilog;
 
@@ -19,7 +18,6 @@ internal sealed class SceneSystemsFactory(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     DebugSettings debugSettings,
-    IScriptEngine scriptEngine,
     IAudio audio,
     AudioPlaybackService playbackService,
     IPhysicsWorldFactory physicsWorldFactory,
@@ -33,26 +31,21 @@ internal sealed class SceneSystemsFactory(
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue,
-        ScriptRuntimeStore scriptStore,
         SceneDimension dimension = SceneDimension.TwoD)
     {
         var primaryCamera = new PrimaryCameraSystem(context);
-        var contactListener = new SceneContactListener(contactQueue, scriptStore);
-
-        IPhysicsQueries physicsQueries;
-        ISystem[] systems;
+        var contactListener = new SceneContactListener(contactQueue);
 
         var physicsWorld = physicsWorldFactory.Create(DefaultGravity2D);
         physicsWorld.SetContactListener(contactListener);
-        physicsQueries = physicsWorld;
-        systems = Create2DSystems(physicsWorld, context, bodyStore, primaryCamera);
+        var physicsQueries = physicsWorld;
+        var systems = Create2DSystems(physicsWorld, context, bodyStore, primaryCamera);
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);
 
         ISystem[] shared =
         [
-            new ScriptUpdateSystem(context, scriptEngine, scriptStore),
             audioSystem,
             primaryCamera,
             new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera, modelFactory)

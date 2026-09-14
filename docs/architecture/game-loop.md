@@ -263,7 +263,7 @@ sequenceDiagram
 - Input events propagate from overlays down to base layers
 - Any layer can consume an event by setting `IsHandled = true`
 - `Application` applies `KeyReleasedEvent` / `MouseButtonReleasedEvent` to input state **before** overlay handling so release events are not swallowed by UI capture (prevents stuck keys in Play mode)
-- `GameLayer` updates `KeyboardInputState` / `MouseInputState` and forwards to `IScriptEngine.ProcessEvent` when `ActiveScriptRuntimeStore` is available
+- `GameLayer` updates `KeyboardInputState` / `MouseInputState`; systems poll them on `OnUpdate`
 - Window events (resize, close) follow the same reverse-order propagation
 
 ---

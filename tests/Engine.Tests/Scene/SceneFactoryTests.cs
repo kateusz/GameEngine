@@ -20,7 +20,6 @@ public class SceneFactoryTests
             Substitute.For<ISystemManager>(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
-            new ScriptRuntimeStore(),
             Substitute.For<IPhysicsQueries>()));
 
         var scene = new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())
@@ -38,7 +37,6 @@ public class SceneFactoryTests
             Substitute.For<ISystemManager>(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
-            new ScriptRuntimeStore(),
             Substitute.For<IPhysicsQueries>()));
 
         var scene = new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())

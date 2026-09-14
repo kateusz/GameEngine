@@ -10,7 +10,6 @@ public sealed record SceneBuildResult(
     ISystemManager SystemManager,
     PhysicsRuntimeBodyStore BodyStore,
     PhysicsContactQueue ContactQueue,
-    ScriptRuntimeStore ScriptStore,
     IPhysicsQueries PhysicsQueries);
 
 public interface ISystemManagerFactory

@@ -14,7 +14,7 @@ namespace Editor.Panels;
 
 public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposable
 {
-    private enum CreateAssetKind { Script, Component, System }
+    private enum CreateAssetKind { Component, System }
 
     private const float TreePanelWidth = 200f;
     private const int MaxThumbnailUploadsPerFrame = 8;
@@ -133,8 +133,6 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
         if (ImGui.BeginPopupContextItem($"DirCtx##{directoryPath}"))
         {
             var canCreate = CanCreateScriptAssets(directoryPath);
-            if (ImGui.MenuItem("Add Script", enabled: canCreate))
-                BeginCreateAsset(CreateAssetKind.Script);
             if (ImGui.MenuItem("Add Component", enabled: canCreate))
                 BeginCreateAsset(CreateAssetKind.Component);
             if (ImGui.MenuItem("Add System", enabled: canCreate))
@@ -167,14 +165,12 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
         _errorMessage = null;
         _newAssetName = kind switch
         {
-            CreateAssetKind.Script => $"Script_{DateTime.Now.Ticks % 1000:000}",
             CreateAssetKind.Component => string.Empty,
             CreateAssetKind.System => "MyGame",
             _ => string.Empty
         };
         _createAssetPopupName = kind switch
         {
-            CreateAssetKind.Script => $"Create New Script##{CreateAssetPopupId}",
             CreateAssetKind.Component => $"Create Game Component##{CreateAssetPopupId}",
             CreateAssetKind.System => $"Create Game System##{CreateAssetPopupId}",
             _ => $"Create Asset##{CreateAssetPopupId}"
@@ -204,7 +200,6 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
         var isValidName = !string.IsNullOrEmpty(_newAssetName) && ValidNameRegex.IsMatch(_newAssetName);
         var promptText = _pendingCreateKind switch
         {
-            CreateAssetKind.Script => "Enter name for the new script:",
             CreateAssetKind.Component => isValidName
                 ? $"Enter base name for the new component:\nWill create: {GameComponentTemplates.ToClassName(_newAssetName)}"
                 : "Enter base name for the new component:",
@@ -281,7 +276,6 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
         {
             var (success, error) = _pendingCreateKind switch
             {
-                CreateAssetKind.Script => await _actions.CreateScriptAsync(_newAssetName),
                 CreateAssetKind.Component => await _actions.CreateComponentAsync(_newAssetName),
                 CreateAssetKind.System => await _actions.CreateSystemAsync(_newAssetName),
                 _ => (false, "Unknown asset type.")

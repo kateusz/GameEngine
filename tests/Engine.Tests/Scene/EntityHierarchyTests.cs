@@ -19,7 +19,7 @@ public class EntityHierarchyTests
     private EngineScene CreateScene() =>
         new("test-scene", "test-scene", new Context(),
             _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
-            new ScriptRuntimeStore(), null!, NullCameraQueries.Instance);
+            null!, NullCameraQueries.Instance);
 
     private static Entity CreateWithTransform(EngineScene scene, string name, Vector3 translation)
     {

@@ -45,11 +45,11 @@ Sample games live under `games/` (Snake, Flappy Bird, Arena Shooter). Open one v
 - [Shortcuts](editor/shortcuts.md) — keyboard shortcuts reference
 
 ### Scripting
-- [Getting Started](scripting/getting-started.md) — first scripts and hot reload
-- [Scripting Tiers](scripting/scripting-tiers.md) — components, per-entity scripts, and game systems
+- [Getting Started](scripting/getting-started.md) — first system and hot reload
+- [Scripting Tiers](scripting/scripting-tiers.md) — components and game systems
 - [Input](scripting/input.md) — keyboard, mouse, and event flow
-- [Physics](scripting/physics.md) — collisions and queries from scripts
-- [API Reference](scripting/api-reference.md) — `ScriptableEntity` methods
+- [Physics](scripting/physics.md) — collisions and queries from systems
+- [API Reference](scripting/api-reference.md) — `IGameSystem` services
 
 ### Concepts
 - [ECS Overview](concepts/ecs-overview.md) — entities, components, and systems

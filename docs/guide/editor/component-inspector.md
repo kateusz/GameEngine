@@ -204,20 +204,6 @@ See also: [Physics Scripting](../scripting/physics.md)
 
 ---
 
-## NativeScriptComponent
-
-Attaches a C# script class to the entity, enabling custom game logic driven by the engine's scripting lifecycle (`OnCreate`, `OnUpdate`, `OnDestroy`).
-
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `ScriptTypeName` | string | — | Fully qualified or simple name of the script class to instantiate. |
-
-**When to use:** Any entity that requires custom behavior — player controllers, enemy AI, trigger logic, UI controllers. The script class must extend `ScriptableEntity`.
-
-See also: [Scripting Getting Started](../scripting/getting-started.md)
-
----
-
 ## AudioSourceComponent
 
 Emits audio from the entity's world position. Supports both non-positional and spatial audio with distance-based attenuation.
@@ -274,4 +260,4 @@ The Scene Hierarchy panel shows each entity's **name** in a field labeled **Tag*
 
 Custom serializable data components created from **Add Component → Game Component** (or the Content Browser **Add Component** action on the `scripts` folder). Fields on these types are saved in scene/prefab JSON and edited in the Properties panel.
 
-See [Scripting Tiers](../scripting/scripting-tiers.md) for when to use game components vs `ScriptableEntity` scripts vs `IGameSystem`.
+See [Scripting Tiers](../scripting/scripting-tiers.md) for when to use game components vs `IGameSystem`.

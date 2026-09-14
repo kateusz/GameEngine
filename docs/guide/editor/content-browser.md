@@ -36,19 +36,12 @@ The Content Browser passes the asset's path relative to the `assets` directory a
 
 ### Context Menu (Directory Tree)
 
-Right-click any folder in the left-side directory tree to open a context menu with three options:
+Right-click any folder in the left-side directory tree to open a context menu:
 
-- **Add Script** — creates a new `ScriptableEntity` script in `assets/scripts/`
 - **Add Component** — creates a new `IGameComponent` class in `assets/scripts/`
 - **Add System** — creates a new `IGameSystem` class in `assets/scripts/`
 
-These options are enabled only when you right-click the `scripts` folder or one of its subfolders. On other folders (textures, scenes, etc.) the menu items appear grayed out. A name prompt opens when you choose an action; script names must match `^[a-zA-Z][a-zA-Z0-9_]*$` (letters, digits, underscore; must start with a letter). The new file is compiled immediately but is not attached to any entity.
-
-**Scripts (Properties panel)**
-
-Scripts can also be created from the NativeScriptComponent in the Properties panel. With an entity selected, expand the **Script** section (or use the **Add Script** placeholder) and click **Create New Script**. Enter a valid C# identifier as the script name and confirm. The engine generates a script template and saves it to `assets/scripts/`. The script is immediately compiled and attached to the entity.
-
-You can also click **Add Existing Script** to attach a previously created script to the selected entity.
+These options are enabled only when you right-click the `scripts` folder or one of its subfolders. On other folders (textures, scenes, etc.) the menu items appear grayed out. A name prompt opens when you choose an action; names must match `^[a-zA-Z][a-zA-Z0-9_]*$` (letters, digits, underscore; must start with a letter). The new file is compiled immediately.
 
 **Scenes**
 

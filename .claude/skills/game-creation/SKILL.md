@@ -12,7 +12,7 @@ Create **small 2D games** the way `games/Snake`, `games/FlappyBird`, and `games/
 ## When to use
 
 - New game under `games/` or a new editor project
-- New `IGameComponent` / `IGameSystem` / `ScriptableEntity` for gameplay
+- New `IGameComponent` / `IGameSystem` for gameplay
 - Menus/HUD/scoring UX decisions
 - Publish / `game.config.json` setup
 
@@ -99,25 +99,17 @@ From [scripting-tiers.md](../../../docs/guide/scripting/scripting-tiers.md):
 | Tier | Type | Put here |
 |------|------|----------|
 | **Data** | `IGameComponent` + `[SerializableComponent]` | Score, board, grid state — inspector + scene JSON |
-| **Glue** | `ScriptableEntity` + `NativeScriptComponent` | Per-entity input → write flags/mailboxes on components |
-| **Logic** | `IGameSystem` + `[Register(typeof(IGameSystem))]` | Rules, queries, sync visuals, global keyboard via `IKeyboardInput` |
+| **Logic** | `IGameSystem` + `[Register(typeof(IGameSystem))]` | Rules, queries, sync visuals, keyboard via `IKeyboardInput` |
 
 **Rules:**
 
-1. Tunable/shared state → game components, **not** script fields (script fields do not serialize).
+1. Tunable/shared state → game components, **not** system fields (system fields do not serialize).
 2. Batch rules / win conditions / tick loops → `IGameSystem`.
-3. Scripts are thin glue; systems own gameplay.
-4. Create via Content Browser on `assets/scripts/`: **Add Component / Add System / Add Script** (templates).
+3. Create via Content Browser on `assets/scripts/`: **Add Component / Add System** (templates).
 
-### Pattern A — system owns input (Snake / FlappyBird / TicTacToe)
+### Pattern — system owns input (Snake / FlappyBird / TicTacToe)
 
 `SnakeGameComponent` = state · `SnakeSystem` = input + tick + `SyncCellVisuals` / banners · inject `IContext`, `IKeyboardInput`, `IAudio`. Same shape in FlappyBird and TicTacToe.
-
-### Pattern B — script mailbox + system rules
-
-Thin `ScriptableEntity` writes intent flags/mailboxes on a component · `IGameSystem` consumes them and syncs visuals. Prefer this when one entity should own input callbacks.
-
-Pick one; do not scatter the same rule in both.
 
 ---
 
@@ -132,7 +124,7 @@ Game Progress:
 - [ ] `[SerializableComponent]` state component(s) + `Clone()`
 - [ ] `[Register(typeof(IGameSystem))]` rules system (Priority ~115 like samples)
 - [ ] Visuals: SpriteRendererComponent texture/color sync from system
-- [ ] Input: IKeyboardInput in system OR ScriptableEntity → component mailbox
+- [ ] Input: `IKeyboardInput` in system
 - [ ] Audio (optional): IAudio.PlayOneShot with stable relative path
 - [ ] Physics only if needed: RigidBody2D + BoxCollider2D; contacts via callbacks/IPhysicsContacts; queries via Raycast/OverlapCircle or IPhysicsQueries
 - [ ] game.config.json at project root; StartupScenePath correct
@@ -145,7 +137,7 @@ Systems drive presentation each frame — e.g. set `SpriteRendererComponent.Text
 
 ### Physics (optional)
 
-See [physics.md](../../../docs/guide/scripting/physics.md). Both `RigidBody2DComponent` and `BoxCollider2DComponent` required for simulation. Contacts/triggers for collisions; `Raycast` / `OverlapCircle` (scripts) or inject `IPhysicsQueries` (systems) for ground checks / LoS / mouse pick. Prefer grid/arcade logic when possible (Snake style).
+See [physics.md](../../../docs/guide/scripting/physics.md). Both `RigidBody2DComponent` and `BoxCollider2DComponent` required for simulation. Contacts via `IPhysicsContacts.DrainContacts()`; queries via `IPhysicsQueries`. Prefer grid/arcade logic when possible (Snake style).
 
 ---
 
@@ -154,8 +146,8 @@ See [physics.md](../../../docs/guide/scripting/physics.md). Both `RigidBody2DCom
 | Mistake | Do instead |
 |---------|------------|
 | Build menus with ImGui or a custom UI kit | Sprite/quad banners; accept minimal UX |
-| Put score/board on `ScriptableEntity` fields | `[SerializableComponent]` game component |
-| One giant `ScriptableEntity` for all rules | `IGameSystem` + components |
+| Put score/board on system fields | `[SerializableComponent]` game component |
+| One giant class for all rules | `IGameSystem` + components |
 | Assume parent/child transforms | Flat entities; manual sync if attached parts needed |
 | Nest under a `project/` folder | Flat root with `assets/` + `game.config.json` |
 | Hardcode absolute disk paths | Project-relative asset paths |

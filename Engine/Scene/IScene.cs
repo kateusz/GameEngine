@@ -65,12 +65,12 @@ public interface IScene : IDisposable, IEntityHierarchy
 
     /// <summary>
     /// Called when exiting runtime/play mode.
-    /// Cleans up physics bodies and calls script OnDestroy methods.
+    /// Cleans up physics bodies and shuts down systems.
     /// </summary>
     void OnRuntimeStop();
 
     /// <summary>
-    /// Updates the scene in runtime mode (with physics and scripts).
+    /// Updates the scene in runtime mode (physics and game systems).
     /// </summary>
     /// <param name="ts">Time elapsed since last update</param>
     void OnUpdateRuntime(TimeSpan ts);
