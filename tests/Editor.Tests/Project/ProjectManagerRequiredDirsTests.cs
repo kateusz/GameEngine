@@ -59,5 +59,11 @@ public class ProjectManagerRequiredDirsTests : IDisposable
 
         ok.ShouldBeTrue(error);
         Directory.Exists(Path.Combine(_tempRoot, "DemoProject", "assets", "models")).ShouldBeTrue();
+
+        var configPath = GameConfiguration.PathFor(Path.Combine(_tempRoot, "DemoProject"));
+        GameConfiguration.TryLoad(configPath, out var config, out var loadError).ShouldBeTrue(loadError);
+        config.ShouldNotBeNull();
+        config.GameTitle.ShouldBe("DemoProject");
+        config.StartupScenePath.ShouldBe("assets/scenes/DemoProject.scene");
     }
 }

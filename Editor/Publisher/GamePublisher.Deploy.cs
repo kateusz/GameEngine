@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Engine.Core;
 
 namespace Editor.Publisher;
@@ -61,10 +60,8 @@ public partial class GamePublisher
     {
         try
         {
-            var configPath = Path.Combine(buildOutput, "game.config.json");
-            var json = JsonSerializer.Serialize(gameConfig, new JsonSerializerOptions { WriteIndented = true });
-
-            File.WriteAllText(configPath, json);
+            var configPath = GameConfiguration.PathFor(buildOutput);
+            GameConfiguration.Save(configPath, gameConfig);
             Logger.Information("Created game configuration at {Path}", configPath);
             return PublishResult.Succeeded(configPath);
         }
