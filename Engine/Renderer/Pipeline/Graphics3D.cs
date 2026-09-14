@@ -3,7 +3,6 @@ using Engine.Core;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
-using Engine.Scene.Cameras;
 
 namespace Engine.Renderer.Pipeline;
 
@@ -45,24 +44,10 @@ internal sealed class Graphics3D(
         _modelShader.Unbind();
     }
 
-    public void BeginScene(Camera camera, Matrix4x4 transform)
+    public void BeginScene(in SceneView view)
     {
-        if (!Matrix4x4.Invert(transform, out var viewMatrix))
-        {
-            Serilog.Log.ForContext<Graphics3D>().Error(
-                "Failed to invert camera transform matrix (M11={M11}, M22={M22}, M33={M33}, M44={M44}). Skipping scene.",
-                transform.M11, transform.M22, transform.M33, transform.M44);
-            return;
-        }
-
-        _viewProjection = viewMatrix * camera.GetProjectionMatrix();
-        _viewPosition = new Vector3(transform.M41, transform.M42, transform.M43);
-    }
-
-    public void BeginScene(IViewCamera camera)
-    {
-        _viewProjection = camera.GetViewProjectionMatrix();
-        _viewPosition = camera.GetPosition();
+        _viewProjection = view.ViewProjection;
+        _viewPosition = view.ViewPosition;
     }
 
     public void EndScene()

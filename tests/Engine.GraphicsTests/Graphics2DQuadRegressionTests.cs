@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.GraphicsTests.ImageRegression;
 using Engine.Scene;
+using Engine.Scene.Cameras;
 
 namespace Engine.GraphicsTests;
 
@@ -21,7 +22,7 @@ public class Graphics2DQuadRegressionTests(HeadlessGraphicsContextFixture fixtur
         framebuffer.Bind();
         fixture.Graphics2D.SetClearColor(new Vector4(0.08f, 0.08f, 0.08f, 1f));
         fixture.Graphics2D.Clear();
-        fixture.Graphics2D.BeginScene(camera, Matrix4x4.Identity);
+        fixture.Graphics2D.BeginScene(CameraViews.From(camera, Matrix4x4.Identity));
         fixture.Graphics2D.DrawQuad(Vector3.Zero, new Vector2(1.2f, 0.8f), new Vector4(0.9f, 0.2f, 0.1f, 1f));
         fixture.Graphics2D.EndScene();
         framebuffer.Unbind();

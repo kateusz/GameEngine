@@ -1,16 +1,12 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Scene.Cameras;
 using Math;
 
-namespace Engine.Scene.Cameras;
+namespace Editor.Features.Viewport;
 
 public class EditorCamera : Camera, IViewCamera
 {
-    private Vector3 _focalPoint = Vector3.Zero;
-    private float _distance = CameraConfig.DefaultEditorDistance;
-    private float _pitch;
-    private float _yaw;
-    private readonly float _fov;
     private float _aspectRatio;
     private readonly float _nearClip;
     private readonly float _farClip;
@@ -23,18 +19,22 @@ public class EditorCamera : Camera, IViewCamera
     private float _viewportHeight = DisplayConfig.DefaultEditorViewportHeight;
 
     private Vector2 _previousMousePosition;
-    private float _flySpeedMultiplier = CameraConfig.DefaultEditorFlySpeedMultiplier;
 
-    public float Distance => _distance;
-    public float FlySpeedMultiplier => _flySpeedMultiplier;
-    public float FOV => _fov;
-    public float Pitch => _pitch;
-    public float Yaw => _yaw;
-    public Vector3 FocalPoint => _focalPoint;
+    public float Distance { get; private set; } = CameraConfig.DefaultEditorDistance;
+
+    public float FlySpeedMultiplier { get; private set; } = CameraConfig.DefaultEditorFlySpeedMultiplier;
+
+    public float FOV { get; }
+
+    public float Pitch { get; private set; }
+
+    public float Yaw { get; private set; }
+
+    public Vector3 FocalPoint { get; private set; } = Vector3.Zero;
 
     public EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
     {
-        _fov = fov;
+        FOV = fov;
         _aspectRatio = aspectRatio;
         _nearClip = nearClip;
         _farClip = farClip;
@@ -51,7 +51,7 @@ public class EditorCamera : Camera, IViewCamera
     }
 
     public Quaternion GetOrientation() =>
-        Quaternion.CreateFromYawPitchRoll(-_yaw, -_pitch, 0.0f);
+        Quaternion.CreateFromYawPitchRoll(-Yaw, -Pitch, 0.0f);
 
     public Vector3 GetForwardDirection() =>
         Vector3.Transform(-Vector3.UnitZ, GetOrientation());
@@ -63,7 +63,7 @@ public class EditorCamera : Camera, IViewCamera
         Vector3.Transform(Vector3.UnitY, GetOrientation());
 
     public Vector3 GetPosition() =>
-        _focalPoint - GetForwardDirection() * _distance;
+        FocalPoint - GetForwardDirection() * Distance;
 
     public Matrix4x4 GetViewMatrix()
     {
@@ -91,33 +91,33 @@ public class EditorCamera : Camera, IViewCamera
 
     public void SetFocalPoint(Vector3 focalPoint)
     {
-        _focalPoint = focalPoint;
+        FocalPoint = focalPoint;
         _viewDirty = true;
     }
 
     public void SetDistance(float distance)
     {
-        _distance = System.Math.Clamp(distance, CameraConfig.MinEditorDistance, CameraConfig.MaxEditorDistance);
+        Distance = System.Math.Clamp(distance, CameraConfig.MinEditorDistance, CameraConfig.MaxEditorDistance);
         _viewDirty = true;
     }
 
     public void SetPitch(float pitch)
     {
-        _pitch = pitch;
+        Pitch = pitch;
         _viewDirty = true;
     }
 
     public void SetYaw(float yaw)
     {
-        _yaw = yaw;
+        Yaw = yaw;
         _viewDirty = true;
     }
 
     public void Pan(Vector2 delta)
     {
         var (xSpeed, ySpeed) = CalculatePanSpeed();
-        _focalPoint += -GetRightDirection() * delta.X * xSpeed * _distance;
-        _focalPoint += GetUpDirection() * delta.Y * ySpeed * _distance;
+        FocalPoint += -GetRightDirection() * delta.X * xSpeed * Distance;
+        FocalPoint += GetUpDirection() * delta.Y * ySpeed * Distance;
         _viewDirty = true;
     }
 
@@ -131,7 +131,7 @@ public class EditorCamera : Camera, IViewCamera
     {
         var eye = GetPosition();
         ApplyRotation(delta);
-        _focalPoint = eye + GetForwardDirection() * _distance;
+        FocalPoint = eye + GetForwardDirection() * Distance;
         _viewDirty = true;
     }
 
@@ -140,41 +140,41 @@ public class EditorCamera : Camera, IViewCamera
         if (move == Vector3.Zero)
             return;
 
-        var speed = CameraConfig.EditorFlySpeed * _flySpeedMultiplier * dt;
-        _focalPoint += GetForwardDirection() * move.Z * speed;
-        _focalPoint += GetRightDirection() * move.X * speed;
-        _focalPoint += Vector3.UnitY * move.Y * speed;
+        var speed = CameraConfig.EditorFlySpeed * FlySpeedMultiplier * dt;
+        FocalPoint += GetForwardDirection() * move.Z * speed;
+        FocalPoint += GetRightDirection() * move.X * speed;
+        FocalPoint += Vector3.UnitY * move.Y * speed;
         _viewDirty = true;
     }
 
     public void Slide(Vector2 delta)
     {
         var (xSpeed, ySpeed) = CalculatePanSpeed();
-        _focalPoint += GetRightDirection() * delta.X * xSpeed * _distance;
-        _focalPoint += GetForwardDirection() * delta.Y * ySpeed * _distance;
+        FocalPoint += GetRightDirection() * delta.X * xSpeed * Distance;
+        FocalPoint += GetForwardDirection() * delta.Y * ySpeed * Distance;
         _viewDirty = true;
     }
 
     public void AdjustFlySpeed(float scrollDelta)
     {
-        _flySpeedMultiplier = System.Math.Clamp(
-            _flySpeedMultiplier + scrollDelta * CameraConfig.EditorFlySpeedScrollStep,
+        FlySpeedMultiplier = System.Math.Clamp(
+            FlySpeedMultiplier + scrollDelta * CameraConfig.EditorFlySpeedScrollStep,
             CameraConfig.MinEditorFlySpeedMultiplier,
             CameraConfig.MaxEditorFlySpeedMultiplier);
     }
 
     public void ResetFlySpeedMultiplier() =>
-        _flySpeedMultiplier = CameraConfig.DefaultEditorFlySpeedMultiplier;
+        FlySpeedMultiplier = CameraConfig.DefaultEditorFlySpeedMultiplier;
 
     public void Zoom(float delta)
     {
-        _distance -= delta * CalculateZoomSpeed();
-        if (_distance < CameraConfig.MinEditorDistance)
+        Distance -= delta * CalculateZoomSpeed();
+        if (Distance < CameraConfig.MinEditorDistance)
         {
-            _focalPoint += GetForwardDirection();
-            _distance = CameraConfig.MinEditorDistance;
+            FocalPoint += GetForwardDirection();
+            Distance = CameraConfig.MinEditorDistance;
         }
-        _distance = MathF.Min(_distance, CameraConfig.MaxEditorDistance);
+        Distance = MathF.Min(Distance, CameraConfig.MaxEditorDistance);
         _viewDirty = true;
     }
 
@@ -207,7 +207,7 @@ public class EditorCamera : Camera, IViewCamera
     private void UpdateProjection()
     {
         _projection = Matrix4x4.CreatePerspectiveFieldOfView(
-            MathHelpers.DegreesToRadians(_fov),
+            MathHelpers.DegreesToRadians(FOV),
             _aspectRatio,
             _nearClip,
             _farClip);
@@ -217,9 +217,9 @@ public class EditorCamera : Camera, IViewCamera
     private void ApplyRotation(Vector2 delta)
     {
         var yawSign = GetUpDirection().Y < 0 ? -1.0f : 1.0f;
-        _yaw += yawSign * delta.X * CameraConfig.EditorRotationSpeed;
-        _pitch += delta.Y * CameraConfig.EditorRotationSpeed;
-        _pitch = System.Math.Clamp(_pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);
+        Yaw += yawSign * delta.X * CameraConfig.EditorRotationSpeed;
+        Pitch += delta.Y * CameraConfig.EditorRotationSpeed;
+        Pitch = System.Math.Clamp(Pitch, -MathF.PI / 2f + 0.01f, MathF.PI / 2f - 0.01f);
     }
 
     private void UpdateView()
@@ -249,7 +249,7 @@ public class EditorCamera : Camera, IViewCamera
 
     private float CalculateZoomSpeed()
     {
-        float distance = _distance * 0.2f;
+        float distance = Distance * 0.2f;
         distance = MathF.Max(distance, 0.0f);
         float speed = distance * distance;
         return MathF.Min(speed, 100.0f);
