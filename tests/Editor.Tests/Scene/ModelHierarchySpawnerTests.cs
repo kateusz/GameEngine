@@ -26,7 +26,13 @@ public class ModelHierarchySpawnerTests
     private static ModelSceneNode Node(
         string name,
         IReadOnlyList<int> meshIndices,
-        Matrix4x4? localTransform = null,
+        params ModelSceneNode[] children) =>
+        new(name, meshIndices, children);
+
+    private static ModelSceneNode Node(
+        string name,
+        IReadOnlyList<int> meshIndices,
+        Matrix4x4 localTransform,
         params ModelSceneNode[] children) =>
         new(name, meshIndices, children, localTransform);
 
