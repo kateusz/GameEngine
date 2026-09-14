@@ -22,13 +22,9 @@ public class GameComponentDiscoveryTests
                 }
                 """);
 
-            File.WriteAllText(Path.Combine(dir, "PlayerScript.cs"), """
-                using Audio;
-                using Scripting;
-
-                public class PlayerScript : ScriptableEntity
+            File.WriteAllText(Path.Combine(dir, "NotAComponent.cs"), """
+                public class NotAComponent
                 {
-                    public PlayerScript(IComponentAccessor a, IAudio audio, IAudioPlayback audioPlayback, IPhysicsQueries physicsQueries, IEntityHierarchy hierarchy) : base(a, audio, audioPlayback, physicsQueries, hierarchy) {}
                 }
                 """);
 

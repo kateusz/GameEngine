@@ -21,7 +21,7 @@ public class ModelHierarchySpawnerTests
     private EngineScene CreateScene() =>
         new("test-scene", "test-scene", new Context(),
             _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
-            new ScriptRuntimeStore(), null!, NullCameraQueries.Instance);
+            null!, NullCameraQueries.Instance);
 
     private static ModelSceneNode Node(
         string name,

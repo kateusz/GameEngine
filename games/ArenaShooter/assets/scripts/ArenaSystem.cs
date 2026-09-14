@@ -124,6 +124,8 @@ public class ArenaSystem(
                 continue;
 
             game.InWater = contact.IsBegin;
+            if (contact.IsBegin && contact.Self.Name == "Water")
+                audio.PlayOneShot("assets/sounds/water-walk.wav");
         }
     }
 

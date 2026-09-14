@@ -1,7 +1,7 @@
 using ECS;
-using Editor.ComponentEditors;
 using Editor.Features.Viewport;
 using Editor.Panels;
+using Engine.Scene.Cameras;
 using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
 
 namespace Editor;
@@ -11,7 +11,6 @@ public class EditorPanels(
     IContentBrowserPanel contentBrowserPanel,
     RendererStatsPanel rendererStatsPanel,
     PerformanceMonitorPanel performanceMonitor,
-    ScriptComponentEditor scriptComponentEditor,
     GameComponentEditor gameComponentEditor)
 {
     public void Draw(Entity? hoveredEntity, EditorCamera camera, TimeSpan deltaTime)
@@ -21,7 +20,6 @@ public class EditorPanels(
         foreach (var panel in panels)
             panel.Draw();
 
-        scriptComponentEditor.Draw();
         gameComponentEditor.RenderPopups();
         contentBrowserPanel.RenderPopups();
 

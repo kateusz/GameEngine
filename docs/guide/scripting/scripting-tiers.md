@@ -3,10 +3,9 @@
 | Tier | Type | Use for |
 |------|------|---------|
 | **Data** | `IGameComponent` + `[SerializableComponent]` | Serializable state; inspector fields |
-| **Glue** | `ScriptableEntity` + `NativeScriptComponent` | Per-entity wiring, local reactions |
-| **Logic** | `IGameSystem` + `[Register]` | Batch rules, queries, shared input/physics |
+| **Logic** | `IGameSystem` + `[Register]` | Input, physics, queries, win conditions, visual sync |
 
-**Rule:** Data in components, glue in scripts, batch logic in systems.
+**Rule:** Data in components, rules in systems.
 
 ## Snake pattern
 
@@ -15,15 +14,11 @@ SnakeGameComponent / GridCellComponent  →  game state
 SnakeSystem                             →  input, tick, visuals, audio
 ```
 
-For per-entity input callbacks instead of system polling, use a thin `ScriptableEntity` that writes intent flags onto a component; keep batch rules in an `IGameSystem`.
+Per-entity reactions (door, pickup, water) are still systems: query components or `IPhysicsContacts.DrainContacts()`, write flags back onto components.
 
 ## Components
 
 Health, score, inventory — anything saved in scene JSON. **Add Game Component** scaffolds via `GameComponentTemplates` (`Clone()`, `[SerializableComponent]`).
-
-## Scripts
-
-Camera controller, door trigger, event→component glue. **NativeScriptComponent → Create New Script**.
 
 ## Systems
 
@@ -34,9 +29,10 @@ Turn order, win conditions, multi-entity updates. Register with `[Register(typeo
 | `IContext` | Entity/component queries |
 | `IKeyboardInput` | `IsKeyDown` / `WasKeyPressed` |
 | `IPhysicsContacts` | `DrainContacts()` per frame |
+| `IPhysicsQueries` | `Raycast` / `OverlapCircle` |
 | `IAudio` | Play sounds |
 
-Scaffold: `GameSystemTemplates`.
+Scaffold: Content Browser **Add System** (`GameSystemTemplates`).
 
 ## See also
 

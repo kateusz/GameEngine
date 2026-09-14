@@ -14,11 +14,10 @@ namespace Editor.Tests.History;
 /// Wrap-site coverage checklist (command invert covered here; sites wire via history.Execute):
 /// Tools ×3: MoveTool / RotateTool / ScaleTool → SetTransformCommand (see SetTransformCommandTests)
 /// Hierarchy ×1: SceneHierarchyPanel Delete → DestroyEntitySubtreeCommand (see DestroyEntitySubtreeCommandTests)
-/// Components ×4:
+/// Components ×3:
 /// 1. ComponentSelector — AddComponentCommand (incl. Transform auto-add compound)
 /// 2. ComponentEditorRegistry — RemoveComponentCommand on "-" remove
-/// 3. ScriptComponentEditor — NativeScript add/remove via history (NativeScript_AddRemove_ViaHistory)
-/// 4. GameComponentFactory — AddComponentDynamic attach via history (.cs file create not undone)
+/// 3. GameComponentFactory — AddComponentDynamic attach via history (.cs file create not undone)
 /// </summary>
 public class ComponentCommandTests
 {
@@ -145,32 +144,5 @@ public class ComponentCommandTests
         restored.ShouldNotBeSameAs(original);
         restored.Primary.ShouldBeTrue();
         restored.AspectRatio.ShouldBe(1.5f);
-    }
-
-    [Fact]
-    public void NativeScript_AddRemove_ViaHistory_UndoRedo()
-    {
-        // ScriptComponentEditor wrap site: NativeScript add/remove through history.Execute
-        var entity = Entity.Create(6, "scripted");
-        var history = CreateHistory();
-
-        history.Execute(new AddComponentCommand(
-            entity, new NativeScriptComponent { ScriptTypeName = "Games.Demo.PlayerScript" }));
-        entity.HasComponent<NativeScriptComponent>().ShouldBeTrue();
-        entity.GetComponent<NativeScriptComponent>().ScriptTypeName.ShouldBe("Games.Demo.PlayerScript");
-
-        history.Undo();
-        entity.HasComponent<NativeScriptComponent>().ShouldBeFalse();
-
-        history.Redo();
-        entity.HasComponent<NativeScriptComponent>().ShouldBeTrue();
-        entity.GetComponent<NativeScriptComponent>().ScriptTypeName.ShouldBe("Games.Demo.PlayerScript");
-
-        history.Execute(new RemoveComponentCommand(entity, typeof(NativeScriptComponent)));
-        entity.HasComponent<NativeScriptComponent>().ShouldBeFalse();
-
-        history.Undo();
-        entity.HasComponent<NativeScriptComponent>().ShouldBeTrue();
-        entity.GetComponent<NativeScriptComponent>().ScriptTypeName.ShouldBe("Games.Demo.PlayerScript");
     }
 }

@@ -6,8 +6,7 @@ using SceneComponents.Camera;
 namespace Editor.Features.History.Commands;
 
 /// <summary>
-/// In-memory Clone-bag of a destroyed subtree. JSON fallback not needed —
-/// NativeScriptComponent.Clone preserves ScriptTypeName.
+/// In-memory Clone-bag of a destroyed subtree.
 /// </summary>
 internal sealed class EntitySubtreeSnapshot
 {

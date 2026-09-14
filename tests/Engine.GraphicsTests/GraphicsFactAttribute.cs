@@ -21,6 +21,7 @@ public sealed class GraphicsFactAttribute : FactAttribute
 
     private static bool ProbeGl()
     {
+        var previous = SilkNetContext.GL;
         try
         {
             var window = HeadlessWindow.Create("GL probe", new Vector2D<int>(1, 1));
@@ -33,6 +34,10 @@ public sealed class GraphicsFactAttribute : FactAttribute
         catch
         {
             return false;
+        }
+        finally
+        {
+            SilkNetContext.GL = previous;
         }
     }
 

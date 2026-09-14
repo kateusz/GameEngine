@@ -7,8 +7,6 @@ using Engine.Events.Window;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
-using Engine.Scripting;
-using Scripting;
 using Serilog;
 
 namespace Runtime;
@@ -18,7 +16,6 @@ public class GameLayer(
     ISceneContext sceneContext,
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
-    IScriptEngine scriptEngine,
     IPointerSurface pointerSurface,
     IGameWindow gameWindow,
     GameConfiguration gameConfig,
@@ -88,11 +85,7 @@ public class GameLayer(
         scene.OnUpdateRuntime(timeSpan);
     }
 
-    public void HandleInputEvent(InputEvent windowEvent)
-    {
-        if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
-            scriptEngine.ProcessEvent(windowEvent, scene.Context, store);
-    }
+    public void HandleInputEvent(InputEvent windowEvent) { }
 
     public void HandleWindowEvent(WindowEvent windowEvent)
     {

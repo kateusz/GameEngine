@@ -1257,10 +1257,6 @@
           "RestitutionThreshold": 0.5,
           "IsTrigger": true,
           "Name": "BoxCollider2DComponent"
-        },
-        {
-          "Name": "NativeScriptComponent",
-          "ScriptType": "WaterScript"
         }
       ]
     },

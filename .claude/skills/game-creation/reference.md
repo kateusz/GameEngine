@@ -17,7 +17,7 @@ Open the **game root** (folder with `assets/`), not any leftover `project/` copy
 | `game.config.json` | Runtime/publish config |
 | `Snake.csproj` | Optional IDE project refs into engine |
 
-**Lessons:** Fixed timestep in system (`TickAccumulator` / `TickInterval`). Banners = sprite entities toggled by texture path. No `ScriptableEntity` required when the system injects `IKeyboardInput`.
+**Lessons:** Fixed timestep in system (`TickAccumulator` / `TickInterval`). Banners = sprite entities toggled by texture path.
 
 ### FlappyBird (`games/FlappyBird/`)
 
@@ -39,7 +39,6 @@ Open the **game root** (folder with `assets/`), not any leftover `project/` copy
 | `assets/scripts/BoardComponent.cs` | Board / game state |
 | `assets/scripts/CellComponent.cs` | Per-cell index on flat entities |
 | `assets/scripts/TicTacToeSystem.cs` | `[Register]` system: turn rules, win, visuals |
-| `assets/scripts/GameControllerScript.cs` | Optional script glue |
 | `assets/scenes/main.scene` | Startup scene |
 | `game.config.json` | Runtime/publish config |
 
@@ -57,9 +56,8 @@ Source: [docs/readiness-analysis-2026-07.md](../../../docs/readiness-analysis-20
 
 From [content-browser.md](../../../docs/guide/editor/content-browser.md):
 
-1. Right-click `assets/scripts/` → **Add Component** / **Add System** / **Add Script**
-2. Or Properties → `NativeScriptComponent` → **Create New Script** / **Add Existing Script**
-3. Hot-reload: save under `assets/scripts/` → new `GameAssembly_{guid}.dll` under `.engine/`
+1. Right-click `assets/scripts/` → **Add Component** / **Add System**
+2. Hot-reload: save under `assets/scripts/` (via editor create flows) → new `GameAssembly_{guid}.dll` under `.engine/`
 
 ## Injectables for `IGameSystem`
 
@@ -69,7 +67,7 @@ Typical sample set:
 - `IKeyboardInput` — `IsKeyDown` / `WasKeyPressed`
 - `IAudio` — `PlayOneShot(path)`
 - `IPhysicsContacts` — `DrainContacts()` when using physics contacts in systems
-- `IPhysicsQueries` — `Raycast` / `OverlapCircle` when systems need queries (scripts use protected helpers on `ScriptableEntity`)
+- `IPhysicsQueries` — `Raycast` / `OverlapCircle`
 
 Priority: samples use `115` (game logic band; see engine `SystemPriorities` / `system-creation` skill).
 

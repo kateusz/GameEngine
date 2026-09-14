@@ -207,7 +207,7 @@ graph TD
     C --> D["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
 ```
 
-No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` to the backbuffer. `Draw()` is a no-op. `OnAttach` loads the startup scene and calls `RuntimeSceneStarter.Start()`. Input events forward to `IScriptEngine.ProcessEvent`; `Application` already applied device state. Window resize calls `scene.OnViewportResize`.
+No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` to the backbuffer. `Draw()` is a no-op. `OnAttach` loads the startup scene and calls `RuntimeSceneStarter.Start()`. `Application` applies device state; systems poll `IKeyboardInput` / `IMouseInput` on `OnUpdate`. Window resize calls `scene.OnViewportResize`.
 
 ---
 
@@ -257,14 +257,14 @@ sequenceDiagram
         ImGui-->>ImGui: event.IsHandled = true
     else Event passes through
         App->>Layer: HandleInputEvent(event)
-        Layer->>Layer: Forward to ScriptEngine.ProcessEvent()
+        Note over Layer: Systems poll IKeyboardInput / IMouseInput
     end
 ```
 
 - Input events propagate from overlays down to base layers
 - Any layer can consume an event by setting `IsHandled = true`
 - `Application` applies every input event to device state **before** overlay handling so UI capture cannot skip key/button releases (prevents stuck keys in Play mode)
-- `GameLayer` forwards to `IScriptEngine.ProcessEvent` when `ActiveScriptRuntimeStore` is available
+- Editor Play and the standalone player poll `IKeyboardInput` / `IMouseInput` from `IGameSystem.OnUpdate`
 - Window events (resize, close) follow the same reverse-order propagation
 
 ---
