@@ -22,7 +22,7 @@ A component-based game engine built with C# and .NET 10, featuring a visual edit
 - **Asset Browser** — browse and manage project assets; drag-drop textures, 3D models, audio, and prefabs into scenes
 - **Live Console** — real-time logging while you work
 - **Project Management** — create and open game projects
-- **Game Publishing** — build standalone executables for Windows and macOS, with publish validation
+- **Game Publishing** — build a standalone executable for the host RID (Windows or macOS), with publish validation
 - **Keyboard Shortcuts** — configurable shortcuts with an in-editor reference ([docs](docs/guide/editor/shortcuts.md))
 
 ## Getting Started

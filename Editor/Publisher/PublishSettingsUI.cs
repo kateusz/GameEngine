@@ -26,12 +26,6 @@ public class PublishSettingsUI(
     private PublishProgress? _publishProgress;
     private CancellationTokenSource? _publishCts;
 
-    private static readonly string[] SupportedPlatforms =
-    [
-        "win-x64", "win-x86", "win-arm64",
-        "osx-x64", "osx-arm64"
-    ];
-
     private static readonly string[] Configurations = ["Release", "Debug"];
 
     public void ShowPublishModal()
@@ -172,17 +166,9 @@ public class PublishSettingsUI(
     {
         ImGui.Text("Target Platform:");
         ImGui.SameLine();
-        LayoutDrawer.DrawComboBox(
-            "##platform",
+        TextDrawer.DrawColoredText(
             PlatformDetection.GetPlatformDisplayName(_selectedPlatform),
-            SupportedPlatforms.Select(PlatformDetection.GetPlatformDisplayName).ToArray(),
-            selectedDisplay =>
-            {
-                _selectedPlatform = SupportedPlatforms.First(p =>
-                    PlatformDetection.GetPlatformDisplayName(p) == selectedDisplay);
-            },
-            width: 300
-        );
+            new Vector4(0.7f, 0.7f, 0.7f, 1f));
 
         ImGui.Spacing();
 
