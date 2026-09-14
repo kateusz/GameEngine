@@ -22,6 +22,34 @@ public class GamePublisherValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task PublishAsync_FailsForUnknownRuntimeIdentifier()
+    {
+        var projectRoot = Path.Combine(_tempRoot, "project");
+        Directory.CreateDirectory(Path.Combine(projectRoot, "assets", "scripts"));
+        Directory.CreateDirectory(Path.Combine(projectRoot, "assets", "scenes"));
+        File.WriteAllText(Path.Combine(projectRoot, "assets", "scenes", "Main.scene"), "{}");
+
+        var publisher = new GamePublisher(CreateProjectContext(projectRoot));
+        var settings = new PublishSettings
+        {
+            OutputPath = Path.Combine(_tempRoot, "out"),
+            RuntimeIdentifier = "linux-x64",
+            Configuration = "Release"
+        };
+        var config = new GameConfiguration
+        {
+            StartupScenePath = "assets/scenes/Main.scene",
+            GameAssemblyPath = "GameAssembly.dll",
+            GameTitle = "Test"
+        };
+
+        var result = await publisher.PublishAsync(settings, config);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("linux-x64");
+    }
+
+    [Fact]
     public async Task PublishAsync_FailsWhenStartupSceneMissing()
     {
         var projectRoot = Path.Combine(_tempRoot, "project");
