@@ -12,7 +12,7 @@ This is a C# game engine built on an Entity Component System (ECS) architecture,
 - **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)
 - **Sprite atlasing** — `SubTextureRendererComponent` for sprite sheets with manual frame selection via grid coordinates
 - **Visual editor** — ImGui editor with parent/child hierarchy tree, properties panel, content browser, and console
-- **Publishing** — build standalone Windows and macOS executables from the editor
+- **Publishing** — build a standalone executable for the host RID (Windows or macOS) from the editor
 
 ## Prerequisites
 

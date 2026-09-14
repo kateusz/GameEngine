@@ -61,7 +61,7 @@ sequenceDiagram
 
     Win-->>App: OnWindowLoad(inputSystem)
     App->>App: RendererAPI.Init(), Graphics2D.Init(), Audio.Initialize()
-    App->>Layers: OnAttach(inputSystem) for each layer
+    App->>Layers: OnAttach() for each layer
     Note over Layers: GameLayer OnAttach: deserialize startup scene, RuntimeSceneStarter.Start()
 
     loop Every Frame
@@ -73,8 +73,8 @@ sequenceDiagram
         App->>App: IFrameCompositor.BeginFrame(dt) (if set)
         App->>Layers: Draw() — reverse order
         App->>App: IFrameCompositor.EndFrame() (if set)
-        App->>App: IKeyboardInput.EndFrame() (if set)
-        App->>App: IMouseInput.EndFrame() (if set)
+        App->>App: KeyboardInputState.EndFrame() (if set)
+        App->>App: MouseInputState.EndFrame() (if set)
     end
 
     Win-->>App: OnInputEvent / OnWindowEvent
@@ -106,8 +106,8 @@ sequenceDiagram
 **File**: `Runtime/Program.cs`
 
 1. Configures Serilog (console + rolling file under `logs/runtime-.log`)
-2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, startup scene, game assembly path); throws if missing or invalid
-3. Creates DryIoc container: `EngineIoCContainer.RegisterCore()` + `IProjectContext.Apply(AppContext.BaseDirectory)` + `RegisterWindowing()` with host options from config
+2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, fullscreen, target frame rate, startup scene, game assembly path); throws if missing or invalid
+3. Creates DryIoc container: `EngineIoCContainer.RegisterCore()` + `IProjectContext.Apply(AppContext.BaseDirectory)` + `RegisterWindowing()` with host options from config (windowed or fullscreen, not maximized; exe is named from `GameTitle`)
 4. Registers `GameConfiguration` instance, `RuntimeApplication`, and a `Func<IEnumerable<IGameSystem>>` delegate for per-scene game systems
 5. Loads the published game assembly (`GameAssembly.dll` by default) via `IScriptEngine`; registers `[Register]` types via `GameAssemblyContainerRegistration.TryRegisterContainer` (warns if none) and component serializers from that assembly
 6. Registers `ILayer` → `GameLayer` only if the game assembly did not register one; `ValidateAndThrow()`
@@ -128,6 +128,7 @@ The abstract `Application` class manages the core frame loop:
 - **Manages**: Layer stack — `PushLayer` inserts at index 0, `PushOverlay` appends; `PopLayer` / `PopOverlay` detach and remove; all tick/event processing iterates in **reverse** (overlays first)
 - **Delegates**: Platform loop to `IGameWindow.Run()` (Silk.NET)
 - **Constructor**: Optionally `PushOverlay(inputOverlay)` for the input/UI overlay (editor passes `ImGuiLayer`)
+- **OnAttach**: `void OnAttach()` — no input argument. ImGui reads `SilkNetContext.Input`.
 
 **File**: `Engine/Core/IFrameCompositor.cs` — `BeginFrame(TimeSpan)` / `EndFrame()` bracket the layer `Draw()` pass (editor registers an ImGui implementation; runtime omits it).
 
@@ -169,8 +170,8 @@ graph TD
     E --> F["IFrameCompositor.BeginFrame(dt) (optional)"]
     F --> G["For each layer (reverse order):<br/>layer.Draw()"]
     G --> H["IFrameCompositor.EndFrame() (optional)"]
-    H --> I["IKeyboardInput.EndFrame() (optional)"]
-    I --> J["IMouseInput.EndFrame() (optional)"]
+    H --> I["KeyboardInputState.EndFrame() (optional)"]
+    I --> J["MouseInputState.EndFrame() (optional)"]
 ```
 
 ### EditorLayer Frame Tick
@@ -206,7 +207,7 @@ graph TD
     C --> D["scene.OnUpdateRuntime(dt)<br/><i>Full ECS systems</i>"]
 ```
 
-No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` to the backbuffer. `Draw()` is a no-op. `OnAttach` loads the startup scene and calls `RuntimeSceneStarter.Start()`. Input events update `KeyboardInputState` / `MouseInputState` and forward to `IScriptEngine.ProcessEvent`; window resize calls `scene.OnViewportResize`.
+No scene-state branching — always runs full ECS. Rendering happens during `OnUpdateRuntime` to the backbuffer. `Draw()` is a no-op. `OnAttach` loads the startup scene and calls `RuntimeSceneStarter.Start()`. `Application` applies device state; systems poll `IKeyboardInput` / `IMouseInput` on `OnUpdate`. Window resize calls `scene.OnViewportResize`.
 
 ---
 
@@ -250,20 +251,20 @@ sequenceDiagram
     participant Layer as EditorLayer / GameLayer
 
     Platform->>App: OnInputEvent(event)
-    Note over App: KeyReleased / MouseButtonReleased<br/>applied to input state first
+    Note over App: Always apply to KeyboardInputState / MouseInputState
     App->>ImGui: HandleInputEvent(event)
     alt ImGui consumes event
         ImGui-->>ImGui: event.IsHandled = true
     else Event passes through
         App->>Layer: HandleInputEvent(event)
-        Layer->>Layer: Forward to ScriptEngine.ProcessEvent()
+        Note over Layer: Systems poll IKeyboardInput / IMouseInput
     end
 ```
 
 - Input events propagate from overlays down to base layers
 - Any layer can consume an event by setting `IsHandled = true`
-- `Application` applies `KeyReleasedEvent` / `MouseButtonReleasedEvent` to input state **before** overlay handling so release events are not swallowed by UI capture (prevents stuck keys in Play mode)
-- `GameLayer` updates `KeyboardInputState` / `MouseInputState`; systems poll them on `OnUpdate`
+- `Application` applies every input event to device state **before** overlay handling so UI capture cannot skip key/button releases (prevents stuck keys in Play mode)
+- Editor Play and the standalone player poll `IKeyboardInput` / `IMouseInput` from `IGameSystem.OnUpdate`
 - Window events (resize, close) follow the same reverse-order propagation
 
 ---

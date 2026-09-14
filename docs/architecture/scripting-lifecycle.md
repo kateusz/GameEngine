@@ -17,8 +17,9 @@ Compilation and editor orchestration stay in the **Editor**. The **Engine** runt
 
 | Component | Project | Role |
 |-----------|---------|------|
-| `GameAssemblyCompiler` | Engine | Roslyn: parse `.cs` files, resolve references, emit PE (+ optional PDB) |
-| `ScriptCompilationReferences` | Engine | Metadata references for Roslyn (`assets/scripts/.engine/sdk/` first, then AppDomain) |
+| `GameAssemblyCompiler` | Editor | Roslyn: parse `.cs` files, resolve references, emit PE (+ optional PDB) |
+| `ScriptCompilationReferences` | Editor | Metadata references for Roslyn (`assets/scripts/.engine/sdk/` first, then AppDomain) |
+| `GameScriptFiles` | Engine | Enumerate `assets/scripts/**/*.cs` (no Roslyn) |
 | `GameAssemblyLoadContext` | Engine | Collectible `AssemblyLoadContext`; loads one DLL path |
 | `IScriptEngine` / `ScriptEngine` | Engine | Load/unload ALC |
 | `GameAssemblyContainerRegistration` | Engine | Discover `[Register]` types; register/unregister in DryIoc |
@@ -33,9 +34,9 @@ graph LR
         WS[GameScriptWorkspace]
         PM[ProjectManager]
         SM[SceneManager]
+        Compiler[GameAssemblyCompiler]
     end
     subgraph engine [Engine]
-        Compiler[GameAssemblyCompiler]
         SE[ScriptEngine]
         ALC[GameAssemblyLoadContext]
     end
@@ -70,7 +71,7 @@ Script sources: `assets/scripts/**/*.cs` (excludes `bin`, `obj`, `.vs`, generate
 
 References for compilation: DLLs in `assets/scripts/.engine/sdk/` (copied per project by `GameProjectScriptBootstrapper`), plus core BCL and engine assemblies via `ScriptCompilationReferences`.
 
-**File:** `Engine/Scripting/ScriptCompilationReferences.cs`
+**File:** `Editor/Scripting/ScriptCompilationReferences.cs`
 
 | Reference source | Assemblies |
 |------------------|------------|
@@ -82,7 +83,7 @@ References for compilation: DLLs in `assets/scripts/.engine/sdk/` (copied per pr
 
 `ValidateReferences` fails the compile if `System.Private.CoreLib`, `System.Runtime`, `System.Numerics.Vectors`, or `ECS` are missing.
 
-**File:** `Engine/Scripting/GameAssemblyCompiler.cs`
+**File:** `Editor/Scripting/GameAssemblyCompiler.cs`
 
 - `AssemblyName` = `"GameAssembly"`.
 - Injects a global-usings syntax tree (`System`, `System.Collections.Generic`, `System.Linq`, `System.Numerics`, etc.).
@@ -191,7 +192,7 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 
 ## Runtime and publish
 
-**Publish** (`GamePublisher`): Roslyn compile to `GameAssembly.dll` in the publish folder (`emitPdb: false`, release optimization). Scripts under `assets/scripts/` may be copied in Debug configuration only.
+**Publish** (`GamePublisher`): Roslyn compile to `GameAssembly.dll` in the publish folder (`emitPdb: false`, release optimization). Packages never include `.cs` sources.
 
 **Standalone player** (`Runtime/Program`):
 

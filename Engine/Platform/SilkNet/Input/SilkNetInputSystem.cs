@@ -10,27 +10,29 @@ namespace Engine.Platform.SilkNet.Input;
 internal sealed class SilkNetInputSystem : IInputSystem
 {
     private readonly ConcurrentQueue<InputEvent> _inputQueue = new();
+    private readonly IInputContext _context;
     private volatile bool _disposed;
 
     public SilkNetInputSystem(IInputContext inputContext)
     {
-        Context = inputContext;
+        _context = inputContext;
 
-        var silkKeyboard = Context.Keyboards.FirstOrDefault()
-                           ?? throw new InvalidOperationException("No keyboard found");
-        var silkMouse = Context.Mice.FirstOrDefault()
-                        ?? throw new InvalidOperationException("No mouse found");
+        var silkKeyboard = _context.Keyboards.FirstOrDefault();
+        if (silkKeyboard is not null)
+        {
+            silkKeyboard.KeyDown += (_, key, _) => OnSilkKeyDown(key);
+            silkKeyboard.KeyUp += (_, key, _) => OnSilkKeyUp(key);
+        }
 
-        // Subscribe to SilkNet input events
-        silkKeyboard.KeyDown += (_, key, _) => OnSilkKeyDown(key);
-        silkKeyboard.KeyUp += (_, key, _) => OnSilkKeyUp(key);
-        silkMouse.MouseDown += (_, button) => OnSilkMouseDown(button);
-        silkMouse.MouseUp +=  (_, button) => OnSilkMouseUp(button);
-        silkMouse.Scroll +=  (_, scrollWheel) => OnSilkMouseScroll(scrollWheel);
-        silkMouse.MouseMove += (_, position) => OnSilkMouseMove(position);
+        var silkMouse = _context.Mice.FirstOrDefault();
+        if (silkMouse is not null)
+        {
+            silkMouse.MouseDown += (_, button) => OnSilkMouseDown(button);
+            silkMouse.MouseUp += (_, button) => OnSilkMouseUp(button);
+            silkMouse.Scroll += (_, scrollWheel) => OnSilkMouseScroll(scrollWheel);
+            silkMouse.MouseMove += (_, position) => OnSilkMouseMove(position);
+        }
     }
-
-    public IInputContext Context { get; set; }
 
     public void Update(TimeSpan deltaTime)
     {
@@ -96,7 +98,7 @@ internal sealed class SilkNetInputSystem : IInputSystem
         if (!_disposed)
         {
             _disposed = true;
-            Context?.Dispose();
+            _context.Dispose();
             GC.SuppressFinalize(this);
         }
     }

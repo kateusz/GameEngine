@@ -1,9 +1,8 @@
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Serilog;
-using ZLinq;
 
-namespace Engine.Scripting;
+namespace Editor.Scripting;
 
 internal static class ScriptCompilationReferences
 {
@@ -161,8 +160,7 @@ internal static class ScriptCompilationReferences
             assemblySimpleName.StartsWith("Editor", StringComparison.Ordinal))
             return true;
 
-        return GameScriptSupportAssemblyNames.AsValueEnumerable()
-            .Any(n => assemblySimpleName.Equals(n, StringComparison.Ordinal));
+        return GameScriptSupportAssemblyNames.Any(n => assemblySimpleName.Equals(n, StringComparison.Ordinal));
     }
 
     private static void LoadEngineAssembliesFromDomain(
@@ -170,7 +168,7 @@ internal static class ScriptCompilationReferences
         HashSet<string> addedPaths,
         HashSet<string> addedNames)
     {
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies().AsValueEnumerable().Where(a => !a.IsDynamic))
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic))
         {
             var name = assembly.GetName().Name;
             if (!IncludeAssemblyForScriptMetadata(name))
@@ -219,7 +217,6 @@ internal static class ScriptCompilationReferences
         }
 
         var loaded = AppDomain.CurrentDomain.GetAssemblies()
-            .AsValueEnumerable()
             .FirstOrDefault(a => string.Equals(a.GetName().Name, assemblyName, StringComparison.Ordinal));
         if (loaded is not null && !string.IsNullOrEmpty(loaded.Location))
             return loaded.Location;

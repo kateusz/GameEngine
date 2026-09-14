@@ -1,7 +1,7 @@
-using Engine.Scripting;
+using Editor.Scripting;
 using Shouldly;
 
-namespace Engine.Tests;
+namespace Editor.Tests.Scripting;
 
 public class ScriptCompilationReferencesTests
 {

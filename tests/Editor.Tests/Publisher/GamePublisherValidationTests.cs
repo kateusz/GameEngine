@@ -22,6 +22,34 @@ public class GamePublisherValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task PublishAsync_FailsForUnknownRuntimeIdentifier()
+    {
+        var projectRoot = Path.Combine(_tempRoot, "project");
+        Directory.CreateDirectory(Path.Combine(projectRoot, "assets", "scripts"));
+        Directory.CreateDirectory(Path.Combine(projectRoot, "assets", "scenes"));
+        File.WriteAllText(Path.Combine(projectRoot, "assets", "scenes", "Main.scene"), "{}");
+
+        var publisher = new GamePublisher(CreateProjectContext(projectRoot));
+        var settings = new PublishSettings
+        {
+            OutputPath = Path.Combine(_tempRoot, "out"),
+            RuntimeIdentifier = "linux-x64",
+            Configuration = "Release"
+        };
+        var config = new GameConfiguration
+        {
+            StartupScenePath = "assets/scenes/Main.scene",
+            GameAssemblyPath = "GameAssembly.dll",
+            GameTitle = "Test"
+        };
+
+        var result = await publisher.PublishAsync(settings, config);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("linux-x64");
+    }
+
+    [Fact]
     public async Task PublishAsync_FailsWhenStartupSceneMissing()
     {
         var projectRoot = Path.Combine(_tempRoot, "project");
@@ -89,7 +117,7 @@ public class GamePublisherValidationTests : IDisposable
     {
         var output = Path.Combine(_tempRoot, "build");
         Directory.CreateDirectory(output);
-        File.WriteAllBytes(Path.Combine(output, "Runtime.exe"), new byte[50]);
+        File.WriteAllBytes(Path.Combine(output, "TestGame.exe"), new byte[50]);
         File.WriteAllText(Path.Combine(output, "game.config.json"), "{}");
         File.WriteAllBytes(Path.Combine(output, "GameAssembly.dll"), [1]);
         Directory.CreateDirectory(Path.Combine(output, "assets", "scenes"));
@@ -98,7 +126,8 @@ public class GamePublisherValidationTests : IDisposable
         var config = new GameConfiguration
         {
             StartupScenePath = "assets/scenes/Scene.scene",
-            GameAssemblyPath = "GameAssembly.dll"
+            GameAssemblyPath = "GameAssembly.dll",
+            GameTitle = "TestGame"
         };
 
         var result = PublishedBuildValidator.Validate(output, "win-x64", config);
@@ -113,7 +142,7 @@ public class GamePublisherValidationTests : IDisposable
         var output = Path.Combine(_tempRoot, "build-ok");
         Directory.CreateDirectory(output);
         File.WriteAllBytes(
-            Path.Combine(output, "Runtime.exe"),
+            Path.Combine(output, "TestGame.exe"),
             new byte[PublishedBuildValidator.MinimumExecutableBytes]);
         File.WriteAllText(Path.Combine(output, "game.config.json"), "{}");
         File.WriteAllBytes(Path.Combine(output, "GameAssembly.dll"), [1]);
@@ -123,7 +152,8 @@ public class GamePublisherValidationTests : IDisposable
         var config = new GameConfiguration
         {
             StartupScenePath = "assets/scenes/Scene.scene",
-            GameAssemblyPath = "GameAssembly.dll"
+            GameAssemblyPath = "GameAssembly.dll",
+            GameTitle = "TestGame"
         };
 
         var result = PublishedBuildValidator.Validate(output, "win-x64", config);

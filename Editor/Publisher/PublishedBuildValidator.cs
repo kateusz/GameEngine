@@ -14,7 +14,7 @@ public static class PublishedBuildValidator
         string runtimeIdentifier,
         GameConfiguration gameConfig)
     {
-        var exeName = PlatformDetection.GetExecutableName(runtimeIdentifier);
+        var exeName = PlatformDetection.GetPublishedExecutableName(runtimeIdentifier, gameConfig.GameTitle);
         var exePath = Path.Combine(outputPath, exeName);
 
         if (!File.Exists(exePath))

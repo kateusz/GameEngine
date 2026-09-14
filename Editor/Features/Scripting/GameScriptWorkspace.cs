@@ -1,5 +1,6 @@
 using System.Reflection;
 using ECS;
+using Editor.Scripting;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Serilog;

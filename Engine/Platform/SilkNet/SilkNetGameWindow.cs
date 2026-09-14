@@ -3,18 +3,17 @@ using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
+using Engine.Platform.SilkNet.Input;
 using Engine.Renderer;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using Input;
 
 namespace Engine.Platform.SilkNet;
 
 internal sealed class SilkNetGameWindow(
     IWindow window,
-    IInputSystemFactory inputSystemFactory,
     IGraphicsContext graphicsContext,
     IRendererAPI rendererApi) : IGameWindow
 {
@@ -38,8 +37,6 @@ internal sealed class SilkNetGameWindow(
 
     public void Run()
     {
-        window.WindowState = WindowState.Maximized;
-
         window.Load += WindowOnLoad;
         window.Update += WindowOnUpdate;
         window.Closing += OnWindowClosing;
@@ -65,9 +62,8 @@ internal sealed class SilkNetGameWindow(
         Logger.Information("SilkNet window loaded");
 
         var inputContext = window.CreateInput();
-
-        // Create input system using factory (DI-based) instead of 'new'
-        var inputSystem = inputSystemFactory.Create(inputContext);
+        SilkNetContext.Input = inputContext;
+        var inputSystem = new SilkNetInputSystem(inputContext);
         inputSystem.InputReceived += OnInputReceived;
 
         OnWindowLoad(inputSystem);
@@ -84,11 +80,6 @@ internal sealed class SilkNetGameWindow(
 
     private void OnInputReceived(InputEvent inputEvent)
     {
-        if (inputEvent is KeyPressedEvent { KeyCode: KeyCodes.Escape })
-        {
-            window.Close();
-        }
-
         OnInputEvent(inputEvent);
     }
 

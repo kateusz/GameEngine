@@ -1,5 +1,4 @@
 using Editor.Features.Viewport;
-using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Scene;
 using ImGuiNET;
@@ -9,8 +8,6 @@ namespace Editor.Input;
 
 public class EditorInputHandler(
     ISceneContext sceneContext,
-    IKeyboardInput keyboardInput,
-    IMouseInput mouseInput,
     ShortcutManager shortcutManager,
     IEditorViewport editorViewport)
 {
@@ -31,14 +28,6 @@ public class EditorInputHandler(
 
         if (sceneContext.State == SceneState.Edit)
             editorViewport.HandleWindowInput(windowEvent);
-        else if (sceneContext.State == SceneState.Play)
-        {
-            if (keyboardInput is KeyboardInputState keyboardState)
-                keyboardState.Apply(windowEvent);
-
-            if (mouseInput is MouseInputState mouseState)
-                mouseState.Apply(windowEvent);
-        }
     }
 
     private void OnKeyPressed(KeyPressedEvent keyPressedEvent)
@@ -46,9 +35,12 @@ public class EditorInputHandler(
         if (keyPressedEvent.IsRepeat)
             return;
 
-        var io = ImGui.GetIO();
-        if (io.WantCaptureKeyboard)
-            return;
+        if (ImGui.GetCurrentContext() != IntPtr.Zero)
+        {
+            var io = ImGui.GetIO();
+            if (io.WantCaptureKeyboard)
+                return;
+        }
 
         var control = _pressedKeys.Contains(KeyCodes.LeftControl) ||
                       _pressedKeys.Contains(KeyCodes.RightControl);

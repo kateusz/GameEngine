@@ -36,7 +36,9 @@ public class GamePublisherSmokeTests
             result.Success.ShouldBeTrue(result.ErrorMessage ?? "Publish failed without error message");
             result.OutputPath.ShouldBe(outputPath);
 
-            var exePath = Path.Combine(outputPath, "Runtime.exe");
+            var exePath = Path.Combine(
+                outputPath,
+                PlatformDetection.GetPublishedExecutableName(settings.RuntimeIdentifier, gameConfig.GameTitle));
             File.Exists(exePath).ShouldBeTrue($"Missing {exePath}");
             new FileInfo(exePath).Length.ShouldBeGreaterThanOrEqualTo(PublishedBuildValidator.MinimumExecutableBytes);
 
@@ -44,6 +46,9 @@ public class GamePublisherSmokeTests
             File.Exists(Path.Combine(outputPath, "GameAssembly.dll")).ShouldBeTrue();
             File.Exists(Path.Combine(outputPath, gameConfig.StartupScenePath)).ShouldBeTrue();
             File.Exists(Path.Combine(outputPath, "assets", "textures", "cell.png")).ShouldBeTrue();
+            Directory.GetFiles(outputPath, "*.cs", SearchOption.AllDirectories).ShouldBeEmpty();
+            if (settings.RuntimeIdentifier.StartsWith("win", StringComparison.OrdinalIgnoreCase))
+                File.Exists(Path.Combine(outputPath, "OpenAL32.dll")).ShouldBeTrue("win RID publish should copy OpenAL from NuGet runtimes/");
         }
         finally
         {

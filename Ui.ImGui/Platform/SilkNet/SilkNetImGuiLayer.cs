@@ -1,6 +1,5 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using Engine.Core.Input;
 using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
@@ -52,10 +51,11 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
         _controller?.Render();
     }
 
-    public void OnAttach(IInputSystem inputSystem)
+    public void OnAttach()
     {
         var view = SilkNetContext.Window;
-        var inputContext = inputSystem.Context;
+        var inputContext = SilkNetContext.Input
+            ?? throw new InvalidOperationException("SilkNetContext.Input is not set");
         var gl = SilkNetContext.GL;
 
         _inputContext = inputContext;
