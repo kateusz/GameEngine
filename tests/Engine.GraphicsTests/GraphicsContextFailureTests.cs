@@ -31,13 +31,19 @@ public class GraphicsContextFailureTests
     [GraphicsFact]
     public void Create_WhenAlreadyCreated_ThrowsInvalidOperationException()
     {
+        var previousGl = SilkNetContext.GL;
         var window = HeadlessWindow.Create("Engine.GraphicsTests.DoubleCreate", new Vector2D<int>(1, 1));
         var context = new SilkNetGraphicsContext(window);
-        context.Create();
-
-        Should.Throw<InvalidOperationException>(context.Create);
-
-        context.Dispose();
-        window.Dispose();
+        try
+        {
+            context.Create();
+            Should.Throw<InvalidOperationException>(context.Create);
+        }
+        finally
+        {
+            context.Dispose();
+            window.Dispose();
+            SilkNetContext.GL = previousGl;
+        }
     }
 }

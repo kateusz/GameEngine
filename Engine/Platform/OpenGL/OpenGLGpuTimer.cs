@@ -57,7 +57,9 @@ internal sealed class OpenGLGpuTimer : IDisposable
 
         if (_queryId != 0)
         {
-            SilkNetContext.GL.DeleteQuery(_queryId);
+            var gl = SilkNetContext.GL;
+            if (gl is not null)
+                gl.DeleteQuery(_queryId);
             _queryId = 0;
         }
 
