@@ -16,7 +16,7 @@ public interface ISystem
     /// Called once when the system is registered and initialized.
     /// Use this method to perform any setup required by the system.
     /// </summary>
-    void OnInit();
+    void OnInit() { }
 
     /// <summary>
     /// Called every frame to update the system logic.
@@ -28,5 +28,5 @@ public interface ISystem
     /// Called when the system is being shut down.
     /// Use this method to perform cleanup and release resources.
     /// </summary>
-    void OnShutdown();
+    void OnShutdown() { }
 }

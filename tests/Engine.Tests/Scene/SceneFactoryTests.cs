@@ -20,7 +20,7 @@ public class SceneFactoryTests
 
         scene.Dimension.ShouldBe(SceneDimension.ThreeD);
         systemsFactory.Received(1).PopulateSystemManager(
-            Arg.Any<ISystemManager>(),
+            Arg.Any<SystemManager>(),
             Arg.Any<IContext>(),
             Arg.Any<PhysicsRuntimeBodyStore>(),
             Arg.Any<PhysicsContactQueue>());
@@ -35,7 +35,7 @@ public class SceneFactoryTests
 
         scene.Dimension.ShouldBe(SceneDimension.TwoD);
         systemsFactory.Received(1).PopulateSystemManager(
-            Arg.Any<ISystemManager>(),
+            Arg.Any<SystemManager>(),
             Arg.Any<IContext>(),
             Arg.Any<PhysicsRuntimeBodyStore>(),
             Arg.Any<PhysicsContactQueue>());
@@ -45,7 +45,7 @@ public class SceneFactoryTests
     {
         var systemsFactory = Substitute.For<ISceneSystemsFactory>();
         systemsFactory.PopulateSystemManager(
-                Arg.Any<ISystemManager>(),
+                Arg.Any<SystemManager>(),
                 Arg.Any<IContext>(),
                 Arg.Any<PhysicsRuntimeBodyStore>(),
                 Arg.Any<PhysicsContactQueue>())

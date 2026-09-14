@@ -45,10 +45,10 @@ namespace Engine.Scene.Systems;
 public class MySystem(IMyDependency dependency) : ISystem
 {
     // Priority ranges — see SystemPriorities.cs for all registered values.
-    // Lower executes first. Current range: 100 (physics) to 180 (debug render).
+    // Lower executes first. Current range: 100 (physics) to 151 (debug render).
     // Physics/simulation: ~100–120
-    // Game logic / scripts: ~110–145
-    // Rendering: ~150–180
+    // Game logic / scripts: ~110–135
+    // Rendering: ~150–151
     public int Priority => 150;
 
     public void OnAttach(Scene scene) { }
@@ -103,7 +103,7 @@ Authoritative source: `Engine/Scene/Systems/SystemPriorities.cs`
 | 150 | SceneRenderSystem |
 | 151 | PhysicsDebugRenderSystem |
 
-When adding a new system, pick a value that fits between existing ones and register it in `SystemPriorities.cs`. When in doubt: physics/simulation ~100–130, game logic ~115, rendering ~150–180.
+When adding a new system, pick a value that fits between existing ones and register it in `SystemPriorities.cs`. When in doubt: physics/simulation ~100–130, game logic ~115, rendering ~150–160.
 
 ## Common Mistakes
 

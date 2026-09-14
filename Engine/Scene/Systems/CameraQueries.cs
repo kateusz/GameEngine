@@ -11,18 +11,20 @@ using Scripting;
 namespace Engine.Scene.Systems;
 
 /// <summary>
-/// Per-scene screen→world using that scene's primary camera and the host pointer surface.
+/// Primary-camera query for render and picking. The instance implements per-scene
+/// screen→world (<see cref="ICameraQueries"/>); <see cref="TryGetPrimaryView"/> is the shared lookup.
 /// </summary>
 internal sealed class CameraQueries(IContext context, IPointerSurface pointerSurface) : ICameraQueries
 {
-    private readonly SceneCamera _scratchCamera = new();
+    // ponytail: main-thread only; pass a scratch SceneCamera if render goes wide.
+    private static readonly SceneCamera Scratch = new();
 
     public Vector2? ScreenToWorld2D(Vector2 windowPosition)
     {
         if (!pointerSurface.Contains(windowPosition))
             return null;
 
-        if (!TryGetPrimaryView(context, _scratchCamera, out var sceneView))
+        if (!TryGetPrimaryView(context, out var sceneView))
             return null;
 
         return ScreenWorldConverter.ScreenToWorld2D(
@@ -32,7 +34,7 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
             sceneView.ViewProjection);
     }
 
-    internal static bool TryGetPrimaryView(IContext context, SceneCamera scratch, out SceneView view)
+    internal static bool TryGetPrimaryView(IContext context, out SceneView view)
     {
         foreach (var (entity, cameraComponent) in context.View<CameraComponent>())
         {
@@ -44,9 +46,8 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
                     ? transformComponent.GetWorldTransform()
                     : Matrix4x4.Identity);
 
-            scratch.Apply(cameraComponent);
-            view = CameraViews.From(scratch, transform);
-            return true;
+            Scratch.Apply(cameraComponent);
+            return CameraViews.TryFrom(Scratch, transform, out view);
         }
 
         view = default;

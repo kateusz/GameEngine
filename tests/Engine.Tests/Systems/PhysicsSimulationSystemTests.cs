@@ -15,7 +15,7 @@ public class PhysicsSimulationSystemTests
     public void Priority_ShouldReturnSystemPriority()
     {
         var (system, _, _, _) = CreateFullSystem();
-        system.Priority.ShouldBe(SystemPriorities.PhysicsSimulationSystem);
+        system.Priority.ShouldBe(100);
     }
 
     [Fact]

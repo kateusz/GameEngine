@@ -71,16 +71,32 @@ public class PhysicsDebugRenderSystemTests
         graphics2D.Received().DrawLine(Arg.Any<Vector3>(), Arg.Any<Vector3>(), Arg.Any<Vector4>(), 2);
     }
 
-    private static (PhysicsDebugRenderSystem, IGraphics2D, IContext, PhysicsRuntimeBodyStore) CreateFullSystem(DebugSettings debugSettings)
+    [Fact]
+    public void OnUpdate_WhenShowColliderBoundsTrueAndNoCamera_DoesNotDraw()
+    {
+        var debugSettings = new DebugSettings { ShowColliderBounds = true };
+        var (system, graphics2D, _, _) = CreateFullSystem(debugSettings, withCamera: false);
+
+        system.OnUpdate(TimeSpan.Zero);
+
+        graphics2D.DidNotReceive().BeginScene(Arg.Any<SceneView>());
+        graphics2D.DidNotReceive().EndScene();
+    }
+
+    private static (PhysicsDebugRenderSystem, IGraphics2D, IContext, PhysicsRuntimeBodyStore) CreateFullSystem(
+        DebugSettings debugSettings, bool withCamera = true)
     {
         var graphics2D = Substitute.For<IGraphics2D>();
         var context = new Context();
         var bodyStore = new PhysicsRuntimeBodyStore();
 
-        var camera = Entity.Create(99, "camera");
-        camera.AddComponent(new CameraComponent { Primary = true });
-        camera.AddComponent<TransformComponent>();
-        context.Register(camera);
+        if (withCamera)
+        {
+            var camera = Entity.Create(99, "camera");
+            camera.AddComponent(new CameraComponent { Primary = true });
+            camera.AddComponent<TransformComponent>();
+            context.Register(camera);
+        }
 
         var system = new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore);
         return (system, graphics2D, context, bodyStore);

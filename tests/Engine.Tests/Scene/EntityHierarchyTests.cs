@@ -4,7 +4,6 @@ using ECS.Systems;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
-using NSubstitute;
 using SceneComponents;
 using Scripting;
 using Shouldly;
@@ -14,11 +13,9 @@ namespace Engine.Tests.Scene;
 
 public class EntityHierarchyTests
 {
-    private readonly ISystemManager _systemManager = Substitute.For<ISystemManager>();
-
     private EngineScene CreateScene() =>
         new("test-scene", new Context(),
-            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
+            new SystemManager(), new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
             null!, NullCameraQueries.Instance);
 
     private static Entity CreateWithTransform(EngineScene scene, string name, Vector3 translation)

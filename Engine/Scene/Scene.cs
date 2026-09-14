@@ -17,7 +17,7 @@ internal sealed class Scene : IScene
 
     private int _nextEntityId = 1;
     private bool _disposed;
-    private readonly ISystemManager _systemManager;
+    private readonly SystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
     private readonly IPhysicsQueries _physicsQueries;
     private readonly ICameraQueries _cameraQueries;
@@ -28,7 +28,7 @@ internal sealed class Scene : IScene
     public Scene(
         string sceneName,
         IContext context,
-        ISystemManager systemManager,
+        SystemManager systemManager,
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
         IPhysicsQueries physicsQueries,
@@ -42,7 +42,6 @@ internal sealed class Scene : IScene
         _physicsQueries = physicsQueries;
         _cameraQueries = cameraQueries;
 
-        // After scripts (110), before audio (120) — locals settle first, then world caches.
         _systemManager.RegisterSystem(new TransformHierarchySystem(UpdateWorldTransforms));
     }
 
@@ -53,8 +52,6 @@ internal sealed class Scene : IScene
     public ICameraQueries CameraQueries => _cameraQueries;
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
-
-    public void RegisterRuntimeSystem(ISystem system) => _systemManager.RegisterSystem(system);
 
     public IContext Context { get; }
 
@@ -109,8 +106,11 @@ internal sealed class Scene : IScene
         Context.Remove(entity.Id);
     }
 
-    public void OnRuntimeStart()
+    public void OnRuntimeStart(IEnumerable<ISystem>? extraSystems = null)
     {
+        foreach (var system in extraSystems ?? [])
+            _systemManager.RegisterSystem(system);
+
         EnsurePrimaryCamera();
         _systemManager.Initialize();
     }
@@ -135,15 +135,7 @@ internal sealed class Scene : IScene
 
     public void OnRuntimeStop() => _systemManager.Shutdown();
 
-    public void OnUpdateRuntime(TimeSpan ts)
-    {
-        // 100: PhysicsSimulationSystem
-        // 115: TransformHierarchySystem (world caches)
-        // 120: AudioSystem
-        // 150: SceneRenderSystem
-        // 151: PhysicsDebugRenderSystem
-        _systemManager.Update(ts);
-    }
+    public void OnUpdateRuntime(TimeSpan ts) => _systemManager.Update(ts);
 
     public void OnViewportResize(uint width, uint height)
     {

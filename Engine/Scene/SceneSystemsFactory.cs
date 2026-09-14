@@ -9,7 +9,6 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene.Systems;
 using Scripting;
-using Serilog;
 
 namespace Engine.Scene;
 
@@ -23,46 +22,31 @@ internal sealed class SceneSystemsFactory(
     IPhysicsWorldFactory physicsWorldFactory,
     IModelFactory modelFactory) : ISceneSystemsFactory
 {
-    private static readonly ILogger Logger = Log.ForContext<SceneSystemsFactory>();
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
 
     public IPhysicsQueries PopulateSystemManager(
-        ISystemManager systemManager,
+        SystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue)
     {
-        var contactListener = new SceneContactListener(contactQueue);
-
         var physicsWorld = physicsWorldFactory.Create(DefaultGravity2D);
-        physicsWorld.SetContactListener(contactListener);
-        var physicsQueries = physicsWorld;
-        var systems = Create2DSystems(physicsWorld, context, bodyStore);
+        physicsWorld.SetContactListener(new SceneContactListener(contactQueue));
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);
 
-        ISystem[] shared =
+        ISystem[] systems =
         [
+            new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
+            new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore),
             audioSystem,
             new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, modelFactory)
         ];
 
-        foreach (var system in systems.Concat(shared))
-        {
+        foreach (var system in systems)
             systemManager.RegisterSystem(system);
-            Logger.Debug("Registered per-scene system: {SystemType}", system.GetType().Name);
-        }
 
-        return physicsQueries;
+        return physicsWorld;
     }
-
-    private ISystem[] Create2DSystems(
-        IPhysicsWorld2D physicsWorld,
-        IContext context,
-        PhysicsRuntimeBodyStore bodyStore) =>
-    [
-        new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
-        new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore)
-    ];
 }

@@ -54,14 +54,9 @@ public interface IScene : IDisposable, IEntityHierarchy
 
     /// <summary>
     /// Called when entering runtime/play mode.
-    /// Initializes systems and physics bodies.
+    /// Registers extra systems (game scripts), then initializes all systems.
     /// </summary>
-    void OnRuntimeStart();
-
-    /// <summary>
-    /// Registers an additional runtime system (e.g. game script systems) before <see cref="OnRuntimeStart"/>.
-    /// </summary>
-    void RegisterRuntimeSystem(ISystem system);
+    void OnRuntimeStart(IEnumerable<ISystem>? extraSystems = null);
 
     /// <summary>
     /// Called when exiting runtime/play mode.

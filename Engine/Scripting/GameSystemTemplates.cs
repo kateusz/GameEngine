@@ -18,11 +18,7 @@ public static class GameSystemTemplates
         {
             public int Priority => 100;
 
-            public void OnInit() { }
-
             public void OnUpdate(TimeSpan deltaTime) { }
-
-            public void OnShutdown() { }
         }
         """;
 }

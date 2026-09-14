@@ -25,7 +25,7 @@ public class SceneSystemsFactoryTests
         registered.ShouldContain(s => s is PhysicsDebugRenderSystem);
     }
 
-    private static List<ISystem> Populate()
+    private static IReadOnlyList<ISystem> Populate()
     {
         var worldFactory = Substitute.For<IPhysicsWorldFactory>();
         worldFactory.Create(Arg.Any<Vector2>()).Returns(Substitute.For<IPhysicsWorld2D>());
@@ -40,17 +40,13 @@ public class SceneSystemsFactoryTests
             worldFactory,
             Substitute.For<IModelFactory>());
 
-        var registered = new List<ISystem>();
-        var systemManager = Substitute.For<ISystemManager>();
-        systemManager.When(x => x.RegisterSystem(Arg.Any<ISystem>(), Arg.Any<bool>()))
-            .Do(ci => registered.Add(ci.ArgAt<ISystem>(0)));
-
+        var systemManager = new SystemManager();
         factory.PopulateSystemManager(
             systemManager,
             new Context(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue());
 
-        return registered;
+        return systemManager.Systems;
     }
 }

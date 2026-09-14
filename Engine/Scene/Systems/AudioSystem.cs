@@ -22,12 +22,10 @@ internal sealed class AudioSystem(
     private readonly Dictionary<AudioEffectType, AudioEffectData> _desiredEffects = [];
     private readonly List<AudioEffectType> _effectsToRemove = [];
 
-    public int Priority => SystemPriorities.AudioSystem;
+    public int Priority => 120;
 
     public void OnInit()
     {
-        Logger.Debug("AudioSystem initialized with priority {Priority}", Priority);
-
         foreach (var (entity, component) in context.View<AudioSourceComponent>())
             InitializeAudioSource(entity, component);
     }
