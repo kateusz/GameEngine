@@ -13,7 +13,7 @@ namespace arena3d;
 /// Hold RMB to rotate; camera always looks at the player.
 /// </summary>
 [Register(typeof(IGameSystem))]
-public class PlayerFollowCameraSystem(IContext context, IMouseInput mouse) : IGameSystem
+public class PlayerFollowCameraSystem(IContext context, IMouseInput mouse, ICameraQueries cameraQueries) : IGameSystem
 {
     private const float FollowDistance = 2.2f;
     private const float LookAtHeight = 0.2f;
@@ -24,9 +24,6 @@ public class PlayerFollowCameraSystem(IContext context, IMouseInput mouse) : IGa
     private Entity? _cameraEntity;
     private float _yaw;
     private float _pitch = 0.12f;
-    private float _lastMouseX;
-    private float _lastMouseY;
-    private bool _mouseTracking;
 
     public int Priority => 140;
 
@@ -81,25 +78,14 @@ public class PlayerFollowCameraSystem(IContext context, IMouseInput mouse) : IGa
 
     private void HandleMouseLook()
     {
-        if (!mouse.IsButtonDown(1))
-        {
-            _mouseTracking = false;
+        if (!mouse.IsButtonDown(MouseButtons.Right))
             return;
-        }
+        if (cameraQueries.ScreenToWorld2D(mouse.Position) is null)
+            return;
 
-        var x = mouse.Position.X;
-        var y = mouse.Position.Y;
-
-        if (_mouseTracking)
-        {
-            _yaw -= (x - _lastMouseX) * MouseSensitivity;
-            _pitch += (_lastMouseY - y) * MouseSensitivity;
-            _pitch = System.Math.Clamp(_pitch, MinPitch, MaxPitch);
-        }
-
-        _lastMouseX = x;
-        _lastMouseY = y;
-        _mouseTracking = true;
+        _yaw -= mouse.Delta.X * MouseSensitivity;
+        _pitch += -mouse.Delta.Y * MouseSensitivity;
+        _pitch = System.Math.Clamp(_pitch, MinPitch, MaxPitch);
     }
 
     private Entity? FindPlayer()

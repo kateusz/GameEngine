@@ -9,7 +9,6 @@ graph TD
     subgraph "Engine Registrations (EngineIoCContainer)"
         subgraph "Window & Input (RegisterWindowing)"
             WIN[IWindow / IGameWindow]
-            ISF[IInputSystemFactory]
             CSP[IContentScaleProvider]
         end
 
@@ -122,7 +121,8 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 | `IGameWindowFactory` | `GameWindowFactory` | Singleton | Creates `IGameWindow` |
 | `IGameWindow` | Via `IGameWindowFactory.Create()` | Default | Factory-resolved |
 | `IContentScaleProvider` | Delegate to `IGameWindow` | Default | HiDPI support |
-| `IInputSystemFactory` | `InputSystemFactory` | Singleton | Creates input systems |
+
+`SilkNetGameWindow` constructs `SilkNetInputSystem` after `window.CreateInput()` and stores the Silk `IInputContext` on `SilkNetContext.Input` for ImGui.
 
 ### Rendering & Graphics (`RegisterCore`)
 

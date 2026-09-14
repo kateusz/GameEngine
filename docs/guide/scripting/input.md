@@ -6,8 +6,11 @@ Scripts: override `ScriptableEntity` callbacks. Systems: inject `IKeyboardInput`
 
 1. `SilkNetInputSystem` enqueues `InputEvent` records from Silk.NET callbacks
 2. `IInputSystem.Update` dequeues and raises `InputReceived`
-3. `Application.HandleInputEvent` walks the layer stack; a layer can set `event.IsHandled` to stop propagation
-4. **Runtime** and **editor Play**: keyboard state updates, then each `ScriptableEntity` on the active scene receives the event (editor: `EditorInputHandler` runs this before viewport tools)
+3. `Application` always applies the event to `KeyboardInputState` / `MouseInputState`
+4. Layer stack (overlays first). A layer may set `event.IsHandled` to stop later layers.
+5. **Runtime** and **editor Play**: remaining unhandled events go to `ScriptableEntity` callbacks (editor Play also skips mouse events outside `IPointerSurface`)
+
+`Application` calls `KeyboardInputState.EndFrame()` / `MouseInputState.EndFrame()` after Draw. Those methods are not on the public poll interfaces.
 
 ## Script callbacks
 
@@ -48,6 +51,10 @@ Direct position changes in callbacks conflict with `RigidBody2DComponent` simula
 | Method | Behavior |
 |--------|----------|
 | `IsKeyDown(KeyCodes key)` | Held |
-| `WasKeyPressed(KeyCodes key)` | Down this frame only (`KeyboardInputState.EndFrame()` at end of update) |
+| `WasKeyPressed(KeyCodes key)` | Down this frame only |
+| `IMouseInput.Position` | Window coords (same space as `IPointerSurface`) |
+| `IMouseInput.Delta` | Movement this frame; zero until the second move event |
+| `IMouseInput.Scroll` | Wheel delta this frame (accumulated) |
+| `IsButtonDown` / `WasButtonPressed` | `MouseButtons.Left` (0), `Right` (1), `Middle` (2) |
 
 **File:** `Engine/Core/Input/KeyboardInputState.cs`

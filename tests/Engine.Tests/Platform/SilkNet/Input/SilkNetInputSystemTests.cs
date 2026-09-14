@@ -24,23 +24,37 @@ public class SilkNetInputSystemTests
     }
 
     [Fact]
-    public void Constructor_NoKeyboard_ThrowsInvalidOperationException()
+    public void Constructor_NoKeyboard_DoesNotThrow()
     {
         var ctx = Substitute.For<IInputContext>();
         ctx.Keyboards.Returns([]);
         ctx.Mice.Returns([_mouse]);
 
-        Should.Throw<InvalidOperationException>(() => new SilkNetInputSystem(ctx));
+        Should.NotThrow(() => new SilkNetInputSystem(ctx));
     }
 
     [Fact]
-    public void Constructor_NoMouse_ThrowsInvalidOperationException()
+    public void Constructor_NoMouse_DoesNotThrow()
     {
         var ctx = Substitute.For<IInputContext>();
         ctx.Keyboards.Returns([_keyboard]);
         ctx.Mice.Returns([]);
 
-        Should.Throw<InvalidOperationException>(() => new SilkNetInputSystem(ctx));
+        Should.NotThrow(() => new SilkNetInputSystem(ctx));
+    }
+
+    [Fact]
+    public void Constructor_NoDevices_UpdateDispatchesNothing()
+    {
+        var ctx = Substitute.For<IInputContext>();
+        ctx.Keyboards.Returns([]);
+        ctx.Mice.Returns([]);
+        var system = new SilkNetInputSystem(ctx);
+        var received = CaptureEvents(system);
+
+        system.Update(TimeSpan.Zero);
+
+        received.ShouldBeEmpty();
     }
 
     [Fact]

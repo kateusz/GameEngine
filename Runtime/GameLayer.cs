@@ -1,7 +1,6 @@
 using System.Numerics;
 using ECS.Systems;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
@@ -9,7 +8,6 @@ using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
-using Input;
 using Scripting;
 using Serilog;
 
@@ -21,8 +19,6 @@ public class GameLayer(
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
     IScriptEngine scriptEngine,
-    IKeyboardInput keyboardInput,
-    IMouseInput mouseInput,
     IPointerSurface pointerSurface,
     IGameWindow gameWindow,
     GameConfiguration gameConfig,
@@ -33,7 +29,7 @@ public class GameLayer(
 
     private readonly Action<IScene> _sceneChangedHandler = _ => Logger.Information("Active scene changed");
 
-    public void OnAttach(IInputSystem inputSystem)
+    public void OnAttach()
     {
         sceneContext.SceneChanged += _sceneChangedHandler;
 
@@ -94,12 +90,6 @@ public class GameLayer(
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
-        if (keyboardInput is KeyboardInputState keyboardState)
-            keyboardState.Apply(windowEvent);
-
-        if (mouseInput is MouseInputState mouseState)
-            mouseState.Apply(windowEvent);
-
         if (sceneContext is { ActiveScene: { } scene, ActiveScriptRuntimeStore: { } store })
             scriptEngine.ProcessEvent(windowEvent, scene.Context, store);
     }

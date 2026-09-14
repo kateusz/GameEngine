@@ -57,4 +57,59 @@ public class MouseInputStateTests
         state.Position.ShouldBe(Vector2.Zero);
         state.IsButtonDown(MouseButtons.Left).ShouldBeFalse();
     }
+
+    [Fact]
+    public void Apply_FirstMove_SetsPositionWithoutDelta()
+    {
+        var state = new MouseInputState();
+        state.Apply(new MouseMovedEvent(10f, 20f));
+
+        state.Position.ShouldBe(new Vector2(10f, 20f));
+        state.Delta.ShouldBe(Vector2.Zero);
+    }
+
+    [Fact]
+    public void Apply_SecondMove_SetsDeltaFromPreviousPosition()
+    {
+        var state = new MouseInputState();
+        state.Apply(new MouseMovedEvent(10f, 20f));
+        state.Apply(new MouseMovedEvent(13f, 24f));
+
+        state.Position.ShouldBe(new Vector2(13f, 24f));
+        state.Delta.ShouldBe(new Vector2(3f, 4f));
+    }
+
+    [Fact]
+    public void Apply_Scroll_AccumulatesUntilEndFrame()
+    {
+        var state = new MouseInputState();
+        state.Apply(new MouseScrolledEvent(1f, 2f));
+        state.Apply(new MouseScrolledEvent(0f, 3f));
+
+        state.Scroll.ShouldBe(new Vector2(1f, 5f));
+
+        state.EndFrame();
+
+        state.Scroll.ShouldBe(Vector2.Zero);
+    }
+
+    [Fact]
+    public void EndFrame_ClearsDelta()
+    {
+        var state = new MouseInputState();
+        state.Apply(new MouseMovedEvent(0f, 0f));
+        state.Apply(new MouseMovedEvent(4f, 0f));
+        state.EndFrame();
+
+        state.Delta.ShouldBe(Vector2.Zero);
+        state.Position.ShouldBe(new Vector2(4f, 0f));
+    }
+
+    [Fact]
+    public void MouseButtons_MatchSilkAndImGuiIndices()
+    {
+        MouseButtons.Left.ShouldBe(0);
+        MouseButtons.Right.ShouldBe(1);
+        MouseButtons.Middle.ShouldBe(2);
+    }
 }
