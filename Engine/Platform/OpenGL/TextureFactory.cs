@@ -1,4 +1,5 @@
 using Engine.Renderer.Textures;
+using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 
 namespace Engine.Platform.OpenGL;
 
@@ -85,7 +86,14 @@ internal sealed class TextureFactory : ITextureFactory, IDisposable
     public (byte[] Data, int Width, int Height) DecodePreview(string path)
     {
         var decoded = TextureFileDecoder.Decode(path, sRgb: true);
-        return TexturePreviewScaling.DownscaleRgba(decoded.Data, decoded.Width, decoded.Height, PreviewMaxEdge);
+        var bytesPerPixel = decoded.Data.Length / (decoded.Width * decoded.Height);
+        var rgba = (decoded.DataFormat, bytesPerPixel) switch
+        {
+            (PixelFormat.Bgra, 4) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 4),
+            (PixelFormat.Bgr, 3) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 3),
+            _ => decoded.Data
+        };
+        return TexturePreviewScaling.DownscaleRgba(rgba, decoded.Width, decoded.Height, PreviewMaxEdge);
     }
 
     public Texture2D CreateFromRgba(byte[] rgba, int width, int height) =>

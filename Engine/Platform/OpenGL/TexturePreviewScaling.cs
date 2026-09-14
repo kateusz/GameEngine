@@ -33,4 +33,18 @@ internal static class TexturePreviewScaling
 
         return (dst, dstWidth, dstHeight);
     }
+
+    public static byte[] ToPackedRgba(byte[] src, int srcBpp)
+    {
+        var dst = new byte[src.Length / srcBpp * 4];
+        for (int i = 0, o = 0; i < src.Length; i += srcBpp, o += 4)
+        {
+            dst[o] = src[i + 2];
+            dst[o + 1] = src[i + 1];
+            dst[o + 2] = src[i];
+            dst[o + 3] = srcBpp == 4 ? src[i + 3] : (byte)255;
+        }
+
+        return dst;
+    }
 }
