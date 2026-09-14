@@ -5,7 +5,7 @@ using Math;
 
 namespace Editor.Features.Viewport;
 
-public class EditorCamera : Camera, IViewCamera
+public class EditorCamera : Camera
 {
     private float _aspectRatio;
     private readonly float _nearClip;

@@ -3,6 +3,7 @@ using ECS.Systems;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
+using Engine.Scene.Cameras;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -26,8 +27,12 @@ internal sealed class SceneRenderSystem(
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        var camera = SceneRenderPipeline.CameraBinding.FromProvider(cameraProvider);
-        SceneRenderPipeline.RenderScene(context, graphics2D, graphics3D, textureFactory, modelFactory, camera);
+        if (cameraProvider.Camera is not { } cam)
+            return;
+
+        SceneRenderPipeline.RenderScene(
+            context, graphics2D, graphics3D, textureFactory, modelFactory,
+            CameraViews.From(cam, cameraProvider.Transform));
     }
 
     public void OnShutdown() { }

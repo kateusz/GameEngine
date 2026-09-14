@@ -4,7 +4,6 @@ using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Viewport.Gizmos;
 using Engine.Scene;
-using Engine.Scene.Cameras;
 using SceneComponents;
 
 namespace Editor.Features.Viewport.Tools;
@@ -31,7 +30,7 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
         _targetEntity = null;
     }
 
-    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (ImGuizmoGizmo.IsAvailable)
             return;
@@ -55,7 +54,7 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
         _dragStartScale = transform.Scale;
     }
 
-    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseMove(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (ImGuizmoGizmo.IsAvailable)
             return;
@@ -76,7 +75,7 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
         };
     }
 
-    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, IViewCamera camera)
+    public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         if (ImGuizmoGizmo.IsAvailable)
             return;
@@ -97,7 +96,7 @@ public class MoveTool(IEditorHistory history, ISceneContext sceneContext) : IEnt
         _activeAxis = GizmoAxis.None;
     }
 
-    public void Render(Vector2[] viewportBounds, IViewCamera camera)
+    public void Render(Vector2[] viewportBounds, EditorCamera camera)
     {
         if (_targetEntity == null || !_targetEntity.TryGetComponent<TransformComponent>(out var transform))
             return;

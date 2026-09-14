@@ -17,13 +17,10 @@ internal static class PhysicsDebugDrawer
         IContext context,
         IGraphics2D graphics2D,
         PhysicsRuntimeBodyStore bodyStore,
-        in SceneRenderPipeline.CameraBinding camera,
+        in SceneView view,
         bool useTransformFallbackWhenNoBody)
     {
-        if (!camera.IsValid)
-            return;
-
-        SceneRenderPipeline.Begin2DScene(graphics2D, camera);
+        SceneRenderPipeline.Begin2DScene(graphics2D, view);
         DrawColliders(context, graphics2D, bodyStore, useTransformFallbackWhenNoBody);
         graphics2D.EndScene();
     }
