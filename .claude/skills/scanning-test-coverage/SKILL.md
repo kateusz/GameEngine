@@ -158,7 +158,6 @@ Produce a structured report:
 ## Skipped ({count})
 | Source File | Source Type | Reason |
 |------------|------------|--------|
-| Engine/Scene/ISystemManagerFactory.cs | SceneBuildResult | Data-only record, no logic |
 | Engine/Scene/Systems/SystemPriorities.cs | SystemPriorities | Marked [SkipUnitTests] |
 
 ## Notes

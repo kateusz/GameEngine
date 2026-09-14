@@ -61,7 +61,7 @@ public interface IMyNewPanel
 **Naming Convention**:
 - Interface: `I[PanelName]Panel` or `I[PanelName]`
 - Implementation: `[PanelName]Panel` or `[PanelName]`
-- Examples: `ISceneHierarchyPanel`, `IConsolePanel`, `ITileMapPanel`
+- Examples: `IConsolePanel`, `IContentBrowserPanel`, `ITileMapPanel`
 
 ### Step 2: Implement Panel Class
 **Location**: `Editor/Panels/`
@@ -406,7 +406,7 @@ private readonly IAudioClipFactory _audioClipFactory;
 private readonly SystemManager _systemManager;
 
 // Other panels (for cross-panel communication)
-private readonly ISceneHierarchyPanel _sceneHierarchyPanel;
+private readonly SceneHierarchyPanel _sceneHierarchyPanel;
 ```
 
 ### Constructor Pattern (Use Primary Constructor)

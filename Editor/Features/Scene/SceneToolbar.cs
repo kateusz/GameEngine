@@ -80,21 +80,9 @@ public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager
             tooltip: "Ruler Mode");
         ImGui.SameLine();
 
-        var is2d = sceneContext.ActiveScene?.Dimension != SceneDimension.ThreeD;
-        if (ButtonDrawer.DrawToggleButton("2D", "2D", ref is2d, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight)
-            && is2d
-            && sceneContext.ActiveScene is { } scene2d)
-            scene2d.Dimension = SceneDimension.TwoD;
-        LayoutDrawer.DrawTooltip("2D Scene");
-
+        DrawDimensionButton("2D", SceneDimension.TwoD);
         ImGui.SameLine();
-
-        var is3d = sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
-        if (ButtonDrawer.DrawToggleButton("3D", "3D", ref is3d, width: EditorUIConstants.ToolbarToggleWidth, height: EditorUIConstants.ToolbarToggleHeight)
-            && is3d
-            && sceneContext.ActiveScene is { } scene3d)
-            scene3d.Dimension = SceneDimension.ThreeD;
-        LayoutDrawer.DrawTooltip("3D Scene");
+        DrawDimensionButton("3D", SceneDimension.ThreeD);
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 
@@ -125,5 +113,24 @@ public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor(3);
         ImGui.End();
+    }
+
+    private void DrawDimensionButton(string label, SceneDimension dimension)
+    {
+        var selected = sceneContext.ActiveScene?.Dimension == dimension;
+        if (selected)
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.5f, 0.8f, 0.7f));
+
+        ButtonDrawer.DrawButton(label, EditorUIConstants.ToolbarToggleWidth, EditorUIConstants.ToolbarToggleHeight,
+            () =>
+            {
+                if (sceneContext.ActiveScene is { } scene)
+                    scene.Dimension = dimension;
+            });
+
+        if (selected)
+            ImGui.PopStyleColor();
+
+        LayoutDrawer.DrawTooltip($"{label} Scene");
     }
 }

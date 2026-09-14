@@ -221,9 +221,9 @@ sequenceDiagram
 
 ### Per-Scene Systems
 
-**File**: `Engine/Scene/SceneSystemsFactory.cs`, `Engine/Scene/SystemManagerFactory.cs`
+**File**: `Engine/Scene/SceneFactory.cs`, `Engine/Scene/SceneSystemsFactory.cs`
 
-Each scene gets a fresh `Context`, `SystemManager`, and physics world via `SceneFactory` → `SystemManagerFactory.Create`. `SceneSystemsFactory.PopulateSystemManager` registers all built-in systems as per-scene (no `isShared: true`). Scene unload calls `SystemManager.Dispose()`, which shuts down and disposes every system.
+Each scene gets a fresh `Context`, `SystemManager`, and physics world via `SceneFactory` → `ISceneSystemsFactory.PopulateSystemManager`. `SceneSystemsFactory` registers all built-in systems as per-scene (no `isShared: true`). Scene unload calls `SystemManager.Dispose()`, which shuts down and disposes every system.
 
 Custom runtime systems can be added with `Scene.RegisterRuntimeSystem(ISystem)`.
 
