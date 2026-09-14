@@ -54,8 +54,14 @@ internal sealed class OpenGLTexture2D : Texture2D
             decoded.DataFormat);
     }
 
+    public static Texture2D CreateFromRgba(byte[] rgba, int width, int height)
+    {
+        return UploadTexture(string.Empty, rgba, width, height, InternalFormat.Rgba8, PixelFormat.Rgba,
+            generateMipmaps: false);
+    }
+
     private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
-        InternalFormat internalFormat, PixelFormat dataFormat)
+        InternalFormat internalFormat, PixelFormat dataFormat, bool generateMipmaps = true)
     {
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
@@ -73,8 +79,11 @@ internal sealed class OpenGLTexture2D : Texture2D
                 OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
             }
 
+            var minFilter = generateMipmaps
+                ? TextureMinFilter.LinearMipmapLinear
+                : TextureMinFilter.Linear;
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)TextureMinFilter.LinearMipmapLinear);
+                (int)minFilter);
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                 (int)TextureMagFilter.Linear);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
@@ -85,12 +94,15 @@ internal sealed class OpenGLTexture2D : Texture2D
                 (int)TextureWrapMode.Repeat);
             OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
 
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
+            if (generateMipmaps)
+            {
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
 
-            SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+                SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+            }
 
             // Anisotropic filtering for sharp textures at oblique angles
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,

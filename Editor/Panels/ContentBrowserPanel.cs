@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Engine.Core;
@@ -11,7 +12,7 @@ using Ui.ImGui;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
+public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposable
 {
     private enum CreateAssetKind { Script, Component, System }
 
@@ -28,9 +29,12 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     private Texture2D _fileIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
     private readonly Dictionary<string, Texture2D> _folderIconCache = new();
-    private readonly Queue<string> _pendingThumbnails = new();
+    private readonly BlockingCollection<string> _decodeQueue = new();
+    private readonly ConcurrentQueue<(string Path, byte[]? Rgba, int Width, int Height)> _readyThumbnails = new();
     private readonly HashSet<string> _pendingThumbnailPaths = new(StringComparer.OrdinalIgnoreCase);
-    private const int MaxThumbnailsPerFrame = 4;
+    private Task? _decodeWorker;
+    private bool _disposed;
+    private const int MaxThumbnailUploadsPerFrame = 8;
 
     private const string CreateAssetPopupId = "ContentBrowserCreateAsset";
 
@@ -374,27 +378,57 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     {
         _currentDirectory = directory;
         _folderFilter = string.Empty;
-        _pendingThumbnails.Clear();
+        while (_decodeQueue.TryTake(out _))
+        {
+        }
+
         _pendingThumbnailPaths.Clear();
+    }
+
+    private void EnsureDecodeWorker()
+    {
+        if (_decodeWorker != null || _decodeQueue.IsAddingCompleted)
+            return;
+
+        _decodeWorker = Task.Run(DecodeWorkerLoop);
+    }
+
+    private void DecodeWorkerLoop()
+    {
+        foreach (var path in _decodeQueue.GetConsumingEnumerable())
+        {
+            try
+            {
+                var preview = _textureFactory.DecodePreview(path);
+                _readyThumbnails.Enqueue((path, preview.Data, preview.Width, preview.Height));
+            }
+            catch
+            {
+                _readyThumbnails.Enqueue((path, null, 0, 0));
+            }
+        }
     }
 
     private void ProcessPendingThumbnails()
     {
-        for (var i = 0; i < MaxThumbnailsPerFrame && _pendingThumbnails.Count > 0; i++)
+        for (var i = 0; i < MaxThumbnailUploadsPerFrame && _readyThumbnails.TryDequeue(out var item); i++)
         {
-            var entry = _pendingThumbnails.Dequeue();
-            _pendingThumbnailPaths.Remove(entry);
-
-            if (_imageCache.ContainsKey(entry))
+            if (_imageCache.ContainsKey(item.Path))
                 continue;
+
+            if (item.Rgba == null)
+            {
+                _imageCache[item.Path] = _fileIcon;
+                continue;
+            }
 
             try
             {
-                _imageCache[entry] = _textureFactory.Create(entry);
+                _imageCache[item.Path] = _textureFactory.CreateFromRgba(item.Rgba, item.Width, item.Height);
             }
             catch
             {
-                _imageCache[entry] = _fileIcon;
+                _imageCache[item.Path] = _fileIcon;
             }
         }
     }
@@ -404,7 +438,9 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         if (_imageCache.ContainsKey(entry) || !_pendingThumbnailPaths.Add(entry))
             return;
 
-        _pendingThumbnails.Enqueue(entry);
+        EnsureDecodeWorker();
+        if (!_decodeQueue.IsAddingCompleted)
+            _decodeQueue.Add(entry);
     }
 
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
@@ -453,5 +489,16 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     {
         _assetPath = rootDir;
         NavigateTo(rootDir);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _decodeQueue.CompleteAdding();
+        _decodeWorker?.Wait(TimeSpan.FromSeconds(1));
+        _decodeQueue.Dispose();
     }
 }
