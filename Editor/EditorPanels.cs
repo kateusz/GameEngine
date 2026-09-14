@@ -1,4 +1,5 @@
 using ECS;
+using Editor.Features.Viewport;
 using Editor.Panels;
 using Engine.Scene.Cameras;
 using GameComponentEditor = Editor.Features.Components.GameComponentEditor;
