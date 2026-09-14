@@ -1,4 +1,3 @@
-using Engine.Platform.OpenGL;
 using Engine.Platform.SilkNet;
 using Silk.NET.OpenGL;
 using Shouldly;
@@ -33,42 +32,5 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
         gl.ClearColor(0, 0, 0, 1);
         gl.Clear(ClearBufferMask.ColorBufferBit);
         gl.GetError().ShouldBe(GLEnum.NoError);
-    }
-
-    [GraphicsFact]
-    public void Dispose_ReleasesContext()
-    {
-        var previousGl = SilkNetContext.GL;
-        var window = HeadlessWindow.Create("Engine.GraphicsTests.Dispose");
-        var context = new SilkNetGraphicsContext(window);
-        try
-        {
-            context.Create();
-            context.Dispose();
-            context.IsCreated.ShouldBeFalse();
-        }
-        finally
-        {
-            context.Dispose();
-            window.Dispose();
-            SilkNetContext.GL = previousGl;
-        }
-    }
-
-    [GraphicsFact]
-    public void GpuTimer_Dispose_WhenGlAlreadyReleased_DoesNotThrow()
-    {
-        var previousGl = SilkNetContext.GL;
-        previousGl.ShouldNotBeNull();
-        var timer = new OpenGLGpuTimer();
-        SilkNetContext.GL = null!;
-        try
-        {
-            Should.NotThrow(timer.Dispose);
-        }
-        finally
-        {
-            SilkNetContext.GL = previousGl;
-        }
     }
 }

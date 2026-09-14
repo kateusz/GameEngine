@@ -46,4 +46,24 @@ public class GraphicsContextFailureTests
             SilkNetContext.GL = previousGl;
         }
     }
+
+    [GraphicsFact]
+    public void Dispose_ReleasesContext()
+    {
+        var previousGl = SilkNetContext.GL;
+        var window = HeadlessWindow.Create("Engine.GraphicsTests.Dispose");
+        var context = new SilkNetGraphicsContext(window);
+        try
+        {
+            context.Create();
+            context.Dispose();
+            context.IsCreated.ShouldBeFalse();
+        }
+        finally
+        {
+            context.Dispose();
+            window.Dispose();
+            SilkNetContext.GL = previousGl;
+        }
+    }
 }

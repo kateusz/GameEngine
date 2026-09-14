@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Engine.Platform.SilkNet;
 using Silk.NET.OpenGL;
 
@@ -55,14 +56,17 @@ internal sealed class OpenGLGpuTimer : IDisposable
         if (_disposed)
             return;
 
-        if (_queryId != 0)
+        try
         {
-            var gl = SilkNetContext.GL;
-            if (gl is not null)
+            if (_queryId != 0 && SilkNetContext.GL is { } gl)
                 gl.DeleteQuery(_queryId);
-            _queryId = 0;
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"Failed to delete OpenGL query {_queryId}: {e.Message}");
         }
 
+        _queryId = 0;
         _disposed = true;
         GC.SuppressFinalize(this);
     }
