@@ -9,7 +9,6 @@ using Editor.Features.Viewport;
 using Editor.Input;
 using Editor.Panels;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Scene;
 using SceneComponents;
 using Serilog;
@@ -45,7 +44,7 @@ public class EditorLifecycle(
     private Action _projectClosingHandler = null!;
     private Action _projectClosedHandler = null!;
 
-    public void Attach(IInputSystem inputSystem)
+    public void Attach()
     {
         Logger.Debug("EditorLifecycle Attach.");
 

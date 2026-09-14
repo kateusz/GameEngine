@@ -121,7 +121,6 @@ public static class EngineIoCContainer
         );
 
         container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>(), Reuse.Singleton);
-        container.Register<IInputSystemFactory, InputSystemFactory>(Reuse.Singleton);
     }
 
     private static void RegisterFactories(Container container)

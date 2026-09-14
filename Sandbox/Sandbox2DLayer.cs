@@ -1,6 +1,5 @@
 using System.Numerics;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
@@ -62,7 +61,7 @@ public class Sandbox2DLayer : ILayer
         _mapArray = ConvertMapTo2DArray(_mapTiles, _mapWidth, _mapHeight);
     }
 
-    public void OnAttach(IInputSystem inputSystem)
+    public void OnAttach()
     {
         Logger.Debug("Sandbox2DLayer OnAttach.");
 

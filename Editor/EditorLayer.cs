@@ -1,7 +1,6 @@
 using Editor.Features.Application;
 using Editor.Input;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Events.Input;
 
 namespace Editor;
@@ -13,7 +12,7 @@ public class EditorLayer(
 {
     private TimeSpan _delta;
 
-    public void OnAttach(IInputSystem inputSystem) => lifecycle.Attach(inputSystem);
+    public void OnAttach() => lifecycle.Attach();
 
     public void OnDetach() => lifecycle.Detach();
 

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
-using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Renderer;
 using Engine.Renderer.Pipeline;
@@ -60,7 +59,7 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     private int _profilingPhase;
     private bool _ecsRuntimeStarted;
 
-    public void OnAttach(IInputSystem inputSystem)
+    public void OnAttach()
     {
         _cameraController = new EditorCamera();
         LoadTestAssets();
