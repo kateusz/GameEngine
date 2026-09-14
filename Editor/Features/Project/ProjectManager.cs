@@ -101,6 +101,9 @@ public class ProjectManager(
 
             var name = projectName.Trim();
             sceneManager.New(name);
+            GameConfiguration.Save(
+                GameConfiguration.PathFor(projectDir),
+                GameConfiguration.ForNewProject(name, $"assets/scenes/{name}.scene"));
 
             Logger.Information("🆕 Project '{ProjectName}' created at {ProjectDir}", name, projectDir);
             editorPreferences.AddRecentProject(projectDir, name);

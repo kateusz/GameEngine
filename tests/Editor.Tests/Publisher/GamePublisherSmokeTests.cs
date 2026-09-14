@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Editor.Publisher;
 using Engine.Core;
 using Shouldly;
@@ -55,11 +54,9 @@ public class GamePublisherSmokeTests
 
     private static GameConfiguration LoadGameConfig(string snakeRoot)
     {
-        var configPath = Path.Combine(snakeRoot, "game.config.json");
-        File.Exists(configPath).ShouldBeTrue($"Missing {configPath}");
-        var json = File.ReadAllText(configPath);
-        return JsonSerializer.Deserialize<GameConfiguration>(json)
-               ?? throw new InvalidOperationException("Failed to deserialize Snake game.config.json");
+        var configPath = GameConfiguration.PathFor(snakeRoot);
+        GameConfiguration.TryLoad(configPath, out var config, out var error).ShouldBeTrue(error);
+        return config;
     }
 
     private static string? FindSnakeProjectRoot()

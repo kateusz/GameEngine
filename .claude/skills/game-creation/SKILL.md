@@ -64,7 +64,7 @@ Prefer editor **New Project** (`ProjectManager` scaffolds this), or mirror sampl
 
 ```
 GameName/                       # editor project root — Open Project here
-├── game.config.json            # required for publish/runtime (not auto-created by New Project)
+├── game.config.json            # required for publish/runtime (created by New Project)
 ├── assets/
 │   ├── scenes/
 │   ├── textures/

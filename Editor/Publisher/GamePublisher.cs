@@ -9,26 +9,6 @@ public partial class GamePublisher(IProjectContext projectContext)
 {
     private static readonly ILogger Logger = Log.ForContext<GamePublisher>();
 
-    public void Publish()
-    {
-        var settings = new PublishSettings
-        {
-            OutputPath = GetDefaultOutputPath(),
-            RuntimeIdentifier = PlatformDetection.DetectCurrentPlatform()
-        };
-
-        var result = PublishAsync(settings, CreateDefaultGameConfig()).GetAwaiter().GetResult();
-
-        if (!result.Success)
-            Logger.Error("Publish failed: {Error}", result.ErrorMessage);
-    }
-
-    public Task<PublishResult> PublishAsync(
-        PublishSettings settings,
-        IProgress<string>? progress = null,
-        CancellationToken cancellationToken = default) =>
-        PublishAsync(settings, CreateDefaultGameConfig(), progress, cancellationToken);
-
     public async Task<PublishResult> PublishAsync(
         PublishSettings settings,
         GameConfiguration gameConfig,
@@ -137,8 +117,7 @@ public partial class GamePublisher(IProjectContext projectContext)
             }
 
             ReportProgress(progress, "Creating game configuration...", 0.8f);
-            var mergedConfig = MergeGameConfig(gameConfig);
-            var configResult = CreateGameConfig(tempOutputPath, mergedConfig);
+            var configResult = CreateGameConfig(tempOutputPath, gameConfig);
             if (!configResult.Success)
             {
                 CleanupTempDirectory(tempOutputPath);
@@ -147,7 +126,7 @@ public partial class GamePublisher(IProjectContext projectContext)
 
             ReportProgress(progress, "Validating build...", 0.9f);
             var validationCheck = PublishedBuildValidator.Validate(
-                tempOutputPath, settings.RuntimeIdentifier, mergedConfig);
+                tempOutputPath, settings.RuntimeIdentifier, gameConfig);
             if (!validationCheck.Success)
             {
                 Logger.Error(validationCheck.ErrorMessage ?? "Published build validation failed");
@@ -200,28 +179,6 @@ public partial class GamePublisher(IProjectContext projectContext)
             };
         }
     }
-
-    private static GameConfiguration CreateDefaultGameConfig(string title = "My Game") => new()
-    {
-        GameAssemblyPath = "GameAssembly.dll",
-        StartupScenePath = "assets/scenes/Scene.scene",
-        WindowWidth = 1920,
-        WindowHeight = 1080,
-        GameTitle = title
-    };
-
-    private static GameConfiguration MergeGameConfig(GameConfiguration gameConfig) => new()
-    {
-        GameAssemblyPath = string.IsNullOrWhiteSpace(gameConfig.GameAssemblyPath)
-            ? "GameAssembly.dll"
-            : gameConfig.GameAssemblyPath,
-        StartupScenePath = gameConfig.StartupScenePath,
-        WindowWidth = gameConfig.WindowWidth,
-        WindowHeight = gameConfig.WindowHeight,
-        Fullscreen = gameConfig.Fullscreen,
-        GameTitle = gameConfig.GameTitle,
-        TargetFrameRate = gameConfig.TargetFrameRate
-    };
 
     private string GetDefaultOutputPath()
         => Path.Combine(projectContext.Root ?? Environment.CurrentDirectory, "Builds");

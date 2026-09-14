@@ -106,7 +106,7 @@ sequenceDiagram
 **File**: `Runtime/Program.cs`
 
 1. Configures Serilog (console + rolling file under `logs/runtime-.log`)
-2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, startup scene, game assembly path); falls back to defaults if missing or invalid
+2. Loads `GameConfiguration` from `game.config.json` beside the executable (title, window size, startup scene, game assembly path); throws if missing or invalid
 3. Creates DryIoc container: `EngineIoCContainer.RegisterCore()` + `IProjectContext.Apply(AppContext.BaseDirectory)` + `RegisterWindowing()` with host options from config
 4. Registers `GameConfiguration` instance, `RuntimeApplication`, and a `Func<IEnumerable<IGameSystem>>` delegate for per-scene game systems
 5. Loads the published game assembly (`GameAssembly.dll` by default) via `IScriptEngine`; registers `[Register]` types via `GameAssemblyContainerRegistration.TryRegisterContainer` (warns if none) and component serializers from that assembly

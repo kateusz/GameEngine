@@ -1,4 +1,3 @@
-using System.Text.Json;
 using DryIoc;
 using ECS.Systems;
 using Engine.Core;
@@ -73,32 +72,11 @@ public class Program
 
     private static GameConfiguration LoadGameConfiguration()
     {
-        var configPath = Path.Combine(AppContext.BaseDirectory, "game.config.json");
+        var configPath = GameConfiguration.PathFor(AppContext.BaseDirectory);
+        if (!GameConfiguration.TryLoad(configPath, out var config, out var error))
+            throw new InvalidOperationException(error);
 
-        if (!File.Exists(configPath))
-        {
-            Logger.Warning("Game configuration not found at {Path}, using defaults", configPath);
-            return new GameConfiguration();
-        }
-
-        try
-        {
-            var json = File.ReadAllText(configPath);
-            var config = JsonSerializer.Deserialize<GameConfiguration>(json);
-
-            if (config == null)
-            {
-                Logger.Warning("Failed to deserialize game configuration, using defaults");
-                return new GameConfiguration();
-            }
-
-            return config;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to load game configuration, using defaults");
-            return new GameConfiguration();
-        }
+        return config;
     }
 
     private static void ConfigureContainer(Container container, GameConfiguration gameConfig)
