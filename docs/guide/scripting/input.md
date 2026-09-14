@@ -4,26 +4,28 @@ Inject `IKeyboardInput` / `IMouseInput` into an `IGameSystem` — [Scripting Tie
 
 ## Flow
 
-1. `SilkNetInputSystem` enqueues `InputEvent` records from Silk.NET callbacks
+1. `SilkNetInputSystem` hooks the first Silk.NET keyboard and first mouse and enqueues `InputEvent` records from those callbacks
 2. `IInputSystem.Update` dequeues and raises `InputReceived`
-3. `Application` always applies the event to `KeyboardInputState` / `MouseInputState`
-4. Layer stack (overlays first). A layer may set `event.IsHandled` to stop later layers.
-5. **Runtime** and **editor Play**: systems poll device state on `OnUpdate`
+3. `KeyboardInputState.Apply` / `MouseInputState.Apply` update pollable device state
+4. Systems poll that state on `OnUpdate`
+5. `EndFrame()` clears per-frame edges. It is on the state classes, not on `IKeyboardInput` / `IMouseInput`
 
-`Application` calls `KeyboardInputState.EndFrame()` / `MouseInputState.EndFrame()` after Draw. Those methods are not on the public poll interfaces.
+`SilkNetInputSystem` always constructs `KeyPressedEvent` with `IsRepeat = false`. Extra KeyDown callbacks while a key is held are queued as additional presses.
+
+`Event.IsHandled` exists on the event base type; `Apply` does not read it.
 
 ## Polling in systems
 
 | Method | Behavior |
 |--------|----------|
 | `IsKeyDown(KeyCodes key)` | Held |
-| `WasKeyPressed(KeyCodes key)` | Down this frame only |
-| `IMouseInput.Position` | Window coords (same space as `IPointerSurface`) |
-| `IMouseInput.Delta` | Movement this frame; zero until the second move event |
-| `IMouseInput.Scroll` | Wheel delta this frame (accumulated) |
-| `IsButtonDown` / `WasButtonPressed` | `MouseButtons.Left` (0), `Right` (1), `Middle` (2) |
+| `WasKeyPressed(KeyCodes key)` | Pressed this frame (cleared by `EndFrame`) |
+| `IMouseInput.Position` | Window coordinates from `MouseMovedEvent` |
+| `IMouseInput.Delta` | Last move this frame to the previous position; zero until the second move event |
+| `IMouseInput.Scroll` | Wheel delta this frame (accumulated, then cleared by `EndFrame`) |
+| `IsButtonDown(int button)` / `WasButtonPressed(int button)` | Platform button index (0 left, 1 right, 2 middle) |
 
-Keys are `KeyCodes.*` (letters, `D0`–`D9`, arrows, `Space`, `F1`–`F25`, modifiers, numpad).
+A press and release in the same frame still reports `WasKeyPressed` / `WasButtonPressed` until `EndFrame`. `Delta` is the last move segment, not the sum of every move event that frame.
 
 ## Example
 
@@ -41,4 +43,4 @@ public void OnUpdate(TimeSpan deltaTime)
 
 Direct position changes conflict with `RigidBody2DComponent` simulation — prefer velocity.
 
-**File:** `Engine/Core/Input/KeyboardInputState.cs`
+**Files:** `Engine/Core/Input/IInputSystem.cs`, `Engine/Core/Input/KeyboardInputState.cs`, `Engine/Core/Input/MouseInputState.cs`, `Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs`
