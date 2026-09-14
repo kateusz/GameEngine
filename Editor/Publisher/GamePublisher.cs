@@ -64,7 +64,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return PublishResult.Failed(error);
             }
 
-            ReportProgress(progress, "Building game runtime...", 0.1f);
+            progress?.Report("Building game runtime...");
             var buildResult = await BuildRuntimeAsync(settings, tempOutputPath, buildOutput, progress, cancellationToken);
             if (!buildResult.Success)
             {
@@ -79,7 +79,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return renameResult;
             }
 
-            ReportProgress(progress, "Copying assets...", 0.5f);
+            progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)
             {
@@ -87,7 +87,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return copyAssetsResult;
             }
 
-            ReportProgress(progress, "Validating asset references...", 0.55f);
+            progress?.Report("Validating asset references...");
             var assetRefsValidation = PublishedAssetValidator.ValidateAssetReferences(
                 Path.Combine(tempOutputPath, "assets"));
             if (!assetRefsValidation.Success)
@@ -97,7 +97,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return assetRefsValidation;
             }
 
-            ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
+            progress?.Report("Compiling game scripts to GameAssembly.dll...");
             var scriptsSource = projectContext.ScriptsDir!;
             var gameDllPath = Path.Combine(tempOutputPath, "GameAssembly.dll");
             if (!GameAssemblyCompiler.TryCompile(scriptsSource, gameDllPath, emitPdb: false, useDebugOptimization: false, out var scriptBuildErrors))
@@ -112,7 +112,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return PublishResult.Failed("Compiling project scripts to GameAssembly.dll failed. See build output for Roslyn errors.");
             }
 
-            ReportProgress(progress, "Creating game configuration...", 0.8f);
+            progress?.Report("Creating game configuration...");
             var configResult = CreateGameConfig(tempOutputPath, gameConfig);
             if (!configResult.Success)
             {
@@ -120,7 +120,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return configResult;
             }
 
-            ReportProgress(progress, "Validating build...", 0.9f);
+            progress?.Report("Validating build...");
             var validationCheck = PublishedBuildValidator.Validate(
                 tempOutputPath, settings.RuntimeIdentifier, gameConfig);
             if (!validationCheck.Success)
@@ -132,7 +132,7 @@ public partial class GamePublisher(IProjectContext projectContext)
 
             Logger.Information("Published build validation passed");
 
-            ReportProgress(progress, "Finalizing build...", 0.95f);
+            progress?.Report("Finalizing build...");
             var finalizeResult = FinalizeBuild(tempOutputPath, outputPath);
             if (!finalizeResult.Success)
             {
@@ -142,7 +142,7 @@ public partial class GamePublisher(IProjectContext projectContext)
 
             tempOutputPath = null;
 
-            ReportProgress(progress, "Publish completed successfully!", 1.0f);
+            progress?.Report("Publish completed successfully!");
             Logger.Information("Game published successfully to {OutputPath}", outputPath);
 
             return new PublishResult
@@ -240,14 +240,6 @@ public partial class GamePublisher(IProjectContext projectContext)
             Logger.Error(ex, "Failed to finalize build at {OutputPath}", outputPath);
             return PublishResult.Failed(error);
         }
-    }
-
-    private static void ReportProgress(IProgress<string>? progress, string message, float percentage)
-    {
-        progress?.Report(message);
-
-        if (progress is PublishProgress publishProgress)
-            publishProgress.SetProgress(percentage);
     }
 
     private static void CleanupTempDirectory(string? tempPath)
