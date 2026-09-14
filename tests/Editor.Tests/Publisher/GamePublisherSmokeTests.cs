@@ -36,7 +36,9 @@ public class GamePublisherSmokeTests
             result.Success.ShouldBeTrue(result.ErrorMessage ?? "Publish failed without error message");
             result.OutputPath.ShouldBe(outputPath);
 
-            var exePath = Path.Combine(outputPath, "Runtime.exe");
+            var exePath = Path.Combine(
+                outputPath,
+                PlatformDetection.GetPublishedExecutableName(settings.RuntimeIdentifier, gameConfig.GameTitle));
             File.Exists(exePath).ShouldBeTrue($"Missing {exePath}");
             new FileInfo(exePath).Length.ShouldBeGreaterThanOrEqualTo(PublishedBuildValidator.MinimumExecutableBytes);
 
