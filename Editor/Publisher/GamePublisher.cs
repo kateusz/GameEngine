@@ -1,5 +1,5 @@
+using Editor.Scripting;
 using Engine.Core;
-using Engine.Scripting;
 using Serilog;
 
 namespace Editor.Publisher;
@@ -80,7 +80,7 @@ public partial class GamePublisher(IProjectContext projectContext)
             }
 
             ReportProgress(progress, "Copying assets...", 0.5f);
-            var copyAssetsResult = CopyAssets(tempOutputPath, settings);
+            var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)
             {
                 CleanupTempDirectory(tempOutputPath);
@@ -95,17 +95,6 @@ public partial class GamePublisher(IProjectContext projectContext)
                 Logger.Error(assetRefsValidation.ErrorMessage ?? "Asset reference validation failed");
                 CleanupTempDirectory(tempOutputPath);
                 return assetRefsValidation;
-            }
-
-            if (string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase))
-            {
-                ReportProgress(progress, "Copying scripts...", 0.7f);
-                var copyScriptsResult = CopyScripts(tempOutputPath);
-                if (!copyScriptsResult.Success)
-                {
-                    CleanupTempDirectory(tempOutputPath);
-                    return copyScriptsResult;
-                }
             }
 
             ReportProgress(progress, "Compiling game scripts to GameAssembly.dll...", 0.75f);
