@@ -1,9 +1,11 @@
 using Engine.Renderer.Textures;
+using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 
 namespace Engine.Platform.OpenGL;
 
 internal sealed class TextureFactory : ITextureFactory, IDisposable
 {
+    private const int PreviewMaxEdge = 64;
     private Texture2D? _whiteTexture;
     private readonly Lock _whiteLock = new();
     private Texture2D? _blackTexture;
@@ -80,6 +82,22 @@ internal sealed class TextureFactory : ITextureFactory, IDisposable
             return texture;
         }
     }
+
+    public (byte[] Data, int Width, int Height) DecodePreview(string path)
+    {
+        var decoded = TextureFileDecoder.Decode(path, sRgb: true);
+        var bytesPerPixel = decoded.Data.Length / (decoded.Width * decoded.Height);
+        var rgba = (decoded.DataFormat, bytesPerPixel) switch
+        {
+            (PixelFormat.Bgra, 4) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 4),
+            (PixelFormat.Bgr, 3) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 3),
+            _ => decoded.Data
+        };
+        return TexturePreviewScaling.DownscaleRgba(rgba, decoded.Width, decoded.Height, PreviewMaxEdge);
+    }
+
+    public Texture2D CreateFromRgba(byte[] rgba, int width, int height) =>
+        OpenGLTexture2D.CreateFromRgba(rgba, width, height);
 
     public Texture2D Create(int width, int height)
     {

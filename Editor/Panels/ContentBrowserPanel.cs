@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Engine.Core;
@@ -11,11 +12,13 @@ using Ui.ImGui;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
+public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposable
 {
     private enum CreateAssetKind { Script, Component, System }
 
     private const float TreePanelWidth = 200f;
+    private const int MaxThumbnailUploadsPerFrame = 8;
+    private const int MaxReadyThumbnails = 32;
     private static readonly Regex ValidNameRegex = new(@"^[a-zA-Z][a-zA-Z0-9_]*$", RegexOptions.Compiled);
     private static readonly ILogger Logger = Log.ForContext<ContentBrowserPanel>();
 
@@ -28,9 +31,13 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     private Texture2D _fileIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
     private readonly Dictionary<string, Texture2D> _folderIconCache = new();
-    private readonly Queue<string> _pendingThumbnails = new();
+    private readonly BlockingCollection<(string Path, int Generation)> _decodeQueue = new();
+    private readonly BlockingCollection<(string Path, byte[]? Rgba, int Width, int Height, int Generation)> _readyThumbnails =
+        new(MaxReadyThumbnails);
     private readonly HashSet<string> _pendingThumbnailPaths = new(StringComparer.OrdinalIgnoreCase);
-    private const int MaxThumbnailsPerFrame = 4;
+    private Task? _decodeWorker;
+    private int _thumbnailGeneration;
+    private bool _disposed;
 
     private const string CreateAssetPopupId = "ContentBrowserCreateAsset";
 
@@ -374,27 +381,77 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     {
         _currentDirectory = directory;
         _folderFilter = string.Empty;
-        _pendingThumbnails.Clear();
+        _thumbnailGeneration++;
+        while (_decodeQueue.TryTake(out _))
+        {
+        }
+
+        DrainReadyThumbnails();
         _pendingThumbnailPaths.Clear();
+    }
+
+    private void EnsureDecodeWorker()
+    {
+        if (_decodeWorker != null || _decodeQueue.IsAddingCompleted)
+            return;
+
+        _decodeWorker = Task.Run(DecodeWorkerLoop);
+    }
+
+    private void DecodeWorkerLoop()
+    {
+        foreach (var (path, generation) in _decodeQueue.GetConsumingEnumerable())
+        {
+            byte[]? rgba = null;
+            var width = 0;
+            var height = 0;
+            try
+            {
+                var preview = _textureFactory.DecodePreview(path);
+                rgba = preview.Data;
+                width = preview.Width;
+                height = preview.Height;
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _readyThumbnails.Add((path, rgba, width, height, generation));
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
     }
 
     private void ProcessPendingThumbnails()
     {
-        for (var i = 0; i < MaxThumbnailsPerFrame && _pendingThumbnails.Count > 0; i++)
+        var processed = 0;
+        while (processed < MaxThumbnailUploadsPerFrame && _readyThumbnails.TryTake(out var item))
         {
-            var entry = _pendingThumbnails.Dequeue();
-            _pendingThumbnailPaths.Remove(entry);
-
-            if (_imageCache.ContainsKey(entry))
+            if (item.Generation != _thumbnailGeneration)
                 continue;
+
+            processed++;
+
+            if (_imageCache.ContainsKey(item.Path))
+                continue;
+
+            if (item.Rgba == null)
+            {
+                _imageCache[item.Path] = _fileIcon;
+                continue;
+            }
 
             try
             {
-                _imageCache[entry] = _textureFactory.Create(entry);
+                _imageCache[item.Path] = _textureFactory.CreateFromRgba(item.Rgba, item.Width, item.Height);
             }
             catch
             {
-                _imageCache[entry] = _fileIcon;
+                _imageCache[item.Path] = _fileIcon;
             }
         }
     }
@@ -404,7 +461,16 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
         if (_imageCache.ContainsKey(entry) || !_pendingThumbnailPaths.Add(entry))
             return;
 
-        _pendingThumbnails.Enqueue(entry);
+        EnsureDecodeWorker();
+        if (!_decodeQueue.IsAddingCompleted)
+            _decodeQueue.Add((entry, _thumbnailGeneration));
+    }
+
+    private void DrainReadyThumbnails()
+    {
+        while (_readyThumbnails.TryTake(out _))
+        {
+        }
     }
 
     private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
@@ -453,5 +519,27 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel
     {
         _assetPath = rootDir;
         NavigateTo(rootDir);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _decodeQueue.CompleteAdding();
+        _readyThumbnails.CompleteAdding();
+        _decodeWorker?.Wait(TimeSpan.FromSeconds(1));
+        DrainReadyThumbnails();
+        _decodeQueue.Dispose();
+        _readyThumbnails.Dispose();
+
+        foreach (var texture in _imageCache.Values)
+        {
+            if (!ReferenceEquals(texture, _fileIcon))
+                texture.Dispose();
+        }
+
+        _imageCache.Clear();
     }
 }
