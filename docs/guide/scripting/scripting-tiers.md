@@ -18,11 +18,11 @@ Per-entity reactions (door, pickup, water) are still systems: query components o
 
 ## Components
 
-Health, score, inventory — anything saved in scene JSON. **Add Game Component** scaffolds via `GameComponentTemplates` (`Clone()`, `[SerializableComponent]`).
+Health, score, inventory — anything saved in scene JSON. **Add Game Component** scaffolds via `GameComponentTemplates` (`{Name}Component`, `Clone()`, `[SerializableComponent]`).
 
 ## Systems
 
-Turn order, win conditions, multi-entity updates. Register with `[Register(typeof(IGameSystem))]` (`GameIocLifetime`: `Singleton` default). Common injections:
+Turn order, win conditions, multi-entity updates. Register with `[Register(typeof(IGameSystem))]` (`GameIocLifetime`: `Singleton`, `Transient`, `Scoped`). Scaffold (`GameSystemTemplates`) uses `{Name}System` and `Priority => 100`. Common injections:
 
 | Service | Use |
 |---------|-----|
