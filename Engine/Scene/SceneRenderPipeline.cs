@@ -38,16 +38,13 @@ internal static class SceneRenderPipeline
         Render3D(context, graphics3D, textureFactory, modelFactory, view);
     }
     
-    internal static void Begin2DScene(IGraphics2D graphics2D, in SceneView view) =>
-        graphics2D.BeginScene(view);
-    
     private static void RenderSpritesAndSubTextures(
         IContext context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory,
         in SceneView view)
     {
-        Begin2DScene(graphics2D, view);
+        graphics2D.BeginScene(view);
         RenderSpritesInternal(context, graphics2D, textureFactory);
         RenderSubTexturesInternal(context, graphics2D, textureFactory);
         graphics2D.EndScene();

@@ -20,10 +20,10 @@ public sealed class EditorCameraController : IEditorCameraController
         if (_camera is null)
             return;
 
-        _camera.SetFocalPoint(Vector3.Zero);
-        _camera.SetDistance(CameraConfig.DefaultEditorDistance);
-        _camera.SetPitch(0.0f);
-        _camera.SetYaw(0.0f);
+        _camera.FocalPoint = Vector3.Zero;
+        _camera.Distance = CameraConfig.DefaultEditorDistance;
+        _camera.Pitch = 0.0f;
+        _camera.Yaw = 0.0f;
         _camera.ResetFlySpeedMultiplier();
     }
 }

@@ -129,6 +129,6 @@ public class EditorLifecycle(
             return;
 
         if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
-            editorViewport.Camera.SetFocalPoint(transformComponent.Translation);
+            editorViewport.Camera.FocalPoint = transformComponent.Translation;
     }
 }

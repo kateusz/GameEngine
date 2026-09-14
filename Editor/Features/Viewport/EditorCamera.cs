@@ -20,17 +20,21 @@ public class EditorCamera : Camera
 
     private Vector2 _previousMousePosition;
 
-    public float Distance { get; private set; } = CameraConfig.DefaultEditorDistance;
+    public float Distance
+    {
+        get;
+        set { field = System.Math.Clamp(value, CameraConfig.MinEditorDistance, CameraConfig.MaxEditorDistance); _viewDirty = true; }
+    } = CameraConfig.DefaultEditorDistance;
 
     public float FlySpeedMultiplier { get; private set; } = CameraConfig.DefaultEditorFlySpeedMultiplier;
 
     public float FOV { get; }
 
-    public float Pitch { get; private set; }
+    public float Pitch { get; set { field = value; _viewDirty = true; } }
 
-    public float Yaw { get; private set; }
+    public float Yaw { get; set { field = value; _viewDirty = true; } }
 
-    public Vector3 FocalPoint { get; private set; } = Vector3.Zero;
+    public Vector3 FocalPoint { get; set { field = value; _viewDirty = true; } } = Vector3.Zero;
 
     public EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
     {
@@ -89,30 +93,6 @@ public class EditorCamera : Camera
         _projectionDirty = true;
     }
 
-    public void SetFocalPoint(Vector3 focalPoint)
-    {
-        FocalPoint = focalPoint;
-        _viewDirty = true;
-    }
-
-    public void SetDistance(float distance)
-    {
-        Distance = System.Math.Clamp(distance, CameraConfig.MinEditorDistance, CameraConfig.MaxEditorDistance);
-        _viewDirty = true;
-    }
-
-    public void SetPitch(float pitch)
-    {
-        Pitch = pitch;
-        _viewDirty = true;
-    }
-
-    public void SetYaw(float yaw)
-    {
-        Yaw = yaw;
-        _viewDirty = true;
-    }
-
     public void Pan(Vector2 delta)
     {
         var (xSpeed, ySpeed) = CalculatePanSpeed();
@@ -168,14 +148,10 @@ public class EditorCamera : Camera
 
     public void Zoom(float delta)
     {
-        Distance -= delta * CalculateZoomSpeed();
-        if (Distance < CameraConfig.MinEditorDistance)
-        {
+        var next = Distance - delta * CalculateZoomSpeed();
+        if (next < CameraConfig.MinEditorDistance)
             FocalPoint += GetForwardDirection();
-            Distance = CameraConfig.MinEditorDistance;
-        }
-        Distance = MathF.Min(Distance, CameraConfig.MaxEditorDistance);
-        _viewDirty = true;
+        Distance = next;
     }
 
     public void OnMouseScroll(float yOffset)

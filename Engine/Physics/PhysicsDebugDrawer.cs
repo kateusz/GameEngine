@@ -1,8 +1,6 @@
 using System.Numerics;
 using ECS;
-using Engine.Renderer;
 using Engine.Renderer.Pipeline;
-using Engine.Scene;
 using Engine.Scene.Systems;
 using SceneComponents;
 using SceneComponents.Physics;
@@ -20,7 +18,7 @@ internal static class PhysicsDebugDrawer
         in SceneView view,
         bool useTransformFallbackWhenNoBody)
     {
-        SceneRenderPipeline.Begin2DScene(graphics2D, view);
+        graphics2D.BeginScene(view);
         DrawColliders(context, graphics2D, bodyStore, useTransformFallbackWhenNoBody);
         graphics2D.EndScene();
     }

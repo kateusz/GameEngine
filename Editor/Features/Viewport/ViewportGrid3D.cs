@@ -3,7 +3,7 @@ using Engine.Renderer.Pipeline;
 
 namespace Editor.Features.Viewport;
 
-public class ViewportGrid3D
+public static class ViewportGrid3D
 {
     private static readonly Vector4 MinorColor = new(0.55f, 0.55f, 0.55f, 0.30f);
     private static readonly Vector4 MajorColor = new(0.65f, 0.65f, 0.65f, 0.55f);

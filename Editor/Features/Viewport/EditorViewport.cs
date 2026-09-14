@@ -252,7 +252,7 @@ public sealed class EditorViewport(
         if (!drawColliders && !drawGrid3D && !drawCameraGizmos)
             return;
 
-        SceneRenderPipeline.Begin2DScene(graphics2D, view);
+        graphics2D.BeginScene(view);
 
         if (drawColliders)
             PhysicsDebugDrawer.DrawColliders(context, graphics2D, sceneContext.ActivePhysicsBodyStore!, useTransformFallbackWhenNoBody: true);
