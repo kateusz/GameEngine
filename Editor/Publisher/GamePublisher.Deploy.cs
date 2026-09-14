@@ -4,7 +4,7 @@ namespace Editor.Publisher;
 
 public partial class GamePublisher
 {
-    private PublishResult CopyAssets(string buildOutput, PublishSettings settings)
+    private PublishResult CopyAssets(string buildOutput)
     {
         if (projectContext.Root is null)
         {
@@ -15,11 +15,10 @@ public partial class GamePublisher
 
         var assetsSource = Path.Combine(projectContext.Root, "assets");
         var assetsTarget = Path.Combine(buildOutput, "assets");
-        var includeScripts = string.Equals(settings.Configuration, "Debug", StringComparison.OrdinalIgnoreCase);
 
         try
         {
-            CopyDirectory(assetsSource, assetsTarget, includeScripts);
+            CopyDirectory(assetsSource, assetsTarget);
             Logger.Information("Copied assets from {Source} to {Target}", assetsSource, assetsTarget);
             return new PublishResult { Success = true };
         }
@@ -27,31 +26,6 @@ public partial class GamePublisher
         {
             var error = $"Failed to copy assets: {ex.Message}";
             Logger.Error(ex, "Failed to copy assets from {Source} to {Target}", assetsSource, assetsTarget);
-            return PublishResult.Failed(error);
-        }
-    }
-
-    private PublishResult CopyScripts(string buildOutput)
-    {
-        var scriptsSource = projectContext.ScriptsDir;
-        if (scriptsSource is null || !Directory.Exists(scriptsSource))
-        {
-            Logger.Information("No scripts directory found, skipping script copy");
-            return new PublishResult { Success = true };
-        }
-
-        var scriptsTarget = Path.Combine(buildOutput, "assets", "scripts");
-
-        try
-        {
-            CopyDirectory(scriptsSource, scriptsTarget);
-            Logger.Information("Copied scripts from {Source} to {Target}", scriptsSource, scriptsTarget);
-            return new PublishResult { Success = true };
-        }
-        catch (Exception ex)
-        {
-            var error = $"Failed to copy scripts: {ex.Message}";
-            Logger.Error(ex, "Failed to copy scripts from {Source} to {Target}", scriptsSource, scriptsTarget);
             return PublishResult.Failed(error);
         }
     }
@@ -73,14 +47,14 @@ public partial class GamePublisher
         }
     }
 
-    private static void CopyDirectory(string sourceDir, string targetDir, bool includeScripts = true)
+    private static void CopyDirectory(string sourceDir, string targetDir)
     {
         Directory.CreateDirectory(targetDir);
 
         foreach (var file in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceDir, file);
-            if (!includeScripts && IsUnderScriptsFolder(relativePath))
+            if (IsUnderScriptsFolder(relativePath))
                 continue;
 
             var destPath = Path.Combine(targetDir, relativePath);

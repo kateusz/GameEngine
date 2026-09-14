@@ -13,7 +13,7 @@ public static partial class GameComponentDiscovery
             return [];
 
         var names = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var path in GameAssemblyCompiler.EnumerateGameScriptFiles(scriptsDir))
+        foreach (var path in GameScriptFiles.Enumerate(scriptsDir))
         {
             var content = File.ReadAllText(path);
             foreach (Match match in ComponentClassRegex().Matches(content))

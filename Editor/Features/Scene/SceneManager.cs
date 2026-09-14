@@ -2,6 +2,7 @@ using ECS;
 using ECS.Systems;
 using Editor.Features.History;
 using Editor.Features.Scripting;
+using Editor.Scripting;
 using Engine.Core;
 using Engine.Scene;
 using Engine.Scene.Serializer;
