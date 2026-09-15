@@ -1,12 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Engine.Scripting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 using Serilog;
-using ZLinq;
 
-namespace Engine.Scripting;
+namespace Editor.Scripting;
 
 public static class GameAssemblyCompiler
 {
@@ -52,7 +52,7 @@ public static class GameAssemblyCompiler
             return false;
         }
 
-        var scriptFiles = EnumerateGameScriptFiles(scriptsDirectory);
+        var scriptFiles = GameScriptFiles.Enumerate(scriptsDirectory);
         var syntaxTrees = new List<SyntaxTree>
         {
             CSharpSyntaxTree.ParseText(
@@ -140,52 +140,9 @@ public static class GameAssemblyCompiler
         return true;
     }
 
-    public static IEnumerable<string> EnumerateGameScriptFiles(string scriptsDirectory)
-    {
-        if (!Directory.Exists(scriptsDirectory))
-            return [];
-
-        return Directory
-            .EnumerateFiles(scriptsDirectory, "*.cs", SearchOption.AllDirectories)
-            .Where(path => ShouldIncludeGameScriptFile(path, scriptsDirectory));
-    }
-
-    private static bool ShouldIncludeGameScriptFile(string filePath, string scriptsDirectory)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-            return false;
-
-        var fullPath = Path.GetFullPath(filePath);
-        var root = Path.GetFullPath(scriptsDirectory);
-        if (!fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var relative = Path.GetRelativePath(root, fullPath);
-        foreach (var segment in relative.Split(
-                     [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
-                     StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (segment.Equals("obj", StringComparison.OrdinalIgnoreCase) ||
-                segment.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
-                segment.Equals(".vs", StringComparison.OrdinalIgnoreCase))
-                return false;
-        }
-
-        var fileName = Path.GetFileName(fullPath);
-        if (fileName.EndsWith(".AssemblyInfo.cs", StringComparison.OrdinalIgnoreCase) ||
-            fileName.Contains("AssemblyAttributes", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (fileName.Equals("GameAssembly.Placeholder.cs", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        return true;
-    }
-
     private static string[] ToErrorStrings(IEnumerable<Diagnostic> diagnostics, bool distinct = false)
     {
         var query = diagnostics
-            .AsValueEnumerable()
             .Where(d => d.Severity == DiagnosticSeverity.Error)
             .Select(d => d.ToString());
         return distinct ? query.Distinct().ToArray() : query.ToArray();

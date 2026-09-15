@@ -3,6 +3,7 @@ using ECS;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
+using Editor.Scripting;
 using Engine.Scripting;
 using Scripting;
 using Serilog;
@@ -274,7 +275,7 @@ public sealed class GameScriptWorkspace(
         if (!Directory.Exists(_scriptsDirectory))
             return;
 
-        foreach (var scriptPath in GameAssemblyCompiler.EnumerateGameScriptFiles(_scriptsDirectory))
+        foreach (var scriptPath in GameScriptFiles.Enumerate(_scriptsDirectory))
         {
             var scriptName = Path.GetFileNameWithoutExtension(scriptPath);
             try
