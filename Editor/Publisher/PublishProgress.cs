@@ -12,8 +12,8 @@ public class PublishProgress : IProgress<string>
     public string CurrentStep { get; private set; } = "";
     public string? ErrorMessage { get; private set; }
     public float Progress { get; private set; }
-    public bool IsComplete { get; set; }
-    public bool HasError { get; set; }
+    public bool IsComplete { get; private set; }
+    public bool HasError { get; private set; }
 
     public IEnumerable<string> BuildOutput => _buildOutput;
 

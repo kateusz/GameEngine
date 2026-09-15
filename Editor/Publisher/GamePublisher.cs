@@ -67,35 +67,22 @@ public partial class GamePublisher(IProjectContext projectContext)
             progress?.Report("Building game runtime...");
             var buildResult = await BuildRuntimeAsync(settings, tempOutputPath, buildOutput, progress, cancellationToken);
             if (!buildResult.Success)
-            {
-                CleanupTempDirectory(tempOutputPath);
                 return buildResult;
-            }
 
             var renameResult = RenamePublishedExecutable(tempOutputPath, settings.RuntimeIdentifier, gameConfig.GameTitle);
             if (!renameResult.Success)
-            {
-                CleanupTempDirectory(tempOutputPath);
                 return renameResult;
-            }
 
             progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)
-            {
-                CleanupTempDirectory(tempOutputPath);
                 return copyAssetsResult;
-            }
 
             progress?.Report("Validating asset references...");
             var assetRefsValidation = PublishedAssetValidator.ValidateAssetReferences(
                 Path.Combine(tempOutputPath, "assets"));
             if (!assetRefsValidation.Success)
-            {
-                Logger.Error(assetRefsValidation.ErrorMessage ?? "Asset reference validation failed");
-                CleanupTempDirectory(tempOutputPath);
                 return assetRefsValidation;
-            }
 
             progress?.Report("Compiling game scripts to GameAssembly.dll...");
             var scriptsSource = projectContext.ScriptsDir!;
@@ -108,71 +95,47 @@ public partial class GamePublisher(IProjectContext projectContext)
                     Logger.Error("Script build: {Line}", line);
                 }
 
-                CleanupTempDirectory(tempOutputPath);
                 return PublishResult.Failed("Compiling project scripts to GameAssembly.dll failed. See build output for Roslyn errors.");
             }
 
             progress?.Report("Creating game configuration...");
             var configResult = CreateGameConfig(tempOutputPath, gameConfig);
             if (!configResult.Success)
-            {
-                CleanupTempDirectory(tempOutputPath);
                 return configResult;
-            }
 
             progress?.Report("Validating build...");
             var validationCheck = PublishedBuildValidator.Validate(
                 tempOutputPath, settings.RuntimeIdentifier, gameConfig);
             if (!validationCheck.Success)
-            {
-                Logger.Error(validationCheck.ErrorMessage ?? "Published build validation failed");
-                CleanupTempDirectory(tempOutputPath);
                 return validationCheck;
-            }
 
             Logger.Information("Published build validation passed");
 
             progress?.Report("Finalizing build...");
             var finalizeResult = FinalizeBuild(tempOutputPath, outputPath);
             if (!finalizeResult.Success)
-            {
-                CleanupTempDirectory(tempOutputPath);
                 return finalizeResult;
-            }
 
             tempOutputPath = null;
 
             progress?.Report("Publish completed successfully!");
             Logger.Information("Game published successfully to {OutputPath}", outputPath);
 
-            return new PublishResult
-            {
-                Success = true,
-                OutputPath = outputPath,
-                BuildOutput = buildOutput
-            };
+            return PublishResult.Succeeded(outputPath, buildOutput);
         }
         catch (OperationCanceledException)
         {
             Logger.Warning("Publish operation was cancelled");
-            CleanupTempDirectory(tempOutputPath);
-            return new PublishResult
-            {
-                Success = false,
-                ErrorMessage = "Publish operation was cancelled",
-                BuildOutput = buildOutput
-            };
+            return PublishResult.Failed("Publish operation was cancelled", buildOutput);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Unexpected error during publish");
+            return PublishResult.Failed($"Unexpected error: {ex.Message}", buildOutput);
+        }
+        finally
+        {
             CleanupTempDirectory(tempOutputPath);
-            return new PublishResult
-            {
-                Success = false,
-                ErrorMessage = $"Unexpected error: {ex.Message}",
-                BuildOutput = buildOutput
-            };
         }
     }
 
@@ -185,7 +148,7 @@ public partial class GamePublisher(IProjectContext projectContext)
         var shipped = Path.Combine(outputPath, PlatformDetection.GetPublishedExecutableName(runtimeIdentifier, gameTitle));
 
         if (string.Equals(produced, shipped, StringComparison.OrdinalIgnoreCase))
-            return new PublishResult { Success = true };
+            return PublishResult.Ok();
 
         if (!File.Exists(produced))
             return PublishResult.Failed($"Published executable not found at {produced}");
@@ -196,7 +159,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 File.Delete(shipped);
             File.Move(produced, shipped);
             Logger.Information("Renamed published executable to {Path}", shipped);
-            return new PublishResult { Success = true };
+            return PublishResult.Ok();
         }
         catch (Exception ex)
         {
@@ -206,10 +169,7 @@ public partial class GamePublisher(IProjectContext projectContext)
         }
     }
 
-    /// <summary>
-    /// Moves the temp build into the final output path. Creates the parent folder when missing
-    /// and falls back to copy+delete when <see cref="Directory.Move"/> cannot rename across volumes.
-    /// </summary>
+    // Cross-volume Directory.Move fails on macOS/Linux; copy then delete source.
     private static PublishResult FinalizeBuild(string tempOutputPath, string outputPath)
     {
         try
@@ -227,12 +187,11 @@ public partial class GamePublisher(IProjectContext projectContext)
             }
             catch (IOException)
             {
-                // Cross-volume rename fails on macOS/Linux; copy then delete source.
                 CopyDirectory(tempOutputPath, outputPath);
                 Directory.Delete(tempOutputPath, recursive: true);
             }
 
-            return new PublishResult { Success = true, OutputPath = outputPath };
+            return PublishResult.Succeeded(outputPath);
         }
         catch (Exception ex)
         {

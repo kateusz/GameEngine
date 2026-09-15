@@ -2,9 +2,6 @@ using System.Text.Json;
 
 namespace Editor.Publisher;
 
-/// <summary>
-/// Validates that packaged asset directories and scene/prefab path references exist on disk.
-/// </summary>
 public static class PublishedAssetValidator
 {
     private static readonly HashSet<string> PathPropertyNames = new(StringComparer.Ordinal)
@@ -19,7 +16,7 @@ public static class PublishedAssetValidator
     {
         var assetsPath = Path.Combine(projectRoot, "assets");
         if (Directory.Exists(assetsPath))
-            return new PublishResult { Success = true };
+            return PublishResult.Ok();
 
         return PublishResult.Failed($"Assets directory not found at {assetsPath}. Cannot publish without assets.");
     }
@@ -48,7 +45,7 @@ public static class PublishedAssetValidator
         }
 
         if (missing.Count == 0)
-            return new PublishResult { Success = true };
+            return PublishResult.Ok();
 
         var unique = missing.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(p => p, StringComparer.OrdinalIgnoreCase);
         return PublishResult.Failed(

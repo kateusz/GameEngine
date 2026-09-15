@@ -2,9 +2,6 @@ using Engine.Core;
 
 namespace Editor.Publisher;
 
-/// <summary>
-/// Post-publish checks for required package artifacts.
-/// </summary>
 public static class PublishedBuildValidator
 {
     public const long MinimumExecutableBytes = 100 * 1024;
@@ -43,6 +40,6 @@ public static class PublishedBuildValidator
         if (!File.Exists(startupScenePath))
             return PublishResult.Failed($"Startup scene not found: {startupScenePath}");
 
-        return PublishResult.Succeeded("Validation passed");
+        return PublishResult.Ok();
     }
 }

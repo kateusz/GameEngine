@@ -6,21 +6,14 @@ public partial class GamePublisher
 {
     private PublishResult CopyAssets(string buildOutput)
     {
-        if (projectContext.Root is null)
-        {
-            const string error = "No project directory available for asset copying.";
-            Logger.Error(error);
-            return PublishResult.Failed(error);
-        }
-
-        var assetsSource = Path.Combine(projectContext.Root, "assets");
+        var assetsSource = Path.Combine(projectContext.Root!, "assets");
         var assetsTarget = Path.Combine(buildOutput, "assets");
 
         try
         {
             CopyDirectory(assetsSource, assetsTarget);
             Logger.Information("Copied assets from {Source} to {Target}", assetsSource, assetsTarget);
-            return new PublishResult { Success = true };
+            return PublishResult.Ok();
         }
         catch (Exception ex)
         {
