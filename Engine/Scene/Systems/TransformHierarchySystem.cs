@@ -9,11 +9,7 @@ namespace Engine.Scene.Systems;
 [SkipUnitTests]
 internal sealed class TransformHierarchySystem(Action updateWorldTransforms) : ISystem
 {
-    public int Priority => SystemPriorities.TransformHierarchySystem;
-
-    public void OnInit() { }
+    public int Priority => 115;
 
     public void OnUpdate(TimeSpan deltaTime) => updateWorldTransforms();
-
-    public void OnShutdown() { }
 }

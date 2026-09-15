@@ -8,7 +8,7 @@ namespace Engine.Scene;
 public interface ISceneSystemsFactory
 {
     IPhysicsQueries PopulateSystemManager(
-        ISystemManager systemManager,
+        SystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue);

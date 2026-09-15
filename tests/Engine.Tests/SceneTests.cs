@@ -3,7 +3,6 @@ using ECS;
 using ECS.Systems;
 using Engine.Scene;
 using Engine.Scene.Systems;
-using NSubstitute;
 using SceneComponents;
 using SceneComponents.Camera;
 using Scripting;
@@ -15,16 +14,10 @@ namespace Engine.Tests;
 public class SceneTests
 {
     private readonly Faker _faker = new();
-    private readonly ISystemManager _systemManager;
-
-    public SceneTests()
-    {
-        _systemManager = Substitute.For<ISystemManager>();
-    }
 
     private EngineScene CreateScene() =>
         new("test-scene", new Context(),
-            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
+            new SystemManager(), new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
             null!, NullCameraQueries.Instance);
 
     #region Constructor Tests

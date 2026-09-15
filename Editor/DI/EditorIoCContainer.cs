@@ -1,6 +1,5 @@
 using System.Reflection;
 using DryIoc;
-using ECS.Systems;
 using Editor.ComponentEditors;
 using Editor.ComponentEditors.Audio;
 using Editor.ComponentEditors.Core;
@@ -94,10 +93,6 @@ public static class EditorIoCContainer
 
         container.RegisterDelegate<Action<Assembly>>(
             _ => assembly => GameAssemblyContainerRegistration.UnregisterRegistrationsFromGameAssembly(container, assembly),
-            Reuse.Singleton);
-
-        container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
-            r => () => r.ResolveMany<IGameSystem>(),
             Reuse.Singleton);
 
         container.RegisterMany<SceneManager>(Reuse.Singleton);

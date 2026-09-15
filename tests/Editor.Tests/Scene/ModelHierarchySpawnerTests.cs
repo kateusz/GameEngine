@@ -5,7 +5,6 @@ using Editor.Features.Scene;
 using Engine.Renderer.Models;
 using Engine.Scene;
 using Engine.Scene.Systems;
-using NSubstitute;
 using SceneComponents;
 using SceneComponents.Rendering;
 using Scripting;
@@ -16,11 +15,9 @@ namespace Editor.Tests.Scene;
 
 public class ModelHierarchySpawnerTests
 {
-    private readonly ISystemManager _systemManager = Substitute.For<ISystemManager>();
-
     private EngineScene CreateScene() =>
         new("test-scene", new Context(),
-            _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
+            new SystemManager(), new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
             null!, NullCameraQueries.Instance);
 
     private static ModelSceneNode Node(

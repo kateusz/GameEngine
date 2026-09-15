@@ -76,15 +76,18 @@ public class SystemManagerTests
     }
 
     [Fact]
-    public void RegisterSystem_WithDuplicateSystem_ThrowsInvalidOperationException()
+    public void RegisterSystem_WithDuplicateSystem_IsIgnored()
     {
         // Arrange
         var manager = new SystemManager();
         var system = new TestSystem();
         manager.RegisterSystem(system);
 
-        // Act & Assert
-        Should.Throw<InvalidOperationException>(() => manager.RegisterSystem(system));
+        // Act
+        manager.RegisterSystem(system);
+
+        // Assert
+        manager.SystemCount.ShouldBe(1);
     }
 
     [Fact]
@@ -316,18 +319,15 @@ public class SystemManagerTests
     }
 
     [Fact]
-    public void Dispose_DoesNotDisposeSharedSystems()
+    public void Dispose_DisposesDisposableSystems()
     {
         var manager = new SystemManager();
-        var shared = new DisposableTestSystem { Priority = 1 };
-        var perScene = new DisposableTestSystem { Priority = 2 };
-        manager.RegisterSystem(shared, isShared: true);
-        manager.RegisterSystem(perScene);
+        var system = new DisposableTestSystem { Priority = 1 };
+        manager.RegisterSystem(system);
 
         manager.Dispose();
 
-        shared.DisposeCalled.ShouldBeFalse();
-        perScene.DisposeCalled.ShouldBeTrue();
+        system.DisposeCalled.ShouldBeTrue();
     }
 
     private sealed class DisposableTestSystem : ISystem, IDisposable

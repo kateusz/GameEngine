@@ -28,14 +28,13 @@ internal sealed class PhysicsSimulationSystem(
 
     private const int MaxPhysicsStepsPerFrame = 5;
 
-    public int Priority => SystemPriorities.PhysicsSimulationSystem;
+    public int Priority => 100;
 
     public void OnInit()
     {
         _physicsAccumulator = 0f;
         CleanupOrphanedBodies();
         SyncBodiesIfNeeded();
-        Logger.Debug("PhysicsSimulationSystem initialized with priority {Priority}", Priority);
     }
 
     public void OnUpdate(TimeSpan deltaTime)

@@ -3,7 +3,6 @@ using ECS.Systems;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scene.Systems;
-using NSubstitute;
 using Shouldly;
 using EngineScene = Engine.Scene.Scene;
 
@@ -73,7 +72,7 @@ public class SceneSerializerDimensionTests
 
     private static EngineScene CreateEmptyScene() =>
         new("t", new Context(),
-            Substitute.For<ISystemManager>(),
+            new SystemManager(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
             null!,
