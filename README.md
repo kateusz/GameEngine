@@ -12,7 +12,7 @@ A component-based game engine built with C# and .NET 10, featuring a visual edit
 - **2D Rendering** — OpenGL pipeline with batched sprites
 - **3D Rendering** — static `.glb` / `.gltf` / `.fbx` meshes, unit cubes, perspective camera, ambient + directional light (Blinn-Phong). No skinning or animation yet.
 - **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast & overlap queries, and debug visualization
-- **Hot-Reloadable Scripting** — C# `IGameSystem` / `IGameComponent` under `assets/scripts/`, compiled to a GameAssembly and loaded via `ScriptEngine` without restarting the editor
+- **Hot-Reloadable Scripting** — C# `IGameSystem` / `IGameComponent` under `assets/scripts/`, compiled to a GameAssembly and loaded via `ScriptEngine` without restarting the editor. Systems poll `IKeyboardInput` / `IMouseInput` ([docs](docs/guide/scripting/input.md))
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
 - **Cross-Platform** — Windows and macOS
 
