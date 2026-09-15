@@ -70,4 +70,12 @@ internal sealed class OpenGLGpuTimer : IDisposable
         _disposed = true;
         GC.SuppressFinalize(this);
     }
+
+#if DEBUG
+    ~OpenGLGpuTimer()
+    {
+        if (!_disposed && _queryId != 0)
+            Debug.WriteLine($"GPU LEAK: Query {_queryId} not disposed!");
+    }
+#endif
 }

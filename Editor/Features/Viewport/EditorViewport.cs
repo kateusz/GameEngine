@@ -49,6 +49,7 @@ public sealed class EditorViewport(
     private readonly Dictionary<int, Entity> _entityById = [];
     private readonly HashSet<int> _pressedMouseButtons = [];
     private readonly HashSet<KeyCodes> _pressedKeys = [];
+    private bool _disposed;
 
     private Action<IScene> _sceneChangedHandler = null!;
 
@@ -72,6 +73,10 @@ public sealed class EditorViewport(
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
         sceneContext.SceneChanged -= _sceneChangedHandler;
         _frameBuffer?.Dispose();
     }

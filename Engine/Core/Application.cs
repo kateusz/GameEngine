@@ -4,7 +4,11 @@ using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
+using Engine.Renderer.Shaders;
+using Engine.Renderer.Textures;
 using Input;
 using Serilog;
 
@@ -18,6 +22,10 @@ public abstract class Application : IApplication
     private readonly IRendererAPI _rendererApi;
     private readonly IGraphics2D _graphics2D;
     private readonly IGraphics3D _graphics3D;
+    private readonly ITextureFactory _textureFactory;
+    private readonly IShaderFactory _shaderFactory;
+    private readonly IMeshFactory _meshFactory;
+    private readonly IModelFactory _modelFactory;
     private readonly IFrameCompositor? _frameCompositor;
     private readonly IAudio _audio;
     private readonly KeyboardInputState? _keyboardState;
@@ -31,7 +39,13 @@ public abstract class Application : IApplication
         IGameWindow gameWindow,
         IRendererAPI rendererApi,
         IGraphics2D graphics2D,
-        IAudio audio, IGraphics3D graphics3D, IFrameCompositor? frameCompositor = null,
+        IAudio audio,
+        IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
+        IShaderFactory shaderFactory,
+        IMeshFactory meshFactory,
+        IModelFactory modelFactory,
+        IFrameCompositor? frameCompositor = null,
         ILayer? inputOverlay = null,
         IKeyboardInput? keyboardInput = null,
         IMouseInput? mouseInput = null)
@@ -41,6 +55,10 @@ public abstract class Application : IApplication
         _graphics2D = graphics2D;
         _audio = audio;
         _graphics3D = graphics3D;
+        _textureFactory = textureFactory;
+        _shaderFactory = shaderFactory;
+        _meshFactory = meshFactory;
+        _modelFactory = modelFactory;
         _frameCompositor = frameCompositor;
         _keyboardState = keyboardInput as KeyboardInputState;
         _mouseState = mouseInput as MouseInputState;
@@ -179,6 +197,11 @@ public abstract class Application : IApplication
         _layersStack.Clear();
         _graphics2D?.Dispose();
         _graphics3D?.Dispose();
+        _modelFactory.Dispose();
+        _meshFactory.Dispose();
+        _shaderFactory.Dispose();
+        _textureFactory.Dispose();
         _audio.Dispose();
+        _inputSystem?.Dispose();
     }
 }

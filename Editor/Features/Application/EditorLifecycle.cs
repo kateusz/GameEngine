@@ -9,6 +9,7 @@ using Editor.Features.Viewport;
 using Editor.Input;
 using Editor.Panels;
 using Engine.Core;
+using Engine.Renderer.Models;
 using Engine.Scene;
 using SceneComponents;
 using Serilog;
@@ -31,7 +32,8 @@ public class EditorLifecycle(
     SceneHierarchyPanel sceneHierarchyPanel,
     IContentBrowserPanel contentBrowserPanel,
     IConsolePanel consolePanel,
-    ViewportComponents viewport)
+    ViewportComponents viewport,
+    IModelFactory modelFactory)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorLifecycle>();
 
@@ -53,6 +55,7 @@ public class EditorLifecycle(
                 sceneContext.ActiveScene?.Dispose();
 
             scriptWorkspace.RevokeAndUnload();
+            modelFactory.Clear();
         };
 
         _projectOpenedHandler = () =>
@@ -106,6 +109,7 @@ public class EditorLifecycle(
 
         sceneContext.ActiveScene?.Dispose();
         editorViewport.Dispose();
+        contentBrowserPanel.Dispose();
         consolePanel?.Dispose();
     }
 

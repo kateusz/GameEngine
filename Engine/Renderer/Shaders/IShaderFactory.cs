@@ -2,12 +2,12 @@ namespace Engine.Renderer.Shaders;
 
 /// <summary>
 /// Factory interface for creating and managing shader resources with automatic caching.
+/// The factory owns cached shaders; callers must not dispose them.
 /// </summary>
-public interface IShaderFactory
+public interface IShaderFactory : IDisposable
 {
     /// <summary>
     /// Creates or retrieves a cached shader instance for the specified vertex and fragment shader paths.
-    /// Uses weak references to allow garbage collection when shaders are no longer in use.
     /// </summary>
     /// <param name="vertPath">Path to the vertex shader file.</param>
     /// <param name="fragPath">Path to the fragment shader file.</param>

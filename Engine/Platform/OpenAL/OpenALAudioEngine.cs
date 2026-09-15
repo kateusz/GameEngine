@@ -11,7 +11,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 {
     private static readonly ILogger Logger = Log.ForContext<OpenALAudioEngine>();
 
-    private readonly Dictionary<string, WeakReference<IAudioClip>> _loadedClips = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IAudioClip> _loadedClips = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private readonly List<IAudioSource> _oneShots = [];
 
@@ -150,17 +150,12 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
         lock (_cacheLock)
         {
-            if (_loadedClips.TryGetValue(normalizedPath, out var weakRef))
-            {
-                if (weakRef.TryGetTarget(out var cachedClip))
-                    return cachedClip;
-
-                _loadedClips.Remove(normalizedPath);
-            }
+            if (_loadedClips.TryGetValue(normalizedPath, out var cachedClip))
+                return cachedClip;
 
             var clip = CreateAudioClip(normalizedPath);
             clip.Load();
-            _loadedClips[normalizedPath] = new WeakReference<IAudioClip>(clip);
+            _loadedClips[normalizedPath] = clip;
             return clip;
         }
     }
@@ -171,13 +166,10 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
         lock (_cacheLock)
         {
-            if (!_loadedClips.TryGetValue(normalizedPath, out var weakRef))
+            if (!_loadedClips.Remove(normalizedPath, out var clip))
                 return;
 
-            if (weakRef.TryGetTarget(out var clip))
-                clip.Unload();
-
-            _loadedClips.Remove(normalizedPath);
+            clip.Unload();
         }
     }
 
@@ -185,11 +177,8 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
     {
         lock (_cacheLock)
         {
-            foreach (var weakRef in _loadedClips.Values)
-            {
-                if (weakRef.TryGetTarget(out var clip))
-                    clip.Unload();
-            }
+            foreach (var clip in _loadedClips.Values)
+                clip.Unload();
 
             _loadedClips.Clear();
         }

@@ -41,6 +41,7 @@ public static class EngineIoCContainer
         container.Register<IGraphicsContext, SilkNetGraphicsContext>(Reuse.Singleton);
 
         container.Register<IScriptEngine, ScriptEngine>(Reuse.Singleton);
+        GameAssemblyContainerRegistration.RegisterGameSystemsResolver(container);
         container.Register<IProjectContext, ProjectContext>(Reuse.Singleton);
         container.RegisterInitializer<IProjectContext>((ctx, _) => PathBuilder.UseProjectContext(ctx));
         container.Register<KeyboardInputState>(Reuse.Singleton);

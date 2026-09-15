@@ -1,6 +1,6 @@
 namespace Editor.Panels;
 
-public interface IContentBrowserPanel
+public interface IContentBrowserPanel : IDisposable
 {
     void Init();
     void Draw();

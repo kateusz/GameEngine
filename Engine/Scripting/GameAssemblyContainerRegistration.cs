@@ -1,5 +1,6 @@
 using System.Reflection;
 using DryIoc;
+using ECS.Systems;
 using Engine.Core;
 using Scripting;
 
@@ -8,6 +9,12 @@ namespace Engine.Scripting;
 [SkipUnitTests]
 public static class GameAssemblyContainerRegistration
 {
+    // ponytail: DryIoc inlines Func<IEnumerable<T>> at first resolve; Play loads IGameSystem after SceneManager exists. Upgrade: Rules.WithResolveIEnumerableAsLazyEnumerable if more collections go late-bound.
+    public static void RegisterGameSystemsResolver(IRegistrator container) =>
+        container.RegisterDelegate<Func<IEnumerable<IGameSystem>>>(
+            r => () => r.ResolveMany<IGameSystem>(),
+            Reuse.Singleton);
+
     public static void UnregisterRegistrationsFromGameAssembly(Container container, Assembly gameAssembly)
     {
         var gameAssemblyName = gameAssembly.GetName().Name;

@@ -78,7 +78,6 @@ public class Sandbox2DLayer : ILayer
     public void OnDetach()
     {
         Logger.Debug("Sandbox2DLayer OnDetach.");
-        _spriteSheet?.Dispose();
     }
 
     public void OnUpdate(TimeSpan timeSpan)

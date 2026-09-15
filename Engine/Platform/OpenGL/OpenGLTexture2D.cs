@@ -66,51 +66,59 @@ internal sealed class OpenGLTexture2D : Texture2D
         var handle = SilkNetContext.GL.GenTexture();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
 
-        SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
-        SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
-
-        unsafe
+        try
         {
-            fixed (byte* ptr = data)
+            SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+            SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
+
+            unsafe
             {
-                SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
-                    (uint)height, 0, dataFormat, PixelType.UnsignedByte, ptr);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
+                fixed (byte* ptr = data)
+                {
+                    SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
+                        (uint)height, 0, dataFormat, PixelType.UnsignedByte, ptr);
+                    OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
+                }
+
+                var minFilter = generateMipmaps
+                    ? TextureMinFilter.LinearMipmapLinear
+                    : TextureMinFilter.Linear;
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                    (int)minFilter);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                    (int)TextureMagFilter.Linear);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
+
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                    (int)TextureWrapMode.Repeat);
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                    (int)TextureWrapMode.Repeat);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
+
+                if (generateMipmaps)
+                {
+                    SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+                    SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
+                    OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
+
+                    SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
+                    OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
+                }
+
+                // Anisotropic filtering for sharp textures at oblique angles
+                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                    (TextureParameterName)0x84FE, 16.0f); // GL_TEXTURE_MAX_ANISOTROPY_EXT
             }
 
-            var minFilter = generateMipmaps
-                ? TextureMinFilter.LinearMipmapLinear
-                : TextureMinFilter.Linear;
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
-                (int)minFilter);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
-                (int)TextureMagFilter.Linear);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
-
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
-                (int)TextureWrapMode.Repeat);
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
-                (int)TextureWrapMode.Repeat);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
-
-            if (generateMipmaps)
-            {
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-                SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(mipmap levels)");
-
-                SilkNetContext.GL.GenerateMipmap(TextureTarget.Texture2D);
-                OpenGLDebug.CheckError(SilkNetContext.GL, "GenerateMipmap");
-            }
-
-            // Anisotropic filtering for sharp textures at oblique angles
-            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
-                (TextureParameterName)0x84FE, 16.0f); // GL_TEXTURE_MAX_ANISOTROPY_EXT
+            return new OpenGLTexture2D(path, handle, width, height, internalFormat,
+                dataFormat == PixelFormat.Bgra ? PixelFormat.Rgba : dataFormat);
         }
-
-        return new OpenGLTexture2D(path, handle, width, height, internalFormat,
-            dataFormat == PixelFormat.Bgra ? PixelFormat.Rgba : dataFormat);
+        catch
+        {
+            SilkNetContext.GL.DeleteTexture(handle);
+            throw;
+        }
     }
 
     public override void Bind(int slot = 0)
@@ -181,19 +189,6 @@ internal sealed class OpenGLTexture2D : Texture2D
         OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes) in Create");
 
         return new OpenGLTexture2D(rendererId, width, height, internalFormat, dataFormat);
-    }
-
-    /// <summary>
-    /// Wraps an existing GPU texture (e.g. a generated BRDF LUT) into the Texture2D abstraction.
-    /// The wrapper takes ownership of the handle — disposal deletes it.
-    /// </summary>
-    internal static Texture2D CreateFromHandle(uint rendererId, int width, int height,
-        InternalFormat internalFormat = InternalFormat.Rgba16f)
-    {
-        if (rendererId == 0)
-            throw new ArgumentException("Cannot wrap a null texture handle", nameof(rendererId));
-
-        return new OpenGLTexture2D(rendererId, width, height, internalFormat, PixelFormat.Rgba);
     }
 
     public override bool Equals(object? obj)

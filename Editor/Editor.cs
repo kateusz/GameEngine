@@ -2,7 +2,11 @@ using Audio;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
+using Engine.Renderer.Shaders;
+using Engine.Renderer.Textures;
 using Input;
 using Ui.ImGui;
 
@@ -14,7 +18,12 @@ public class Editor(
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     IAudio audio,
+    ITextureFactory textureFactory,
+    IShaderFactory shaderFactory,
+    IMeshFactory meshFactory,
+    IModelFactory modelFactory,
     IImGuiLayer imGuiLayer,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput)
-    : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);
+    : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, textureFactory, shaderFactory, meshFactory,
+        modelFactory, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);

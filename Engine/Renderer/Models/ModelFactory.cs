@@ -5,19 +5,43 @@ using Serilog;
 
 namespace Engine.Renderer.Models;
 
-internal class ModelFactory(AssimpModelImporter importer,
-    IVertexArrayFactory vertexArrayFactory, 
-    IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory) : IModelFactory
+internal class ModelFactory : IModelFactory
 {
     private static readonly ILogger Logger = Log.ForContext<ModelFactory>();
-    
+
+    private readonly Func<string, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> _import;
+    private readonly IVertexArrayFactory _vertexArrayFactory;
+    private readonly IVertexBufferFactory _vertexBufferFactory;
+    private readonly IIndexBufferFactory _indexBufferFactory;
     private readonly Dictionary<string, Model?> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
-    
+
+    public ModelFactory(
+        AssimpModelImporter importer,
+        IVertexArrayFactory vertexArrayFactory,
+        IVertexBufferFactory vertexBufferFactory,
+        IIndexBufferFactory indexBufferFactory)
+        : this(importer.Import, vertexArrayFactory, vertexBufferFactory, indexBufferFactory)
+    {
+    }
+
+    internal ModelFactory(
+        Func<string, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> import,
+        IVertexArrayFactory vertexArrayFactory,
+        IVertexBufferFactory vertexBufferFactory,
+        IIndexBufferFactory indexBufferFactory)
+    {
+        _import = import;
+        _vertexArrayFactory = vertexArrayFactory;
+        _vertexBufferFactory = vertexBufferFactory;
+        _indexBufferFactory = indexBufferFactory;
+    }
+
     public Model? Create(string path)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         var normalizedPath = Path.GetFullPath(path);
 
         lock (_cacheLock)
@@ -46,7 +70,7 @@ internal class ModelFactory(AssimpModelImporter importer,
 
         try
         {
-            var (submeshes, sceneGraph) = importer.Import(normalizedPath);
+            var (submeshes, sceneGraph) = _import(normalizedPath);
             if (submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);
@@ -58,7 +82,7 @@ internal class ModelFactory(AssimpModelImporter importer,
             {
                 try
                 {
-                    submesh.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+                    submesh.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
                     initialized.Add(submesh);
                 }
                 catch (Exception ex)
@@ -84,19 +108,22 @@ internal class ModelFactory(AssimpModelImporter importer,
         }
     }
 
+    public void Clear()
+    {
+        lock (_cacheLock)
+        {
+            foreach (var model in _cache.Values)
+                model?.Dispose();
+            _cache.Clear();
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        lock (_cacheLock)
-        {
-            foreach (var model in _cache.Values)
-                if (model != null)
-                    model.Dispose();
-            _cache.Clear();
-        }
-        
+        Clear();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

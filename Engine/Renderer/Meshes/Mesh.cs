@@ -33,8 +33,11 @@ public class Mesh : IDisposable
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
+    /// <summary>Factory-shared albedo map. Do not dispose; <see cref="ITextureFactory"/> owns it.</summary>
     public Texture2D? DiffuseTexture { get; set; }
+    /// <summary>Factory-shared specular map. Do not dispose; <see cref="ITextureFactory"/> owns it.</summary>
     public Texture2D? SpecularTexture { get; set; }
+    /// <summary>Factory-shared normal map. Do not dispose; <see cref="ITextureFactory"/> owns it.</summary>
     public Texture2D? NormalTexture { get; set; }
     public float Shininess { get; set; } = 32.0f;
     
