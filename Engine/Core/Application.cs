@@ -20,8 +20,8 @@ public abstract class Application : IApplication
     private readonly IGraphics3D _graphics3D;
     private readonly IFrameCompositor? _frameCompositor;
     private readonly IAudio _audio;
-    private readonly IKeyboardInput? _keyboardInput;
-    private readonly IMouseInput? _mouseInput;
+    private readonly KeyboardInputState? _keyboardState;
+    private readonly MouseInputState? _mouseState;
     private IInputSystem? _inputSystem;
     private readonly List<ILayer> _layersStack = [];
 
@@ -42,8 +42,8 @@ public abstract class Application : IApplication
         _audio = audio;
         _graphics3D = graphics3D;
         _frameCompositor = frameCompositor;
-        _keyboardInput = keyboardInput;
-        _mouseInput = mouseInput;
+        _keyboardState = keyboardInput as KeyboardInputState;
+        _mouseState = mouseInput as MouseInputState;
 
         _gameWindow.OnWindowEvent += HandleWindowEvent;
         _gameWindow.OnInputEvent += HandleInputEvent;
@@ -76,7 +76,7 @@ public abstract class Application : IApplication
         _inputSystem = inputSystem;
 
         foreach (var layer in _layersStack)
-            layer.OnAttach(inputSystem);
+            layer.OnAttach();
     }
 
     public void Run()
@@ -144,8 +144,8 @@ public abstract class Application : IApplication
 
         _frameCompositor?.EndFrame();
 
-        _keyboardInput?.EndFrame();
-        _mouseInput?.EndFrame();
+        _keyboardState?.EndFrame();
+        _mouseState?.EndFrame();
     }
 
     private void HandleWindowEvent(WindowEvent @event)
@@ -160,13 +160,8 @@ public abstract class Application : IApplication
 
     private void HandleInputEvent(InputEvent windowEvent)
     {
-        // Releases must update held state before overlays can mark the event handled
-        // (ImGui WantCaptureKeyboard used to swallow KeyReleased → stuck WASD in Play).
-        if (windowEvent is KeyReleasedEvent or MouseButtonReleasedEvent)
-        {
-            (_keyboardInput as KeyboardInputState)?.Apply(windowEvent);
-            (_mouseInput as MouseInputState)?.Apply(windowEvent);
-        }
+        _keyboardState?.Apply(windowEvent);
+        _mouseState?.Apply(windowEvent);
 
         for (var index = _layersStack.Count - 1; index >= 0; index--)
         {

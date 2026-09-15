@@ -19,6 +19,8 @@ Open **Help → Keyboard Shortcuts** to browse all registered bindings grouped b
 | Shift+E | Ruler tool |
 | Escape | Clear ruler measurement (when Ruler tool is active) |
 
+Escape is a normal key. The window host does not quit on Escape; Runtime games that want that behavior poll `IKeyboardInput` themselves.
+
 > **Rotate tool** is available on the viewport toolbar but has no keyboard shortcut.
 
 ### File Operations
