@@ -9,7 +9,7 @@ internal static class LightSpaceMatrix
 
     public static Matrix4x4 Create(Vector3 direction, Vector3 origin, float orthoSize)
     {
-        var dir = direction.LengthSquared() < 1e-6f ? new Vector3(0, -1, 0) : Vector3.Normalize(direction);
+        var dir = LightingMath.NormalizeDirection(direction);
         var up = MathF.Abs(Vector3.Dot(dir, Vector3.UnitY)) > 0.99f ? Vector3.UnitX : Vector3.UnitY;
         var view = Matrix4x4.CreateLookAt(origin, origin + dir, up);
         var projection = Matrix4x4.CreateOrthographicOffCenter(

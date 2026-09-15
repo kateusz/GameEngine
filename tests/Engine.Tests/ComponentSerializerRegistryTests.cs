@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using ECS;
-using Engine.Scene;
 using Engine.Scene.Serializer;
 using SceneComponents;
 using SceneComponents.Rendering;
