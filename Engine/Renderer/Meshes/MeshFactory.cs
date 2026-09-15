@@ -2,7 +2,6 @@ using System.Numerics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
-using Serilog;
 
 namespace Engine.Renderer.Meshes;
 
@@ -12,7 +11,6 @@ internal sealed class MeshFactory(
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory) : IMeshFactory
 {
-    private readonly ILogger _logger = Log.ForContext<MeshFactory>();
     private Mesh? _cubeMesh;
     private bool _disposed;
 
@@ -22,7 +20,7 @@ internal sealed class MeshFactory(
             return _cubeMesh;
 
         var mesh = new Mesh("Cube");
-        mesh.DiffuseTexture = textureFactory?.GetWhiteTexture()!;
+        mesh.DiffuseTexture = textureFactory.GetWhiteTexture();
         const float size = 0.5f;
 
         var tangentX = Vector3.UnitX;
@@ -73,21 +71,13 @@ internal sealed class MeshFactory(
         return mesh;
     }
 
-    public void Clear()
-    {
-        _cubeMesh?.Dispose();
-        _cubeMesh = null;
-        _logger.Information("MeshFactory cache cleared and resources disposed");
-    }
-
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        _logger.Debug("Disposing MeshFactory and clearing cache");
-        Clear();
+        _cubeMesh?.Dispose();
+        _cubeMesh = null;
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

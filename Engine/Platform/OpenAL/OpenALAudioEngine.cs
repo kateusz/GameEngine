@@ -147,7 +147,7 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
 
     public IAudioClip LoadAudioClip(string path)
     {
-        var normalizedPath = PathBuilder.Build(path);
+        var normalizedPath = PathBuilder.Resolve(path);
 
         lock (_cacheLock)
         {
@@ -158,19 +158,6 @@ internal sealed unsafe class OpenALAudioEngine(AL al, ALContext alc, IAudioEffec
             clip.Load();
             _loadedClips[normalizedPath] = clip;
             return clip;
-        }
-    }
-
-    public void UnloadAudioClip(string path)
-    {
-        var normalizedPath = PathBuilder.Build(path);
-
-        lock (_cacheLock)
-        {
-            if (!_loadedClips.Remove(normalizedPath, out var clip))
-                return;
-
-            clip.Unload();
         }
     }
 

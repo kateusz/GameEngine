@@ -1,6 +1,5 @@
 using ECS;
 using Editor.UI.Drawers;
-using Engine.Core;
 using Engine.Project;
 using Engine.Scene;
 using Engine.Scene.Serializer;
@@ -11,21 +10,19 @@ namespace Editor.UI.Elements;
 public class PrefabDropTarget(IPrefabSerializer prefabSerializer, ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(PrefabDropTarget));
-    private static readonly Func<string, bool> PrefabFile =
-        DragDropDrawer.CreateExtensionValidator([".prefab"]);
 
     public void HandleEntityDrop(Entity entity)
     {
         DragDropDrawer.HandleFileDropTarget(
             DragDropDrawer.ContentBrowserItemPayload,
-            PrefabFile,
+            path => DragDropDrawer.HasValidExtension(path, ".prefab"),
             onDropped: path =>
             {
                 try
                 {
                     var scene = sceneContext.ActiveScene
                                 ?? throw new InvalidOperationException("No active scene");
-                    var fullPath = PathBuilder.Build(path);
+                    var fullPath = PathBuilder.Resolve(path);
                     prefabSerializer.ApplyPrefabToEntity(scene, entity, fullPath);
                     Logger.Information("Applied prefab {Path} to entity {EntityName}", path, entity.Name);
                 }

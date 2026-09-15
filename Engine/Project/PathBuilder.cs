@@ -14,8 +14,6 @@ public static class PathBuilder
         ?? throw new InvalidOperationException(
             "PathBuilder not initialized. Resolve IProjectContext after EngineIoCContainer.RegisterCore (initializer wires PathBuilder).");
 
-    public static string Build(string path) => Resolve(path);
-
     public static string Resolve(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -32,22 +30,6 @@ public static class PathBuilder
             path = path[7..];
 
         return Path.GetFullPath(Path.Combine(AssetsPath, path));
-    }
-
-    /// <summary>
-    /// True when <paramref name="absolutePath"/> resolves under the current <see cref="AssetsPath"/>
-    /// (no <c>..</c> escape). Used to confine imported texture loads.
-    /// </summary>
-    public static bool IsUnderAssets(string absolutePath)
-    {
-        if (string.IsNullOrWhiteSpace(absolutePath))
-            return false;
-
-        var assets = Path.GetFullPath(AssetsPath)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var full = Path.GetFullPath(absolutePath);
-        return full.StartsWith(assets + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-               || full.Equals(assets, StringComparison.OrdinalIgnoreCase);
     }
 
     public static string ToAssetRelativePath(string path)

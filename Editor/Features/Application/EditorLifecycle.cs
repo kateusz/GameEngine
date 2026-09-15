@@ -31,7 +31,7 @@ public class EditorLifecycle(
     IEditorHistory history,
     IEditorViewport editorViewport,
     SceneHierarchyPanel sceneHierarchyPanel,
-    IContentBrowserPanel contentBrowserPanel,
+    ContentBrowserPanel contentBrowserPanel,
     IConsolePanel consolePanel,
     ViewportComponents viewport,
     IModelFactory modelFactory)

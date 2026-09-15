@@ -77,23 +77,6 @@ public static class DragDropDrawer
         ImGui.EndDragDropTarget();
         return itemDropped;
     }
-    
-    /// <summary>
-    /// Creates a file extension validator for common asset types.
-    /// </summary>
-    /// <param name="extensions">Allowed file extensions (e.g., ".png", ".jpg")</param>
-    /// <param name="checkFileExists">If true, validates that the file exists on disk</param>
-    /// <returns>A validator function for use with HandleFileDropTarget</returns>
-    public static Func<string, bool> CreateExtensionValidator(string[] extensions, bool checkFileExists = false)
-    {
-        return path =>
-        {
-            if (checkFileExists && !File.Exists(path))
-                return false;
-
-            return extensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
-        };
-    }
 
     /// <summary>
     /// Extracts a string from an ImGui payload.

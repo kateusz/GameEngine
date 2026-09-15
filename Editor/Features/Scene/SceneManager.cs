@@ -73,7 +73,7 @@ public class SceneManager(
 
         if (string.IsNullOrEmpty(EditorScenePath))
         {
-            var sceneDir = PathBuilder.Build("scenes");
+            var sceneDir = PathBuilder.Resolve("scenes");
             Directory.CreateDirectory(sceneDir);
             EditorScenePath = Path.Combine(sceneDir, $"{sceneContext.ActiveScene!.Name}.scene");
         }

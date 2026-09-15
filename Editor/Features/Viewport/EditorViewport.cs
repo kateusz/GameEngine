@@ -109,9 +109,9 @@ public sealed class EditorViewport(
 
         PickHoveredEntity();
 
-        var dropValidator = DragDropDrawer.CreateExtensionValidator([".scene"], checkFileExists: false);
-        DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload, dropValidator,
-            onDropped: path => sceneManager.Open(PathBuilder.Build(path)));
+        DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload,
+            path => DragDropDrawer.HasValidExtension(path, ".scene"),
+            onDropped: path => sceneManager.Open(PathBuilder.Resolve(path)));
 
         if (ImGui.IsWindowHovered())
             HandleViewportInput();

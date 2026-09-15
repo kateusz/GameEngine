@@ -244,7 +244,7 @@ internal sealed class AudioSystem(
 
         try
         {
-            var fullPath = PathBuilder.Build(clipPath);
+            var fullPath = PathBuilder.Resolve(clipPath);
             var clip = audio.LoadAudioClip(fullPath);
             runtimeState.Clip = clip;
             runtimeState.LoadedClipPath = clipPath;

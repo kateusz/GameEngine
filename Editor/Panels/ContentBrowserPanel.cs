@@ -13,7 +13,7 @@ using Ui.ImGui;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposable
+public class ContentBrowserPanel : IEditorPanel, IDisposable
 {
     private enum CreateAssetKind { Component, System }
 
@@ -345,7 +345,7 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
 
             ImGui.PushID(filenameString);
 
-            var (icon, isImage, isPrefab) = ResolveIcon(info, entry, isDirectory);
+            var (icon, isImage) = ResolveIcon(info, entry, isDirectory);
 
             ButtonDrawer.DrawTransparentIconButton(
                 filenameString,
@@ -355,7 +355,7 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
             DragDropDrawer.CreateDragDropSource(
                 "CONTENT_BROWSER_ITEM",
                 relativePath,
-                () => RenderDragDropPreview(filenameString, icon, isImage, isPrefab, isDirectory));
+                () => RenderDragDropPreview(filenameString, icon, isImage, isDirectory));
 
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) &&
                 !File.Exists(info.FullName))
@@ -468,40 +468,35 @@ public class ContentBrowserPanel : IContentBrowserPanel, IEditorPanel, IDisposab
         }
     }
 
-    private (Texture2D icon, bool isImage, bool isPrefab) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
+    private (Texture2D icon, bool isImage) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
     {
         if (isDirectory)
         {
             var folderName = info.Name.ToLowerInvariant();
             if (_folderIconCache.TryGetValue(folderName, out var folderIcon))
-                return (folderIcon, false, false);
-            return (_directoryIcon, false, false);
+                return (folderIcon, false);
+            return (_directoryIcon, false);
         }
 
         if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
             info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
         {
             if (_imageCache.TryGetValue(entry, out var cached))
-                return (cached, true, false);
+                return (cached, true);
 
             RequestThumbnail(entry);
-            return (_fileIcon, true, false);
+            return (_fileIcon, true);
         }
 
-        return (_fileIcon, false, false);
+        return (_fileIcon, false);
     }
 
-    private static void RenderDragDropPreview(string filename, Texture icon, bool isImage, bool isPrefab, bool isDirectory)
+    private static void RenderDragDropPreview(string filename, Texture icon, bool isImage, bool isDirectory)
     {
         ImGui.Text($"Dragging: {filename}");
         if (isImage)
         {
             TextDrawer.DrawInfoText("Type: Texture");
-            ImGui.Image(ImGuiNativeTexture.From(icon), new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
-        }
-        else if (isPrefab)
-        {
-            TextDrawer.DrawInfoText("Type: Prefab");
             ImGui.Image(ImGuiNativeTexture.From(icon), new Vector2(32, 32), new Vector2(0, 1), new Vector2(1, 0));
         }
         else if (isDirectory)
