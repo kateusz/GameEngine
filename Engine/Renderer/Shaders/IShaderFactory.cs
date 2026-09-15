@@ -3,5 +3,5 @@ namespace Engine.Renderer.Shaders;
 /// <summary>Factory owns cached shaders; callers must not dispose them.</summary>
 public interface IShaderFactory : IDisposable
 {
-    IShader Create(string vertPath, string fragPath);
+    IShader Create(ShaderId shader);
 }

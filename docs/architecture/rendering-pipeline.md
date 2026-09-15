@@ -24,7 +24,7 @@ graph TB
 
     subgraph "Resource Loaders"
         TF["Texture cache<br/><i>Path cache + white texture</i>"]
-        SF["Shader cache<br/><i>Path cache, weak refs</i>"]
+        SF["Shader cache<br/><i>ShaderId, strong cache</i>"]
         MF["Model cache<br/><i>Path cache, Assimp import</i>"]
     end
 
@@ -202,8 +202,8 @@ sequenceDiagram
 
 | Call | Role |
 |------|------|
-| `BeginScene` | Store `SceneView` view-projection and camera world position |
-| `SetAmbientLight` / `SetDirectionalLight` | Scene lights for the pass |
+| `BeginScene` | Store `SceneView`, then upload view-projection, lights, and (model shader) view position |
+| `SetAmbientLight` / `SetDirectionalLight` | Store scene lights; call before `BeginScene` so the upload sees them |
 | `DrawCube` | Shared unit cube mesh (`IMeshFactory.CreateCube`) |
 | `DrawMesh` | GPU mesh + optional diffuse/specular/normal maps |
 
@@ -255,11 +255,11 @@ Within a single batch, the 2D graphics layer maps texture ids to slot indices. T
 
 ## Shader Management
 
-**File**: `Engine/Renderer/Shaders/IShaderFactory.cs`
+**File**: `Engine/Renderer/Shaders/IShaderFactory.cs`, `Engine/Renderer/Shaders/ShaderId.cs`
 
-GLSL sources ship in `Engine/assets/shaders/OpenGL/` (loaded via `assets/shaders/OpenGL/...`). 2D loads `textureShader` and `lineShader`; 3D loads `cube` and `modelShader`.
+GLSL sources ship in `Engine/assets/shaders/OpenGL/` and hosts copy them next to the exe via `Engine.Shaders.props`. Graphics loads programs with `IShaderFactory.Create(ShaderId)` (`Texture`, `Line`, `Cube`, `Model`). Paths resolve under `AppContext.BaseDirectory/assets/shaders/OpenGL/`, not the game `PathBuilder` root.
 
-`IShaderFactory.Create(vertPath, fragPath)` returns a cached shader. The factory uses weak references so unused shaders can be collected. `ClearCache` forces later requests to recompile.
+`Create` returns a strongly cached program keyed on vert+frag paths. The factory owns Dispose; there is no public `ClearCache`.
 
 ---
 
@@ -309,7 +309,7 @@ classDiagram
 
 ### Begin-scene integration
 
-`IGraphics2D.BeginScene` and `IGraphics3D.BeginScene` both take `in SceneView`. 2D sets `u_ViewProjection` on the quad and line shaders, then starts a batch. 3D stores view-projection and view position for cube/mesh draws. Any caller (runtime systems or the editor viewport) can pass a `SceneView`; the graphics layer does not distinguish camera types.
+`IGraphics2D.BeginScene` and `IGraphics3D.BeginScene` both take `in SceneView`. 2D sets `u_ViewProjection` on the quad and line shaders, then starts a batch. 3D uploads view-projection and lights to the cube and model shaders (and `u_ViewPosition` on the model shader). `SceneRenderPipeline` sets lights before `BeginScene`. Any caller (runtime systems or the editor viewport) can pass a `SceneView`; the graphics layer does not distinguish camera types.
 
 ---
 

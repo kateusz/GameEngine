@@ -20,6 +20,8 @@ public class Mesh : IDisposable
     {
         public Vertex() : this(default, default, default, default, default) { }
 
+        // GLSL layout(location): 0 Position, 1 Normal, 2 TexCoord, 3 Tangent, 4 Bitangent, 5 EntityID.
+        // cube.vert skips 3–4 so EntityID stays at 5.
         public static BufferLayout Layout { get; } = new([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float3, "a_Normal"),
