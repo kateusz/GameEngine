@@ -34,12 +34,8 @@ Invoke this skill when encountering:
   - PhysicsSimulationSystem: 100
   - TransformHierarchySystem: 115
   - AudioSystem: 120
-  - PrimaryCameraSystem: 145
-  - SpriteRenderSystem: 150
-  - SubTextureRenderSystem: 160
-  - LightingSystem: 165
-  - ModelRenderSystem: 170
-  - PhysicsDebugRenderSystem: 180
+  - SceneRenderSystem: 150
+  - PhysicsDebugRenderSystem: 151
 - Suggest priority adjustments for better parallelization potential
 
 ### 3. Memory Allocation

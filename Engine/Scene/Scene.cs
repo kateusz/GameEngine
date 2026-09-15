@@ -140,7 +140,6 @@ internal sealed class Scene : IScene
         // 100: PhysicsSimulationSystem
         // 115: TransformHierarchySystem (world caches)
         // 120: AudioSystem
-        // 145: PrimaryCameraSystem
         // 150: SceneRenderSystem
         // 151: PhysicsDebugRenderSystem
         _systemManager.Update(ts);

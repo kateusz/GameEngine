@@ -366,12 +366,11 @@ All DI-consuming classes use C# 12 primary constructors. No traditional construc
 ```csharp
 internal sealed class SpriteRenderingSystem(
     IGraphics2D graphics2D,
-    IPrimaryCameraProvider cameraProvider,
     IContext context) : ISystem
 {
     public void OnUpdate(TimeSpan deltaTime)
     {
-        // graphics2D, cameraProvider, context available as constructor parameters
+        // graphics2D, context available as constructor parameters
     }
 }
 ```

@@ -3,7 +3,6 @@ using ECS.Systems;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer.Pipeline;
-using Engine.Scene.Cameras;
 using Serilog;
 
 namespace Engine.Scene.Systems;
@@ -12,10 +11,10 @@ internal sealed class PhysicsDebugRenderSystem(
     IGraphics2D graphics2D,
     IContext context,
     DebugSettings debugSettings,
-    PhysicsRuntimeBodyStore bodyStore,
-    IPrimaryCameraProvider cameraProvider) : ISystem
+    PhysicsRuntimeBodyStore bodyStore) : ISystem
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsDebugRenderSystem>();
+    private readonly SceneCamera _scratchCamera = new();
 
     public int Priority => SystemPriorities.PhysicsDebugRenderSystem;
 
@@ -29,12 +28,12 @@ internal sealed class PhysicsDebugRenderSystem(
         if (!debugSettings.ShowColliderBounds)
             return;
 
-        if (cameraProvider.Camera is not { } cam)
+        if (!CameraQueries.TryGetPrimaryView(context, _scratchCamera, out var view))
             return;
 
         PhysicsDebugDrawer.Draw(
             context, graphics2D, bodyStore,
-            CameraViews.From(cam, cameraProvider.Transform),
+            view,
             useTransformFallbackWhenNoBody: false);
     }
 

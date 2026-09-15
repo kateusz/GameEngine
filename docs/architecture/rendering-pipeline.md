@@ -9,7 +9,6 @@ The rendering pipeline flows from ECS rendering systems through a 2D batched gra
 ```mermaid
 graph TB
     subgraph "ECS Rendering Systems"
-        PCS["Primary camera (145)<br/><i>Resolves active camera</i>"]
         SRS["Scene render (150)<br/><i>Drawable entity pass</i>"]
         PDRS["Physics debug draw (151)<br/><i>Collider outlines</i>"]
     end
@@ -41,7 +40,6 @@ graph TB
         Shader["Shaders"]
     end
 
-    PCS --> SRS
     SRS --> SRP
     SRP --> G2D
     SRP --> G3D
@@ -289,7 +287,7 @@ classDiagram
 - Supports **orthographic** and **perspective** projection (`CameraComponent.ProjectionType`)
 - **Lazy evaluation**: projection matrix only recomputed when dirty (property changes, viewport resize)
 - Wrapped in `CameraComponent` on an entity; primary flag designates the active camera
-- Primary camera system (priority 145) resolves the primary camera each frame and caches it for rendering systems
+- Scene render and physics debug look up that primary component when they draw (via `CameraQueries.TryGetPrimaryView`)
 
 ### Editor orbit camera
 

@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Renderer.Pipeline;
 using Engine.Scene.Cameras;
 using SceneComponents;
 using SceneComponents.Camera;
@@ -21,20 +22,18 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
         if (!pointerSurface.Contains(windowPosition))
             return null;
 
-        if (!TryGetPrimaryViewProjection(out var viewProjection))
+        if (!TryGetPrimaryView(context, _scratchCamera, out var sceneView))
             return null;
 
         return ScreenWorldConverter.ScreenToWorld2D(
             windowPosition,
             pointerSurface.Origin,
             pointerSurface.Size,
-            viewProjection);
+            sceneView.ViewProjection);
     }
 
-    private bool TryGetPrimaryViewProjection(out Matrix4x4 viewProjection)
+    internal static bool TryGetPrimaryView(IContext context, SceneCamera scratch, out SceneView view)
     {
-        viewProjection = default;
-
         foreach (var (entity, cameraComponent) in context.View<CameraComponent>())
         {
             if (!cameraComponent.Primary)
@@ -45,14 +44,12 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
                     ? transformComponent.GetWorldTransform()
                     : Matrix4x4.Identity);
 
-            if (!Matrix4x4.Invert(transform, out var viewMatrix))
-                return false;
-
-            _scratchCamera.Apply(cameraComponent);
-            viewProjection = viewMatrix * _scratchCamera.GetProjectionMatrix();
+            scratch.Apply(cameraComponent);
+            view = CameraViews.From(scratch, transform);
             return true;
         }
 
+        view = default;
         return false;
     }
 }

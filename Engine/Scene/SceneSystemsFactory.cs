@@ -32,13 +32,12 @@ internal sealed class SceneSystemsFactory(
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue)
     {
-        var primaryCamera = new PrimaryCameraSystem(context);
         var contactListener = new SceneContactListener(contactQueue);
 
         var physicsWorld = physicsWorldFactory.Create(DefaultGravity2D);
         physicsWorld.SetContactListener(contactListener);
         var physicsQueries = physicsWorld;
-        var systems = Create2DSystems(physicsWorld, context, bodyStore, primaryCamera);
+        var systems = Create2DSystems(physicsWorld, context, bodyStore);
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);
@@ -46,8 +45,7 @@ internal sealed class SceneSystemsFactory(
         ISystem[] shared =
         [
             audioSystem,
-            primaryCamera,
-            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, primaryCamera, modelFactory)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, modelFactory)
         ];
 
         foreach (var system in systems.Concat(shared))
@@ -62,10 +60,9 @@ internal sealed class SceneSystemsFactory(
     private ISystem[] Create2DSystems(
         IPhysicsWorld2D physicsWorld,
         IContext context,
-        PhysicsRuntimeBodyStore bodyStore,
-        PrimaryCameraSystem primaryCamera) =>
+        PhysicsRuntimeBodyStore bodyStore) =>
     [
         new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
-        new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore, primaryCamera)
+        new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore)
     ];
 }

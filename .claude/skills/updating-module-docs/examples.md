@@ -18,8 +18,7 @@ Full before/after scenarios from real dry-runs. Use as quality bar for Steps 4â€
 
 ```mermaid
 subgraph "ECS Rendering Systems"
-    PCS["PrimaryCameraSystem (145)"]
-    SRS["SpriteRenderingSystem (150)"]
+    SRS["SceneRenderSystem (150)"]
     STRS["SubTextureRenderingSystem (160)"]
     MRS["ModelRenderingSystem (170)"]
     PDRS["PhysicsDebugRenderSystem (180)"]
@@ -30,7 +29,6 @@ end
 
 ```mermaid
 subgraph "ECS Rendering Systems"
-    PCS["PrimaryCameraSystem (145)<br/><i>Resolves active camera</i>"]
     SRS["SceneRenderSystem (150)<br/><i>SceneRenderPipeline: sprites, subtextures, 3D cubes</i>"]
     PDRS["PhysicsDebugRenderSystem (151)<br/><i>Collider debug lines when enabled</i>"]
 end
