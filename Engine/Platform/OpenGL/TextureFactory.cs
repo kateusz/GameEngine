@@ -3,69 +3,19 @@ using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 
 namespace Engine.Platform.OpenGL;
 
-internal sealed class TextureFactory : ITextureFactory, IDisposable
+internal sealed class TextureFactory : ITextureFactory
 {
     private const int PreviewMaxEdge = 64;
     private Texture2D? _whiteTexture;
-    private readonly Lock _whiteLock = new();
     private Texture2D? _blackTexture;
-    private readonly Lock _blackLock = new();
     private Texture2D? _flatNormalTexture;
-    private readonly Lock _flatNormalLock = new();
     private readonly Dictionary<string, Texture2D> _textureCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
-    public Texture2D GetWhiteTexture()
-    {
-        if (_whiteTexture != null)
-            return _whiteTexture;
-
-        lock (_whiteLock)
-        {
-            if (_whiteTexture != null)
-                return _whiteTexture;
-
-            _whiteTexture = Create(1, 1);
-
-            var white = 0xFFFFFFFF;
-            _whiteTexture.SetData(white, 4);
-
-            return _whiteTexture;
-        }
-    }
-
-    public Texture2D GetBlackTexture()
-    {
-        if (_blackTexture != null)
-            return _blackTexture;
-
-        lock (_blackLock)
-        {
-            if (_blackTexture != null)
-                return _blackTexture;
-
-            _blackTexture = Create(1, 1);
-            _blackTexture.SetData(0xFF000000u, 4);
-            return _blackTexture;
-        }
-    }
-
-    public Texture2D GetFlatNormalTexture()
-    {
-        if (_flatNormalTexture != null)
-            return _flatNormalTexture;
-
-        lock (_flatNormalLock)
-        {
-            if (_flatNormalTexture != null)
-                return _flatNormalTexture;
-
-            _flatNormalTexture = Create(1, 1);
-            _flatNormalTexture.SetData(0xFFFF8080u, 4);
-            return _flatNormalTexture;
-        }
-    }
+    public Texture2D GetWhiteTexture() => GetOrCreateSolid(ref _whiteTexture, 0xFFFFFFFF);
+    public Texture2D GetBlackTexture() => GetOrCreateSolid(ref _blackTexture, 0xFF000000u);
+    public Texture2D GetFlatNormalTexture() => GetOrCreateSolid(ref _flatNormalTexture, 0xFFFF8080u);
 
     public Texture2D Create(string path, bool sRgb = false)
     {
@@ -99,69 +49,43 @@ internal sealed class TextureFactory : ITextureFactory, IDisposable
     public Texture2D CreateFromRgba(byte[] rgba, int width, int height) =>
         OpenGLTexture2D.CreateFromRgba(rgba, width, height);
 
-    public Texture2D Create(int width, int height)
-    {
-        return OpenGLTexture2D.Create(width, height);
-    }
-
-    public void ClearCache()
-    {
-        lock (_cacheLock)
-        {
-            foreach (var texture in _textureCache.Values)
-                texture.Dispose();
-
-            _textureCache.Clear();
-        }
-    }
-
-    public int GetCacheSize()
-    {
-        lock (_cacheLock)
-        {
-            return _textureCache.Count;
-        }
-    }
+    public Texture2D Create(int width, int height) => OpenGLTexture2D.Create(width, height);
 
     public void Dispose()
     {
         if (_disposed)
             return;
 
-        lock (_whiteLock)
+        lock (_cacheLock)
         {
             _whiteTexture?.Dispose();
             _whiteTexture = null;
-        }
-
-        lock (_blackLock)
-        {
             _blackTexture?.Dispose();
             _blackTexture = null;
-        }
-
-        lock (_flatNormalLock)
-        {
             _flatNormalTexture?.Dispose();
             _flatNormalTexture = null;
-        }
 
-        ClearCache();
+            foreach (var texture in _textureCache.Values)
+                texture.Dispose();
+            _textureCache.Clear();
+        }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
-#if DEBUG
-    ~TextureFactory()
+    private Texture2D GetOrCreateSolid(ref Texture2D? field, uint rgba)
     {
-        if (!_disposed)
+        if (field != null)
+            return field;
+
+        lock (_cacheLock)
         {
-            System.Diagnostics.Debug.WriteLine(
-                $"FACTORY LEAK: TextureFactory not disposed! " +
-                $"White texture: {(_whiteTexture != null ? "allocated" : "null")}"
-            );
+            if (field != null)
+                return field;
+
+            field = Create(1, 1);
+            field.SetData(rgba, 4);
+            return field;
         }
     }
-#endif
 }

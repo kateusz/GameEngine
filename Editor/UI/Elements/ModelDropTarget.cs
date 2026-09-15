@@ -1,5 +1,4 @@
 using Editor.UI.Drawers;
-using Engine.Core;
 using Engine.Project;
 using Engine.Renderer.Models;
 using Serilog;
@@ -26,7 +25,7 @@ public static class ModelDropTarget
                 ? Path.GetFileName(currentModelPath)
                 : "Drop model here";
 
-            ButtonDrawer.DrawFullWidthButton(buttonLabel, () => { });
+            ButtonDrawer.DrawFullWidthButton(buttonLabel);
 
             DragDropDrawer.HandleFileDropTarget(
                 DragDropDrawer.ContentBrowserItemPayload,

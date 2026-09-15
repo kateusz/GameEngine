@@ -1,6 +1,5 @@
 using Audio;
 using Editor.UI.Drawers;
-using Engine.Core;
 using Engine.Project;
 using Serilog;
 
@@ -26,21 +25,18 @@ public class AudioDropTarget(IAudio audio)
                 ? Path.GetFileName(currentAudioPath)
                 : "None (Drop audio here)";
 
-            ButtonDrawer.DrawFullWidthButton(buttonLabel, () =>
-            {
-                // Optional: Could add a file picker popup here in the future
-            });
+            ButtonDrawer.DrawFullWidthButton(buttonLabel);
 
             DragDropDrawer.HandleFileDropTarget(
                 DragDropDrawer.ContentBrowserItemPayload,
                 path =>
                 {
-                    var audioPath = PathBuilder.Build(path);
+                    var audioPath = PathBuilder.Resolve(path);
                     return File.Exists(audioPath) && AudioClipFactory.IsSupportedFormat(audioPath);
                 },
                 path =>
                 {
-                    var audioPath = PathBuilder.Build(path);
+                    var audioPath = PathBuilder.Resolve(path);
                     try
                     {
                         audio.LoadAudioClip(audioPath);

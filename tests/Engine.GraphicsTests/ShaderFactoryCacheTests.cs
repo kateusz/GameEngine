@@ -9,29 +9,22 @@ public class ShaderFactoryCacheTests(HeadlessGraphicsContextFixture fixture)
     : IClassFixture<HeadlessGraphicsContextFixture>
 {
     [GraphicsFact]
-    public void Create_SamePaths_ReturnsCachedInstance_ClearCacheDeletesProgram()
+    public void Create_SamePaths_ReturnsCachedInstance_DisposeDeletesProgram()
     {
         _ = fixture;
         var vert = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", "cube.vert");
         var frag = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", "cube.frag");
         var factory = new ShaderFactory();
-        try
-        {
-            var first = factory.Create(vert, frag);
-            var second = factory.Create(vert, frag);
-            first.ShouldBeSameAs(second);
+        var first = factory.Create(vert, frag);
+        var second = factory.Create(vert, frag);
+        first.ShouldBeSameAs(second);
 
-            var id = ((OpenGLShader)first).RendererId;
-            id.ShouldNotBe(0u);
-            GlBufferQueries.IsProgramAlive(id).ShouldBeTrue();
+        var id = ((OpenGLShader)first).RendererId;
+        id.ShouldNotBe(0u);
+        GlBufferQueries.IsProgramAlive(id).ShouldBeTrue();
 
-            factory.ClearCache();
-            GlBufferQueries.IsProgramAlive(id).ShouldBeFalse();
-        }
-        finally
-        {
-            factory.Dispose();
-        }
+        factory.Dispose();
+        GlBufferQueries.IsProgramAlive(id).ShouldBeFalse();
     }
 
     [GraphicsFact]

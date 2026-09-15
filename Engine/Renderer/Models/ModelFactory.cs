@@ -125,6 +125,5 @@ internal class ModelFactory : IModelFactory
 
         Clear();
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

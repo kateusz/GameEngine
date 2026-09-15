@@ -3,5 +3,4 @@
 public interface IMeshFactory : IDisposable
 {
     Mesh CreateCube();
-    void Clear();
 }

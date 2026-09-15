@@ -2,13 +2,11 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.UI.Elements;
-using Engine.Renderer.Textures;
 using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
 
 public class SpriteRendererComponentEditor(
-    ITextureFactory textureFactory,
     UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<SpriteRendererComponent>(history)
 {
     protected override string DisplayName => "Sprite Renderer";
@@ -20,7 +18,7 @@ public class SpriteRendererComponentEditor(
         TextureDropTarget.Draw("Texture", relativePath =>
         {
             component.TexturePath = relativePath;
-        }, textureFactory, component.TexturePath);
+        }, component.TexturePath);
         propertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
             newValue => component.TilingFactor = (float)newValue);
     }

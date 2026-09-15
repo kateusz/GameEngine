@@ -8,7 +8,7 @@ namespace Editor;
 
 public class EditorPanels(
     IEnumerable<IEditorPanel> panels,
-    IContentBrowserPanel contentBrowserPanel,
+    ContentBrowserPanel contentBrowserPanel,
     RendererStatsPanel rendererStatsPanel,
     PerformanceMonitorPanel performanceMonitor,
     GameComponentEditor gameComponentEditor)
