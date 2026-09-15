@@ -24,7 +24,7 @@ graph TB
 
     subgraph "Resource Loaders"
         TF["Texture cache<br/><i>Path cache + white texture</i>"]
-        SF["Shader cache<br/><i>File-time cache, defines, parallel compile</i>"]
+        SF["Shader cache<br/><i>Path cache, weak refs</i>"]
         MF["Model cache<br/><i>Path cache, Assimp import</i>"]
     end
 
@@ -63,18 +63,20 @@ graph TB
 
 ## Scene Render Pass
 
-The scene render system (priority 150) draws all drawable entities in one frame:
+**File**: `Engine/Scene/Systems/SceneRenderSystem.cs` (priority 150), `Engine/Scene/SceneRenderPipeline.cs`
+
+If `CameraQueries.TryGetPrimaryView` fails, the system returns without drawing. Otherwise it draws drawable entities in one frame:
 
 | Pass | Components queried | Graphics path |
 |------|-------------------|---------------|
 | 2D sprites | `SpriteRendererComponent` + `TransformComponent` | Batched textured quads (skips fully transparent tint; failed texture load → solid-color quad) |
 | 2D subtextures | `SubTextureRendererComponent` + `TransformComponent` | Batched quads with atlas coordinates |
 | 3D cubes | `ModelRendererComponent` + `TransformComponent` (empty `ModelPath`) | Unit cube, optional albedo texture |
-| 3D models | `ModelRendererComponent` + `TransformComponent` (set `ModelPath`) | One indexed draw per submesh |
+| 3D models | `ModelRendererComponent` + `TransformComponent` (set `ModelPath`) | Indexed draw: one submesh when `MeshIndex` is set; otherwise every submesh unless `SuppressDraw` |
 
-Physics debug draw (priority 151) renders collider outlines when collider debug is enabled. In the editor edit viewport, the same outlines are drawn after the scene pass when that option is on.
+Physics debug draw (**File**: `Engine/Scene/Systems/PhysicsDebugRenderSystem.cs`, priority 151) renders collider outlines when collider debug is enabled. It uses the same primary-camera `SceneView` and returns if that lookup fails.
 
-**Render order within a frame**: 2D batch, then cubes, then imported models. All passes share the same camera binding from the primary camera (runtime) or the editor camera (editor). 3D passes enable depth test; 2D sprite batch disables it.
+**Render order within a frame**: one 2D batch (sprites, then subtextures), then one 3D pass that iterates `ModelRendererComponent` (cubes and meshes interleaved in entity order). Callers pass a single `SceneView` into both graphics layers. 3D draws enable depth test; the 2D quad flush disables it for the indexed draw.
 
 User-facing setup: [Cameras and Rendering](../guide/concepts/cameras-and-rendering.md).
 
@@ -82,27 +84,32 @@ User-facing setup: [Cameras and Rendering](../guide/concepts/cameras-and-renderi
 
 ## Renderer Abstraction
 
+**File**: `Engine/Renderer/IRendererAPI.cs`
+
 Platform-agnostic rendering interface. All OpenGL calls are isolated behind this abstraction — engine core never invokes GL entry points directly.
 
 | Capability | Purpose |
 |--------|---------|
-| Init | Enable alpha blending and depth test (LEQUAL) |
-| Clear color / clear | Set framebuffer clear color; clear color and depth buffers |
-| Bind texture | Bind 2D textures to sampler slots |
+| Init | Initialize the backend |
+| Clear color / clear | Set framebuffer clear color; clear buffers |
+| Bind texture 2D / cube | Bind 2D or cube textures to sampler slots |
 | Draw indexed | Draw triangles via indexed geometry |
 | Draw arrays | Draw without index buffer |
 | Draw lines | Draw line primitives for debug overlays |
-| Line width | Set line width (clamped to 1.0 on modern OpenGL) |
+| Line width | Set line width |
 | Depth test / depth write | Toggle depth testing and depth buffer writes |
 | Face culling | Toggle back-face culling |
 | Polygon mode | Fill vs line polygon mode |
-| Error query | Return OpenGL error code (0 = no error) |
+| Viewport | Set the viewport rectangle |
+| Error query | Return backend error code (0 = no error) |
 
-The OpenGL backend implements this interface; debug builds wrap calls with error checking.
+The OpenGL backend implements this interface.
 
 ---
 
 ## 2D Batching System
+
+**File**: `Engine/Renderer/Pipeline/Graphics2D.cs`, `Engine/Renderer/RenderingConstants.cs`
 
 ### Vertex Formats
 
@@ -131,7 +138,7 @@ sequenceDiagram
     participant Batch as CPU batch buffer
     participant GPU as Renderer API
 
-    System->>G2D: Begin scene (camera)
+    System->>G2D: Begin scene (SceneView)
     G2D->>G2D: Set view-projection uniform
     G2D->>Batch: Start batch — reset counters
 
@@ -185,7 +192,7 @@ sequenceDiagram
 
 ## 3D Mesh Path
 
-**File**: `Engine/Renderer/Pipeline/Graphics3D.cs`, `Engine/Renderer/Models/`, `Engine/Renderer/Meshes/Mesh.cs`
+**File**: `Engine/Renderer/Pipeline/Graphics3D.cs`, `Engine/Renderer/Pipeline/IGraphics3D.cs`, `Engine/Renderer/Models/`, `Engine/Renderer/Meshes/Mesh.cs`, `Engine/Renderer/Meshes/IMeshFactory.cs`
 
 3D is a **forward, unbatched** path: one `DrawIndexed` per cube or imported submesh. That is enough for static props and a handful of characters; it is not an instancing or PBR pipeline.
 
@@ -195,32 +202,36 @@ sequenceDiagram
 
 | Call | Role |
 |------|------|
-| `BeginScene` | Bind view-projection (runtime entity camera or editor orbit camera) |
+| `BeginScene` | Store `SceneView` view-projection and camera world position |
 | `SetAmbientLight` / `SetDirectionalLight` | Scene lights for the pass |
-| `DrawCube` | Shared unit cube mesh (`MeshFactory.CreateCube`) |
+| `DrawCube` | Shared unit cube mesh (`IMeshFactory.CreateCube`) |
 | `DrawMesh` | GPU mesh + optional diffuse/specular/normal maps |
 
-Lighting is Blinn-Phong (`assets/shaders/OpenGL/modelShader.*`, `cube.*`). The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
+Lighting is Blinn-Phong (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`). The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
 
 ### Model import
 
-**File**: `Engine/Renderer/Models/AssimpModelImporter.cs`, `ModelFactory.cs`
+**File**: `Engine/Renderer/Models/AssimpModelImporter.cs`, `Engine/Renderer/Models/ModelFactory.cs`, `Engine/Renderer/Models/ModelSceneNode.cs`, `Engine/Renderer/Models/AssimpTexturePath.cs`
 
 | Step | What happens |
 |------|----------------|
 | `IModelFactory.Create(path)` | Path cache (including failed loads). Miss → Assimp import + VAO/VBO/EBO |
-| Assimp | Silk.NET Assimp, not AssimpNet. Formats: `.glb`, `.gltf`, `.fbx` |
-| Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs, **pre-transform vertices** (hierarchy baked) |
-| CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (`MNumIndices == 3`) |
-| Materials | Diffuse (albedo), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files |
-| GPU upload | `Mesh.Initialize` — vertex layout below; CPU vertex/index lists cleared after upload |
+| Assimp | Silk.NET Assimp. Formats: `.glb`, `.gltf`, `.fbx` |
+| Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs. Node transforms are **not** baked into vertices |
+| Scene graph | `Model.SceneGraph` walks Assimp nodes (`ModelSceneNode`: name, mesh indices, children, local transform) |
+| CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (non-triangle faces skipped). Unreal collision mesh names (`UCX_`, `UBX_`, `USP_`, `UCP_`) skipped |
+| Materials | BaseColor then Diffuse (albedo, sRGB), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files. Missing albedo next to a `*_N` normal may be inferred (`AssimpTexturePath`) |
+| GPU upload | `Mesh.Initialize` — vertex layout in `Engine/Renderer/Meshes/Mesh.cs`; CPU vertex/index lists cleared after upload |
 
-The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; OpenGL upload must stay on the context thread.
+`SceneRenderPipeline` draws with the **entity** world matrix. A single entity with `ModelPath` and no `MeshIndex` submits every submesh at that transform. `MeshIndex` draws one submesh (typical when the graph is unpacked onto child entities). `SuppressDraw` skips the catch-all draw.
 
-`PreTransformVertices` is a static-model choice: node transforms are baked into vertices. Mesh instancing via the Assimp node graph and skeletal animation need that flag off and a node walk — not implemented.
+The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; GPU upload must stay on the context thread. Skinning and animation clips are not implemented.
+
 ---
 
 ## Texture Management
+
+**File**: `Engine/Renderer/Textures/ITextureFactory.cs`
 
 ```mermaid
 graph TD
@@ -232,10 +243,9 @@ graph TD
     Cache --> Return
 ```
 
-- **Strong path cache** — cleared on shutdown
-- **Path normalization** — full path, case-insensitive comparison
-- **Singleton fallback**: white texture for untextured quads
-- **Thread-safe** cache and singleton creation
+- **Path cache** — `ITextureFactory.Create(path, sRgb)` keys on path + colorspace; `ClearCache` disposes entries
+- **Singletons**: white (untextured quads), black (missing specular), flat normal (missing normals)
+- **Procedural** `Create(width, height)` and `CreateFromRgba` are not path-cached
 
 ### Texture Slot Caching (Per-Batch)
 
@@ -245,117 +255,101 @@ Within a single batch, the 2D graphics layer maps texture ids to slot indices. T
 
 ## Shader Management
 
-GLSL sources ship with the engine and copy next to the host executable at build time (`assets/shaders/OpenGL/`). Edit them once in the engine project; do not duplicate into application projects.
+**File**: `Engine/Renderer/Shaders/IShaderFactory.cs`
 
-Shader loading:
+GLSL sources ship in `Engine/assets/shaders/OpenGL/` (loaded via `assets/shaders/OpenGL/...`). 2D loads `textureShader` and `lineShader`; 3D loads `cube` and `modelShader`.
 
-- **Cache key**: vertex path, fragment path, optional geometry path, file modification times, and optional preprocessor defines
-- **Auto-invalidation**: modified shader files miss the cache and recompile on next access
-- **Concurrency**: compilation can run outside the cache lock; duplicate compilations from races are discarded
-- **Weak references**: shaders may be collected when no scene references remain; dead entries cleaned on cache miss
-- **Parallel compilation**: multiple shaders can compile concurrently
+`IShaderFactory.Create(vertPath, fragPath)` returns a cached shader. The factory uses weak references so unused shaders can be collected. `ClearCache` forces later requests to recompile.
 
 ---
 
 ## Camera System
 
+**File**: `Engine/Scene/SceneCamera.cs`, `Engine/Scene/Cameras/Camera.cs`, `Engine/Scene/Cameras/CameraConfig.cs`, `Engine/Scene/Cameras/CameraViews.cs`, `Engine/Scene/Systems/CameraQueries.cs`, `Engine/Renderer/Pipeline/SceneView.cs`
+
 ```mermaid
 classDiagram
-    class RuntimeCamera {
-        orthographic projection
+    class SceneCamera {
+        orthographic or perspective
         lazy projection recompute
-        viewport resize
     }
 
-    class EditorOrbitCamera {
-        focal point + distance
-        pan, orbit, zoom
-        precomputed view-projection
+    class CameraViews {
+        invert world transform
+        view times projection
     }
 
-    class CameraBinding {
-        view-projection matrix
-        camera position
+    class SceneView {
+        ViewProjection
+        ViewPosition
     }
 
-    RuntimeCamera --> CameraBinding
-    EditorOrbitCamera --> CameraBinding
+    SceneCamera --> CameraViews
+    CameraViews --> SceneView
 ```
 
-### Runtime scene camera
+### Scene camera
 
-- Supports **orthographic** and **perspective** projection (`CameraComponent.ProjectionType`)
-- **Lazy evaluation**: projection matrix only recomputed when dirty (property changes, viewport resize)
-- Wrapped in `CameraComponent` on an entity; primary flag designates the active camera
-- Scene render and physics debug look up that primary component when they draw (via `CameraQueries.TryGetPrimaryView`)
+- Supports **orthographic** and **perspective** projection (`ProjectionType`; defaults from `CameraConfig`)
+- **Lazy evaluation**: projection matrix only recomputed when dirty (property changes, viewport size)
+- Wrapped in `CameraComponent` on an entity; `Primary` designates the active camera
+- Scene render and physics debug look up that component via `CameraQueries.TryGetPrimaryView`
 
-### Editor orbit camera
+`TryGetPrimaryView` builds a `SceneView` with `CameraViews.TryFrom`: invert the camera world matrix (or `CameraComponent.CameraViewTransform` when set), then `view * projection`. View position is the transform translation. A non-invertible transform logs an error and skips drawing.
 
-- Orbits around a focal point
-- Controls: **Pan** (lateral), **Orbit** (yaw/pitch around focal point), **Zoom** (distance from focal point)
-- Provides precomputed view-projection for editor viewport drawing
-- Default tuning: rotation speed 0.8, zoom sensitivity 0.1, distance range [0.5, 500]
+`IScene.OnRuntimeStart` promotes the first `CameraComponent` to primary if none is flagged. `IScene.SetPrimaryCamera` clears `Primary` on every other camera.
+
+`CameraConfig` also stores editor-camera defaults (FOV, distance range, fly/orbit sensitivities).
+
+### Screen → world (2D)
+
+**File**: `Engine/Scene/Cameras/ScreenWorldConverter.cs`
+
+`ICameraQueries.ScreenToWorld2D` maps a window position through the pointer surface into the Z=0 plane using the primary camera `SceneView`. Out-of-surface positions and a failed invert return null.
 
 ### Begin-scene integration
 
-2D drawing accepts two camera modes (3D `BeginScene` uses the same binding):
-
-| Mode | Usage | View matrix source |
-|------|-------|-------------------|
-| Runtime entity camera | Runtime rendering | Inverts entity's `TransformComponent` |
-| Editor orbit camera | Editor rendering | Camera provides precomputed view-projection |
-
-Both set the view-projection uniform on quad and line shaders, then start a new batch.
+`IGraphics2D.BeginScene` and `IGraphics3D.BeginScene` both take `in SceneView`. 2D sets `u_ViewProjection` on the quad and line shaders, then starts a batch. 3D stores view-projection and view position for cube/mesh draws. Any caller (runtime systems or the editor viewport) can pass a `SceneView`; the graphics layer does not distinguish camera types.
 
 ---
 
 ## Framebuffers
 
-### Attachment Configuration
+**File**: `Engine/Renderer/Buffers/FrameBuffer/IFrameBuffer.cs`, `Engine/Renderer/Buffers/FrameBuffer/IFrameBufferFactory.cs`, `Engine/Renderer/Buffers/FrameBuffer/FramebufferTextureFormat.cs`
 
-The editor framebuffer uses three attachments:
+`IFrameBufferFactory` creates framebuffers from a `FrameBufferSpecification` (size + attachment list). Formats include RGBA8, RGBA16F, RED_INTEGER, DEPTH24STENCIL8, DepthComponent, and DepthCubemap. `IFrameBuffer` can bind, resize, `ReadPixel`, `ClearAttachment`, and `BindDepthCubemapFace`. Max dimension constant: `RenderingConstants.MaxFramebufferSize` (8192).
 
-| Attachment | Format | Purpose |
-|------------|--------|---------|
-| Color | RGBA8 | Scene color for ImGui display |
-| Entity ID | RED_INTEGER | 32-bit int per pixel — stores entity ID for mouse picking |
-| Depth | DEPTH24STENCIL8 | Depth testing for correct draw order |
-
-Default size: 1280×720. Framebuffers are created through the shared framebuffer allocation path; OpenGL owns the concrete attachment storage.
-
-### Entity Picking
+### Entity picking
 
 ```mermaid
 sequenceDiagram
-    participant Mouse as Mouse click
-    participant Editor as Editor viewport
+    participant Caller as Viewport / picker
     participant FB as Framebuffer
 
-    Mouse->>Editor: Click at screen position
-    Editor->>Editor: Convert to framebuffer coordinates
-    Editor->>FB: Read entity ID attachment at pixel
-    FB->>FB: Read integer attachment
-    FB-->>Editor: entity id (-1 if empty)
-    Editor->>Editor: Select entity by ID
+    Caller->>FB: ReadPixel(attachment, x, y)
+    FB-->>Caller: integer (entity id or -1)
 ```
 
-- Picking reads a single pixel from the entity ID attachment while the framebuffer is bound for read
-- Entity ID is written per-vertex in quad vertices — the fragment shader outputs it to the second color attachment
-- Entity ID attachment is cleared to -1 before each frame
-
-### Resize
-
-Framebuffers resize to match the viewport, clamped to max framebuffer size (8192×8192). The editor handles logical-to-physical DPI scaling before resizing.
+- Quad and mesh vertices carry `EntityId`; shaders write it for an integer color attachment
+- `ReadPixel` samples one attachment at a framebuffer coordinate while the target is bound for read
+- `ClearAttachment` can reset an integer attachment (typically to -1) before the frame
 
 ---
 
 ## Rendering Statistics
 
-2D graphics tracks per-frame statistics in a shared stats structure. 3D graphics tracks draw-call count only (`IGraphics3D.GetStats()`).
+**File**: `Engine/Renderer/Graphics2DStats.cs`, `Engine/Renderer/Statistics.cs`
+
+2D graphics tracks per-frame stats on `Graphics2DStats`. 3D graphics tracks draw-call count on `Statistics` (`IGraphics3D.GetStats()`).
 
 | Field | Scope | Meaning |
 |-------|-------|---------|
-| **DrawCalls** | 2D | Flush invocations (quad and line batches count separately) |
-| **QuadCount** | 2D | Total quads drawn across all batches |
+| **DrawCalls** | 2D / 3D | 2D: quad flush draws. 3D: cube/mesh draws |
+| **LineDrawCalls** / **LineVertexCount** | 2D | Line pass |
+| **QuadCount** | 2D | Total quads across batches |
+| **BatchCount** | 2D | Extra flushes when a batch fills |
+| **TextureBinds** / **ProgramSwitches** / **UploadBytes** | 2D | Bind and upload accounting |
+| **BatchFillMs** / **FlushMs** | 2D | CPU timing |
+| **GpuQuadPassMs** / **GpuLinePassMs** | 2D | Previous-frame GPU timer queries (DEBUG builds) |
 
-Total vertex and index counts derive from quad count. Stats reset before each frame (editor viewport resets 2D stats at frame start). Exposed for the editor stats panel.
+Total 2D vertex and index counts derive from quad count. `ResetStats` clears the 2D record before a new sample window.
