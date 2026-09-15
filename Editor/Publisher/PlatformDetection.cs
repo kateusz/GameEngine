@@ -30,8 +30,21 @@ public static class PlatformDetection
         };
     }
 
+    /// <summary>Apphost name produced by <c>dotnet publish</c> of Runtime.csproj.</summary>
     public static string GetExecutableName(string runtimeIdentifier)
+        => runtimeIdentifier.StartsWith("win") ? "Runtime.exe" : "Runtime";
+
+    /// <summary>Shipped player name derived from <paramref name="gameTitle"/>.</summary>
+    public static string GetPublishedExecutableName(string runtimeIdentifier, string gameTitle)
     {
-        return runtimeIdentifier.StartsWith("win") ? "Runtime.exe" : "Runtime";
+        var baseName = SanitizeExecutableBaseName(gameTitle);
+        return runtimeIdentifier.StartsWith("win") ? $"{baseName}.exe" : baseName;
+    }
+
+    public static string SanitizeExecutableBaseName(string gameTitle)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(gameTitle.Where(c => Array.IndexOf(invalid, c) < 0).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "Game" : cleaned;
     }
 }

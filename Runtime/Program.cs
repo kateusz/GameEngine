@@ -84,7 +84,11 @@ public class Program
         EngineIoCContainer.RegisterCore(container);
         container.Resolve<IProjectContext>().Apply(AppContext.BaseDirectory);
         EngineIoCContainer.RegisterWindowing(container,
-            new EngineHostOptions(gameConfig.GameTitle, gameConfig.WindowWidth, gameConfig.WindowHeight));
+            new EngineHostOptions(gameConfig.GameTitle, gameConfig.WindowWidth, gameConfig.WindowHeight)
+            {
+                Fullscreen = gameConfig.Fullscreen,
+                TargetFrameRate = gameConfig.TargetFrameRate
+            });
         container.RegisterInstance(gameConfig);
         
         // todo: remove
