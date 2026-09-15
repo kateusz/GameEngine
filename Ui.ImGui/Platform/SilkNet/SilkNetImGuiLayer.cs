@@ -1,6 +1,5 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using Engine.Events;
 using Engine.Events.Input;
 using Engine.Events.Window;
 using Engine.Platform.SilkNet;
@@ -121,7 +120,7 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
             return;
 
         var io = ImGuiNET.ImGui.GetIO();
-        if (windowEvent.IsInCategory(EventCategory.EventCategoryKeyboard) && io.WantCaptureKeyboard)
+        if (windowEvent is KeyPressedEvent && io.WantCaptureKeyboard)
             windowEvent.IsHandled = true;
     }
 

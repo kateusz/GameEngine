@@ -1,4 +1,3 @@
-using Engine.Events;
 using Engine.Events.Input;
 using Input;
 using Shouldly;
@@ -19,36 +18,6 @@ public class KeyEventTests
     }
 
     [Fact]
-    public void KeyPressedEvent_IsInCategory_Keyboard_ShouldReturnTrue()
-    {
-        // Arrange
-        var @event = new KeyPressedEvent(KeyCodes.Enter, false);
-
-        // Act & Assert
-        @event.IsInCategory(EventCategory.EventCategoryKeyboard).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void KeyPressedEvent_IsInCategory_Input_ShouldReturnTrue()
-    {
-        // Arrange
-        var @event = new KeyPressedEvent(KeyCodes.Escape, false);
-
-        // Act & Assert
-        @event.IsInCategory(EventCategory.EventCategoryInput).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void KeyPressedEvent_IsInCategory_Mouse_ShouldReturnFalse()
-    {
-        // Arrange
-        var @event = new KeyPressedEvent(KeyCodes.A, false);
-
-        // Act & Assert
-        @event.IsInCategory(EventCategory.EventCategoryMouse).ShouldBeFalse();
-    }
-
-    [Fact]
     public void KeyReleasedEvent_Constructor_ShouldSetKeyCode()
     {
         // Act
@@ -56,16 +25,6 @@ public class KeyEventTests
 
         // Assert
         @event.KeyCode.ShouldBe(KeyCodes.W);
-    }
-
-    [Fact]
-    public void KeyReleasedEvent_IsInCategory_Keyboard_ShouldReturnTrue()
-    {
-        // Arrange
-        var @event = new KeyReleasedEvent(KeyCodes.S);
-
-        // Act & Assert
-        @event.IsInCategory(EventCategory.EventCategoryKeyboard).ShouldBeTrue();
     }
 
     [Theory]

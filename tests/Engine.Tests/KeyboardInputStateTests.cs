@@ -11,7 +11,7 @@ public class KeyboardInputStateTests
     public void Apply_KeyPress_SetsHeldAndWasPressed()
     {
         var state = new KeyboardInputState();
-        state.Apply(new KeyPressedEvent(KeyCodes.A, isRepeat: false));
+        state.Apply(new KeyPressedEvent(KeyCodes.A, IsRepeat: false));
 
         state.IsKeyDown(KeyCodes.A).ShouldBeTrue();
         state.WasKeyPressed(KeyCodes.A).ShouldBeTrue();
@@ -21,7 +21,7 @@ public class KeyboardInputStateTests
     public void Apply_KeyRepeat_DoesNotSetWasPressed()
     {
         var state = new KeyboardInputState();
-        state.Apply(new KeyPressedEvent(KeyCodes.A, isRepeat: true));
+        state.Apply(new KeyPressedEvent(KeyCodes.A, IsRepeat: true));
 
         state.IsKeyDown(KeyCodes.A).ShouldBeTrue();
         state.WasKeyPressed(KeyCodes.A).ShouldBeFalse();
@@ -31,7 +31,7 @@ public class KeyboardInputStateTests
     public void EndFrame_ClearsWasPressedButKeepsHeld()
     {
         var state = new KeyboardInputState();
-        state.Apply(new KeyPressedEvent(KeyCodes.A, isRepeat: false));
+        state.Apply(new KeyPressedEvent(KeyCodes.A, IsRepeat: false));
         state.EndFrame();
 
         state.IsKeyDown(KeyCodes.A).ShouldBeTrue();
@@ -42,7 +42,7 @@ public class KeyboardInputStateTests
     public void Apply_KeyRelease_ClearsHeld()
     {
         var state = new KeyboardInputState();
-        state.Apply(new KeyPressedEvent(KeyCodes.A, isRepeat: false));
+        state.Apply(new KeyPressedEvent(KeyCodes.A, IsRepeat: false));
         state.Apply(new KeyReleasedEvent(KeyCodes.A));
 
         state.IsKeyDown(KeyCodes.A).ShouldBeFalse();

@@ -52,7 +52,7 @@ public class MouseInputStateTests
     public void Apply_KeyEvent_IsIgnored()
     {
         var state = new MouseInputState();
-        state.Apply(new KeyPressedEvent(KeyCodes.A, isRepeat: false));
+        state.Apply(new KeyPressedEvent(KeyCodes.A, IsRepeat: false));
 
         state.Position.ShouldBe(Vector2.Zero);
         state.IsButtonDown(MouseButtons.Left).ShouldBeFalse();
