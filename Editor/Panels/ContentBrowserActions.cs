@@ -13,16 +13,6 @@ public class ContentBrowserActions(
 {
     private static readonly ILogger Logger = Log.ForContext<ContentBrowserActions>();
 
-    public async Task<(bool Success, string? Error)> CreateScriptAsync(string scriptName)
-    {
-        if (projectContext.ScriptsDir is null)
-            return (false, "Open a project first.");
-
-        var template = ScriptableEntityTemplates.Generate(scriptName);
-        var (success, errors) = await scriptWorkspace.CreateOrUpdateScriptAsync(scriptName, template);
-        return success ? (true, null) : (false, string.Join('\n', errors.Take(5)));
-    }
-
     public async Task<(bool Success, string? Error)> CreateSystemAsync(string baseName)
     {
         if (projectContext.ScriptsDir is not { } scriptsDir)

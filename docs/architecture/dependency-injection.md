@@ -231,7 +231,7 @@ All singletons via `RegisterMany`. Registration order matches properties panel d
 - `TransformComponentEditor`, `CameraComponentEditor`, `SpriteRendererComponentEditor`
 - `RigidBody2DComponentEditor`, `BoxCollider2DComponentEditor`, `CircleCollider2DComponentEditor`, `EdgeCollider2DComponentEditor`
 - `SubTextureRendererComponentEditor`, `AudioSourceComponentEditor`, `AudioListenerComponentEditor`
-- `GameComponentEditor`, `ScriptComponentEditor`
+- `GameComponentEditor`
 
 Resolved through `IComponentEditorRegistry` → `ComponentEditorRegistry`.
 

@@ -20,7 +20,6 @@ public class SystemManagerFactoryTests
                 Arg.Any<IContext>(),
                 Arg.Any<PhysicsRuntimeBodyStore>(),
                 Arg.Any<PhysicsContactQueue>(),
-                Arg.Any<ScriptRuntimeStore>(),
                 Arg.Any<SceneDimension>())
             .Returns(Substitute.For<IPhysicsQueries>());
     }
@@ -34,11 +33,10 @@ public class SystemManagerFactoryTests
         var build = builder.Create(context);
 
         _mockSystemsFactory.Received(1).PopulateSystemManager(
-            build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore,
+            build.SystemManager, context, build.BodyStore, build.ContactQueue,
             SceneDimension.TwoD);
         build.BodyStore.ShouldNotBeNull();
         build.ContactQueue.ShouldNotBeNull();
-        build.ScriptStore.ShouldNotBeNull();
     }
 
     [Fact]
@@ -51,7 +49,7 @@ public class SystemManagerFactoryTests
 
         build.BodyStore.ShouldNotBeNull();
         _mockSystemsFactory.Received(1).PopulateSystemManager(
-            build.SystemManager, context, build.BodyStore, build.ContactQueue, build.ScriptStore,
+            build.SystemManager, context, build.BodyStore, build.ContactQueue,
             SceneDimension.ThreeD);
     }
 

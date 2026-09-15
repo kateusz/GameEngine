@@ -19,7 +19,6 @@ public class SceneHierarchyRowsTests
             Substitute.For<ISystemManager>(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
-            new ScriptRuntimeStore(),
             null!));
 
         return new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())

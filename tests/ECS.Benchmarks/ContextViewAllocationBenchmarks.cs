@@ -47,7 +47,7 @@ public class ContextViewAllocationBenchmarks
             if (i % 20 == 0)
                 entity.AddComponent(new AudioSourceComponent());
             if (i % 100 == 0)
-                entity.AddComponent(new NativeScriptComponent());
+                entity.AddComponent(new TagComponent());
 
             _context.Register(entity);
         }
@@ -78,7 +78,7 @@ public class ContextViewAllocationBenchmarks
         sum += SumView<RigidBody2DComponent>();
         sum += SumView<RigidBody2DComponent, TransformComponent>();
         sum += SumView<RigidBody2DComponent>();
-        sum += SumView<NativeScriptComponent>();
+        sum += SumView<TagComponent>();
         sum += SumView<TransformComponent>();
         sum += SumView<AudioListenerComponent, TransformComponent>();
         sum += SumView<AudioSourceComponent>();
@@ -113,7 +113,7 @@ public class ContextViewAllocationBenchmarks
     public int ViewSparseComponentQuery()
     {
         var sum = 0;
-        foreach (var (entity, _) in _context.View<NativeScriptComponent>())
+        foreach (var (entity, _) in _context.View<TagComponent>())
             sum += entity.Id;
 
         return sum;

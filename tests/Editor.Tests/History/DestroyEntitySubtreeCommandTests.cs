@@ -8,6 +8,7 @@ using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
+using SceneComponents.Rendering;
 using Shouldly;
 
 namespace Editor.Tests.History;
@@ -21,7 +22,6 @@ public class DestroyEntitySubtreeCommandTests
             Substitute.For<ISystemManager>(),
             new PhysicsRuntimeBodyStore(),
             new PhysicsContactQueue(),
-            new ScriptRuntimeStore(),
             null!));
 
         return new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())
@@ -133,18 +133,18 @@ public class DestroyEntitySubtreeCommandTests
     }
 
     [Fact]
-    public void Undo_PreservesNativeScriptTypeName_ViaCloneBag()
+    public void Undo_PreservesSpriteTexturePath_ViaCloneBag()
     {
         using var scene = CreateScene();
-        var root = CreateWithTransform(scene, "scripted", Vector3.Zero);
-        root.AddComponent(new NativeScriptComponent { ScriptTypeName = "Games.Demo.PlayerScript" });
+        var root = CreateWithTransform(scene, "sprite", Vector3.Zero);
+        root.AddComponent(new SpriteRendererComponent { TexturePath = "textures/player.png" });
 
         var command = new DestroyEntitySubtreeCommand(scene, root.Id);
         command.Execute();
         command.Undo();
 
-        var restored = scene.Entities.Single(e => e.Name == "scripted");
-        restored.GetComponent<NativeScriptComponent>().ScriptTypeName.ShouldBe("Games.Demo.PlayerScript");
+        var restored = scene.Entities.Single(e => e.Name == "sprite");
+        restored.GetComponent<SpriteRendererComponent>().TexturePath.ShouldBe("textures/player.png");
     }
 
     [Fact]

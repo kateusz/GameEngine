@@ -13,6 +13,5 @@ public interface ISceneSystemsFactory
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue,
-        ScriptRuntimeStore scriptStore,
         SceneDimension dimension = SceneDimension.TwoD);
 }

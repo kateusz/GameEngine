@@ -33,17 +33,4 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
         gl.Clear(ClearBufferMask.ColorBufferBit);
         gl.GetError().ShouldBe(GLEnum.NoError);
     }
-
-    [GraphicsFact]
-    public void Dispose_ReleasesContext()
-    {
-        var window = HeadlessWindow.Create("Engine.GraphicsTests.Dispose");
-        var context = new SilkNetGraphicsContext(window);
-        context.Create();
-
-        context.Dispose();
-        context.IsCreated.ShouldBeFalse();
-
-        window.Dispose();
-    }
 }

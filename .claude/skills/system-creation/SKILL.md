@@ -98,7 +98,7 @@ Authoritative source: `Engine/Scene/Systems/SystemPriorities.cs`
 | Value | System |
 |-------|--------|
 | 100 | PhysicsSimulationSystem |
-| 110 | ScriptUpdateSystem |
+| 115 | TransformHierarchySystem |
 | 120 | AudioSystem |
 | 145 | PrimaryCameraSystem |
 | 150 | SpriteRenderSystem |
@@ -107,7 +107,7 @@ Authoritative source: `Engine/Scene/Systems/SystemPriorities.cs`
 | 170 | ModelRenderSystem |
 | 180 | PhysicsDebugRenderSystem |
 
-When adding a new system, pick a value that fits between existing ones and register it in `SystemPriorities.cs`. When in doubt: physics/simulation ~100–130, game logic/scripts ~110–145, rendering ~150–180.
+When adding a new system, pick a value that fits between existing ones and register it in `SystemPriorities.cs`. When in doubt: physics/simulation ~100–130, game logic ~115, rendering ~150–180.
 
 ## Common Mistakes
 

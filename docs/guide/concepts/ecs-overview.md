@@ -2,7 +2,7 @@
 
 **Entities** are named containers (ID + components). **Components** are data. **Systems** run each frame on matching component sets.
 
-Build objects by composition — e.g. Player = `TransformComponent` + `SpriteRendererComponent` + `RigidBody2DComponent` + `NativeScriptComponent`.
+Build objects by composition — e.g. Player = `TransformComponent` + `SpriteRendererComponent` + `RigidBody2DComponent`.
 
 ## Built-in vs game types
 
@@ -28,10 +28,6 @@ Batch game logic registered with `[Register(typeof(IGameSystem))]`. Implements `
 - [`FlappyBirdSystem`](../../../games/FlappyBird/project/assets/scripts/FlappyBirdSystem.cs) — simulates bird/pipes from `FlappyBirdGameComponent`, syncs transforms and score digits
 
 Open samples: `games/Snake/project/`, `games/FlappyBird/project/` via **Open Project**.
-
-## Scripts
-
-Per-entity glue: `ScriptableEntity` + `NativeScriptComponent`. `GetComponent<T>()` on the host entity only — no `CreateEntity` / `FindEntity`. Systems use `IContext` (e.g. `context.GetByName("Player")`). See [Scripting Tiers](../scripting/scripting-tiers.md).
 
 ## Editor workflow
 

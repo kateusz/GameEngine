@@ -49,35 +49,3 @@ internal sealed class JsonComponentSerializer<T> : IComponentSerializer where T 
         return true;
     }
 }
-
-internal sealed class NativeScriptComponentSerializer : IComponentSerializer
-{
-    private const string ScriptTypeKey = "ScriptType";
-
-    public string ComponentName => nameof(NativeScriptComponent);
-
-    public Type ComponentType => typeof(NativeScriptComponent);
-
-    public bool TrySerialize(IComponent component, JsonSerializerOptions options, out JsonObject? componentJson)
-    {
-        var script = (NativeScriptComponent)component;
-        var obj = new JsonObject { ["Name"] = ComponentName };
-
-        if (!string.IsNullOrEmpty(script.ScriptTypeName))
-            obj[ScriptTypeKey] = script.ScriptTypeName;
-
-        componentJson = obj;
-        return true;
-    }
-
-    public bool TryDeserialize(Entity entity, JsonObject componentJson, JsonSerializerOptions options)
-    {
-        var component = new NativeScriptComponent();
-        var scriptTypeName = componentJson[ScriptTypeKey]?.GetValue<string>();
-        if (!string.IsNullOrEmpty(scriptTypeName))
-            component.ScriptTypeName = scriptTypeName;
-
-        entity.AddComponent(component);
-        return true;
-    }
-}

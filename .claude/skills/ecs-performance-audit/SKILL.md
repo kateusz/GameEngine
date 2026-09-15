@@ -32,7 +32,7 @@ Invoke this skill when encountering:
 - Check for implicit update order dependencies
 - Verify priority values align with execution requirements (see `SystemPriorities.cs`):
   - PhysicsSimulationSystem: 100
-  - ScriptUpdateSystem: 110
+  - TransformHierarchySystem: 115
   - AudioSystem: 120
   - PrimaryCameraSystem: 145
   - SpriteRenderSystem: 150
@@ -57,7 +57,7 @@ Invoke this skill when encountering:
 - Suggest cache-friendly component packing
 
 ### 5. Reflection & Dynamic Dispatch
-- Flag reflection usage in hot paths (use static caching like `ScriptableEntity`)
+- Flag reflection usage in hot paths
 - Check for virtual method calls that could be devirtualized
 - Identify dictionary lookups that could use faster alternatives
 - Verify factory pattern usage for appropriate caching

@@ -14,11 +14,11 @@ Set `RigidBody2DComponent.Velocity` in `OnUpdate` for Dynamic/Kinematic movement
 
 ## Collisions vs triggers
 
-**Collision** (`OnCollisionBegin` / `OnCollisionEnd`): both entities need colliders; at least one needs a rigidbody.
+**Collision:** both entities need colliders; at least one needs a rigidbody.
 
-**Trigger** (`OnTriggerEnter` / `OnTriggerExit`): set the collider's `IsTrigger = true`. Overlap without physical response.
+**Trigger:** set the collider's `IsTrigger = true`. Overlap without physical response.
 
-Systems can poll `IPhysicsContacts.DrainContacts()` instead of script callbacks — [Scripting Tiers](scripting-tiers.md).
+Poll `IPhysicsContacts.DrainContacts()` in an `IGameSystem` — [Scripting Tiers](scripting-tiers.md). Each `PhysicsContact` has `Self`, `Other`, `IsTrigger`, `IsBegin`.
 
 ## Collider shapes
 
@@ -32,34 +32,32 @@ Shared material: `Density`, `Friction` (0–1), `Restitution` (bounciness 0–1)
 
 ## Example: pickup
 
-Scripts cannot destroy entities — hide/remove components instead:
+Systems cannot destroy entities from typical samples — hide/remove components instead:
 
 ```csharp
-public override void OnTriggerEnter(Entity other)
+foreach (var contact in contacts.DrainContacts())
 {
-    if (_collected || other.Name != "Player") return;
-    _collected = true;
-    if (HasComponent<SpriteRendererComponent>()) RemoveComponent<SpriteRendererComponent>();
-    if (HasComponent<BoxCollider2DComponent>()) RemoveComponent<BoxCollider2DComponent>();
+    if (!contact.IsTrigger || !contact.IsBegin)
+        continue;
+    if (contact.Self.Name != "Coin" || contact.Other.Name != "Player")
+        continue;
+    if (contact.Self.HasComponent<SpriteRendererComponent>())
+        contact.Self.RemoveComponent<SpriteRendererComponent>();
+    if (contact.Self.HasComponent<BoxCollider2DComponent>())
+        contact.Self.RemoveComponent<BoxCollider2DComponent>();
 }
 ```
 
-Setup: Static rigidbody, `IsTrigger` collider, sprite, `NativeScriptComponent`.
+Setup: Static rigidbody, `IsTrigger` collider, sprite.
 
 ## Queries
 
-`Raycast` / `OverlapCircle` on `ScriptableEntity` — synchronous reads, no callbacks, auto-ignore self. Default hits solids only; pass `includeTriggers: true` for triggers.
+Inject `IPhysicsQueries` — synchronous reads, no callbacks. Default hits solids only; pass `includeTriggers: true` for triggers.
 
 ```csharp
-if (Raycast(Vector2.Zero, new Vector2(0, -1), 0.6f) is { } ground)
+if (physics.Raycast(origin, new Vector2(0, -1), 0.6f, ignoreEntity: player) is { } ground)
     // standing on ground.Entity
 
-if (OverlapCircle(Vector2.Zero, 2f) is { } nearby)
+if (physics.OverlapCircle(center, 2f, ignoreEntity: player) is { } nearby)
     // proximity
 ```
-
-Systems: inject `IPhysicsQueries` directly.
-
-## Debug
-
-**Show Collider Bounds** in debug settings (`PhysicsDebugRenderSystem`).

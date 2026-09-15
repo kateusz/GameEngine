@@ -26,15 +26,12 @@ internal sealed class Scene : IScene
     // parent Id → ordered child entities (insertion order). Roots are entities with no ParentComponent / null ParentId.
     private readonly Dictionary<int, List<Entity>> _childrenIndex = new();
 
-    internal ScriptRuntimeStore ScriptRuntimeStore { get; }
-
     public Scene(string path,
         string sceneName,
         IContext context,
         ISystemManager systemManager,
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
-        ScriptRuntimeStore scriptRuntimeStore,
         IPhysicsQueries physicsQueries,
         ICameraQueries cameraQueries)
     {
@@ -44,7 +41,6 @@ internal sealed class Scene : IScene
         _systemManager = systemManager;
         PhysicsBodies = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
-        ScriptRuntimeStore = scriptRuntimeStore;
         _physicsQueries = physicsQueries;
         _cameraQueries = cameraQueries;
 
@@ -112,20 +108,6 @@ internal sealed class Scene : IScene
     {
         DetachFromParentIndex(entity);
         _childrenIndex.Remove(entity.Id);
-
-        if (ScriptRuntimeStore.TryGet(entity.Id, out var script))
-        {
-            try
-            {
-                script.OnDestroy();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error in script OnDestroy for entity '{EntityName}' (ID: {EntityId})", entity.Name, entity.Id);
-            }
-            ScriptRuntimeStore.Remove(entity.Id);
-        }
-
         Context.Remove(entity.Id);
     }
 
@@ -158,7 +140,6 @@ internal sealed class Scene : IScene
     public void OnUpdateRuntime(TimeSpan ts)
     {
         // 100: PhysicsSimulationSystem
-        // 110: ScriptUpdateSystem
         // 115: TransformHierarchySystem (world caches)
         // 120: AudioSystem
         // 145: PrimaryCameraSystem
