@@ -26,9 +26,6 @@ public class PublishProgress : IProgress<string>
         _buildOutput.Enqueue(value);
     }
 
-    public void SetProgress(float progress) =>
-        Progress = System.Math.Clamp(progress, 0.0f, 1.0f);
-
     public void SetFailed(string errorMessage)
     {
         lock (_lock)
