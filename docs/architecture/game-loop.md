@@ -275,15 +275,14 @@ sequenceDiagram
 
 **File**: `Runtime/GameLayer.cs`
 
-1. `GameLayer.OnAttach()` subscribes to `ISceneContext.SceneChanged`
-2. Resolves startup scene path from `GameConfiguration.StartupScenePath` (relative to `AppContext.BaseDirectory`)
-3. `SceneFactory.Create()` + `SceneSerializer.Deserialize()`
-4. `sceneContext.SetScene(scene)` then `RuntimeSceneStarter.Start(scene, sceneContext, gameSystems)` — registers `[Register]` `IGameSystem` instances and calls `scene.OnRuntimeStart()`
-5. Calls `scene.OnViewportResize` from the current window client size
+1. `GameLayer.OnAttach()` resolves startup scene path from `GameConfiguration.StartupScenePath` (relative to `AppContext.BaseDirectory`)
+2. `SceneFactory.Create()` + `SceneSerializer.Deserialize()`
+3. `sceneContext.SetScene(scene)` then `RuntimeSceneStarter.Start(scene, sceneContext, gameSystems)` — registers `[Register]` `IGameSystem` instances and calls `scene.OnRuntimeStart()`
+4. Calls `scene.OnViewportResize` from the current window client size
 
 ### Shutdown Sequence
 
 1. `Application.HandleGameWindowClose` — `OnDetach()` on each layer (reverse order, errors logged via `SafeDetachLayer`), then clears the layer stack
-2. `GameLayer.OnDetach()` — unsubscribes `SceneChanged`, `scene.OnRuntimeStop()`, `scene.Dispose()`
+2. `GameLayer.OnDetach()` — `scene.OnRuntimeStop()`, `scene.Dispose()`
 3. Application disposes `Graphics2D`, `Audio` (`IRendererAPI` is not disposed here)
 4. Runtime `Program.Main` `finally`: `Log.CloseAndFlush()`, then `container.Dispose()`

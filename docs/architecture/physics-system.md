@@ -113,20 +113,20 @@ Any of the three collider components enables post-step transform and velocity sy
 
 ```mermaid
 sequenceDiagram
-    participant SMF as SystemManagerFactory
+    participant SF as SceneFactory
     participant SSF as SceneSystemsFactory
     participant F as IPhysicsWorldFactory
     participant W as IPhysicsWorld2D
     participant CL as SceneContactListener
     participant PSS as PhysicsSimulationSystem
 
-    SMF->>SMF: new PhysicsRuntimeBodyStore, PhysicsContactQueue
-    SMF->>SSF: PopulateSystemManager(...)
+    SF->>SF: new SystemManager, PhysicsRuntimeBodyStore, PhysicsContactQueue
+    SF->>SSF: PopulateSystemManager(...)
     SSF->>F: Create(gravity: 0, -9.8)
     F-->>W: Box2DPhysicsWorld2D
     SSF->>W: SetContactListener(SceneContactListener)
     SSF->>PSS: new PhysicsSimulationSystem(world, context, bodyStore)
-    SSF->>SMF: Register PhysicsSimulationSystem,<br/>AudioSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
+    SSF->>SF: Register PhysicsSimulationSystem,<br/>AudioSystem,<br/>SceneRenderSystem, PhysicsDebugRenderSystem
 ```
 
 Default gravity is `(0, -9.8)` in `SceneSystemsFactory.DefaultGravity`.
@@ -268,7 +268,7 @@ When `DebugSettings.ShowColliderBounds` is true, draws collider rectangles via `
 
 | Event | What happens |
 |---|---|
-| Scene construction | `SystemManagerFactory` creates body store and contact queue; `SceneSystemsFactory` registers per-scene systems including physics world |
+| Scene construction | `SceneFactory` creates body store and contact queue; `SceneSystemsFactory` registers per-scene systems including physics world |
 | `OnRuntimeStart()` | `SystemManager.Initialize()` → `PhysicsSimulationSystem.OnInit()` creates initial bodies |
 | `OnUpdateRuntime(ts)` | `SystemManager.Update(ts)` — physics steps first (100) |
 | `OnRuntimeStop()` | `SystemManager.Shutdown()` destroys all bodies |

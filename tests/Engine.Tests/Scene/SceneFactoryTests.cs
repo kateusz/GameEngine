@@ -12,22 +12,36 @@ namespace Engine.Tests.Scene;
 public class SceneFactoryTests
 {
     [Fact]
-    public void Create_ThreeD_SetsSceneDimension()
+    public void Create_ThreeD_SetsSceneDimensionAndPopulatesSystems()
     {
-        var scene = CreateFactory().Create("test", SceneDimension.ThreeD);
+        var systemsFactory = StubSystemsFactory();
+        var scene = new SceneFactory(systemsFactory, Substitute.For<IPointerSurface>())
+            .Create("test", SceneDimension.ThreeD);
 
         scene.Dimension.ShouldBe(SceneDimension.ThreeD);
+        systemsFactory.Received(1).PopulateSystemManager(
+            Arg.Any<ISystemManager>(),
+            Arg.Any<IContext>(),
+            Arg.Any<PhysicsRuntimeBodyStore>(),
+            Arg.Any<PhysicsContactQueue>());
     }
 
     [Fact]
-    public void Create_Default_IsTwoD()
+    public void Create_Default_IsTwoDAndPopulatesSystems()
     {
-        var scene = CreateFactory().Create("test");
+        var systemsFactory = StubSystemsFactory();
+        var scene = new SceneFactory(systemsFactory, Substitute.For<IPointerSurface>())
+            .Create("test");
 
         scene.Dimension.ShouldBe(SceneDimension.TwoD);
+        systemsFactory.Received(1).PopulateSystemManager(
+            Arg.Any<ISystemManager>(),
+            Arg.Any<IContext>(),
+            Arg.Any<PhysicsRuntimeBodyStore>(),
+            Arg.Any<PhysicsContactQueue>());
     }
 
-    private static SceneFactory CreateFactory()
+    private static ISceneSystemsFactory StubSystemsFactory()
     {
         var systemsFactory = Substitute.For<ISceneSystemsFactory>();
         systemsFactory.PopulateSystemManager(
@@ -36,7 +50,6 @@ public class SceneFactoryTests
                 Arg.Any<PhysicsRuntimeBodyStore>(),
                 Arg.Any<PhysicsContactQueue>())
             .Returns(Substitute.For<IPhysicsQueries>());
-
-        return new SceneFactory(systemsFactory, Substitute.For<IPointerSurface>());
+        return systemsFactory;
     }
 }
