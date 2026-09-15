@@ -9,6 +9,7 @@ using Editor.Features.Viewport;
 using Editor.Input;
 using Editor.Panels;
 using Engine.Core;
+using Engine.Project;
 using Engine.Renderer.Models;
 using Engine.Scene;
 using SceneComponents;

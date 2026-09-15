@@ -1,8 +1,8 @@
-using Engine.Platform.SilkNet;
+using Engine.Core.Window;
 using Engine.Renderer;
 using Silk.NET.Windowing;
 
-namespace Engine.Core.Window;
+namespace Engine.Platform.SilkNet;
 
 internal sealed class GameWindowFactory(
     IRendererApiConfig apiConfig,

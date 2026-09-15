@@ -1,5 +1,6 @@
 using Editor.Scripting;
 using Engine.Core;
+using Engine.Project;
 using Serilog;
 
 namespace Editor.Publisher;

@@ -5,6 +5,7 @@ using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Core;
 using Engine.Platform;
+using Engine.Project;
 using ImGuiNET;
 
 namespace Editor.Publisher;

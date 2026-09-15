@@ -2,6 +2,7 @@ using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Scripting;
 using Engine.Core;
+using Engine.Project;
 using Serilog;
 
 namespace Editor.Features.Project;

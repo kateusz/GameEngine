@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
 using Engine.Platform.OpenGL;
+using Engine.Project;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Pipeline.Primitives;

@@ -3,6 +3,7 @@ using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Core.Window;
 using Engine.Scene;
 using ImGuiNET;
 using SceneComponents;

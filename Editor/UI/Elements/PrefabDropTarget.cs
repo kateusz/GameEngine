@@ -1,6 +1,7 @@
 using ECS;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Project;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Serilog;

@@ -3,6 +3,7 @@ using Engine.Core;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Scripting;
+using Engine.Project;
 using Engine.Scripting;
 using Serilog;
 

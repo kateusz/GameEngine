@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Core.Window;
+namespace Engine.Scene;
 
 /// <summary>
 /// Host-owned rectangle of the game view in window/logical pixels (same space as mouse position).

@@ -1,5 +1,6 @@
 using Editor.Publisher;
 using Engine.Core;
+using Engine.Project;
 using Shouldly;
 
 namespace Editor.Tests.Publisher;

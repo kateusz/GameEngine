@@ -1,6 +1,6 @@
 using Engine.Events.Input;
 
-namespace Engine.Core.Input;
+namespace Engine.Input;
 
 public interface IInputSystem : IDisposable
 {

@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
+using Engine.Core.Window;
 using Engine.Events.Input;
+using Engine.Project;
 using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;

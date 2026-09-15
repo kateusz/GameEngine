@@ -1,4 +1,4 @@
-namespace Engine.Core;
+namespace Engine.Core.Window;
 
 /// <summary>
 /// Centralized display and window configuration constants.

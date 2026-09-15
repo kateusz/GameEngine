@@ -4,6 +4,7 @@ using Editor.Features.Scene;
 using Editor.Features.Scripting;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Project;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;

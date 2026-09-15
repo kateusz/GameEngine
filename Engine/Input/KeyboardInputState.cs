@@ -1,7 +1,7 @@
 using Engine.Events.Input;
 using Input;
 
-namespace Engine.Core.Input;
+namespace Engine.Input;
 
 public sealed class KeyboardInputState : IKeyboardInput
 {

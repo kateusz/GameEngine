@@ -1,8 +1,8 @@
 using System.Numerics;
-using Engine.Core.Input;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
+using Engine.Input;
 using Engine.Platform.SilkNet.Input;
 using Engine.Renderer;
 using Serilog;

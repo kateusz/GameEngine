@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Engine.Core;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Project;
 using Engine.Renderer.Textures;
 using Engine.Scripting;
 using ImGuiNET;

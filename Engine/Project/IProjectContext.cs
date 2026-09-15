@@ -1,4 +1,4 @@
-namespace Engine.Core;
+namespace Engine.Project;
 
 public interface IProjectContext
 {
