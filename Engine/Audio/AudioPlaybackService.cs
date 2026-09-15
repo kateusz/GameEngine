@@ -2,7 +2,7 @@ using Audio;
 using ECS;
 using Serilog;
 
-namespace Engine.Scene;
+namespace Engine.Audio;
 
 internal sealed class AudioPlaybackService : IAudioPlayback
 {

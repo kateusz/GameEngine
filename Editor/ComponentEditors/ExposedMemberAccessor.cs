@@ -1,11 +1,9 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Reflection;
-using Engine.Core;
 
-namespace Engine.Scene;
+namespace Editor.ComponentEditors;
 
-[SkipUnitTests]
 public static class ExposedMemberAccessor
 {
     private static readonly ConcurrentDictionary<Type, FieldInfo[]> FieldCache = new();

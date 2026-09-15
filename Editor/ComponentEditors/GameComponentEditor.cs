@@ -3,7 +3,6 @@ using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.UI.Drawers;
 using Editor.UI.Elements;
-using Engine.Scene;
 
 namespace Editor.ComponentEditors;
 
