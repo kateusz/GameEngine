@@ -176,7 +176,7 @@ public class EditorHistoryClearPolicyTests
             _ => { });
 
         var factory = new SceneFactory(
-            Substitute.For<ISystemManagerFactory>(),
+            Substitute.For<ISceneSystemsFactory>(),
             Substitute.For<IPointerSurface>());
 
         return new SceneManager(

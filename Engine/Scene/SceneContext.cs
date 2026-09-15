@@ -11,7 +11,7 @@ public class SceneContext : ISceneContext
 
     public SceneState State { get; private set; } = SceneState.Edit;
 
-    public event Action<IScene> SceneChanged;
+    public event Action<IScene> SceneChanged = delegate { };
     
     public void SetScene(IScene newScene)
     {

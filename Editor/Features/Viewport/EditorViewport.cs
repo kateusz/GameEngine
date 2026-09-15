@@ -192,7 +192,7 @@ public sealed class EditorViewport(
         var worldHeight = 2.0f * distance * MathF.Tan(fovRad * 0.5f);
         var zoom = _viewportSize.Y / worldHeight;
 
-        if (viewport.SceneToolbar.ShowGrid)
+        if (sceneContext.ActiveScene?.Dimension == SceneDimension.TwoD)
             viewport.ViewportGrid.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
 
         viewport.ViewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
@@ -246,7 +246,7 @@ public sealed class EditorViewport(
     private void RenderEditor2DOverlays(IContext context, in SceneView view)
     {
         var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
-        var drawGrid3D = viewport.SceneToolbar.ShowGrid3D;
+        var drawGrid3D = sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
         var drawCameraGizmos = HasCameraEntities(context);
 
         if (!drawColliders && !drawGrid3D && !drawCameraGizmos)

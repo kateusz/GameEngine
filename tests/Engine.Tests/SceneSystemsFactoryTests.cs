@@ -17,24 +17,15 @@ namespace Engine.Tests;
 public class SceneSystemsFactoryTests
 {
     [Fact]
-    public void Populate_TwoD_Registers2DStepperAndDebug()
+    public void Populate_Registers2DStepperAndDebug()
     {
-        var registered = Populate(SceneDimension.TwoD);
+        var registered = Populate();
 
         registered.ShouldContain(s => s is PhysicsSimulationSystem);
         registered.ShouldContain(s => s is PhysicsDebugRenderSystem);
     }
 
-    [Fact]
-    public void Populate_ThreeD_StillRegisters2DPhysics()
-    {
-        var registered = Populate(SceneDimension.ThreeD);
-
-        registered.ShouldContain(s => s is PhysicsSimulationSystem);
-        registered.ShouldContain(s => s is PhysicsDebugRenderSystem);
-    }
-
-    private static List<ISystem> Populate(SceneDimension dimension)
+    private static List<ISystem> Populate()
     {
         var worldFactory = Substitute.For<IPhysicsWorldFactory>();
         worldFactory.Create(Arg.Any<Vector2>()).Returns(Substitute.For<IPhysicsWorld2D>());
@@ -58,8 +49,7 @@ public class SceneSystemsFactoryTests
             systemManager,
             new Context(),
             new PhysicsRuntimeBodyStore(),
-            new PhysicsContactQueue(),
-            dimension);
+            new PhysicsContactQueue());
 
         return registered;
     }

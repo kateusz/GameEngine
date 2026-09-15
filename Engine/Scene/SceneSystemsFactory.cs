@@ -30,8 +30,7 @@ internal sealed class SceneSystemsFactory(
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
-        PhysicsContactQueue contactQueue,
-        SceneDimension dimension = SceneDimension.TwoD)
+        PhysicsContactQueue contactQueue)
     {
         var primaryCamera = new PrimaryCameraSystem(context);
         var contactListener = new SceneContactListener(contactQueue);

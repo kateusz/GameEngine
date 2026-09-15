@@ -69,8 +69,6 @@ public static class EngineIoCContainer
             made: Made.Of(() => new PhysicsBackendConfig(PhysicsBackendType.Box2D)));
         container.Register<IPhysicsWorldFactory, PhysicsWorldFactory>(Reuse.Singleton);
         container.Register<ISceneSystemsFactory, SceneSystemsFactory>(Reuse.Singleton);
-        container.Register<SystemManagerFactory>(Reuse.Singleton);
-        container.RegisterMapping<ISystemManagerFactory, SystemManagerFactory>();
 
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
 

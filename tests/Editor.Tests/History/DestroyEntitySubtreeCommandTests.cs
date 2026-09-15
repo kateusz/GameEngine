@@ -9,6 +9,7 @@ using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
 using SceneComponents.Rendering;
+using Scripting;
 using Shouldly;
 
 namespace Editor.Tests.History;
@@ -17,15 +18,16 @@ public class DestroyEntitySubtreeCommandTests
 {
     private static IScene CreateScene()
     {
-        var systemManagerFactory = Substitute.For<ISystemManagerFactory>();
-        systemManagerFactory.Create(Arg.Any<IContext>()).Returns(_ => new SceneBuildResult(
-            Substitute.For<ISystemManager>(),
-            new PhysicsRuntimeBodyStore(),
-            new PhysicsContactQueue(),
-            null!));
+        var systemsFactory = Substitute.For<ISceneSystemsFactory>();
+        systemsFactory.PopulateSystemManager(
+                Arg.Any<ISystemManager>(),
+                Arg.Any<IContext>(),
+                Arg.Any<PhysicsRuntimeBodyStore>(),
+                Arg.Any<PhysicsContactQueue>())
+            .Returns(Substitute.For<IPhysicsQueries>());
 
-        return new SceneFactory(systemManagerFactory, Substitute.For<IPointerSurface>())
-            .Create("test-scene", "test-scene");
+        return new SceneFactory(systemsFactory, Substitute.For<IPointerSurface>())
+            .Create("test-scene");
     }
 
     private static Entity CreateWithTransform(IScene scene, string name, Vector3 translation)

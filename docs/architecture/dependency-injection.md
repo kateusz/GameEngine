@@ -28,7 +28,6 @@ graph TD
         subgraph "Scene & ECS"
             SF[SceneFactory]
             SSF[ISceneSystemsFactory]
-            SMF[ISystemManagerFactory]
             SC[ISceneContext]
             CTX[IContext delegate]
             PC[IPhysicsContacts delegate]
@@ -104,7 +103,7 @@ graph TD
     SSE --> SO
     PSR --> SO
     CSR --> SO
-    SSF --> SMF
+    SSF --> SF
 ```
 
 ## Engine Registrations
@@ -154,13 +153,12 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 
 ### Scene & ECS (`RegisterCore`)
 
-ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` builds the per-scene system set; `ISystemManagerFactory` wraps it for `SystemManager` creation.
+ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` builds the per-scene system set; `SceneFactory` creates `SystemManager`, physics stores, and the `Scene`.
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `SceneFactory` | `SceneFactory` | Singleton | Creates `Scene` instances |
 | `ISceneSystemsFactory` | `SceneSystemsFactory` | Singleton | Factory for scene-bound systems |
-| `ISystemManagerFactory` | `SystemManagerFactory` | Singleton | Creates `SystemManager` from scene systems |
 | `ISceneContext` | `SceneContext` | Singleton | Active scene reference |
 | `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
 | `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |

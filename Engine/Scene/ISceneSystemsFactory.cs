@@ -1,6 +1,5 @@
 using ECS;
 using ECS.Systems;
-using Engine.Physics;
 using Engine.Scene.Systems;
 using Scripting;
 
@@ -12,6 +11,5 @@ public interface ISceneSystemsFactory
         ISystemManager systemManager,
         IContext context,
         PhysicsRuntimeBodyStore bodyStore,
-        PhysicsContactQueue contactQueue,
-        SceneDimension dimension = SceneDimension.TwoD);
+        PhysicsContactQueue contactQueue);
 }

@@ -19,7 +19,7 @@ public class ModelHierarchySpawnerTests
     private readonly ISystemManager _systemManager = Substitute.For<ISystemManager>();
 
     private EngineScene CreateScene() =>
-        new("test-scene", "test-scene", new Context(),
+        new("test-scene", new Context(),
             _systemManager, new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(),
             null!, NullCameraQueries.Instance);
 

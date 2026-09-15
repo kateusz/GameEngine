@@ -17,7 +17,6 @@ internal sealed class Scene : IScene
 
     private int _nextEntityId = 1;
     private bool _disposed;
-    private readonly string _path;
     private readonly ISystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
     private readonly IPhysicsQueries _physicsQueries;
@@ -26,7 +25,7 @@ internal sealed class Scene : IScene
     // parent Id → ordered child entities (insertion order). Roots are entities with no ParentComponent / null ParentId.
     private readonly Dictionary<int, List<Entity>> _childrenIndex = new();
 
-    public Scene(string path,
+    public Scene(
         string sceneName,
         IContext context,
         ISystemManager systemManager,
@@ -35,7 +34,6 @@ internal sealed class Scene : IScene
         IPhysicsQueries physicsQueries,
         ICameraQueries cameraQueries)
     {
-        _path = path;
         Name = sceneName;
         Context = context;
         _systemManager = systemManager;
@@ -442,7 +440,7 @@ internal sealed class Scene : IScene
         if (_disposed)
             return;
 
-        Logger.Debug("Disposing scene '{Path}'", _path);
+        Logger.Debug("Disposing scene '{Name}'", Name);
 
         // Dispose SystemManager which shuts down per-scene systems and physics bodies.
         _systemManager.Dispose();
@@ -453,6 +451,6 @@ internal sealed class Scene : IScene
 
         _disposed = true;
         GC.SuppressFinalize(this);
-        Logger.Debug("Scene '{Path}' disposed successfully", _path);
+        Logger.Debug("Scene '{Name}' disposed successfully", Name);
     }
 }
