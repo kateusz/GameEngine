@@ -8,6 +8,12 @@ internal sealed class ShaderFactory : IShaderFactory
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
+    public IShader Create(ShaderId shader)
+    {
+        var (vert, frag) = EngineShaderPaths.Resolve(shader);
+        return Create(vert, frag);
+    }
+
     public IShader Create(string vertPath, string fragPath)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

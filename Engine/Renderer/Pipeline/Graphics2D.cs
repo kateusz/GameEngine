@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
-using Engine.Core;
 using Engine.Platform.OpenGL;
-using Engine.Project;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Pipeline.Primitives;
@@ -364,6 +362,7 @@ internal sealed class Graphics2D(
     private void InitBuffers()
     {
         var quadVertexSize = QuadVertex.GetSize();
+        // Quad layout(location): 0 Position, 1 Color, 2 TexCoord, 3 TexIndex, 4 TilingFactor, 5 EntityID
         var layout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float4, "a_Color"),
@@ -383,6 +382,7 @@ internal sealed class Graphics2D(
         _data.QuadVertexArray.SetIndexBuffer(indexBuffer);
 
         var lineVertexSize = LineVertex.GetSize();
+        // Line layout(location): 0 Position, 1 Color, 2 EntityID
         var lineLayout = new BufferLayout([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float4, "a_Color"),
@@ -407,15 +407,11 @@ internal sealed class Graphics2D(
         for (var i = 0; i < Renderer2DData.MaxTextureSlots; i++)
             samplers[i] = i;
 
-        _data.QuadShader = shaderFactory.Create(
-            PathBuilder.Resolve("assets/shaders/OpenGL/textureShader.vert"),
-            PathBuilder.Resolve("assets/shaders/OpenGL/textureShader.frag"));
+        _data.QuadShader = shaderFactory.Create(ShaderId.Texture);
         _data.QuadShader.Bind();
         _data.QuadShader.SetIntArray("u_Textures[0]", samplers, Renderer2DData.MaxTextureSlots);
 
-        _data.LineShader = shaderFactory.Create(
-            PathBuilder.Resolve("assets/shaders/OpenGL/lineShader.vert"),
-            PathBuilder.Resolve("assets/shaders/OpenGL/lineShader.frag"));
+        _data.LineShader = shaderFactory.Create(ShaderId.Line);
         _data.LineShader.Bind();
     }
 

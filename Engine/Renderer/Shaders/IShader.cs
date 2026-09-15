@@ -11,5 +11,4 @@ public interface IShader : IBindable
     void SetFloat(string name, float data);
     void SetInt(string name, int data);
     void SetIntArray(string name, int[] values, uint count);
-    void UploadUniformIntArray(string name, int[] values, uint count);
 }

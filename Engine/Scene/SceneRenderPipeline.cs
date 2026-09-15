@@ -112,11 +112,11 @@ internal static class SceneRenderPipeline
         IModelFactory? modelFactory,
         in SceneView view)
     {
-        graphics3D.BeginScene(view);
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
         var (lightDirection, lightColor) = ResolveDirectional(context);
         graphics3D.SetDirectionalLight(lightDirection, lightColor);
+        graphics3D.BeginScene(view);
 
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())

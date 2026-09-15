@@ -11,6 +11,9 @@ internal sealed class OpenGLShader : IShader
 {
     private uint _handle;
     private readonly Dictionary<string, int> _uniformLocations = new();
+#if DEBUG
+    private readonly HashSet<string> _missingUniforms = new();
+#endif
     private bool _disposed;
 
     internal uint RendererId => _handle;
@@ -84,45 +87,34 @@ internal sealed class OpenGLShader : IShader
         OpenGLDebug.CheckError(SilkNetContext.GL, "UseProgram(0)");
     }
 
-    // The shader sources provided with this project use hardcoded layout(location)-s. If you want to do it dynamically,
-    // you can omit the layout(location=X) lines in the vertex shader, and use this in VertexAttribPointer instead of the hardcoded values.
-    public int GetAttribLocation(string attribName) => SilkNetContext.GL.GetAttribLocation(_handle, attribName);
-
-    /// <summary>
-    /// Set a uniform int on this shader.
-    /// </summary>
-    /// <param name="name">The name of the uniform</param>
-    /// <param name="data">The data to set</param>
     public void SetInt(string name, int data)
     {
-        var location = ResolveUniformLocation(name);
-        if (location < 0) return;
+        if (!TryGetUniformLocation(name, out var location))
+            return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(location, data);
     }
 
     public void SetIntArray(string name, int[] values, uint count)
     {
-        if (!_uniformLocations.TryGetValue(name, out _)) return;
+        if (!TryGetUniformLocation(name, out var location))
+            return;
         SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(_uniformLocations[name], values);
+        SilkNetContext.GL.Uniform1(location, values);
     }
-
-    public void UploadUniformIntArray(string name, int[] values, uint count) =>
-        SetIntArray(name, values, count);
 
     public void SetFloat(string name, float data)
     {
-        var location = ResolveUniformLocation(name);
-        if (location < 0) return;
+        if (!TryGetUniformLocation(name, out var location))
+            return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform1(location, data);
     }
 
     public void SetMat4(string name, Matrix4x4 data)
     {
-        var location = ResolveUniformLocation(name);
-        if (location < 0) return;
+        if (!TryGetUniformLocation(name, out var location))
+            return;
         SilkNetContext.GL.UseProgram(_handle);
         var matrix = MemoryMarshal.CreateReadOnlySpan(ref data.M11, 16);
         SilkNetContext.GL.UniformMatrix4(location, true, matrix);
@@ -138,7 +130,13 @@ internal sealed class OpenGLShader : IShader
         if (location < 0)
             location = ResolveUniformLocation(name);
         if (location < 0)
+        {
+#if DEBUG
+            if (_missingUniforms.Add(name))
+                Debug.WriteLine($"Missing shader uniform '{name}'");
+#endif
             return;
+        }
 
         SilkNetContext.GL.UseProgram(_handle);
         var floats = MemoryMarshal.Cast<Matrix4x4, float>(matrices);
@@ -147,18 +145,30 @@ internal sealed class OpenGLShader : IShader
 
     public void SetFloat3(string name, Vector3 data)
     {
-        var location = ResolveUniformLocation(name);
-        if (location < 0) return;
+        if (!TryGetUniformLocation(name, out var location))
+            return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform3(location, data);
     }
 
     public void SetFloat4(string name, Vector4 data)
     {
-        var location = ResolveUniformLocation(name);
-        if (location < 0) return;
+        if (!TryGetUniformLocation(name, out var location))
+            return;
         SilkNetContext.GL.UseProgram(_handle);
         SilkNetContext.GL.Uniform4(location, data);
+    }
+
+    private bool TryGetUniformLocation(string name, out int location)
+    {
+        location = ResolveUniformLocation(name);
+        if (location >= 0)
+            return true;
+#if DEBUG
+        if (_missingUniforms.Add(name))
+            Debug.WriteLine($"Missing shader uniform '{name}'");
+#endif
+        return false;
     }
 
     private int ResolveUniformLocation(string name)

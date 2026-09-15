@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using Engine.Core;
-using Engine.Project;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
@@ -30,12 +28,8 @@ internal sealed class Graphics3D(
 
     public void Init()
     {
-        _cubeShader = shaderFactory.Create(
-            PathBuilder.Resolve("assets/shaders/OpenGL/cube.vert"),
-            PathBuilder.Resolve("assets/shaders/OpenGL/cube.frag"));
-        _modelShader = shaderFactory.Create(
-            PathBuilder.Resolve("assets/shaders/OpenGL/modelShader.vert"),
-            PathBuilder.Resolve("assets/shaders/OpenGL/modelShader.frag"));
+        _cubeShader = shaderFactory.Create(ShaderId.Cube);
+        _modelShader = shaderFactory.Create(ShaderId.Model);
         _cubeMesh = meshFactory.CreateCube();
 
         _modelShader.Bind();
@@ -49,6 +43,8 @@ internal sealed class Graphics3D(
     {
         _viewProjection = view.ViewProjection;
         _viewPosition = view.ViewPosition;
+        UploadFrame(_cubeShader, includeViewPosition: false);
+        UploadFrame(_modelShader, includeViewPosition: true);
     }
 
     public void EndScene()
@@ -79,8 +75,7 @@ internal sealed class Graphics3D(
     {
         rendererApi.SetDepthTest(true);
         BindCommon(_modelShader, transform, tint, entityId);
-        
-        _modelShader.SetFloat3("u_ViewPosition", _viewPosition);
+
         _modelShader.SetFloat("u_Shininess", mesh.Shininess);
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
         _modelShader.SetInt("u_HasSpecularMap", mesh.HasSpecularMap ? 1 : 0);
@@ -108,18 +103,26 @@ internal sealed class Graphics3D(
         _lightColor = color;
     }
 
-    private void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
+    private void UploadFrame(IShader shader, bool includeViewPosition)
     {
         shader.Bind();
         shader.SetMat4(ViewProjectionUniform, _viewProjection);
-        shader.SetMat4("u_Model", transform);
-        shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
-        shader.SetFloat4("u_Color", color);
-        shader.SetInt("u_EntityID", entityId);
         shader.SetFloat3("u_AmbientColor", _ambientColor);
         shader.SetFloat("u_AmbientStrength", _ambientStrength);
         shader.SetFloat3("u_LightDirection", _lightDirection);
         shader.SetFloat3("u_LightColor", _lightColor);
+        if (includeViewPosition)
+            shader.SetFloat3("u_ViewPosition", _viewPosition);
+        shader.Unbind();
+    }
+
+    private static void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
+    {
+        shader.Bind();
+        shader.SetMat4("u_Model", transform);
+        shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
+        shader.SetFloat4("u_Color", color);
+        shader.SetInt("u_EntityID", entityId);
     }
 
     private static Matrix4x4 ComputeNormalMatrix(Matrix4x4 model) =>

@@ -16,14 +16,14 @@ Optimize GLSL shaders in OpenGL 3.3+ rendering pipelines for maximum GPU perform
     - `review` - Review shader code for batch rendering compatibility and efficiency
 
 - **shader-path-or-code**: Either:
-    - File path: `Engine/Renderer/Shaders/ShaderFactory.cs` (or specific shader identifier)
+    - File path: `Engine/assets/shaders/OpenGL/textureShader.frag` (or other GLSL under that folder)
     - Inline code: Paste GLSL shader code directly
 
 ## Usage Examples
 
 ### Analyze a shader for bottlenecks
 ```
-@shader-optimization analyze Engine/Renderer/Shaders/ShaderFactory.cs:SpriteShader
+@shader-optimization analyze Engine/assets/shaders/OpenGL/textureShader.frag
 ```
 
 ### Optimize specific shader code
@@ -103,12 +103,12 @@ void main() {
 
 ## Engine-Specific Constraints
 
-- **Shader Location**: `Engine/Renderer/Shaders/ShaderFactory.cs` (inline GLSL, not separate files)
+- **Shader Location**: `Engine/assets/shaders/OpenGL/*.vert|frag` (compiled by `Engine/Platform/OpenGL/ShaderFactory.cs`)
 - **Constants**: From `Engine/Renderer/RenderingConstants.cs`:
     - `MaxTextureSlots = 16`
     - `DefaultMaxQuads = 10000`
     - `QuadVertexCount = 4`, `QuadIndexCount = 6`
-- **Batching**: See `Engine/Renderer/Graphics2D.cs` for vertex layout
+- **Batching**: See `Engine/Renderer/Pipeline/Graphics2D.cs` for vertex layout
 - **Cross-Platform**: Must work on Windows, macOS, Linux (OpenGL 3.3+)
 
 ## Validation Requirements
@@ -181,7 +181,8 @@ vec3 props = texture(uPropertiesMap, uv).rgb;
 - **Profiling Guide**: Measurement and validation procedures
 - **Output Template**: Structured reporting format
 - **Graphics2D**: Engine batching implementation
-- **ShaderFactory**: Shader definitions
+- **GLSL**: `Engine/assets/shaders/OpenGL/`
+- **ShaderFactory**: Compiles and caches those files
 - **RenderingConstants**: Engine constants
 
 ## Priority Guidelines
