@@ -4,6 +4,7 @@ namespace Editor.Publisher;
 
 public partial class GamePublisher
 {
+    // Editor UI offers only the host RID. API still accepts these so CI can cross-publish win-x64 from Linux.
     private static readonly HashSet<string> SupportedRuntimeIdentifiers = new(StringComparer.OrdinalIgnoreCase)
     {
         "win-x64", "win-x86", "win-arm64",

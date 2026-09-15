@@ -31,13 +31,32 @@
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 
-    <Target Name="AddOpenALToPublish" BeforeTargets="ComputeFilesToPublish" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <!-- Natives follow publish RID, not host OS. OpenAL.Soft ships Windows DLLs only (nested Release/). -->
+    <Target Name="AddOpenALToPublish" BeforeTargets="ComputeFilesToPublish">
         <PropertyGroup>
-            <OpenALNativePath>$(USERPROFILE)\.nuget\packages\openal.soft\1.23.1\runtimes\win-x64\native\Release\OpenAL32.dll</OpenALNativePath>
+            <OpenALWinPath>$(NuGetPackageRoot)openal.soft/1.23.1/runtimes/$(RuntimeIdentifier)/native/Release/OpenAL32.dll</OpenALWinPath>
+            <OpenALSoftPathARM>/opt/homebrew/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathARM>
+            <OpenALSoftPathARMLib>/opt/homebrew/lib/libopenal.1.dylib</OpenALSoftPathARMLib>
+            <OpenALSoftPathX86>/usr/local/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathX86>
+            <OpenALSoftPathX86Lib>/usr/local/lib/libopenal.1.dylib</OpenALSoftPathX86Lib>
+            <OpenALSoftPath Condition="Exists('$(OpenALSoftPathARM)')">$(OpenALSoftPathARM)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathARMLib)')">$(OpenALSoftPathARMLib)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86)')">$(OpenALSoftPathX86)</OpenALSoftPath>
+            <OpenALSoftPath Condition="'$(OpenALSoftPath)' == '' AND Exists('$(OpenALSoftPathX86Lib)')">$(OpenALSoftPathX86Lib)</OpenALSoftPath>
         </PropertyGroup>
-        <ItemGroup Condition="Exists('$(OpenALNativePath)')">
-            <ResolvedFileToPublish Include="$(OpenALNativePath)">
+        <ItemGroup Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win')) AND Exists('$(OpenALWinPath)')">
+            <ResolvedFileToPublish Include="$(OpenALWinPath)">
                 <RelativePath>OpenAL32.dll</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </ResolvedFileToPublish>
+        </ItemGroup>
+        <ItemGroup Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('osx')) AND '$(OpenALSoftPath)' != ''">
+            <ResolvedFileToPublish Include="$(OpenALSoftPath)">
+                <RelativePath>libopenal.1.dylib</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </ResolvedFileToPublish>
+            <ResolvedFileToPublish Include="$(OpenALSoftPath)">
+                <RelativePath>libopenal.dylib</RelativePath>
                 <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             </ResolvedFileToPublish>
         </ItemGroup>

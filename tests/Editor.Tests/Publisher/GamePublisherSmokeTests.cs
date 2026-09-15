@@ -46,6 +46,8 @@ public class GamePublisherSmokeTests
             File.Exists(Path.Combine(outputPath, "GameAssembly.dll")).ShouldBeTrue();
             File.Exists(Path.Combine(outputPath, gameConfig.StartupScenePath)).ShouldBeTrue();
             File.Exists(Path.Combine(outputPath, "assets", "textures", "cell.png")).ShouldBeTrue();
+            if (settings.RuntimeIdentifier.StartsWith("win", StringComparison.OrdinalIgnoreCase))
+                File.Exists(Path.Combine(outputPath, "OpenAL32.dll")).ShouldBeTrue("win RID publish should copy OpenAL from NuGet runtimes/");
         }
         finally
         {
