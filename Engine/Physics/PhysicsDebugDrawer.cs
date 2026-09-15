@@ -11,18 +11,6 @@ internal static class PhysicsDebugDrawer
 {
     private const int CircleSegmentCount = 32;
 
-    public static void Draw(
-        IContext context,
-        IGraphics2D graphics2D,
-        PhysicsRuntimeBodyStore bodyStore,
-        in SceneView view,
-        bool useTransformFallbackWhenNoBody)
-    {
-        graphics2D.BeginScene(view);
-        DrawColliders(context, graphics2D, bodyStore, useTransformFallbackWhenNoBody);
-        graphics2D.EndScene();
-    }
-
     /// <summary>
     /// Draws collider outlines into an already-open 2D scene (no BeginScene/EndScene).
     /// </summary>
@@ -34,54 +22,83 @@ internal static class PhysicsDebugDrawer
     {
         foreach (var (entity, boxCollider) in context.View<BoxCollider2DComponent>())
         {
-            if (bodyStore.TryGet(entity.Id, out var body))
-                DrawBox(graphics2D, entity, boxCollider, body.Position, body.Angle, GetRuntimeBodyDebugColor(body));
-            else if (useTransformFallbackWhenNoBody)
-            {
-                var transform = entity.GetComponent<TransformComponent>();
-                DrawBox(
-                    graphics2D,
-                    entity,
-                    boxCollider,
-                    new Vector2(transform.Translation.X, transform.Translation.Y),
-                    transform.Rotation.Z,
-                    GetEditorColliderColor(entity));
-            }
+            if (!TryPose(entity, bodyStore, useTransformFallbackWhenNoBody, out var origin, out var angle, out var color))
+                continue;
+            DrawBox(graphics2D, entity, boxCollider, origin, angle, color);
         }
 
         foreach (var (entity, circleCollider) in context.View<CircleCollider2DComponent>())
         {
-            if (bodyStore.TryGet(entity.Id, out var body))
-                DrawCircle(graphics2D, entity, circleCollider, body.Position, body.Angle, GetRuntimeBodyDebugColor(body));
-            else if (useTransformFallbackWhenNoBody)
-            {
-                var transform = entity.GetComponent<TransformComponent>();
-                DrawCircle(
-                    graphics2D,
-                    entity,
-                    circleCollider,
-                    new Vector2(transform.Translation.X, transform.Translation.Y),
-                    transform.Rotation.Z,
-                    GetEditorColliderColor(entity));
-            }
+            if (!TryPose(entity, bodyStore, useTransformFallbackWhenNoBody, out var origin, out var angle, out var color))
+                continue;
+            DrawCircle(graphics2D, entity, circleCollider, origin, angle, color);
         }
 
         foreach (var (entity, edgeCollider) in context.View<EdgeCollider2DComponent>())
         {
-            if (bodyStore.TryGet(entity.Id, out var body))
-                DrawPolyline(graphics2D, entity, edgeCollider.Points, body.Position, body.Angle, GetRuntimeBodyDebugColor(body));
-            else if (useTransformFallbackWhenNoBody)
-            {
-                var transform = entity.GetComponent<TransformComponent>();
-                DrawPolyline(
-                    graphics2D,
-                    entity,
-                    edgeCollider.Points,
-                    new Vector2(transform.Translation.X, transform.Translation.Y),
-                    transform.Rotation.Z,
-                    GetEditorColliderColor(entity));
-            }
+            if (!TryPose(entity, bodyStore, useTransformFallbackWhenNoBody, out var origin, out var angle, out var color))
+                continue;
+            DrawPolyline(graphics2D, entity, edgeCollider.Points, origin, angle, color);
         }
+    }
+
+    private static bool TryPose(
+        Entity entity,
+        PhysicsRuntimeBodyStore bodyStore,
+        bool useTransformFallbackWhenNoBody,
+        out Vector2 origin,
+        out float angle,
+        out Vector4 color)
+    {
+        if (bodyStore.TryGet(entity.Id, out var body))
+        {
+            origin = body.Position;
+            angle = body.Angle;
+            color = DebugColor(entity, body);
+            return true;
+        }
+
+        if (!useTransformFallbackWhenNoBody)
+        {
+            origin = default;
+            angle = 0f;
+            color = default;
+            return false;
+        }
+
+        var transform = entity.GetComponent<TransformComponent>();
+        origin = new Vector2(transform.Translation.X, transform.Translation.Y);
+        angle = transform.Rotation.Z;
+        color = DebugColor(entity, body: null);
+        return true;
+    }
+
+    private static Vector4 DebugColor(Entity entity, IPhysicsBody2D? body)
+    {
+        if (body is not null)
+        {
+            if (!body.IsEnabled())
+                return new Vector4(0.5f, 0.5f, 0.0f, 1.0f);
+
+            return body.MotionType switch
+            {
+                RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+                RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+                _ => body.IsAwake()
+                    ? new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
+                    : new Vector4(0.5f, 0.5f, 0.5f, 1.0f)
+            };
+        }
+
+        if (!entity.TryGetComponent<RigidBody2DComponent>(out var rb))
+            return new Vector4(0.0f, 1.0f, 1.0f, 1.0f);
+
+        return rb.BodyType switch
+        {
+            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
+            RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
+        };
     }
 
     private static void DrawBox(
@@ -173,33 +190,5 @@ internal static class PhysicsDebugDrawer
             scaledOffset.X * cos - scaledOffset.Y * sin,
             scaledOffset.X * sin + scaledOffset.Y * cos);
         return new Vector3(origin.X + rotatedOffset.X, origin.Y + rotatedOffset.Y, 0f);
-    }
-
-    private static Vector4 GetEditorColliderColor(Entity entity)
-    {
-        if (!entity.TryGetComponent<RigidBody2DComponent>(out var rb))
-            return new Vector4(0.0f, 1.0f, 1.0f, 1.0f);
-
-        return rb.BodyType switch
-        {
-            RigidBodyType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
-            RigidBodyType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
-            _ => new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
-        };
-    }
-
-    private static Vector4 GetRuntimeBodyDebugColor(IPhysicsBody2D body)
-    {
-        if (!body.IsEnabled())
-            return new Vector4(0.5f, 0.5f, 0.0f, 1.0f);
-
-        return body.MotionType switch
-        {
-            PhysicsBodyMotionType.Static => new Vector4(0.0f, 1.0f, 0.0f, 1.0f),
-            PhysicsBodyMotionType.Kinematic => new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
-            _ => body.IsAwake()
-                ? new Vector4(1.0f, 0.0f, 0.3f, 1.0f)
-                : new Vector4(0.5f, 0.5f, 0.5f, 1.0f)
-        };
     }
 }

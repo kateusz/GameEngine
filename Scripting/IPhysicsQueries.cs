@@ -12,7 +12,7 @@ public interface IPhysicsQueries
         Entity? ignoreEntity = null,
         bool includeTriggers = false);
 
-    RaycastHit2D? OverlapCircle(
+    (Entity Entity, bool IsTrigger)? OverlapCircle(
         Vector2 center,
         float radius,
         Entity? ignoreEntity = null,

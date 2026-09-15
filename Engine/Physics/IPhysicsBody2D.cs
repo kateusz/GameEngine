@@ -1,18 +1,16 @@
 using System.Numerics;
 using ECS;
+using SceneComponents.Physics;
 
 namespace Engine.Physics;
 
 public interface IPhysicsBody2D
 {
     Entity? Entity { get; set; }
-    PhysicsBodyMotionType MotionType { get; }
+    RigidBodyType MotionType { get; }
     Vector2 Position { get; set; }
     float Angle { get; set; }
     Vector2 LinearVelocity { get; set; }
-    bool FixedRotation { set; }
-    bool HasFixture { get; }
-    bool IsSensor { get; }
     bool IsEnabled();
     bool IsAwake();
     void CreateBoxFixture(in PhysicsBoxFixtureDef def);

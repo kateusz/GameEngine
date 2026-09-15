@@ -14,6 +14,4 @@ public sealed class PhysicsRuntimeBodyStore
     public void Remove(int entityId) => _bodiesByEntityId.Remove(entityId);
 
     public IReadOnlyDictionary<int, IPhysicsBody2D> Snapshot() => _bodiesByEntityId;
-
-    public void Clear() => _bodiesByEntityId.Clear();
 }

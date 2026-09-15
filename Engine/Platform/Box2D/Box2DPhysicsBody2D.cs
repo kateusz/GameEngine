@@ -4,6 +4,7 @@ using Box2D.NetStandard.Dynamics.Bodies;
 using Box2D.NetStandard.Dynamics.Fixtures;
 using ECS;
 using Engine.Physics;
+using SceneComponents.Physics;
 
 namespace Engine.Platform.Box2D;
 
@@ -11,12 +12,12 @@ internal sealed class Box2DPhysicsBody2D(Body body) : IPhysicsBody2D
 {
     public Entity? Entity { get; set; }
 
-    public PhysicsBodyMotionType MotionType => body.Type() switch
+    public RigidBodyType MotionType => body.Type() switch
     {
-        BodyType.Static => PhysicsBodyMotionType.Static,
-        BodyType.Dynamic => PhysicsBodyMotionType.Dynamic,
-        BodyType.Kinematic => PhysicsBodyMotionType.Kinematic,
-        _ => PhysicsBodyMotionType.Static
+        BodyType.Static => RigidBodyType.Static,
+        BodyType.Dynamic => RigidBodyType.Dynamic,
+        BodyType.Kinematic => RigidBodyType.Kinematic,
+        _ => RigidBodyType.Static
     };
 
     public Vector2 Position
@@ -36,15 +37,6 @@ internal sealed class Box2DPhysicsBody2D(Body body) : IPhysicsBody2D
         get => body.GetLinearVelocity();
         set => body.SetLinearVelocity(value);
     }
-
-    public bool FixedRotation
-    {
-        set => body.SetFixedRotation(value);
-    }
-
-    public bool HasFixture => body.GetFixtureList() != null;
-
-    public bool IsSensor => body.GetFixtureList()?.IsSensor() ?? false;
 
     public bool IsEnabled() => body.IsEnabled();
 

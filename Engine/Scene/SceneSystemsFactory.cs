@@ -3,7 +3,7 @@ using Audio;
 using ECS;
 using ECS.Systems;
 using Engine.Core;
-using Engine.Physics;
+using Engine.Platform.Box2D;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -19,7 +19,6 @@ internal sealed class SceneSystemsFactory(
     DebugSettings debugSettings,
     IAudio audio,
     AudioPlaybackService playbackService,
-    IPhysicsWorldFactory physicsWorldFactory,
     IModelFactory modelFactory) : ISceneSystemsFactory
 {
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
@@ -30,8 +29,7 @@ internal sealed class SceneSystemsFactory(
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue)
     {
-        var physicsWorld = physicsWorldFactory.Create(DefaultGravity2D);
-        physicsWorld.SetContactListener(new SceneContactListener(contactQueue));
+        var physicsWorld = new Box2DPhysicsWorld2D(DefaultGravity2D, contactQueue);
 
         var audioSystem = new AudioSystem(audio, context, playbackService);
         playbackService.Bind(audioSystem);

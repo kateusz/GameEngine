@@ -22,9 +22,10 @@ internal sealed class PhysicsDebugRenderSystem(
         if (!CameraQueries.TryGetPrimaryView(context, out var view))
             return;
 
-        PhysicsDebugDrawer.Draw(
+        graphics2D.BeginScene(view);
+        PhysicsDebugDrawer.DrawColliders(
             context, graphics2D, bodyStore,
-            view,
             useTransformFallbackWhenNoBody: false);
+        graphics2D.EndScene();
     }
 }

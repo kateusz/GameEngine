@@ -34,11 +34,6 @@ graph TD
             PQ[IPhysicsQueries delegate]
         end
 
-        subgraph "Physics"
-            PBC[IPhysicsBackendConfig]
-            PWF[IPhysicsWorldFactory]
-        end
-
         subgraph "Scripting & Project"
             SE[IScriptEngine]
             PCtx[IProjectContext]
@@ -163,13 +158,6 @@ ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` bu
 | `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
 | `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |
 | `IPhysicsQueries` | Delegate from active scene, else `NullPhysicsQueries` | Default | Per-scene physics ray/overlap queries |
-
-### Physics (`RegisterCore`)
-
-| Service | Implementation | Lifetime | Notes |
-|---------|---------------|----------|-------|
-| `IPhysicsBackendConfig` | `PhysicsBackendConfig(Box2D)` | Singleton | 2D backend selection (`Type`) |
-| `IPhysicsWorldFactory` | `PhysicsWorldFactory` | Singleton | Creates per-scene 2D worlds (`Create`) |
 
 ### Serialization (`RegisterCore`)
 

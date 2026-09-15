@@ -4,7 +4,6 @@ using ECS.Systems;
 using Engine.Physics;
 using SceneComponents;
 using SceneComponents.Physics;
-using Serilog;
 
 namespace Engine.Scene.Systems;
 
@@ -17,59 +16,51 @@ internal sealed class PhysicsSimulationSystem(
     IContext context,
     PhysicsRuntimeBodyStore bodyStore) : ISystem, IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();
+    private const float Timestep = 1f / 60f;
+    private const int MaxPhysicsStepsPerFrame = 5;
 
     private float _physicsAccumulator;
     private bool _disposed;
     private readonly Dictionary<int, PhysicsBodyIdentity> _identities = [];
-
     private readonly HashSet<int> _activeBodyIds = [];
-    private uint _syncedRevision;
-
-    private const int MaxPhysicsStepsPerFrame = 5;
 
     public int Priority => 100;
 
     public void OnInit()
     {
         _physicsAccumulator = 0f;
-        CleanupOrphanedBodies();
-        SyncBodiesIfNeeded();
+        SyncBodies();
     }
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        const int velocityIterations = 6;
-        const int positionIterations = 2;
-        var deltaSeconds = (float)deltaTime.TotalSeconds;
+        _physicsAccumulator += (float)deltaTime.TotalSeconds;
 
-        _physicsAccumulator += deltaSeconds;
-
-        CleanupOrphanedBodies();
-        SyncBodiesIfNeeded();
+        SyncBodies();
 
         var stepCount = 0;
-        while (_physicsAccumulator >= PhysicsConstants.PhysicsTimestep && stepCount < MaxPhysicsStepsPerFrame)
+        while (_physicsAccumulator >= Timestep && stepCount < MaxPhysicsStepsPerFrame)
         {
             SyncKinematicTransformsToBodies();
             SyncVelocitiesToBodies();
-            physicsWorld.Step(PhysicsConstants.PhysicsTimestep, velocityIterations, positionIterations);
-            _physicsAccumulator -= PhysicsConstants.PhysicsTimestep;
+            physicsWorld.Step(Timestep);
+            _physicsAccumulator -= Timestep;
             stepCount++;
         }
 
-        if (_physicsAccumulator >= PhysicsConstants.PhysicsTimestep)
-            _physicsAccumulator = PhysicsConstants.PhysicsTimestep * 0.5f;
+        if (_physicsAccumulator >= Timestep)
+            _physicsAccumulator = Timestep * 0.5f;
 
         foreach (var (entity, component, transform) in
                  context.View<RigidBody2DComponent, TransformComponent>())
         {
-            if (GetColliderMaterial(entity) is not { } material)
+            var collider = ReadCollider(entity);
+            if (collider.Kind == ColliderKind.None)
                 continue;
             if (!bodyStore.TryGet(entity.Id, out var body))
                 continue;
 
-            body.UpdateFixtureMaterial(material.Density, material.Friction, material.Restitution);
+            body.UpdateFixtureMaterial(collider.Density, collider.Friction, collider.Restitution);
 
             var position = body.Position;
             transform.Translation = new Vector3(position.X, position.Y, 0);
@@ -82,91 +73,81 @@ internal sealed class PhysicsSimulationSystem(
 
     public void OnShutdown()
     {
-        Logger.Debug("PhysicsSimulationSystem shutting down - cleaning up physics bodies");
-
         foreach (var id in bodyStore.Snapshot().Keys.ToList())
             DropBody(id);
-
-        Logger.Debug("PhysicsSimulationSystem shut down - all physics bodies destroyed");
     }
 
-    private void SyncBodiesIfNeeded()
+    private void SyncBodies()
     {
-        if (_syncedRevision == PhysicsBodyRevision.Value
-            && bodyStore.Snapshot().Count == _activeBodyIds.Count)
-            return;
-
-        EnsureBodiesCreated();
-        _syncedRevision = PhysicsBodyRevision.Value;
-    }
-
-    private void EnsureBodiesCreated()
-    {
+        _activeBodyIds.Clear();
         foreach (var (entity, component, transform) in context.View<RigidBody2DComponent, TransformComponent>())
         {
-            var identity = CaptureIdentity(entity, component, transform);
-            if (bodyStore.TryGet(entity.Id, out _))
-            {
-                if (_identities.TryGetValue(entity.Id, out var baked) && baked == identity)
-                    continue;
-                DropBody(entity.Id);
-            }
+            _activeBodyIds.Add(entity.Id);
+            var collider = ReadCollider(entity);
+            var identity = CaptureIdentity(component, transform, collider);
+            if (bodyStore.TryGet(entity.Id, out _)
+                && _identities.TryGetValue(entity.Id, out var baked)
+                && baked == identity)
+                continue;
+
+            DropBody(entity.Id);
 
             var body = physicsWorld.CreateBody(new PhysicsBodyDef(
                 new Vector2(transform.Translation.X, transform.Translation.Y),
                 transform.Rotation.Z,
-                ToMotionType(component.BodyType),
+                component.BodyType,
                 component.FixedRotation,
                 component.GravityScale,
                 component.IsBullet));
 
             body.Entity = entity;
+            if (component.BodyType is RigidBodyType.Dynamic or RigidBodyType.Kinematic)
+                body.LinearVelocity = component.Velocity;
             bodyStore.Set(entity.Id, body);
             _identities[entity.Id] = identity;
+            AttachFixture(body, transform, collider);
+        }
 
-            AttachFixture(entity, body, transform);
+        foreach (var id in bodyStore.Snapshot().Keys.ToList())
+        {
+            if (!_activeBodyIds.Contains(id))
+                DropBody(id);
         }
     }
 
-    // One fixture per body: Box > Circle > Edge.
-    private static void AttachFixture(Entity entity, IPhysicsBody2D body, TransformComponent transform)
+    private static void AttachFixture(IPhysicsBody2D body, TransformComponent transform, ColliderInfo collider)
     {
         var scale = transform.Scale;
-
-        if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
+        switch (collider.Kind)
         {
-            body.CreateBoxFixture(new PhysicsBoxFixtureDef(
-                box.Size.X * scale.X,
-                box.Size.Y * scale.Y,
-                new Vector2(box.Offset.X * scale.X, box.Offset.Y * scale.Y),
-                box.Density,
-                box.Friction,
-                box.Restitution,
-                box.IsTrigger));
-            return;
-        }
-
-        if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
-        {
-            var radiusScale = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
-            body.CreateCircleFixture(new PhysicsCircleFixtureDef(
-                circle.Radius * radiusScale,
-                new Vector2(circle.Offset.X * scale.X, circle.Offset.Y * scale.Y),
-                circle.Density,
-                circle.Friction,
-                circle.Restitution,
-                circle.IsTrigger));
-            return;
-        }
-
-        if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
-        {
-            body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
-                ScalePoints(edge.Points, scale),
-                edge.Density,
-                edge.Friction,
-                edge.Restitution,
-                edge.IsTrigger));
+            case ColliderKind.Box:
+                body.CreateBoxFixture(new PhysicsBoxFixtureDef(
+                    collider.Size.X * scale.X,
+                    collider.Size.Y * scale.Y,
+                    new Vector2(collider.Offset.X * scale.X, collider.Offset.Y * scale.Y),
+                    collider.Density,
+                    collider.Friction,
+                    collider.Restitution,
+                    collider.IsTrigger));
+                break;
+            case ColliderKind.Circle:
+                var radiusScale = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
+                body.CreateCircleFixture(new PhysicsCircleFixtureDef(
+                    collider.Size.X * radiusScale,
+                    new Vector2(collider.Offset.X * scale.X, collider.Offset.Y * scale.Y),
+                    collider.Density,
+                    collider.Friction,
+                    collider.Restitution,
+                    collider.IsTrigger));
+                break;
+            case ColliderKind.Edge:
+                body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
+                    ScalePoints(collider.Points!, scale),
+                    collider.Density,
+                    collider.Friction,
+                    collider.Restitution,
+                    collider.IsTrigger));
+                break;
         }
     }
 
@@ -176,18 +157,6 @@ internal sealed class PhysicsSimulationSystem(
         for (var i = 0; i < points.Count; i++)
             scaled[i] = new Vector2(points[i].X * scale.X, points[i].Y * scale.Y);
         return scaled;
-    }
-
-    // Same priority as AttachFixture: Box > Circle > Edge.
-    private static (float Density, float Friction, float Restitution)? GetColliderMaterial(Entity entity)
-    {
-        if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
-            return (box.Density, box.Friction, box.Restitution);
-        if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
-            return (circle.Density, circle.Friction, circle.Restitution);
-        if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
-            return (edge.Density, edge.Friction, edge.Restitution);
-        return null;
     }
 
     private void SyncVelocitiesToBodies()
@@ -217,19 +186,6 @@ internal sealed class PhysicsSimulationSystem(
         }
     }
 
-    private void CleanupOrphanedBodies()
-    {
-        _activeBodyIds.Clear();
-        foreach (var (entity, _) in context.View<RigidBody2DComponent>())
-            _activeBodyIds.Add(entity.Id);
-
-        foreach (var id in bodyStore.Snapshot().Keys)
-        {
-            if (!_activeBodyIds.Contains(id))
-                DropBody(id);
-        }
-    }
-
     private void DropBody(int entityId)
     {
         if (!bodyStore.TryGet(entityId, out var body))
@@ -242,21 +198,23 @@ internal sealed class PhysicsSimulationSystem(
     }
 
     private static PhysicsBodyIdentity CaptureIdentity(
-        Entity entity, RigidBody2DComponent component, TransformComponent transform)
+        RigidBody2DComponent component, TransformComponent transform, ColliderInfo collider) =>
+        new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
+            collider.Kind, collider.Size, collider.Offset, transform.Scale, collider.Density, collider.IsTrigger,
+            collider.PointsHash);
+
+    private static ColliderInfo ReadCollider(Entity entity)
     {
         if (entity.TryGetComponent<BoxCollider2DComponent>(out var box))
-            return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
-                ColliderKind.Box, box.Size, box.Offset, transform.Scale, box.Density, box.IsTrigger, 0);
+            return new(ColliderKind.Box, box.Size, box.Offset, box.Density, box.Friction, box.Restitution,
+                box.IsTrigger, 0, null);
         if (entity.TryGetComponent<CircleCollider2DComponent>(out var circle))
-            return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
-                ColliderKind.Circle, new Vector2(circle.Radius, 0f), circle.Offset, transform.Scale,
-                circle.Density, circle.IsTrigger, 0);
+            return new(ColliderKind.Circle, new Vector2(circle.Radius, 0f), circle.Offset, circle.Density,
+                circle.Friction, circle.Restitution, circle.IsTrigger, 0, null);
         if (entity.TryGetComponent<EdgeCollider2DComponent>(out var edge))
-            return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
-                ColliderKind.Edge, default, default, transform.Scale, edge.Density, edge.IsTrigger,
-                HashPoints(edge.Points));
-        return new(component.BodyType, component.FixedRotation, component.GravityScale, component.IsBullet,
-            ColliderKind.None, default, default, transform.Scale, 0f, false, 0);
+            return new(ColliderKind.Edge, default, default, edge.Density, edge.Friction, edge.Restitution,
+                edge.IsTrigger, HashPoints(edge.Points), edge.Points);
+        return new(ColliderKind.None, default, default, 0f, 0f, 0f, false, 0, null);
     }
 
     private static int HashPoints(List<Vector2> points)
@@ -272,6 +230,17 @@ internal sealed class PhysicsSimulationSystem(
 
     private enum ColliderKind { None, Box, Circle, Edge }
 
+    private readonly record struct ColliderInfo(
+        ColliderKind Kind,
+        Vector2 Size,
+        Vector2 Offset,
+        float Density,
+        float Friction,
+        float Restitution,
+        bool IsTrigger,
+        int PointsHash,
+        List<Vector2>? Points);
+
     private readonly record struct PhysicsBodyIdentity(
         RigidBodyType BodyType,
         bool FixedRotation,
@@ -285,15 +254,6 @@ internal sealed class PhysicsSimulationSystem(
         bool IsTrigger,
         int PointsHash);
 
-    private static PhysicsBodyMotionType ToMotionType(RigidBodyType bodyType) =>
-        bodyType switch
-        {
-            RigidBodyType.Static => PhysicsBodyMotionType.Static,
-            RigidBodyType.Dynamic => PhysicsBodyMotionType.Dynamic,
-            RigidBodyType.Kinematic => PhysicsBodyMotionType.Kinematic,
-            _ => throw new ArgumentOutOfRangeException(nameof(bodyType), bodyType, null)
-        };
-
     public void Dispose()
     {
         if (_disposed)
@@ -301,7 +261,5 @@ internal sealed class PhysicsSimulationSystem(
 
         physicsWorld.Dispose();
         _disposed = true;
-        GC.SuppressFinalize(this);
-        Logger.Debug("PhysicsSimulationSystem disposed");
     }
 }

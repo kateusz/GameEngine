@@ -38,7 +38,7 @@ public class PhysicsSimulationSystemTests
     {
         var (system, _, world, _) = CreateFullSystem();
         system.OnUpdate(TimeSpan.FromSeconds(0.017));
-        world.Received(1).Step(PhysicsConstants.PhysicsTimestep, 6, 2);
+        world.Received(1).Step(1f / 60f);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class PhysicsSimulationSystemTests
     {
         var (system, _, world, _) = CreateFullSystem();
         system.OnUpdate(TimeSpan.FromSeconds(0.051));
-        world.Received(3).Step(PhysicsConstants.PhysicsTimestep, 6, 2);
+        world.Received(3).Step(1f / 60f);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class PhysicsSimulationSystemTests
         system.OnInit();
         system.OnUpdate(TimeSpan.FromSeconds(0.017));
 
-        mockBody.Received(1).LinearVelocity = new Vector2(10, 20);
+        mockBody.Received().LinearVelocity = new Vector2(10, 20);
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public class PhysicsSimulationSystemTests
         system.OnUpdate(TimeSpan.FromSeconds(0.017));
 
         world.Received(1).DestroyBody(first);
-        world.Received().CreateBody(Arg.Is<PhysicsBodyDef>(d => d.MotionType == PhysicsBodyMotionType.Kinematic));
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef>(d => d.MotionType == RigidBodyType.Kinematic));
         bodyStore.TryGet(entity.Id, out var stored).ShouldBeTrue();
         stored.ShouldBe(second);
     }
@@ -378,6 +378,70 @@ public class PhysicsSimulationSystemTests
         second.Received(1).CreateEdgeFixture(Arg.Any<PhysicsEdgeFixtureDef>());
     }
 
+    [Fact]
+    public void OnUpdate_IsBulletChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<RigidBody2DComponent>().IsBullet = true;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received().CreateBody(Arg.Is<PhysicsBodyDef>(d => d.IsBullet));
+        world.Received(1).DestroyBody(Arg.Any<IPhysicsBody2D>());
+    }
+
+    [Fact]
+    public void OnUpdate_OffsetChange_RecreatesBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var (first, second) = ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider2DComponent>().Offset = new Vector2(1f, 0f);
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).DestroyBody(first);
+        second.Received(1).CreateBoxFixture(Arg.Is<PhysicsBoxFixtureDef>(d => d.CenterOffset == new Vector2(1f, 0f)));
+    }
+
+    [Fact]
+    public void OnUpdate_FrictionChange_DoesNotRecreateBody()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var mockBody = StubBody();
+        world.CreateBody(Arg.Any<PhysicsBodyDef>()).Returns(mockBody);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider2DComponent>().Friction = 0.9f;
+        system.OnUpdate(TimeSpan.FromSeconds(0.017));
+
+        world.Received(1).CreateBody(Arg.Any<PhysicsBodyDef>());
+        world.DidNotReceive().DestroyBody(Arg.Any<IPhysicsBody2D>());
+        mockBody.Received().UpdateFixtureMaterial(1f, 0.9f, 0.7f);
+    }
+
+    [Fact]
+    public void OnUpdate_RemakeWithoutStep_KeepsComponentVelocity()
+    {
+        var (system, context, world, _) = CreateFullSystem();
+        var entity = CreateEntityWithFullCollider(context);
+        var rb = entity.GetComponent<RigidBody2DComponent>();
+        rb.BodyType = RigidBodyType.Dynamic;
+        rb.Velocity = new Vector2(10f, 20f);
+        ArrangeTwoBodies(world);
+
+        system.OnInit();
+        entity.GetComponent<BoxCollider2DComponent>().Density = 4f;
+        system.OnUpdate(TimeSpan.FromSeconds(0.001));
+
+        rb.Velocity.ShouldBe(new Vector2(10f, 20f));
+    }
+
     private static (PhysicsSimulationSystem System, IContext Context, IPhysicsWorld2D World, PhysicsRuntimeBodyStore BodyStore) CreateFullSystem()
     {
         var world = Substitute.For<IPhysicsWorld2D>();
@@ -415,7 +479,9 @@ public class PhysicsSimulationSystemTests
         var body = Substitute.For<IPhysicsBody2D>();
         body.Position.Returns(Vector2.Zero);
         body.Angle.Returns(0f);
-        body.LinearVelocity.Returns(Vector2.Zero);
+        var velocity = Vector2.Zero;
+        body.LinearVelocity.Returns(_ => velocity);
+        body.When(b => b.LinearVelocity = Arg.Any<Vector2>()).Do(ci => velocity = ci.Arg<Vector2>());
         return body;
     }
 }

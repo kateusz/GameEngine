@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Engine.Physics;
 using Engine.Platform.Box2D;
+using SceneComponents.Physics;
 using Shouldly;
 
 namespace Engine.Tests.Physics;
@@ -11,14 +12,14 @@ public class Box2DPhysicsWorld2DTests
     [Fact]
     public void Step_ContactBegin_ResolvesBodiesAfterEntityAssignment()
     {
-        using var world = new Box2DPhysicsWorld2D(new Vector2(0, -20f));
         var contactCount = 0;
-        world.SetContactListener(new RecordingContactListener(() => contactCount++));
+        using var world = new Box2DPhysicsWorld2D(
+            new Vector2(0, -20f), new RecordingContactListener(() => contactCount++));
 
         var floor = world.CreateBody(new PhysicsBodyDef(
             new Vector2(0, -2f),
             0f,
-            PhysicsBodyMotionType.Static,
+            RigidBodyType.Static,
             FixedRotation: false,
             GravityScale: 0f));
         floor.Entity = Entity.Create(1, "Floor");
@@ -27,14 +28,14 @@ public class Box2DPhysicsWorld2DTests
         var ball = world.CreateBody(new PhysicsBodyDef(
             new Vector2(0, 2f),
             0f,
-            PhysicsBodyMotionType.Dynamic,
+            RigidBodyType.Dynamic,
             FixedRotation: false,
             GravityScale: 1f));
         ball.Entity = Entity.Create(2, "Ball");
         ball.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.3f, 0.7f, false));
 
         for (var i = 0; i < 300; i++)
-            world.Step(1f / 60f, 6, 2);
+            world.Step(1f / 60f);
 
         contactCount.ShouldBeGreaterThan(0);
     }
@@ -52,14 +53,14 @@ public class Box2DPhysicsWorld2DTests
         var body = world.CreateBody(new PhysicsBodyDef(
             Vector2.Zero,
             0f,
-            PhysicsBodyMotionType.Dynamic,
+            RigidBodyType.Dynamic,
             FixedRotation: false,
             GravityScale: 1f));
 
         body.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.5f, 0f, false));
 
         var startY = body.Position.Y;
-        world.Step(1f / 60f, 6, 2);
+        world.Step(1f / 60f);
 
         body.Position.Y.ShouldBeLessThan(startY);
     }
@@ -72,7 +73,7 @@ public class Box2DPhysicsWorld2DTests
         var fixedBody = world.CreateBody(new PhysicsBodyDef(
             Vector2.Zero,
             0f,
-            PhysicsBodyMotionType.Dynamic,
+            RigidBodyType.Dynamic,
             FixedRotation: true,
             GravityScale: 0f));
         fixedBody.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.5f, 0f, false));
@@ -81,35 +82,17 @@ public class Box2DPhysicsWorld2DTests
         var freeBody = world.CreateBody(new PhysicsBodyDef(
             Vector2.Zero,
             0f,
-            PhysicsBodyMotionType.Dynamic,
+            RigidBodyType.Dynamic,
             FixedRotation: false,
             GravityScale: 0f));
         freeBody.CreateBoxFixture(new PhysicsBoxFixtureDef(0.5f, 0.5f, Vector2.Zero, 1f, 0.5f, 0f, false));
         ((Box2DPhysicsBody2D)freeBody).NativeBody.ApplyAngularImpulse(10f);
 
         for (var i = 0; i < 10; i++)
-            world.Step(1f / 60f, 6, 2);
+            world.Step(1f / 60f);
 
         fixedBody.Angle.ShouldBe(0f);
         freeBody.Angle.ShouldNotBe(0f);
-    }
-
-    [Fact]
-    public void PhysicsWorldFactory_Box2DBackend_CreatesWorld()
-    {
-        IPhysicsWorldFactory factory = new PhysicsWorldFactory(new PhysicsBackendConfig(PhysicsBackendType.Box2D));
-
-        using var world = factory.Create(new Vector2(0, -9.8f));
-        var body = world.CreateBody(new PhysicsBodyDef(
-            new Vector2(1f, 2f),
-            0.5f,
-            PhysicsBodyMotionType.Static,
-            FixedRotation: true,
-            GravityScale: 0f));
-
-        body.Position.ShouldBe(new Vector2(1f, 2f));
-        body.Angle.ShouldBe(0.5f);
-        body.MotionType.ShouldBe(PhysicsBodyMotionType.Static);
     }
 
     [Fact]
@@ -118,7 +101,7 @@ public class Box2DPhysicsWorld2DTests
         var world = new Box2DPhysicsWorld2D(Vector2.Zero);
         world.Dispose();
 
-        Should.Throw<ObjectDisposedException>(() => world.Step(1f / 60f, 6, 2));
+        Should.Throw<ObjectDisposedException>(() => world.Step(1f / 60f));
     }
 
     [Fact]
@@ -205,6 +188,16 @@ public class Box2DPhysicsWorld2DTests
     }
 
     [Fact]
+    public void OverlapCircle_Miss_WhenOnlyAabbsOverlap()
+    {
+        using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
+        var target = Entity.Create(1, "Target");
+        CreateStaticBox(world, target, Vector2.Zero);
+
+        world.OverlapCircle(new Vector2(1.4f, 1.4f), 0.5f).ShouldBeNull();
+    }
+
+    [Fact]
     public void OverlapCircle_ReturnsHit()
     {
         using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
@@ -215,8 +208,6 @@ public class Box2DPhysicsWorld2DTests
 
         hit.ShouldNotBeNull();
         hit.Value.Entity.Id.ShouldBe(target.Id);
-        hit.Value.Point.ShouldBe(Vector2.Zero);
-        hit.Value.Distance.ShouldBe(0f);
     }
 
     [Fact]
@@ -275,11 +266,11 @@ public class Box2DPhysicsWorld2DTests
         using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
         var target = Entity.Create(1, "Circle");
         var body = world.CreateBody(new PhysicsBodyDef(
-            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+            Vector2.Zero, 0f, RigidBodyType.Static, FixedRotation: false, GravityScale: 0f));
         body.Entity = target;
         body.CreateCircleFixture(new PhysicsCircleFixtureDef(1f, Vector2.Zero, 0f, 0.5f, 0f, false));
 
-        body.HasFixture.ShouldBeTrue();
+        HasFixture(body).ShouldBeTrue();
         var hit = world.OverlapCircle(Vector2.Zero, 2f);
         hit.ShouldNotBeNull();
         hit.Value.Entity.Id.ShouldBe(target.Id);
@@ -290,10 +281,10 @@ public class Box2DPhysicsWorld2DTests
     {
         using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
         var body = world.CreateBody(new PhysicsBodyDef(
-            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+            Vector2.Zero, 0f, RigidBodyType.Static, FixedRotation: false, GravityScale: 0f));
 
         body.CreateCircleFixture(new PhysicsCircleFixtureDef(0f, Vector2.Zero, 0f, 0.5f, 0f, false));
-        body.HasFixture.ShouldBeFalse();
+        HasFixture(body).ShouldBeFalse();
     }
 
     [Fact]
@@ -301,12 +292,12 @@ public class Box2DPhysicsWorld2DTests
     {
         using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
         var body = world.CreateBody(new PhysicsBodyDef(
-            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+            Vector2.Zero, 0f, RigidBodyType.Static, FixedRotation: false, GravityScale: 0f));
 
         body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
             [new Vector2(-2f, 0f), new Vector2(2f, 0f)], 0f, 0.5f, 0f, false));
 
-        body.HasFixture.ShouldBeTrue();
+        HasFixture(body).ShouldBeTrue();
     }
 
     [Fact]
@@ -314,12 +305,12 @@ public class Box2DPhysicsWorld2DTests
     {
         using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
         var body = world.CreateBody(new PhysicsBodyDef(
-            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+            Vector2.Zero, 0f, RigidBodyType.Static, FixedRotation: false, GravityScale: 0f));
 
         body.CreateEdgeFixture(new PhysicsEdgeFixtureDef(
             [new Vector2(-2f, 0f), new Vector2(0f, 1f), new Vector2(2f, 0f)], 0f, 0.5f, 0f, false));
 
-        body.HasFixture.ShouldBeTrue();
+        HasFixture(body).ShouldBeTrue();
     }
 
     [Fact]
@@ -327,11 +318,14 @@ public class Box2DPhysicsWorld2DTests
     {
         using var world = new Box2DPhysicsWorld2D(Vector2.Zero);
         var body = world.CreateBody(new PhysicsBodyDef(
-            Vector2.Zero, 0f, PhysicsBodyMotionType.Static, FixedRotation: false, GravityScale: 0f));
+            Vector2.Zero, 0f, RigidBodyType.Static, FixedRotation: false, GravityScale: 0f));
 
         body.CreateEdgeFixture(new PhysicsEdgeFixtureDef([Vector2.Zero], 0f, 0.5f, 0f, false));
-        body.HasFixture.ShouldBeFalse();
+        HasFixture(body).ShouldBeFalse();
     }
+
+    private static bool HasFixture(IPhysicsBody2D body) =>
+        ((Box2DPhysicsBody2D)body).NativeBody.GetFixtureList() != null;
 
     private static IPhysicsBody2D CreateStaticBox(
         Box2DPhysicsWorld2D world,
@@ -344,7 +338,7 @@ public class Box2DPhysicsWorld2DTests
         var body = world.CreateBody(new PhysicsBodyDef(
             position,
             0f,
-            PhysicsBodyMotionType.Static,
+            RigidBodyType.Static,
             FixedRotation: false,
             GravityScale: 0f));
         body.Entity = entity;

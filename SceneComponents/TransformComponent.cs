@@ -1,7 +1,6 @@
 using System.Numerics;
 using ECS;
 using Math;
-using SceneComponents.Physics;
 
 namespace SceneComponents;
 
@@ -45,7 +44,6 @@ public class TransformComponent : IComponent
                 return;
             _scale = value;
             _isDirty = true;
-            PhysicsBodyRevision.Bump();
         }
     }
 

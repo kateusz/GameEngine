@@ -17,7 +17,7 @@ internal sealed class NullPhysicsQueries : IPhysicsQueries
         Entity? ignoreEntity = null,
         bool includeTriggers = false) => null;
 
-    public RaycastHit2D? OverlapCircle(
+    public (Entity Entity, bool IsTrigger)? OverlapCircle(
         Vector2 center,
         float radius,
         Entity? ignoreEntity = null,

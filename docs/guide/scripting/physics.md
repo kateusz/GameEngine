@@ -28,7 +28,7 @@ Poll `IPhysicsContacts.DrainContacts()` in an `IGameSystem` — [Scripting Tiers
 | `CircleCollider2DComponent` | `Radius`, `Offset` |
 | `EdgeCollider2DComponent` | `Points` (open chain, ≥2) |
 
-Shared material: `Density`, `Friction` (0–1), `Restitution` (bounciness 0–1). Box also serializes unused `RestitutionThreshold`.
+Shared material: `Density`, `Friction` (0–1), `Restitution` (bounciness 0–1).
 
 ## Example: pickup
 

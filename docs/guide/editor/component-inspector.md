@@ -166,7 +166,6 @@ Defines a rectangular collision shape for the entity. Works in conjunction with 
 | `Density` | float | 1.0 | Mass per unit area. Higher density produces a heavier body. |
 | `Friction` | float | 0.5 | Surface friction coefficient. 0.0 is frictionless (ice); 1.0 is high friction (rubber). |
 | `Restitution` | float | 0.7 | Bounciness. 0.0 = no bounce; 1.0 = perfectly elastic. |
-| `RestitutionThreshold` | float | 0.5 | Minimum collision velocity required for bouncing to occur. |
 | `IsTrigger` | bool | false | When true, the collider detects overlaps but does not produce physical collision response. |
 
 **When to use:** Pair with RigidBody2DComponent on every entity that needs physical collision. Enable collider visualization in Debug Settings to see box bounds in the viewport. Use `IsTrigger` for pick-ups, zones, and sensors that should detect presence without blocking movement.

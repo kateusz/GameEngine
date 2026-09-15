@@ -1,9 +1,7 @@
-using System.Numerics;
 using Audio;
 using ECS;
 using ECS.Systems;
 using Engine.Core;
-using Engine.Physics;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -21,15 +19,20 @@ public class SceneSystemsFactoryTests
     {
         var registered = Populate();
 
-        registered.ShouldContain(s => s is PhysicsSimulationSystem);
-        registered.ShouldContain(s => s is PhysicsDebugRenderSystem);
+        try
+        {
+            registered.ShouldContain(s => s is PhysicsSimulationSystem);
+            registered.ShouldContain(s => s is PhysicsDebugRenderSystem);
+        }
+        finally
+        {
+            foreach (var system in registered)
+                (system as IDisposable)?.Dispose();
+        }
     }
 
     private static IReadOnlyList<ISystem> Populate()
     {
-        var worldFactory = Substitute.For<IPhysicsWorldFactory>();
-        worldFactory.Create(Arg.Any<Vector2>()).Returns(Substitute.For<IPhysicsWorld2D>());
-
         var factory = new SceneSystemsFactory(
             Substitute.For<IGraphics2D>(),
             Substitute.For<IGraphics3D>(),
@@ -37,7 +40,6 @@ public class SceneSystemsFactoryTests
             new DebugSettings(),
             Substitute.For<IAudio>(),
             new AudioPlaybackService(),
-            worldFactory,
             Substitute.For<IModelFactory>());
 
         var systemManager = new SystemManager();
