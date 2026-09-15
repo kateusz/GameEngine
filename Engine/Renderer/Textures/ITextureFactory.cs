@@ -12,6 +12,9 @@ public interface ITextureFactory : IDisposable
     /// </param>
     Texture2D Create(string path, bool sRgb = false);
 
+    /// <summary>Decode a compressed image blob (png/jpg/webp) and upload. Cached by content hash.</summary>
+    Texture2D CreateFromEncoded(byte[] encoded, bool sRgb = false);
+
     (byte[] Data, int Width, int Height) DecodePreview(string path);
     Texture2D CreateFromRgba(byte[] rgba, int width, int height);
     Texture2D Create(int width, int height);

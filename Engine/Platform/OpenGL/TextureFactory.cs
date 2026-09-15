@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Engine.Renderer.Textures;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 
@@ -28,6 +29,23 @@ internal sealed class TextureFactory : ITextureFactory
                 return cachedTexture;
 
             var texture = OpenGLTexture2D.Create(path, sRgb);
+            _textureCache[cacheKey] = texture;
+            return texture;
+        }
+    }
+
+    public Texture2D CreateFromEncoded(byte[] encoded, bool sRgb = false)
+    {
+        ArgumentNullException.ThrowIfNull(encoded);
+        var hash = Convert.ToHexString(SHA256.HashData(encoded)).AsSpan(0, 16);
+        var cacheKey = sRgb ? $"#enc:{hash}#srgb" : $"#enc:{hash}";
+
+        lock (_cacheLock)
+        {
+            if (_textureCache.TryGetValue(cacheKey, out var cachedTexture))
+                return cachedTexture;
+
+            var texture = OpenGLTexture2D.CreateFromEncoded(encoded, sRgb);
             _textureCache[cacheKey] = texture;
             return texture;
         }

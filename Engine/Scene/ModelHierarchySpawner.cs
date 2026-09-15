@@ -1,15 +1,45 @@
 using System.Numerics;
 using ECS;
 using Engine.Renderer.Models;
-using Engine.Scene;
 using Math;
 using SceneComponents;
 using SceneComponents.Rendering;
 
-namespace Editor.Features.Scene;
+namespace Engine.Scene;
 
 public static class ModelHierarchySpawner
 {
+    public static void Instantiate(
+        IScene scene,
+        Entity root,
+        ModelRendererComponent component,
+        Model model,
+        string relativeModelPath)
+    {
+        component.ModelPath = relativeModelPath;
+        component.MeshIndex = null;
+
+        var graph = model.SceneGraph;
+        component.SuppressDraw = graph is not null && graph.ShouldUnpack;
+        if (graph is null)
+            return;
+
+        if (!graph.ShouldUnpack)
+        {
+            if (graph.FirstMeshIndex is int meshIndex &&
+                graph.TryGetMeshWorldTransform(meshIndex, out var meshWorld) &&
+                root.TryGetComponent<TransformComponent>(out var transform))
+            {
+                var combined = meshWorld * transform.GetTransform();
+                ApplyLocalTransform(root, combined);
+            }
+
+            return;
+        }
+
+        SpawnChildren(scene, root, graph, relativeModelPath, component.Color);
+    }
+
     public static void SpawnChildren(
         IScene scene,
         Entity root,

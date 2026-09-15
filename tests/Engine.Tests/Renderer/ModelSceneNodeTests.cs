@@ -43,4 +43,23 @@ public class ModelSceneNodeTests
         graph.TryGetMeshWorldTransform(0, out var world).ShouldBeTrue();
         new Vector3(world.M41, world.M42, world.M43).ShouldBe(new Vector3(3, 0, 0));
     }
+
+    [Fact]
+    public void PackedSubmeshWorld_MultipliesNodeWorldByEntityWorld()
+    {
+        var graph = Node("Root", [],
+            localTransform: Matrix4x4.CreateTranslation(1, 0, 0),
+            Node("Chair", [0], Matrix4x4.CreateTranslation(2, 0, 0)));
+        var entity = Matrix4x4.CreateTranslation(10, 0, 0);
+
+        var packed = ModelSceneNode.PackedSubmeshWorld(graph, 0, entity);
+        new Vector3(packed.M41, packed.M42, packed.M43).ShouldBe(new Vector3(13, 0, 0));
+    }
+
+    [Fact]
+    public void PackedSubmeshWorld_NullGraph_ReturnsEntityWorld()
+    {
+        var entity = Matrix4x4.CreateTranslation(4, 5, 6);
+        ModelSceneNode.PackedSubmeshWorld(null, 0, entity).ShouldBe(entity);
+    }
 }

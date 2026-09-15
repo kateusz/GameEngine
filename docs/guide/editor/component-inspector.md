@@ -93,7 +93,7 @@ Draws either a unit cube or a static imported 3D model at the entity's transform
 |---|---|---|---|
 | `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Tint. White means no tint. |
 | `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from the Content Browser. Empty → cube. |
-| `TexturePath` | string | — | Cube albedo only (ignored when `ModelPath` is set). |
+| `TexturePath` | string | — | sRGB albedo. Cube: used as the cube texture. Model: optional override of imported diffuse. |
 | `TilingFactor` | float | 1.0 | Cube texture repeat (ignored for imported models). |
 
 Imported models use Blinn-Phong (diffuse / specular / normal maps from the file). Skinning and animation clips are not imported.

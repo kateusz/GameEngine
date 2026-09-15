@@ -60,6 +60,13 @@ internal sealed class OpenGLTexture2D : Texture2D
             generateMipmaps: false);
     }
 
+    public static Texture2D CreateFromEncoded(byte[] encoded, bool sRgb = false)
+    {
+        var decoded = TextureFileDecoder.Decode(encoded, sRgb);
+        return UploadTexture(string.Empty, decoded.Data, decoded.Width, decoded.Height, decoded.InternalFormat,
+            decoded.DataFormat);
+    }
+
     private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
         InternalFormat internalFormat, PixelFormat dataFormat, bool generateMipmaps = true)
     {

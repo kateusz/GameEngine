@@ -69,4 +69,16 @@ public sealed class ModelSceneNode
     }
 
     public bool ShouldUnpack => TotalMeshCount > 1;
+
+    /// <summary>
+    /// Packed draw: node local transform from the graph root, then the entity world matrix.
+    /// Unpacked children already bake the node transform into the entity — do not use this.
+    /// </summary>
+    public static Matrix4x4 PackedSubmeshWorld(ModelSceneNode? graph, int meshIndex, Matrix4x4 entityWorld)
+    {
+        if (graph is not null && graph.TryGetMeshWorldTransform(meshIndex, out var meshWorld))
+            return meshWorld * entityWorld;
+
+        return entityWorld;
+    }
 }

@@ -35,13 +35,14 @@ Sprites draw in **entity iteration order**; depth test is off — **Z does not s
 | Setup | What draws |
 |---|---|
 | Empty `ModelPath` | Unit cube. Optional `TexturePath` (sRGB albedo) and `TilingFactor` |
-| `.glb` / `.gltf` / `.fbx`, no `MeshIndex` | Every imported submesh at this entity's world transform |
+| `.glb` / `.gltf` / `.fbx`, no `MeshIndex` | Each imported submesh at the Assimp node transform × this entity's world transform |
 | Same, with `MeshIndex` | That submesh only (use when a model is split across child entities) |
-| `SuppressDraw` | Skip the all-submeshes draw |
+| `SuppressDraw` | Skip the packed all-submeshes draw |
+| `TexturePath` with a model | Optional albedo override for every drawn submesh |
 
-`Color` tints both paths. The first draw of a model path imports via Assimp and uploads GPU buffers; later frames use a path cache. Failed import draws a unit cube instead (one warning per path).
+`Color` tints both paths. `IModelFactory.Create` fills a path cache (including before the 3D pass); the draw uses `TryGet`. Failed import draws a unit cube instead (one warning per path). Missing files retry if they appear later.
 
-Import keeps the Assimp node graph (transforms are not baked into vertices). Unreal collision mesh names (`UCX_`, `UBX_`, …) are skipped. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture name.
+Import keeps the Assimp node graph (transforms are not baked into vertices). Editor drop and `ModelHierarchySpawner.Instantiate` unpack multi-mesh graphs onto child entities. Unreal collision mesh names (`UCX_`, `UBX_`, …) are skipped. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture name.
 
 **Supported today:** triangle meshes, diffuse / specular / normal maps, Blinn-Phong lighting. **Not supported:** skinning, animation clips, PBR metallic-roughness as a lighting model, transparent mesh sort.
 

@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
-using Engine.Renderer.Textures;
 
 namespace Engine.Renderer.Meshes;
 
@@ -15,34 +14,24 @@ public class Mesh : IDisposable
         Vector3 Normal,
         Vector2 TexCoord,
         Vector3 Tangent,
-        Vector3 Bitangent,
-        int EntityId = -1)
+        Vector3 Bitangent)
     {
         public Vertex() : this(default, default, default, default, default) { }
 
-        // GLSL layout(location): 0 Position, 1 Normal, 2 TexCoord, 3 Tangent, 4 Bitangent, 5 EntityID.
-        // cube.vert skips 3–4 so EntityID stays at 5.
         public static BufferLayout Layout { get; } = new([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float3, "a_Normal"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Float3, "a_Tangent"),
-            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
-            new BufferElement(ShaderDataType.Int, "a_EntityID")
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent")
         ]);
     }
 
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
-    public Texture2D? DiffuseTexture { get; set; }
-    public Texture2D? SpecularTexture { get; set; }
-    public Texture2D? NormalTexture { get; set; }
-    public float Shininess { get; set; } = 32.0f;
-    
-    public bool HasDiffuseMap => DiffuseTexture != null;
-    public bool HasSpecularMap => SpecularTexture != null;
-    public bool HasNormalMap => NormalTexture != null;
+    public Vector3 BoundsMin { get; private set; }
+    public Vector3 BoundsMax { get; private set; }
 
     private IVertexArray _vertexArray;
     private bool _initialized;
@@ -73,6 +62,8 @@ public class Mesh : IDisposable
         if (_initialized)
             throw new InvalidOperationException(
                 $"Mesh '{Name}' already initialized. Initialize() should only be called once.");
+
+        ComputeBounds();
 
         _vertexArray = vertexArrayFactory.Create();
         var vertexBuffer = vertexBufferFactory.Create(Vertices);
@@ -120,6 +111,23 @@ public class Mesh : IDisposable
             _vertexArray?.Dispose();
 
         _disposed = true;
+    }
+
+    private void ComputeBounds()
+    {
+        if (Vertices.Count == 0)
+            return;
+
+        var min = Vertices[0].Position;
+        var max = min;
+        for (var i = 1; i < Vertices.Count; i++)
+        {
+            min = Vector3.Min(min, Vertices[i].Position);
+            max = Vector3.Max(max, Vertices[i].Position);
+        }
+
+        BoundsMin = min;
+        BoundsMax = max;
     }
 
 #if DEBUG

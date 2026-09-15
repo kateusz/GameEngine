@@ -52,7 +52,87 @@ public class ModelFactoryDisposeTests
         }
     }
 
-    private static ModelFactory CreateFactory(string path, IVertexArray vao)
+    [Fact]
+    public void TryGet_AfterCreate_ReturnsCachedModel_WithoutImport()
+    {
+        var path = Path.GetTempFileName();
+        var imports = 0;
+        try
+        {
+            var factory = CreateFactory(path, Substitute.For<IVertexArray>(), _ =>
+            {
+                imports++;
+                return ([NewMesh()], [MeshMaterial.Default], null);
+            });
+
+            factory.TryGet(path, out _).ShouldBeFalse();
+            factory.Create(path).ShouldNotBeNull();
+            factory.TryGet(path, out var model).ShouldBeTrue();
+            model.ShouldNotBeNull();
+            factory.Create(path);
+            imports.ShouldBe(1);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Create_MissingFile_RetriesWhenFileAppears()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".bin");
+        var imports = 0;
+        var factory = CreateFactory(path, Substitute.For<IVertexArray>(), _ =>
+        {
+            imports++;
+            return ([NewMesh()], [MeshMaterial.Default], null);
+        });
+
+        factory.Create(path).ShouldBeNull();
+        imports.ShouldBe(0);
+
+        File.WriteAllBytes(path, [1]);
+        try
+        {
+            factory.Create(path).ShouldNotBeNull();
+            imports.ShouldBe(1);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Create_PartialInitializeFailure_DisposesAllMeshes_AndReturnsNull()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var vaoFactory = Substitute.For<IVertexArrayFactory>();
+            vaoFactory.Create().Returns(
+                _ => throw new InvalidOperationException("gpu"),
+                _ => Substitute.For<IVertexArray>());
+            var factory = new ModelFactory(
+                _ => ([NewMesh(), NewMesh()], [MeshMaterial.Default, MeshMaterial.Default], null),
+                vaoFactory,
+                Substitute.For<IVertexBufferFactory>(),
+                Substitute.For<IIndexBufferFactory>());
+
+            factory.Create(path).ShouldBeNull();
+            factory.TryGet(path, out _).ShouldBeFalse();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static ModelFactory CreateFactory(
+        string path,
+        IVertexArray vao,
+        Func<string, (IReadOnlyList<Mesh> Submeshes, IReadOnlyList<MeshMaterial> Materials, ModelSceneNode? SceneGraph)>? import = null)
     {
         var vbo = Substitute.For<IVertexBuffer>();
         var ibo = Substitute.For<IIndexBuffer>();
@@ -67,7 +147,7 @@ public class ModelFactoryDisposeTests
         iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
 
         return new ModelFactory(
-            _ => ([NewMesh()], null),
+            import ?? (_ => ([NewMesh()], [MeshMaterial.Default], null)),
             vaoFactory,
             vboFactory,
             iboFactory);

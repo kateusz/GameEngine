@@ -31,11 +31,23 @@ internal static class TextureFileDecoder
         lock (DecodeLock)
         {
             var ext = Path.GetExtension(path);
-            return PfimExtensions.Contains(ext) ? DecodePfim(path, sRgb) : DecodeStb(path, sRgb);
+            return PfimExtensions.Contains(ext) ? DecodePfim(path, sRgb) : DecodeStbFile(path, sRgb);
         }
     }
 
-    private static DecodedImage DecodeStb(string path, bool sRgb)
+    public static DecodedImage Decode(byte[] encoded, bool sRgb)
+    {
+        ArgumentNullException.ThrowIfNull(encoded);
+        lock (DecodeLock)
+        {
+            StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
+            var image = ImageResult.FromMemory(encoded, ColorComponents.RedGreenBlueAlpha);
+            var internalFormat = sRgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8;
+            return new DecodedImage(image.Data, image.Width, image.Height, internalFormat, PixelFormat.Rgba);
+        }
+    }
+
+    private static DecodedImage DecodeStbFile(string path, bool sRgb)
     {
         StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
 

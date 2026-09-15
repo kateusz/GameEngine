@@ -5,7 +5,6 @@ layout(location = 1) out int  o_EntityID;
 
 in vec3 v_Normal;
 in vec2 v_TexCoord;
-flat in int v_EntityID;
 
 uniform vec4 u_Color;
 uniform int  u_EntityID;

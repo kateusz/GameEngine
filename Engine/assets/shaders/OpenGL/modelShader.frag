@@ -7,7 +7,6 @@ in vec3 v_FragPos;
 in vec3 v_Normal;
 in vec2 v_TexCoord;
 in mat3 v_TBN;
-flat in int v_EntityID;
 
 uniform vec4 u_Color;
 uniform int  u_EntityID;

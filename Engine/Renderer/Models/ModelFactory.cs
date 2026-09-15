@@ -1,4 +1,5 @@
-﻿using Engine.Renderer.Buffers;
+﻿using System.Diagnostics.CodeAnalysis;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Serilog;
@@ -9,11 +10,11 @@ internal class ModelFactory : IModelFactory
 {
     private static readonly ILogger Logger = Log.ForContext<ModelFactory>();
 
-    private readonly Func<string, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> _import;
+    private readonly Func<string, (IReadOnlyList<Mesh> Submeshes, IReadOnlyList<MeshMaterial> Materials, ModelSceneNode? SceneGraph)> _import;
     private readonly IVertexArrayFactory _vertexArrayFactory;
     private readonly IVertexBufferFactory _vertexBufferFactory;
     private readonly IIndexBufferFactory _indexBufferFactory;
-    private readonly Dictionary<string, Model?> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CacheEntry> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
@@ -27,7 +28,7 @@ internal class ModelFactory : IModelFactory
     }
 
     internal ModelFactory(
-        Func<string, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> import,
+        Func<string, (IReadOnlyList<Mesh> Submeshes, IReadOnlyList<MeshMaterial> Materials, ModelSceneNode? SceneGraph)> import,
         IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
@@ -46,60 +47,78 @@ internal class ModelFactory : IModelFactory
 
         lock (_cacheLock)
         {
-            if (_cache.TryGetValue(normalizedPath, out var cached))
-                return cached;
+            var existed = File.Exists(normalizedPath);
+            var mtime = existed ? File.GetLastWriteTimeUtc(normalizedPath) : DateTime.MinValue;
+
+            if (_cache.TryGetValue(normalizedPath, out var cached) &&
+                cached.Existed == existed &&
+                cached.MtimeUtc == mtime)
+                return cached.Model;
+
+            cached?.Model?.Dispose();
+
+            Model? model = null;
+            if (existed)
+                model = TryLoadModel(normalizedPath);
+
+            _cache[normalizedPath] = new CacheEntry(model, mtime, existed);
+            return model;
         }
+    }
 
-        var model = TryLoadModel(normalizedPath);
+    public bool TryGet(string path, [NotNullWhen(true)] out Model? model)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
+        var normalizedPath = Path.GetFullPath(path);
         lock (_cacheLock)
         {
-            _cache[normalizedPath] = model;
+            if (_cache.TryGetValue(normalizedPath, out var cached) && cached.Model != null)
+            {
+                model = cached.Model;
+                return true;
+            }
         }
 
-        return model;
+        model = null;
+        return false;
     }
 
     private Model? TryLoadModel(string normalizedPath)
     {
-        if (!File.Exists(normalizedPath))
-        {
-            Logger.Warning("Model file not found: {Path}", normalizedPath);
-            return null;
-        }
-
         try
         {
-            var (submeshes, sceneGraph) = _import(normalizedPath);
+            var (submeshes, materials, sceneGraph) = _import(normalizedPath);
             if (submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);
                 return null;
             }
 
-            var initialized = new List<Mesh>(submeshes.Count);
-            foreach (var submesh in submeshes)
+            if (submeshes.Count != materials.Count)
             {
-                try
+                Logger.Warning("Model material count mismatch: {Path}", normalizedPath);
+                DisposeMeshes(submeshes);
+                return null;
+            }
+
+            var initialized = new List<Mesh>(submeshes.Count);
+            try
+            {
+                foreach (var submesh in submeshes)
                 {
                     submesh.Initialize(_vertexArrayFactory, _vertexBufferFactory, _indexBufferFactory);
                     initialized.Add(submesh);
                 }
-                catch (Exception ex)
-                {
-                    Logger.Warning(ex, "Failed to initialize mesh '{MeshName}' in {Path}", submesh.Name,
-                        normalizedPath);
-                    submesh.Dispose();
-                }
             }
-
-            if (initialized.Count == 0)
+            catch (Exception ex)
             {
-                Logger.Warning("No submeshes initialized for model: {Path}", normalizedPath);
+                Logger.Warning(ex, "Failed to initialize model meshes: {Path}", normalizedPath);
+                DisposeMeshes(submeshes);
                 return null;
             }
 
-            return new Model(normalizedPath, initialized, sceneGraph);
+            return new Model(normalizedPath, initialized, materials, sceneGraph);
         }
         catch (Exception ex)
         {
@@ -108,12 +127,18 @@ internal class ModelFactory : IModelFactory
         }
     }
 
+    private static void DisposeMeshes(IEnumerable<Mesh> meshes)
+    {
+        foreach (var mesh in meshes)
+            mesh.Dispose();
+    }
+
     public void Clear()
     {
         lock (_cacheLock)
         {
-            foreach (var model in _cache.Values)
-                model?.Dispose();
+            foreach (var entry in _cache.Values)
+                entry.Model?.Dispose();
             _cache.Clear();
         }
     }
@@ -126,4 +151,6 @@ internal class ModelFactory : IModelFactory
         Clear();
         _disposed = true;
     }
+
+    private sealed record CacheEntry(Model? Model, DateTime MtimeUtc, bool Existed);
 }

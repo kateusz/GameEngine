@@ -72,7 +72,7 @@ If `CameraQueries.TryGetPrimaryView` fails, the system returns without drawing. 
 | 2D sprites | `SpriteRendererComponent` + `TransformComponent` | Batched textured quads (skips fully transparent tint; failed texture load → solid-color quad) |
 | 2D subtextures | `SubTextureRendererComponent` + `TransformComponent` | Batched quads with atlas coordinates |
 | 3D cubes | `ModelRendererComponent` + `TransformComponent` (empty `ModelPath`) | Unit cube, optional albedo texture |
-| 3D models | `ModelRendererComponent` + `TransformComponent` (set `ModelPath`) | Indexed draw: one submesh when `MeshIndex` is set; otherwise every submesh unless `SuppressDraw` |
+| 3D models | `ModelRendererComponent` + `TransformComponent` (set `ModelPath`) | Indexed draw: one submesh when `MeshIndex` is set; otherwise each submesh at packed node × entity transform unless `SuppressDraw` |
 
 Physics debug draw (**File**: `Engine/Scene/Systems/PhysicsDebugRenderSystem.cs`, priority 151) renders collider outlines when collider debug is enabled. It uses the same primary-camera `SceneView` and returns if that lookup fails.
 
@@ -205,7 +205,8 @@ sequenceDiagram
 | `BeginScene` | Store `SceneView`, then upload view-projection, lights, and (model shader) view position |
 | `SetAmbientLight` / `SetDirectionalLight` | Store scene lights; call before `BeginScene` so the upload sees them |
 | `DrawCube` | Shared unit cube mesh (`IMeshFactory.CreateCube`) |
-| `DrawMesh` | GPU mesh + optional diffuse/specular/normal maps |
+| `DrawMesh` | GPU mesh + `MeshMaterial` (diffuse/specular/normal + shininess) |
+| `IMeshFactory.Create` | Procedural mesh from vertex/index arrays (same GPU upload as import) |
 
 Lighting is Blinn-Phong (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`). The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
 
@@ -215,17 +216,17 @@ Lighting is Blinn-Phong (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`)
 
 | Step | What happens |
 |------|----------------|
-| `IModelFactory.Create(path)` | Path cache (including failed loads). Miss → Assimp import + VAO/VBO/EBO |
+| `IModelFactory.Create(path)` | Path cache keyed by full path + source mtime (failed loads retry if the file appears or changes). Miss → Assimp import + VAO/VBO/EBO |
 | Assimp | Silk.NET Assimp. Formats: `.glb`, `.gltf`, `.fbx` |
 | Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs. Node transforms are **not** baked into vertices |
 | Scene graph | `Model.SceneGraph` walks Assimp nodes (`ModelSceneNode`: name, mesh indices, children, local transform) |
 | CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (non-triangle faces skipped). Unreal collision mesh names (`UCX_`, `UBX_`, `USP_`, `UCP_`) skipped |
-| Materials | BaseColor then Diffuse (albedo, sRGB), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files. Missing albedo next to a `*_N` normal may be inferred (`AssimpTexturePath`) |
-| GPU upload | `Mesh.Initialize` — vertex layout in `Engine/Renderer/Meshes/Mesh.cs`; CPU vertex/index lists cleared after upload |
+| Materials | `MeshMaterial` aligned 1:1 with submeshes. BaseColor then Diffuse (albedo, sRGB), specular, normals (Height as fallback). Embedded GLB images upload via `ITextureFactory.CreateFromEncoded` (content-hash cache). Missing albedo next to a `*_N` normal may be inferred (`AssimpTexturePath`) |
+| GPU upload | `IMeshFactory.Create` / `Mesh.Initialize` — vertex layout in `Engine/Renderer/Meshes/Mesh.cs` (no per-vertex entity id); CPU lists cleared after upload; AABB stored on the mesh. Any submesh init failure drops the whole model |
 
-`SceneRenderPipeline` draws with the **entity** world matrix. A single entity with `ModelPath` and no `MeshIndex` submits every submesh at that transform. `MeshIndex` draws one submesh (typical when the graph is unpacked onto child entities). `SuppressDraw` skips the catch-all draw.
+`SceneRenderPipeline` **ensures** models are loaded (`Create`) before the 3D pass, then **draws** with `TryGet` only. A packed entity (`ModelPath`, no `MeshIndex`) submits each submesh at `ModelSceneNode.PackedSubmeshWorld` (node transform × entity world). `MeshIndex` draws one submesh at the entity transform (unpacked children). `SuppressDraw` skips the packed draw. Optional `TexturePath` overrides albedo on imported meshes as well as cubes.
 
-The first `Create` for a path currently runs on the **render thread** (scene draw queries `ModelPath`). Later frames hit the cache. Import is not async; GPU upload must stay on the context thread. Skinning and animation clips are not implemented.
+`ModelHierarchySpawner.Instantiate` (Engine) unpacks multi-mesh graphs onto child entities; the editor import command calls it. Skinning and animation clips are not implemented.
 
 ---
 
@@ -330,7 +331,7 @@ sequenceDiagram
     FB-->>Caller: integer (entity id or -1)
 ```
 
-- Quad and mesh vertices carry `EntityId`; shaders write it for an integer color attachment
+- Quad vertices carry `EntityId`; 3D meshes pass `u_EntityID` as a uniform. Shaders write it to an integer color attachment
 - `ReadPixel` samples one attachment at a framebuffer coordinate while the target is bound for read
 - `ClearAttachment` can reset an integer attachment (typically to -1) before the frame
 

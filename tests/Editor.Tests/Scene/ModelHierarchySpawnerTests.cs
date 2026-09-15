@@ -1,7 +1,7 @@
 using System.Numerics;
 using ECS;
 using ECS.Systems;
-using Editor.Features.Scene;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Scene;
 using Engine.Scene.Systems;
@@ -109,5 +109,44 @@ public class ModelHierarchySpawnerTests
         var table = scene.GetChildren(root).Single(e => e.Name == "Table");
         table.TryGetComponent<TransformComponent>(out var tableTransform).ShouldBeTrue();
         tableTransform!.Translation.ShouldBe(new Vector3(0, 0, 5));
+    }
+
+    [Fact]
+    public void Instantiate_MultiMesh_SetsSuppressDrawAndSpawnsChildren()
+    {
+        using var scene = CreateScene();
+        var root = scene.CreateEntity("Room");
+        root.AddComponent(new TransformComponent());
+        var component = new ModelRendererComponent();
+        root.AddComponent(component);
+
+        var graph = Node("Room", [], Node("Chair", [0]), Node("Table", [1]));
+        var model = new Model("room.fbx", [new Mesh("a"), new Mesh("b")],
+            [MeshMaterial.Default, MeshMaterial.Default], graph);
+
+        ModelHierarchySpawner.Instantiate(scene, root, component, model, "models/room.fbx");
+
+        component.ModelPath.ShouldBe("models/room.fbx");
+        component.MeshIndex.ShouldBeNull();
+        component.SuppressDraw.ShouldBeTrue();
+        scene.GetChildren(root).Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Instantiate_SingleMesh_DoesNotUnpack()
+    {
+        using var scene = CreateScene();
+        var root = scene.CreateEntity("Prop");
+        root.AddComponent(new TransformComponent());
+        var component = new ModelRendererComponent();
+        root.AddComponent(component);
+
+        var graph = Node("root", [0]);
+        var model = new Model("crate.fbx", [new Mesh("crate")], [MeshMaterial.Default], graph);
+
+        ModelHierarchySpawner.Instantiate(scene, root, component, model, "models/crate.fbx");
+
+        component.SuppressDraw.ShouldBeFalse();
+        scene.GetChildren(root).Count.ShouldBe(0);
     }
 }

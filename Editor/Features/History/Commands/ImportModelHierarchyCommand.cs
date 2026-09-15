@@ -1,8 +1,6 @@
 using ECS;
-using Editor.Features.Scene;
 using Engine.Renderer.Models;
 using Engine.Scene;
-using SceneComponents;
 using SceneComponents.Rendering;
 
 namespace Editor.Features.History.Commands;
@@ -30,28 +28,7 @@ public sealed class ImportModelHierarchyCommand(
         }
 
         ModelHierarchySpawner.DestroyChildren(scene, root);
-        component.ModelPath = relativeModelPath;
-        component.MeshIndex = null;
-
-        var graph = model.SceneGraph;
-        component.SuppressDraw = graph is not null && graph.ShouldUnpack;
-        if (graph is null)
-            return true;
-
-        if (!graph.ShouldUnpack)
-        {
-            if (graph.FirstMeshIndex is int meshIndex &&
-                graph.TryGetMeshWorldTransform(meshIndex, out var meshWorld) &&
-                root.TryGetComponent<TransformComponent>(out var transform))
-            {
-                var combined = meshWorld * transform.GetTransform();
-                ModelHierarchySpawner.ApplyLocalTransform(root, combined);
-            }
-
-            return true;
-        }
-
-        ModelHierarchySpawner.SpawnChildren(scene, root, graph, relativeModelPath, component.Color);
+        ModelHierarchySpawner.Instantiate(scene, root, component, model, relativeModelPath);
         return true;
     }
 

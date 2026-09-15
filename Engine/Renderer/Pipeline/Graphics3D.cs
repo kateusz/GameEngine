@@ -71,19 +71,19 @@ internal sealed class Graphics3D(
         _cubeShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, MeshMaterial material, Vector4 tint, int entityId = -1)
     {
         rendererApi.SetDepthTest(true);
         BindCommon(_modelShader, transform, tint, entityId);
 
-        _modelShader.SetFloat("u_Shininess", mesh.Shininess);
-        _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
-        _modelShader.SetInt("u_HasSpecularMap", mesh.HasSpecularMap ? 1 : 0);
-        _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
+        _modelShader.SetFloat("u_Shininess", material.Shininess);
+        _modelShader.SetInt("u_HasDiffuseMap", material.HasDiffuseMap ? 1 : 0);
+        _modelShader.SetInt("u_HasSpecularMap", material.HasSpecularMap ? 1 : 0);
+        _modelShader.SetInt("u_HasNormalMap", material.HasNormalMap ? 1 : 0);
 
-        (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
-        (mesh.SpecularTexture ?? textureFactory.GetBlackTexture()).Bind(1);
-        (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+        (material.Diffuse ?? textureFactory.GetWhiteTexture()).Bind(0);
+        (material.Specular ?? textureFactory.GetBlackTexture()).Bind(1);
+        (material.Normal ?? textureFactory.GetFlatNormalTexture()).Bind(2);
 
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());

@@ -3,6 +3,7 @@ using ECS;
 using Engine.Core;
 using Engine.Project;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -36,6 +37,7 @@ internal static class SceneRenderPipeline
         in SceneView view)
     {
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
+        EnsureModelsLoaded(context, modelFactory);
         Render3D(context, graphics3D, textureFactory, modelFactory, view);
     }
     
@@ -132,13 +134,9 @@ internal static class SceneRenderPipeline
                 continue;
             }
 
-            if (modelFactory == null)
-                continue;
-
             var tint = modelRenderer.Color;
             var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-            var model = modelFactory.Create(resolvedPath);
-            if (model == null)
+            if (modelFactory == null || !modelFactory.TryGet(resolvedPath, out var model))
             {
                 if (WarnedFailedModels.Add(resolvedPath))
                     Logger.Warning(
@@ -148,21 +146,74 @@ internal static class SceneRenderPipeline
                 continue;
             }
 
+            var albedoOverride = TryLoadAlbedoOverride(textureFactory, modelRenderer);
+
             if (modelRenderer.MeshIndex is int meshIndex)
             {
-                if (meshIndex >= 0 && meshIndex < model.Submeshes.Count)
-                    graphics3D.DrawMesh(transform, model.Submeshes[meshIndex], tint, entity.Id);
+                DrawSubmesh(graphics3D, model, meshIndex, transform, tint, entity.Id, albedoOverride);
                 continue;
             }
 
             if (modelRenderer.SuppressDraw)
                 continue;
 
-            foreach (var submesh in model.Submeshes)
-                graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
+            for (var i = 0; i < model.Submeshes.Count; i++)
+            {
+                var world = ModelSceneNode.PackedSubmeshWorld(model.SceneGraph, i, transform);
+                DrawSubmesh(graphics3D, model, i, world, tint, entity.Id, albedoOverride);
+            }
         }
 
         graphics3D.EndScene();
+    }
+
+    private static void EnsureModelsLoaded(IContext context, IModelFactory? modelFactory)
+    {
+        if (modelFactory == null)
+            return;
+
+        foreach (var (_, modelRenderer, _) in context.View<ModelRendererComponent, TransformComponent>())
+        {
+            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+                continue;
+
+            modelFactory.Create(PathBuilder.Resolve(modelRenderer.ModelPath));
+        }
+    }
+
+    private static void DrawSubmesh(
+        IGraphics3D graphics3D,
+        Model model,
+        int meshIndex,
+        Matrix4x4 transform,
+        Vector4 tint,
+        int entityId,
+        Texture2D? albedoOverride)
+    {
+        if (meshIndex < 0 || meshIndex >= model.Submeshes.Count)
+            return;
+
+        var material = model.Materials[meshIndex];
+        if (albedoOverride != null)
+            material = material.WithDiffuse(albedoOverride);
+
+        graphics3D.DrawMesh(transform, model.Submeshes[meshIndex], material, tint, entityId);
+    }
+
+    private static Texture2D? TryLoadAlbedoOverride(ITextureFactory textureFactory, ModelRendererComponent modelRenderer)
+    {
+        if (string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
+            return null;
+
+        try
+        {
+            return textureFactory.Create(PathBuilder.Resolve(modelRenderer.TexturePath), sRgb: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to load model albedo override '{TexturePath}'", modelRenderer.TexturePath);
+            return null;
+        }
     }
 
     private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,
