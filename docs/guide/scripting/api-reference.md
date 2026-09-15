@@ -8,7 +8,7 @@ Game C# is **data** (`IGameComponent`) plus **systems** (`IGameSystem`). Compile
 [Register(typeof(IGameSystem))]
 public class MySystem(IContext context, IKeyboardInput keyboard) : IGameSystem
 {
-    public int Priority => 115;
+    public int Priority => 100;
 
     public void OnInit() { }
 

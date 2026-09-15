@@ -19,14 +19,14 @@ Compilation and editor orchestration stay in the **Editor**. The **Engine** runt
 |-----------|---------|------|
 | `GameAssemblyCompiler` | Editor | Roslyn: parse `.cs` files, resolve references, emit PE (+ optional PDB) |
 | `ScriptCompilationReferences` | Editor | Metadata references for Roslyn (`assets/scripts/.engine/sdk/` first, then AppDomain) |
-| `GameScriptFiles` | Engine | Enumerate `assets/scripts/**/*.cs` (no Roslyn) |
+| `GameScriptFiles` | Engine | Enumerate `*.cs` under the scripts directory (no Roslyn) |
 | `GameAssemblyLoadContext` | Engine | Collectible `AssemblyLoadContext`; loads one DLL path |
 | `IScriptEngine` / `ScriptEngine` | Engine | Load/unload ALC |
 | `GameAssemblyContainerRegistration` | Engine | Discover `[Register]` types; register/unregister in DryIoc |
 | `GameComponentDiscovery` | Engine | Regex scan of script sources for `IGameComponent` class names (editor tooling) |
 | `GameSystemTemplates` / `GameComponentTemplates` | Engine | Scaffold new system and component `.cs` files in the editor |
 | `AssemblyLoadTypes` | Engine | Safe `assembly.GetTypes()` when reflection load throws `ReflectionTypeLoadException` |
-| `GameScriptWorkspace` | Editor (`Editor/Features/Scripting/GameScriptWorkspace.cs`) | **Single orchestrator**: compile → revoke → unload → load → apply |
+| `GameScriptWorkspace` | Editor | **Single orchestrator**: compile → revoke → unload → load → apply |
 
 ```mermaid
 graph LR
@@ -67,11 +67,11 @@ graph LR
 
 `GameScriptWorkspace.ResolveEditorDllPath(projectRoot)` returns `{project}/.engine/GameAssembly.dll` — used only as the **directory anchor** (`_outputDllPath`); actual emits use `GameAssemblyCompiler.GetNextEditorBuildPath(engineDir)`.
 
-Script sources: `assets/scripts/**/*.cs` (excludes `bin`, `obj`, `.vs`, generated assembly info).
+Script sources: `GameScriptFiles.Enumerate` — `*.cs` under the scripts directory, excluding `bin` / `obj` / `.vs`, `*.AssemblyInfo.cs`, names containing `AssemblyAttributes`, and `GameAssembly.Placeholder.cs`.
+
+**File:** `Engine/Scripting/GameScriptFiles.cs`
 
 References for compilation: DLLs in `assets/scripts/.engine/sdk/` (copied per project by `GameProjectScriptBootstrapper`), plus core BCL and engine assemblies via `ScriptCompilationReferences`.
-
-**File:** `Editor/Scripting/ScriptCompilationReferences.cs`
 
 | Reference source | Assemblies |
 |------------------|------------|
@@ -83,7 +83,7 @@ References for compilation: DLLs in `assets/scripts/.engine/sdk/` (copied per pr
 
 `ValidateReferences` fails the compile if `System.Private.CoreLib`, `System.Runtime`, `System.Numerics.Vectors`, or `ECS` are missing.
 
-**File:** `Editor/Scripting/GameAssemblyCompiler.cs`
+`GameAssemblyCompiler`:
 
 - `AssemblyName` = `"GameAssembly"`.
 - Injects a global-usings syntax tree (`System`, `System.Collections.Generic`, `System.Linq`, `System.Numerics`, etc.).
@@ -119,7 +119,7 @@ sequenceDiagram
 
 When a new assembly is loaded:
 
-1. `GameAssemblyContainerRegistration.TryRegisterContainer` — types with `[Register(typeof(TService), lifetime)]` registered in DryIoc (`GameIocLifetime`: `Singleton` default, `Transient`, `Scoped`); prior registrations from the same assembly name are replaced.
+1. `GameAssemblyContainerRegistration.TryRegisterContainer` — concrete types with `[Register]` (`RegisterAttribute` in the `Scripting` namespace) registered in DryIoc (`GameIocLifetime`: `Singleton`, `Transient`, `Scoped`). If the assembly has no `[Register]` types, returns `false` and leaves the container unchanged; otherwise unregisters implementations whose assembly name matches, then registers the new types. A `[Register]` type that does not implement the service type throws `InvalidOperationException`.
 2. `ComponentSerializerRegistry.RegisterFromAssembly` — types with `[SerializableComponent]` get JSON serializers; prior assembly entry is unregistered first.
 
 Tracks `_appliedAssembly` for symmetric revoke.
@@ -146,7 +146,7 @@ Called on **project close** and at the start of every reload.
 | **Play** | `SceneManager.Play` | Yes (new GUID DLL) | Yes (`LoadGameAssemblyFromFile`, no second compile) |
 | **Stop** | `SceneManager.Stop` → `Open(saved scene)` | After scene dispose, if needed | Yes |
 | Publish | `GamePublisher` | Yes (release, no PDB) | N/A (copied to output) |
-| Standalone runtime startup | `Runtime/Program.RegisterGameAssembly` | **No** | Yes (pre-built DLL) |
+| Standalone runtime startup | Runtime player | **No** | Yes (pre-built DLL) |
 
 There is **no** per-frame hot-reload in the runtime `ScriptEngine`. Recompile happens only from editor/workspace actions or publish.
 
@@ -176,7 +176,7 @@ There is **no** per-frame hot-reload in the runtime `ScriptEngine`. Recompile ha
 
 ### Stop
 
-1. `OnRuntimeStop` — shutdown scene systems (including script `OnDestroy`).
+1. `OnRuntimeStop` — shutdown scene systems (including script `OnShutdown`).
 2. If `EditorScenePath` is set: `Open(EditorScenePath)` — **dispose scene first**, then `EnsureScriptsCompiledAndApplied` (fresh edit-mode assembly if needed), deserialize saved scene.
 3. If no saved scene path: dispose scene, then `RestoreEditAssembly()` (recompile + reload edit-mode assembly).
 
@@ -204,33 +204,37 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 
 ## ScriptEngine (runtime surface)
 
-**File:** `Engine/Scripting/IScriptEngine.cs`, `Engine/Scripting/ScriptEngine.cs`
+**File:** `Engine/Scripting/IScriptEngine.cs`, `Engine/Scripting/ScriptEngine.cs`, `Engine/Scripting/GameAssemblyLoadContext.cs`
 
-`IScriptEngine` is intentionally small:
+`IScriptEngine` is intentionally small (`ScriptEngine` is the internal implementation):
 
 | Method | Behavior |
 |--------|----------|
-| `LoadGameAssemblyFromFile(string dllPath)` | Unloads prior ALC, loads DLL via new `GameAssemblyLoadContext` |
+| `LoadGameAssemblyFromFile(string dllPath)` | If the file is missing, logs an error and **keeps** the previously loaded assembly. Otherwise unloads the prior ALC and loads the DLL via a new `GameAssemblyLoadContext` |
 | `UnloadGameAssembly()` | Unloads collectible ALC |
 | `GetLoadedGameAssembly()` | Current game assembly, or `null` |
 
-`GameAssemblyLoadContext` is collectible (`isCollectible: true`); `Load()` returns `null` so dependencies resolve from the default context. Each load uses a new ALC instance.
+`GameAssemblyLoadContext` is collectible (`isCollectible: true`); `Load()` returns `null` so dependencies resolve from the default context. The DLL is loaded with `LoadFromAssemblyPath`. Each successful load uses a new ALC instance.
 
 ---
 
 ## Game systems
 
-**Files:** `ECS/Systems/IGameSystem.cs`, `Scripting/RegisterAttribute.cs`, `Scripting/GameIocLifetime.cs`, `Engine/Scene/RuntimeSceneStarter.cs`
+**Files:** `Engine/Scripting/GameAssemblyContainerRegistration.cs`, `Engine/Scripting/GameSystemTemplates.cs`, `Engine/Scripting/AssemblyLoadTypes.cs`
 
-Discovered from loaded `GameAssembly` via `[Register(typeof(IGameSystem))]` (or other service types). `GameAssemblyContainerRegistration` uses `AssemblyLoadTypes.From` for safe reflection. On play, `resolveGameSystems()` resolves from DryIoc and `RuntimeSceneStarter.Start` calls `scene.RegisterRuntimeSystem` for each `IGameSystem`, then `scene.OnRuntimeStart`.
+Discovered from the loaded `GameAssembly` via `[Register]` (typically `[Register(typeof(IGameSystem))]`). `GameAssemblyContainerRegistration` uses `AssemblyLoadTypes.From` so a `ReflectionTypeLoadException` still yields the types that did load.
 
-Injected services include `IContext`, `IKeyboardInput`, `IPhysicsContacts`, `IAudio`.
+Editor **Add System** scaffold (`GameSystemTemplates.Generate`): class name `{baseName}System`, `[Register(typeof(IGameSystem))]`, `Priority => 100`, constructor-injects `IContext` and `IKeyboardInput`, implements `OnInit` / `OnUpdate(TimeSpan)` / `OnShutdown`.
+
+On play, registered `IGameSystem` instances are resolved from DryIoc and started on the scene (`RuntimeSceneStarter`). Other engine services (`IPhysicsContacts`, `IAudio`, …) are the same constructor-injection pattern — [API Reference](../guide/scripting/api-reference.md).
 
 ---
 
 ## Serialization
 
-Custom game components use `[SerializableComponent]` and JSON via `RegisterFromAssembly` when the assembly is applied.
+Custom game components use `[SerializableComponent]` and JSON via `RegisterFromAssembly` when the assembly is applied. Editor **Add Component** scaffold (`GameComponentTemplates`): class name `{baseName}Component`, `[SerializableComponent]`, `IGameComponent`, `Clone()`.
+
+**File:** `Engine/Scripting/GameComponentTemplates.cs`
 
 ---
 

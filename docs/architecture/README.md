@@ -62,7 +62,7 @@ C4Container
     Rel(core, silknet, "Rendering & windowing")
     Rel(core, box2d, "Physics simulation")
     Rel(core, openal, "Audio playback")
-    Rel(core, roslyn, "Script compilation")
+    Rel(editor, roslyn, "Script compilation")
     Rel(editor, imgui, "Editor UI")
     Rel(editor, dryioc, "DI container")
     Rel(core, dryioc, "DI container")
@@ -82,7 +82,7 @@ GameEngine/
 │   ├── Core/            # Application, Layer stack, DI setup, Input, Window
 │   ├── Renderer/        # 2D graphics, 3D meshes/cubes, renderer API, cameras
 │   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
-│   ├── Scripting/       # IScriptEngine, Roslyn compilation, hot-reload
+│   ├── Scripting/       # IScriptEngine, GameAssembly load/unload, script discovery
 │   └── Audio/           # IAudio loaders/utils, OpenAL integration
 ├── Editor/              # Visual editor (ImGui panels, component editors)
 ├── Runtime/             # Standalone game player
@@ -98,7 +98,7 @@ GameEngine/
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
 | [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, 3D mesh import, shaders, textures, cameras, framebuffers |
-| [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation, game assembly load/unload, script entities, editor vs runtime |
+| [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation (editor), GameAssembly load/unload, IGameSystem / IGameComponent, editor vs runtime |
 | [Physics System](physics-system.md) | Physics world abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |
 | [Serialization](serialization.md) | Scene/prefab JSON, component serializers, custom converters |
