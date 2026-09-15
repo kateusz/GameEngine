@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Engine.Renderer;
 using Engine.Scene;
 using SceneComponents.Lighting;
 using Shouldly;
@@ -7,20 +8,16 @@ using Shouldly;
 namespace Engine.Tests.Scene;
 
 [Trait("Category", "Unit")]
-public class SceneLightingResolverTests
+public class SceneRenderPipelineLightingTests
 {
     [Fact]
-    public void Resolve_NoLights_ReturnsDefaults()
+    public void ResolveAmbient_NoLights_ReturnsDefaults()
     {
-        var context = new Context();
-
-        var lighting = SceneLightingResolver.Resolve(context);
-
-        lighting.ShouldBe(SceneLighting.Default);
+        SceneRenderPipeline.ResolveAmbient(new Context()).ShouldBe((Vector3.One, 0.1f));
     }
 
     [Fact]
-    public void Resolve_AmbientLight_UsesComponentValues()
+    public void ResolveAmbient_UsesComponentValues()
     {
         var context = new Context();
         var entity = Entity.Create(1, "ambient");
@@ -31,16 +28,18 @@ public class SceneLightingResolverTests
         });
         context.Register(entity);
 
-        var lighting = SceneLightingResolver.Resolve(context);
-
-        lighting.AmbientColor.ShouldBe(new Vector3(0.2f, 0.3f, 0.4f));
-        lighting.AmbientStrength.ShouldBe(0.5f);
-        lighting.DirectionalDirection.ShouldBe(SceneLighting.Default.DirectionalDirection);
-        lighting.DirectionalColor.ShouldBe(SceneLighting.Default.DirectionalColor);
+        SceneRenderPipeline.ResolveAmbient(context).ShouldBe((new Vector3(0.2f, 0.3f, 0.4f), 0.5f));
     }
 
     [Fact]
-    public void Resolve_DirectionalLight_UsesComponentValues()
+    public void ResolveDirectional_NoLights_ReturnsDefaults()
+    {
+        SceneRenderPipeline.ResolveDirectional(new Context())
+            .ShouldBe((LightingMath.DefaultDirection, Vector3.Zero));
+    }
+
+    [Fact]
+    public void ResolveDirectional_UsesComponentValues()
     {
         var context = new Context();
         var entity = Entity.Create(1, "sun");
@@ -51,16 +50,12 @@ public class SceneLightingResolverTests
         });
         context.Register(entity);
 
-        var lighting = SceneLightingResolver.Resolve(context);
-
-        lighting.DirectionalDirection.ShouldBe(new Vector3(0, -1, 0));
-        lighting.DirectionalColor.ShouldBe(new Vector3(1f, 0.9f, 0.8f));
-        lighting.AmbientColor.ShouldBe(SceneLighting.Default.AmbientColor);
-        lighting.AmbientStrength.ShouldBe(SceneLighting.Default.AmbientStrength);
+        SceneRenderPipeline.ResolveDirectional(context)
+            .ShouldBe((new Vector3(0, -1, 0), new Vector3(1f, 0.9f, 0.8f)));
     }
 
     [Fact]
-    public void Resolve_MultipleDirectionalLights_FirstWins()
+    public void ResolveDirectional_MultipleLights_FirstWins()
     {
         var context = new Context();
 
@@ -80,22 +75,18 @@ public class SceneLightingResolverTests
         });
         context.Register(second);
 
-        var lighting = SceneLightingResolver.Resolve(context);
-
-        lighting.DirectionalDirection.ShouldBe(new Vector3(1, 0, 0));
-        lighting.DirectionalColor.ShouldBe(new Vector3(1f, 0f, 0f));
+        SceneRenderPipeline.ResolveDirectional(context)
+            .ShouldBe((new Vector3(1, 0, 0), new Vector3(1f, 0f, 0f)));
     }
 
     [Fact]
-    public void Resolve_ZeroLengthDirection_FallsBackToDown()
+    public void ResolveDirectional_ZeroLength_FallsBackToDown()
     {
         var context = new Context();
         var entity = Entity.Create(1, "sun");
         entity.AddComponent(new DirectionalLightComponent { Direction = Vector3.Zero });
         context.Register(entity);
 
-        var lighting = SceneLightingResolver.Resolve(context);
-
-        lighting.DirectionalDirection.ShouldBe(new Vector3(0, -1, 0));
+        SceneRenderPipeline.ResolveDirectional(context).Direction.ShouldBe(LightingMath.DefaultDirection);
     }
 }

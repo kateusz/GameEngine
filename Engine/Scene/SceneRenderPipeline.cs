@@ -1,12 +1,12 @@
 using System.Numerics;
 using ECS;
-using Engine.Core;
 using Engine.Project;
 using Engine.Renderer;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Serilog;
 
@@ -111,9 +111,10 @@ internal static class SceneRenderPipeline
         IModelFactory? modelFactory,
         in SceneView view)
     {
-        var lighting = SceneLightingResolver.Resolve(context);
-        graphics3D.SetAmbientLight(lighting.AmbientColor, lighting.AmbientStrength);
-        graphics3D.SetDirectionalLight(lighting.DirectionalDirection, lighting.DirectionalColor);
+        var (ambientColor, ambientStrength) = ResolveAmbient(context);
+        graphics3D.SetAmbientLight(ambientColor, ambientStrength);
+        var (lightDirection, lightColor) = ResolveDirectional(context);
+        graphics3D.SetDirectionalLight(lightDirection, lightColor);
         graphics3D.BeginScene(view);
 
         foreach (var (entity, modelRenderer, transformComponent) in
@@ -184,6 +185,22 @@ internal static class SceneRenderPipeline
                 "Failed to load cube texture '{TexturePath}' — drawing solid color instead",
                 modelRenderer.TexturePath);
         }
+    }
+
+    internal static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
+    {
+        foreach (var (_, alc) in context.View<AmbientLightComponent>())
+            return (new Vector3(alc.Color.X, alc.Color.Y, alc.Color.Z), alc.Strength);
+
+        return (Vector3.One, 0.1f);
+    }
+
+    internal static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
+    {
+        foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
+            return (LightingMath.NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));
+
+        return (LightingMath.DefaultDirection, Vector3.Zero);
     }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
