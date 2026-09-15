@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Engine.Core.Window;
+namespace Engine.Scene;
 
 public sealed class PointerSurface : IPointerSurface
 {

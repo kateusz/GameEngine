@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Engine.Core;
+using Engine.Project;
 using Shouldly;
 
 namespace Engine.Tests;

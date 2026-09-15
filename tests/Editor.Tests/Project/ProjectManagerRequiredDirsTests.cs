@@ -3,6 +3,7 @@ using Editor.Features.Scene;
 using Editor.Features.Scripting;
 using Editor.Features.Settings;
 using Engine.Core;
+using Engine.Project;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using NSubstitute;

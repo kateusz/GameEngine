@@ -4,6 +4,7 @@ using Engine.Core;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Events.Window;
+using Engine.Project;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;

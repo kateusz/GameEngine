@@ -1,6 +1,7 @@
+using Engine.Core;
 using Engine.Platform;
 
-namespace Engine.Core;
+namespace Engine.Project;
 
 public static class PathBuilder
 {

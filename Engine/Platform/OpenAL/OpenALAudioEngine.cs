@@ -2,6 +2,7 @@ using System.Numerics;
 using Audio;
 using Engine.Audio;
 using Engine.Core;
+using Engine.Project;
 using Serilog;
 using Silk.NET.OpenAL;
 

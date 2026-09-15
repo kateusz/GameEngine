@@ -1,7 +1,7 @@
 using System.Numerics;
-using Engine.Core.Input;
 using Engine.Events.Input;
 using Engine.Events.Window;
+using Engine.Input;
 
 namespace Engine.Core.Window;
 

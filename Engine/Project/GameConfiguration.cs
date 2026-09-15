@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-namespace Engine.Core;
+namespace Engine.Project;
 
 public class GameConfiguration
 {

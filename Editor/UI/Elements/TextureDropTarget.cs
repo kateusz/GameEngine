@@ -1,5 +1,6 @@
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Project;
 using Engine.Renderer.Textures;
 
 namespace Editor.UI.Elements;

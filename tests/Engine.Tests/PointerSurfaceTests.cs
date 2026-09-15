@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Core.Window;
+using Engine.Scene;
 using Shouldly;
 
 namespace Engine.Tests;

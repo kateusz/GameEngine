@@ -1,4 +1,5 @@
 using Engine.Core;
+using Engine.Project;
 using NSubstitute;
 
 namespace Engine.GraphicsTests.ImageRegression;

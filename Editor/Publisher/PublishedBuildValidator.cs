@@ -1,4 +1,5 @@
 using Engine.Core;
+using Engine.Project;
 
 namespace Editor.Publisher;
 

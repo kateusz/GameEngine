@@ -3,6 +3,7 @@ using Editor.Features.Settings;
 using Editor.Panels;
 using Editor.UI.Drawers;
 using Engine.Core;
+using Engine.Core.Window;
 using ImGuiNET;
 using Serilog;
 

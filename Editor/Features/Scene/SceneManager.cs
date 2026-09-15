@@ -3,6 +3,7 @@ using Editor.Features.History;
 using Editor.Features.Scripting;
 using Editor.Scripting;
 using Engine.Core;
+using Engine.Project;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Engine.Scripting;

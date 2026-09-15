@@ -1,6 +1,7 @@
 using DryIoc;
 using Engine.Core;
 using Engine.Core.DI;
+using Engine.Project;
 using Engine.Scene.Serializer;
 using Engine.Scripting;
 using Serilog;

@@ -6,6 +6,7 @@ using Editor.Input;
 using Editor.Panels;
 using Editor.Publisher;
 using Engine.Core;
+using Engine.Project;
 using ImGuiNET;
 using Serilog;
 

@@ -1,3 +1,5 @@
+using Engine.Core.Window;
+
 namespace Engine.Core.DI;
 
 public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int WindowHeight)

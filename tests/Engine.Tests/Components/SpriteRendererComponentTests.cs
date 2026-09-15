@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Core;
+using Engine.Project;
 using Engine.Scene;
 using NSubstitute;
 using SceneComponents.Rendering;
