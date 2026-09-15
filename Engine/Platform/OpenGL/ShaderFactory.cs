@@ -4,52 +4,36 @@ namespace Engine.Platform.OpenGL;
 
 /// <summary>
 /// Factory for creating and managing shader resources with automatic caching.
-/// Uses weak references to allow garbage collection when shaders are no longer in use.
 /// </summary>
-internal sealed class ShaderFactory : IShaderFactory, IDisposable
+internal sealed class ShaderFactory : IShaderFactory
 {
-    private readonly Dictionary<(string Vert, string Frag, DateTime, DateTime), WeakReference<IShader>> _shaderCache = new();
+    private readonly Dictionary<(string Vert, string Frag), IShader> _shaderCache = new();
     private readonly Lock _cacheLock = new();
     private bool _disposed;
 
     public IShader Create(string vertPath, string fragPath)
     {
-        DateTime vertModTime, fragModTime;
-        try
-        {
-            vertModTime = File.GetLastWriteTimeUtc(vertPath);
-            fragModTime = File.GetLastWriteTimeUtc(fragPath);
-        }
-        catch (Exception)
-        {
-            vertModTime = DateTime.MinValue;
-            fragModTime = DateTime.MinValue;
-        }
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var key = (vertPath, fragPath, vertModTime, fragModTime);
+        var key = (vertPath, fragPath);
 
         lock (_cacheLock)
         {
-            if (_shaderCache.TryGetValue(key, out var weakRef))
-            {
-                if (weakRef.TryGetTarget(out var cachedShader))
-                    return cachedShader;
-
-                _shaderCache.Remove(key);
-            }
+            if (_shaderCache.TryGetValue(key, out var cachedShader))
+                return cachedShader;
         }
 
         var shader = new OpenGLShader(vertPath, fragPath);
 
         lock (_cacheLock)
         {
-            if (_shaderCache.TryGetValue(key, out var weakRef) && weakRef.TryGetTarget(out var cachedShader))
+            if (_shaderCache.TryGetValue(key, out var cachedShader))
             {
                 shader.Dispose();
                 return cachedShader;
             }
 
-            _shaderCache[key] = new WeakReference<IShader>(shader);
+            _shaderCache[key] = shader;
             return shader;
         }
     }
@@ -62,13 +46,8 @@ internal sealed class ShaderFactory : IShaderFactory, IDisposable
     {
         lock (_cacheLock)
         {
-            foreach (var weakRef in _shaderCache.Values)
-            {
-                if (weakRef.TryGetTarget(out var shader))
-                {
-                    shader?.Dispose();
-                }
-            }
+            foreach (var shader in _shaderCache.Values)
+                shader.Dispose();
 
             _shaderCache.Clear();
         }

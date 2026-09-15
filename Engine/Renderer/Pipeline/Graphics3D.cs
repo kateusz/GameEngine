@@ -140,11 +140,9 @@ internal sealed class Graphics3D(
         if (_disposed)
             return;
 
-        _cubeShader?.Dispose();
+        // Factory owns shader and cube-mesh lifetime; just release our references
         _cubeShader = null!;
-        _modelShader?.Dispose();
         _modelShader = null!;
-        _cubeMesh?.Dispose();
         _cubeMesh = null!;
 
         _disposed = true;

@@ -10,45 +10,65 @@ namespace Engine.Platform.OpenGL;
 internal sealed class OpenGLShader : IShader
 {
     private uint _handle;
-    private readonly Dictionary<string, int> _uniformLocations;
+    private readonly Dictionary<string, int> _uniformLocations = new();
     private bool _disposed;
+
+    internal uint RendererId => _handle;
 
     public OpenGLShader(string vertPath, string fragPath)
     {
-        var vertex = LoadShader(ShaderType.VertexShader, vertPath);
-        var fragment = LoadShader(ShaderType.FragmentShader, fragPath);
-
-        _handle = SilkNetContext.GL.CreateProgram();
-        OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
-
-        SilkNetContext.GL.AttachShader(_handle, vertex);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
-        SilkNetContext.GL.AttachShader(_handle, fragment);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
-
-        SilkNetContext.GL.LinkProgram(_handle);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
-
-        SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
-        if (status == 0)
+        uint vertex = 0;
+        uint fragment = 0;
+        try
         {
-            throw new InvalidOperationException($"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
+            vertex = LoadShader(ShaderType.VertexShader, vertPath);
+            fragment = LoadShader(ShaderType.FragmentShader, fragPath);
+
+            _handle = SilkNetContext.GL.CreateProgram();
+            OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
+
+            SilkNetContext.GL.AttachShader(_handle, vertex);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
+            SilkNetContext.GL.AttachShader(_handle, fragment);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
+
+            SilkNetContext.GL.LinkProgram(_handle);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
+
+            SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
+            if (status == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
+            }
+
+            SilkNetContext.GL.DeleteShader(vertex);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
+            vertex = 0;
+            SilkNetContext.GL.DeleteShader(fragment);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
+            fragment = 0;
+
+            SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
+
+            for (uint i = 0; i < numberOfUniforms; i++)
+            {
+                var key = SilkNetContext.GL.GetActiveUniform(_handle, i, out _, out _);
+                var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
+                _uniformLocations.Add(key, location);
+            }
         }
-
-        SilkNetContext.GL.DeleteShader(vertex);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
-        SilkNetContext.GL.DeleteShader(fragment);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
-
-        _uniformLocations = new Dictionary<string, int>();
-
-        SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
-
-        for (uint i = 0; i < numberOfUniforms; i++)
+        catch
         {
-            var key = SilkNetContext.GL.GetActiveUniform(_handle, i, out _, out _);
-            var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
-            _uniformLocations.Add(key, location);
+            DeleteShaderIfNeeded(vertex);
+            DeleteShaderIfNeeded(fragment);
+            if (_handle != 0)
+            {
+                SilkNetContext.GL.DeleteProgram(_handle);
+                _handle = 0;
+            }
+
+            throw;
         }
     }
 
@@ -158,17 +178,34 @@ internal sealed class OpenGLShader : IShader
 
         var handle = SilkNetContext.GL.CreateShader(type);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");
-        SilkNetContext.GL.ShaderSource(handle, src);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "ShaderSource");
-        SilkNetContext.GL.CompileShader(handle);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "CompileShader");
-        var infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
-        if (!string.IsNullOrWhiteSpace(infoLog))
+        try
         {
-            throw new InvalidOperationException($"Error compiling shader of type {type}, failed with error {infoLog}");
-        }
+            SilkNetContext.GL.ShaderSource(handle, src);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "ShaderSource");
+            SilkNetContext.GL.CompileShader(handle);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "CompileShader");
+            var infoLog = SilkNetContext.GL.GetShaderInfoLog(handle);
+            if (!string.IsNullOrWhiteSpace(infoLog))
+            {
+                throw new InvalidOperationException(
+                    $"Error compiling shader of type {type}, failed with error {infoLog}");
+            }
 
-        return handle;
+            return handle;
+        }
+        catch
+        {
+            DeleteShaderIfNeeded(handle);
+            throw;
+        }
+    }
+
+    private static void DeleteShaderIfNeeded(uint handle)
+    {
+        if (handle == 0)
+            return;
+
+        SilkNetContext.GL.DeleteShader(handle);
     }
 
     /// <summary>

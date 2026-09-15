@@ -21,6 +21,12 @@ internal static class GlBufferQueries
 
     public static bool IsBufferAlive(uint id) => Gl.IsBuffer(id);
 
+    public static bool IsTextureAlive(uint id) => Gl.IsTexture(id);
+
+    public static bool IsProgramAlive(uint id) => Gl.IsProgram(id);
+
+    public static bool IsVertexArrayAlive(uint id) => Gl.IsVertexArray(id);
+
     public static int GetAttribEnabled(uint index) =>
         (int)Gl.GetVertexAttrib(index, GLEnum.VertexAttribArrayEnabled);
 

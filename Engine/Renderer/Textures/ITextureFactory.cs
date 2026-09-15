@@ -3,7 +3,7 @@ namespace Engine.Renderer.Textures;
 /// <summary>
 /// Factory interface for creating and managing texture resources with automatic caching.
 /// </summary>
-public interface ITextureFactory
+public interface ITextureFactory : IDisposable
 {
     /// <summary>
     /// Gets a shared singleton 1x1 white texture.
@@ -41,11 +41,15 @@ public interface ITextureFactory
 
     (byte[] Data, int Width, int Height) DecodePreview(string path);
 
+    /// <summary>
+    /// Uploads an uncached RGBA texture. The caller owns the result and must dispose it.
+    /// </summary>
     Texture2D CreateFromRgba(byte[] rgba, int width, int height);
 
     /// <summary>
     /// Creates a new procedural texture with the specified dimensions.
     /// Procedural textures are not cached as they may have different content despite identical dimensions.
+    /// The caller owns the result and must dispose it.
     /// </summary>
     /// <param name="width">The width of the texture in pixels.</param>
     /// <param name="height">The height of the texture in pixels.</param>

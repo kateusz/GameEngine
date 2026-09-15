@@ -153,22 +153,13 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         var attachmentCountChanged = _colorAttachments == null ||
                                      _colorAttachments.Length != _colorAttachmentSpecs.Count;
 
-        // Properly dispose existing resources before creating new ones
-        if (_rendererId != 0)
-        {
-            SilkNetContext.GL.DeleteFramebuffer(_rendererId);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffer");
-            _rendererId = 0;
-        }
-
+        // Delete attachments first, then the framebuffer
         if (_colorAttachments != null && _colorAttachments.Length > 0)
         {
             foreach (var attachment in _colorAttachments)
             {
                 if (attachment != 0)
-                {
                     SilkNetContext.GL.DeleteTexture(attachment);
-                }
             }
             OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (color attachments)");
         }
@@ -178,6 +169,13 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
             SilkNetContext.GL.DeleteTexture(_depthAttachment);
             OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteTexture (depth attachment)");
             _depthAttachment = 0;
+        }
+
+        if (_rendererId != 0)
+        {
+            SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffer");
+            _rendererId = 0;
         }
 
         _rendererId = SilkNetContext.GL.GenFramebuffer();
@@ -452,22 +450,17 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         _disposed = true;
         _colorAttachmentSpecs?.Clear();
 
+        if (!disposing)
+            return;
+
         try
         {
-            if (_rendererId != 0)
-            {
-                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
-                _rendererId = 0;
-            }
-
             if (_colorAttachments != null && _colorAttachments.Length > 0)
             {
                 foreach (var attachment in _colorAttachments)
                 {
                     if (attachment != 0)
-                    {
                         SilkNetContext.GL.DeleteTexture(attachment);
-                    }
                 }
                 Array.Clear(_colorAttachments, 0, _colorAttachments.Length);
             }
@@ -476,6 +469,12 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
             {
                 SilkNetContext.GL.DeleteTexture(_depthAttachment);
                 _depthAttachment = 0;
+            }
+
+            if (_rendererId != 0)
+            {
+                SilkNetContext.GL.DeleteFramebuffer(_rendererId);
+                _rendererId = 0;
             }
         }
         catch (Exception ex)

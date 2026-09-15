@@ -1,4 +1,5 @@
 using DryIoc;
+using ECS;
 using ECS.Systems;
 using Engine.Scripting;
 using Scripting;
@@ -38,6 +39,38 @@ public class GameAssemblyContainerRegistrationTests
         container.Resolve<Func<IEnumerable<IGameSystem>>>()().Count().ShouldBe(2);
     }
 
+    [Fact]
+    public void CapturedFunc_SeesGameSystemsRegisteredAfterConsumerResolved()
+    {
+        var container = new Container();
+        GameAssemblyContainerRegistration.RegisterGameSystemsResolver(container);
+        container.Register<NeedsGameSystems>(Reuse.Singleton);
+
+        var needs = container.Resolve<NeedsGameSystems>();
+        needs.Get().ShouldBeEmpty();
+
+        GameAssemblyContainerRegistration.TryRegisterContainer(
+            container,
+            typeof(StubGameSystemA).Assembly);
+
+        needs.Get().Count().ShouldBe(2);
+    }
+
+    [Fact]
+    public void CapturedFunc_ResolvesSingletonGameSystemThatDependsOnTransientContext()
+    {
+        var container = new Container();
+        GameAssemblyContainerRegistration.RegisterGameSystemsResolver(container);
+        var context = new Context();
+        container.RegisterDelegate<IContext>(_ => context);
+        container.Register<IGameSystem, NeedsContextSystem>(Reuse.Singleton);
+        container.Register<NeedsGameSystems>(Reuse.Singleton);
+
+        var systems = container.Resolve<NeedsGameSystems>().Get().ToArray();
+        systems.Length.ShouldBe(1);
+        systems[0].ShouldBeOfType<NeedsContextSystem>();
+    }
+
     private sealed class NeedsGameSystems(Func<IEnumerable<IGameSystem>> resolve)
     {
         public IEnumerable<IGameSystem> Get() => resolve();
@@ -55,5 +88,12 @@ public class GameAssemblyContainerRegistrationTests
     {
         public int Priority => 2;
         public void OnUpdate(TimeSpan deltaTime) { }
+    }
+
+    private sealed class NeedsContextSystem(IContext context) : IGameSystem
+    {
+        public int Priority => 1;
+        public void OnUpdate(TimeSpan deltaTime) { }
+        public IContext Context => context;
     }
 }
