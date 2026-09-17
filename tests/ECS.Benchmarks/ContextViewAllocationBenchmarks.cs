@@ -34,7 +34,7 @@ public class ContextViewAllocationBenchmarks
 
         for (var i = 0; i < EntityCount; i++)
         {
-            var entity = Entity.Create(i, $"Entity {i}");
+            var entity = new Entity(i, $"Entity {i}");
             entity.AddComponent(new TransformComponent());
 
             // Mix of component densities similar to a small game scene.

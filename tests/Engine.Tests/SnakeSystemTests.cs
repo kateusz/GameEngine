@@ -94,12 +94,12 @@ public class SnakeSystemTests
     private static (SnakeSystem System, SnakeGameComponent Game) CreateSystemWithGame(IKeyboardInput? keyboard = null)
     {
         var context = new Context();
-        var entity = Entity.Create(1, "game");
+        var entity = new Entity(1, "game");
         var game = CreateGame();
         entity.AddComponent(game);
         context.Register(entity);
 
-        var banner = Entity.Create(2, "GameOverBanner");
+        var banner = new Entity(2, "GameOverBanner");
         banner.AddComponent(new SpriteRendererComponent());
         context.Register(banner);
 

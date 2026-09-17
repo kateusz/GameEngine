@@ -18,7 +18,7 @@ public class SceneHierarchyRowsTests
         var systemsFactory = Substitute.For<ISceneSystemsFactory>();
         systemsFactory.PopulateSystemManager(
                 Arg.Any<SystemManager>(),
-                Arg.Any<IContext>(),
+                Arg.Any<Context>(),
                 Arg.Any<PhysicsRuntimeBodyStore>(),
                 Arg.Any<PhysicsContactQueue>())
             .Returns(Substitute.For<IPhysicsQueries>());

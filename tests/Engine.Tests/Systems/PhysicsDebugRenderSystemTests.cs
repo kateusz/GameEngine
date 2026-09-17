@@ -31,7 +31,7 @@ public class PhysicsDebugRenderSystemTests
         var debugSettings = new DebugSettings { ShowColliderBounds = true };
         var (system, graphics2D, context, bodyStore) = CreateFullSystem(debugSettings);
 
-        var entity = Entity.Create(1, "test");
+        var entity = new Entity(1, "test");
         entity.AddComponent<BoxCollider2DComponent>();
         entity.AddComponent<TransformComponent>();
         context.Register(entity);
@@ -55,7 +55,7 @@ public class PhysicsDebugRenderSystemTests
         var debugSettings = new DebugSettings { ShowColliderBounds = true };
         var (system, graphics2D, context, bodyStore) = CreateFullSystem(debugSettings);
 
-        var entity = Entity.Create(2, "circle");
+        var entity = new Entity(2, "circle");
         entity.AddComponent(new CircleCollider2DComponent { Radius = 1f });
         entity.AddComponent<TransformComponent>();
         context.Register(entity);
@@ -83,7 +83,7 @@ public class PhysicsDebugRenderSystemTests
         graphics2D.DidNotReceive().EndScene();
     }
 
-    private static (PhysicsDebugRenderSystem, IGraphics2D, IContext, PhysicsRuntimeBodyStore) CreateFullSystem(
+    private static (PhysicsDebugRenderSystem, IGraphics2D, Context, PhysicsRuntimeBodyStore) CreateFullSystem(
         DebugSettings debugSettings, bool withCamera = true)
     {
         var graphics2D = Substitute.For<IGraphics2D>();
@@ -92,7 +92,7 @@ public class PhysicsDebugRenderSystemTests
 
         if (withCamera)
         {
-            var camera = Entity.Create(99, "camera");
+            var camera = new Entity(99, "camera");
             camera.AddComponent(new CameraComponent { Primary = true });
             camera.AddComponent<TransformComponent>();
             context.Register(camera);

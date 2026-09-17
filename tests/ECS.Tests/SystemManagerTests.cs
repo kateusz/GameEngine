@@ -62,7 +62,7 @@ public class SystemManagerTests
         manager.RegisterSystem(system);
 
         // Assert
-        manager.SystemCount.ShouldBe(1);
+        manager.Systems.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class SystemManagerTests
         manager.RegisterSystem(system);
 
         // Assert
-        manager.SystemCount.ShouldBe(1);
+        manager.Systems.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public class SystemManagerTests
         manager.Shutdown();
 
         system.ShutdownCalled.ShouldBeTrue();
-        manager.SystemCount.ShouldBe(1);
+        manager.Systems.Count.ShouldBe(1);
         manager.IsInitialized.ShouldBeFalse();
 
         manager.Initialize();
@@ -267,7 +267,7 @@ public class SystemManagerTests
         // Assert
         system1.ShutdownCalled.ShouldBeTrue();
         system2.ShutdownCalled.ShouldBeTrue();
-        manager.SystemCount.ShouldBe(2);
+        manager.Systems.Count.ShouldBe(2);
         manager.IsInitialized.ShouldBeFalse();
     }
 
@@ -316,29 +316,6 @@ public class SystemManagerTests
 
         // Assert
         system.CallOrder.ShouldBe(new[] { "Init", "Update" });
-    }
-
-    [Fact]
-    public void Dispose_DisposesDisposableSystems()
-    {
-        var manager = new SystemManager();
-        var system = new DisposableTestSystem { Priority = 1 };
-        manager.RegisterSystem(system);
-
-        manager.Dispose();
-
-        system.DisposeCalled.ShouldBeTrue();
-    }
-
-    private sealed class DisposableTestSystem : ISystem, IDisposable
-    {
-        public int Priority { get; set; }
-        public bool DisposeCalled { get; private set; }
-
-        public void OnInit() { }
-        public void OnUpdate(TimeSpan deltaTime) { }
-        public void OnShutdown() { }
-        public void Dispose() => DisposeCalled = true;
     }
 
     [Fact]

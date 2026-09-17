@@ -62,7 +62,7 @@ public class GameAssemblyContainerRegistrationTests
         var container = new Container();
         GameAssemblyContainerRegistration.RegisterGameSystemsResolver(container);
         var context = new Context();
-        container.RegisterDelegate<IContext>(_ => context);
+        container.RegisterDelegate<Context>(_ => context);
         container.Register<IGameSystem, NeedsContextSystem>(Reuse.Singleton);
         container.Register<NeedsGameSystems>(Reuse.Singleton);
 
@@ -90,10 +90,10 @@ public class GameAssemblyContainerRegistrationTests
         public void OnUpdate(TimeSpan deltaTime) { }
     }
 
-    private sealed class NeedsContextSystem(IContext context) : IGameSystem
+    private sealed class NeedsContextSystem(Context context) : IGameSystem
     {
         public int Priority => 1;
         public void OnUpdate(TimeSpan deltaTime) { }
-        public IContext Context => context;
+        public Context Context => context;
     }
 }

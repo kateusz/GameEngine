@@ -378,7 +378,7 @@ public class PhysicsSimulationSystemTests
         second.Received(1).CreateEdgeFixture(Arg.Any<PhysicsEdgeFixtureDef>());
     }
 
-    private static (PhysicsSimulationSystem System, IContext Context, IPhysicsWorld2D World, PhysicsRuntimeBodyStore BodyStore) CreateFullSystem()
+    private static (PhysicsSimulationSystem System, Context Context, IPhysicsWorld2D World, PhysicsRuntimeBodyStore BodyStore) CreateFullSystem()
     {
         var world = Substitute.For<IPhysicsWorld2D>();
         var context = new Context();
@@ -386,16 +386,16 @@ public class PhysicsSimulationSystemTests
         return (new PhysicsSimulationSystem(world, context, bodyStore), context, world, bodyStore);
     }
 
-    private static Entity CreateEntityWithTransformAndRb(IContext context)
+    private static Entity CreateEntityWithTransformAndRb(Context context)
     {
-        var entity = Entity.Create(1, "test");
+        var entity = new Entity(1, "test");
         entity.AddComponent<RigidBody2DComponent>();
         entity.AddComponent<TransformComponent>();
         context.Register(entity);
         return entity;
     }
 
-    private static Entity CreateEntityWithFullCollider(IContext context)
+    private static Entity CreateEntityWithFullCollider(Context context)
     {
         var entity = CreateEntityWithTransformAndRb(context);
         entity.AddComponent<BoxCollider2DComponent>();

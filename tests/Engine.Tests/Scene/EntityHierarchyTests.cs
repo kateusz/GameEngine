@@ -333,13 +333,13 @@ public class EntityHierarchyTests
     {
         var registry = new ComponentSerializerRegistry();
         var options = new SerializerOptions();
-        var entity = Entity.Create(1, "child");
+        var entity = new Entity(1, "child");
         entity.AddComponent(new ParentComponent(42));
 
         var array = new System.Text.Json.Nodes.JsonArray();
         registry.SerializeEntity(entity, array, options.Options);
 
-        var loaded = Entity.Create(1, "child");
+        var loaded = new Entity(1, "child");
         foreach (var node in array)
             registry.DeserializeComponent(loaded, node!.AsObject(), options.Options, strict: true);
 

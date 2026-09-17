@@ -14,7 +14,7 @@ namespace Engine.Scene.Systems;
 
 internal sealed class AudioSystem(
     IAudio audio,
-    IContext context,
+    Context context,
     AudioPlaybackService playbackService) : ISystem, IAudioPlayback
 {
     private static readonly ILogger Logger = Log.ForContext<AudioSystem>();

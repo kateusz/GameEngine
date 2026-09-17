@@ -27,7 +27,7 @@ internal sealed class SceneSystemsFactory(
 
     public IPhysicsQueries PopulateSystemManager(
         SystemManager systemManager,
-        IContext context,
+        Context context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue)
     {

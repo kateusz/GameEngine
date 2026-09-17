@@ -27,7 +27,7 @@ internal sealed class Scene : IScene
 
     public Scene(
         string sceneName,
-        IContext context,
+        Context context,
         SystemManager systemManager,
         PhysicsRuntimeBodyStore physicsRuntimeBodyStore,
         PhysicsContactQueue physicsContactQueue,
@@ -53,7 +53,7 @@ internal sealed class Scene : IScene
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
 
-    public IContext Context { get; }
+    public Context Context { get; }
 
     public string Name { get; }
 
@@ -65,7 +65,7 @@ internal sealed class Scene : IScene
 
     public Entity CreateEntity(string name)
     {
-        var entity = Entity.Create(_nextEntityId++, name);
+        var entity = new Entity(_nextEntityId++, name);
         Context.Register(entity);
 
         return entity;

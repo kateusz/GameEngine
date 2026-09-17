@@ -31,7 +31,7 @@ public sealed class CameraGizmoDrawer(ITextureFactory textureFactory)
     private bool _iconLoadFailed;
 
     public void Draw(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         EditorCamera editorCamera)
     {

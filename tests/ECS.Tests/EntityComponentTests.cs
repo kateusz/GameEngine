@@ -11,7 +11,7 @@ public class EntityComponentTests
     public void AddComponent_WithParameterlessConstructor_AddsComponent()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
 
         // Act
         var component = entity.AddComponent<TestComponent>();
@@ -25,7 +25,7 @@ public class EntityComponentTests
     public void AddComponent_WithPreConstructedComponent_AddsComponent()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         var component = new TestComponentWithParams("TestValue", 42);
 
         // Act
@@ -43,7 +43,7 @@ public class EntityComponentTests
     public void AddComponent_GenericWithPreConstructedComponent_AddsComponent()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         var component = new TestComponentWithParams("TestValue", 42);
 
         // Act
@@ -61,7 +61,7 @@ public class EntityComponentTests
     public void AddComponent_DuplicateWithParameterlessConstructor_ThrowsException()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent<TestComponent>();
 
         // Act & Assert
@@ -78,7 +78,7 @@ public class EntityComponentTests
     public void AddComponent_DuplicateWithPreConstructedComponent_ThrowsException()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent(new TestComponent());
 
         // Act & Assert
@@ -95,7 +95,7 @@ public class EntityComponentTests
     public void AddComponent_GenericDuplicateWithPreConstructedComponent_ThrowsException()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent<TestComponent>(new TestComponent());
 
         // Act & Assert
@@ -112,7 +112,7 @@ public class EntityComponentTests
     public void AddComponent_MixedDuplicateParameterlessThenPreConstructed_ThrowsException()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent<TestComponent>();
 
         // Act & Assert
@@ -126,7 +126,7 @@ public class EntityComponentTests
     public void AddComponent_MixedDuplicatePreConstructedThenParameterless_ThrowsException()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent(new TestComponent());
 
         // Act & Assert
@@ -140,7 +140,7 @@ public class EntityComponentTests
     public void AddComponent_DifferentComponentTypes_BothAdded()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
 
         // Act
         entity.AddComponent<TestComponent>();
@@ -155,7 +155,7 @@ public class EntityComponentTests
     public void AddComponent_AfterRemovingComponent_CanAddAgain()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent<TestComponent>();
         entity.RemoveComponent<TestComponent>();
 
@@ -171,7 +171,7 @@ public class EntityComponentTests
     public void AddComponent_WithParameterizedConstructor_AllowsFluentInitialization()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
 
         // Act
         var component = entity.AddComponent(new TestComponentWithParams("FluentTest", 100));
@@ -186,7 +186,7 @@ public class EntityComponentTests
     public void AddComponent_WithDerivedComponentAsBaseType_StoresAsBaseType()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         var derivedComponent = new DerivedTestComponent();
 
         // Act
@@ -201,7 +201,7 @@ public class EntityComponentTests
     public void AddComponent_CanAddBothBaseAndDerivedTypes_WhenStoredAsDifferentTypes()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
 
         // Act
         entity.AddComponent<BaseTestComponent>(new DerivedTestComponent());
@@ -216,7 +216,7 @@ public class EntityComponentTests
     public void AddComponent_DuplicateBaseTypeWithDerivedInstance_ThrowsException()
     {
         // Arrange
-        var entity = Entity.Create(1, "TestEntity");
+        var entity = new Entity(1, "TestEntity");
         entity.AddComponent<BaseTestComponent>(new DerivedTestComponent());
 
         // Act & Assert

@@ -249,7 +249,7 @@ public sealed class EditorViewport(
         _frameBuffer.Unbind();
     }
 
-    private void RenderEditor2DOverlays(IContext context, in SceneView view)
+    private void RenderEditor2DOverlays(Context context, in SceneView view)
     {
         var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
         var drawGrid3D = sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
@@ -272,7 +272,7 @@ public sealed class EditorViewport(
         graphics2D.EndScene();
     }
 
-    private static bool HasCameraEntities(IContext context)
+    private static bool HasCameraEntities(Context context)
     {
         foreach (var _ in context.View<CameraComponent>())
             return true;

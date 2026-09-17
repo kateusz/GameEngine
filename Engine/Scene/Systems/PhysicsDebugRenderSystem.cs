@@ -8,7 +8,7 @@ namespace Engine.Scene.Systems;
 
 internal sealed class PhysicsDebugRenderSystem(
     IGraphics2D graphics2D,
-    IContext context,
+    Context context,
     DebugSettings debugSettings,
     PhysicsRuntimeBodyStore bodyStore) : ISystem
 {

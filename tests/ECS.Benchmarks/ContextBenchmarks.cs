@@ -21,7 +21,7 @@ public class ContextBenchmarks
 
         for (var i = 0; i < EntityCount; i++)
         {
-            var entity =  Entity.Create(i, $"Entity {i}");
+            var entity =  new Entity(i, $"Entity {i}");
             entity.AddComponent(new TransformComponent());
             entity.AddComponent(new CameraComponent());
 

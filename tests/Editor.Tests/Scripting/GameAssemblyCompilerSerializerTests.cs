@@ -37,7 +37,7 @@ public class GameAssemblyCompilerSerializerTests
             _registry.RegisterFromAssembly(Assembly.LoadFrom(outputPath));
 
             var json = JsonNode.Parse("""{"Name":"ScoreComponent","Points":7}""")!.AsObject();
-            var entity = Entity.Create(1, "e");
+            var entity = new Entity(1, "e");
             _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: true);
 
             entity.GetAllComponents().Single().GetType().Name.ShouldBe("ScoreComponent");
@@ -78,7 +78,7 @@ public class GameAssemblyCompilerSerializerTests
             _registry.UnregisterAssembly(gameAssembly);
 
             var json = JsonNode.Parse("""{"Name":"ScoreComponent","Points":99}""")!.AsObject();
-            var entity = Entity.Create(1, "e");
+            var entity = new Entity(1, "e");
             _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: true);
 
             entity.GetComponent<LocalScoreComponent>().Points.ShouldBe(99);

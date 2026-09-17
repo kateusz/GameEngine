@@ -33,7 +33,7 @@ public class ComponentCommandTests
     [Fact]
     public void Add_ThenUndo_Removes_Redo_ReAdds()
     {
-        var entity = Entity.Create(1, "e");
+        var entity = new Entity(1, "e");
         var history = CreateHistory();
         var command = new AddComponentCommand(entity, new TransformComponent());
 
@@ -52,7 +52,7 @@ public class ComponentCommandTests
     [Fact]
     public void Remove_StoresClone_Undo_Restores_Redo_RemovesAgain()
     {
-        var entity = Entity.Create(2, "e");
+        var entity = new Entity(2, "e");
         var original = new TransformComponent(new Vector3(1, 2, 3), Vector3.Zero, Vector3.One);
         entity.AddComponent(original);
         var history = CreateHistory();
@@ -72,7 +72,7 @@ public class ComponentCommandTests
     [Fact]
     public void W2_CompoundAdd_IsOneStackEntry_UndoRemovesBoth_RedoRestoresBoth()
     {
-        var entity = Entity.Create(3, "camera-entity");
+        var entity = new Entity(3, "camera-entity");
         entity.HasComponent<TransformComponent>().ShouldBeFalse();
 
         var history = CreateHistory();
@@ -100,7 +100,7 @@ public class ComponentCommandTests
     [Fact]
     public void W2_CompoundAdd_WhenTransformAlreadyPresent_UndoDoesNotRemoveTransform()
     {
-        var entity = Entity.Create(4, "e");
+        var entity = new Entity(4, "e");
         entity.AddComponent(new TransformComponent());
         var history = CreateHistory();
 
@@ -119,7 +119,7 @@ public class ComponentCommandTests
     [Fact]
     public void Add_WhenComponentAlreadyPresent_DoesNotPush()
     {
-        var entity = Entity.Create(7, "e");
+        var entity = new Entity(7, "e");
         entity.AddComponent(new TransformComponent());
         var history = CreateHistory();
 
@@ -132,7 +132,7 @@ public class ComponentCommandTests
     [Fact]
     public void Remove_ThenUndo_RestoresClonedValues_NotSameInstance()
     {
-        var entity = Entity.Create(5, "e");
+        var entity = new Entity(5, "e");
         var original = new CameraComponent { Primary = true, AspectRatio = 1.5f };
         entity.AddComponent(original);
 

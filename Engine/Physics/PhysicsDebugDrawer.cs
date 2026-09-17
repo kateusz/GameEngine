@@ -12,7 +12,7 @@ internal static class PhysicsDebugDrawer
     private const int CircleSegmentCount = 32;
 
     public static void Draw(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         PhysicsRuntimeBodyStore bodyStore,
         in SceneView view,
@@ -27,7 +27,7 @@ internal static class PhysicsDebugDrawer
     /// Draws collider outlines into an already-open 2D scene (no BeginScene/EndScene).
     /// </summary>
     public static void DrawColliders(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         PhysicsRuntimeBodyStore bodyStore,
         bool useTransformFallbackWhenNoBody)

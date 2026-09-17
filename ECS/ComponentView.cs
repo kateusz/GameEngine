@@ -1,72 +1,23 @@
 namespace ECS;
 
-/// <summary>
-/// Scoped lock + iteration over a component-type index. Dispose releases the lock.
-/// </summary>
-internal struct ComponentIndexScope(Context context)
-{
-    private HashSet<Entity>.Enumerator _inner;
-    private bool _started;
-    private bool _empty;
-
-    internal bool MoveNext(Type primary, Type? secondary, out Entity entity)
-    {
-        if (!_started)
-        {
-            context.EnterViewIndex(primary, secondary, out _inner, out _empty);
-            _started = true;
-        }
-
-        if (_empty || !_inner.MoveNext())
-        {
-            entity = null!;
-            return false;
-        }
-
-        entity = _inner.Current;
-        return true;
-    }
-
-    internal void Dispose()
-    {
-        if (!_started)
-            return;
-
-        if (!_empty)
-            _inner.Dispose();
-
-        context.ExitViewIndex();
-        _started = false;
-    }
-}
-
-/// <summary>
-/// Zero-allocation view over entities with <typeparamref name="TComponent"/>.
-/// </summary>
-public readonly struct ComponentView<TComponent>
+public readonly struct ComponentView<TComponent>(HashSet<Entity> entities)
     where TComponent : IComponent
 {
-    private readonly Context _context;
+    public Enumerator GetEnumerator() => new(entities);
 
-    internal ComponentView(Context context) => _context = context;
-
-    public Enumerator GetEnumerator() => new(_context);
-
-    public struct Enumerator
+    public struct Enumerator(HashSet<Entity> entities)
     {
-        private ComponentIndexScope _scope;
-
-        internal Enumerator(Context context) => _scope = new ComponentIndexScope(context);
+        private HashSet<Entity>.Enumerator _inner = entities.GetEnumerator();
 
         public (Entity Entity, TComponent Component) Current { get; private set; }
 
         public bool MoveNext()
         {
-            while (_scope.MoveNext(typeof(TComponent), null, out var entity))
+            while (_inner.MoveNext())
             {
-                if (entity.TryGetComponent<TComponent>(out var component))
+                if (_inner.Current.TryGetComponent<TComponent>(out var component))
                 {
-                    Current = (entity, component);
+                    Current = (_inner.Current, component);
                     return true;
                 }
             }
@@ -75,39 +26,31 @@ public readonly struct ComponentView<TComponent>
             return false;
         }
 
-        public void Dispose() => _scope.Dispose();
+        public void Dispose() => _inner.Dispose();
     }
 }
 
-/// <summary>
-/// Zero-allocation view over entities with both component types (iterates the smaller index).
-/// </summary>
-public readonly struct DualComponentView<T1, T2>
+public readonly struct DualComponentView<T1, T2>(HashSet<Entity> entities)
     where T1 : IComponent
     where T2 : IComponent
 {
-    private readonly Context _context;
+    public Enumerator GetEnumerator() => new(entities);
 
-    internal DualComponentView(Context context) => _context = context;
-
-    public Enumerator GetEnumerator() => new(_context);
-
-    public struct Enumerator
+    public struct Enumerator(HashSet<Entity> entities)
     {
-        private ComponentIndexScope _scope;
-
-        internal Enumerator(Context context) => _scope = new ComponentIndexScope(context);
+        private HashSet<Entity>.Enumerator _inner = entities.GetEnumerator();
 
         public (Entity Entity, T1 Component1, T2 Component2) Current { get; private set; }
 
         public bool MoveNext()
         {
-            while (_scope.MoveNext(typeof(T1), typeof(T2), out var entity))
+            while (_inner.MoveNext())
             {
-                if (!entity.TryGetComponent<T1>(out var component1) || !entity.TryGetComponent<T2>(out var component2))
+                if (!_inner.Current.TryGetComponent<T1>(out var component1)
+                    || !_inner.Current.TryGetComponent<T2>(out var component2))
                     continue;
 
-                Current = (entity, component1, component2);
+                Current = (_inner.Current, component1, component2);
                 return true;
             }
 
@@ -115,6 +58,6 @@ public readonly struct DualComponentView<T1, T2>
             return false;
         }
 
-        public void Dispose() => _scope.Dispose();
+        public void Dispose() => _inner.Dispose();
     }
 }

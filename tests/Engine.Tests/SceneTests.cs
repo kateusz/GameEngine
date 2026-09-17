@@ -132,7 +132,7 @@ public class SceneTests
     {
         // Arrange
         using var scene = CreateScene();
-        var entity = Entity.Create(100, "imported");
+        var entity = new Entity(100, "imported");
 
         // Act
         scene.AddEntity(entity);
@@ -146,7 +146,7 @@ public class SceneTests
     {
         // Arrange
         using var scene = CreateScene();
-        var highIdEntity = Entity.Create(500, "high-id");
+        var highIdEntity = new Entity(500, "high-id");
 
         // Act
         scene.AddEntity(highIdEntity);
@@ -162,7 +162,7 @@ public class SceneTests
         // Arrange
         using var scene = CreateScene();
         scene.CreateEntity("first"); // Gets ID 1
-        var lowIdEntity = Entity.Create(50, "low-id"); // Use ID 50 instead of 1
+        var lowIdEntity = new Entity(50, "low-id"); // Use ID 50 instead of 1
 
         // Act
         scene.AddEntity(lowIdEntity); // This should work since ID 50 is not taken
@@ -177,7 +177,7 @@ public class SceneTests
     {
         // Arrange
         using var scene = CreateScene();
-        var invalidEntity = Entity.Create(0, "invalid");
+        var invalidEntity = new Entity(0, "invalid");
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => scene.AddEntity(invalidEntity));
@@ -188,7 +188,7 @@ public class SceneTests
     {
         // Arrange
         using var scene = CreateScene();
-        var invalidEntity = Entity.Create(-5, "invalid");
+        var invalidEntity = new Entity(-5, "invalid");
 
         // Act & Assert
         Should.Throw<ArgumentException>(() => scene.AddEntity(invalidEntity));
@@ -237,7 +237,7 @@ public class SceneTests
 
         // Act
         scene.DestroyEntity(entity);
-        var newEntity = Entity.Create(entityId, "reused-id");
+        var newEntity = new Entity(entityId, "reused-id");
         scene.AddEntity(newEntity);
 
         // Assert
@@ -461,7 +461,7 @@ public class SceneTests
     {
         // Arrange
         using var scene = CreateScene();
-        var foreignEntity = Entity.Create(999, "foreign");
+        var foreignEntity = new Entity(999, "foreign");
         foreignEntity.AddComponent(new CameraComponent { Primary = true });
 
         // Act & Assert
@@ -476,7 +476,7 @@ public class SceneTests
         var camera1 = scene.CreateEntity("camera1");
         camera1.AddComponent(new CameraComponent { Primary = true });
 
-        var camera2 = Entity.Create(100, "camera2");
+        var camera2 = new Entity(100, "camera2");
         camera2.AddComponent(new CameraComponent { Primary = true });
 
         // Act

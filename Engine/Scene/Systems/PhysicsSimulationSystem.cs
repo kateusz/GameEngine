@@ -14,7 +14,7 @@ namespace Engine.Scene.Systems;
 /// </summary>
 internal sealed class PhysicsSimulationSystem(
     IPhysicsWorld2D physicsWorld,
-    IContext context,
+    Context context,
     PhysicsRuntimeBodyStore bodyStore) : ISystem, IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<PhysicsSimulationSystem>();

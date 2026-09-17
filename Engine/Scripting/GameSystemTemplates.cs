@@ -14,7 +14,7 @@ public static class GameSystemTemplates
         using Scripting;
 
         [Register(typeof(IGameSystem))]
-        public class {{className}}(IContext context, IKeyboardInput keyboardInput) : IGameSystem
+        public class {{className}}(Context context, IKeyboardInput keyboardInput) : IGameSystem
         {
             public int Priority => 100;
 

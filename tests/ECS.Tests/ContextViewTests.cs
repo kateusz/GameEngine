@@ -7,7 +7,7 @@ namespace ECS.Tests;
 /// </summary>
 public class ContextViewTests : IDisposable
 {
-    private readonly IContext _context;
+    private readonly Context _context;
 
     private class TestComponentA : IComponent { public int Value { get; set; }
         public IComponent Clone()
@@ -54,8 +54,8 @@ public class ContextViewTests : IDisposable
     public void View_WithEntitiesButNoMatchingComponents_ReturnsEmptyResult()
     {
         // Arrange
-        var entity1 = Entity.Create(1, "Entity1");
-        var entity2 = Entity.Create(2, "Entity2");
+        var entity1 = new Entity(1, "Entity1");
+        var entity2 = new Entity(2, "Entity2");
         entity1.AddComponent<TestComponentB>();
         entity2.AddComponent<TestComponentC>();
         _context.Register(entity1);
@@ -72,9 +72,9 @@ public class ContextViewTests : IDisposable
     public void View_WithMatchingComponents_ReturnsCorrectEntitiesAndComponents()
     {
         // Arrange
-        var entity1 = Entity.Create(1, "Entity1");
-        var entity2 = Entity.Create(2, "Entity2");
-        var entity3 = Entity.Create(3, "Entity3");
+        var entity1 = new Entity(1, "Entity1");
+        var entity2 = new Entity(2, "Entity2");
+        var entity3 = new Entity(3, "Entity3");
         
         var componentA1 = entity1.AddComponent<TestComponentA>();
         componentA1.Value = 10;
@@ -110,7 +110,7 @@ public class ContextViewTests : IDisposable
     public void View_WithMultipleComponents_OnlyReturnsSpecificComponentType()
     {
         // Arrange
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         
         var componentA = entity.AddComponent<TestComponentA>();
         componentA.Value = 42;
@@ -143,7 +143,7 @@ public class ContextViewTests : IDisposable
     public void View_ReturnsComponentReferencesNotCopies()
     {
         // Arrange
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         var component = entity.AddComponent<TestComponentA>();
         component.Value = 100;
         _context.Register(entity);
@@ -163,8 +163,8 @@ public class ContextViewTests : IDisposable
     public void View_CanIterateMultipleTimes()
     {
         // Arrange
-        var entity1 = Entity.Create(1, "Entity1");
-        var entity2 = Entity.Create(2, "Entity2");
+        var entity1 = new Entity(1, "Entity1");
+        var entity2 = new Entity(2, "Entity2");
         entity1.AddComponent<TestComponentA>();
         entity2.AddComponent<TestComponentA>();
         _context.Register(entity1);
@@ -190,7 +190,7 @@ public class ContextViewTests : IDisposable
         
         for (var i = 0; i < entityCount; i++)
         {
-            var entity = Entity.Create(i, $"Entity{i}");
+            var entity = new Entity(i, $"Entity{i}");
             var component = entity.AddComponent<TestComponentA>();
             component.Value = i;
             _context.Register(entity);
@@ -215,7 +215,7 @@ public class ContextViewTests : IDisposable
     public void View_DeconstructionSyntax_Works()
     {
         // Arrange
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         var component = entity.AddComponent<TestComponentA>();
         component.Value = 42;
         _context.Register(entity);
@@ -233,7 +233,7 @@ public class ContextViewTests : IDisposable
     public void View_CalledMultipleTimes_ReturnsConsistentResults()
     {
         // Arrange
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         entity.AddComponent<TestComponentA>();
         _context.Register(entity);
         
@@ -257,7 +257,7 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void View_AfterComponentRemoved_ExcludesEntity()
     {
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         entity.AddComponent<TestComponentA>();
         _context.Register(entity);
 
@@ -269,7 +269,7 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void View_AfterComponentAddedAfterRegister_IncludesEntity()
     {
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         _context.Register(entity);
         entity.AddComponent<TestComponentA>().Value = 7;
 
@@ -282,11 +282,11 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void View_TwoComponents_ReturnsOnlyEntitiesWithBoth()
     {
-        var withBoth = Entity.Create(1, "Both");
+        var withBoth = new Entity(1, "Both");
         withBoth.AddComponent<TestComponentA>().Value = 1;
         withBoth.AddComponent<TestComponentB>().Data = "x";
 
-        var onlyA = Entity.Create(2, "OnlyA");
+        var onlyA = new Entity(2, "OnlyA");
         onlyA.AddComponent<TestComponentA>().Value = 2;
 
         _context.Register(withBoth);
@@ -303,7 +303,7 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void View_TwoComponents_SkipsEntityWhenComponentRemovedDuringIteration()
     {
-        var entity = Entity.Create(1, "Both");
+        var entity = new Entity(1, "Both");
         entity.AddComponent<TestComponentA>().Value = 1;
         entity.AddComponent<TestComponentB>().Data = "x";
         _context.Register(entity);
@@ -318,12 +318,12 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void View_ThreeComponents_ReturnsOnlyEntitiesWithAll()
     {
-        var complete = Entity.Create(1, "All");
+        var complete = new Entity(1, "All");
         complete.AddComponent<TestComponentA>();
         complete.AddComponent<TestComponentB>();
         complete.AddComponent<TestComponentC>().Flag = true;
 
-        var partial = Entity.Create(2, "Partial");
+        var partial = new Entity(2, "Partial");
         partial.AddComponent<TestComponentA>();
         partial.AddComponent<TestComponentB>();
 
@@ -350,7 +350,7 @@ public class ContextViewTests : IDisposable
 
         for (var i = 0; i < total; i++)
         {
-            var entity = Entity.Create(i, $"Entity{i}");
+            var entity = new Entity(i, $"Entity{i}");
             if (i < withA)
                 entity.AddComponent<TestComponentA>().Value = i;
             else
@@ -371,9 +371,9 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void Entities_PreservesRegistrationOrder()
     {
-        var entity1 = Entity.Create(1, "First");
-        var entity2 = Entity.Create(2, "Second");
-        var entity3 = Entity.Create(3, "Third");
+        var entity1 = new Entity(1, "First");
+        var entity2 = new Entity(2, "Second");
+        var entity3 = new Entity(3, "Third");
         _context.Register(entity1);
         _context.Register(entity2);
         _context.Register(entity3);
@@ -386,8 +386,8 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void Entities_AfterRemove_ExcludesRemovedEntity()
     {
-        var entity1 = Entity.Create(1, "Keep");
-        var entity2 = Entity.Create(2, "Remove");
+        var entity1 = new Entity(1, "Keep");
+        var entity2 = new Entity(2, "Remove");
         _context.Register(entity1);
         _context.Register(entity2);
 
@@ -400,7 +400,7 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void Entities_AfterClear_ReturnsEmpty()
     {
-        _context.Register(Entity.Create(1, "Entity"));
+        _context.Register(new Entity(1, "Entity"));
         _context.Clear();
 
         _context.Entities.ShouldBeEmpty();
@@ -409,7 +409,7 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void Contains_ReturnsTrueForRegisteredEntity()
     {
-        var entity = Entity.Create(42, "Entity");
+        var entity = new Entity(42, "Entity");
         _context.Register(entity);
 
         _context.Contains(42).ShouldBeTrue();
@@ -424,7 +424,7 @@ public class ContextViewTests : IDisposable
     [Fact]
     public void Contains_ReturnsFalseAfterRemove()
     {
-        var entity = Entity.Create(1, "Entity");
+        var entity = new Entity(1, "Entity");
         _context.Register(entity);
         _context.Remove(entity.Id);
 

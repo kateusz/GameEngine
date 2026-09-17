@@ -14,7 +14,7 @@ public interface IScene : IDisposable, IEntityHierarchy
     /// <summary>
     /// Scene-owned entity registry. Isolated from other scenes.
     /// </summary>
-    IContext Context { get; }
+    Context Context { get; }
 
     IPhysicsContacts PhysicsContacts { get; }
 

@@ -10,7 +10,7 @@ using Scripting;
 namespace Editor.assets.scripting;
 
 [Register(typeof(IGameSystem))]
-public class CameraController(IContext context, IKeyboardInput keyboard, IMouseInput mouse) : IGameSystem
+public class CameraController(Context context, IKeyboardInput keyboard, IMouseInput mouse) : IGameSystem
 {
     private const float MoveSpeed = 10.0f;
     private const float LookSensitivity = 0.003f;

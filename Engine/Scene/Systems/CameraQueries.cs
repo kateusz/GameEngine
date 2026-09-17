@@ -14,7 +14,7 @@ namespace Engine.Scene.Systems;
 /// Primary-camera query for render and picking. The instance implements per-scene
 /// screen→world (<see cref="ICameraQueries"/>); <see cref="TryGetPrimaryView"/> is the shared lookup.
 /// </summary>
-internal sealed class CameraQueries(IContext context, IPointerSurface pointerSurface) : ICameraQueries
+internal sealed class CameraQueries(Context context, IPointerSurface pointerSurface) : ICameraQueries
 {
     // ponytail: main-thread only; pass a scratch SceneCamera if render goes wide.
     private static readonly SceneCamera Scratch = new();
@@ -34,7 +34,7 @@ internal sealed class CameraQueries(IContext context, IPointerSurface pointerSur
             sceneView.ViewProjection);
     }
 
-    internal static bool TryGetPrimaryView(IContext context, out SceneView view)
+    internal static bool TryGetPrimaryView(Context context, out SceneView view)
     {
         foreach (var (entity, cameraComponent) in context.View<CameraComponent>())
         {

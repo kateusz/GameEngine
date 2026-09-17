@@ -11,8 +11,8 @@ public class PhysicsContactQueueTests
     public void DrainContacts_ReturnsEnqueuedAndClears()
     {
         var queue = new PhysicsContactQueue();
-        var a = Entity.Create(1, "a");
-        var b = Entity.Create(2, "b");
+        var a = new Entity(1, "a");
+        var b = new Entity(2, "b");
         queue.Enqueue(new PhysicsContact(a, b, IsTrigger: false, IsBegin: true));
 
         var drained = queue.DrainContacts();

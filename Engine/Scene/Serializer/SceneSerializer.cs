@@ -127,7 +127,7 @@ internal sealed class SceneSerializer(
         var entityName = entityObj[NameKey]?.GetValue<string>() ??
                          throw new InvalidSceneJsonException("Invalid entity Name");
 
-        var entity = Entity.Create(entityId, entityName);
+        var entity = new Entity(entityId, entityName);
         var componentsArray = GetJsonArray(entityObj, ComponentsKey);
 
         foreach (var componentNode in componentsArray)

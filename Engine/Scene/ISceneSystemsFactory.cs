@@ -9,7 +9,7 @@ public interface ISceneSystemsFactory
 {
     IPhysicsQueries PopulateSystemManager(
         SystemManager systemManager,
-        IContext context,
+        Context context,
         PhysicsRuntimeBodyStore bodyStore,
         PhysicsContactQueue contactQueue);
 }

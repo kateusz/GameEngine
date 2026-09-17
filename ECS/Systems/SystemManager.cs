@@ -7,8 +7,6 @@ public class SystemManager : IDisposable
 
     public IReadOnlyList<ISystem> Systems => _systems;
 
-    public int SystemCount => _systems.Count;
-
     public bool IsInitialized { get; private set; }
 
     public void RegisterSystem(ISystem system)
@@ -57,14 +55,7 @@ public class SystemManager : IDisposable
             return;
 
         Shutdown();
-        foreach (var system in _systems)
-        {
-            if (system is IDisposable disposable)
-                disposable.Dispose();
-        }
-
         _systems.Clear();
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

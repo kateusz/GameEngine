@@ -18,7 +18,7 @@ namespace ArenaShooter.assets.scripts;
 /// </summary>
 [Register(typeof(IGameSystem))]
 public class ArenaSystem(
-    IContext context,
+    Context context,
     IKeyboardInput keyboard,
     IMouseInput mouse,
     ICameraQueries cameraQueries,

@@ -25,11 +25,10 @@ public class SetTransformCommandTests
     private static (IScene scene, Entity entity, TransformComponent transform) CreateSceneEntity(
         Vector3 translation, Vector3 rotation, Vector3 scale)
     {
-        var entity = Entity.Create(1, "target");
+        var entity = new Entity(1, "target");
         var transform = entity.AddComponent(new TransformComponent(translation, rotation, scale));
-        var context = Substitute.For<IContext>();
-        context.Contains(entity.Id).Returns(true);
-        context.GetById(entity.Id).Returns(entity);
+        var context = new Context();
+        context.Register(entity);
         var scene = Substitute.For<IScene>();
         scene.Context.Returns(context);
         scene.Entities.Returns([entity]);

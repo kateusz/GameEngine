@@ -74,9 +74,9 @@ public static class EngineIoCContainer
 
         container.Register<ISceneContext, SceneContext>(Reuse.Singleton);
 
-        container.RegisterDelegate<IContext>(
+        container.RegisterDelegate<ECS.Context>(
             r => r.Resolve<ISceneContext>().ActiveScene?.Context
-                 ?? throw new InvalidOperationException("Cannot resolve IContext without an active scene."));
+                 ?? throw new InvalidOperationException("Cannot resolve ECS.Context without an active scene."));
 
         container.RegisterDelegate<IPhysicsContacts>(r =>
             r.Resolve<ISceneContext>().ActiveScene?.PhysicsContacts

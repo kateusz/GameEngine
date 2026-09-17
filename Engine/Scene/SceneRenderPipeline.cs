@@ -27,7 +27,7 @@ internal static class SceneRenderPipeline
     ];
 
     public static void RenderScene(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
@@ -39,7 +39,7 @@ internal static class SceneRenderPipeline
     }
     
     private static void RenderSpritesAndSubTextures(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory,
         in SceneView view)
@@ -51,7 +51,7 @@ internal static class SceneRenderPipeline
     }
 
     private static void RenderSpritesInternal(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory)
     {
@@ -86,7 +86,7 @@ internal static class SceneRenderPipeline
     }
 
     private static void RenderSubTexturesInternal(
-        IContext context,
+        Context context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory)
     {
@@ -105,7 +105,7 @@ internal static class SceneRenderPipeline
     }
     
     private static void Render3D(
-        IContext context,
+        Context context,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
@@ -187,7 +187,7 @@ internal static class SceneRenderPipeline
         }
     }
 
-    internal static (Vector3 Color, float Strength) ResolveAmbient(IContext context)
+    internal static (Vector3 Color, float Strength) ResolveAmbient(Context context)
     {
         foreach (var (_, alc) in context.View<AmbientLightComponent>())
             return (new Vector3(alc.Color.X, alc.Color.Y, alc.Color.Z), alc.Strength);
@@ -195,7 +195,7 @@ internal static class SceneRenderPipeline
         return (Vector3.One, 0.1f);
     }
 
-    internal static (Vector3 Direction, Vector3 Color) ResolveDirectional(IContext context)
+    internal static (Vector3 Direction, Vector3 Color) ResolveDirectional(Context context)
     {
         foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
             return (LightingMath.NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));

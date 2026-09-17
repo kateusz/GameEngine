@@ -10,7 +10,7 @@ using Scripting;
 namespace FlappyBird.assets.scripts;
 
 [Register(typeof(IGameSystem))]
-public class FlappyBirdSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
+public class FlappyBirdSystem(Context context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
 {
     private const float ReadyBirdY = 0.3f;
     private const float BirdHalfWidth = 0.13f;

@@ -9,7 +9,7 @@ using Scripting;
 namespace Snake.assets.scripts;
 
 [Register(typeof(IGameSystem))]
-public class SnakeSystem(IContext context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
+public class SnakeSystem(Context context, IKeyboardInput keyboardInput, IAudio audio) : IGameSystem
 {
     private const string TexApple = "textures/snake/apple.png";
     private const string TexCell = "textures/cell.png";

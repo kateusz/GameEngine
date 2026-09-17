@@ -10,7 +10,7 @@ internal sealed class SceneRenderSystem(
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
-    IContext context,
+    Context context,
     IModelFactory modelFactory) : ISystem
 {
     public int Priority => 150;

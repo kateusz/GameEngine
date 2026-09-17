@@ -59,7 +59,7 @@ public class CameraQueriesTests
     public void TryGetPrimaryView_WhenNoTransform_UsesIdentity()
     {
         var context = new Context();
-        var entity = Entity.Create(1, "primary");
+        var entity = new Entity(1, "primary");
         entity.AddComponent(new CameraComponent { Primary = true });
         context.Register(entity);
 
@@ -101,9 +101,9 @@ public class CameraQueriesTests
         view.ShouldBe(default);
     }
 
-    private static Entity RegisterCamera(IContext context, int id, bool primary)
+    private static Entity RegisterCamera(Context context, int id, bool primary)
     {
-        var entity = Entity.Create(id, primary ? "primary" : "other");
+        var entity = new Entity(id, primary ? "primary" : "other");
         entity.AddComponent(new CameraComponent { Primary = primary });
         entity.AddComponent<TransformComponent>();
         context.Register(entity);
