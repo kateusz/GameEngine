@@ -56,6 +56,14 @@
       <Link>assets\shaders\OpenGL\modelShader.vert</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\depth.vert">
+      <Link>assets\shaders\OpenGL\depth.vert</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\depth.frag">
+      <Link>assets\shaders\OpenGL\depth.frag</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

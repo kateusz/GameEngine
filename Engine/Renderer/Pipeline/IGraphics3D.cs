@@ -14,6 +14,9 @@ public interface IGraphics3D : IGraphics
     void SetAmbientLight(Vector3 color, float strength);
     void SetDirectionalLight(Vector3 direction, Vector3 color);
     void SetPointLights(ReadOnlySpan<PointLightData> lights);
+    void BeginShadowPass(Matrix4x4 lightViewProjection);
+    void EndShadowPass();
+    void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled);
     void ResetStats();
     Statistics GetStats();
 }
