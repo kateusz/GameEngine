@@ -42,17 +42,27 @@ float DirectionalShadow(vec3 fragPos)
     vec3 ndc = clipPos.xyz / clipPos.w;
     vec2 uv = ndc.xy * 0.5 + 0.5;
     float current = ndc.z * 0.5 + 0.5;
+
+    // ponytail: bilinear PCF; integer-offset PCF is constant per texel → stairs
+    vec2 mapSize = vec2(textureSize(u_ShadowMap, 0));
+    vec2 texelSize = 1.0 / mapSize;
+    vec2 texelUv = uv * mapSize - 0.5;
+    vec2 f = fract(texelUv);
+    vec2 origin = (floor(texelUv) + 0.5) * texelSize;
+
     float shadow = 0.0;
-    vec2 texel = vec2(1.0 / 1024.0);
-    for (int x = -1; x <= 1; ++x)
+    for (int x = 0; x <= 1; ++x)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int y = 0; y <= 1; ++y)
         {
-            float closest = texture(u_ShadowMap, uv + vec2(x, y) * texel).r;
-            shadow += current - c_ShadowBias > closest ? 0.0 : 1.0;
+            float closest = texture(u_ShadowMap, origin + vec2(x, y) * texelSize).r;
+            float lit = current - c_ShadowBias > closest ? 0.0 : 1.0;
+            float wx = x == 0 ? 1.0 - f.x : f.x;
+            float wy = y == 0 ? 1.0 - f.y : f.y;
+            shadow += lit * wx * wy;
         }
     }
-    return shadow / 9.0;
+    return shadow;
 }
 
 vec3 PointLights(vec3 N, vec3 fragPos, vec3 V, vec3 albedo, vec3 specColor, float shininess)

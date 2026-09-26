@@ -11,6 +11,7 @@ internal static class EngineShaderPaths
             ShaderId.Cube => "cube",
             ShaderId.Model => "modelShader",
             ShaderId.Depth => "depth",
+            ShaderId.Fxaa => "fxaa",
             _ => throw new ArgumentOutOfRangeException(nameof(shader), shader, null)
         };
 

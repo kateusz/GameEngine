@@ -41,7 +41,8 @@ public sealed class EditorViewport(
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
     IModelFactory modelFactory,
-    IEditorHistory history)
+    IEditorHistory history,
+    FxaaPass fxaaPass)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -104,7 +105,7 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var texturePointer = ImGuiNativeTexture.FromColorAttachment(_frameBuffer);
+        var texturePointer = ImGuiNativeTexture.FromColorAttachment(fxaaPass.Resolve(_frameBuffer));
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();

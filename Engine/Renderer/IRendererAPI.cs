@@ -9,11 +9,14 @@ public interface IRendererAPI
     void Clear();
     void BindTexture2D(uint textureId, int slot = 0);
     void BindTextureCube(uint textureId, int slot = 0);
+    void BindDefaultFramebuffer();
+    void SetBoundTexture2DFilterLinear();
     void DrawIndexed(IVertexArray vertexArray, uint count);
     void DrawArrays(IVertexArray vertexArray, uint vertexCount);
     void DrawLines(IVertexArray vertexArray, uint vertexCount);
     void SetLineWidth(float width);
     void SetDepthTest(bool enabled);
+    void SetBlend(bool enabled);
     /// <summary>When false, depth buffer is not written (transparent pass).</summary>
     void SetDepthWrite(bool enabled);
     /// <summary>When enabled, back faces are culled. Disable for double-sided materials.</summary>

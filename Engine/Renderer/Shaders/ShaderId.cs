@@ -6,5 +6,6 @@ public enum ShaderId
     Line,
     Cube,
     Model,
-    Depth
+    Depth,
+    Fxaa
 }
