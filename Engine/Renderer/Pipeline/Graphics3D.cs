@@ -12,6 +12,12 @@ internal sealed class Graphics3D(
     ITextureFactory textureFactory) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
+    
+    private static readonly string[] PointPositionUniforms = Names("u_PointLightPositions");
+    private static readonly string[] PointColorUniforms = Names("u_PointLightColors");
+    private static readonly string[] PointIntensityUniforms = Names("u_PointLightIntensities");
+    private static readonly string[] PointRangeUniforms = Names("u_PointLightRanges");
+    
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
     private Mesh _cubeMesh = null!;
@@ -22,6 +28,9 @@ internal sealed class Graphics3D(
     private float _ambientStrength = 0.1f;
     private Vector3 _lightDirection = new(0, -1, 0);
     private Vector3 _lightColor = Vector3.Zero;
+    
+    private readonly PointLightData[] _pointLights = new PointLightData[LightingMath.MaxPointLights];
+    private int _pointLightCount;
 
     private readonly Statistics _stats = new();
     private bool _disposed;
@@ -43,8 +52,8 @@ internal sealed class Graphics3D(
     {
         _viewProjection = view.ViewProjection;
         _viewPosition = view.ViewPosition;
-        UploadFrame(_cubeShader, includeViewPosition: false);
-        UploadFrame(_modelShader, includeViewPosition: true);
+        UploadFrame(_cubeShader);
+        UploadFrame(_modelShader);
     }
 
     public void EndScene()
@@ -102,8 +111,15 @@ internal sealed class Graphics3D(
         _lightDirection = direction;
         _lightColor = color;
     }
+    
+    public void SetPointLights(ReadOnlySpan<PointLightData> lights)
+    {
+        _pointLightCount = System.Math.Min(lights.Length, LightingMath.MaxPointLights);
+        lights[.._pointLightCount].CopyTo(_pointLights);
+        Array.Clear(_pointLights, _pointLightCount, LightingMath.MaxPointLights - _pointLightCount);
+    }
 
-    private void UploadFrame(IShader shader, bool includeViewPosition)
+    private void UploadFrame(IShader shader)
     {
         shader.Bind();
         shader.SetMat4(ViewProjectionUniform, _viewProjection);
@@ -111,9 +127,24 @@ internal sealed class Graphics3D(
         shader.SetFloat("u_AmbientStrength", _ambientStrength);
         shader.SetFloat3("u_LightDirection", _lightDirection);
         shader.SetFloat3("u_LightColor", _lightColor);
-        if (includeViewPosition)
-            shader.SetFloat3("u_ViewPosition", _viewPosition);
+        shader.SetFloat3("u_ViewPosition", _viewPosition);
+        shader.SetInt("u_PointLightCount", _pointLightCount);
+        for (var i = 0; i < LightingMath.MaxPointLights; i++)
+        {
+            shader.SetFloat3(PointPositionUniforms[i], _pointLights[i].Position);
+            shader.SetFloat3(PointColorUniforms[i], _pointLights[i].Color);
+            shader.SetFloat(PointIntensityUniforms[i], _pointLights[i].Intensity);
+            shader.SetFloat(PointRangeUniforms[i], _pointLights[i].Range);
+        }
         shader.Unbind();
+    }
+    
+    private static string[] Names(string uniform)
+    {
+        var names = new string[LightingMath.MaxPointLights];
+        for (var i = 0; i < names.Length; i++)
+            names[i] = $"{uniform}[{i}]";
+        return names;
     }
 
     private static void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)

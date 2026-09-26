@@ -130,6 +130,9 @@ Simplified and developer-focused. Only what's needed to implement — no repetit
 - Exact function signatures, class definitions, or file-by-file implementation details
 - Content duplicated between the two files — `introduction.md` teaches concepts, `developer-guide.md` guides action
 
+# File 3: implementation.md
+Guide how it should be implemented, ready c# code, step by step and explain
+
 **Documentation:**
 
 - Write `introduction.md` and `developer-guide.md` to `docs/specs/{name_of_feature}/`
