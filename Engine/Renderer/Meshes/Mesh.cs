@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Shaders;
@@ -38,6 +39,9 @@ public class Mesh : IDisposable
 
     /// <summary>Vertex count captured at <see cref="Initialize"/>, kept after CPU buffers are released.</summary>
     public int VertexCount { get; private set; }
+
+    /// <summary>Local positions box captured at <see cref="Initialize"/>, kept after CPU vertices are released.</summary>
+    internal Aabb? Bounds { get; private set; }
     public Texture2D? DiffuseTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public Texture2D? MetallicRoughnessTexture { get; set; }
@@ -91,6 +95,7 @@ public class Mesh : IDisposable
 
         _initialized = true;
         VertexCount = Vertices.Count;
+        Bounds = Aabb.FromPositions(Vertices);
 
         Vertices.Clear();
         Vertices.TrimExcess();

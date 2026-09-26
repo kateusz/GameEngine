@@ -21,7 +21,7 @@ internal sealed class MeshFactory(
 
         var mesh = new Mesh("Cube");
         mesh.DiffuseTexture = textureFactory.GetWhiteTexture();
-        const float size = 0.5f;
+        var size = Aabb.UnitCubeHalfExtent;
 
         var tangentX = Vector3.UnitX;
         var tangentNegX = -Vector3.UnitX;

@@ -1,6 +1,8 @@
 using System.Numerics;
 using ECS;
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -188,6 +190,165 @@ public class SceneRenderPipelineShadowTests
 
         graphics.MeshFactors.ShouldBe([(1f, 0f, 0f)]);
         model.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_CubeOutsideCameraAndLight_DrawsNothing()
+    {
+        var context = SceneWithSun();
+        var cube = new Entity(1, "cube");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(Matrix4x4.CreateTranslation(1000f, 0f, 0f));
+        cube.AddComponent(transform);
+        cube.AddComponent(new ModelRendererComponent());
+        context.Register(cube);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.CubeDraws.ShouldBe(0);
+        graphics.ShadowPasses.Count.ShouldBe(1);
+        graphics.Order.ShouldContain("begin-shadow");
+        graphics.Order.ShouldContain("begin-scene");
+        graphics.Order.ShouldNotContain("cube");
+    }
+
+    [Fact]
+    public void RenderScene_CubePastShadowDistance_DrawsColorOnly()
+    {
+        var eye = new Vector3(0f, 2f, 5f);
+        var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
+        var context = SceneWithSun();
+        var cube = new Entity(1, "cube");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(Matrix4x4.CreateTranslation(eye + forward * 80f));
+        cube.AddComponent(transform);
+        cube.AddComponent(new ModelRendererComponent());
+        context.Register(cube);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(eye)));
+
+        graphics.CubeDraws.ShouldBe(1);
+        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "end-shadow", "shadow-on", "begin-scene", "cube"]);
+    }
+
+    [Fact]
+    public void RenderScene_CubeInsideLightOutsideCamera_DrawsShadowOnly()
+    {
+        var eye = new Vector3(0f, 2f, 5f);
+        var viewProjection = ViewProjection(eye);
+        var direction = LightingMath.NormalizeDirection(new Vector3(0f, -1f, 0f));
+        LightingMath.TryFitDirectionalShadow(viewProjection, direction, out var light).ShouldBeTrue();
+        Matrix4x4.Invert(light, out var inverseLight).ShouldBeTrue();
+        var world = Matrix4x4.CreateTranslation(Unproject(inverseLight, 0.95f, 0f, 0.5f));
+
+        Frustum.TryFromClip(viewProjection, out var cameraFrustum).ShouldBeTrue();
+        Frustum.TryFromClip(light, out var lightFrustum).ShouldBeTrue();
+        cameraFrustum.IsOutside(world, Aabb.UnitCube).ShouldBeTrue();
+        lightFrustum.IsOutside(world, Aabb.UnitCube).ShouldBeFalse();
+
+        var context = SceneWithSun();
+        var cube = new Entity(1, "cube");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(world);
+        cube.AddComponent(transform);
+        cube.AddComponent(new ModelRendererComponent());
+        context.Register(cube);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(viewProjection));
+
+        graphics.CubeDraws.ShouldBe(1);
+        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene"]);
+    }
+
+    [Fact]
+    public void RenderScene_FarSubmesh_DrawsOnlyTheNearSubmeshInBothPasses()
+    {
+        var near = CreateTriangle("near", Vector3.Zero, new Vector3(1f, 0f, 0f), new Vector3(0f, 1f, 0f));
+        var far = CreateTriangle("far", new Vector3(1000f, 0f, 0f), new Vector3(1001f, 0f, 0f), new Vector3(1000f, 1f, 0f));
+        var model = new Model(@"C:\prop.glb", [near, far]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = SceneWithSun();
+        var entity = new Entity(1, "prop");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent { ModelPath = @"C:\prop.glb" });
+        context.Register(entity);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshDraws.ShouldBe(2);
+        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "mesh", "end-shadow", "shadow-on", "begin-scene", "mesh"]);
+        model.Dispose();
+    }
+
+    private static Context SceneWithSun()
+    {
+        var context = new Context();
+        var sun = new Entity(2, "sun");
+        sun.AddComponent(new DirectionalLightComponent
+        {
+            Direction = new Vector3(0f, -1f, 0f),
+            Color = Vector4.One
+        });
+        context.Register(sun);
+        return context;
+    }
+
+    private static Vector3 Unproject(Matrix4x4 inverse, float x, float y, float z)
+    {
+        var clip = Vector4.Transform(new Vector4(x, y, z, 1f), inverse);
+        return new Vector3(clip.X, clip.Y, clip.Z) / clip.W;
+    }
+
+    private static Mesh CreateTriangle(string name, Vector3 a, Vector3 b, Vector3 c)
+    {
+        var vao = Substitute.For<IVertexArray>();
+        vao.IndexBuffer.Returns(Substitute.For<IIndexBuffer>());
+        var vaoFactory = Substitute.For<IVertexArrayFactory>();
+        vaoFactory.Create().Returns(vao);
+        var vboFactory = Substitute.For<IVertexBufferFactory>();
+        vboFactory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(Substitute.For<IVertexBuffer>());
+        var ibo = Substitute.For<IIndexBuffer>();
+        ibo.Count.Returns(3);
+        var iboFactory = Substitute.For<IIndexBufferFactory>();
+        iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
+
+        var mesh = new Mesh(name);
+        mesh.Vertices.Add(new Mesh.Vertex { Position = a });
+        mesh.Vertices.Add(new Mesh.Vertex { Position = b });
+        mesh.Vertices.Add(new Mesh.Vertex { Position = c });
+        mesh.Indices.AddRange([0u, 1u, 2u]);
+        mesh.Initialize(vaoFactory, vboFactory, iboFactory);
+        return mesh;
     }
 
     private static Matrix4x4 ViewProjection(Vector3 eye)
