@@ -48,6 +48,7 @@ public sealed class ImportModelHierarchyCommand(
                 ModelHierarchySpawner.ApplyLocalTransform(root, combined);
             }
 
+            ModelHierarchySpawner.SpawnPackedLights(scene, root, graph);
             return true;
         }
 

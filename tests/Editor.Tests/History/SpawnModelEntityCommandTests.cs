@@ -1,3 +1,4 @@
+using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Editor.Features.History.Commands;
@@ -7,6 +8,7 @@ using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
+using SceneComponents.Lighting;
 using Scripting;
 using SceneComponents.Rendering;
 using Shouldly;
@@ -82,5 +84,47 @@ public class SpawnModelEntityCommandTests
         entity.Name.ShouldBe("Crate");
         entity.GetComponent<ModelRendererComponent>().ModelPath.ShouldBe("models/crate.glb");
         command.EntityId.ShouldBe(entity.Id);
+    }
+
+    [Fact]
+    public void Execute_SingleMeshWithLight_KeepsRootDrawingAndSpawnsLamp()
+    {
+        using var scene = CreateScene();
+        var root = scene.CreateEntity("Room");
+        root.AddComponent(new TransformComponent());
+        var renderer = new ModelRendererComponent();
+        root.AddComponent(renderer);
+
+        var torch = new ModelSceneNode("Torch", [], [], Matrix4x4.Identity,
+            new ImportedPointLight(Vector4.One, 1f, 6f));
+        var graph = new ModelSceneNode("Room", [0], [torch]);
+        var command = new ImportModelHierarchyCommand(scene, root, renderer, ModelWithGraph(graph), "models/room.glb");
+
+        command.Execute().ShouldBeTrue();
+
+        renderer.SuppressDraw.ShouldBeFalse();
+        scene.GetChildren(root).Single().Name.ShouldBe("Torch");
+    }
+
+    [Fact]
+    public void Undo_RemovesImportedLightChildren()
+    {
+        using var scene = CreateScene();
+        var root = scene.CreateEntity("Room");
+        root.AddComponent(new TransformComponent());
+        var renderer = new ModelRendererComponent();
+        root.AddComponent(renderer);
+
+        var torch = new ModelSceneNode("Torch", [0], [], Matrix4x4.Identity,
+            new ImportedPointLight(Vector4.One, 1f, 6f));
+        var table = new ModelSceneNode("Table", [1], []);
+        var graph = new ModelSceneNode("Room", [], [torch, table]);
+        var command = new ImportModelHierarchyCommand(scene, root, renderer, ModelWithGraph(graph), "models/room.glb");
+
+        command.Execute().ShouldBeTrue();
+        scene.GetChildren(root).Single(e => e.Name == "Torch").HasComponent<PointLightComponent>().ShouldBeTrue();
+
+        command.Undo();
+        scene.GetChildren(root).ShouldBeEmpty();
     }
 }

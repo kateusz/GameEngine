@@ -4,12 +4,16 @@ using Engine.Renderer.Models;
 using Engine.Scene;
 using Math;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Rendering;
+using Serilog;
 
 namespace Editor.Features.Scene;
 
 public static class ModelHierarchySpawner
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(ModelHierarchySpawner));
+
     public static void SpawnChildren(
         IScene scene,
         Entity root,
@@ -24,6 +28,12 @@ public static class ModelHierarchySpawner
 
         foreach (var child in graphRoot.Children)
             SpawnNode(scene, root, child, modelPath, color);
+
+        if (graphRoot.Light is not null)
+        {
+            var lamp = CreateEntity(scene, root, graphRoot.Name, Matrix4x4.Identity);
+            AddLight(lamp, graphRoot.Light);
+        }
     }
 
     public static void DestroyChildren(IScene scene, Entity root)
@@ -39,7 +49,7 @@ public static class ModelHierarchySpawner
         string modelPath,
         Vector4 color)
     {
-        if (node.MeshIndices.Count == 0 && node.Children.Count == 0)
+        if (node.MeshIndices.Count == 0 && node.Children.Count == 0 && node.Light is null)
             return;
 
         if (node.MeshIndices.Count <= 1 && node.Children.Count == 0)
@@ -47,6 +57,7 @@ public static class ModelHierarchySpawner
             var leaf = CreateEntity(scene, parent, node.Name, node.LocalTransform);
             if (node.MeshIndices.Count == 1)
                 SetRenderer(leaf, modelPath, color, node.MeshIndices[0]);
+            AddLight(leaf, node.Light);
             return;
         }
 
@@ -55,9 +66,75 @@ public static class ModelHierarchySpawner
             SetRenderer(host, modelPath, color, node.MeshIndices[0]);
         else if (node.MeshIndices.Count > 1)
             SpawnMeshChildren(scene, host, node.Name, node.MeshIndices, modelPath, color);
+        AddLight(host, node.Light);
 
         foreach (var child in node.Children)
             SpawnNode(scene, host, child, modelPath, color);
+    }
+
+    public static void SpawnPackedLights(IScene scene, Entity root, ModelSceneNode graphRoot)
+    {
+        var meshWorld = Matrix4x4.Identity;
+        if (graphRoot.FirstMeshIndex is int meshIndex &&
+            graphRoot.TryGetMeshWorldTransform(meshIndex, out var found))
+            meshWorld = found;
+
+        if (!Matrix4x4.Invert(meshWorld, out var inverseMesh))
+        {
+            Logger.Debug("Skipped packed lights because the mesh transform could not be inverted");
+            return;
+        }
+
+        SpawnPackedWalk(scene, root, graphRoot, Matrix4x4.Identity, inverseMesh);
+    }
+
+    private static void SpawnPackedWalk(
+        IScene scene,
+        Entity root,
+        ModelSceneNode node,
+        Matrix4x4 parentWorld,
+        Matrix4x4 inverseMesh)
+    {
+        var world = node.LocalTransform * parentWorld;
+        if (node.Light is { } light)
+        {
+            var lamp = CreateEntity(scene, root, node.Name, world * inverseMesh);
+            if (light is ImportedDirectionalLight sun)
+            {
+                light = sun with
+                {
+                    Direction = ModelLightConversion.BakeDirection(
+                        Vector3.TransformNormal(sun.Direction, inverseMesh))
+                };
+            }
+
+            AddLight(lamp, light);
+        }
+
+        foreach (var child in node.Children)
+            SpawnPackedWalk(scene, root, child, world, inverseMesh);
+    }
+
+    private static void AddLight(Entity entity, ImportedLight? light)
+    {
+        switch (light)
+        {
+            case ImportedPointLight point:
+                entity.AddComponent(new PointLightComponent
+                {
+                    Color = point.Color,
+                    Intensity = point.Intensity,
+                    Range = point.Range
+                });
+                break;
+            case ImportedDirectionalLight sun:
+                entity.AddComponent(new DirectionalLightComponent
+                {
+                    Color = sun.Color,
+                    Direction = sun.Direction
+                });
+                break;
+        }
     }
 
     private static void SpawnMeshChildren(
