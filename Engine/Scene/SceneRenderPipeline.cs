@@ -137,7 +137,9 @@ internal static class SceneRenderPipeline
             LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
         {
             graphics3D.BeginShadowPass(lightViewProjection);
-            shadow = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, meshDrawCounts: null);
+            shadow = DrawOpaque3D(
+                context, graphics3D, textureFactory, modelFactory,
+                meshDrawCounts: null, lightViewProjection);
             graphics3D.EndShadowPass();
             graphics3D.SetDirectionalShadow(lightViewProjection, true);
         }
@@ -150,14 +152,15 @@ internal static class SceneRenderPipeline
         graphics3D.BeginScene(view);
         var color = DrawOpaque3D(
             context, graphics3D, textureFactory, modelFactory,
-            meshDrawCounts: logFrame ? MeshDrawCounts : null);
+            meshDrawCounts: logFrame ? MeshDrawCounts : null, view.ViewProjection);
         graphics3D.EndScene();
 
         if (!logFrame)
             return;
 
         _nextDrawLogTicks = Environment.TickCount64 + 1000;
-        if (color.MeshDraws == 0 && color.CubeDraws == 0 && (shadow is null || shadow.Value.MeshDraws == 0))
+        if (color.MeshDraws == 0 && color.CubeDraws == 0 && color.Culled == 0
+            && (shadow is null || (shadow.Value.MeshDraws == 0 && shadow.Value.Culled == 0)))
             return;
 
         LogDrawStats(shadow, color);
@@ -168,6 +171,7 @@ internal static class SceneRenderPipeline
         public int Renderers;
         public int MeshDraws;
         public int CubeDraws;
+        public int Culled;
         public int MissingMeshIndex;
         public long Vertices;
         public long Indices;
@@ -179,10 +183,12 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
-        Dictionary<Mesh, int>? meshDrawCounts)
+        Dictionary<Mesh, int>? meshDrawCounts,
+        Matrix4x4 cullMatrix)
     {
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
+        var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
@@ -191,6 +197,9 @@ internal static class SceneRenderPipeline
 
             if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
             {
+                if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
+                    continue;
+
                 var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
                 if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
                     DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors);
@@ -213,6 +222,9 @@ internal static class SceneRenderPipeline
                     Logger.Warning(
                         "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
                         modelRenderer.ModelPath, resolvedPath);
+                if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
+                    continue;
+
                 var fallback = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
                 graphics3D.DrawCube(transform, tint, entity.Id,
                     metallic: fallback.Metallic, roughness: fallback.Roughness, ao: fallback.Ao);
@@ -223,8 +235,14 @@ internal static class SceneRenderPipeline
             if (modelRenderer.MeshIndex is int meshIndex)
             {
                 if (meshIndex >= 0 && meshIndex < model.Submeshes.Count)
-                    DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, model.Submeshes[meshIndex],
+                {
+                    var submesh = model.Submeshes[meshIndex];
+                    if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
+                        continue;
+
+                    DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh,
                         ref stats, meshDrawCounts);
+                }
                 else
                     stats.MissingMeshIndex++;
                 continue;
@@ -234,11 +252,25 @@ internal static class SceneRenderPipeline
                 continue;
 
             foreach (var submesh in model.Submeshes)
+            {
+                if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
+                    continue;
+
                 DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh, ref stats, meshDrawCounts);
+            }
         }
 
         stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
         return stats;
+    }
+
+    private static bool IsCulled(bool hasFrustum, in Frustum frustum, Matrix4x4 world, Aabb bounds, ref PassStats stats)
+    {
+        if (!hasFrustum || !frustum.IsOutside(world, bounds))
+            return false;
+
+        stats.Culled++;
+        return true;
     }
 
     private static void DrawSubmesh(
@@ -268,13 +300,13 @@ internal static class SceneRenderPipeline
     {
         if (shadow is { } shadowPass)
             Logger.Information(
-                "3D shadow pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
-                shadowPass.Renderers, shadowPass.MeshDraws, shadowPass.CubeDraws, shadowPass.MissingMeshIndex,
+                "3D shadow pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} culled={Culled} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
+                shadowPass.Renderers, shadowPass.MeshDraws, shadowPass.CubeDraws, shadowPass.Culled, shadowPass.MissingMeshIndex,
                 shadowPass.Vertices, shadowPass.Indices, shadowPass.Indices / 3, shadowPass.CpuMs);
 
         Logger.Information(
-            "3D color pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} uniqueMeshes={UniqueMeshes} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
-            color.Renderers, color.MeshDraws, color.CubeDraws, MeshDrawCounts.Count, color.MissingMeshIndex,
+            "3D color pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} culled={Culled} uniqueMeshes={UniqueMeshes} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
+            color.Renderers, color.MeshDraws, color.CubeDraws, color.Culled, MeshDrawCounts.Count, color.MissingMeshIndex,
             color.Vertices, color.Indices, color.Indices / 3, color.CpuMs);
 
         foreach (var pair in MeshDrawCounts.OrderByDescending(p => p.Value).Take(8))

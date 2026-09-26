@@ -1,3 +1,5 @@
+using System.Numerics;
+using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
@@ -41,6 +43,32 @@ public class MeshCpuDataReleaseTests
     }
 
     [Fact]
+    public void Initialize_KeepsLocalBoundsAfterDroppingCpuVertices()
+    {
+        using var mesh = new Mesh("triangle");
+        mesh.Vertices.Add(new Mesh.Vertex { Position = Vector3.Zero });
+        mesh.Vertices.Add(new Mesh.Vertex { Position = new Vector3(1f, 0f, 0f) });
+        mesh.Vertices.Add(new Mesh.Vertex { Position = new Vector3(0f, 2f, 0f) });
+        mesh.Indices.AddRange([0u, 1u, 2u]);
+
+        mesh.Initialize(VertexArrayFactory(), VertexBufferFactory(), IndexBufferFactory(3));
+
+        mesh.Vertices.ShouldBeEmpty();
+        mesh.Bounds.ShouldBe(new Aabb(Vector3.Zero, new Vector3(1f, 2f, 0f)));
+    }
+
+    [Fact]
+    public void Initialize_EmptyMesh_LeavesBoundsUnset()
+    {
+        using var mesh = new Mesh("empty");
+        mesh.Initialize(VertexArrayFactory(), VertexBufferFactory(), IndexBufferFactory(0));
+
+        mesh.Bounds.ShouldBeNull();
+        Aabb.UnitCube.Min.ShouldBe(new Vector3(-Aabb.UnitCubeHalfExtent));
+        Aabb.UnitCube.Max.ShouldBe(new Vector3(Aabb.UnitCubeHalfExtent));
+    }
+
+    [Fact]
     public void Dispose_DisposesVertexArray_NotBuffersDirectly()
     {
         var vao = Substitute.For<IVertexArray>();
@@ -65,5 +93,30 @@ public class MeshCpuDataReleaseTests
         vao.Received(1).Dispose();
         vbo.DidNotReceive().Dispose();
         ibo.DidNotReceive().Dispose();
+    }
+
+    private static IVertexArrayFactory VertexArrayFactory()
+    {
+        var vao = Substitute.For<IVertexArray>();
+        vao.IndexBuffer.Returns(Substitute.For<IIndexBuffer>());
+        var factory = Substitute.For<IVertexArrayFactory>();
+        factory.Create().Returns(vao);
+        return factory;
+    }
+
+    private static IVertexBufferFactory VertexBufferFactory()
+    {
+        var factory = Substitute.For<IVertexBufferFactory>();
+        factory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(Substitute.For<IVertexBuffer>());
+        return factory;
+    }
+
+    private static IIndexBufferFactory IndexBufferFactory(int count)
+    {
+        var ibo = Substitute.For<IIndexBuffer>();
+        ibo.Count.Returns(count);
+        var factory = Substitute.For<IIndexBufferFactory>();
+        factory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
+        return factory;
     }
 }
