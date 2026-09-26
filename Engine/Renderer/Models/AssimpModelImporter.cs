@@ -91,7 +91,16 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                     submeshes.Add(mesh);
                 }
 
-                sceneGraph = WalkNode(scene->MRootNode, meshIndexMap);
+                var pendingLights = CollectLights(scene);
+                if (pendingLights.Skipped > 0)
+                {
+                    Logger.Debug(
+                        "Skipped unsupported lights count={Count} path={Path}",
+                        pendingLights.Skipped, path);
+                }
+
+                sceneGraph = WalkNode(scene->MRootNode, meshIndexMap, pendingLights, Matrix4x4.Identity);
+                sceneGraph = WithUnmatchedLights(sceneGraph, pendingLights);
             }
             finally
             {
@@ -112,7 +121,9 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
 
     private static unsafe ModelSceneNode WalkNode(
         AssimpNode* node,
-        IReadOnlyDictionary<uint, int> meshIndexMap)
+        IReadOnlyDictionary<uint, int> meshIndexMap,
+        PendingLights pending,
+        Matrix4x4 parentWorld)
     {
         var meshIndices = new List<int>();
         for (uint i = 0; i < node->MNumMeshes; i++)
@@ -124,13 +135,182 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             meshIndices.Add(compactIndex);
         }
 
+        var name = string.IsNullOrWhiteSpace(node->MName.AsString) ? "Node" : node->MName.AsString;
+        var nodeLocal = ToEngineMatrix(node->MTransformation);
+        var world = nodeLocal * parentWorld;
+        var local = nodeLocal;
+        ImportedLight? imported = null;
+        if (pending.TryTake(name, out var raw))
+            imported = ConvertLight(node, raw, world, meshIndices.Count > 0, ref local);
+
         var children = new List<ModelSceneNode>((int)node->MNumChildren);
         for (uint i = 0; i < node->MNumChildren; i++)
-            children.Add(WalkNode(node->MChildren[i], meshIndexMap));
+            children.Add(WalkNode(node->MChildren[i], meshIndexMap, pending, world));
 
-        var name = string.IsNullOrWhiteSpace(node->MName.AsString) ? "Node" : node->MName.AsString;
-        var localTransform = ToEngineMatrix(node->MTransformation);
-        return new ModelSceneNode(name, meshIndices, children, localTransform);
+        return new ModelSceneNode(name, meshIndices, children, local, imported);
+    }
+
+    private static unsafe PendingLights CollectLights(Silk.NET.Assimp.Scene* scene)
+    {
+        var pending = new PendingLights();
+        for (uint i = 0; i < scene->MNumLights; i++)
+        {
+            var light = scene->MLights[i];
+            if (light == null)
+                continue;
+
+            if (light->MType == LightSourceType.Point ||
+                light->MType == LightSourceType.Directional)
+            {
+                pending.Add(light->MName.AsString, new RawLight(
+                    light->MName.AsString,
+                    light->MType,
+                    light->MColorDiffuse,
+                    light->MPosition,
+                    light->MDirection));
+                continue;
+            }
+
+            pending.Skip();
+        }
+
+        return pending;
+    }
+
+    private static unsafe ImportedLight? ConvertLight(
+        AssimpNode* node,
+        RawLight raw,
+        Matrix4x4 world,
+        bool nodeHasMesh,
+        ref Matrix4x4 local)
+    {
+        if (raw.Type == LightSourceType.Point)
+        {
+            if (!ModelLightConversion.TryPoint(raw.Diffuse, ReadRange(node), out var color, out var intensity, out var range))
+            {
+                Logger.Debug("Skipped point light with no brightness name={Name}", node->MName.AsString);
+                return null;
+            }
+
+            if (!nodeHasMesh)
+                local = Matrix4x4.CreateTranslation(raw.Position) * local;
+            else if (raw.Position.LengthSquared() > 1e-8f)
+                Logger.Debug("Ignoring light position offset on a mesh node name={Name}", node->MName.AsString);
+
+            return new ImportedPointLight(color, intensity, range);
+        }
+
+        var direction = Vector3.TransformNormal(raw.Direction, world);
+        if (!ModelLightConversion.TryDirectional(raw.Diffuse, direction, out var sunColor, out var baked))
+        {
+            Logger.Debug("Skipped directional light with no brightness name={Name}", node->MName.AsString);
+            return null;
+        }
+
+        return new ImportedDirectionalLight(sunColor, baked);
+    }
+
+    private static unsafe float? ReadRange(AssimpNode* node)
+    {
+        var meta = node->MMetaData;
+        if (meta == null)
+            return null;
+
+        for (uint i = 0; i < meta->MNumProperties; i++)
+        {
+            if (meta->MKeys[i].AsString != "PBR_LightRange")
+                continue;
+
+            var entry = meta->MValues[i];
+            if (entry.MData == null)
+                return null;
+
+            if (entry.MType == MetadataType.Float)
+                return *(float*)entry.MData;
+            if (entry.MType == MetadataType.Double)
+                return (float)*(double*)entry.MData;
+        }
+
+        return null;
+    }
+
+    private static ModelSceneNode WithUnmatchedLights(ModelSceneNode root, PendingLights pending)
+    {
+        var left = pending.TakeRemaining();
+        if (left.Count == 0)
+            return root;
+
+        Logger.Debug("Lights without a matching node count={Count}", left.Count);
+        var children = new List<ModelSceneNode>(root.Children.Count + left.Count);
+        children.AddRange(root.Children);
+        foreach (var raw in left)
+        {
+            var local = Matrix4x4.CreateTranslation(raw.Position);
+            ImportedLight? imported;
+            if (raw.Type == LightSourceType.Point)
+            {
+                if (!ModelLightConversion.TryPoint(raw.Diffuse, null, out var color, out var intensity, out var range))
+                {
+                    Logger.Debug("Skipped point light with no brightness name={Name}", raw.Name);
+                    continue;
+                }
+
+                imported = new ImportedPointLight(color, intensity, range);
+            }
+            else if (!ModelLightConversion.TryDirectional(raw.Diffuse, raw.Direction, out var sunColor, out var baked))
+            {
+                Logger.Debug("Skipped directional light with no brightness name={Name}", raw.Name);
+                continue;
+            }
+            else
+            {
+                imported = new ImportedDirectionalLight(sunColor, baked);
+            }
+
+            var name = string.IsNullOrWhiteSpace(raw.Name) ? "Light" : raw.Name;
+            children.Add(new ModelSceneNode(name, [], [], local, imported));
+        }
+
+        return new ModelSceneNode(root.Name, root.MeshIndices, children, root.LocalTransform, root.Light);
+    }
+
+    private readonly record struct RawLight(
+        string Name,
+        LightSourceType Type,
+        Vector3 Diffuse,
+        Vector3 Position,
+        Vector3 Direction);
+
+    private sealed class PendingLights
+    {
+        private readonly Dictionary<string, Queue<RawLight>> _byName = new(StringComparer.Ordinal);
+        public int Skipped { get; private set; }
+
+        public void Add(string name, RawLight light)
+        {
+            if (!_byName.TryGetValue(name, out var queue))
+            {
+                queue = new Queue<RawLight>();
+                _byName[name] = queue;
+            }
+
+            queue.Enqueue(light);
+        }
+
+        public void Skip() => Skipped++;
+
+        public bool TryTake(string name, out RawLight light)
+        {
+            light = default;
+            if (!_byName.TryGetValue(name, out var queue) || queue.Count == 0)
+                return false;
+
+            light = queue.Dequeue();
+            return true;
+        }
+
+        public List<RawLight> TakeRemaining() =>
+            _byName.Values.SelectMany(queue => queue).ToList();
     }
 
     private static Matrix4x4 ToEngineMatrix(Matrix4x4 assimpMatrix) =>

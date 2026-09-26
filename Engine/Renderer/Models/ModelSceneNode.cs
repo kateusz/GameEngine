@@ -11,18 +11,21 @@ public sealed class ModelSceneNode
         string name,
         IReadOnlyList<int> meshIndices,
         IReadOnlyList<ModelSceneNode> children,
-        Matrix4x4? localTransform = null)
+        Matrix4x4? localTransform = null,
+        ImportedLight? light = null)
     {
         Name = name;
         MeshIndices = meshIndices;
         Children = children;
         LocalTransform = localTransform ?? Matrix4x4.Identity;
+        Light = light;
     }
 
     public string Name { get; }
     public IReadOnlyList<int> MeshIndices { get; }
     public IReadOnlyList<ModelSceneNode> Children { get; }
     public Matrix4x4 LocalTransform { get; }
+    public ImportedLight? Light { get; }
 
     /// <summary>Accumulated transform from the graph root to the node that owns <paramref name="meshIndex"/>.</summary>
     public bool TryGetMeshWorldTransform(int meshIndex, out Matrix4x4 worldFromRoot)

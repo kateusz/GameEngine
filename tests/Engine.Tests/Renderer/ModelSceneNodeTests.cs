@@ -26,6 +26,15 @@ public class ModelSceneNodeTests
     }
 
     [Fact]
+    public void ShouldUnpack_SingleMeshWithLight_StaysFalse()
+    {
+        var root = new ModelSceneNode("Root", [0], [], Matrix4x4.Identity,
+            new ImportedPointLight(Vector4.One, 1f, 6f));
+        root.ShouldUnpack.ShouldBeFalse();
+        root.Light.ShouldBeOfType<ImportedPointLight>();
+    }
+
+    [Fact]
     public void ShouldUnpack_TwoMeshes_ReturnsTrue()
     {
         var room = Node("Room", [], Node("Chair", [0]), Node("Table", [1]));
