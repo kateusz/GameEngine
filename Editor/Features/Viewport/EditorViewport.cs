@@ -4,6 +4,7 @@ using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
+using Editor.Features.Settings;
 using Editor.UI.Elements;
 using Editor.Features.Viewport.Gizmos;
 using Editor.UI.Drawers;
@@ -42,7 +43,8 @@ public sealed class EditorViewport(
     CameraGizmoDrawer cameraGizmoDrawer,
     IModelFactory modelFactory,
     IEditorHistory history,
-    FxaaPass fxaaPass)
+    FxaaPass fxaaPass,
+    IEditorPreferences editorPreferences)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -105,7 +107,8 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var texturePointer = ImGuiNativeTexture.FromColorAttachment(fxaaPass.Resolve(_frameBuffer));
+        var display = editorPreferences.Fxaa ? fxaaPass.Resolve(_frameBuffer) : _frameBuffer;
+        var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
         _viewportBounds[0] = ImGui.GetItemRectMin();

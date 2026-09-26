@@ -34,6 +34,15 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.Save();
         }
 
+        ImGui.SeparatorText("Rendering");
+
+        var fxaa = editorPreferences.Fxaa;
+        if (ImGui.Checkbox("FXAA", ref fxaa))
+        {
+            editorPreferences.Fxaa = fxaa;
+            editorPreferences.Save();
+        }
+
         ImGui.Separator();
         ImGui.SeparatorText("Autosave");
 
