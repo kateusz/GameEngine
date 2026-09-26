@@ -24,6 +24,11 @@ public interface IEditorPreferences : IDisposable
     bool ShowFPS { get; set; }
 
     /// <summary>
+    /// Gets or sets whether the viewport runs FXAA.
+    /// </summary>
+    bool Fxaa { get; set; }
+
+    /// <summary>
     /// Scene autosave interval in seconds. 0 disables autosave.
     /// </summary>
     int AutosaveIntervalSeconds { get; set; }
