@@ -37,6 +37,7 @@ public class MeshCpuDataReleaseTests
         mesh.Vertices.ShouldBeEmpty();
         mesh.Indices.ShouldBeEmpty();
         mesh.GetIndexCount().ShouldBe(3);
+        mesh.VertexCount.ShouldBe(3);
     }
 
     [Fact]

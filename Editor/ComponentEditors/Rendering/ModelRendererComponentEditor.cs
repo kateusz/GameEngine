@@ -40,5 +40,16 @@ public class ModelRendererComponentEditor(
         }, component.TexturePath);
         propertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
             newValue => component.TilingFactor = (float)newValue);
+        propertyRenderer.DrawPropertyField("Metallic", component.Metallic,
+            newValue => component.Metallic = (float)newValue);
+        propertyRenderer.DrawPropertyField("Roughness", component.Roughness,
+            newValue => component.Roughness = (float)newValue);
+        propertyRenderer.DrawPropertyField("AO", component.Ao,
+            newValue => component.Ao = (float)newValue);
+        if (!string.IsNullOrWhiteSpace(component.ModelPath))
+        {
+            propertyRenderer.DrawPropertyField("Override Material", component.OverrideMaterial,
+                newValue => component.OverrideMaterial = (bool)newValue);
+        }
     }
 }

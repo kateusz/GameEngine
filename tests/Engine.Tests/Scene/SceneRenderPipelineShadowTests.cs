@@ -101,6 +101,95 @@ public class SceneRenderPipelineShadowTests
         graphics.MeshDraws.ShouldBe(0);
     }
 
+    [Fact]
+    public void RenderScene_Cube_PassesEntityFactors()
+    {
+        var context = new Context();
+        var entity = new Entity(1, "gold");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent { Metallic = 1f, Roughness = 0.2f, Ao = 0.8f });
+        context.Register(entity);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.CubeFactors.ShouldBe([(1f, 0.2f, 0.8f)]);
+    }
+
+    [Fact]
+    public void RenderScene_MeshOverrideOff_PassesSubmeshFactors()
+    {
+        var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        var entity = new Entity(1, "prop");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent
+        {
+            ModelPath = @"C:\prop.glb",
+            Metallic = 1f,
+            Roughness = 0f,
+            Ao = 0f,
+            OverrideMaterial = false
+        });
+        context.Register(entity);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshFactors.ShouldBe([(0.3f, 0.6f, 1f)]);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_MeshOverrideOn_PassesEntityFactors()
+    {
+        var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        var entity = new Entity(1, "prop");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent
+        {
+            ModelPath = @"C:\prop.glb",
+            Metallic = 1f,
+            Roughness = 0f,
+            Ao = 0f,
+            OverrideMaterial = true
+        });
+        context.Register(entity);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshFactors.ShouldBe([(1f, 0f, 0f)]);
+        model.Dispose();
+    }
+
     private static Matrix4x4 ViewProjection(Vector3 eye)
     {
         var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
@@ -121,6 +210,8 @@ public class SceneRenderPipelineShadowTests
         public int BeginScenes { get; private set; }
         public int CubeDraws { get; private set; }
         public int MeshDraws { get; private set; }
+        public List<(float Metallic, float Roughness, float Ao)> CubeFactors { get; } = [];
+        public List<(float Metallic, float Roughness, float Ao)> MeshFactors { get; } = [];
 
         public void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled)
         {
@@ -149,15 +240,18 @@ public class SceneRenderPipelineShadowTests
         public void EndScene() { }
 
         public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
-            float tilingFactor = 1.0f)
+            float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f)
         {
             CubeDraws++;
+            CubeFactors.Add((metallic, roughness, ao));
             Order.Add("cube");
         }
 
-        public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1)
+        public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
+            float metallic = 0f, float roughness = 0.5f, float ao = 1f)
         {
             MeshDraws++;
+            MeshFactors.Add((metallic, roughness, ao));
             Order.Add("mesh");
         }
 

@@ -17,6 +17,9 @@ uniform vec3 u_LightColor;
 uniform vec3 u_ViewPosition;
 uniform sampler2D u_Texture;
 uniform int u_UseTexture;
+uniform float u_Metallic;
+uniform float u_Roughness;
+uniform float u_Ao;
 
 const int c_MaxPointLights = 8;
 const float c_PointEpsilon = 0.0001;
@@ -32,6 +35,10 @@ uniform sampler2D u_ShadowMap;
 uniform int u_ShadowsEnabled;
 
 const float c_ShadowBias = 0.002;
+const float PI = 3.14159265359;
+const float c_MinRoughness = 0.045;
+const float c_DielectricF0 = 0.04;
+const float c_SpecularEpsilon = 0.0001;
 
 float DirectionalShadow(vec3 fragPos)
 {
@@ -65,18 +72,58 @@ float DirectionalShadow(vec3 fragPos)
     return shadow;
 }
 
-vec3 PointLights(vec3 N, vec3 fragPos, vec3 V, vec3 albedo, vec3 specColor, float shininess)
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float denom = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / (PI * denom * denom);
+}
+
+float GeometrySchlickGGX(float Ndot, float roughness)
+{
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return Ndot / (Ndot * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    return GeometrySchlickGGX(max(dot(N, V), 0.0), roughness)
+         * GeometrySchlickGGX(max(dot(N, L), 0.0), roughness);
+}
+
+vec3 CookTorrance(vec3 N, vec3 V, vec3 L, vec3 radiance, vec3 albedo, float metallic, float roughness)
+{
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 H = normalize(V + L);
+    vec3 F0 = mix(vec3(c_DielectricF0), albedo, metallic);
+    float D = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    vec3 specular = (D * G * F) / (4.0 * max(dot(N, V), 0.0) * NdotL + c_SpecularEpsilon);
+    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
+    return (kD * albedo / PI + specular) * radiance * NdotL;
+}
+
+vec3 PointLights(vec3 N, vec3 V, vec3 fragPos, vec3 albedo, float metallic, float roughness)
 {
     vec3 sum = vec3(0.0);
     for (int i = 0; i < c_MaxPointLights; i++)
     {
         if (i >= u_PointLightCount)
-        break;
+            break;
 
         vec3 toLight = u_PointLightPositions[i] - fragPos;
         float dist = length(toLight);
         if (dist >= u_PointLightRanges[i])
-        continue;
+            continue;
 
         vec3 radiance = u_PointLightColors[i] * u_PointLightIntensities[i];
         if (dist < c_PointEpsilon)
@@ -86,35 +133,32 @@ vec3 PointLights(vec3 N, vec3 fragPos, vec3 V, vec3 albedo, vec3 specColor, floa
         }
 
         float remaining = 1.0 - dist / u_PointLightRanges[i];
-        float attenuation = remaining * remaining;
-        vec3 L = toLight / dist;
-        float ndotl = max(dot(N, L), 0.0);
-        vec3 diffuse = ndotl * radiance * albedo;
-
-        vec3 H = normalize(L + V);
-        float spec = pow(max(dot(N, H), 0.0), shininess);
-        vec3 specular = spec * radiance * specColor;
-        sum += (diffuse + specular) * attenuation;
+        radiance *= remaining * remaining;
+        sum += CookTorrance(N, V, toLight / dist, radiance, albedo, metallic, roughness);
     }
     return sum;
 }
 
+vec3 Encode(vec3 color)
+{
+    color = color / (color + vec3(1.0));
+    return pow(color, vec3(1.0 / 2.2));
+}
+
 void main()
 {
-    vec4 baseColor = u_UseTexture == 1
-        ? texture(u_Texture, v_TexCoord) * u_Color
-        : u_Color;
-    vec3 albedo = baseColor.rgb;
-    vec3 ambient = u_AmbientStrength * u_AmbientColor;
+    vec3 albedo = (u_UseTexture == 1 ? texture(u_Texture, v_TexCoord).rgb : vec3(1.0)) * u_Color.rgb;
+    float metallic = clamp(u_Metallic, 0.0, 1.0);
+    float roughness = max(clamp(u_Roughness, 0.0, 1.0), c_MinRoughness);
+    float ao = clamp(u_Ao, 0.0, 1.0);
 
     vec3 N = normalize(v_Normal);
-    vec3 L = normalize(-u_LightDirection);
-    float ndotl = max(dot(N, L), 0.0);
-    vec3 diffuse = ndotl * u_LightColor;
-
     vec3 V = normalize(u_ViewPosition - v_FragPos);
-    vec3 points = PointLights(N, v_FragPos, V, albedo, vec3(0.5), 32.0);
+    vec3 L = normalize(-u_LightDirection);
     float shadow = DirectionalShadow(v_FragPos);
-    o_Color = vec4((ambient + diffuse * shadow) * albedo + points, baseColor.a);
+    vec3 sun = CookTorrance(N, V, L, u_LightColor, albedo, metallic, roughness) * shadow;
+    vec3 lamps = PointLights(N, V, v_FragPos, albedo, metallic, roughness);
+    vec3 ambient = u_AmbientStrength * u_AmbientColor * albedo * ao;
+    o_Color = vec4(Encode(ambient + sun + lamps), u_Color.a);
     o_EntityID = u_EntityID;
 }

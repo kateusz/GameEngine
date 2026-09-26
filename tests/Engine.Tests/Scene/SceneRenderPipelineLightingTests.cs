@@ -3,6 +3,7 @@ using ECS;
 using Engine.Renderer;
 using Engine.Scene;
 using SceneComponents.Lighting;
+using SceneComponents.Rendering;
 using Shouldly;
 
 namespace Engine.Tests.Scene;
@@ -88,5 +89,64 @@ public class SceneRenderPipelineLightingTests
         context.Register(entity);
 
         SceneRenderPipeline.ResolveDirectional(context).Direction.ShouldBe(LightingMath.DefaultDirection);
+    }
+
+    [Fact]
+    public void ResolvePbr_Cube_UsesEntityTripleEvenWhenOverrideIsOff()
+    {
+        var renderer = new ModelRendererComponent
+        {
+            Metallic = 1f,
+            Roughness = 0.2f,
+            Ao = 0.4f,
+            OverrideMaterial = false
+        };
+
+        SceneRenderPipeline.ResolvePbr(cube: true, renderer, meshMetallic: 0f, meshRoughness: 1f)
+            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0.2f, 0.4f));
+    }
+
+    [Fact]
+    public void ResolvePbr_ModelOverrideOff_UsesMeshFactorsAndFullOcclusion()
+    {
+        var renderer = new ModelRendererComponent { Metallic = 1f, Roughness = 0f, Ao = 0f };
+
+        SceneRenderPipeline.ResolvePbr(cube: false, renderer, meshMetallic: 0.25f, meshRoughness: 0.75f)
+            .ShouldBe(new SceneRenderPipeline.PbrFactors(0.25f, 0.75f, 1f));
+    }
+
+    [Fact]
+    public void ResolvePbr_ModelOverrideOn_UsesEntityTriple()
+    {
+        var renderer = new ModelRendererComponent
+        {
+            Metallic = 1f,
+            Roughness = 0.2f,
+            Ao = 0.4f,
+            OverrideMaterial = true
+        };
+
+        SceneRenderPipeline.ResolvePbr(cube: false, renderer, meshMetallic: 0f, meshRoughness: 1f)
+            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0.2f, 0.4f));
+    }
+
+    [Fact]
+    public void ResolvePbr_OutOfRange_Clamps()
+    {
+        var renderer = new ModelRendererComponent { Metallic = 2f, Roughness = -1f, Ao = 3f };
+
+        SceneRenderPipeline.ResolvePbr(cube: true, renderer, 0f, 0.5f)
+            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0f, 1f));
+    }
+
+    [Fact]
+    public void ResolvePbr_NonFiniteMeshFactor_BecomesZero()
+    {
+        SceneRenderPipeline.ResolvePbr(
+                cube: false,
+                new ModelRendererComponent(),
+                meshMetallic: 2f,
+                meshRoughness: float.NaN)
+            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0f, 1f));
     }
 }

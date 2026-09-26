@@ -43,7 +43,7 @@ Sprites draw in **entity iteration order**; depth test is off — **Z does not s
 
 Import keeps the Assimp node graph (transforms are not baked into vertices). Unreal collision mesh names (`UCX_`, `UBX_`, …) are skipped. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture name.
 
-**Supported today:** triangle meshes, diffuse / specular / normal maps, Blinn-Phong lighting. **Not supported:** skinning, animation clips, PBR metallic-roughness as a lighting model, transparent mesh sort.
+**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting. **Not supported:** image-based lighting, skinning, animation clips, transparent mesh sort.
 
 Put models under `assets/models/`.
 

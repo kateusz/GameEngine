@@ -35,14 +35,21 @@ public class Mesh : IDisposable
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
+
+    /// <summary>Vertex count captured at <see cref="Initialize"/>, kept after CPU buffers are released.</summary>
+    public int VertexCount { get; private set; }
     public Texture2D? DiffuseTexture { get; set; }
-    public Texture2D? SpecularTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
-    public float Shininess { get; set; } = 32.0f;
-    
+    public Texture2D? MetallicRoughnessTexture { get; set; }
+    public Texture2D? OcclusionTexture { get; set; }
+    public float MetallicFactor { get; set; }
+    public float RoughnessFactor { get; set; } = 0.5f;
+    public Vector3 BaseColorFactor { get; set; } = Vector3.One;
+
     public bool HasDiffuseMap => DiffuseTexture != null;
-    public bool HasSpecularMap => SpecularTexture != null;
     public bool HasNormalMap => NormalTexture != null;
+    public bool HasMetallicRoughnessMap => MetallicRoughnessTexture != null;
+    public bool HasOcclusionMap => OcclusionTexture != null;
 
     private IVertexArray _vertexArray;
     private bool _initialized;
@@ -83,6 +90,7 @@ public class Mesh : IDisposable
         _vertexArray.SetIndexBuffer(indexBuffer);
 
         _initialized = true;
+        VertexCount = Vertices.Count;
 
         Vertices.Clear();
         Vertices.TrimExcess();
