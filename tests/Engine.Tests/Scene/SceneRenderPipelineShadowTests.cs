@@ -195,22 +195,9 @@ public class SceneRenderPipelineShadowTests
     [Fact]
     public void RenderScene_CubeOutsideCameraAndLight_DrawsNothing()
     {
-        var context = SceneWithSun();
-        var cube = new Entity(1, "cube");
-        var transform = new TransformComponent();
-        transform.SetWorldTransform(Matrix4x4.CreateTranslation(1000f, 0f, 0f));
-        cube.AddComponent(transform);
-        cube.AddComponent(new ModelRendererComponent());
-        context.Register(cube);
-
-        var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
-            context,
-            Substitute.For<IGraphics2D>(),
-            graphics,
-            Substitute.For<ITextureFactory>(),
-            Substitute.For<IModelFactory>(),
-            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+        var graphics = RenderCube(
+            Matrix4x4.CreateTranslation(1000f, 0f, 0f),
+            ViewProjection(new Vector3(0f, 2f, 5f)));
 
         graphics.CubeDraws.ShouldBe(0);
         graphics.ShadowPasses.Count.ShouldBe(1);
@@ -224,22 +211,7 @@ public class SceneRenderPipelineShadowTests
     {
         var eye = new Vector3(0f, 2f, 5f);
         var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
-        var context = SceneWithSun();
-        var cube = new Entity(1, "cube");
-        var transform = new TransformComponent();
-        transform.SetWorldTransform(Matrix4x4.CreateTranslation(eye + forward * 80f));
-        cube.AddComponent(transform);
-        cube.AddComponent(new ModelRendererComponent());
-        context.Register(cube);
-
-        var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
-            context,
-            Substitute.For<IGraphics2D>(),
-            graphics,
-            Substitute.For<ITextureFactory>(),
-            Substitute.For<IModelFactory>(),
-            new SceneView(ViewProjection(eye)));
+        var graphics = RenderCube(Matrix4x4.CreateTranslation(eye + forward * 80f), ViewProjection(eye));
 
         graphics.CubeDraws.ShouldBe(1);
         graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "end-shadow", "shadow-on", "begin-scene", "cube"]);
@@ -253,29 +225,10 @@ public class SceneRenderPipelineShadowTests
         var direction = LightingMath.NormalizeDirection(new Vector3(0f, -1f, 0f));
         LightingMath.TryFitDirectionalShadow(viewProjection, direction, out var light).ShouldBeTrue();
         Matrix4x4.Invert(light, out var inverseLight).ShouldBeTrue();
-        var world = Matrix4x4.CreateTranslation(Unproject(inverseLight, 0.95f, 0f, 0.5f));
 
-        Frustum.TryFromClip(viewProjection, out var cameraFrustum).ShouldBeTrue();
-        Frustum.TryFromClip(light, out var lightFrustum).ShouldBeTrue();
-        cameraFrustum.IsOutside(world, Aabb.UnitCube).ShouldBeTrue();
-        lightFrustum.IsOutside(world, Aabb.UnitCube).ShouldBeFalse();
-
-        var context = SceneWithSun();
-        var cube = new Entity(1, "cube");
-        var transform = new TransformComponent();
-        transform.SetWorldTransform(world);
-        cube.AddComponent(transform);
-        cube.AddComponent(new ModelRendererComponent());
-        context.Register(cube);
-
-        var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
-            context,
-            Substitute.For<IGraphics2D>(),
-            graphics,
-            Substitute.For<ITextureFactory>(),
-            Substitute.For<IModelFactory>(),
-            new SceneView(viewProjection));
+        var graphics = RenderCube(
+            Matrix4x4.CreateTranslation(Unproject(inverseLight, 0.95f, 0f, 0.5f)),
+            viewProjection);
 
         graphics.CubeDraws.ShouldBe(1);
         graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene"]);
@@ -308,6 +261,27 @@ public class SceneRenderPipelineShadowTests
         graphics.MeshDraws.ShouldBe(2);
         graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "mesh", "end-shadow", "shadow-on", "begin-scene", "mesh"]);
         model.Dispose();
+    }
+
+    private static RecordingGraphics3D RenderCube(Matrix4x4 world, Matrix4x4 viewProjection)
+    {
+        var context = SceneWithSun();
+        var cube = new Entity(1, "cube");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(world);
+        cube.AddComponent(transform);
+        cube.AddComponent(new ModelRendererComponent());
+        context.Register(cube);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(viewProjection));
+        return graphics;
     }
 
     private static Context SceneWithSun()

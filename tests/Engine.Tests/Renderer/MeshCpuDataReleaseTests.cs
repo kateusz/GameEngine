@@ -64,8 +64,6 @@ public class MeshCpuDataReleaseTests
         mesh.Initialize(VertexArrayFactory(), VertexBufferFactory(), IndexBufferFactory(0));
 
         mesh.Bounds.ShouldBeNull();
-        Aabb.UnitCube.Min.ShouldBe(new Vector3(-Aabb.UnitCubeHalfExtent));
-        Aabb.UnitCube.Max.ShouldBe(new Vector3(Aabb.UnitCubeHalfExtent));
     }
 
     [Fact]

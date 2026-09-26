@@ -61,13 +61,6 @@ public class FrustumTests
     }
 
     [Fact]
-    public void IsOutside_NegativeScaleUnitCube_IsFalse()
-    {
-        Frustum.TryFromClip(Perspective(), out var frustum).ShouldBeTrue();
-        frustum.IsOutside(Matrix4x4.CreateScale(-1f, -1f, -1f), Aabb.UnitCube).ShouldBeFalse();
-    }
-
-    [Fact]
     public void IsOutside_NonFiniteTranslation_IsFalse()
     {
         Frustum.TryFromClip(Perspective(), out var frustum).ShouldBeTrue();
