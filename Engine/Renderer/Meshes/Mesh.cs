@@ -15,19 +15,17 @@ public class Mesh : IDisposable
         Vector3 Normal,
         Vector2 TexCoord,
         Vector3 Tangent,
-        Vector3 Bitangent,
         int EntityId = -1)
     {
-        public Vertex() : this(default, default, default, default, default) { }
+        public Vertex() : this(default, default, default, default) { }
 
-        // GLSL layout(location): 0 Position, 1 Normal, 2 TexCoord, 3 Tangent, 4 Bitangent, 5 EntityID.
-        // cube.vert skips 3–4 so EntityID stays at 5.
+        // GLSL layout(location): 0 Position, 1 Normal, 2 TexCoord, 3 Tangent, 4 EntityID.
+        // modelShader.vert rebuilds the bitangent as cross(N, T).
         public static BufferLayout Layout { get; } = new([
             new BufferElement(ShaderDataType.Float3, "a_Position"),
             new BufferElement(ShaderDataType.Float3, "a_Normal"),
             new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
             new BufferElement(ShaderDataType.Float3, "a_Tangent"),
-            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
             new BufferElement(ShaderDataType.Int, "a_EntityID")
         ]);
     }
@@ -79,7 +77,7 @@ public class Mesh : IDisposable
         vertexBuffer.SetLayout(Vertex.Layout);
         _vertexArray.AddVertexBuffer(vertexBuffer);
 
-        var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
+        var indexBuffer = indexBufferFactory.Create(Indices);
         _vertexArray.SetIndexBuffer(indexBuffer);
 
         _initialized = true;

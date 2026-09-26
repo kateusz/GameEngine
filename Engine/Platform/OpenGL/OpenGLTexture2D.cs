@@ -74,11 +74,17 @@ internal sealed class OpenGLTexture2D : Texture2D
 
             unsafe
             {
-                fixed (byte* ptr = data)
+                // ponytail: RGBA8 plus mipmaps is what kept multi-GB models resident. BC3 is 1 byte/pixel.
+                // Ceiling: desktop S3TC only. Fallback is the uncompressed upload below.
+                var compressed = TryUploadBc3(data, width, height, internalFormat, dataFormat, generateMipmaps);
+                if (!compressed)
                 {
-                    SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
-                        (uint)height, 0, dataFormat, PixelType.UnsignedByte, ptr);
-                    OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
+                    fixed (byte* ptr = data)
+                    {
+                        SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)width,
+                            (uint)height, 0, dataFormat, PixelType.UnsignedByte, ptr);
+                        OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D");
+                    }
                 }
 
                 var minFilter = generateMipmaps
@@ -96,7 +102,7 @@ internal sealed class OpenGLTexture2D : Texture2D
                     (int)TextureWrapMode.Repeat);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
 
-                if (generateMipmaps)
+                if (generateMipmaps && !compressed)
                 {
                     SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
                     SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 10);
@@ -160,6 +166,70 @@ internal sealed class OpenGLTexture2D : Texture2D
         SilkNetContext.GL.TexImage2D(TextureTarget.Texture2D, 0, (int)_internalFormat, (uint)Width, (uint)Height, 0,
             _dataFormat, PixelType.UnsignedByte, intPtrValue);
         OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D in SetData");
+    }
+
+    private static unsafe bool TryUploadBc3(byte[] data, int width, int height, InternalFormat internalFormat,
+        PixelFormat dataFormat, bool generateMipmaps)
+    {
+        if (dataFormat != PixelFormat.Rgba || data.Length != width * height * 4 || !HasS3tc())
+            return false;
+
+        var format = internalFormat == InternalFormat.Srgb8Alpha8
+            ? (InternalFormat)0x8C4E // GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
+            : (InternalFormat)0x83F3; // GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+
+        var mip = data;
+        var mipWidth = width;
+        var mipHeight = height;
+        var level = 0;
+        while (true)
+        {
+            var blocks = Bc3Encoder.Encode(mip, mipWidth, mipHeight);
+            fixed (byte* ptr = blocks)
+            {
+                SilkNetContext.GL.CompressedTexImage2D(TextureTarget.Texture2D, level, format, (uint)mipWidth,
+                    (uint)mipHeight, 0, (uint)blocks.Length, ptr);
+                OpenGLDebug.CheckError(SilkNetContext.GL, "CompressedTexImage2D");
+            }
+
+            if (!generateMipmaps || (mipWidth == 1 && mipHeight == 1))
+                break;
+
+            mip = Bc3Encoder.Half(mip, mipWidth, mipHeight, out mipWidth, out mipHeight);
+            level++;
+        }
+
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, level);
+        return true;
+    }
+
+    private static bool? _hasS3tc;
+
+    private static bool HasS3tc()
+    {
+        if (_hasS3tc.HasValue)
+            return _hasS3tc.Value;
+
+        // glGetString(GL_EXTENSIONS) is INVALID_ENUM in a core profile and the next CheckError throws it.
+        _hasS3tc = false;
+        var count = SilkNetContext.GL.GetInteger(GLEnum.NumExtensions);
+        if (SilkNetContext.GL.GetError() != GLEnum.NoError)
+            return false;
+
+        for (uint i = 0; i < (uint)count; i++)
+        {
+            var name = SilkNetContext.GL.GetStringS(StringName.Extensions, i);
+            if (SilkNetContext.GL.GetError() != GLEnum.NoError)
+                return false;
+            if (string.Equals(name, "GL_EXT_texture_compression_s3tc", StringComparison.Ordinal))
+            {
+                _hasS3tc = true;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static Texture2D Create(int width, int height)

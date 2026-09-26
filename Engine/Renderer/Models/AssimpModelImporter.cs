@@ -24,13 +24,13 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
     {
         var submeshes = new List<Mesh>();
         var pendingTextures = new List<(Mesh Mesh, MaterialInfo Material)>();
+        var embeddedByIndex = new Dictionary<uint, string?>();
         var directory = Path.GetDirectoryName(path) ?? string.Empty;
 
+        // glTF is already indexed. JoinIdenticalVertices and CalcTangentSpace allocate a second
+        // native copy of every vertex; SortByPrimitiveType splits meshes we already triangle-filter.
         const uint flags = (uint)(PostProcessSteps.Triangulate |
-                                  PostProcessSteps.SortByPrimitiveType |
-                                  PostProcessSteps.JoinIdenticalVertices |
                                   PostProcessSteps.GenerateNormals |
-                                  PostProcessSteps.CalculateTangentSpace |
                                   PostProcessSteps.FlipUVs);
 
         ModelSceneNode? sceneGraph = null;
@@ -75,6 +75,14 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                         continue;
                     }
 
+                    if (aiMesh->MNumVertices > int.MaxValue || (long)aiMesh->MNumFaces * 3 > int.MaxValue)
+                    {
+                        Logger.Error(
+                            "Skipping mesh name={Name} vertices={Vertices} faces={Faces}: index or vertex count does not fit a List",
+                            meshName, aiMesh->MNumVertices, aiMesh->MNumFaces);
+                        continue;
+                    }
+
                     var mesh = ExtractMesh(aiMesh);
                     if (mesh.Indices.Count == 0)
                     {
@@ -82,7 +90,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                         continue;
                     }
 
-                    var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory);
+                    var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory, embeddedByIndex);
                     mesh.Shininess = material.Shininess;
                     pendingTextures.Add((mesh, material));
                     meshIndexMap[i] = submeshes.Count;
@@ -139,6 +147,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
 
         var hasTexCoords = aiMesh->MTextureCoords[0] != null;
         var hasTangents = aiMesh->MTangents != null;
+        mesh.Vertices.Capacity = (int)aiMesh->MNumVertices;
 
         for (uint i = 0; i < aiMesh->MNumVertices; i++)
         {
@@ -153,9 +162,6 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             if (hasTangents)
                 vertex.Tangent = aiMesh->MTangents[i];
 
-            if (aiMesh->MBitangents != null)
-                vertex.Bitangent = aiMesh->MBitangents[i];
-
             if (hasTexCoords)
             {
                 var texcoord3 = aiMesh->MTextureCoords[0][i];
@@ -165,7 +171,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             mesh.Vertices.Add(vertex);
         }
 
-        mesh.Indices.Capacity = (int)aiMesh->MNumFaces * 3;
+        mesh.Indices.Capacity = checked((int)aiMesh->MNumFaces * 3);
         for (uint i = 0; i < aiMesh->MNumFaces; i++)
         {
             var face = aiMesh->MFaces[i];
@@ -204,7 +210,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         float Shininess);
 
     private unsafe MaterialInfo ExtractMaterialInfo(Silk.NET.Assimp.Scene* scene, uint materialIndex,
-        string directory)
+        string directory, Dictionary<uint, string?> embeddedByIndex)
     {
         if (materialIndex >= scene->MNumMaterials)
         {
@@ -220,12 +226,12 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         // image (a normal map, if that node is first) into DIFFUSE — using that as
         // color looks like random mosaic UVs.
         var diffuseTexturePath =
-            ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
-            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
+            ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory, embeddedByIndex)
+            ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory, embeddedByIndex);
         // Phong specular ≠ glTF metallic-roughness. Leave ORM maps out of this slot.
-        var specularTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
-        var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
-                                ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
+        var specularTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory, embeddedByIndex);
+        var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory, embeddedByIndex)
+                                ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory, embeddedByIndex);
 
         if (diffuseTexturePath == null && normalTexturePath != null)
         {
@@ -240,7 +246,8 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         }
 
         var shininess = 32.0f;
-        _assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
+        uint shininessCount = 1;
+        _assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, &shininessCount);
         shininess = shininess > 0 ? shininess : 32.0f;
 
         return new MaterialInfo(diffuseTexturePath, specularTexturePath, normalTexturePath, shininess);
@@ -248,7 +255,8 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
 
     private unsafe string? ResolveTexturePath(Silk.NET.Assimp.Scene* scene, Material* aiMaterial,
         TextureType textureType,
-        string directory)
+        string directory,
+        Dictionary<uint, string?> embeddedByIndex)
     {
         if (_assimp.GetMaterialTextureCount(aiMaterial, textureType) == 0)
             return null;
@@ -271,14 +279,22 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         // GLB/glTF embedded images show up as "*0", "*1", …
         if (texturePath.StartsWith('*'))
         {
-            var cached = ExtractEmbeddedTextureToCache(scene, texturePath);
-            if (cached == null)
+            if (!TryParseEmbeddedIndex(texturePath, out var index))
             {
                 Logger.Warning("Failed to extract embedded texture type={Type} ref={Ref}", textureType, texturePath);
                 return null;
             }
 
-            Logger.Debug("Texture type={Type} extracted embedded {Ref} → {Path}", textureType, texturePath, cached);
+            if (!embeddedByIndex.TryGetValue(index, out var cached))
+            {
+                cached = ExtractEmbeddedTextureToCache(scene, index, texturePath);
+                embeddedByIndex[index] = cached;
+                if (cached == null)
+                    Logger.Warning("Failed to extract embedded texture type={Type} ref={Ref}", textureType, texturePath);
+                else
+                    Logger.Debug("Texture type={Type} extracted embedded {Ref} → {Path}", textureType, texturePath, cached);
+            }
+
             return cached;
         }
 
@@ -295,19 +311,24 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         return resolved;
     }
     
-    private static unsafe string? ExtractEmbeddedTextureToCache(Silk.NET.Assimp.Scene* scene, string embeddedRef)
+    internal static bool TryParseEmbeddedIndex(string? embeddedRef, out uint index)
+    {
+        index = 0;
+        if (string.IsNullOrEmpty(embeddedRef) || embeddedRef.Length < 2 || embeddedRef[0] != '*')
+            return false;
+
+        var span = embeddedRef.AsSpan(1);
+        var colon = span.IndexOf(':');
+        if (colon >= 0)
+            span = span[..colon];
+
+        return uint.TryParse(span, out index);
+    }
+
+    private static unsafe string? ExtractEmbeddedTextureToCache(Silk.NET.Assimp.Scene* scene, uint index, string embeddedRef)
     {
         // Native Assimp shipped with Silk.NET may lack aiGetEmbeddedTexture — index into MTextures instead.
-        // Refs look like "*0" or "*0:filename.png".
-        if (embeddedRef.Length < 2 || embeddedRef[0] != '*')
-            return null;
-
-        var indexSpan = embeddedRef.AsSpan(1);
-        var colon = indexSpan.IndexOf(':');
-        if (colon >= 0)
-            indexSpan = indexSpan[..colon];
-
-        if (!uint.TryParse(indexSpan, out var index) || index >= scene->MNumTextures)
+        if (index >= scene->MNumTextures)
             return null;
 
         var tex = scene->MTextures[index];

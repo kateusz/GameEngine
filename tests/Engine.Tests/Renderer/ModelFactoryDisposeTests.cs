@@ -64,7 +64,7 @@ public class ModelFactoryDisposeTests
         var vboFactory = Substitute.For<IVertexBufferFactory>();
         vboFactory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(vbo);
         var iboFactory = Substitute.For<IIndexBufferFactory>();
-        iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
+        iboFactory.Create(Arg.Any<List<uint>>()).Returns(ibo);
 
         return new ModelFactory(
             _ => ([NewMesh()], null),

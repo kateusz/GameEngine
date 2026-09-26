@@ -13,9 +13,9 @@ internal sealed class OpenGLIndexBuffer : IIndexBuffer
 
     internal uint RendererId { get; private set; }
 
-    public OpenGLIndexBuffer(uint[] indices, int count)
+    public OpenGLIndexBuffer(ReadOnlySpan<uint> indices)
     {
-        Count = count;
+        Count = indices.Length;
 
         RendererId = SilkNetContext.GL.GenBuffer();
         SilkNetContext.GL.BindBuffer(BufferTargetARB.ElementArrayBuffer, RendererId);
@@ -25,7 +25,7 @@ internal sealed class OpenGLIndexBuffer : IIndexBuffer
         {
             fixed (uint* buf = indices)
             {
-                SilkNetContext.GL.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)count * sizeof(uint), buf, BufferUsageARB.StaticDraw);
+                SilkNetContext.GL.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)indices.Length * sizeof(uint), buf, BufferUsageARB.StaticDraw);
                 OpenGLDebug.CheckError(SilkNetContext.GL, "BufferData(IndexBuffer)");
             }
         }

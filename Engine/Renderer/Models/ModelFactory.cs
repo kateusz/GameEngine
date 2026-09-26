@@ -1,4 +1,7 @@
-﻿using Engine.Renderer.Buffers;
+﻿using System.Diagnostics;
+using System.Runtime;
+using System.Runtime.InteropServices;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Serilog;
@@ -48,16 +51,11 @@ internal class ModelFactory : IModelFactory
         {
             if (_cache.TryGetValue(normalizedPath, out var cached))
                 return cached;
-        }
 
-        var model = TryLoadModel(normalizedPath);
-
-        lock (_cacheLock)
-        {
+            var model = TryLoadModel(normalizedPath);
             _cache[normalizedPath] = model;
+            return model;
         }
-
-        return model;
     }
 
     private Model? TryLoadModel(string normalizedPath)
@@ -106,7 +104,26 @@ internal class ModelFactory : IModelFactory
             Logger.Error(ex, "Failed to load model: {Path}", normalizedPath);
             return null;
         }
+        finally
+        {
+            ReleaseImportScratch();
+        }
     }
+
+    // ponytail: Assimp's free() and the LOH keep the import pages in the working set. Compact once
+    // and drop them. Live GPU buffers fault back on the next draw. Ceiling: trims the whole process,
+    // not just this model, and stalls the caller.
+    private static void ReleaseImportScratch()
+    {
+        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+
+        if (OperatingSystem.IsWindows())
+            EmptyWorkingSet(Process.GetCurrentProcess().Handle);
+    }
+
+    [DllImport("psapi.dll")]
+    private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
     public void Clear()
     {

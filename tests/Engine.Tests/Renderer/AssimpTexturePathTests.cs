@@ -91,6 +91,17 @@ public class AssimpTexturePathTests : IDisposable
         AssimpModelImporter.IsUnrealCollisionMesh(null).ShouldBeFalse();
     }
 
+    [Fact]
+    public void TryParseEmbeddedIndex_reads_star_index()
+    {
+        AssimpModelImporter.TryParseEmbeddedIndex("*0", out var zero).ShouldBeTrue();
+        zero.ShouldBe(0u);
+        AssimpModelImporter.TryParseEmbeddedIndex("*12:albedo.png", out var twelve).ShouldBeTrue();
+        twelve.ShouldBe(12u);
+        AssimpModelImporter.TryParseEmbeddedIndex("textures/a.png", out _).ShouldBeFalse();
+        AssimpModelImporter.TryParseEmbeddedIndex(null, out _).ShouldBeFalse();
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_dir))

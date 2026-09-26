@@ -12,4 +12,9 @@ public interface IIndexBufferFactory
     /// <param name="count">The number of indices.</param>
     /// <returns>An index buffer instance.</returns>
     IIndexBuffer Create(uint[] indices, int count);
+
+    /// <summary>
+    /// Uploads <paramref name="indices"/> without copying the list into a new array.
+    /// </summary>
+    IIndexBuffer Create(List<uint> indices);
 }

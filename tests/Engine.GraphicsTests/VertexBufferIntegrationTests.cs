@@ -29,7 +29,7 @@ public class VertexBufferIntegrationTests(HeadlessGraphicsContextFixture fixture
     {
         using var buffer = fixture.VertexBufferFactory.Create(
         [
-            new Mesh.Vertex(Vector3.Zero, Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ)
+            new Mesh.Vertex(Vector3.Zero, Vector3.UnitY, Vector2.Zero, Vector3.UnitX)
         ]);
         var glBuffer = (OpenGLVertexBuffer)buffer;
 

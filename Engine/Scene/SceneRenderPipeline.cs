@@ -44,7 +44,7 @@ internal static class SceneRenderPipeline
         ITextureFactory? textureFactory,
         in SceneView view)
     {
-        graphics2D.BeginScene(view);
+        graphics2D.BeginScene(view); 
         RenderSpritesInternal(context, graphics2D, textureFactory);
         RenderSubTexturesInternal(context, graphics2D, textureFactory);
         graphics2D.EndScene();

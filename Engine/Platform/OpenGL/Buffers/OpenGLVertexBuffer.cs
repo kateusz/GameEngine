@@ -47,7 +47,7 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
     {
         unsafe
         {
-            Allocate(size, BufferUsageARB.DynamicDraw, null);
+            Allocate(size, BufferUsageARB.DynamicDraw, null, enforceCap: true);
         }
     }
 
@@ -61,17 +61,17 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         unsafe
         {
             fixed (byte* pData = byteSpan)
-                Allocate((uint)byteSpan.Length, BufferUsageARB.StaticDraw, pData);
+                Allocate((uint)byteSpan.Length, BufferUsageARB.StaticDraw, pData, enforceCap: false);
         }
     }
 
-    private unsafe void Allocate(uint size, BufferUsageARB usage, void* data)
+    private unsafe void Allocate(uint size, BufferUsageARB usage, void* data, bool enforceCap = true)
     {
         switch (size)
         {
             case 0:
                 throw new ArgumentException("Buffer size must be greater than zero", nameof(size));
-            case > MaxBufferSize:
+            case > MaxBufferSize when enforceCap:
                 throw new ArgumentException($"Buffer size {size} bytes exceeds maximum {MaxBufferSize} bytes ({MaxBufferSize / (1024 * 1024)} MB)", nameof(size));
         }
 

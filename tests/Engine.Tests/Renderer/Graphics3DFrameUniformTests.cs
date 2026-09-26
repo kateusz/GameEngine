@@ -75,7 +75,7 @@ public class Graphics3DFrameUniformTests
         var vboFactory = Substitute.For<IVertexBufferFactory>();
         vboFactory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(vbo);
         var iboFactory = Substitute.For<IIndexBufferFactory>();
-        iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
+        iboFactory.Create(Arg.Any<List<uint>>()).Returns(ibo);
 
         var mesh = new Mesh("cube");
         mesh.Vertices.Add(default);
