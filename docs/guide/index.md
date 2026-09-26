@@ -6,7 +6,7 @@ This is a C# game engine built on an Entity Component System (ECS) architecture,
 
 - **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
 - **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
-- **3D rendering** — static `.glb` / `.gltf` / `.fbx` models, unit cubes, perspective camera, ambient + directional light (Blinn-Phong)
+- **3D rendering** — static `.glb` / `.gltf` / `.fbx` models, unit cubes, perspective camera, ambient + directional light (Cook-Torrance)
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
 - **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)

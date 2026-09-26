@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Numerics;
 using ECS;
 using Engine.Project;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -17,6 +19,8 @@ internal static class SceneRenderPipeline
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
 
     private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<Mesh, int> MeshDrawCounts = new();
+    private static long _nextDrawLogTicks;
 
     private static readonly Vector2[] DefaultTextureCoords =
     [
@@ -123,12 +127,17 @@ internal static class SceneRenderPipeline
         var pointCount = ResolvePointLights(context, PointLightBuffer);
         graphics3D.SetPointLights(PointLightBuffer.AsSpan(0, pointCount));
 
+        var logFrame = Environment.TickCount64 >= _nextDrawLogTicks;
+        if (logFrame)
+            MeshDrawCounts.Clear();
+
         graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
+        PassStats? shadow = null;
         if (lightColor != Vector3.Zero &&
             LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
         {
             graphics3D.BeginShadowPass(lightViewProjection);
-            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory);
+            shadow = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, meshDrawCounts: null);
             graphics3D.EndShadowPass();
             graphics3D.SetDirectionalShadow(lightViewProjection, true);
         }
@@ -139,27 +148,56 @@ internal static class SceneRenderPipeline
         }
 
         graphics3D.BeginScene(view);
-        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory);
+        var color = DrawOpaque3D(
+            context, graphics3D, textureFactory, modelFactory,
+            meshDrawCounts: logFrame ? MeshDrawCounts : null);
         graphics3D.EndScene();
+
+        if (!logFrame)
+            return;
+
+        _nextDrawLogTicks = Environment.TickCount64 + 1000;
+        if (color.MeshDraws == 0 && color.CubeDraws == 0 && (shadow is null || shadow.Value.MeshDraws == 0))
+            return;
+
+        LogDrawStats(shadow, color);
     }
 
-    private static void DrawOpaque3D(
+    private struct PassStats
+    {
+        public int Renderers;
+        public int MeshDraws;
+        public int CubeDraws;
+        public int MissingMeshIndex;
+        public long Vertices;
+        public long Indices;
+        public double CpuMs;
+    }
+
+    private static PassStats DrawOpaque3D(
         Context context,
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
-        IModelFactory? modelFactory)
+        IModelFactory? modelFactory,
+        Dictionary<Mesh, int>? meshDrawCounts)
     {
+        var stats = new PassStats();
+        var start = Stopwatch.GetTimestamp();
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
+            stats.Renderers++;
             var transform = transformComponent.GetWorldTransform();
 
             if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
             {
+                var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
                 if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
-                    DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity);
+                    DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors);
                 else
-                    graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id);
+                    graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id,
+                        metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao);
+                stats.CubeDraws++;
                 continue;
             }
 
@@ -175,14 +213,20 @@ internal static class SceneRenderPipeline
                     Logger.Warning(
                         "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
                         modelRenderer.ModelPath, resolvedPath);
-                graphics3D.DrawCube(transform, tint, entity.Id);
+                var fallback = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
+                graphics3D.DrawCube(transform, tint, entity.Id,
+                    metallic: fallback.Metallic, roughness: fallback.Roughness, ao: fallback.Ao);
+                stats.CubeDraws++;
                 continue;
             }
 
             if (modelRenderer.MeshIndex is int meshIndex)
             {
                 if (meshIndex >= 0 && meshIndex < model.Submeshes.Count)
-                    graphics3D.DrawMesh(transform, model.Submeshes[meshIndex], tint, entity.Id);
+                    DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, model.Submeshes[meshIndex],
+                        ref stats, meshDrawCounts);
+                else
+                    stats.MissingMeshIndex++;
                 continue;
             }
 
@@ -190,12 +234,62 @@ internal static class SceneRenderPipeline
                 continue;
 
             foreach (var submesh in model.Submeshes)
-                graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
+                DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh, ref stats, meshDrawCounts);
+        }
+
+        stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        return stats;
+    }
+
+    private static void DrawSubmesh(
+        IGraphics3D graphics3D,
+        ModelRendererComponent modelRenderer,
+        Matrix4x4 transform,
+        Vector4 tint,
+        int entityId,
+        Mesh submesh,
+        ref PassStats stats,
+        Dictionary<Mesh, int>? meshDrawCounts)
+    {
+        stats.MeshDraws++;
+        stats.Vertices += submesh.VertexCount;
+        stats.Indices += submesh.GetIndexCount();
+        if (meshDrawCounts != null)
+        {
+            meshDrawCounts.TryGetValue(submesh, out var count);
+            meshDrawCounts[submesh] = count + 1;
+        }
+
+        var pbr = ResolvePbr(cube: false, modelRenderer, submesh.MetallicFactor, submesh.RoughnessFactor);
+        graphics3D.DrawMesh(transform, submesh, tint, entityId, pbr.Metallic, pbr.Roughness, pbr.Ao);
+    }
+
+    private static void LogDrawStats(PassStats? shadow, PassStats color)
+    {
+        if (shadow is { } shadowPass)
+            Logger.Information(
+                "3D shadow pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
+                shadowPass.Renderers, shadowPass.MeshDraws, shadowPass.CubeDraws, shadowPass.MissingMeshIndex,
+                shadowPass.Vertices, shadowPass.Indices, shadowPass.Indices / 3, shadowPass.CpuMs);
+
+        Logger.Information(
+            "3D color pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} uniqueMeshes={UniqueMeshes} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
+            color.Renderers, color.MeshDraws, color.CubeDraws, MeshDrawCounts.Count, color.MissingMeshIndex,
+            color.Vertices, color.Indices, color.Indices / 3, color.CpuMs);
+
+        foreach (var pair in MeshDrawCounts.OrderByDescending(p => p.Value).Take(8))
+        {
+            var mesh = pair.Key;
+            var indexCount = mesh.GetIndexCount();
+            Logger.Information(
+                "3D repeated mesh draws={Draws} vertices={Vertices} indices={Indices} triangles={Triangles} submittedVertices={SubmittedVertices} name={Name}",
+                pair.Value, mesh.VertexCount, indexCount, indexCount / 3,
+                (long)pair.Value * mesh.VertexCount, mesh.Name);
         }
     }
 
     private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,
-        ModelRendererComponent modelRenderer, Matrix4x4 transform, Entity entity)
+        ModelRendererComponent modelRenderer, Matrix4x4 transform, Entity entity, PbrFactors factors)
     {
         try
         {
@@ -206,7 +300,10 @@ internal static class SceneRenderPipeline
                 modelRenderer.Color,
                 entity.Id,
                 texture,
-                modelRenderer.TilingFactor);
+                modelRenderer.TilingFactor,
+                factors.Metallic,
+                factors.Roughness,
+                factors.Ao);
         }
         catch (Exception ex)
         {
@@ -232,6 +329,26 @@ internal static class SceneRenderPipeline
 
         return (LightingMath.DefaultDirection, Vector3.Zero);
     }
+
+    internal readonly record struct PbrFactors(float Metallic, float Roughness, float Ao);
+
+    internal static PbrFactors ResolvePbr(
+        bool cube,
+        ModelRendererComponent renderer,
+        float meshMetallic,
+        float meshRoughness)
+    {
+        var entityMetallic = Finite01(renderer.Metallic);
+        var entityRoughness = Finite01(renderer.Roughness);
+        var entityAo = Finite01(renderer.Ao);
+        if (cube || renderer.OverrideMaterial)
+            return new PbrFactors(entityMetallic, entityRoughness, entityAo);
+
+        return new PbrFactors(Finite01(meshMetallic), Finite01(meshRoughness), 1f);
+    }
+
+    private static float Finite01(float value) =>
+        float.IsFinite(value) ? System.Math.Clamp(value, 0f, 1f) : 0f;
     
     internal static int ResolvePointLights(Context context, Span<PointLightData> destination)
     {

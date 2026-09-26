@@ -56,9 +56,10 @@ internal sealed class Graphics3D(
 
         _modelShader.Bind();
         _modelShader.SetInt("u_DiffuseMap", 0);
-        _modelShader.SetInt("u_SpecularMap", 1);
+        _modelShader.SetInt("u_MetallicRoughnessMap", 1);
         _modelShader.SetInt("u_NormalMap", 2);
         _modelShader.SetInt("u_ShadowMap", ShadowMapSlot);
+        _modelShader.SetInt("u_OcclusionMap", 4);
         _modelShader.Unbind();
     }
 
@@ -100,7 +101,7 @@ internal sealed class Graphics3D(
     }
 
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
-        float tilingFactor = 1.0f)
+        float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f)
     {
         if (_shadowPass)
         {
@@ -112,6 +113,9 @@ internal sealed class Graphics3D(
         BindCommon(_cubeShader, transform, color, entityId);
         
         _cubeShader.SetFloat("u_TilingFactor", tilingFactor);
+        _cubeShader.SetFloat("u_Metallic", metallic);
+        _cubeShader.SetFloat("u_Roughness", roughness);
+        _cubeShader.SetFloat("u_Ao", ao);
         _cubeShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
         if (texture != null)
         {
@@ -125,7 +129,8 @@ internal sealed class Graphics3D(
         _cubeShader.Unbind();
     }
 
-    public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1)
+    public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
+        float metallic = 0f, float roughness = 0.5f, float ao = 1f)
     {
         if (_shadowPass)
         {
@@ -136,14 +141,19 @@ internal sealed class Graphics3D(
         rendererApi.SetDepthTest(true);
         BindCommon(_modelShader, transform, tint, entityId);
 
-        _modelShader.SetFloat("u_Shininess", mesh.Shininess);
+        _modelShader.SetFloat("u_Metallic", metallic);
+        _modelShader.SetFloat("u_Roughness", roughness);
+        _modelShader.SetFloat("u_Ao", ao);
+        _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
-        _modelShader.SetInt("u_HasSpecularMap", mesh.HasSpecularMap ? 1 : 0);
+        _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
         _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
+        _modelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
 
         (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
-        (mesh.SpecularTexture ?? textureFactory.GetBlackTexture()).Bind(1);
+        (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
         (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+        (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(4);
 
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
