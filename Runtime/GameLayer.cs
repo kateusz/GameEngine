@@ -20,7 +20,8 @@ public class GameLayer(
     IPointerSurface pointerSurface,
     IGameWindow gameWindow,
     GameConfiguration gameConfig,
-    Func<IEnumerable<IGameSystem>> resolveGameSystems)
+    Func<IEnumerable<IGameSystem>> resolveGameSystems,
+    FxaaPass fxaaPass)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
@@ -72,9 +73,14 @@ public class GameLayer(
 
         pointerSurface.Set(Vector2.Zero, gameWindow.ClientSize);
 
-        graphics2D.SetClearColor(scene.BackgroundColor);
-        graphics2D.Clear();
-        scene.OnUpdateRuntime(timeSpan);
+        var size = gameWindow.ClientSize;
+        var scale = gameWindow.ContentScale;
+        fxaaPass.Present((uint)(size.X * scale), (uint)(size.Y * scale), () =>
+        {
+            graphics2D.SetClearColor(scene.BackgroundColor);
+            graphics2D.Clear();
+            scene.OnUpdateRuntime(timeSpan);
+        });
     }
 
     public void HandleInputEvent(InputEvent windowEvent) { }
