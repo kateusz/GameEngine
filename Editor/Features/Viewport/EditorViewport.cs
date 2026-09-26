@@ -1,7 +1,10 @@
 using System.Numerics;
 using ECS;
+using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
+using Editor.UI.Elements;
 using Editor.Features.Viewport.Gizmos;
 using Editor.UI.Drawers;
 using Engine.Core;
@@ -37,7 +40,8 @@ public sealed class EditorViewport(
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
-    IModelFactory modelFactory)
+    IModelFactory modelFactory,
+    IEditorHistory history)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -109,9 +113,10 @@ public sealed class EditorViewport(
 
         PickHoveredEntity();
 
-        DragDropDrawer.HandleFileDropTarget(DragDropDrawer.ContentBrowserItemPayload,
-            path => DragDropDrawer.HasValidExtension(path, ".scene"),
-            onDropped: path => sceneManager.Open(PathBuilder.Resolve(path)));
+        DragDropDrawer.HandleFileDropTarget(
+            DragDropDrawer.ContentBrowserItemPayload,
+            IsSceneOrModelDrop,
+            OnSceneOrModelDropped);
 
         if (ImGui.IsWindowHovered())
             HandleViewportInput();
@@ -121,6 +126,44 @@ public sealed class EditorViewport(
         DrawOverlays();
 
         ImGui.End();
+    }
+
+    private static bool IsSceneOrModelDrop(string path) =>
+        DragDropDrawer.HasValidExtension(path, ".scene") || ModelDropTarget.IsSupported(path);
+
+    private void OnSceneOrModelDropped(string path)
+    {
+        if (DragDropDrawer.HasValidExtension(path, ".scene"))
+        {
+            sceneManager.Open(PathBuilder.Resolve(path));
+            return;
+        }
+
+        SpawnDroppedModel(path);
+    }
+
+    private void SpawnDroppedModel(string path)
+    {
+        if (sceneContext.State != SceneState.Edit || sceneContext.ActiveScene is not { } scene)
+            return;
+
+        var resolved = PathBuilder.Resolve(path);
+        if (!ModelDropTarget.IsSupported(path) || !File.Exists(resolved))
+            return;
+
+        var model = modelFactory.Create(resolved);
+        if (model == null)
+            return;
+
+        var command = new SpawnModelEntityCommand(
+            scene,
+            Path.GetFileNameWithoutExtension(path),
+            model,
+            PathBuilder.ToAssetRelativePath(path));
+        history.Execute(command);
+
+        if (command.EntityId is int id && scene.Context.Contains(id))
+            selection.Select(scene.Context.GetById(id), SelectionSource.Viewport);
     }
 
     public void HandleWindowInput(InputEvent windowEvent)

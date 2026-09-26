@@ -13,6 +13,9 @@ public static class ModelDropTarget
     private static readonly ILogger Logger = Log.ForContext(typeof(ModelDropTarget));
     private static readonly string[] SupportedExtensions = [".glb", ".gltf", ".fbx"];
 
+    public static bool IsSupported(string path) =>
+        DragDropDrawer.HasValidExtension(path, SupportedExtensions);
+
     public static void Draw(
         string label,
         Action<string, Model> onModelDropped,
