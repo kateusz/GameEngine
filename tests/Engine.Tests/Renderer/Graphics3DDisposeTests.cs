@@ -1,4 +1,5 @@
 using Engine.Renderer;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
@@ -26,7 +27,8 @@ public class Graphics3DDisposeTests
             Substitute.For<IRendererAPI>(),
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>());
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IFrameBufferFactory>());
         graphics.Init();
         graphics.Dispose();
 

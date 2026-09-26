@@ -27,6 +27,7 @@ internal static class SceneRenderPipeline
     ];
     
     private static readonly PointLightData[] PointLightBuffer = new PointLightData[LightingMath.MaxPointLights];
+    private static bool _shadowFitWarned;
 
     public static void RenderScene(
         Context context,
@@ -121,9 +122,33 @@ internal static class SceneRenderPipeline
         
         var pointCount = ResolvePointLights(context, PointLightBuffer);
         graphics3D.SetPointLights(PointLightBuffer.AsSpan(0, pointCount));
-        
-        graphics3D.BeginScene(view);
 
+        graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
+        if (lightColor != Vector3.Zero &&
+            LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
+        {
+            graphics3D.BeginShadowPass(lightViewProjection);
+            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory);
+            graphics3D.EndShadowPass();
+            graphics3D.SetDirectionalShadow(lightViewProjection, true);
+        }
+        else if (lightColor != Vector3.Zero && !_shadowFitWarned)
+        {
+            _shadowFitWarned = true;
+            Logger.Warning("Directional shadow fit failed; drawing the frame without directional shadows");
+        }
+
+        graphics3D.BeginScene(view);
+        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory);
+        graphics3D.EndScene();
+    }
+
+    private static void DrawOpaque3D(
+        Context context,
+        IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
+        IModelFactory? modelFactory)
+    {
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
@@ -167,8 +192,6 @@ internal static class SceneRenderPipeline
             foreach (var submesh in model.Submeshes)
                 graphics3D.DrawMesh(transform, submesh, tint, entity.Id);
         }
-
-        graphics3D.EndScene();
     }
 
     private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,

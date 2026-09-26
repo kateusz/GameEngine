@@ -5,5 +5,6 @@ public enum ShaderId
     Texture,
     Line,
     Cube,
-    Model
+    Model,
+    Depth
 }
