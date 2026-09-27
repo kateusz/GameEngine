@@ -1,13 +1,8 @@
-using ECS.Systems;
 using Editor.Features.History;
 using Editor.Features.Scene;
-using Editor.Features.Scripting;
-using Engine.Core;
-using Engine.Core.Window;
+using Editor.Tests.Scene;
 using Engine.Project;
 using Engine.Scene;
-using Engine.Scene.Serializer;
-using Engine.Scripting;
 using NSubstitute;
 using Shouldly;
 
@@ -89,7 +84,7 @@ public class EditorHistoryClearPolicyTests
         projectContext.Root.Returns((string?)null);
         projectContext.ScriptsDir.Returns((string?)null);
 
-        var manager = CreateSceneManager(history, projectContext);
+        var manager = SceneManagerTestFactory.Create(_sceneContext, projectContext, history);
 
         manager.Play();
 
@@ -111,7 +106,7 @@ public class EditorHistoryClearPolicyTests
             projectContext.ScriptsDir.Returns(missingScripts);
             _sceneContext.ActiveScene.Returns(Substitute.For<IScene>());
 
-            var manager = CreateSceneManager(history, projectContext);
+            var manager = SceneManagerTestFactory.Create(_sceneContext, projectContext, history);
             manager.Play();
 
             history.DidNotReceive().Clear();
@@ -139,7 +134,7 @@ public class EditorHistoryClearPolicyTests
             // Empty scripts dir still compiles (placeholder); keep scene thin for unit speed
             _sceneContext.ActiveScene.Returns(Substitute.For<IScene>());
 
-            var manager = CreateSceneManager(history, projectContext);
+            var manager = SceneManagerTestFactory.Create(_sceneContext, projectContext, history);
             manager.Play();
 
             history.Received(1).Clear();
@@ -160,33 +155,11 @@ public class EditorHistoryClearPolicyTests
         _sceneContext.State.Returns(SceneState.Edit);
         _sceneContext.ActiveScene.Returns(scene);
 
-        var manager = CreateSceneManager(history, projectContext);
+        var manager = SceneManagerTestFactory.Create(_sceneContext, projectContext, history);
         manager.Stop();
 
         history.DidNotReceive().Clear();
         scene.DidNotReceive().Dispose();
         scene.DidNotReceive().OnRuntimeStop();
-    }
-
-    private SceneManager CreateSceneManager(IEditorHistory history, IProjectContext projectContext)
-    {
-        var workspace = new GameScriptWorkspace(
-            Substitute.For<IScriptEngine>(),
-            Substitute.For<IComponentSerializerRegistry>(),
-            _ => true,
-            _ => { });
-
-        var factory = new SceneFactory(
-            Substitute.For<ISceneSystemsFactory>(),
-            Substitute.For<IPointerSurface>());
-
-        return new SceneManager(
-            _sceneContext,
-            Substitute.For<ISceneSerializer>(),
-            factory,
-            () => Enumerable.Empty<IGameSystem>(),
-            projectContext,
-            workspace,
-            history);
     }
 }
