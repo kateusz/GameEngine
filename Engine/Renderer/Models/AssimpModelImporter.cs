@@ -68,6 +68,12 @@ internal sealed class AssimpModelImporter : IDisposable
                     if (submesh == null)
                         continue;
 
+                    // glTF TEXCOORD origin is the top of the image. Assimp's FlipUVs leaves those
+                    // values unchanged. TextureFileDecoder flips the bitmap for OpenGL, so mirror V
+                    // or a packed atlas samples the wrong row.
+                    if (IsGltf(normalizedPath))
+                        FlipTexCoordV(submesh);
+
                     var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory, textureSidecar);
                     submesh.Metallic = material.MetallicFactor;
                     submesh.Roughness = material.RoughnessFactor;
@@ -308,11 +314,33 @@ internal sealed class AssimpModelImporter : IDisposable
             return assimpMatrix;
 
         // Raw Assimp aiMatrix4x4 layout: translation in column 4.
-        return new Matrix4x4(
-            assimpMatrix.M11, assimpMatrix.M12, assimpMatrix.M13, 0f,
-            assimpMatrix.M21, assimpMatrix.M22, assimpMatrix.M23, 0f,
-            assimpMatrix.M31, assimpMatrix.M32, assimpMatrix.M33, 0f,
-            colTranslation.X, colTranslation.Y, colTranslation.Z, assimpMatrix.M44);
+        return assimpMatrix with
+        {
+            M14 = 0f,
+            M24 = 0f,
+            M34 = 0f,
+            M41 = colTranslation.X,
+            M42 = colTranslation.Y,
+            M43 = colTranslation.Z
+        };
+    }
+
+    private static bool IsGltf(string path)
+    {
+        var ext = Path.GetExtension(path);
+        return ext.Equals(".glb", StringComparison.OrdinalIgnoreCase)
+               || ext.Equals(".gltf", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void FlipTexCoordV(SourceSubmesh submesh)
+    {
+        var verts = submesh.Vertices;
+        for (var i = 0; i < verts.Count; i++)
+        {
+            var v = verts[i];
+            v.TexCoord = v.TexCoord with { Y = 1f - v.TexCoord.Y };
+            verts[i] = v;
+        }
     }
 
     private static unsafe SourceSubmesh? ExtractSourceSubmesh(AssimpMesh* aiMesh)
