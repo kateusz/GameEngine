@@ -228,8 +228,7 @@ internal sealed class Graphics3D(
 
         if (_shadowPass)
         {
-            _depthShader.SetInt("u_Instanced", 1);
-            UploadAndDraw(mesh, instances);
+            UploadAndDraw(mesh, instances, _depthShader);
             return;
         }
 
@@ -251,17 +250,34 @@ internal sealed class Graphics3D(
         (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
         (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
 
-        UploadAndDraw(mesh, instances);
+        UploadAndDraw(mesh, instances, _modelShader);
         _modelShader.Unbind();
     }
 
-    private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, IShader shader)
     {
+        mesh.Bind();
+        if (instances.Length == 1)
+        {
+            var instance = instances[0];
+            shader.SetInt("u_Instanced", 0);
+            shader.SetMat4("u_Model", instance.Transform);
+            if (!_shadowPass)
+            {
+                shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(instance.Transform));
+                shader.SetInt("u_EntityID", instance.EntityId);
+            }
+
+            rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+            _stats.DrawCalls++;
+            return;
+        }
+
+        shader.SetInt("u_Instanced", 1);
         _instanceUpload.Clear();
         foreach (var instance in instances)
             _instanceUpload.Add(PackInstance(instance));
 
-        mesh.Bind();
         rendererApi.DrawIndexedInstanced(
             mesh.GetVertexArray(), (uint)mesh.GetIndexCount(), CollectionsMarshal.AsSpan(_instanceUpload));
         _stats.DrawCalls++;

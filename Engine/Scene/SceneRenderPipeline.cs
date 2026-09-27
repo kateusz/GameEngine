@@ -34,6 +34,8 @@ internal static class SceneRenderPipeline
     private static readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
     private static bool _shadowFitWarned;
     private static bool _pointShadowWarned;
+    private static long _nextPerfLogTicks;
+    private const int PerfLogIntervalMs = 1000;
 
     public static void RenderScene(
         Context context,
@@ -120,6 +122,8 @@ internal static class SceneRenderPipeline
         IModelFactory? modelFactory,
         in SceneView view)
     {
+        var perf = new Render3DPerfFrame();
+
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
         
@@ -128,13 +132,26 @@ internal static class SceneRenderPipeline
         
         var pointCount = ResolvePointLights(context, PointLightBuffer);
         graphics3D.SetPointLights(PointLightBuffer.AsSpan(0, pointCount));
+        perf.PointLights = pointCount;
+        for (var i = 0; i < pointCount; i++)
+        {
+            if (PointLightBuffer[i].CastsShadow)
+                perf.PointShadowLights++;
+        }
+
+        var shadowCasterMax = view.DirectionalShadowCasterMaxDistance;
+        var shadowCasterMaxSq = shadowCasterMax > 0f ? shadowCasterMax * shadowCasterMax : 0f;
+        var shadowCasterView = view.ViewPosition;
 
         graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
         if (lightColor != Vector3.Zero &&
             LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
         {
+            perf.DirectionalShadow = true;
             graphics3D.BeginShadowPass(lightViewProjection);
-            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, lightViewProjection);
+            perf.DirectionalShadowPass = DrawOpaque3D(
+                context, graphics3D, textureFactory, modelFactory, lightViewProjection,
+                shadowCasterMaxSq, shadowCasterView);
             graphics3D.EndShadowPass();
             graphics3D.SetDirectionalShadow(lightViewProjection, true);
         }
@@ -151,6 +168,7 @@ internal static class SceneRenderPipeline
         else
         {
             CollectPointShadowCasters(context, modelFactory, PointShadowCasterBuffer);
+            perf.PointShadowCasters = PointShadowCasterBuffer.Count;
             PointShadowLampBuffer.Clear();
             for (var li = 0; li < pointCount; li++)
             {
@@ -177,13 +195,23 @@ internal static class SceneRenderPipeline
                     if (near && !graphics3D.UseCachedPointShadow(i, light.EntityId))
                         dirty = true;
                     else
+                    {
+                        perf.PointShadowLightsCacheHit++;
                         continue;
+                    }
                 }
 
                 PointShadowCache.RememberDirty(light.EntityId);
-                if (!near || !LightingMath.TryBuildPointShadowFaces(light.Position, light.Range, pointFaces))
+                if (!near)
+                {
+                    perf.PointShadowLightsTooFar++;
+                    continue;
+                }
+
+                if (!LightingMath.TryBuildPointShadowFaces(light.Position, light.Range, pointFaces))
                     continue;
 
+                perf.PointShadowLightsRedrawn++;
                 var drew = true;
                 for (var face = 0; face < LightingMath.PointShadowFaceCount; face++)
                 {
@@ -202,7 +230,11 @@ internal static class SceneRenderPipeline
 
                     try
                     {
-                        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face]);
+                        perf.PointShadowFaces++;
+                        perf.PointShadowOpaque3D++;
+                        perf.PointShadowPass = Accumulate(perf.PointShadowPass,
+                            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face],
+                                shadowCasterMaxSq, shadowCasterView));
                     }
                     finally
                     {
@@ -218,8 +250,11 @@ internal static class SceneRenderPipeline
         }
 
         graphics3D.BeginScene(view);
-        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
+        perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
         graphics3D.EndScene();
+
+        perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
+        LogRender3DPerfIfDue(in perf);
     }
 
     private struct PassStats
@@ -230,9 +265,108 @@ internal static class SceneRenderPipeline
         public int CubeDraws;
         public int Culled;
         public int MissingMeshIndex;
+        public int ShadowCasterCulled;
+        public int SingleMaterialDraws;
+        public int MultiMaterialDraws;
+        public int MaxBatchInstances;
         public long Vertices;
         public long Indices;
         public double CpuMs;
+    }
+
+    private struct Render3DPerfFrame
+    {
+        public bool DirectionalShadow;
+        public PassStats DirectionalShadowPass;
+        public PassStats ColorPass;
+        public PassStats PointShadowPass;
+        public int PointLights;
+        public int PointShadowLights;
+        public int PointShadowCasters;
+        public int PointShadowLightsCacheHit;
+        public int PointShadowLightsTooFar;
+        public int PointShadowLightsRedrawn;
+        public int PointShadowFaces;
+        public int PointShadowOpaque3D;
+        public uint GpuDrawCalls;
+    }
+
+    private static PassStats Accumulate(PassStats total, PassStats pass)
+    {
+        total.Renderers += pass.Renderers;
+        total.MeshDraws += pass.MeshDraws;
+        total.Instances += pass.Instances;
+        total.CubeDraws += pass.CubeDraws;
+        total.Culled += pass.Culled;
+        total.MissingMeshIndex += pass.MissingMeshIndex;
+        total.ShadowCasterCulled += pass.ShadowCasterCulled;
+        total.SingleMaterialDraws += pass.SingleMaterialDraws;
+        total.MultiMaterialDraws += pass.MultiMaterialDraws;
+        total.MaxBatchInstances = System.Math.Max(total.MaxBatchInstances, pass.MaxBatchInstances);
+        total.Vertices += pass.Vertices;
+        total.Indices += pass.Indices;
+        total.CpuMs += pass.CpuMs;
+        return total;
+    }
+
+    private static void LogRender3DPerfIfDue(in Render3DPerfFrame perf)
+    {
+        var now = Environment.TickCount64;
+        if (now < _nextPerfLogTicks)
+            return;
+
+        _nextPerfLogTicks = now + PerfLogIntervalMs;
+
+        var dirRes = LightingMath.ShadowMapResolution;
+        var pointFaceRes = LightingMath.PointShadowFaceResolution;
+        long shadowFillPixels = 0;
+        if (perf.DirectionalShadow)
+            shadowFillPixels += (long)dirRes * dirRes;
+        shadowFillPixels += (long)perf.PointShadowFaces * pointFaceRes * pointFaceRes;
+
+        var color = perf.ColorPass;
+        var dir = perf.DirectionalShadowPass;
+        var point = perf.PointShadowPass;
+        var materialDrawsColor = color.MeshDraws + color.CubeDraws;
+        var opaque3DPasses = (perf.DirectionalShadow ? 1 : 0) + perf.PointShadowOpaque3D + 1;
+
+        Logger.Information(
+            "3D perf: gpuDrawCalls={GpuDrawCalls} opaque3DPasses={Opaque3DPasses} " +
+            "dirShadow={DirShadow} dirRes={DirRes}x{DirRes} dirMeshDraws={DirMeshDraws} dirCubes={DirCubes} dirCulled={DirCulled} dirShadowCasterCulled={DirShadowCasterCulled} " +
+            "colorMeshDraws={ColorMeshDraws} colorCubes={ColorCubes} colorCulled={ColorCulled} " +
+            "materialBatches single={SingleBatch} multi={MultiBatch} maxInstBatch={MaxBatch} meshInstances={Instances} " +
+            "pointShadow lights={PointShadowLights} casters={Casters} cacheHit={CacheHit} tooFar={TooFar} redrawn={Redrawn} " +
+            "fullSceneFaces={Faces} faceRes={PointRes}x{PointRes} pointMeshDraws={PointMeshDraws} estShadowFillPx={ShadowFillPx} " +
+            "cpuMs dir={DirCpu:F2} color={ColorCpu:F2} point={PointCpu:F2}",
+            perf.GpuDrawCalls,
+            opaque3DPasses,
+            perf.DirectionalShadow,
+            dirRes,
+            dirRes,
+            dir.MeshDraws + dir.CubeDraws,
+            dir.CubeDraws,
+            dir.Culled,
+            dir.ShadowCasterCulled,
+            materialDrawsColor,
+            color.CubeDraws,
+            color.Culled,
+            color.SingleMaterialDraws,
+            color.MultiMaterialDraws,
+            color.MaxBatchInstances,
+            color.Instances,
+            perf.PointShadowLights,
+            perf.PointShadowCasters,
+            perf.PointShadowLightsCacheHit,
+            perf.PointShadowLightsTooFar,
+            perf.PointShadowLightsRedrawn,
+            perf.PointShadowFaces,
+            pointFaceRes,
+            pointFaceRes,
+            point.MeshDraws + point.CubeDraws,
+            shadowFillPixels,
+            dir.CpuMs,
+            color.CpuMs,
+            point.CpuMs);
     }
 
     private enum OpaqueSurfaceKind
@@ -319,7 +453,9 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
-        Matrix4x4 cullMatrix)
+        Matrix4x4 cullMatrix,
+        float shadowCasterMaxDistanceSq = 0f,
+        Vector3 shadowCasterViewPosition = default)
     {
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
@@ -359,7 +495,8 @@ internal static class SceneRenderPipeline
                                 modelRenderer.ModelPath, resolvedPath);
                     }
 
-                    if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
+                    if (ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, Aabb.UnitCube, shadowCasterMaxDistanceSq,
+                            shadowCasterViewPosition, ref stats))
                         continue;
 
                     var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
@@ -375,7 +512,9 @@ internal static class SceneRenderPipeline
                 if (kind == OpaqueSurfaceKind.SingleSubmesh)
                 {
                     var submesh = model!.Submeshes[submeshIndex];
-                    if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
+                    if (submesh.Bounds is { } bounds
+                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
+                            shadowCasterViewPosition, ref stats))
                         continue;
 
                     QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
@@ -384,7 +523,9 @@ internal static class SceneRenderPipeline
 
                 foreach (var submesh in model!.Submeshes)
                 {
-                    if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
+                    if (submesh.Bounds is { } bounds
+                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
+                            shadowCasterViewPosition, ref stats))
                         continue;
 
                     QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
@@ -400,13 +541,29 @@ internal static class SceneRenderPipeline
         return stats;
     }
 
-    private static bool IsCulled(bool hasFrustum, in Frustum frustum, Matrix4x4 world, Aabb bounds, ref PassStats stats)
+    private static bool ShouldSkipOpaqueDraw(
+        bool hasFrustum,
+        in Frustum frustum,
+        Matrix4x4 world,
+        Aabb bounds,
+        float shadowCasterMaxDistanceSq,
+        Vector3 shadowCasterViewPosition,
+        ref PassStats stats)
     {
-        if (!hasFrustum || !frustum.IsOutside(world, bounds))
-            return false;
+        if (hasFrustum && frustum.IsOutside(world, bounds))
+        {
+            stats.Culled++;
+            return true;
+        }
 
-        stats.Culled++;
-        return true;
+        if (shadowCasterMaxDistanceSq > 0f
+            && Aabb.ClosestPointDistanceSquared(shadowCasterViewPosition, world, bounds) > shadowCasterMaxDistanceSq)
+        {
+            stats.ShadowCasterCulled++;
+            return true;
+        }
+
+        return false;
     }
 
     private readonly record struct MeshBatchKey(Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao);
@@ -451,6 +608,15 @@ internal static class SceneRenderPipeline
         {
             foreach (var (key, batch) in MeshBatches)
             {
+                var count = batch.Count;
+                if (count >= 2)
+                {
+                    stats.MultiMaterialDraws++;
+                    stats.MaxBatchInstances = System.Math.Max(stats.MaxBatchInstances, count);
+                }
+                else
+                    stats.SingleMaterialDraws++;
+
                 graphics3D.DrawMeshInstances(key.Mesh, CollectionsMarshal.AsSpan(batch));
                 stats.MeshDraws++;
             }
