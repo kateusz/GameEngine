@@ -18,16 +18,17 @@ internal static class RuntimeMeshReader
         return true;
     }
 
-    public static bool TryRead(ReadOnlySpan<byte> file, out SourceModel? model)
+    public static bool TryRead(byte[] file, out SourceModel? model)
     {
         model = null;
-        if (!TryReadHeader(file, out var header))
+        var span = file.AsSpan();
+        if (!TryReadHeader(span, out var header))
             return false;
 
-        if (!ValidateHeader(file, header))
+        if (!ValidateHeader(span, header))
             return false;
 
-        if (!ValidateTableOffsets(file, header))
+        if (!ValidateTableOffsets(span, header))
             return false;
 
         var meshes = new List<SourceSubmesh>((int)header.MeshCount);
@@ -35,11 +36,11 @@ internal static class RuntimeMeshReader
             return false;
 
         var nodes = new List<SourceNode>((int)header.NodeCount);
-        if (!TryReadNodeTable(file, header, nodes, (int)header.MeshCount, (int)header.LightCount))
+        if (!TryReadNodeTable(span, header, nodes, (int)header.MeshCount, (int)header.LightCount))
             return false;
 
         var lights = new List<SourceLight>((int)header.LightCount);
-        if (!TryReadLightTable(file, header, lights))
+        if (!TryReadLightTable(span, header, lights))
             return false;
 
         if (!ValidateNodeTree(nodes))
@@ -48,6 +49,9 @@ internal static class RuntimeMeshReader
         model = new SourceModel(meshes, nodes, lights);
         return true;
     }
+
+    public static bool TryRead(ReadOnlySpan<byte> file, out SourceModel? model) =>
+        TryRead(file.ToArray(), out model);
 
     private readonly record struct Header(
         ulong FileSize,
@@ -175,10 +179,15 @@ internal static class RuntimeMeshReader
         return true;
     }
 
-    private static bool TryReadMeshTable(ReadOnlySpan<byte> file, Header header, List<SourceSubmesh> meshes)
+    private static bool TryReadMeshTable(byte[] file, Header header, List<SourceSubmesh> meshes)
     {
-        var reader = new RuntimeMeshBinaryReader(file, (int)header.MeshTableOffset);
-        for (var i = 0; i < header.MeshCount; i++)
+        var span = file.AsSpan();
+        var meshCount = (int)header.MeshCount;
+        var recordStarts = new int[meshCount];
+        var recordLengths = new uint[meshCount];
+
+        var reader = new RuntimeMeshBinaryReader(span, (int)header.MeshTableOffset);
+        for (var i = 0; i < meshCount; i++)
         {
             if (reader.Position % 8 != 0)
                 return false;
@@ -187,88 +196,144 @@ internal static class RuntimeMeshReader
             if (!reader.TryReadUInt32(out var byteLength))
                 return false;
 
-            if (!IsValidRecordLength(byteLength, recordStart, file.Length))
+            if (!IsValidRecordLength(byteLength, recordStart, span.Length))
                 return false;
 
-            if (!reader.TryReadString(out var name))
-                return false;
-            if (!reader.TryReadUInt32(out var vertexCount) || vertexCount == 0 ||
-                vertexCount > RuntimeMeshFormat.MaxVertexCount)
-                return false;
-            if (!reader.TryReadUInt32(out var indexCount) || indexCount == 0 ||
-                indexCount > RuntimeMeshFormat.MaxIndexCount || indexCount % 3 != 0)
-                return false;
-            if (!reader.TryReadUInt32(out var hasBounds) || hasBounds != 1)
-                return false;
-            if (!reader.TryReadVector3(out var boundsMin) || !reader.TryReadVector3(out var boundsMax))
-                return false;
-            if (!IsFinite(boundsMin) || !IsFinite(boundsMax) || boundsMin.X > boundsMax.X ||
-                boundsMin.Y > boundsMax.Y || boundsMin.Z > boundsMax.Z)
-                return false;
-            if (!reader.TryReadSingle(out var metallic) || !reader.TryReadSingle(out var roughness))
-                return false;
-            if (!IsFactor(metallic) || !IsFactor(roughness))
-                return false;
-            if (!reader.TryReadVector3(out var baseColor) || !IsFinite(baseColor))
-                return false;
-            if (!reader.TryReadString(out var diffuse) || !reader.TryReadString(out var normal) ||
-                !reader.TryReadString(out var metallicRoughness) || !reader.TryReadString(out var occlusion))
-                return false;
-
-            var vertexBytes = (int)vertexCount * RuntimeMeshFormat.VertexLayoutStride;
-            if (!reader.TryReadBytes(vertexBytes, out var vertexData))
-                return false;
-
-            var indexBytes = (int)indexCount * 4;
-            if (!reader.TryReadBytes(indexBytes, out var indexData))
-                return false;
-
-            if (reader.Position > recordStart + byteLength)
-                return false;
-
+            recordStarts[i] = recordStart;
+            recordLengths[i] = byteLength;
             reader.Seek(recordStart + (int)byteLength);
-
-            var mesh = new SourceSubmesh
-            {
-                Name = name,
-                BoundsMin = boundsMin,
-                BoundsMax = boundsMax,
-                Metallic = metallic,
-                Roughness = roughness,
-                BaseColorFactor = baseColor,
-                DiffusePath = diffuse,
-                NormalPath = normal,
-                MetallicRoughnessPath = metallicRoughness,
-                OcclusionPath = occlusion
-            };
-
-            for (var v = 0; v < vertexCount; v++)
-            {
-                var slice = vertexData.Slice(v * RuntimeMeshFormat.VertexLayoutStride,
-                    RuntimeMeshFormat.VertexLayoutStride);
-                var vertex = RuntimeMeshVertexLayout.ReadVertex(slice);
-                if (!IsFinite(vertex.Position) || !IsFinite(vertex.Normal) || !IsFinite(vertex.TexCoord) ||
-                    !IsFinite(vertex.Tangent) || !IsFinite(vertex.Bitangent))
-                    return false;
-
-                mesh.Vertices.Add(vertex);
-            }
-
-            if (!RuntimeMeshVertexLayout.BoundsMatchPositions(boundsMin, boundsMax, mesh.Vertices))
-                return false;
-
-            for (var idx = 0; idx < indexCount; idx++)
-            {
-                var index = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(indexData.Slice(idx * 4, 4));
-                if (index >= vertexCount)
-                    return false;
-
-                mesh.Indices.Add(index);
-            }
-
-            meshes.Add(mesh);
         }
 
+        var decoded = new SourceSubmesh?[meshCount];
+        if (meshCount >= RuntimeMeshFormat.MeshDecodeParallelThreshold)
+        {
+            var failed = 0;
+            Parallel.For(0, meshCount, (i, state) =>
+            {
+                if (Volatile.Read(ref failed) != 0)
+                {
+                    state.Stop();
+                    return;
+                }
+
+                if (!TryParseMeshRecord(file, recordStarts[i], recordLengths[i], out var mesh))
+                {
+                    Interlocked.Exchange(ref failed, 1);
+                    state.Stop();
+                    return;
+                }
+
+                decoded[i] = mesh;
+            });
+
+            if (failed != 0)
+                return false;
+        }
+        else
+        {
+            for (var i = 0; i < meshCount; i++)
+            {
+                if (!TryParseMeshRecord(span, recordStarts[i], recordLengths[i], out var mesh))
+                    return false;
+
+                decoded[i] = mesh;
+            }
+        }
+
+        for (var i = 0; i < meshCount; i++)
+            meshes.Add(decoded[i]!);
+
+        return true;
+    }
+
+    private static bool TryParseMeshRecord(
+        ReadOnlySpan<byte> file,
+        int recordStart,
+        uint byteLength,
+        out SourceSubmesh? mesh)
+    {
+        mesh = null;
+        if (recordStart % 8 != 0)
+            return false;
+
+        var reader = new RuntimeMeshBinaryReader(file, recordStart);
+        if (!reader.TryReadUInt32(out var recordByteLength) || recordByteLength != byteLength)
+            return false;
+
+        if (!reader.TryReadString(out var name))
+            return false;
+        if (!reader.TryReadUInt32(out var vertexCount) || vertexCount == 0 ||
+            vertexCount > RuntimeMeshFormat.MaxVertexCount)
+            return false;
+        if (!reader.TryReadUInt32(out var indexCount) || indexCount == 0 ||
+            indexCount > RuntimeMeshFormat.MaxIndexCount || indexCount % 3 != 0)
+            return false;
+        if (!reader.TryReadUInt32(out var hasBounds) || hasBounds != 1)
+            return false;
+        if (!reader.TryReadVector3(out var boundsMin) || !reader.TryReadVector3(out var boundsMax))
+            return false;
+        if (!IsFinite(boundsMin) || !IsFinite(boundsMax) || boundsMin.X > boundsMax.X ||
+            boundsMin.Y > boundsMax.Y || boundsMin.Z > boundsMax.Z)
+            return false;
+        if (!reader.TryReadSingle(out var metallic) || !reader.TryReadSingle(out var roughness))
+            return false;
+        if (!IsFactor(metallic) || !IsFactor(roughness))
+            return false;
+        if (!reader.TryReadVector3(out var baseColor) || !IsFinite(baseColor))
+            return false;
+        if (!reader.TryReadString(out var diffuse) || !reader.TryReadString(out var normal) ||
+            !reader.TryReadString(out var metallicRoughness) || !reader.TryReadString(out var occlusion))
+            return false;
+
+        var vertexBytes = (int)vertexCount * RuntimeMeshFormat.VertexLayoutStride;
+        if (!reader.TryReadBytes(vertexBytes, out var vertexData))
+            return false;
+
+        var indexBytes = (int)indexCount * 4;
+        if (!reader.TryReadBytes(indexBytes, out var indexData))
+            return false;
+
+        if (reader.Position > recordStart + byteLength)
+            return false;
+
+        var parsed = new SourceSubmesh
+        {
+            Name = name,
+            BoundsMin = boundsMin,
+            BoundsMax = boundsMax,
+            Metallic = metallic,
+            Roughness = roughness,
+            BaseColorFactor = baseColor,
+            DiffusePath = diffuse,
+            NormalPath = normal,
+            MetallicRoughnessPath = metallicRoughness,
+            OcclusionPath = occlusion
+        };
+
+        for (var v = 0; v < vertexCount; v++)
+        {
+            var slice = vertexData.Slice(v * RuntimeMeshFormat.VertexLayoutStride, RuntimeMeshFormat.VertexLayoutStride);
+            var vertex = RuntimeMeshVertexLayout.ReadVertex(slice);
+            if (!IsFinite(vertex.Position) || !IsFinite(vertex.Normal) || !IsFinite(vertex.TexCoord) ||
+                !IsFinite(vertex.Tangent) || !IsFinite(vertex.Bitangent))
+                return false;
+
+            parsed.Vertices.Add(vertex);
+        }
+
+        if (!RuntimeMeshVertexLayout.BoundsMatchPositions(boundsMin, boundsMax, parsed.Vertices))
+            return false;
+
+        for (var idx = 0; idx < indexCount; idx++)
+        {
+            var index = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(indexData.Slice(idx * 4, 4));
+            if (index >= vertexCount)
+                return false;
+
+            parsed.Indices.Add(index);
+        }
+
+        mesh = parsed;
         return true;
     }
 
