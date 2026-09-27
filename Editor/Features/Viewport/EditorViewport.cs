@@ -69,6 +69,9 @@ public sealed class EditorViewport(
     public EditorCamera Camera => _editorCamera;
     public Entity? HoveredEntity { get; private set; }
     public bool IsHovered { get; private set; }
+    public Vector2 WindowPos { get; private set; }
+    public Vector2 WindowSize { get; private set; }
+    public bool HasWindowRect { get; private set; }
 
     public void Initialize()
     {
@@ -99,6 +102,10 @@ public sealed class EditorViewport(
     {
         modelLoadService.Pump();
         ImGui.Begin("Viewport");
+
+        WindowPos = ImGui.GetWindowPos();
+        WindowSize = ImGui.GetWindowSize();
+        HasWindowRect = WindowSize.X > 1f && WindowSize.Y > 1f;
 
         IsHovered = ImGui.IsWindowHovered();
 
