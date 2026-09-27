@@ -8,5 +8,6 @@ public enum ShaderId
     Model,
     Depth,
     PointDepth,
-    Fxaa
+    Fxaa,
+    SelectionOutline
 }

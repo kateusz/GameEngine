@@ -22,4 +22,13 @@ public class EngineShaderPathsTests
         vert.ShouldBe(Path.Combine(dir, name + ".vert"));
         frag.ShouldBe(Path.Combine(dir, name + ".frag"));
     }
+
+    [Fact]
+    public void Resolve_SelectionOutline_ReusesFxaaVertexShader()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
+        var (vert, frag) = EngineShaderPaths.Resolve(ShaderId.SelectionOutline);
+        vert.ShouldBe(Path.Combine(dir, "fxaa.vert"));
+        frag.ShouldBe(Path.Combine(dir, "selectionOutline.frag"));
+    }
 }

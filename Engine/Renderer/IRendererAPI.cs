@@ -12,6 +12,12 @@ public interface IRendererAPI
     void BindDefaultFramebuffer();
     void SetBoundTexture2DFilterLinear();
     void DrawIndexed(IVertexArray vertexArray, uint count);
+
+    /// <summary>
+    /// Draws <paramref name="vertexArray"/> once for each element of <paramref name="instances"/>.
+    /// The vertex array must already be bound. Instance attributes are written onto that binding.
+    /// </summary>
+    void DrawIndexedInstanced(IVertexArray vertexArray, uint indexCount, ReadOnlySpan<MeshInstanceData> instances);
     void DrawArrays(IVertexArray vertexArray, uint vertexCount);
     void DrawLines(IVertexArray vertexArray, uint vertexCount);
     void SetLineWidth(float width);

@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
@@ -517,6 +518,74 @@ public class SceneRenderPipelineShadowTests
         model.Dispose();
     }
 
+    [Fact]
+    public void RenderScene_SameMesh_DrawsOneInstanceBatch()
+    {
+        var mesh = new Mesh("part");
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        RegisterProp(context, 1, overrideMaterial: false);
+        RegisterProp(context, 2, overrideMaterial: false);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshInstanceCounts.ShouldBe([2]);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_DifferentFactors_SplitsInstanceBatches()
+    {
+        var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        RegisterProp(context, 1, overrideMaterial: false);
+        RegisterProp(context, 2, overrideMaterial: true);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshInstanceCounts.Count.ShouldBe(2);
+        graphics.MeshInstanceCounts.Sum().ShouldBe(2);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void PackInstance_TransposesSoAttributeColumnsMatchUniformUpload()
+    {
+        var packed = Graphics3D.PackInstance(new MeshDrawInstance
+        {
+            Transform = Matrix4x4.CreateTranslation(3f, 4f, 5f),
+            EntityId = 7
+        });
+
+        Unsafe.SizeOf<MeshInstanceData>().ShouldBe(144);
+        packed.EntityId.ShouldBe(7);
+        packed.Model.M14.ShouldBe(3f);
+        packed.Model.M24.ShouldBe(4f);
+        packed.Model.M34.ShouldBe(5f);
+        packed.Model.M41.ShouldBe(0f);
+    }
+
     private static RecordingGraphics3D RenderCube(Matrix4x4 world, Matrix4x4 viewProjection)
     {
         var context = SceneWithSun();
@@ -579,6 +648,21 @@ public class SceneRenderPipelineShadowTests
         return mesh;
     }
 
+    private static void RegisterProp(Context context, int id, bool overrideMaterial)
+    {
+        var entity = new Entity(id, "prop");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent
+        {
+            ModelPath = @"C:\prop.glb",
+            Metallic = 1f,
+            Roughness = 0f,
+            Ao = 0f,
+            OverrideMaterial = overrideMaterial
+        });
+        context.Register(entity);
+    }
+
     private static Matrix4x4 ViewProjection(Vector3 eye)
     {
         var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
@@ -599,6 +683,7 @@ public class SceneRenderPipelineShadowTests
         public int BeginScenes { get; private set; }
         public int CubeDraws { get; private set; }
         public int MeshDraws { get; private set; }
+        public List<int> MeshInstanceCounts { get; } = [];
         public List<(float Metallic, float Roughness, float Ao)> CubeFactors { get; } = [];
         public List<(float Metallic, float Roughness, float Ao)> MeshFactors { get; } = [];
 
@@ -665,9 +750,26 @@ public class SceneRenderPipelineShadowTests
         public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
             float metallic = 0f, float roughness = 0.5f, float ao = 1f)
         {
+            DrawMeshInstances(mesh, [new MeshDrawInstance
+            {
+                Transform = transform,
+                EntityId = entityId,
+                Tint = tint,
+                Metallic = metallic,
+                Roughness = roughness,
+                Ao = ao
+            }]);
+        }
+
+        public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+        {
             MeshDraws++;
-            MeshFactors.Add((metallic, roughness, ao));
-            Order.Add("mesh");
+            MeshInstanceCounts.Add(instances.Length);
+            foreach (var instance in instances)
+            {
+                MeshFactors.Add((instance.Metallic, instance.Roughness, instance.Ao));
+                Order.Add("mesh");
+            }
         }
 
         public void SetAmbientLight(Vector3 color, float strength) { }

@@ -18,7 +18,7 @@ public class Program
             ConfigureContainer(container);
             
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
+                .MinimumLevel.Information()
                 .Enrich.WithProperty("Application", "Sandbox")
                 .Enrich.WithThreadId()
                 .WriteTo.Async(a =>

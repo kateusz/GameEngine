@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
@@ -50,6 +51,7 @@ internal sealed class Graphics3D(
     private readonly PointLightData[] _pointLights = new PointLightData[LightingMath.MaxPointLights];
     private int _pointLightCount;
 
+    private readonly List<MeshInstanceData> _instanceUpload = [];
     private readonly Statistics _stats = new();
     private bool _disposed;
 
@@ -206,18 +208,38 @@ internal sealed class Graphics3D(
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
         float metallic = 0f, float roughness = 0.5f, float ao = 1f)
     {
+        Span<MeshDrawInstance> one = stackalloc MeshDrawInstance[1];
+        one[0] = new MeshDrawInstance
+        {
+            Transform = transform,
+            EntityId = entityId,
+            Tint = tint,
+            Metallic = metallic,
+            Roughness = roughness,
+            Ao = ao
+        };
+        DrawMeshInstances(mesh, one);
+    }
+
+    public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    {
+        if (instances.IsEmpty)
+            return;
+
         if (_shadowPass)
         {
-            DrawShadow(mesh, transform);
+            _depthShader.SetInt("u_Instanced", 1);
+            UploadAndDraw(mesh, instances);
             return;
         }
 
         rendererApi.SetDepthTest(true);
-        BindCommon(_modelShader, transform, tint, entityId);
-
-        _modelShader.SetFloat("u_Metallic", metallic);
-        _modelShader.SetFloat("u_Roughness", roughness);
-        _modelShader.SetFloat("u_Ao", ao);
+        var first = instances[0];
+        _modelShader.Bind();
+        _modelShader.SetFloat4("u_Color", first.Tint);
+        _modelShader.SetFloat("u_Metallic", first.Metallic);
+        _modelShader.SetFloat("u_Roughness", first.Roughness);
+        _modelShader.SetFloat("u_Ao", first.Ao);
         _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
         _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
@@ -229,10 +251,20 @@ internal sealed class Graphics3D(
         (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
         (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
 
-        mesh.Bind();
-        rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
-        _stats.DrawCalls++;
+        UploadAndDraw(mesh, instances);
         _modelShader.Unbind();
+    }
+
+    private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    {
+        _instanceUpload.Clear();
+        foreach (var instance in instances)
+            _instanceUpload.Add(PackInstance(instance));
+
+        mesh.Bind();
+        rendererApi.DrawIndexedInstanced(
+            mesh.GetVertexArray(), (uint)mesh.GetIndexCount(), CollectionsMarshal.AsSpan(_instanceUpload));
+        _stats.DrawCalls++;
     }
 
     public void SetAmbientLight(Vector3 color, float strength)
@@ -291,6 +323,8 @@ internal sealed class Graphics3D(
     {
         var shader = _pointShadowPass ? _pointDepthShader : _depthShader;
         rendererApi.SetDepthTest(true);
+        if (!_pointShadowPass)
+            shader.SetInt("u_Instanced", 0);
         shader.SetMat4("u_Model", transform);
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
@@ -353,6 +387,16 @@ internal sealed class Graphics3D(
 
     private static Matrix4x4 ComputeNormalMatrix(Matrix4x4 model) =>
         Matrix4x4.Invert(model, out var inv) ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
+
+    /// <summary>
+    /// Attribute columns have no transpose flag, so the bytes are the transpose of the uniform upload.
+    /// </summary>
+    internal static MeshInstanceData PackInstance(MeshDrawInstance instance) => new()
+    {
+        Model = Matrix4x4.Transpose(instance.Transform),
+        Normal = Matrix4x4.Transpose(ComputeNormalMatrix(instance.Transform)),
+        EntityId = instance.EntityId
+    };
 
     public void ResetStats()
     {
