@@ -32,6 +32,7 @@ internal static class SceneRenderPipeline
     
     private static readonly PointLightData[] PointLightBuffer = new PointLightData[LightingMath.MaxPointLights];
     private static bool _shadowFitWarned;
+    private static bool _pointShadowWarned;
 
     public static void RenderScene(
         Context context,
@@ -147,6 +148,43 @@ internal static class SceneRenderPipeline
         {
             _shadowFitWarned = true;
             Logger.Warning("Directional shadow fit failed; drawing the frame without directional shadows");
+        }
+
+        Span<Matrix4x4> pointFaces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
+        for (var i = 0; view.PointShadows && i < pointCount; i++)
+        {
+            var light = PointLightBuffer[i];
+            if (!light.CastsShadow)
+                continue;
+            if (Vector3.Distance(view.ViewPosition, light.Position) > LightingMath.PointShadowDistance)
+                continue;
+            if (!LightingMath.TryBuildPointShadowFaces(light.Position, light.Range, pointFaces))
+                continue;
+
+            for (var face = 0; face < LightingMath.PointShadowFaceCount; face++)
+            {
+                if (!graphics3D.BeginPointShadowFace(i, face, pointFaces[face], light.Position, light.Range))
+                {
+                    if (!_pointShadowWarned)
+                    {
+                        _pointShadowWarned = true;
+                        Logger.Warning("Point shadow cubemap failed; drawing that light without a shadow");
+                    }
+
+                    break;
+                }
+
+                try
+                {
+                    DrawOpaque3D(
+                        context, graphics3D, textureFactory, modelFactory,
+                        meshDrawCounts: null, pointFaces[face]);
+                }
+                finally
+                {
+                    graphics3D.EndPointShadowFace();
+                }
+            }
         }
 
         graphics3D.BeginScene(view);
@@ -397,7 +435,8 @@ internal static class SceneRenderPipeline
                 transform.GetWorldTransform().Translation,
                 new Vector3(light.Color.X, light.Color.Y, light.Color.Z),
                 MathF.Max(0f, light.Intensity),
-                light.Range);
+                light.Range,
+                light.CastsShadow);
         }
 
         return count;

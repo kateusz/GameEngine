@@ -94,6 +94,30 @@ public class LightingMathTests
         }
     }
 
+    [Fact]
+    public void TryBuildPointShadowFaces_PointOnPositiveX_IsOnlyInThatFace()
+    {
+        var position = new Vector3(2f, 3f, 4f);
+        Span<Matrix4x4> faces = stackalloc Matrix4x4[6];
+        LightingMath.TryBuildPointShadowFaces(position, 10f, faces).ShouldBeTrue();
+
+        var onAxis = position + new Vector3(1f, 0f, 0f);
+        LightingMath.PointShadowFaceContains(faces[0], onAxis).ShouldBeTrue();
+        for (var i = 1; i < 6; i++)
+            LightingMath.PointShadowFaceContains(faces[i], onAxis).ShouldBeFalse();
+
+        var pastRange = position + new Vector3(11f, 0f, 0f);
+        for (var i = 0; i < 6; i++)
+            LightingMath.PointShadowFaceContains(faces[i], pastRange).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TryBuildPointShadowFaces_RangeAtNear_ReturnsFalse()
+    {
+        Span<Matrix4x4> faces = stackalloc Matrix4x4[6];
+        LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.PointShadowNear, faces).ShouldBeFalse();
+    }
+
     private static Matrix4x4 EditorViewProjection(float yaw, float pitch, float distance)
     {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(

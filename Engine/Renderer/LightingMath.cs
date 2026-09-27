@@ -26,8 +26,54 @@ internal static class LightingMath
     // The editor far plane is 1000. Fitting that makes one texel ~1 unit and turns the 0.002 window bias into ~4 world
     // units, which erases contact shadows and pops them when the camera crosses a texel. Upgrade path: cascades.
     public const float ShadowDistance = 50f;
+    public const int PointShadowFaceResolution = 512;
+    public const float PointShadowNear = 0.1f;
+    public const float PointShadowDistance = 20f;
+    public const int PointShadowFaceCount = 6;
     private const float ShadowExtentEpsilon = 1e-4f;
     private const float ShadowUpParallel = 0.99f;
+
+    private static readonly Vector3[] PointShadowDirections =
+    [
+        Vector3.UnitX, -Vector3.UnitX,
+        Vector3.UnitY, -Vector3.UnitY,
+        Vector3.UnitZ, -Vector3.UnitZ
+    ];
+
+    private static readonly Vector3[] PointShadowUps =
+    [
+        -Vector3.UnitY, -Vector3.UnitY,
+        Vector3.UnitZ, -Vector3.UnitZ,
+        -Vector3.UnitY, -Vector3.UnitY
+    ];
+
+    public static bool TryBuildPointShadowFaces(Vector3 position, float range, Span<Matrix4x4> faces)
+    {
+        if (faces.Length < PointShadowFaceCount || range <= PointShadowNear)
+            return false;
+
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView(
+            MathF.PI / 2f, 1f, PointShadowNear, range);
+        for (var i = 0; i < PointShadowFaceCount; i++)
+        {
+            var view = Matrix4x4.CreateLookAt(position, position + PointShadowDirections[i], PointShadowUps[i]);
+            faces[i] = view * projection;
+        }
+
+        return true;
+    }
+
+    internal static bool PointShadowFaceContains(Matrix4x4 face, Vector3 world)
+    {
+        var clip = Vector4.Transform(new Vector4(world, 1f), face);
+        if (MathF.Abs(clip.W) < ShadowExtentEpsilon)
+            return false;
+
+        var ndc = new Vector3(clip.X, clip.Y, clip.Z) / clip.W;
+        return ndc.X is >= -1f and <= 1f
+            && ndc.Y is >= -1f and <= 1f
+            && ndc.Z is >= 0f and <= 1f;
+    }
 
     public static bool TryFitDirectionalShadow(
         Matrix4x4 cameraViewProjection,

@@ -15,18 +15,27 @@ internal sealed class Graphics3D(
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const int ShadowMapSlot = 3;
+    private const int PointShadowSlot = 4;
+    private const int OcclusionMapSlot = 12;
     
     private static readonly string[] PointPositionUniforms = Names("u_PointLightPositions");
     private static readonly string[] PointColorUniforms = Names("u_PointLightColors");
     private static readonly string[] PointIntensityUniforms = Names("u_PointLightIntensities");
     private static readonly string[] PointRangeUniforms = Names("u_PointLightRanges");
+    private static readonly string[] PointShadowEnabledUniforms = Names("u_PointShadowsEnabled");
+    private static readonly string[] PointShadowMapUniforms = Names("u_PointShadowMaps");
     
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
     private IShader _depthShader = null!;
+    private IShader _pointDepthShader = null!;
     private Mesh _cubeMesh = null!;
     private IFrameBuffer? _shadowMap;
+    private readonly IFrameBuffer?[] _pointShadowMaps = new IFrameBuffer[LightingMath.MaxPointLights];
+    private readonly bool[] _pointShadowEnabled = new bool[LightingMath.MaxPointLights];
     private bool _shadowPass;
+    private bool _pointShadowPass;
+    private IFrameBuffer? _activePointMap;
     private Matrix4x4 _lightViewProjection = Matrix4x4.Identity;
     private bool _shadowsEnabled;
 
@@ -48,10 +57,13 @@ internal sealed class Graphics3D(
         _cubeShader = shaderFactory.Create(ShaderId.Cube);
         _modelShader = shaderFactory.Create(ShaderId.Model);
         _depthShader = shaderFactory.Create(ShaderId.Depth);
+        _pointDepthShader = shaderFactory.Create(ShaderId.PointDepth);
         _cubeMesh = meshFactory.CreateCube();
 
         _cubeShader.Bind();
         _cubeShader.SetInt("u_ShadowMap", ShadowMapSlot);
+        for (var i = 0; i < LightingMath.MaxPointLights; i++)
+            _cubeShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _cubeShader.Unbind();
 
         _modelShader.Bind();
@@ -59,7 +71,9 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_MetallicRoughnessMap", 1);
         _modelShader.SetInt("u_NormalMap", 2);
         _modelShader.SetInt("u_ShadowMap", ShadowMapSlot);
-        _modelShader.SetInt("u_OcclusionMap", 4);
+        _modelShader.SetInt("u_OcclusionMap", OcclusionMapSlot);
+        for (var i = 0; i < LightingMath.MaxPointLights; i++)
+            _modelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _modelShader.Unbind();
     }
 
@@ -85,6 +99,51 @@ internal sealed class Graphics3D(
     {
         _depthShader.Unbind();
         _shadowMap?.Unbind();
+        _shadowPass = false;
+    }
+
+    public bool BeginPointShadowFace(
+        int lightIndex, int face, Matrix4x4 viewProjection, Vector3 lightPosition, float range)
+    {
+        if ((uint)lightIndex >= LightingMath.MaxPointLights || (uint)face >= LightingMath.PointShadowFaceCount)
+            return false;
+
+        IFrameBuffer map;
+        try
+        {
+            map = PointShadowMap(lightIndex);
+        }
+        catch (Exception)
+        {
+            _pointShadowEnabled[lightIndex] = false;
+            return false;
+        }
+
+        _shadowPass = true;
+        _pointShadowPass = true;
+        _activePointMap = map;
+        map.Bind();
+        map.BindDepthCubemapFace(face);
+        rendererApi.SetDepthTest(true);
+        rendererApi.SetDepthWrite(true);
+        rendererApi.Clear();
+        rendererApi.SetCullFrontFaces(true);
+
+        _pointDepthShader.Bind();
+        _pointDepthShader.SetMat4(ViewProjectionUniform, viewProjection);
+        _pointDepthShader.SetFloat3("u_LightPosition", lightPosition);
+        _pointDepthShader.SetFloat("u_LightRange", range);
+        _pointShadowEnabled[lightIndex] = true;
+        return true;
+    }
+
+    public void EndPointShadowFace()
+    {
+        _pointDepthShader.Unbind();
+        _activePointMap?.Unbind();
+        _activePointMap = null;
+        rendererApi.SetCullFrontFaces(false);
+        _pointShadowPass = false;
         _shadowPass = false;
     }
 
@@ -153,7 +212,7 @@ internal sealed class Graphics3D(
         (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
         (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
         (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
-        (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(4);
+        (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
 
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
@@ -178,6 +237,7 @@ internal sealed class Graphics3D(
         _pointLightCount = System.Math.Min(lights.Length, LightingMath.MaxPointLights);
         lights[.._pointLightCount].CopyTo(_pointLights);
         Array.Clear(_pointLights, _pointLightCount, LightingMath.MaxPointLights - _pointLightCount);
+        Array.Clear(_pointShadowEnabled);
     }
 
     private void UploadFrame(IShader shader)
@@ -201,16 +261,41 @@ internal sealed class Graphics3D(
         shader.SetInt("u_ShadowsEnabled", _shadowsEnabled ? 1 : 0);
         if (_shadowsEnabled && _shadowMap != null)
             rendererApi.BindTexture2D(_shadowMap.GetDepthAttachmentRendererId(), ShadowMapSlot);
+        for (var i = 0; i < LightingMath.MaxPointLights; i++)
+        {
+            shader.SetInt(PointShadowEnabledUniforms[i], _pointShadowEnabled[i] ? 1 : 0);
+            if (_pointShadowEnabled[i] && _pointShadowMaps[i] != null)
+                rendererApi.BindTextureCube(_pointShadowMaps[i]!.GetDepthAttachmentRendererId(), PointShadowSlot + i);
+        }
         shader.Unbind();
     }
 
     private void DrawShadow(Mesh mesh, Matrix4x4 transform)
     {
+        var shader = _pointShadowPass ? _pointDepthShader : _depthShader;
         rendererApi.SetDepthTest(true);
-        _depthShader.SetMat4("u_Model", transform);
+        shader.SetMat4("u_Model", transform);
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         _stats.DrawCalls++;
+    }
+
+    private IFrameBuffer PointShadowMap(int lightIndex)
+    {
+        var existing = _pointShadowMaps[lightIndex];
+        if (existing != null)
+            return existing;
+
+        var size = (uint)LightingMath.PointShadowFaceResolution;
+        var spec = new FrameBufferSpecification(size, size)
+        {
+            AttachmentsSpec = new FrameBufferAttachmentSpecification([
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.DepthCubemap)
+            ])
+        };
+        var map = frameBuffers.Create(spec);
+        _pointShadowMaps[lightIndex] = map;
+        return map;
     }
 
     private IFrameBuffer ShadowMap()
@@ -271,11 +356,17 @@ internal sealed class Graphics3D(
 
         _shadowMap?.Dispose();
         _shadowMap = null;
+        for (var i = 0; i < _pointShadowMaps.Length; i++)
+        {
+            _pointShadowMaps[i]?.Dispose();
+            _pointShadowMaps[i] = null;
+        }
 
         // Factory owns shader and cube-mesh lifetime; just release our references
         _cubeShader = null!;
         _modelShader = null!;
         _depthShader = null!;
+        _pointDepthShader = null!;
         _cubeMesh = null!;
 
         _disposed = true;

@@ -7,5 +7,6 @@ public enum ShaderId
     Cube,
     Model,
     Depth,
+    PointDepth,
     Fxaa
 }

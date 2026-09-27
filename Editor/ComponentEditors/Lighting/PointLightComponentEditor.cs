@@ -19,5 +19,7 @@ public class PointLightComponentEditor(UIPropertyRenderer propertyRenderer, IEdi
             newValue => component.Intensity = (float)newValue);
         propertyRenderer.DrawPropertyField("Range", component.Range,
             newValue => component.Range = (float)newValue);
+        propertyRenderer.DrawPropertyField("Casts Shadow", component.CastsShadow,
+            newValue => component.CastsShadow = (bool)newValue);
     }
 }

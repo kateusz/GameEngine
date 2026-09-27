@@ -355,8 +355,13 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
-        gl.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, id, 0);
-        OpenGLDebug.CheckError(gl, "FramebufferTexture (point shadow cubemap)");
+        gl.FramebufferTexture2D(
+            FramebufferTarget.Framebuffer,
+            FramebufferAttachment.DepthAttachment,
+            TextureTarget.TextureCubeMapPositiveX,
+            id,
+            0);
+        OpenGLDebug.CheckError(gl, "FramebufferTexture2D (point shadow cubemap +X)");
     }
 
     private static unsafe void AttachShadowDepthTexture(

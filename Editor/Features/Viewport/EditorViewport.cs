@@ -283,7 +283,10 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
-                    var view = new SceneView(_editorCamera.GetViewProjectionMatrix(), _editorCamera.GetPosition());
+                    var view = new SceneView(
+                        _editorCamera.GetViewProjectionMatrix(),
+                        _editorCamera.GetPosition(),
+                        PointShadows: false);
                     SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view);
                     RenderEditor2DOverlays(scene.Context, view);
                 }
