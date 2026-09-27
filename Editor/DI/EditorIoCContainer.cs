@@ -23,6 +23,7 @@ using Editor.Features.Application;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
+using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scripting;
 using GameComponentEditor = Editor.ComponentEditors.GameComponentEditor;
@@ -120,6 +121,7 @@ public static class EditorIoCContainer
         container.Register<ViewportToolManager>(Reuse.Singleton);
 
         container.Register<IEditorCameraController, EditorCameraController>(Reuse.Singleton);
+        container.Register<SelectionOutlinePass>(Reuse.Singleton);
         container.Register<IEditorViewport, EditorViewport>(Reuse.Singleton);
         container.Register<CameraGizmoDrawer>(Reuse.Singleton);
         container.Register<EditorMenuBar>(Reuse.Singleton);

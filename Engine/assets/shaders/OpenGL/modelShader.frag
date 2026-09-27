@@ -10,7 +10,6 @@ in mat3 v_TBN;
 flat in int v_EntityID;
 
 uniform vec4 u_Color;
-uniform int  u_EntityID;
 uniform vec3 u_AmbientColor;
 uniform float u_AmbientStrength;
 uniform vec3 u_LightDirection;
@@ -211,5 +210,5 @@ void main()
     vec3 lamps = PointLights(norm, V, v_FragPos, albedo, metallic, roughness);
     vec3 ambient = u_AmbientStrength * u_AmbientColor * albedo * ao;
     o_Color = vec4(Encode(ambient + sun + lamps), u_Color.a);
-    o_EntityID = u_EntityID;
+    o_EntityID = v_EntityID;
 }

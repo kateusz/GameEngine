@@ -60,6 +60,64 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "DrawElements");
     }
 
+    public unsafe void DrawIndexedInstanced(IVertexArray vertexArray, uint indexCount, ReadOnlySpan<MeshInstanceData> instances)
+    {
+        if (instances.IsEmpty)
+            return;
+
+        var count = indexCount != 0 ? indexCount : (uint)vertexArray.IndexBuffer.Count;
+        BindInstanceBuffer(instances);
+
+        SilkNetContext.GL.DrawElementsInstanced(
+            PrimitiveType.Triangles, count, DrawElementsType.UnsignedInt, (void*)0, (uint)instances.Length);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "DrawElementsInstanced");
+    }
+
+    private uint _meshInstanceBuffer; // process lifetime; the GL context owns it until exit
+
+    private unsafe void BindInstanceBuffer(ReadOnlySpan<MeshInstanceData> instances)
+    {
+        var gl = SilkNetContext.GL;
+        if (_meshInstanceBuffer == 0)
+            _meshInstanceBuffer = gl.GenBuffer();
+
+        gl.BindBuffer(BufferTargetARB.ArrayBuffer, _meshInstanceBuffer);
+        fixed (MeshInstanceData* data = instances)
+        {
+            gl.BufferData(
+                BufferTargetARB.ArrayBuffer,
+                (nuint)(instances.Length * sizeof(MeshInstanceData)),
+                data,
+                BufferUsageARB.DynamicDraw);
+        }
+
+        OpenGLDebug.CheckError(gl, "BufferData(mesh instances)");
+
+        var stride = (uint)sizeof(MeshInstanceData);
+        // Locations 0–5 are the mesh. A mat4 uses four locations. Set every draw so each mesh VAO records the shared buffer.
+        EnableMat4(gl, startLocation: 6, byteOffset: 0, stride);
+        EnableMat4(gl, startLocation: 10, byteOffset: MeshInstanceData.NormalByteOffset, stride);
+        EnableInt(gl, location: 14, byteOffset: MeshInstanceData.EntityIdByteOffset, stride);
+    }
+
+    private static unsafe void EnableMat4(GL gl, uint startLocation, int byteOffset, uint stride)
+    {
+        for (uint column = 0; column < 4; column++)
+        {
+            var location = startLocation + column;
+            gl.EnableVertexAttribArray(location);
+            gl.VertexAttribPointer(location, 4, VertexAttribPointerType.Float, false, stride, (void*)(byteOffset + column * 16));
+            gl.VertexAttribDivisor(location, 1);
+        }
+    }
+
+    private static unsafe void EnableInt(GL gl, uint location, int byteOffset, uint stride)
+    {
+        gl.EnableVertexAttribArray(location);
+        gl.VertexAttribIPointer(location, 1, VertexAttribIType.Int, stride, (void*)byteOffset);
+        gl.VertexAttribDivisor(location, 1);
+    }
+
     public void DrawArrays(IVertexArray vertexArray, uint vertexCount)
     {
         vertexArray.Bind();

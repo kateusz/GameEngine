@@ -19,7 +19,7 @@ public class Program
     public static int Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
+            .MinimumLevel.Information()
             .Enrich.WithProperty("Application", "GameEngine")
             .Enrich.WithThreadId()
             .WriteTo.Async(a => a.Console(outputTemplate: "[{Timestamp:HH:mm:ss}] [{Level:u3}] {Message:lj}{NewLine}{Exception}"))

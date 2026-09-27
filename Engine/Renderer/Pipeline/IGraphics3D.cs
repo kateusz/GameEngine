@@ -12,6 +12,11 @@ public interface IGraphics3D : IGraphics
         float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f);
     void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
         float metallic = 0f, float roughness = 0.5f, float ao = 1f);
+
+    /// <summary>
+    /// One draw for every entry. Callers group by mesh and by tint / metallic / roughness / AO.
+    /// </summary>
+    void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances);
     void SetAmbientLight(Vector3 color, float strength);
     void SetDirectionalLight(Vector3 direction, Vector3 color);
     void SetPointLights(ReadOnlySpan<PointLightData> lights);
@@ -25,4 +30,14 @@ public interface IGraphics3D : IGraphics
     void EndPointShadowFace();
     void ResetStats();
     Statistics GetStats();
+}
+
+public readonly struct MeshDrawInstance
+{
+    public Matrix4x4 Transform { get; init; }
+    public int EntityId { get; init; }
+    public Vector4 Tint { get; init; }
+    public float Metallic { get; init; }
+    public float Roughness { get; init; }
+    public float Ao { get; init; }
 }

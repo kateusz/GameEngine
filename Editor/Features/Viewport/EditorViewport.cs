@@ -44,6 +44,7 @@ public sealed class EditorViewport(
     IModelFactory modelFactory,
     IEditorHistory history,
     FxaaPass fxaaPass,
+    SelectionOutlinePass selectionOutlinePass,
     IEditorPreferences editorPreferences)
     : IEditorViewport
 {
@@ -108,6 +109,8 @@ public sealed class EditorViewport(
         RenderSceneToFramebuffer(deltaTime);
 
         var display = editorPreferences.Fxaa ? fxaaPass.Resolve(_frameBuffer) : _frameBuffer;
+        if (selection.SelectedEntity is { } selected)
+            display = selectionOutlinePass.Resolve(display, _frameBuffer, selected.Id);
         var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 

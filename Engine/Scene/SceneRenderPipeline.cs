@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using ECS;
 using Engine.Project;
 using Engine.Renderer;
@@ -19,8 +20,6 @@ internal static class SceneRenderPipeline
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
 
     private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<Mesh, int> MeshDrawCounts = new();
-    private static long _nextDrawLogTicks;
 
     private static readonly Vector2[] DefaultTextureCoords =
     [
@@ -130,19 +129,12 @@ internal static class SceneRenderPipeline
         var pointCount = ResolvePointLights(context, PointLightBuffer);
         graphics3D.SetPointLights(PointLightBuffer.AsSpan(0, pointCount));
 
-        var logFrame = Environment.TickCount64 >= _nextDrawLogTicks;
-        if (logFrame)
-            MeshDrawCounts.Clear();
-
         graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
-        PassStats? shadow = null;
         if (lightColor != Vector3.Zero &&
             LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
         {
             graphics3D.BeginShadowPass(lightViewProjection);
-            shadow = DrawOpaque3D(
-                context, graphics3D, textureFactory, modelFactory,
-                meshDrawCounts: null, lightViewProjection);
+            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, lightViewProjection);
             graphics3D.EndShadowPass();
             graphics3D.SetDirectionalShadow(lightViewProjection, true);
         }
@@ -210,9 +202,7 @@ internal static class SceneRenderPipeline
 
                     try
                     {
-                        DrawOpaque3D(
-                            context, graphics3D, textureFactory, modelFactory,
-                            meshDrawCounts: null, pointFaces[face]);
+                        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face]);
                     }
                     finally
                     {
@@ -228,26 +218,15 @@ internal static class SceneRenderPipeline
         }
 
         graphics3D.BeginScene(view);
-        var color = DrawOpaque3D(
-            context, graphics3D, textureFactory, modelFactory,
-            meshDrawCounts: logFrame ? MeshDrawCounts : null, view.ViewProjection);
+        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
         graphics3D.EndScene();
-
-        if (!logFrame)
-            return;
-
-        _nextDrawLogTicks = Environment.TickCount64 + 1000;
-        if (color.MeshDraws == 0 && color.CubeDraws == 0 && color.Culled == 0
-            && (shadow is null || (shadow.Value.MeshDraws == 0 && shadow.Value.Culled == 0)))
-            return;
-
-        LogDrawStats(shadow, color);
     }
 
     private struct PassStats
     {
         public int Renderers;
         public int MeshDraws;
+        public int Instances;
         public int CubeDraws;
         public int Culled;
         public int MissingMeshIndex;
@@ -340,76 +319,81 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
-        Dictionary<Mesh, int>? meshDrawCounts,
         Matrix4x4 cullMatrix)
     {
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
         var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
-        foreach (var (entity, modelRenderer, transformComponent) in
-                 context.View<ModelRendererComponent, TransformComponent>())
+        try
         {
-            stats.Renderers++;
-            var transform = transformComponent.GetWorldTransform();
-            if (!TryResolveOpaqueSurface(
-                    modelRenderer, transform, modelFactory,
-                    out _, out var kind, out var model, out var submeshIndex))
+            foreach (var (entity, modelRenderer, transformComponent) in
+                     context.View<ModelRendererComponent, TransformComponent>())
             {
-                if (modelRenderer.MeshIndex is int meshIndex
-                    && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
-                    && modelFactory != null)
+                stats.Renderers++;
+                var transform = transformComponent.GetWorldTransform();
+                if (!TryResolveOpaqueSurface(
+                        modelRenderer, transform, modelFactory,
+                        out _, out var kind, out var model, out var submeshIndex))
                 {
-                    var loaded = modelFactory.Create(PathBuilder.Resolve(modelRenderer.ModelPath));
-                    if (loaded != null && (meshIndex < 0 || meshIndex >= loaded.Submeshes.Count))
-                        stats.MissingMeshIndex++;
+                    if (modelRenderer.MeshIndex is int meshIndex
+                        && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
+                        && modelFactory != null)
+                    {
+                        var loaded = modelFactory.Create(PathBuilder.Resolve(modelRenderer.ModelPath));
+                        if (loaded != null && (meshIndex < 0 || meshIndex >= loaded.Submeshes.Count))
+                            stats.MissingMeshIndex++;
+                    }
+
+                    continue;
                 }
 
-                continue;
-            }
-
-            var tint = modelRenderer.Color;
-            if (kind == OpaqueSurfaceKind.UnitCube)
-            {
-                if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+                var tint = modelRenderer.Color;
+                if (kind == OpaqueSurfaceKind.UnitCube)
                 {
-                    var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-                    if (WarnedFailedModels.Add(resolvedPath))
-                        Logger.Warning(
-                            "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                            modelRenderer.ModelPath, resolvedPath);
+                    if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+                    {
+                        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+                        if (WarnedFailedModels.Add(resolvedPath))
+                            Logger.Warning(
+                                "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
+                                modelRenderer.ModelPath, resolvedPath);
+                    }
+
+                    if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
+                        continue;
+
+                    var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
+                    if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
+                        DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors);
+                    else
+                        graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id,
+                            metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao);
+                    stats.CubeDraws++;
+                    continue;
                 }
 
-                if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
+                if (kind == OpaqueSurfaceKind.SingleSubmesh)
+                {
+                    var submesh = model!.Submeshes[submeshIndex];
+                    if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
+                        continue;
+
+                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
                     continue;
+                }
 
-                var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
-                if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
-                    DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors);
-                else
-                    graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id,
-                        metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao);
-                stats.CubeDraws++;
-                continue;
+                foreach (var submesh in model!.Submeshes)
+                {
+                    if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
+                        continue;
+
+                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                }
             }
-
-            if (kind == OpaqueSurfaceKind.SingleSubmesh)
-            {
-                var submesh = model!.Submeshes[submeshIndex];
-                if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
-                    continue;
-
-                DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh,
-                    ref stats, meshDrawCounts);
-                continue;
-            }
-
-            foreach (var submesh in model!.Submeshes)
-            {
-                if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
-                    continue;
-
-                DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh, ref stats, meshDrawCounts);
-            }
+        }
+        finally
+        {
+            FlushMeshBatches(graphics3D, ref stats);
         }
 
         stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
@@ -425,50 +409,61 @@ internal static class SceneRenderPipeline
         return true;
     }
 
-    private static void DrawSubmesh(
-        IGraphics3D graphics3D,
+    private readonly record struct MeshBatchKey(Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao);
+
+    private static readonly Dictionary<MeshBatchKey, List<MeshDrawInstance>> MeshBatches = new();
+    private static readonly Stack<List<MeshDrawInstance>> BatchLists = new();
+
+    private static void QueueSubmesh(
         ModelRendererComponent modelRenderer,
         Matrix4x4 transform,
         Vector4 tint,
         int entityId,
         Mesh submesh,
-        ref PassStats stats,
-        Dictionary<Mesh, int>? meshDrawCounts)
+        ref PassStats stats)
     {
-        stats.MeshDraws++;
+        stats.Instances++;
         stats.Vertices += submesh.VertexCount;
         stats.Indices += submesh.GetIndexCount();
-        if (meshDrawCounts != null)
-        {
-            meshDrawCounts.TryGetValue(submesh, out var count);
-            meshDrawCounts[submesh] = count + 1;
-        }
 
         var pbr = ResolvePbr(cube: false, modelRenderer, submesh.MetallicFactor, submesh.RoughnessFactor);
-        graphics3D.DrawMesh(transform, submesh, tint, entityId, pbr.Metallic, pbr.Roughness, pbr.Ao);
+        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao);
+        if (!MeshBatches.TryGetValue(key, out var batch))
+        {
+            batch = BatchLists.Count > 0 ? BatchLists.Pop() : [];
+            MeshBatches[key] = batch;
+        }
+
+        batch.Add(new MeshDrawInstance
+        {
+            Transform = transform,
+            EntityId = entityId,
+            Tint = tint,
+            Metallic = pbr.Metallic,
+            Roughness = pbr.Roughness,
+            Ao = pbr.Ao
+        });
     }
 
-    private static void LogDrawStats(PassStats? shadow, PassStats color)
+    private static void FlushMeshBatches(IGraphics3D graphics3D, ref PassStats stats)
     {
-        if (shadow is { } shadowPass)
-            Logger.Information(
-                "3D shadow pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} culled={Culled} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
-                shadowPass.Renderers, shadowPass.MeshDraws, shadowPass.CubeDraws, shadowPass.Culled, shadowPass.MissingMeshIndex,
-                shadowPass.Vertices, shadowPass.Indices, shadowPass.Indices / 3, shadowPass.CpuMs);
-
-        Logger.Information(
-            "3D color pass renderers={Renderers} meshDraws={MeshDraws} cubeDraws={CubeDraws} culled={Culled} uniqueMeshes={UniqueMeshes} missingMeshIndex={MissingMeshIndex} vertices={Vertices} indices={Indices} triangles={Triangles} cpuMs={CpuMs:0.0}",
-            color.Renderers, color.MeshDraws, color.CubeDraws, color.Culled, MeshDrawCounts.Count, color.MissingMeshIndex,
-            color.Vertices, color.Indices, color.Indices / 3, color.CpuMs);
-
-        foreach (var pair in MeshDrawCounts.OrderByDescending(p => p.Value).Take(8))
+        try
         {
-            var mesh = pair.Key;
-            var indexCount = mesh.GetIndexCount();
-            Logger.Information(
-                "3D repeated mesh draws={Draws} vertices={Vertices} indices={Indices} triangles={Triangles} submittedVertices={SubmittedVertices} name={Name}",
-                pair.Value, mesh.VertexCount, indexCount, indexCount / 3,
-                (long)pair.Value * mesh.VertexCount, mesh.Name);
+            foreach (var (key, batch) in MeshBatches)
+            {
+                graphics3D.DrawMeshInstances(key.Mesh, CollectionsMarshal.AsSpan(batch));
+                stats.MeshDraws++;
+            }
+        }
+        finally
+        {
+            foreach (var batch in MeshBatches.Values)
+            {
+                batch.Clear();
+                BatchLists.Push(batch);
+            }
+
+            MeshBatches.Clear();
         }
     }
 
