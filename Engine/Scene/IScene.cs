@@ -109,6 +109,12 @@ public interface IScene : IDisposable, IEntityHierarchy
     /// </summary>
     void UpdateWorldTransforms();
 
+    /// <summary>
+    /// Sets <see cref="SceneComponents.TransformComponent.Visible"/> on <paramref name="root"/>
+    /// and every descendant that has a transform, then refreshes world/effective caches.
+    /// </summary>
+    void SetSubtreeVisible(Entity root, bool visible);
+
     /// <summary>Entities with no parent (scene roots), in registration order.</summary>
     IReadOnlyList<Entity> GetRootEntities();
 

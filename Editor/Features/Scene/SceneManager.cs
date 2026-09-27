@@ -47,29 +47,37 @@ public class SceneManager(
 
     public void Open(string path) => Open(path, null);
 
-    public void Open(string path, JsonObject? parsedRoot)
+    public IReadOnlyList<string> Open(string path, JsonObject? parsedRoot)
     {
         if (sceneContext.State != SceneState.Edit)
             Stop();
 
         ClearPlaySession();
-        sceneContext.ActiveScene?.Dispose();
-        EditorScenePath = null;
 
-        EditorScenePath = path;
         var scene = sceneFactory.Create(Path.GetFileNameWithoutExtension(path));
 
         if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
             scriptWorkspace.EnsureScriptsCompiledAndApplied();
 
-        if (parsedRoot is not null)
-            sceneSerializer.Deserialize(scene, parsedRoot);
-        else
-            sceneSerializer.Deserialize(scene, path);
+        IReadOnlyList<string> skipped;
+        try
+        {
+            skipped = parsedRoot is not null
+                ? sceneSerializer.Deserialize(scene, parsedRoot)
+                : sceneSerializer.Deserialize(scene, path);
+        }
+        catch
+        {
+            scene.Dispose();
+            throw;
+        }
 
+        sceneContext.ActiveScene?.Dispose();
+        EditorScenePath = path;
         sceneContext.SetScene(scene);
         CaptureCleanSnapshot();
         Logger.Information("📂 Scene opened: {Path}", path);
+        return skipped;
     }
 
     public void Save(bool compileScripts = true)

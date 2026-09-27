@@ -120,6 +120,9 @@ public static class LayoutDrawer
     public static void DrawComboBox(string label, string currentItem, string[] items, Action<string> onSelected,
         float width = EditorUIConstants.WideColumnWidth)
     {
+        if (!PropertySearch.Matches(label))
+            return;
+
         ImGui.SetNextItemWidth(width);
         if (ImGui.BeginCombo(label, currentItem))
         {

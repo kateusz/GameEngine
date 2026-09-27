@@ -350,6 +350,7 @@ public class TransformComponentTests
         clone.Translation.ShouldBe(original.Translation);
         clone.Rotation.ShouldBe(original.Rotation);
         clone.Scale.ShouldBe(original.Scale);
+        clone.Visible.ShouldBe(original.Visible);
     }
 
     [Fact]

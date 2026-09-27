@@ -78,6 +78,7 @@ public class EditorDockspace(
                 ref _sceneLoadingSpinnerRotation);
 
         sceneLoadService.Pump();
+        sceneLoadService.Render();
     }
 
     private void TickAutosave(TimeSpan deltaTime)

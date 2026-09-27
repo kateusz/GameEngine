@@ -8,6 +8,9 @@ public static class VectorPanel
 {
     public static void DrawVec2Control(string label, ref Vector2 values, float resetValue = 0.0f)
     {
+        if (!PropertySearch.Matches(label))
+            return;
+
         ImGui.PushID(label);
 
         BeginVectorRow(label, 2, out var inputWidth);
@@ -22,6 +25,9 @@ public static class VectorPanel
     
     public static void DrawVec3Control(string label, ref Vector3 values, float resetValue = 0.0f)
     {
+        if (!PropertySearch.Matches(label))
+            return;
+
         ImGui.PushID(label);
 
         BeginVectorRow(label, 3, out var inputWidth);

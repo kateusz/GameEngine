@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Serialization;
 using ECS;
 using Math;
 using SceneComponents.Physics;
@@ -49,6 +50,13 @@ public class TransformComponent : IComponent
         }
     }
 
+    /// <summary>Local render visibility. Default true. Cascades via EffectiveVisible.</summary>
+    public bool Visible { get; set; } = true;
+
+    /// <summary>Runtime cache from the hierarchy walk. Not serialized.</summary>
+    [JsonIgnore]
+    public bool EffectiveVisible { get; set; } = true;
+
     public TransformComponent()
     {
         _translation = Vector3.Zero;
@@ -89,6 +97,6 @@ public class TransformComponent : IComponent
 
     public IComponent Clone()
     {
-        return new TransformComponent(_translation, _rotation, _scale);
+        return new TransformComponent(_translation, _rotation, _scale) { Visible = Visible };
     }
 }

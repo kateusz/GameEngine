@@ -67,7 +67,6 @@ internal sealed class Scene : IScene
     {
         var entity = new Entity(_nextEntityId++, name);
         Context.Register(entity);
-
         return entity;
     }
 
@@ -379,7 +378,18 @@ internal sealed class Scene : IScene
     public void UpdateWorldTransforms()
     {
         foreach (var root in GetRootEntities())
-            ComputeWorldTransform(root, Matrix4x4.Identity);
+            ComputeWorldTransform(root, Matrix4x4.Identity, parentEffective: true);
+    }
+
+    public void SetSubtreeVisible(Entity root, bool visible)
+    {
+        foreach (var entity in CollectSubtree(root))
+        {
+            if (entity.TryGetComponent<TransformComponent>(out var transform))
+                transform.Visible = visible;
+        }
+
+        UpdateWorldTransforms();
     }
 
     public Vector3 GetWorldPosition(Entity entity)
@@ -390,10 +400,14 @@ internal sealed class Scene : IScene
         return transform.GetWorldTransform().Translation;
     }
 
-    private void ComputeWorldTransform(Entity entity, Matrix4x4 parentWorld)
+    private void ComputeWorldTransform(Entity entity, Matrix4x4 parentWorld, bool parentEffective)
     {
+        var effective = parentEffective;
         if (entity.TryGetComponent<TransformComponent>(out var transform))
         {
+            effective = transform.Visible && parentEffective;
+            transform.EffectiveVisible = effective;
+
             // Row-vector convention: local then parent → local * parentWorld
             var world = transform.GetTransform() * parentWorld;
             transform.SetWorldTransform(world);
@@ -401,7 +415,7 @@ internal sealed class Scene : IScene
         }
 
         foreach (var child in GetChildren(entity))
-            ComputeWorldTransform(child, parentWorld);
+            ComputeWorldTransform(child, parentWorld, effective);
     }
 
     private void DetachFromParentIndex(Entity child)

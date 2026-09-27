@@ -1,5 +1,6 @@
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Scene;
 using ImGuiNET;
 
 namespace Editor.Features.Scene;
@@ -7,10 +8,11 @@ namespace Editor.Features.Scene;
 /// <summary>
 /// Handles scene-related UI popups and modals in the editor.
 /// </summary>
-public class SceneSettingsPopup(ISceneManager sceneManager)
+public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneContext)
 {
     private bool _showNewScenePopup;
     private bool _showCloseConfirmation;
+    private bool _showSettings;
     private string _newSceneName = string.Empty;
     private string _newSceneError = string.Empty;
 
@@ -21,6 +23,8 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
 
     public void ShowCloseConfirmation() => _showCloseConfirmation = true;
 
+    public void ShowSettings() => _showSettings = true;
+
     /// <summary>
     /// Renders all scene-related modals.
     /// Must be called from the main render loop.
@@ -29,6 +33,30 @@ public class SceneSettingsPopup(ISceneManager sceneManager)
     {
         RenderNewScenePopup();
         RenderCloseConfirmationModal();
+        RenderSettingsModal();
+    }
+
+    private void RenderSettingsModal()
+    {
+        if (!ModalDrawer.BeginCenteredModal("Scene Settings", ref _showSettings))
+            return;
+
+        if (sceneContext.ActiveScene is not { } scene)
+        {
+            ImGui.TextUnformatted("No scene open.");
+            ModalDrawer.EndModal();
+            return;
+        }
+
+        var backgroundColor = scene.BackgroundColor;
+        if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
+                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
+                ImGuiColorEditFlags.NoOptions))
+        {
+            scene.BackgroundColor = backgroundColor;
+        }
+
+        ModalDrawer.EndModal();
     }
 
     private void RenderNewScenePopup()

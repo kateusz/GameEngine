@@ -72,6 +72,9 @@ internal static class SceneRenderPipeline
         foreach (var (entity, spriteRendererComponent, transformComponent) in
                  context.View<SpriteRendererComponent, TransformComponent>())
         {
+            if (ShouldSkipForEntityVisibility(entity))
+                continue;
+
             if (spriteRendererComponent.Color.W <= 0f)
                 continue;
 
@@ -107,6 +110,9 @@ internal static class SceneRenderPipeline
         foreach (var (entity, subtextureComponent, transformComponent) in
                  context.View<SubTextureRendererComponent, TransformComponent>())
         {
+            if (ShouldSkipForEntityVisibility(entity))
+                continue;
+
             if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
                 continue;
 
@@ -474,6 +480,9 @@ internal static class SceneRenderPipeline
                      context.View<ModelRendererComponent, TransformComponent>())
             {
                 stats.Renderers++;
+                if (ShouldSkipForEntityVisibility(entity))
+                    continue;
+
                 if (ShouldSkipForVisibilityZone(modelRenderer.VisibilityZoneEntityId, context, ref stats))
                     continue;
 
@@ -599,6 +608,10 @@ internal static class SceneRenderPipeline
                 ActiveVisibilityZoneEntityIds.Add(entity.Id);
         }
     }
+
+    private static bool ShouldSkipForEntityVisibility(Entity entity) =>
+        entity.TryGetComponent<TransformComponent>(out var transform)
+        && !transform.EffectiveVisible;
 
     private static bool ShouldSkipForVisibilityZone(int visibilityZoneEntityId, Context context, ref PassStats stats)
     {
@@ -783,6 +796,9 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
+            if (ShouldSkipForEntityVisibility(entity))
+                continue;
+
             var transform = ModelMeshPivot.ToDrawTransform(
                 transformComponent.GetWorldTransform(),
                 modelRenderer.Pivot);

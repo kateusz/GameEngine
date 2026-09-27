@@ -61,6 +61,9 @@ public static class MultiField
         Action<Entity, Vector3> write,
         float resetValue = 0f)
     {
+        if (!PropertySearch.Matches(label))
+            return;
+
         ImGui.PushID(label);
         VectorPanel.BeginVectorRow(label, 3, out var inputWidth);
         DrawVec3Axes(entity, read, write, resetValue, inputWidth);
@@ -75,6 +78,9 @@ public static class MultiField
         Action<Entity, Vector2> write,
         float resetValue = 0f)
     {
+        if (!PropertySearch.Matches(label))
+            return;
+
         ImGui.PushID(label);
         VectorPanel.BeginVectorRow(label, 2, out var inputWidth);
         DrawVec2Axes(entity, read, write, resetValue, inputWidth);

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Editor.UI.Drawers;
 using Serilog;
 
 namespace Editor.Features.Scene;
@@ -8,7 +9,12 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
     private static readonly ILogger Logger = Log.ForContext<EditorSceneLoadService>();
 
     private bool _holdForPaint;
-    private Task<(string Path, JsonObject? Root)>? _readTask;
+    private Task<(string Path, JsonObject Root)>? _readTask;
+
+    private bool _showMessage;
+    private string _messageTitle = "";
+    private string _messageBody = "";
+    private MessageType _messageType = MessageType.Info;
 
     public bool IsLoading { get; private set; }
 
@@ -25,17 +31,13 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
         LoadingName = Path.GetFileNameWithoutExtension(normalized);
         _readTask = Task.Run(() =>
         {
-            try
-            {
-                var json = File.ReadAllText(normalized);
-                var root = string.IsNullOrWhiteSpace(json) ? null : JsonNode.Parse(json)?.AsObject();
-                return (normalized, root);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Failed to read scene: {Path}", normalized);
-                return (normalized, null);
-            }
+            var json = File.ReadAllText(normalized);
+            if (string.IsNullOrWhiteSpace(json))
+                throw new InvalidOperationException($"Scene file is empty: {normalized}");
+
+            var root = JsonNode.Parse(json)?.AsObject()
+                       ?? throw new InvalidOperationException($"Scene file is not valid JSON: {normalized}");
+            return (normalized, root);
         });
     }
 
@@ -55,19 +57,44 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
         try
         {
             var (path, root) = task.GetAwaiter().GetResult();
-            if (root is not null)
-                sceneManager.Open(path, root);
-            else
-                Logger.Error("Invalid or empty scene file: {Path}", path);
+            var skipped = sceneManager.Open(path, root);
+            if (skipped.Count > 0)
+            {
+                var list = string.Join("\n", skipped.Select(n => $"• {n}"));
+                ShowMessage(
+                    "Unknown Components Skipped",
+                    $"The scene loaded, but these unknown components were skipped:\n\n{list}",
+                    MessageType.Warning);
+            }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to open scene");
+            ShowMessage(
+                "Scene Load Failed",
+                $"Could not load the scene.\n\n{ex.Message}",
+                MessageType.Error);
         }
         finally
         {
             IsLoading = false;
             LoadingName = null;
         }
+    }
+
+    public void Render()
+    {
+        if (!_showMessage)
+            return;
+
+        ModalDrawer.RenderMessageBox(_messageTitle, ref _showMessage, _messageBody, _messageType);
+    }
+
+    private void ShowMessage(string title, string body, MessageType type)
+    {
+        _messageTitle = title;
+        _messageBody = body;
+        _messageType = type;
+        _showMessage = true;
     }
 }
