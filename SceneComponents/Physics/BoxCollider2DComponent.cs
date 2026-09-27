@@ -3,7 +3,7 @@ using ECS;
 
 namespace SceneComponents.Physics;
 
-public class BoxCollider2DComponent : IComponent
+public class BoxCollider2DComponent : IComponent, ICollider2DMaterial
 {
     private float _density;
     private float _friction;

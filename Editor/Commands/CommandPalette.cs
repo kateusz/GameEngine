@@ -40,8 +40,11 @@ public class CommandPalette(CommandRegistry registry)
             _focusFilter = false;
         }
 
-        ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##cmdFilter", "Type a command...", ref _filter, EditorUIConstants.MaxTextInputLength))
+        if (LayoutDrawer.DrawSearchInput(
+                "Type a command...",
+                ref _filter,
+                id: "##cmdFilter",
+                maxLength: EditorUIConstants.MaxTextInputLength))
             _highlight = 0;
 
         RefreshVisible();

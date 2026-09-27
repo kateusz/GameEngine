@@ -3,7 +3,7 @@ using ECS;
 
 namespace SceneComponents.Physics;
 
-public class CircleCollider2DComponent : IComponent
+public class CircleCollider2DComponent : IComponent, ICollider2DMaterial
 {
     public float Radius
     {

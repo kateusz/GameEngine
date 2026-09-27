@@ -10,7 +10,7 @@ public readonly struct InputModalOptions(
     bool isValid = true,
     string okLabel = "OK",
     string cancelLabel = "Cancel",
-    bool showCancel = true)
+    bool showCancel = false)
 {
     public string? ValidationMessage { get; } = validationMessage;
     public string? ErrorMessage { get; } = errorMessage;
@@ -25,8 +25,10 @@ public readonly struct InputModalOptions(
 /// </summary>
 public static class ModalDrawer
 {
-    public static readonly ImGuiWindowFlags FormModalFlags =
-        ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings;
+    public const ImGuiWindowFlags FormModalFlags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings;
+
+    // PushFont(title) / Begin / PushFont(body) … PopFont / End / PopFont — see imgui#1767.
+    private static int _titleFontDepth;
 
     /// <summary>
     /// Begins a centered modal popup with standard flags.
@@ -47,13 +49,41 @@ public static class ModalDrawer
         if (minWidth > 0f)
             ImGui.SetNextWindowSizeConstraints(new Vector2(minWidth, 0f), new Vector2(float.MaxValue, float.MaxValue));
 
+        var fonts = ImGui.GetIO().Fonts.Fonts;
+        var hasTitleFont = fonts.Size >= 2;
+        if (hasTitleFont)
+            ImGui.PushFont(fonts[1]);
+
         var modalOpen = isOpen;
         var result = ImGui.BeginPopupModal(title, ref modalOpen, additionalFlags | ImGuiWindowFlags.NoSavedSettings);
         isOpen = modalOpen;
+
+        if (hasTitleFont)
+        {
+            if (result)
+            {
+                ImGui.PushFont(fonts[0]);
+                _titleFontDepth++;
+            }
+            else
+                ImGui.PopFont();
+        }
+
         return result;
     }
 
-    public static void EndModal() => ImGui.EndPopup();
+    public static void EndModal()
+    {
+        if (_titleFontDepth > 0)
+        {
+            ImGui.PopFont();
+            _titleFontDepth--;
+            ImGui.EndPopup();
+            ImGui.PopFont();
+        }
+        else
+            ImGui.EndPopup();
+    }
 
     public static void RenderInputModal(
         string title,
@@ -144,7 +174,7 @@ public static class ModalDrawer
         string cancelLabel,
         Action onOk,
         Action onCancel,
-        bool showCancel = true)
+        bool showCancel = false)
     {
         var shouldClose = false;
         var actionExecuted = false;
@@ -198,6 +228,8 @@ public static class ModalDrawer
         string okLabel = "OK",
         string cancelLabel = "Cancel")
     {
+        _ = cancelLabel;
+
         if (!BeginCenteredModal(title, ref showModal, FormModalFlags))
             return;
 
@@ -206,19 +238,11 @@ public static class ModalDrawer
 
         var shouldClose = false;
 
-        ButtonDrawer.DrawCenteredModalButtonPair(
-            okLabel: okLabel,
-            cancelLabel: cancelLabel,
-            onOk: () =>
-            {
-                shouldClose = true;
-                onOk();
-            },
-            onCancel: () =>
-            {
-                shouldClose = true;
-                onCancel?.Invoke();
-            });
+        if (ButtonDrawer.DrawCenteredModalButton(okLabel))
+        {
+            shouldClose = true;
+            onOk();
+        }
 
         if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
         {
@@ -302,7 +326,7 @@ public static class ModalDrawer
 
         LayoutDrawer.DrawSeparatorWithSpacing();
 
-        if (ButtonDrawer.DrawCenteredModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape))
         {
             showModal = false;
             onCancel?.Invoke();

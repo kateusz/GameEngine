@@ -87,8 +87,8 @@ public class RecentProjectsPanel(
         if (IsLoading)
         {
             var text = sceneLoadService is { IsLoading: true, LoadingName: { } scene }
-                ? $"Loading {_loadingProjectName} and scene {scene}..."
-                : $"Loading {_loadingProjectName}...";
+                ? $"Loading project {_loadingProjectName} and scene {scene}..."
+                : $"Loading project {_loadingProjectName}...";
             LoadingOverlayDrawer.DrawFullscreen(text, ref _loadingSpinnerRotation);
         }
 

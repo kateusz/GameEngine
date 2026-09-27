@@ -19,6 +19,7 @@ using Editor.UI.Elements;
 using Editor.UI.FieldEditors;
 using Editor.Features.Scripting;
 using Editor.Features.Viewport.Gizmos;
+using Editor.AssetPicker;
 using Editor.Commands;
 using Editor.Features.Application;
 using Editor.Features.Models;
@@ -52,6 +53,12 @@ public static class EditorIoCContainer
         );
         container.Register<EditorSettingsUI>(Reuse.Singleton);
         container.Register<ProjectSettingsUI>(Reuse.Singleton);
+        container.Register<AssetPickSession>(Reuse.Singleton);
+        container.Register<AssetBrowserDialog>(Reuse.Singleton);
+        container.Register<AssetThumbnailCache>(Reuse.Singleton);
+        container.Register<AssetPathField>(Reuse.Singleton);
+        container.Register<TextureDropTarget>(Reuse.Singleton);
+        container.Register<ModelDropTarget>(Reuse.Singleton);
         container.Register<AudioDropTarget>(Reuse.Singleton);
         container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
 

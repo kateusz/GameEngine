@@ -59,9 +59,7 @@ public class GameComponentEditor(IGameComponentFactory gameComponentFactory)
             _showCreatePopup = true;
         }
 
-        ImGui.SameLine();
-
-        if (ButtonDrawer.DrawModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape))
             _showChoicePopup = false;
 
         ModalDrawer.EndModal();
