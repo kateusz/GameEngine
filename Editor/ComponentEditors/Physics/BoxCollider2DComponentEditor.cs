@@ -12,22 +12,33 @@ public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer, I
 
     protected override void DrawContent(BoxCollider2DComponent component, Entity entity)
     {
-        propertyRenderer.DrawPropertyField("Offset", component.Offset,
-            newValue => component.Offset = (System.Numerics.Vector2)newValue);
+        propertyRenderer.DrawPropertyField("Offset", entity,
+            e => e.GetComponent<BoxCollider2DComponent>().Offset,
+            (e, v) => e.GetComponent<BoxCollider2DComponent>().Offset = v,
+            UIPropertyRenderer.SameVector2);
 
-        propertyRenderer.DrawPropertyField("Size", component.Size,
-            newValue => component.Size = (System.Numerics.Vector2)newValue);
+        propertyRenderer.DrawPropertyField("Size", entity,
+            e => e.GetComponent<BoxCollider2DComponent>().Size,
+            (e, v) => e.GetComponent<BoxCollider2DComponent>().Size = v,
+            UIPropertyRenderer.SameVector2);
 
-        propertyRenderer.DrawPropertyField("Density", component.Density,
-            newValue => component.Density = (float)newValue);
+        propertyRenderer.DrawPropertyField("Density", entity,
+            e => e.GetComponent<BoxCollider2DComponent>().Density,
+            (e, v) => e.GetComponent<BoxCollider2DComponent>().Density = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Friction", component.Friction,
-            newValue => component.Friction = (float)newValue);
+        propertyRenderer.DrawPropertyField("Friction", entity,
+            e => e.GetComponent<BoxCollider2DComponent>().Friction,
+            (e, v) => e.GetComponent<BoxCollider2DComponent>().Friction = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Restitution", component.Restitution,
-            newValue => component.Restitution = (float)newValue);
+        propertyRenderer.DrawPropertyField("Restitution", entity,
+            e => e.GetComponent<BoxCollider2DComponent>().Restitution,
+            (e, v) => e.GetComponent<BoxCollider2DComponent>().Restitution = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Is Trigger", component.IsTrigger,
-            newValue => component.IsTrigger = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Is Trigger", entity,
+            e => e.GetComponent<BoxCollider2DComponent>().IsTrigger,
+            (e, v) => e.GetComponent<BoxCollider2DComponent>().IsTrigger = v);
     }
 }

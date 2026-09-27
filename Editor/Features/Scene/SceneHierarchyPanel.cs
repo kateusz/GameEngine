@@ -138,7 +138,7 @@ public class SceneHierarchyPanel(
         if (!_scene.Context.Contains(entity.Id))
             return;
 
-        var isSelected = selection.SelectedEntity?.Id == entity.Id;
+        var isSelected = selection.SelectedEntities.Any(e => e.Id == entity.Id);
         var isMatch = _isFilterActive && _filterMatchIds.Contains(entity.Id);
 
         var flags = ImGuiTreeNodeFlags.NoTreePushOnOpen
@@ -154,14 +154,28 @@ public class SceneHierarchyPanel(
         if (row.HasChildren)
             ImGui.SetNextItemOpen(_expandedIds.Contains(entity.Id));
 
-        if (isMatch)
+        if (isSelected)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Header, EditorUIConstants.HierarchyRowSelectedBackground);
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, EditorUIConstants.HierarchyRowSelectedBackground);
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, EditorUIConstants.HierarchyRowSelectedBackground);
+            ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.HierarchyRowSelectedText);
+        }
+        else if (isMatch)
             ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
 
         var opened = ImGui.TreeNodeEx(entity.Name, flags);
         var rowMin = ImGui.GetItemRectMin();
         var rowMax = ImGui.GetItemRectMax();
 
-        if (isMatch)
+        if (isSelected)
+        {
+            var drawList = ImGui.GetWindowDrawList();
+            var accent = ImGui.ColorConvertFloat4ToU32(EditorUIConstants.HierarchyRowSelectedAccent);
+            drawList.AddRectFilled(rowMin, new Vector2(rowMin.X + 3f, rowMax.Y), accent);
+            ImGui.PopStyleColor(4);
+        }
+        else if (isMatch)
             ImGui.PopStyleColor();
 
         var toggledOpen = row.HasChildren && ImGui.IsItemToggledOpen();
@@ -175,9 +189,17 @@ public class SceneHierarchyPanel(
 
         if (toggledOpen || PointerActivatedInRect(rowMin, rowMax))
         {
-            selection.Select(entity, SelectionSource.Hierarchy);
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+            {
+                selection.Select(entity, SelectionSource.Hierarchy);
                 cameraFraming.FocusOnEntity(entity, resetDistance: true);
+            }
+            else if (ImGui.GetIO().KeyShift)
+                selection.SelectRange(_rows.ConvertAll(r => r.Entity), entity);
+            else if (ImGui.GetIO().KeyCtrl)
+                selection.Toggle(entity);
+            else
+                selection.Select(entity, SelectionSource.Hierarchy);
         }
 
         if (ImGui.BeginPopupContextItem())
@@ -196,8 +218,6 @@ public class SceneHierarchyPanel(
                 var deletedId = entity.Id;
                 _expandedIds.Remove(deletedId);
                 history.Execute(new DestroyEntitySubtreeCommand(_scene, deletedId));
-                if (selection.SelectedEntity?.Id == deletedId)
-                    selection.Select(null, SelectionSource.Code);
                 ApplyFilter(_searchQuery);
             }
 
@@ -225,9 +245,7 @@ public class SceneHierarchyPanel(
         if (mouse.X < min.X || mouse.X > max.X || mouse.Y < min.Y || mouse.Y > max.Y)
             return false;
 
-        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-            return true;
-
+        // One activation per click (release only). Mousedown + mouseup both firing ran Toggle twice.
         if (!ImGui.IsMouseReleased(ImGuiMouseButton.Left))
             return false;
 

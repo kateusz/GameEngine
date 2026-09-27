@@ -13,22 +13,33 @@ public class CircleCollider2DComponentEditor(UIPropertyRenderer propertyRenderer
 
     protected override void DrawContent(CircleCollider2DComponent component, Entity entity)
     {
-        propertyRenderer.DrawPropertyField("Offset", component.Offset,
-            newValue => component.Offset = (System.Numerics.Vector2)newValue);
+        propertyRenderer.DrawPropertyField("Offset", entity,
+            e => e.GetComponent<CircleCollider2DComponent>().Offset,
+            (e, v) => e.GetComponent<CircleCollider2DComponent>().Offset = v,
+            UIPropertyRenderer.SameVector2);
 
-        propertyRenderer.DrawPropertyField("Radius", component.Radius,
-            newValue => component.Radius = (float)newValue);
+        propertyRenderer.DrawPropertyField("Radius", entity,
+            e => e.GetComponent<CircleCollider2DComponent>().Radius,
+            (e, v) => e.GetComponent<CircleCollider2DComponent>().Radius = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Density", component.Density,
-            newValue => component.Density = (float)newValue);
+        propertyRenderer.DrawPropertyField("Density", entity,
+            e => e.GetComponent<CircleCollider2DComponent>().Density,
+            (e, v) => e.GetComponent<CircleCollider2DComponent>().Density = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Friction", component.Friction,
-            newValue => component.Friction = (float)newValue);
+        propertyRenderer.DrawPropertyField("Friction", entity,
+            e => e.GetComponent<CircleCollider2DComponent>().Friction,
+            (e, v) => e.GetComponent<CircleCollider2DComponent>().Friction = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Restitution", component.Restitution,
-            newValue => component.Restitution = (float)newValue);
+        propertyRenderer.DrawPropertyField("Restitution", entity,
+            e => e.GetComponent<CircleCollider2DComponent>().Restitution,
+            (e, v) => e.GetComponent<CircleCollider2DComponent>().Restitution = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Is Trigger", component.IsTrigger,
-            newValue => component.IsTrigger = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Is Trigger", entity,
+            e => e.GetComponent<CircleCollider2DComponent>().IsTrigger,
+            (e, v) => e.GetComponent<CircleCollider2DComponent>().IsTrigger = v);
     }
 }

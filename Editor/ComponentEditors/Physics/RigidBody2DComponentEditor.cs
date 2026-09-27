@@ -28,11 +28,15 @@ public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer, IEd
                 };
             });
 
-        propertyRenderer.DrawPropertyField("Fixed Rotation", component.FixedRotation,
-            newValue => component.FixedRotation = (bool)newValue);
-        propertyRenderer.DrawPropertyField("Gravity Scale", component.GravityScale,
-            newValue => component.GravityScale = (float)newValue);
-        propertyRenderer.DrawPropertyField("Bullet (CCD)", component.IsBullet,
-            newValue => component.IsBullet = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Fixed Rotation", entity,
+            e => e.GetComponent<RigidBody2DComponent>().FixedRotation,
+            (e, v) => e.GetComponent<RigidBody2DComponent>().FixedRotation = v);
+        propertyRenderer.DrawPropertyField("Gravity Scale", entity,
+            e => e.GetComponent<RigidBody2DComponent>().GravityScale,
+            (e, v) => e.GetComponent<RigidBody2DComponent>().GravityScale = v,
+            MultiField.SameFloat);
+        propertyRenderer.DrawPropertyField("Bullet (CCD)", entity,
+            e => e.GetComponent<RigidBody2DComponent>().IsBullet,
+            (e, v) => e.GetComponent<RigidBody2DComponent>().IsBullet = v);
     }
 }

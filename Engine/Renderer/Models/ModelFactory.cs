@@ -27,7 +27,7 @@ internal class ModelFactory : IModelFactory
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
         : this(
-            (path, meshBytes) => LoadFromRuntimeMesh(path, textureFactory, hostOptions.CookRuntimeMeshesFromSource,
+            (path, meshBytes) => LoadFromRuntimeMesh(path, textureFactory, hostOptions.EnsureRuntimeMeshSiblingOnLoad,
                 meshBytes),
             vertexArrayFactory,
             vertexBufferFactory,
@@ -134,7 +134,7 @@ internal class ModelFactory : IModelFactory
     private static (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) LoadFromRuntimeMesh(
         string normalizedPath,
         ITextureFactory textureFactory,
-        bool cookFromSource,
+        bool ensureRuntimeMeshSibling,
         byte[]? runtimeMeshBytes)
     {
         if (!RuntimeMeshPaths.IsModelSourceExtension(normalizedPath))
@@ -143,7 +143,7 @@ internal class ModelFactory : IModelFactory
             return ([], null);
         }
 
-        if (cookFromSource)
+        if (ensureRuntimeMeshSibling)
         {
             if (!File.Exists(normalizedPath))
             {

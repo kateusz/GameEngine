@@ -6,13 +6,15 @@ using SceneComponents.Audio;
 
 namespace Editor.ComponentEditors.Audio;
 
-public class AudioListenerComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<AudioListenerComponent>(history)
+public class AudioListenerComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history)
+    : ComponentEditor<AudioListenerComponent>(history)
 {
     protected override string DisplayName => "Audio Listener";
 
     protected override void DrawContent(AudioListenerComponent component, Entity entity)
     {
-        propertyRenderer.DrawPropertyField("Is Active", component.IsActive,
-            newValue => component.IsActive = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Is Active", entity,
+            e => e.GetComponent<AudioListenerComponent>().IsActive,
+            (e, v) => e.GetComponent<AudioListenerComponent>().IsActive = v);
     }
 }

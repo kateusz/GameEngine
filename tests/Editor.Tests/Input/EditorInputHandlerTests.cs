@@ -1,3 +1,4 @@
+using Editor.Features.Scene;
 using Editor.Features.Viewport;
 using Editor.Input;
 using Engine.Events.Input;
@@ -11,7 +12,7 @@ namespace Editor.Tests.Input;
 public class EditorInputHandlerTests
 {
     private static EditorInputHandler Create(ISceneContext sceneContext, ShortcutManager shortcuts, IEditorViewport viewport) =>
-        new(sceneContext, shortcuts, viewport);
+        new(sceneContext, shortcuts, viewport, null!);
 
     private static ISceneContext Context(SceneState state)
     {

@@ -13,13 +13,29 @@ public class SpriteRendererComponentEditor(
 
     protected override void DrawContent(SpriteRendererComponent component, Entity entity)
     {
-        propertyRenderer.DrawPropertyField("Color", component.Color,
-            newValue => component.Color = (System.Numerics.Vector4)newValue);
+        propertyRenderer.DrawPropertyField("Color", entity,
+            e => e.GetComponent<SpriteRendererComponent>().Color,
+            (e, v) => e.GetComponent<SpriteRendererComponent>().Color = v,
+            UIPropertyRenderer.SameVector4);
+
+        string? texturePath = null;
+        if (MultiField.TryUniform(entity,
+                e => e.GetComponent<SpriteRendererComponent>().TexturePath,
+                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
+                out var uniformPath))
+            texturePath = uniformPath;
+
         TextureDropTarget.Draw("Texture", relativePath =>
         {
-            component.TexturePath = relativePath;
-        }, component.TexturePath);
-        propertyRenderer.DrawPropertyField("Tiling Factor", component.TilingFactor,
-            newValue => component.TilingFactor = (float)newValue);
+            MultiField.WriteEach(entity, (Entity e, string path) =>
+            {
+                e.GetComponent<SpriteRendererComponent>().TexturePath = path;
+            }, relativePath);
+        }, texturePath);
+
+        propertyRenderer.DrawPropertyField("Tiling Factor", entity,
+            e => e.GetComponent<SpriteRendererComponent>().TilingFactor,
+            (e, v) => e.GetComponent<SpriteRendererComponent>().TilingFactor = v,
+            MultiField.SameFloat);
     }
 }

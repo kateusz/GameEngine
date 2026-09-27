@@ -118,6 +118,21 @@ public static class EditorUIConstants
     /// Info/neutral text color (light gray)
     /// </summary>
     public static readonly Vector4 InfoColor = new(0.7f, 0.7f, 0.7f, 1.0f);
+
+    /// <summary>
+    /// Scene hierarchy row background when the entity is in the current selection.
+    /// </summary>
+    public static readonly Vector4 HierarchyRowSelectedBackground = new(0.20f, 0.45f, 0.82f, 0.72f);
+
+    /// <summary>
+    /// Scene hierarchy row label when selected (high contrast on <see cref="HierarchyRowSelectedBackground"/>).
+    /// </summary>
+    public static readonly Vector4 HierarchyRowSelectedText = new(1.0f, 1.0f, 1.0f, 1.0f);
+
+    /// <summary>
+    /// Left-edge accent on selected hierarchy rows.
+    /// </summary>
+    public static readonly Vector4 HierarchyRowSelectedAccent = new(0.45f, 0.75f, 1.0f, 1.0f);
     
     /// <summary>
     /// X-axis color (red) - used for transform gizmos and vector editors

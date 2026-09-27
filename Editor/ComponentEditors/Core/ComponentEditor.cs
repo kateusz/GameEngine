@@ -1,5 +1,6 @@
 using ECS;
 using Editor.Features.History;
+using Editor.UI.Elements;
 
 namespace Editor.ComponentEditors.Core;
 
@@ -11,6 +12,9 @@ public abstract class ComponentEditor<TComponent>(IEditorHistory history) : ICom
 
     public void DrawComponent(Entity entity)
     {
+        if (MultiField.Targets is { } targets && targets.Any(e => !e.HasComponent<TComponent>()))
+            return;
+
         ComponentEditorRegistry.DrawComponent<TComponent>(DisplayName, entity, history, () =>
         {
             var component = entity.GetComponent<TComponent>();
