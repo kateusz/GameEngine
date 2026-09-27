@@ -34,6 +34,11 @@ public interface IEditorPreferences : IDisposable
     int AutosaveIntervalSeconds { get; set; }
 
     /// <summary>
+    /// When enabled, selecting an entity in the viewport reveals and scrolls to it in Scene Hierarchy.
+    /// </summary>
+    bool FollowViewportSelectionInHierarchy { get; set; }
+
+    /// <summary>
     /// Adds a project to the recent projects list, moving it to the front if already present.
     /// Automatically saves preferences after update.
     /// </summary>

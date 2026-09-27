@@ -88,4 +88,20 @@ public class SceneHierarchyRowsTests
 
         rows.Select(r => r.Entity.Name).ShouldBe(["parent", "hit"]);
     }
+
+    [Fact]
+    public void RevealEntityInHierarchy_ExpandsAncestorsOnly()
+    {
+        using var scene = CreateScene();
+        var parent = Create(scene, "parent");
+        var child = Create(scene, "child");
+        var grandchild = Create(scene, "grandchild");
+        scene.SetParent(child, parent);
+        scene.SetParent(grandchild, child);
+
+        var expanded = new HashSet<int>();
+        SceneHierarchyPanel.RevealEntityInHierarchy(scene, grandchild, expanded);
+
+        expanded.ShouldBe([parent.Id, child.Id]);
+    }
 }
