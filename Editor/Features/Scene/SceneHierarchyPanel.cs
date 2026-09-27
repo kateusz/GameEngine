@@ -71,6 +71,8 @@ public class SceneHierarchyPanel(
         if (_isFilterActive)
             RenderFilterStatus();
 
+        ImGui.BeginChild("HierarchyScroll", Vector2.Zero);
+
         RenderEntityHierarchy();
 
         // Explicit empty-space target for promote-to-root (not the last tree node).
@@ -90,6 +92,8 @@ public class SceneHierarchyPanel(
 
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered())
             selection.Select(null, SelectionSource.Hierarchy);
+
+        ImGui.EndChild();
 
         entityContextMenu.Render(_scene);
 

@@ -13,7 +13,7 @@ internal static class LightingMath
 
     public const int ShadowMapResolution = 1024;
 
-    // ponytail: fit only this far in front of the near plane. Ceiling: casters beyond it do not shadow the view.
+    // fit only this far in front of the near plane. Ceiling: casters beyond it do not shadow the view.
     // The editor far plane is 1000. Fitting that makes one texel ~1 unit and turns the 0.002 window bias into ~4 world
     // units, which erases contact shadows and pops them when the camera crosses a texel. Upgrade path: cascades.
     // Shadow map fit depth; default shadow-caster range in SceneView matches this. 0 on SceneView disables caster cut.

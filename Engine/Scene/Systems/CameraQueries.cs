@@ -16,7 +16,7 @@ namespace Engine.Scene.Systems;
 /// </summary>
 internal sealed class CameraQueries(Context context, IPointerSurface pointerSurface) : ICameraQueries
 {
-    // ponytail: main-thread only; pass a scratch SceneCamera if render goes wide.
+    // main-thread only; pass a scratch SceneCamera if render goes wide.
     private static readonly SceneCamera Scratch = new();
 
     public Vector2? ScreenToWorld2D(Vector2 windowPosition)

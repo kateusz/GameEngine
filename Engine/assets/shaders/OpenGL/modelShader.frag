@@ -60,7 +60,7 @@ float DirectionalShadow(vec3 fragPos)
     vec2 uv = ndc.xy * 0.5 + 0.5;
     float current = ndc.z * 0.5 + 0.5;
 
-    // ponytail: bilinear PCF; integer-offset PCF is constant per texel → stairs
+    // bilinear PCF; integer-offset PCF is constant per texel → stairs
     vec2 mapSize = vec2(textureSize(u_ShadowMap, 0));
     vec2 texelSize = 1.0 / mapSize;
     vec2 texelUv = uv * mapSize - 0.5;

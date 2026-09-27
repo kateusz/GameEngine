@@ -51,7 +51,7 @@ public class Context
 
     public Entity GetByName(string name) => _entities.Values.Single(e => e.Name == name);
 
-    // ponytail: main-thread only; snapshot/lock if ECS is touched off the game loop.
+    // main-thread only; snapshot/lock if ECS is touched off the game loop.
     public IEnumerable<Entity> Entities => _entities.Values;
 
     public bool Contains(int entityId) => _entities.ContainsKey(entityId);

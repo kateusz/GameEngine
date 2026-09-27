@@ -336,7 +336,7 @@ internal static class SceneRenderPipeline
         var materialDrawsColor = color.MeshDraws + color.CubeDraws;
         var opaque3DPasses = (perf.DirectionalShadow ? 1 : 0) + perf.PointShadowOpaque3D + 1;
 
-        Logger.Information(
+        Logger.Debug(
             "3D perf: gpuDrawCalls={GpuDrawCalls} opaque3DPasses={Opaque3DPasses} " +
             "dirShadow={DirShadow} dirRes={DirRes}x{DirRes} dirMeshDraws={DirMeshDraws} dirCubes={DirCubes} dirCulled={DirCulled} dirShadowCasterCulled={DirShadowCasterCulled} " +
             "colorMeshDraws={ColorMeshDraws} colorCubes={ColorCubes} colorCulled={ColorCulled} colorZoneCulled={ColorZoneCulled} " +

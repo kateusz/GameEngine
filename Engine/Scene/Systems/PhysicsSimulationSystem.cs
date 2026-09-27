@@ -235,7 +235,7 @@ internal sealed class PhysicsSimulationSystem(
         if (!bodyStore.TryGet(entityId, out var body))
             return;
 
-        // ponytail: recreate drops native angular velocity; linear lives on the component
+        // recreate drops native angular velocity; linear lives on the component
         physicsWorld.DestroyBody(body);
         bodyStore.Remove(entityId);
         _identities.Remove(entityId);

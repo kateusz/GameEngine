@@ -10,7 +10,7 @@ A component-based game engine built with C# and .NET 10, featuring a visual edit
 - **Entity Component System (ECS)** — data-driven architecture with ordered system execution
 - **Entity Hierarchy** — parent/child transforms, cascade destroy, prefab subtrees, serialized relationships
 - **2D Rendering** — OpenGL pipeline with batched sprites
-- **3D Rendering** — static `.glb` / `.gltf` / `.fbx` meshes, unit cubes, perspective camera, ambient + directional light (Blinn-Phong). No skinning or animation yet.
+- **3D Rendering** — static `.glb` / `.gltf` / `.fbx` meshes (PBR textures, mesh instancing), unit cubes, perspective camera, ambient + directional + point lights (Cook-Torrance), directional and point shadows. No skinning or animation yet.
 - **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast & overlap queries, and debug visualization
 - **Hot-Reloadable Scripting** — C# `IGameSystem` / `IGameComponent` under `assets/scripts/`, compiled to a GameAssembly and loaded via `ScriptEngine` without restarting the editor. Systems poll `IKeyboardInput` / `IMouseInput` ([docs](docs/guide/scripting/input.md))
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
@@ -86,7 +86,7 @@ Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game ove
 - [Developer Guide](docs/guide/index.md) — setup, editor, scripting, concepts
 - [Cameras and Rendering](docs/guide/concepts/cameras-and-rendering.md) — 2D sprites, 3D models, lights, cameras
 - [Architecture](docs/architecture/README.md) — how the engine is structured
-- [Rendering Pipeline](docs/architecture/rendering-pipeline.md) — 2D batching and 3D mesh path
+- [Rendering Pipeline](docs/architecture/rendering-pipeline.md) — 2D batching, 3D meshes, lighting, and shadows
 - [Roadmap](docs/guide/roadmap.md) — planned work
 
 ## Dependencies
