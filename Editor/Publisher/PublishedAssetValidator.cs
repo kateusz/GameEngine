@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Engine.Renderer.Models.RuntimeMesh;
 
 namespace Editor.Publisher;
 
@@ -78,6 +79,15 @@ public static class PublishedAssetValidator
                         {
                             missing.Add(
                                 $"{path} (from {RelativeToAssets(assetsRoot, sourceFile)}, property {prop.Name})");
+                        }
+                        else if (prop.Name == "ModelPath" && RuntimeMeshPaths.IsModelSourceExtension(path))
+                        {
+                            var sibling = RuntimeMeshPaths.SiblingPath(path.Replace('\\', '/'));
+                            if (!AssetFileExists(assetsRoot, sibling))
+                            {
+                                missing.Add(
+                                    $"{sibling} (from {RelativeToAssets(assetsRoot, sourceFile)}, cooked sibling for {prop.Name})");
+                            }
                         }
                     }
                     else

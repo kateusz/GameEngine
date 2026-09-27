@@ -7,12 +7,14 @@ public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int 
     public bool Maximized { get; init; }
     public bool Fullscreen { get; init; }
     public int TargetFrameRate { get; init; }
+    public bool CookRuntimeMeshesFromSource { get; init; }
 
     public static EngineHostOptions EditorDefaults => new(
         "MulEngine",
         (int)DisplayConfig.DefaultWindowWidth,
         (int)DisplayConfig.DefaultWindowHeight)
     {
-        Maximized = true
+        Maximized = true,
+        CookRuntimeMeshesFromSource = true
     };
 }

@@ -152,17 +152,18 @@ public class PublishedAssetValidatorTests : IDisposable
     }
 
     [Fact]
-    public void ValidateAssetReferences_SucceedsWhenImportedMeshExists()
+    public void ValidateAssetReferences_SucceedsWhenCookedSiblingExists()
     {
         var assets = CreateAssetsLayout();
         Directory.CreateDirectory(Path.Combine(assets, "models"));
-        File.WriteAllBytes(Path.Combine(assets, "models", "crate.mesh"), [1, 2, 3]);
+        File.WriteAllBytes(Path.Combine(assets, "models", "crate.glb"), [1, 2, 3]);
+        File.WriteAllBytes(Path.Combine(assets, "models", "crate.glb.mesh"), [1, 2, 3]);
         WriteScene(assets, """
             {
               "Entities": [
                 {
                   "Components": [
-                    { "ModelPath": "models/crate.mesh" }
+                    { "ModelPath": "models/crate.glb" }
                   ]
                 }
               ]

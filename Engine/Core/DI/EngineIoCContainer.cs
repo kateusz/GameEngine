@@ -104,6 +104,7 @@ public static class EngineIoCContainer
 
     public static void RegisterWindowing(Container container, EngineHostOptions hostOptions)
     {
+        container.RegisterInstance(hostOptions);
         var windowOptions = WindowOptions.Default;
         windowOptions.Size = new Vector2D<int>(hostOptions.WindowWidth, hostOptions.WindowHeight);
         windowOptions.Title = hostOptions.WindowTitle;
