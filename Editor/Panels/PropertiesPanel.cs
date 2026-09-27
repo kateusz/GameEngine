@@ -98,6 +98,10 @@ public class PropertiesPanel(
 
             MultiField.Targets = [.. selected];
 
+            EntityNameEditor.Draw(selection.SelectedEntity!);
+
+            ImGui.Spacing();
+
             componentEditors.DrawAllComponents(selection.SelectedEntity!);
 
         }

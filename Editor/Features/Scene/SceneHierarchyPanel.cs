@@ -4,7 +4,6 @@ using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Selection;
 using Editor.Features.Settings;
-using Editor.Features.Viewport;
 using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -22,7 +21,6 @@ public class SceneHierarchyPanel(
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection,
     IEditorHistory history,
-    IEditorCameraFraming cameraFraming,
     IEditorPreferences editorPreferences)
     : IEditorPanel
 {
@@ -233,10 +231,7 @@ public class SceneHierarchyPanel(
         if (toggledOpen || PointerActivatedInRect(rowMin, rowMax))
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-            {
                 selection.Select(entity, SelectionSource.Hierarchy);
-                cameraFraming.FocusOnEntity(entity, resetDistance: true);
-            }
             else if (ImGui.GetIO().KeyShift)
                 selection.SelectRange(_rows.ConvertAll(r => r.Entity), entity);
             else if (ImGui.GetIO().KeyCtrl)
@@ -270,7 +265,11 @@ public class SceneHierarchyPanel(
         DragDropDrawer.CreateDragDropSource(
             EntityDragPayload,
             entity.Id.ToString(),
-            () => ImGui.TextUnformatted(entity.Name));
+            () =>
+            {
+                var count = isSelected ? selection.SelectedEntities.Count : 1;
+                ImGui.TextUnformatted(count > 1 ? $"{count} entities" : entity.Name);
+            });
 
         if (ImGui.BeginDragDropTarget())
         {
@@ -309,11 +308,38 @@ public class SceneHierarchyPanel(
             return;
 
         var dragged = _scene.Context.GetById(draggedId);
-        if (!_scene.SetParent(dragged, parent))
+        var toMove = ResolveEntitiesToReparent(_scene, dragged, selection.SelectedEntities);
+        var moved = false;
+        foreach (var entity in toMove)
+        {
+            if (_scene.SetParent(entity, parent))
+                moved = true;
+        }
+
+        if (!moved)
             return; // cycle or invalid — silent reject (ImGui shows no drop)
 
         if (_isFilterActive)
             ApplyFilter(_searchQuery);
+    }
+
+    internal static List<Entity> ResolveEntitiesToReparent(
+        IScene scene,
+        Entity dragged,
+        IReadOnlyList<Entity> selected)
+    {
+        if (selected.Count <= 1 || selected.All(e => e.Id != dragged.Id))
+            return [dragged];
+
+        var selectedIds = selected.Select(e => e.Id).ToHashSet();
+        return selected
+            .Where(e => scene.Context.Contains(e.Id))
+            .Where(e =>
+            {
+                var parent = scene.GetParent(e);
+                return parent is null || !selectedIds.Contains(parent.Id);
+            })
+            .ToList();
     }
 
     private void RenderFilterStatus()

@@ -379,12 +379,13 @@ public sealed class EditorViewport(
 
     private void PickHoveredEntity()
     {
-        HoveredEntity = null;
-
         var mousePos = ImGui.GetMousePos();
-        if (mousePos == _lastPickMousePos) 
+        // Keep last HoveredEntity when skipping ReadPixel (mouse still) — clearing first broke click-select.
+        if (mousePos == _lastPickMousePos)
             return;
+
         _lastPickMousePos = mousePos;
+        HoveredEntity = null;
         var mx = (mousePos.X - _viewportBounds[0].X) * _contentScale;
         var my = (mousePos.Y - _viewportBounds[0].Y) * _contentScale;
         var physicalWidth = (_viewportBounds[1].X - _viewportBounds[0].X) * _contentScale;

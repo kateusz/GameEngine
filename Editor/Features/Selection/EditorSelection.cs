@@ -45,8 +45,9 @@ public sealed class EditorSelection(ISceneContext sceneContext, IEditorCameraFra
         _anchorId = entity?.Id;
 
         SelectionChanged?.Invoke(entity, source);
+        // Hierarchy click = frame entity (world pos + default distance). Viewport pick only selects.
         if (source == SelectionSource.Hierarchy && entity is not null)
-            cameraFraming.FocusOnEntity(entity);
+            cameraFraming.FocusOnEntity(entity, resetDistance: true);
     }
 
     public void Toggle(Entity entity)
@@ -87,7 +88,7 @@ public sealed class EditorSelection(ISceneContext sceneContext, IEditorCameraFra
 
         _primary = clicked;
         SelectionChanged?.Invoke(_primary, SelectionSource.Hierarchy);
-        cameraFraming.FocusOnEntity(clicked);
+        cameraFraming.FocusOnEntity(clicked, resetDistance: true);
     }
 
     private void Prune()
