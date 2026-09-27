@@ -16,7 +16,7 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         if (!ModalDrawer.BeginCenteredModal("Editor Settings", ref _open))
             return;
         
-        ImGui.SeparatorText("Selection");
+        ImGui.SeparatorText("Debug Visualization");
 
         var followHierarchy = editorPreferences.FollowViewportSelectionInHierarchy;
         if (ImGui.Checkbox("Follow viewport selection in Scene Hierarchy", ref followHierarchy))
@@ -24,8 +24,6 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
             editorPreferences.FollowViewportSelectionInHierarchy = followHierarchy;
             editorPreferences.Save();
         }
-
-        ImGui.SeparatorText("Debug Visualization");
 
         var showColliders = editorPreferences.ShowColliderBounds;
         if (ImGui.Checkbox("Show Collider Bounds", ref showColliders))

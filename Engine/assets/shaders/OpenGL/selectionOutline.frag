@@ -6,7 +6,7 @@ layout(location = 0) out vec4 o_Color;
 uniform sampler2D u_Color;
 uniform isampler2D u_EntityIds;
 uniform int u_IdCount;
-uniform int u_Ids[256];
+uniform int u_Ids[64];
 
 bool Selected(ivec2 p)
 {

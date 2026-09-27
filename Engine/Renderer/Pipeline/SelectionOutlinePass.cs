@@ -19,16 +19,12 @@ public sealed class SelectionOutlinePass(
     private bool _initAttempted;
     private bool _disposed;
 
-    public bool Available { get; private set; }
+    private bool Available { get; set; }
 
-    public const int MaxEntityIds = 256;
+    // matches selectionOutline.frag u_Ids[]; bump both if multi-select exceeds this
+    private const int MaxEntityIds = 64;
 
     private readonly int[] _entityIds = new int[MaxEntityIds];
-
-    public IFrameBuffer Resolve(IFrameBuffer colorSource, IFrameBuffer scene, int entityId) =>
-        entityId <= 0
-            ? colorSource
-            : Resolve(colorSource, scene, [entityId]);
 
     public IFrameBuffer Resolve(IFrameBuffer colorSource, IFrameBuffer scene, ReadOnlySpan<int> entityIds)
     {

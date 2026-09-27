@@ -36,50 +36,29 @@ public class SceneHierarchyPanel(
     private readonly HashSet<int> _expandedIds = [];
     private readonly List<HierarchyRow> _rows = [];
     private bool _isFilterActive;
-    private bool _selectionHandlerAttached;
     private int? _scrollToEntityId;
+
+    public void Initialize() => selection.SelectionChanged += OnSelectionChanged;
 
     public void SetScene(IScene scene)
     {
         _scene = scene;
         _expandedIds.Clear();
         _scrollToEntityId = null;
-        EnsureSelectionHandler();
         selection.Select(null, SelectionSource.Code);
-    }
-
-    private void EnsureSelectionHandler()
-    {
-        if (_selectionHandlerAttached)
-            return;
-
-        selection.SelectionChanged += OnSelectionChanged;
-        _selectionHandlerAttached = true;
     }
 
     private void OnSelectionChanged(Entity? entity, SelectionSource source)
     {
         if (!editorPreferences.FollowViewportSelectionInHierarchy
             || source != SelectionSource.Viewport
-            || entity is null)
+            || entity is null
+            || !_scene.Context.Contains(entity.Id))
             return;
 
-        RevealEntityInHierarchy(entity);
+        for (var current = _scene.GetParent(entity); current is not null; current = _scene.GetParent(current))
+            _expandedIds.Add(current.Id);
         _scrollToEntityId = entity.Id;
-    }
-
-    internal static void RevealEntityInHierarchy(IScene scene, Entity entity, HashSet<int> expandedIds)
-    {
-        for (var current = scene.GetParent(entity); current is not null; current = scene.GetParent(current))
-            expandedIds.Add(current.Id);
-    }
-
-    private void RevealEntityInHierarchy(Entity entity)
-    {
-        if (!_scene.Context.Contains(entity.Id))
-            return;
-
-        RevealEntityInHierarchy(_scene, entity, _expandedIds);
     }
 
     public void Draw()

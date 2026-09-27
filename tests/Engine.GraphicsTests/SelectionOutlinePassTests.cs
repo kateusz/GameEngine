@@ -18,7 +18,7 @@ public class SelectionOutlinePassTests(HeadlessGraphicsContextFixture fixture)
         using var pass = new SelectionOutlinePass(
             fixture.RendererApi, fixture.ShaderFactory, fixture.VertexArrayFactory, fixture.FrameBufferFactory);
 
-        pass.Resolve(scene, scene, 0).ShouldBeSameAs(scene);
+        pass.Resolve(scene, scene, []).ShouldBeSameAs(scene);
         fixture.RendererApi.GetError().ShouldBe(0);
     }
 
@@ -27,8 +27,14 @@ public class SelectionOutlinePassTests(HeadlessGraphicsContextFixture fixture)
     {
         const int width = FramebufferTestSpecs.Width;
         using var scene = fixture.FrameBufferFactory.Create(FramebufferTestSpecs.ColorAndEntityId());
-        PaintEntityIdRect(scene, 10, 16, 16, 8, 8, clear: true);
-        PaintEntityIdRect(scene, 20, 48, 16, 8, 8, clear: false);
+        Paint(scene, 10);
+        var gl = SilkNetContext.GL;
+        scene.Bind();
+        gl.Enable(EnableCap.ScissorTest);
+        gl.Scissor(48, 16, 8, 8);
+        scene.ClearAttachment(1, 20);
+        gl.Disable(EnableCap.ScissorTest);
+        scene.Unbind();
 
         using var pass = new SelectionOutlinePass(
             fixture.RendererApi, fixture.ShaderFactory, fixture.VertexArrayFactory, fixture.FrameBufferFactory);
@@ -55,7 +61,7 @@ public class SelectionOutlinePassTests(HeadlessGraphicsContextFixture fixture)
         using var pass = new SelectionOutlinePass(
             fixture.RendererApi, fixture.ShaderFactory, fixture.VertexArrayFactory, fixture.FrameBufferFactory);
 
-        var outlined = pass.Resolve(scene, scene, id);
+        var outlined = pass.Resolve(scene, scene, [id]);
 
         outlined.ShouldNotBeSameAs(scene);
         fixture.RendererApi.GetError().ShouldBe(0);
@@ -71,29 +77,15 @@ public class SelectionOutlinePassTests(HeadlessGraphicsContextFixture fixture)
         Byte(pixels, width, 14, y, 2).ShouldBe((byte)255);
     }
 
-    private static void Paint(Engine.Renderer.Buffers.FrameBuffer.IFrameBuffer scene, int id) =>
-        PaintEntityIdRect(scene, id, 16, 16, 16, 16, clear: true);
-
-    private static void PaintEntityIdRect(
-        Engine.Renderer.Buffers.FrameBuffer.IFrameBuffer scene,
-        int id,
-        int x,
-        int y,
-        int w,
-        int h,
-        bool clear)
+    private static void Paint(Engine.Renderer.Buffers.FrameBuffer.IFrameBuffer scene, int id)
     {
         var gl = SilkNetContext.GL;
         scene.Bind();
-        if (clear)
-        {
-            gl.ClearColor(1f, 1f, 1f, 1f);
-            gl.Clear(ClearBufferMask.ColorBufferBit);
-            scene.ClearAttachment(1, -1);
-        }
-
+        gl.ClearColor(1f, 1f, 1f, 1f);
+        gl.Clear(ClearBufferMask.ColorBufferBit);
+        scene.ClearAttachment(1, -1);
         gl.Enable(EnableCap.ScissorTest);
-        gl.Scissor(x, y, w, h);
+        gl.Scissor(16, 16, 16, 16);
         scene.ClearAttachment(1, id);
         gl.Disable(EnableCap.ScissorTest);
         scene.Unbind();

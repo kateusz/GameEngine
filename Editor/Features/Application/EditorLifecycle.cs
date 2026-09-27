@@ -75,6 +75,7 @@ public class EditorLifecycle(
         sceneContext.SceneChanged += _sceneChangedHandler;
 
         editorViewport.Initialize();
+        sceneHierarchyPanel.Initialize();
 
         sceneManager.New("");
 
