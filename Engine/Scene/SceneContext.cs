@@ -15,6 +15,7 @@ public class SceneContext : ISceneContext
     
     public void SetScene(IScene newScene)
     {
+        PointShadowCache.Clear();
         ActiveScene = newScene;
         SceneChanged.Invoke(newScene);
     }

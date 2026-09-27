@@ -118,6 +118,29 @@ public class LightingMathTests
         LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.PointShadowNear, faces).ShouldBeFalse();
     }
 
+    [Fact]
+    public void PointShadowSphereHits_UnitCubeAtOrigin_HitsRange10()
+    {
+        LightingMath.PointShadowSphereHits(Vector3.Zero, 10f, Matrix4x4.Identity, Aabb.UnitCube)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void PointShadowSphereHits_CubeTranslatedBy30_MissesRange10()
+    {
+        LightingMath.PointShadowSphereHits(
+                Vector3.Zero, 10f, Matrix4x4.CreateTranslation(30f, 0f, 0f), Aabb.UnitCube)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PointShadowSphereHits_JustInsideRangeOnX_Hits()
+    {
+        LightingMath.PointShadowSphereHits(
+                Vector3.Zero, 10f, Matrix4x4.CreateTranslation(9f, 0f, 0f), Aabb.UnitCube)
+            .ShouldBeTrue();
+    }
+
     private static Matrix4x4 EditorViewProjection(float yaw, float pitch, float distance)
     {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(

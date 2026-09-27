@@ -3,4 +3,5 @@
 namespace Engine.Renderer;
 
 public readonly record struct PointLightData(
-    Vector3 Position, Vector3 Color, float Intensity, float Range, bool CastsShadow = false);
+    Vector3 Position, Vector3 Color, float Intensity, float Range,
+    bool CastsShadow = false, int EntityId = 0);

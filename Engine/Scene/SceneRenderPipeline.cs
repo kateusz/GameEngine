@@ -31,6 +31,8 @@ internal static class SceneRenderPipeline
     ];
     
     private static readonly PointLightData[] PointLightBuffer = new PointLightData[LightingMath.MaxPointLights];
+    private static readonly List<(int Id, PointShadowCache.CasterPose Pose)> PointShadowCasterBuffer = new();
+    private static readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
     private static bool _shadowFitWarned;
     private static bool _pointShadowWarned;
 
@@ -150,41 +152,79 @@ internal static class SceneRenderPipeline
             Logger.Warning("Directional shadow fit failed; drawing the frame without directional shadows");
         }
 
-        Span<Matrix4x4> pointFaces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
-        for (var i = 0; view.PointShadows && i < pointCount; i++)
+        if (!view.PointShadows)
         {
-            var light = PointLightBuffer[i];
-            if (!light.CastsShadow)
-                continue;
-            if (Vector3.Distance(view.ViewPosition, light.Position) > LightingMath.PointShadowDistance)
-                continue;
-            if (!LightingMath.TryBuildPointShadowFaces(light.Position, light.Range, pointFaces))
-                continue;
-
-            for (var face = 0; face < LightingMath.PointShadowFaceCount; face++)
+            PointShadowCache.MarkStale();
+        }
+        else
+        {
+            CollectPointShadowCasters(context, modelFactory, PointShadowCasterBuffer);
+            PointShadowLampBuffer.Clear();
+            for (var li = 0; li < pointCount; li++)
             {
-                if (!graphics3D.BeginPointShadowFace(i, face, pointFaces[face], light.Position, light.Range))
+                var resolved = PointLightBuffer[li];
+                if (!resolved.CastsShadow)
+                    continue;
+                PointShadowLampBuffer.Add((resolved.EntityId, new PointShadowCache.LampPose(resolved.Position, resolved.Range)));
+            }
+
+            Span<Matrix4x4> pointFaces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
+            for (var i = 0; i < pointCount; i++)
+            {
+                var light = PointLightBuffer[i];
+                if (!light.CastsShadow)
+                    continue;
+
+                var dirty = PointShadowCache.NeedsRedraw(
+                    light.EntityId, light.Position, light.Range, PointShadowCasterBuffer);
+                var near = Vector3.Distance(view.ViewPosition, light.Position) <= LightingMath.PointShadowDistance;
+                if (!dirty)
                 {
-                    if (!_pointShadowWarned)
+                    if (near)
+                        PointShadowCache.RememberClean(light.EntityId);
+                    if (near && !graphics3D.UseCachedPointShadow(i, light.EntityId))
+                        dirty = true;
+                    else
+                        continue;
+                }
+
+                PointShadowCache.RememberDirty(light.EntityId);
+                if (!near || !LightingMath.TryBuildPointShadowFaces(light.Position, light.Range, pointFaces))
+                    continue;
+
+                var drew = true;
+                for (var face = 0; face < LightingMath.PointShadowFaceCount; face++)
+                {
+                    if (!graphics3D.BeginPointShadowFace(
+                            i, light.EntityId, face, pointFaces[face], light.Position, light.Range))
                     {
-                        _pointShadowWarned = true;
-                        Logger.Warning("Point shadow cubemap failed; drawing that light without a shadow");
+                        if (!_pointShadowWarned)
+                        {
+                            _pointShadowWarned = true;
+                            Logger.Warning("Point shadow cubemap failed; drawing that light without a shadow");
+                        }
+
+                        drew = false;
+                        break;
                     }
 
-                    break;
+                    try
+                    {
+                        DrawOpaque3D(
+                            context, graphics3D, textureFactory, modelFactory,
+                            meshDrawCounts: null, pointFaces[face]);
+                    }
+                    finally
+                    {
+                        graphics3D.EndPointShadowFace();
+                    }
                 }
 
-                try
-                {
-                    DrawOpaque3D(
-                        context, graphics3D, textureFactory, modelFactory,
-                        meshDrawCounts: null, pointFaces[face]);
-                }
-                finally
-                {
-                    graphics3D.EndPointShadowFace();
-                }
+                if (drew)
+                    PointShadowCache.RememberClean(light.EntityId);
             }
+
+            PointShadowCache.Replace(PointShadowCasterBuffer, PointShadowLampBuffer);
         }
 
         graphics3D.BeginScene(view);
@@ -216,6 +256,85 @@ internal static class SceneRenderPipeline
         public double CpuMs;
     }
 
+    private enum OpaqueSurfaceKind
+    {
+        UnitCube,
+        SingleSubmesh,
+        AllSubmeshes
+    }
+
+    private static bool TryResolveOpaqueSurface(
+        ModelRendererComponent modelRenderer,
+        Matrix4x4 transform,
+        IModelFactory? modelFactory,
+        out PointShadowCache.CasterPose casterPose,
+        out OpaqueSurfaceKind kind,
+        out Model? model,
+        out int submeshIndex)
+    {
+        casterPose = default;
+        kind = default;
+        model = null;
+        submeshIndex = -1;
+
+        if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+        {
+            casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
+            kind = OpaqueSurfaceKind.UnitCube;
+            return true;
+        }
+
+        if (modelFactory == null)
+            return false;
+
+        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+        model = modelFactory.Create(resolvedPath);
+        if (model == null)
+        {
+            casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
+            kind = OpaqueSurfaceKind.UnitCube;
+            return true;
+        }
+
+        if (modelRenderer.MeshIndex is int meshIndex)
+        {
+            if (meshIndex < 0 || meshIndex >= model.Submeshes.Count)
+                return false;
+
+            submeshIndex = meshIndex;
+            var submesh = model.Submeshes[meshIndex];
+            casterPose = submesh.Bounds is { } singleBounds
+                ? new PointShadowCache.CasterPose(transform, singleBounds, true)
+                : new PointShadowCache.CasterPose(transform, default, false);
+            kind = OpaqueSurfaceKind.SingleSubmesh;
+            return true;
+        }
+
+        if (modelRenderer.SuppressDraw)
+            return false;
+
+        var hasBounds = true;
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+        foreach (var submesh in model.Submeshes)
+        {
+            if (submesh.Bounds is not { } bounds)
+            {
+                hasBounds = false;
+                break;
+            }
+
+            min = Vector3.Min(min, bounds.Min);
+            max = Vector3.Max(max, bounds.Max);
+        }
+
+        casterPose = hasBounds
+            ? new PointShadowCache.CasterPose(transform, new Aabb(min, max), true)
+            : new PointShadowCache.CasterPose(transform, default, false);
+        kind = OpaqueSurfaceKind.AllSubmeshes;
+        return true;
+    }
+
     private static PassStats DrawOpaque3D(
         Context context,
         IGraphics3D graphics3D,
@@ -232,9 +351,34 @@ internal static class SceneRenderPipeline
         {
             stats.Renderers++;
             var transform = transformComponent.GetWorldTransform();
-
-            if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+            if (!TryResolveOpaqueSurface(
+                    modelRenderer, transform, modelFactory,
+                    out _, out var kind, out var model, out var submeshIndex))
             {
+                if (modelRenderer.MeshIndex is int meshIndex
+                    && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
+                    && modelFactory != null)
+                {
+                    var loaded = modelFactory.Create(PathBuilder.Resolve(modelRenderer.ModelPath));
+                    if (loaded != null && (meshIndex < 0 || meshIndex >= loaded.Submeshes.Count))
+                        stats.MissingMeshIndex++;
+                }
+
+                continue;
+            }
+
+            var tint = modelRenderer.Color;
+            if (kind == OpaqueSurfaceKind.UnitCube)
+            {
+                if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
+                {
+                    var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+                    if (WarnedFailedModels.Add(resolvedPath))
+                        Logger.Warning(
+                            "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
+                            modelRenderer.ModelPath, resolvedPath);
+                }
+
                 if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
                     continue;
 
@@ -248,48 +392,18 @@ internal static class SceneRenderPipeline
                 continue;
             }
 
-            if (modelFactory == null)
-                continue;
-
-            var tint = modelRenderer.Color;
-            var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-            var model = modelFactory.Create(resolvedPath);
-            if (model == null)
+            if (kind == OpaqueSurfaceKind.SingleSubmesh)
             {
-                if (WarnedFailedModels.Add(resolvedPath))
-                    Logger.Warning(
-                        "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                        modelRenderer.ModelPath, resolvedPath);
-                if (IsCulled(hasFrustum, frustum, transform, Aabb.UnitCube, ref stats))
+                var submesh = model!.Submeshes[submeshIndex];
+                if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
                     continue;
 
-                var fallback = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
-                graphics3D.DrawCube(transform, tint, entity.Id,
-                    metallic: fallback.Metallic, roughness: fallback.Roughness, ao: fallback.Ao);
-                stats.CubeDraws++;
+                DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh,
+                    ref stats, meshDrawCounts);
                 continue;
             }
 
-            if (modelRenderer.MeshIndex is int meshIndex)
-            {
-                if (meshIndex >= 0 && meshIndex < model.Submeshes.Count)
-                {
-                    var submesh = model.Submeshes[meshIndex];
-                    if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
-                        continue;
-
-                    DrawSubmesh(graphics3D, modelRenderer, transform, tint, entity.Id, submesh,
-                        ref stats, meshDrawCounts);
-                }
-                else
-                    stats.MissingMeshIndex++;
-                continue;
-            }
-
-            if (modelRenderer.SuppressDraw)
-                continue;
-
-            foreach (var submesh in model.Submeshes)
+            foreach (var submesh in model!.Submeshes)
             {
                 if (submesh.Bounds is { } bounds && IsCulled(hasFrustum, frustum, transform, bounds, ref stats))
                     continue;
@@ -424,7 +538,7 @@ internal static class SceneRenderPipeline
     {
         var limit = System.Math.Min(destination.Length, LightingMath.MaxPointLights);
         var count = 0;
-        foreach (var (_, light, transform) in context.View<PointLightComponent, TransformComponent>())
+        foreach (var (entity, light, transform) in context.View<PointLightComponent, TransformComponent>())
         {
             if (light.Range <= 0f)
                 continue;
@@ -436,10 +550,28 @@ internal static class SceneRenderPipeline
                 new Vector3(light.Color.X, light.Color.Y, light.Color.Z),
                 MathF.Max(0f, light.Intensity),
                 light.Range,
-                light.CastsShadow);
+                light.CastsShadow,
+                entity.Id);
         }
 
         return count;
+    }
+
+    private static void CollectPointShadowCasters(
+        Context context,
+        IModelFactory? modelFactory,
+        List<(int Id, PointShadowCache.CasterPose Pose)> destination)
+    {
+        destination.Clear();
+        foreach (var (entity, modelRenderer, transformComponent) in
+                 context.View<ModelRendererComponent, TransformComponent>())
+        {
+            var transform = transformComponent.GetWorldTransform();
+            if (TryResolveOpaqueSurface(
+                    modelRenderer, transform, modelFactory,
+                    out var pose, out _, out _, out _))
+                destination.Add((entity.Id, pose));
+        }
     }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)

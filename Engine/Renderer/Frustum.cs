@@ -30,20 +30,11 @@ internal readonly struct Frustum
     public bool IsOutside(Matrix4x4 world, Aabb bounds)
     {
         Span<Vector3> corners = stackalloc Vector3[8];
-        var corner = 0;
-        for (var z = 0; z < 2; z++)
-        for (var y = 0; y < 2; y++)
-        for (var x = 0; x < 2; x++)
+        Aabb.TransformCorners(world, bounds, corners);
+        foreach (var transformed in corners)
         {
-            var local = new Vector3(
-                x == 0 ? bounds.Min.X : bounds.Max.X,
-                y == 0 ? bounds.Min.Y : bounds.Max.Y,
-                z == 0 ? bounds.Min.Z : bounds.Max.Z);
-            var transformed = Vector3.Transform(local, world);
             if (!float.IsFinite(transformed.X) || !float.IsFinite(transformed.Y) || !float.IsFinite(transformed.Z))
                 return false;
-
-            corners[corner++] = transformed;
         }
 
         foreach (var plane in _planes)
