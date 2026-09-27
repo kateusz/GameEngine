@@ -36,20 +36,24 @@ public class CameraComponentEditor(
                 out var projectionType))
             projectionLabel = ProjectionTypeStrings[(int)projectionType];
 
-        LayoutDrawer.DrawComboBox("Projection", projectionLabel, ProjectionTypeStrings,
-            selectedType =>
-            {
-                var newType = selectedType switch
+        UIPropertyRenderer.DrawPropertyRow("Projection", () =>
+        {
+            LayoutDrawer.DrawComboBox("##Projection", projectionLabel, ProjectionTypeStrings,
+                selectedType =>
                 {
-                    "Perspective" => CameraProjectionTypeData.Perspective,
-                    "Orthographic" => CameraProjectionTypeData.Orthographic,
-                    _ => CameraProjectionTypeData.Perspective
-                };
-                MultiField.WriteEach(entity, (Entity e, CameraProjectionTypeData t) =>
-                {
-                    e.GetComponent<CameraComponent>().ProjectionType = t;
-                }, newType);
-            });
+                    var newType = selectedType switch
+                    {
+                        "Perspective" => CameraProjectionTypeData.Perspective,
+                        "Orthographic" => CameraProjectionTypeData.Orthographic,
+                        _ => CameraProjectionTypeData.Perspective
+                    };
+                    MultiField.WriteEach(entity, (Entity e, CameraProjectionTypeData t) =>
+                    {
+                        e.GetComponent<CameraComponent>().ProjectionType = t;
+                    }, newType);
+                },
+                width: -1f);
+        });
 
         var allPerspective = MultiField.For(entity).All(e =>
             e.GetComponent<CameraComponent>().ProjectionType == CameraProjectionTypeData.Perspective);

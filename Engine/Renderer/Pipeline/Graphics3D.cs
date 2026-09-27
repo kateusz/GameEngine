@@ -52,7 +52,7 @@ internal sealed class Graphics3D(
     private int _pointLightCount;
 
     private readonly List<MeshInstanceData> _instanceUpload = [];
-    private readonly Statistics _stats = new();
+    private Statistics _stats = new();
     private bool _disposed;
 
     public void Init()
@@ -201,7 +201,7 @@ internal sealed class Graphics3D(
 
         _cubeMesh.Bind();
         rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
-        _stats.DrawCalls++;
+        RecordDraw(_cubeMesh, instanceCount: 1, isCube: true);
         _cubeShader.Unbind();
     }
 
@@ -277,7 +277,7 @@ internal sealed class Graphics3D(
             }
 
             rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
-            _stats.DrawCalls++;
+            RecordDraw(mesh, instanceCount: 1, isCube: false);
             return;
         }
 
@@ -288,7 +288,7 @@ internal sealed class Graphics3D(
 
         rendererApi.DrawIndexedInstanced(
             mesh.GetVertexArray(), (uint)mesh.GetIndexCount(), CollectionsMarshal.AsSpan(_instanceUpload));
-        _stats.DrawCalls++;
+        RecordDraw(mesh, instances.Length, isCube: false);
     }
 
     public void SetAmbientLight(Vector3 color, float strength)
@@ -352,7 +352,30 @@ internal sealed class Graphics3D(
         shader.SetMat4("u_Model", transform);
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+        RecordDraw(mesh, instanceCount: 1, isCube: mesh == _cubeMesh);
+    }
+
+    private void RecordDraw(Mesh mesh, int instanceCount, bool isCube)
+    {
         _stats.DrawCalls++;
+        if (_pointShadowPass)
+            _stats.PointShadowDrawCalls++;
+        else if (_shadowPass)
+            _stats.DirectionalShadowDrawCalls++;
+        else
+            _stats.ColorDrawCalls++;
+
+        if (isCube)
+            _stats.CubeDraws++;
+        else
+            _stats.MeshDraws++;
+
+        if (instanceCount > 1)
+            _stats.InstancedDraws++;
+
+        _stats.Instances += (uint)instanceCount;
+        _stats.Vertices += (long)mesh.VertexCount * instanceCount;
+        _stats.Indices += (long)mesh.GetIndexCount() * instanceCount;
     }
 
     private IFrameBuffer PointShadowMap(int entityId)
@@ -422,10 +445,7 @@ internal sealed class Graphics3D(
         EntityId = instance.EntityId
     };
 
-    public void ResetStats()
-    {
-        _stats.DrawCalls = 0;
-    }
+    public void ResetStats() => _stats = new Statistics();
 
     public Statistics GetStats() => _stats;
 

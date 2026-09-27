@@ -1,5 +1,6 @@
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Engine.Project;
 using Engine.Scene;
 using ImGuiNET;
 
@@ -8,32 +9,105 @@ namespace Editor.Features.Scene;
 /// <summary>
 /// Handles scene-related UI popups and modals in the editor.
 /// </summary>
-public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneContext)
+public class SceneSettingsPopup(
+    ISceneManager sceneManager,
+    ISceneContext sceneContext,
+    IProjectContext projectContext,
+    EditorSceneLoadService sceneLoadService)
 {
     private bool _showNewScenePopup;
     private bool _showCloseConfirmation;
     private bool _showSettings;
+    private bool _showOpenScene;
     private string _newSceneName = string.Empty;
     private string _newSceneError = string.Empty;
+    private string[] _openScenePaths = [];
+    private int _openSceneSelected = -1;
 
-    /// <summary>
-    /// Shows the new scene popup.
-    /// </summary>
     public void ShowNewScenePopup() => _showNewScenePopup = true;
 
     public void ShowCloseConfirmation() => _showCloseConfirmation = true;
 
     public void ShowSettings() => _showSettings = true;
 
-    /// <summary>
-    /// Renders all scene-related modals.
-    /// Must be called from the main render loop.
-    /// </summary>
+    public void ShowOpenScenePopup()
+    {
+        _openScenePaths = EnumerateProjectScenes();
+        _openSceneSelected = _openScenePaths.Length > 0 ? 0 : -1;
+        _showOpenScene = true;
+    }
+
     public void Render()
     {
         RenderNewScenePopup();
         RenderCloseConfirmationModal();
         RenderSettingsModal();
+        RenderOpenSceneModal();
+    }
+
+    private void RenderOpenSceneModal()
+    {
+        if (!ModalDrawer.BeginCenteredModal("Open Scene", ref _showOpenScene))
+            return;
+
+        if (projectContext.Root is null)
+        {
+            ImGui.TextUnformatted("No project open.");
+            if (ButtonDrawer.DrawModalButton("Close"))
+                _showOpenScene = false;
+            ModalDrawer.EndModal();
+            return;
+        }
+
+        if (_openScenePaths.Length == 0)
+        {
+            ImGui.TextUnformatted("No .scene files in this project.");
+            if (ButtonDrawer.DrawModalButton("Close"))
+                _showOpenScene = false;
+            ModalDrawer.EndModal();
+            return;
+        }
+
+        var current = _openSceneSelected >= 0 ? _openScenePaths[_openSceneSelected] : _openScenePaths[0];
+        ImGui.TextUnformatted("Scene:");
+        ImGui.SameLine();
+        LayoutDrawer.DrawComboBox(
+            "##openScene",
+            current,
+            _openScenePaths,
+            selected => _openSceneSelected = Array.IndexOf(_openScenePaths, selected),
+            width: 300f);
+
+        ImGui.Spacing();
+        var buttonWidth = EditorUIConstants.StandardButtonWidth;
+        ImGui.SetCursorPosX((ImGui.GetContentRegionAvail().X - buttonWidth) * 0.5f);
+        if (ButtonDrawer.DrawModalButton("Open"))
+            OpenSelectedScene();
+
+        ModalDrawer.EndModal();
+    }
+
+    private void OpenSelectedScene()
+    {
+        if (_openSceneSelected < 0 || _openSceneSelected >= _openScenePaths.Length || projectContext.Root is null)
+            return;
+
+        var fullPath = Path.GetFullPath(Path.Combine(projectContext.Root, _openScenePaths[_openSceneSelected]));
+        _showOpenScene = false;
+        sceneLoadService.Request(fullPath);
+    }
+
+    private string[] EnumerateProjectScenes()
+    {
+        var root = projectContext.Root;
+        var scenesDir = projectContext.ScenesDir;
+        if (root is null || scenesDir is null || !Directory.Exists(scenesDir))
+            return [];
+
+        return Directory.EnumerateFiles(scenesDir, "*.scene", SearchOption.AllDirectories)
+            .Select(file => Path.GetRelativePath(root, file).Replace('\\', '/'))
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private void RenderSettingsModal()
@@ -69,17 +143,13 @@ public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneC
         ModalDrawer.RenderInputModal(
             title: "New Scene",
             showModal: ref _showNewScenePopup,
-            promptText: "Enter Scene Name:",
+            promptText: "Scene Name:",
             inputValue: ref _newSceneName,
             maxLength: EditorUIConstants.MaxNameLength,
-            validationMessage: validationMessage,
-            errorMessage: _newSceneError,
-            isValid: isValid,
             onOk: () =>
             {
                 try
                 {
-                    // Create new scene
                     sceneManager.New(_newSceneName);
                     _newSceneName = string.Empty;
                     _newSceneError = string.Empty;
@@ -87,7 +157,7 @@ public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneC
                 catch (Exception ex)
                 {
                     _newSceneError = $"Failed to create scene: {ex.Message}";
-                    _showNewScenePopup = true; // Keep modal open on error
+                    _showNewScenePopup = true;
                 }
             },
             onCancel: () =>
@@ -95,7 +165,12 @@ public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneC
                 _newSceneName = string.Empty;
                 _newSceneError = string.Empty;
             },
-            okLabel: "Create");
+            new InputModalOptions(
+                validationMessage: validationMessage,
+                errorMessage: _newSceneError,
+                isValid: isValid,
+                okLabel: "Create",
+                showCancel: false));
     }
 
     private void RenderCloseConfirmationModal()
@@ -119,15 +194,11 @@ public class SceneSettingsPopup(ISceneManager sceneManager, ISceneContext sceneC
         ModalDrawer.EndModal();
     }
 
-    /// <summary>
-    /// Validates a scene name.
-    /// </summary>
     private static bool IsValidSceneName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return false;
 
-        // Allow letters, numbers, spaces, dashes, and underscores
         return name.All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_');
     }
 }

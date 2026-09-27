@@ -53,9 +53,13 @@ public class EditorSettingsUI(IEditorPreferences editorPreferences, DebugSetting
         ImGui.Separator();
         ImGui.SeparatorText("Autosave");
 
+        LayoutDrawer.DrawFormLabel("Interval");
+        LayoutDrawer.DrawTooltip("Seconds (0 = off)");
+        ImGui.SetNextItemWidth(120f);
         var autosaveSeconds = editorPreferences.AutosaveIntervalSeconds;
-        if (ImGui.DragInt("Interval (seconds, 0 = off)", ref autosaveSeconds, 1, 0, 3600))
+        if (ImGui.InputInt("##autosaveInterval", ref autosaveSeconds))
         {
+            autosaveSeconds = System.Math.Clamp(autosaveSeconds, 0, 3600);
             if (autosaveSeconds is > 0 and < MinAutosaveIntervalSeconds)
                 autosaveSeconds = MinAutosaveIntervalSeconds;
             editorPreferences.AutosaveIntervalSeconds = autosaveSeconds;

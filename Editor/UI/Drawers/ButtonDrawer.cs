@@ -332,16 +332,70 @@ public static class ButtonDrawer
     /// <summary>
     /// Draws a pair of OK/Cancel modal buttons with standard spacing.
     /// </summary>
-    /// <param name="okLabel">Label for OK button (default: "OK")</param>
-    /// <param name="cancelLabel">Label for Cancel button (default: "Cancel")</param>
-    /// <param name="onOk">Callback when OK is clicked</param>
-    /// <param name="onCancel">Callback when Cancel is clicked</param>
-    /// <param name="okDisabled">Whether OK button should be disabled</param>
     public static void DrawModalButtonPair(string okLabel = "OK", string cancelLabel = "Cancel",
         Action? onOk = null, Action? onCancel = null, bool okDisabled = false)
     {
         DrawModalButton(okLabel, onOk, disabled: okDisabled);
         ImGui.SameLine();
         DrawModalButton(cancelLabel, onCancel);
+    }
+
+    /// <summary>
+    /// Centers the next modal button(s) as a group of the given total width.
+    /// </summary>
+    public static void BeginCenteredModalButtons(float totalWidth)
+    {
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - totalWidth) * 0.5f);
+    }
+
+    /// <summary>
+    /// Draws a single modal action button centered in the dialog.
+    /// </summary>
+    public static bool DrawCenteredModalButton(
+        string label,
+        Action? onClick = null,
+        bool disabled = false,
+        string? disabledTooltip = null)
+    {
+        BeginCenteredModalButtons(EditorUIConstants.StandardButtonWidth);
+        var clicked = DrawModalButton(label, onClick, disabled: disabled);
+        if (disabled && !string.IsNullOrEmpty(disabledTooltip))
+            LayoutDrawer.DrawTooltip(disabledTooltip, ImGuiHoveredFlags.AllowWhenDisabled);
+        return clicked;
+    }
+
+    /// <summary>
+    /// Draws a centered OK/Cancel pair.
+    /// </summary>
+    public static void DrawCenteredModalButtonPair(
+        string okLabel = "OK",
+        string cancelLabel = "Cancel",
+        Action? onOk = null,
+        Action? onCancel = null,
+        bool okDisabled = false)
+    {
+        var total = EditorUIConstants.StandardButtonWidth * 2f + ImGui.GetStyle().ItemSpacing.X;
+        BeginCenteredModalButtons(total);
+        DrawModalButtonPair(okLabel, cancelLabel, onOk, onCancel, okDisabled);
+    }
+
+    /// <summary>
+    /// Draws a centered row of equal-width modal buttons.
+    /// </summary>
+    public static void DrawCenteredModalButtonRow(params (string Label, Action? OnClick)[] buttons)
+    {
+        if (buttons.Length == 0)
+            return;
+
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var total = EditorUIConstants.StandardButtonWidth * buttons.Length + spacing * (buttons.Length - 1);
+        BeginCenteredModalButtons(total);
+
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            if (i > 0)
+                ImGui.SameLine();
+            DrawModalButton(buttons[i].Label, buttons[i].OnClick);
+        }
     }
 }

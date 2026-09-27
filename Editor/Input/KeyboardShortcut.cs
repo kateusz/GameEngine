@@ -23,7 +23,7 @@ public sealed class KeyboardShortcut : IEquatable<KeyboardShortcut>
     public string Description { get; }
 
     /// <summary>
-    /// Category for grouping shortcuts in UI (e.g., "File", "Edit", "View").
+    /// Category for grouping shortcuts in UI (e.g. "Edit", "View").
     /// </summary>
     public string Category { get; }
 

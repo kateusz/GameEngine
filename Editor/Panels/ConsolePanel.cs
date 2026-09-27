@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text;
 using ImGuiNET;
 using Editor.UI.Constants;
@@ -71,38 +72,33 @@ public class ConsolePanel : IConsolePanel
 
     public void DrawContent()
     {
-        RenderToolbar();
+        var footerHeight = ImGui.GetFrameHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y;
+        RenderLogDisplay(new Vector2(0f, -footerHeight));
         ImGui.Separator();
-        RenderLogDisplay();
+        RenderToolbar();
     }
 
     private void RenderToolbar()
     {
-        // Clear button
         ButtonDrawer.DrawButton("Clear", Clear);
         ImGui.SameLine();
 
-        // Auto-scroll checkbox
         ImGui.Checkbox("Auto-scroll", ref _autoScroll);
-
-        // Filter controls
         ImGui.SameLine();
-        LayoutDrawer.DrawFilterInput("Filter", ref _filterText);
 
-        // Log level filters
+        LayoutDrawer.DrawFilterInput("##ConsoleFilter", ref _filterText, hint: "Search...");
         ImGui.SameLine();
+
         LayoutDrawer.DrawColoredCheckbox("Info", ref _showInfo, EditorUIConstants.InfoColor);
-
         ImGui.SameLine();
         LayoutDrawer.DrawColoredCheckbox("Warnings", ref _showWarnings, EditorUIConstants.WarningColor);
-
         ImGui.SameLine();
         LayoutDrawer.DrawColoredCheckbox("Errors", ref _showErrors, EditorUIConstants.ErrorColor);
     }
 
-    private void RenderLogDisplay(bool forceScrollToBottom = false)
+    private void RenderLogDisplay(Vector2 size, bool forceScrollToBottom = false)
     {
-        ImGui.BeginChild("ConsoleLog");
+        ImGui.BeginChild("ConsoleLog", size);
 
         var filteredMessages = GetFilteredMessages();
         foreach (var message in filteredMessages)

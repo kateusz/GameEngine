@@ -171,14 +171,19 @@ public static class EditorUIConstants
     public const float ToolbarToggleHeight = 19f;
 
     /// <summary>
-    /// Default size for the publish settings modal window.
+    /// Default size for the export progress modal window.
     /// </summary>
-    public static readonly Vector2 PublishSettingsModalSize = new(520f, 620f);
+    public static readonly Vector2 ExportProgressModalSize = new(600f, 500f);
 
     /// <summary>
-    /// Default size for the publish progress modal window.
+    /// Label column width for form-style dialogs (Export, Project Settings, New Project, …).
     /// </summary>
-    public static readonly Vector2 PublishProgressModalSize = new(600f, 500f);
+    public const float ModalLabelWidth = 130f;
+
+    /// <summary>
+    /// Minimum width for form-style dialogs.
+    /// </summary>
+    public const float ModalMinWidth = 520f;
 
     public const float DefaultButtonWidth = 100;
 

@@ -19,13 +19,13 @@ using Editor.UI.Elements;
 using Editor.UI.FieldEditors;
 using Editor.Features.Scripting;
 using Editor.Features.Viewport.Gizmos;
+using Editor.Commands;
 using Editor.Features.Application;
 using Editor.Features.Models;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
 using Engine.Renderer.Pipeline;
-using Engine.Scene;
 using Engine.Scripting;
 using GameComponentEditor = Editor.ComponentEditors.GameComponentEditor;
 
@@ -36,6 +36,8 @@ public static class EditorIoCContainer
     public static void Register(Container container)
     {
         container.Register<ShortcutManager>(Reuse.Singleton);
+        container.Register<CommandRegistry>(Reuse.Singleton);
+        container.Register<CommandPalette>(Reuse.Singleton);
         container.Register<IEditorCameraFraming, EditorCameraFramingService>(Reuse.Singleton);
         container.Register<IEditorSelection, EditorSelection>(Reuse.Singleton);
         container.Register<IEditorHistory, EditorHistory>(Reuse.Singleton);
@@ -49,6 +51,7 @@ public static class EditorIoCContainer
             made: Made.Of(() => EditorPreferences.Load())
         );
         container.Register<EditorSettingsUI>(Reuse.Singleton);
+        container.Register<ProjectSettingsUI>(Reuse.Singleton);
         container.Register<AudioDropTarget>(Reuse.Singleton);
         container.Register<PerformanceMonitorPanel>(Reuse.Singleton);
 
@@ -106,6 +109,7 @@ public static class EditorIoCContainer
         container.Register<PrefabDropTarget>(Reuse.Singleton);
         container.Register<NewProjectPopup>(Reuse.Singleton);
         container.Register<SceneSettingsPopup>(Reuse.Singleton);
+        container.Register<UnsavedSceneGuard>(Reuse.Singleton);
         container.Register<SceneToolbar>(Reuse.Singleton);
         container.Register<RendererStatsPanel>(Reuse.Singleton);
         container.Register<Features.Components.GameComponentEditor>(Reuse.Singleton);

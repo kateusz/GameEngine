@@ -21,6 +21,7 @@ public class EditorLifecycle(
     DebugSettings debugSettings,
     ISceneContext sceneContext,
     ISceneManager sceneManager,
+    EditorSceneLoadService sceneLoadService,
     GameScriptWorkspace scriptWorkspace,
     ShortcutManager shortcutManager,
     EditorShortcutRegistrar shortcutRegistrar,
@@ -55,7 +56,10 @@ public class EditorLifecycle(
         };
 
         _projectOpenedHandler = () =>
+        {
             contentBrowserPanel.SetRootDirectory(projectContext.AssetsPath);
+            TryLoadDefaultScene();
+        };
 
         _projectClosedHandler = () =>
         {
@@ -105,4 +109,25 @@ public class EditorLifecycle(
         consolePanel?.Dispose();
     }
 
+    private void TryLoadDefaultScene()
+    {
+        if (projectContext.Root is null)
+            return;
+
+        var configPath = GameConfiguration.PathFor(projectContext.Root);
+        if (!GameConfiguration.TryLoad(configPath, out var config, out _))
+            return;
+
+        if (string.IsNullOrWhiteSpace(config.StartupScenePath))
+            return;
+
+        var scenePath = Path.GetFullPath(Path.Combine(projectContext.Root, config.StartupScenePath));
+        if (!File.Exists(scenePath))
+        {
+            Logger.Warning("Default scene not found: {ScenePath}", scenePath);
+            return;
+        }
+
+        sceneLoadService.Request(scenePath);
+    }
 }

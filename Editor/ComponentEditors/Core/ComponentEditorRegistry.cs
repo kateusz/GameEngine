@@ -68,6 +68,7 @@ public class ComponentEditorRegistry(IEnumerable<IComponentEditor> editors) : IC
         {
             ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
             removed = ButtonDrawer.DrawButton("-", lineHeight, lineHeight, removeComponent);
+            LayoutDrawer.DrawTooltip("Remove Component");
         }
 
         if (!open)

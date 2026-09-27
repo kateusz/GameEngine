@@ -98,10 +98,8 @@ public partial class GamePublisher
                    $"-c {settings.Configuration} " +
                    $"-r {settings.RuntimeIdentifier} " +
                    $"-o \"{outputPath}\" " +
-                   $"--self-contained {settings.SelfContained.ToString().ToLowerInvariant()}";
-
-        if (settings.SingleFile)
-            args += " /p:PublishSingleFile=true";
+                   "--self-contained true " +
+                   "/p:PublishSingleFile=true";
 
         return args;
     }

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Commands;
 using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Settings;
@@ -18,9 +19,13 @@ public class EditorDockspace(
     IEditorViewport editorViewport,
     ViewportComponents viewport,
     EditorSettingsUI editorSettingsUI,
+    ProjectSettingsUI projectSettingsUI,
     NewProjectPopup newProjectPopup,
     SceneSettingsPopup sceneSettingsPopup,
+    UnsavedSceneGuard unsavedSceneGuard,
     PublishSettingsUI publishSettingsUI,
+    CommandPalette commandPalette,
+    RecentProjectsPanel recentProjectsPanel,
     ISceneManager sceneManager,
     IEditorPreferences editorPreferences,
     ISceneContext sceneContext,
@@ -71,11 +76,14 @@ public class EditorDockspace(
         bottomPanel.Draw();
 
         editorSettingsUI.Render();
+        projectSettingsUI.Render();
         newProjectPopup.Render();
         sceneSettingsPopup.Render();
+        unsavedSceneGuard.Render();
         publishSettingsUI.Render();
+        commandPalette.Render();
 
-        if (sceneLoadService.IsLoading)
+        if (sceneLoadService.IsLoading && !recentProjectsPanel.IsLoading)
             LoadingOverlayDrawer.DrawFullscreen(
                 $"Loading scene {sceneLoadService.LoadingName}...",
                 ref _sceneLoadingSpinnerRotation);
