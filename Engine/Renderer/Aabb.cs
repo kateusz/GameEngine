@@ -46,6 +46,9 @@ internal readonly record struct Aabb(Vector3 Min, Vector3 Max)
         }
     }
 
+    internal static bool ContainsPoint(Vector3 point, Matrix4x4 world, Aabb local) =>
+        ClosestPointDistanceSquared(point, world, local) <= 0f;
+
     internal static float ClosestPointDistanceSquared(Vector3 point, Matrix4x4 world, Aabb local)
     {
         WorldMinMax(world, local, out var min, out var max);

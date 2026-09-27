@@ -3,6 +3,7 @@ using ECS;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Selection;
+using Editor.Features.Viewport;
 using Editor.Panels;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
@@ -19,7 +20,8 @@ public class SceneHierarchyPanel(
     PrefabDropTarget prefabDropTarget,
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection,
-    IEditorHistory history)
+    IEditorHistory history,
+    IEditorCameraFraming cameraFraming)
     : IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
@@ -67,7 +69,7 @@ public class SceneHierarchyPanel(
             }
         }
 
-        if (ImGui.IsMouseDown(0) && ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered())
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && ImGui.IsWindowHovered() && !ImGui.IsAnyItemHovered())
             selection.Select(null, SelectionSource.Hierarchy);
 
         entityContextMenu.Render(_scene);
@@ -156,11 +158,14 @@ public class SceneHierarchyPanel(
             ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
 
         var opened = ImGui.TreeNodeEx(entity.Name, flags);
+        var rowMin = ImGui.GetItemRectMin();
+        var rowMax = ImGui.GetItemRectMax();
 
         if (isMatch)
             ImGui.PopStyleColor();
 
-        if (row.HasChildren && ImGui.IsItemToggledOpen())
+        var toggledOpen = row.HasChildren && ImGui.IsItemToggledOpen();
+        if (toggledOpen)
         {
             if (opened)
                 _expandedIds.Add(entity.Id);
@@ -168,8 +173,12 @@ public class SceneHierarchyPanel(
                 _expandedIds.Remove(entity.Id);
         }
 
-        if (ImGui.IsItemClicked())
+        if (toggledOpen || PointerActivatedInRect(rowMin, rowMax))
+        {
             selection.Select(entity, SelectionSource.Hierarchy);
+            if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                cameraFraming.FocusOnEntity(entity, resetDistance: true);
+        }
 
         if (ImGui.BeginPopupContextItem())
         {
@@ -208,6 +217,21 @@ public class SceneHierarchyPanel(
 
         prefabDropTarget.HandleEntityDrop(entity);
         ImGui.PopID();
+    }
+
+    private static bool PointerActivatedInRect(Vector2 min, Vector2 max)
+    {
+        var mouse = ImGui.GetMousePos();
+        if (mouse.X < min.X || mouse.X > max.X || mouse.Y < min.Y || mouse.Y > max.Y)
+            return false;
+
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+            return true;
+
+        if (!ImGui.IsMouseReleased(ImGuiMouseButton.Left))
+            return false;
+
+        return ImGui.GetMouseDragDelta(ImGuiMouseButton.Left).LengthSquared() < 4f;
     }
 
     private unsafe void TryAcceptEntityDrop(Entity? parent)

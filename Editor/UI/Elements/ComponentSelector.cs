@@ -63,6 +63,12 @@ public static class ComponentSelector
             DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity, history);
             DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity, history);
             DrawComponentMenuItem<PointLightComponent>("Point Light", entity, history);
+            DrawComponentMenuItem<VisibilityZoneComponent>("Visibility Zone", entity, history, () =>
+            {
+                history.Execute(new AddComponentCommand(
+                    entity, new VisibilityZoneComponent(),
+                    autoAddTransform: !entity.HasComponent<TransformComponent>()));
+            });
 
             if (ImGui.MenuItem("Game Component"))
             {

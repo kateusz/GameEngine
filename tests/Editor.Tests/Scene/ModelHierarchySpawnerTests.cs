@@ -113,6 +113,19 @@ public class ModelHierarchySpawnerTests
     }
 
     [Fact]
+    public void ApplyLocalTransform_TransposedTranslation_RestoresVector()
+    {
+        using var scene = CreateScene();
+        var entity = scene.CreateEntity("Box");
+        entity.AddComponent(new TransformComponent());
+
+        var cookedByImporterV1 = Matrix4x4.Transpose(Matrix4x4.CreateTranslation(4f, 5f, 6f));
+        ModelHierarchySpawner.ApplyLocalTransform(entity, cookedByImporterV1);
+
+        entity.GetComponent<TransformComponent>().Translation.ShouldBe(new Vector3(4f, 5f, 6f));
+    }
+
+    [Fact]
     public void SpawnChildren_EmptyLightNode_CreatesPointLightWithoutRenderer()
     {
         using var scene = CreateScene();

@@ -35,6 +35,7 @@ public static class EditorIoCContainer
     public static void Register(Container container)
     {
         container.Register<ShortcutManager>(Reuse.Singleton);
+        container.Register<IEditorCameraFraming, EditorCameraFramingService>(Reuse.Singleton);
         container.Register<IEditorSelection, EditorSelection>(Reuse.Singleton);
         container.Register<IEditorHistory, EditorHistory>(Reuse.Singleton);
         
@@ -68,6 +69,7 @@ public static class EditorIoCContainer
         container.RegisterMany<PointLightComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SpriteRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<VisibilityZoneComponentEditor>(Reuse.Singleton);
         container.RegisterMany<RigidBody2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<BoxCollider2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<CircleCollider2DComponentEditor>(Reuse.Singleton);

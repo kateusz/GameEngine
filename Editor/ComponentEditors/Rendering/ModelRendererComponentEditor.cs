@@ -5,6 +5,8 @@ using Editor.Features.History.Commands;
 using Editor.UI.Elements;
 using Engine.Renderer.Models;
 using Engine.Scene;
+using ImGuiNET;
+using SceneComponents;
 using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
@@ -50,6 +52,37 @@ public class ModelRendererComponentEditor(
         {
             propertyRenderer.DrawPropertyField("Override Material", component.OverrideMaterial,
                 newValue => component.OverrideMaterial = (bool)newValue);
+        }
+
+        DrawVisibilityZonePicker(component);
+    }
+
+    private void DrawVisibilityZonePicker(ModelRendererComponent component)
+    {
+        var scene = sceneContext.ActiveScene;
+        if (scene == null)
+            return;
+
+        var currentLabel = "(none)";
+        if (component.VisibilityZoneEntityId >= 0)
+        {
+            currentLabel = scene.Context.Contains(component.VisibilityZoneEntityId)
+                ? scene.Context.GetById(component.VisibilityZoneEntityId).Name
+                : $"Missing #{component.VisibilityZoneEntityId}";
+        }
+
+        if (ImGui.BeginCombo("Visibility Zone", currentLabel))
+        {
+            if (ImGui.Selectable("(none)", component.VisibilityZoneEntityId < 0))
+                component.VisibilityZoneEntityId = -1;
+
+            foreach (var (zoneEntity, _, _) in scene.Context.View<VisibilityZoneComponent, TransformComponent>())
+            {
+                if (ImGui.Selectable(zoneEntity.Name, component.VisibilityZoneEntityId == zoneEntity.Id))
+                    component.VisibilityZoneEntityId = zoneEntity.Id;
+            }
+
+            ImGui.EndCombo();
         }
     }
 }

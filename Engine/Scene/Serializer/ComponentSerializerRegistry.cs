@@ -153,6 +153,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<AmbientLightComponent>();
         Register<DirectionalLightComponent>();
         Register<PointLightComponent>();
+        Register<VisibilityZoneComponent>();
     }
 
     private static IComponentSerializer CreateJsonSerializer(Type componentType, string? name)
