@@ -61,6 +61,24 @@ public class GlbNodeTransformImportTests
         translation.ShouldBe(new Vector3(3f, 2f, 1f));
     }
 
+    [Fact]
+    public void ImportSource_GltfTexCoord_MirrorsVForFlippedBitmap()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "GltfUv.gltf");
+        if (!File.Exists(path))
+            path = Path.GetFullPath(Path.Combine("tests", "Engine.Tests", "TestAssets", "GltfUv.gltf"));
+
+        using var importer = new AssimpModelImporter();
+        var model = importer.ImportSource(path);
+        model.ShouldNotBeNull();
+
+        var uv = model!.Submeshes.Single().Vertices.Select(v => v.TexCoord).ToArray();
+        uv[0].X.ShouldBe(0.2f, 0.001f);
+        uv[0].Y.ShouldBe(0.7f, 0.001f);
+        uv[1].Y.ShouldBe(1f - 2.3f, 0.001f);
+        uv[2].Y.ShouldBe(1f, 0.001f);
+    }
+
     private static ModelSceneNode? Find(ModelSceneNode node, string name)
     {
         if (node.Name == name)
