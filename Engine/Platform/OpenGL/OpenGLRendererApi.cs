@@ -118,6 +118,13 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetFaceCulling");
     }
 
+    public void SetCullFrontFaces(bool cullFront)
+    {
+        SilkNetContext.GL.Enable(EnableCap.CullFace);
+        SilkNetContext.GL.CullFace(cullFront ? TriangleFace.Front : TriangleFace.Back);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "CullFace");
+    }
+
     public void SetDepthWrite(bool enabled)
     {
         SilkNetContext.GL.DepthMask(enabled);
