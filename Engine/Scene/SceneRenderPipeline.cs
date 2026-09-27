@@ -715,7 +715,9 @@ internal static class SceneRenderPipeline
     internal static (Vector3 Direction, Vector3 Color) ResolveDirectional(Context context)
     {
         foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
-            return (LightingMath.NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));
+            return (
+                LightingMath.NormalizeDirection(dlc.Direction),
+                new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z) * MathF.Max(0f, dlc.Intensity));
 
         return (LightingMath.DefaultDirection, Vector3.Zero);
     }
@@ -752,7 +754,7 @@ internal static class SceneRenderPipeline
                 break;
 
             destination[count++] = new PointLightData(
-                transform.GetWorldTransform().Translation,
+                transform.GetWorldTransform().Translation + (light.ApplyOffset ? light.Offset : default),
                 new Vector3(light.Color.X, light.Color.Y, light.Color.Z),
                 MathF.Max(0f, light.Intensity),
                 light.Range,

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.Features.Viewport;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Renderer.Textures;
@@ -9,7 +10,11 @@ using ImGuiNET;
 
 namespace Editor.Features.Scene;
 
-public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager, ITextureFactory textureFactory)
+public class SceneToolbar(
+    ISceneContext sceneContext,
+    ISceneManager sceneManager,
+    ITextureFactory textureFactory,
+    ViewportGrid viewportGrid)
 {
     private Texture2D _iconPlay;
     private Texture2D _iconStop;
@@ -117,20 +122,23 @@ public class SceneToolbar(ISceneContext sceneContext, ISceneManager sceneManager
 
     private void DrawDimensionButton(string label, SceneDimension dimension)
     {
-        var selected = sceneContext.ActiveScene?.Dimension == dimension;
+        var selected = viewportGrid.Enabled && sceneContext.ActiveScene?.Dimension == dimension;
         if (selected)
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.5f, 0.8f, 0.7f));
 
         ButtonDrawer.DrawButton(label, EditorUIConstants.ToolbarToggleWidth, EditorUIConstants.ToolbarToggleHeight,
             () =>
             {
-                if (sceneContext.ActiveScene is { } scene)
+                if (sceneContext.ActiveScene is not { } scene)
+                    return;
+                viewportGrid.Enabled = !selected;
+                if (!selected)
                     scene.Dimension = dimension;
             });
 
         if (selected)
             ImGui.PopStyleColor();
 
-        LayoutDrawer.DrawTooltip($"{label} Scene");
+        LayoutDrawer.DrawTooltip(selected ? $"{label} Grid (click to hide)" : $"{label} Grid");
     }
 }

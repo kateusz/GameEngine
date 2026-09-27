@@ -21,5 +21,9 @@ public class DirectionalLightComponentEditor(UIPropertyRenderer propertyRenderer
             e => e.GetComponent<DirectionalLightComponent>().Color,
             (e, v) => e.GetComponent<DirectionalLightComponent>().Color = v,
             UIPropertyRenderer.SameVector4);
+        propertyRenderer.DrawPropertyField("Intensity", entity,
+            e => e.GetComponent<DirectionalLightComponent>().Intensity,
+            (e, v) => e.GetComponent<DirectionalLightComponent>().Intensity = v,
+            MultiField.SameFloat);
     }
 }

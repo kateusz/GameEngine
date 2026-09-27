@@ -9,6 +9,8 @@ namespace Editor.Features.Viewport;
 /// </summary>
 public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
 {
+    public bool Enabled { get; set; } = true;
+
     /// <summary>
     /// Renders the grid. Must be called within an active ImGui window.
     /// </summary>
@@ -18,7 +20,7 @@ public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
     /// <param name="zoom">Pixels per world unit (viewport height / visible world height).</param>
     public void Render(Vector2 viewportMin, Vector2 viewportMax, Vector2 cameraPosition, float zoom)
     {
-        if (zoom <= 0)
+        if (!Enabled || zoom <= 0)
             return;
 
         var drawList = ImGui.GetWindowDrawList();
