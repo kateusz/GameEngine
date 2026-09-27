@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using ECS;
 using Engine.Scene.Serializer;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Shouldly;
 
@@ -30,6 +31,22 @@ public class ComponentSerializerRegistryTests
         loaded.HasComponent<TransformComponent>().ShouldBeTrue();
         loaded.HasComponent<SpriteRendererComponent>().ShouldBeTrue();
         loaded.GetComponent<SpriteRendererComponent>().TexturePath.ShouldBe("textures/test.png");
+    }
+
+    [Fact]
+    public void PointLight_CastsShadowFalse_RoundTripsAndIsWrittenToJson()
+    {
+        var entity = new Entity(1, "lamp");
+        entity.AddComponent(new PointLightComponent { Range = 10f, CastsShadow = false });
+
+        var array = new JsonArray();
+        _registry.SerializeEntity(entity, array, _serializerOptions.Options);
+
+        array[0]!["CastsShadow"]!.GetValue<bool>().ShouldBeFalse();
+
+        var loaded = new Entity(1, "lamp");
+        _registry.DeserializeComponent(loaded, array[0]!.AsObject(), _serializerOptions.Options, strict: true);
+        loaded.GetComponent<PointLightComponent>().CastsShadow.ShouldBeFalse();
     }
 
     [Fact]

@@ -228,6 +228,14 @@ internal sealed class Graphics3D(
 
         if (_shadowPass)
         {
+            // Spec: point faces store linear dist/range via pointDepth; depth.frag is window Z.
+            if (_pointShadowPass)
+            {
+                for (var i = 0; i < instances.Length; i++)
+                    DrawShadow(mesh, instances[i].Transform);
+                return;
+            }
+
             UploadAndDraw(mesh, instances, _depthShader);
             return;
         }
