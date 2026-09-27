@@ -18,7 +18,10 @@ public interface IGraphics3D : IGraphics
     void BeginShadowPass(Matrix4x4 lightViewProjection);
     void EndShadowPass();
     void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled);
-    bool BeginPointShadowFace(int lightIndex, int face, Matrix4x4 viewProjection, Vector3 lightPosition, float range);
+    bool BeginPointShadowFace(
+        int lightIndex, int entityId, int face,
+        Matrix4x4 viewProjection, Vector3 lightPosition, float range);
+    bool UseCachedPointShadow(int lightIndex, int entityId);
     void EndPointShadowFace();
     void ResetStats();
     Statistics GetStats();

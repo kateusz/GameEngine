@@ -31,7 +31,8 @@ internal sealed class Graphics3D(
     private IShader _pointDepthShader = null!;
     private Mesh _cubeMesh = null!;
     private IFrameBuffer? _shadowMap;
-    private readonly IFrameBuffer?[] _pointShadowMaps = new IFrameBuffer[LightingMath.MaxPointLights];
+    private readonly Dictionary<int, IFrameBuffer> _pointShadowMapsByEntity = new();
+    private readonly int[] _pointShadowEntity = new int[LightingMath.MaxPointLights];
     private readonly bool[] _pointShadowEnabled = new bool[LightingMath.MaxPointLights];
     private bool _shadowPass;
     private bool _pointShadowPass;
@@ -103,7 +104,8 @@ internal sealed class Graphics3D(
     }
 
     public bool BeginPointShadowFace(
-        int lightIndex, int face, Matrix4x4 viewProjection, Vector3 lightPosition, float range)
+        int lightIndex, int entityId, int face,
+        Matrix4x4 viewProjection, Vector3 lightPosition, float range)
     {
         if ((uint)lightIndex >= LightingMath.MaxPointLights || (uint)face >= LightingMath.PointShadowFaceCount)
             return false;
@@ -111,7 +113,7 @@ internal sealed class Graphics3D(
         IFrameBuffer map;
         try
         {
-            map = PointShadowMap(lightIndex);
+            map = PointShadowMap(entityId);
         }
         catch (Exception)
         {
@@ -119,6 +121,7 @@ internal sealed class Graphics3D(
             return false;
         }
 
+        _pointShadowEntity[lightIndex] = entityId;
         _shadowPass = true;
         _pointShadowPass = true;
         _activePointMap = map;
@@ -133,6 +136,18 @@ internal sealed class Graphics3D(
         _pointDepthShader.SetMat4(ViewProjectionUniform, viewProjection);
         _pointDepthShader.SetFloat3("u_LightPosition", lightPosition);
         _pointDepthShader.SetFloat("u_LightRange", range);
+        _pointShadowEnabled[lightIndex] = true;
+        return true;
+    }
+
+    public bool UseCachedPointShadow(int lightIndex, int entityId)
+    {
+        if ((uint)lightIndex >= LightingMath.MaxPointLights)
+            return false;
+        if (!_pointShadowMapsByEntity.TryGetValue(entityId, out _))
+            return false;
+
+        _pointShadowEntity[lightIndex] = entityId;
         _pointShadowEnabled[lightIndex] = true;
         return true;
     }
@@ -238,6 +253,7 @@ internal sealed class Graphics3D(
         lights[.._pointLightCount].CopyTo(_pointLights);
         Array.Clear(_pointLights, _pointLightCount, LightingMath.MaxPointLights - _pointLightCount);
         Array.Clear(_pointShadowEnabled);
+        Array.Fill(_pointShadowEntity, -1);
     }
 
     private void UploadFrame(IShader shader)
@@ -264,8 +280,9 @@ internal sealed class Graphics3D(
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
         {
             shader.SetInt(PointShadowEnabledUniforms[i], _pointShadowEnabled[i] ? 1 : 0);
-            if (_pointShadowEnabled[i] && _pointShadowMaps[i] != null)
-                rendererApi.BindTextureCube(_pointShadowMaps[i]!.GetDepthAttachmentRendererId(), PointShadowSlot + i);
+            if (_pointShadowEnabled[i] && _pointShadowEntity[i] >= 0
+                && _pointShadowMapsByEntity.TryGetValue(_pointShadowEntity[i], out var pointMap))
+                rendererApi.BindTextureCube(pointMap.GetDepthAttachmentRendererId(), PointShadowSlot + i);
         }
         shader.Unbind();
     }
@@ -280,10 +297,9 @@ internal sealed class Graphics3D(
         _stats.DrawCalls++;
     }
 
-    private IFrameBuffer PointShadowMap(int lightIndex)
+    private IFrameBuffer PointShadowMap(int entityId)
     {
-        var existing = _pointShadowMaps[lightIndex];
-        if (existing != null)
+        if (_pointShadowMapsByEntity.TryGetValue(entityId, out var existing))
             return existing;
 
         var size = (uint)LightingMath.PointShadowFaceResolution;
@@ -294,7 +310,7 @@ internal sealed class Graphics3D(
             ])
         };
         var map = frameBuffers.Create(spec);
-        _pointShadowMaps[lightIndex] = map;
+        _pointShadowMapsByEntity[entityId] = map;
         return map;
     }
 
@@ -356,11 +372,9 @@ internal sealed class Graphics3D(
 
         _shadowMap?.Dispose();
         _shadowMap = null;
-        for (var i = 0; i < _pointShadowMaps.Length; i++)
-        {
-            _pointShadowMaps[i]?.Dispose();
-            _pointShadowMaps[i] = null;
-        }
+        foreach (var map in _pointShadowMapsByEntity.Values)
+            map.Dispose();
+        _pointShadowMapsByEntity.Clear();
 
         // Factory owns shader and cube-mesh lifetime; just release our references
         _cubeShader = null!;

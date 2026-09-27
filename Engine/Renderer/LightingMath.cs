@@ -7,18 +7,9 @@ internal static class LightingMath
     private const float DirectionEpsilon = 1e-6f;
     public static readonly Vector3 DefaultDirection = new(0, -1, 0);
     public const int MaxPointLights = 8;
-    public const float PointLightDistanceEpsilon = 0.0001f;
 
     public static Vector3 NormalizeDirection(Vector3 direction) =>
         direction.LengthSquared() < DirectionEpsilon ? DefaultDirection : Vector3.Normalize(direction);
-    
-    public static float PointAttenuation(float distance, float range)
-    {
-        if (range <= 0f || distance >= range)
-            return 0f;
-        var remaining = 1f - distance / range;
-        return remaining * remaining;
-    }
 
     public const int ShadowMapResolution = 1024;
 
@@ -61,6 +52,13 @@ internal static class LightingMath
         }
 
         return true;
+    }
+
+    internal static bool PointShadowSphereHits(Vector3 center, float range, Matrix4x4 world, Aabb local)
+    {
+        Aabb.WorldMinMax(world, local, out var min, out var max);
+        var closest = Vector3.Clamp(center, min, max);
+        return Vector3.DistanceSquared(closest, center) <= range * range;
     }
 
     internal static bool PointShadowFaceContains(Matrix4x4 face, Vector3 world)
