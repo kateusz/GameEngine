@@ -10,7 +10,7 @@ The Scene Hierarchy panel shows entities in a **parent/child tree**. Root entiti
 - **Drag and drop** an entity onto another to reparent; drop on empty space to promote to root.
 - **Right-click** on empty space in the panel to open the context menu:
   - **Create Empty Entity** — adds a new empty entity to the scene.
-- **Right-click** a selected entity to **Delete Entity**.
+- **Right-click** a selected entity to **Delete Entity**, or press `Del`.
 - **Duplicate** the selected entity with `Ctrl+D`.
 
 ---

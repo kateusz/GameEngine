@@ -1,4 +1,5 @@
 using Editor.Features.History;
+using Editor.Features.History.Commands;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
 using Editor.Features.Viewport;
@@ -72,7 +73,20 @@ public class EditorShortcutRegistrar(
                     sceneContext.ActiveScene?.DuplicateEntity(entity);
             },
             "Duplicate entity", "Edit"));
-        
+
+        shortcutManager.RegisterShortcut(new KeyboardShortcut(
+            KeyCodes.Delete, KeyModifiers.None,
+            () =>
+            {
+                if (sceneContext.State != SceneState.Edit
+                    || selection.SelectedEntity is not { } entity
+                    || sceneContext.ActiveScene is not { } scene)
+                    return;
+
+                history.Execute(new DestroyEntitySubtreeCommand(scene, entity.Id));
+            },
+            "Delete entity", "Edit"));
+
         shortcutManager.RegisterShortcut(new KeyboardShortcut(
             KeyCodes.Z, KeyModifiers.CtrlOnly,
             () =>

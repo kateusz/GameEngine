@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Engine.Core;
@@ -133,6 +134,13 @@ public class ContentBrowserPanel : IEditorPanel, IDisposable
 
         if (ImGui.BeginPopupContextItem($"DirCtx##{directoryPath}"))
         {
+            if (OperatingSystem.IsWindows())
+            {
+                if (ImGui.MenuItem("Show in Explorer"))
+                    ShowInExplorer(directoryPath);
+                ImGui.Separator();
+            }
+
             var canCreate = CanCreateScriptAssets(directoryPath);
             if (ImGui.MenuItem("Add Component", enabled: canCreate))
                 BeginCreateAsset(CreateAssetKind.Component);
@@ -357,6 +365,15 @@ public class ContentBrowserPanel : IEditorPanel, IDisposable
                 relativePath,
                 () => RenderDragDropPreview(filenameString, icon, isImage, isDirectory));
 
+            if (OperatingSystem.IsWindows() && ImGui.BeginPopupContextItem($"ItemCtx##{entry}"))
+            {
+                if (ImGui.MenuItem("Show in Explorer"))
+                    ShowInExplorer(info.FullName);
+                if (ImGui.MenuItem("Edit"))
+                    Edit(info.FullName);
+                ImGui.EndPopup();
+            }
+
             if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) &&
                 !File.Exists(info.FullName))
             {
@@ -503,6 +520,30 @@ public class ContentBrowserPanel : IEditorPanel, IDisposable
             TextDrawer.DrawInfoText("Type: Directory");
         else
             TextDrawer.DrawInfoText($"Type: {Path.GetExtension(filename)}");
+    }
+
+    private static void ShowInExplorer(string path)
+    {
+        try
+        {
+            Process.Start("explorer.exe", $"/select,\"{path}\"");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to show in Explorer: {Path}", path);
+        }
+    }
+
+    private static void Edit(string path)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to edit: {Path}", path);
+        }
     }
 
     public void SetRootDirectory(string rootDir)

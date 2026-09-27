@@ -38,10 +38,18 @@ The Content Browser passes the asset's path relative to the `assets` directory a
 
 Right-click any folder in the left-side directory tree to open a context menu:
 
+- **Show in Explorer** (Windows only) — opens the folder in File Explorer
 - **Add Component** — creates a new `IGameComponent` class in `assets/scripts/`
 - **Add System** — creates a new `IGameSystem` class in `assets/scripts/`
 
-These options are enabled only when you right-click the `scripts` folder or one of its subfolders. On other folders (textures, scenes, etc.) the menu items appear grayed out. A name prompt opens when you choose an action; names must match `^[a-zA-Z][a-zA-Z0-9_]*$` (letters, digits, underscore; must start with a letter). The new file is compiled immediately.
+The Add Component / Add System options are enabled only when you right-click the `scripts` folder or one of its subfolders. On other folders (textures, scenes, etc.) those menu items appear grayed out. A name prompt opens when you choose an action; names must match `^[a-zA-Z][a-zA-Z0-9_]*$` (letters, digits, underscore; must start with a letter). The new file is compiled immediately.
+
+### Context Menu (Content Grid)
+
+Right-click any file or folder in the content grid (Windows only):
+
+- **Show in Explorer** — reveals the item in File Explorer
+- **Edit** — opens the item with the default associated application
 
 **Scenes**
 

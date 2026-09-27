@@ -251,7 +251,7 @@ public class SceneHierarchyPanel(
                 selection.Select(child, SelectionSource.Hierarchy);
             }
 
-            if (ImGui.MenuItem("Delete Entity"))
+            if (ImGui.MenuItem("Delete Entity", "Del"))
             {
                 var deletedId = entity.Id;
                 _expandedIds.Remove(deletedId);
