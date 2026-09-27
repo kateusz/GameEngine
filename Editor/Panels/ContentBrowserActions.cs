@@ -1,6 +1,5 @@
 using Editor.Features.Components;
 using Editor.Features.Scripting;
-using Engine.Core;
 using Engine.Project;
 using Engine.Scripting;
 using Serilog;
