@@ -233,6 +233,29 @@ public class SystemManagerTests
     }
 
     [Fact]
+    public void RemoveSystems_RemovesMatchingKeepsOthers()
+    {
+        var manager = new SystemManager();
+        var keep = new TestSystem { Priority = 1 };
+        var drop = new StubGameSystem();
+        manager.RegisterSystem(keep);
+        manager.RegisterSystem(drop);
+
+        manager.RemoveSystems(static s => s is IGameSystem);
+
+        manager.Systems.Count.ShouldBe(1);
+        manager.Systems[0].ShouldBe(keep);
+    }
+
+    private sealed class StubGameSystem : IGameSystem
+    {
+        public int Priority => 0;
+        public void OnInit() { }
+        public void OnUpdate(TimeSpan deltaTime) { }
+        public void OnShutdown() { }
+    }
+
+    [Fact]
     public void Shutdown_CallsOnShutdownButKeepsSystemsRegistered()
     {
         var manager = new SystemManager();

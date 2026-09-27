@@ -133,7 +133,13 @@ internal sealed class Scene : IScene
         Logger.Warning("Play mode has no camera — nothing will render until you add a CameraComponent.");
     }
 
-    public void OnRuntimeStop() => _systemManager.Shutdown();
+    public void OnRuntimeStop()
+    {
+        _systemManager.Shutdown();
+        // Play-mode IGameSystem instances pin the collectible GameAssembly ALC.
+        // Drop them so Stop/Play can unload without CORDBG_E_TARGET_INCONSISTENT.
+        _systemManager.RemoveSystems(static s => s is IGameSystem);
+    }
 
     public void OnUpdateRuntime(TimeSpan ts) => _systemManager.Update(ts);
 

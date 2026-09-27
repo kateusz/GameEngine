@@ -60,7 +60,8 @@ public interface IScene : IDisposable, IEntityHierarchy
 
     /// <summary>
     /// Called when exiting runtime/play mode.
-    /// Cleans up physics bodies and shuts down systems.
+    /// Shuts down systems and removes play-mode <see cref="IGameSystem"/> instances
+    /// so collectible game assemblies can unload safely.
     /// </summary>
     void OnRuntimeStop();
 
