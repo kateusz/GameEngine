@@ -5,6 +5,26 @@ namespace Editor.UI.Drawers;
 
 public static class LoadingOverlayDrawer
 {
+    public static void DrawFullscreen(string text, ref float spinnerRotation)
+    {
+        var viewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowPos(viewport.Pos);
+        ImGui.SetNextWindowSize(viewport.Size);
+        ImGui.SetNextWindowViewport(viewport.ID);
+        ImGui.SetNextWindowFocus();
+        const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove
+            | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoDocking
+            | ImGuiWindowFlags.NoNav;
+
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+        ImGui.Begin("##LoadingOverlay", flags);
+        ImGui.PopStyleVar(3);
+        Draw(text, ref spinnerRotation);
+        ImGui.End();
+    }
+
     public static void Draw(string text, ref float spinnerRotation)
     {
         var min = ImGui.GetWindowPos();

@@ -96,6 +96,11 @@ internal sealed class SceneSerializer(
         var jsonObj = parsedNode?.AsObject() ??
                       throw new InvalidSceneJsonException("Invalid JSON format - could not parse as JSON object");
 
+        Deserialize(scene, jsonObj);
+    }
+
+    public void Deserialize(IScene scene, JsonObject jsonObj)
+    {
         if (jsonObj.TryGetPropertyValue(BackgroundColorKey, out var backgroundColorNode) && backgroundColorNode != null)
             scene.BackgroundColor = backgroundColorNode.Deserialize<Vector4>(_options)!;
 

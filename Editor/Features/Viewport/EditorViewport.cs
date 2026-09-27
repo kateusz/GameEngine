@@ -30,7 +30,7 @@ namespace Editor.Features.Viewport;
 
 public sealed class EditorViewport(
     ISceneContext sceneContext,
-    ISceneManager sceneManager,
+    EditorSceneLoadService sceneLoadService,
     IGraphics2D graphics2D,
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
@@ -148,7 +148,7 @@ public sealed class EditorViewport(
     {
         if (DragDropDrawer.HasValidExtension(path, ".scene"))
         {
-            sceneManager.Open(PathBuilder.Resolve(path));
+            sceneLoadService.Request(PathBuilder.Resolve(path));
             return;
         }
 

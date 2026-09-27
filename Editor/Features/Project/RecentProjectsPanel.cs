@@ -44,9 +44,7 @@ public class RecentProjectsPanel(
 
         if (ImGui.Begin("Recent Projects", ref _isOpen, windowFlags))
         {
-            if (_isLoading)
-                LoadingOverlayDrawer.Draw($"Loading {_loadingProjectName}...", ref _loadingSpinnerRotation);
-            else
+            if (!_isLoading)
             {
                 DrawRecentProjects();
                 ImGui.Separator();
@@ -54,6 +52,11 @@ public class RecentProjectsPanel(
             }
         }
         ImGui.End();
+
+        if (_isLoading)
+            LoadingOverlayDrawer.DrawFullscreen(
+                $"Loading {_loadingProjectName}...",
+                ref _loadingSpinnerRotation);
 
         if (_projectToRemove != null)
         {
