@@ -1,9 +1,10 @@
 using ECS;
+using Editor.Features.Viewport;
 using Engine.Scene;
 
 namespace Editor.Features.Selection;
 
-public sealed class EditorSelection(ISceneContext sceneContext) : IEditorSelection
+public sealed class EditorSelection(ISceneContext sceneContext, IEditorCameraFraming cameraFraming) : IEditorSelection
 {
     private Entity? _selectedEntity;
     public event Action<Entity?, SelectionSource>? SelectionChanged;
@@ -20,11 +21,17 @@ public sealed class EditorSelection(ISceneContext sceneContext) : IEditorSelecti
 
     public void Select(Entity? entity, SelectionSource source)
     {
-        if (_selectedEntity?.Id == entity?.Id)
+        var unchanged = _selectedEntity?.Id == entity?.Id;
+        if (unchanged && source != SelectionSource.Hierarchy)
             return;
 
-        _selectedEntity = entity;
+        if (!unchanged)
+            _selectedEntity = entity;
+
         SelectionChanged?.Invoke(entity, source);
+
+        if (source == SelectionSource.Hierarchy && entity is not null)
+            cameraFraming.FocusOnEntity(entity);
     }
 
     private bool IsInActiveScene(Entity entity)

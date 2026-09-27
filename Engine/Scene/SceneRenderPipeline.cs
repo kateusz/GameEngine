@@ -32,6 +32,9 @@ internal static class SceneRenderPipeline
     private static readonly PointLightData[] PointLightBuffer = new PointLightData[LightingMath.MaxPointLights];
     private static readonly List<(int Id, PointShadowCache.CasterPose Pose)> PointShadowCasterBuffer = new();
     private static readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
+    private static readonly List<int> ActiveVisibilityZoneEntityIds = new();
+    private static readonly HashSet<int> WarnedMissingVisibilityZoneEntityIds = new();
+    private static bool _visibilityZonesEnabled;
     private static bool _shadowFitWarned;
     private static bool _pointShadowWarned;
     private static long _nextPerfLogTicks;
@@ -123,6 +126,7 @@ internal static class SceneRenderPipeline
         in SceneView view)
     {
         var perf = new Render3DPerfFrame();
+        PrepareActiveVisibilityZones(context, view.ViewPosition);
 
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
@@ -266,6 +270,7 @@ internal static class SceneRenderPipeline
         public int Culled;
         public int MissingMeshIndex;
         public int ShadowCasterCulled;
+        public int ZoneCulled;
         public int SingleMaterialDraws;
         public int MultiMaterialDraws;
         public int MaxBatchInstances;
@@ -300,6 +305,7 @@ internal static class SceneRenderPipeline
         total.Culled += pass.Culled;
         total.MissingMeshIndex += pass.MissingMeshIndex;
         total.ShadowCasterCulled += pass.ShadowCasterCulled;
+        total.ZoneCulled += pass.ZoneCulled;
         total.SingleMaterialDraws += pass.SingleMaterialDraws;
         total.MultiMaterialDraws += pass.MultiMaterialDraws;
         total.MaxBatchInstances = System.Math.Max(total.MaxBatchInstances, pass.MaxBatchInstances);
@@ -333,7 +339,7 @@ internal static class SceneRenderPipeline
         Logger.Information(
             "3D perf: gpuDrawCalls={GpuDrawCalls} opaque3DPasses={Opaque3DPasses} " +
             "dirShadow={DirShadow} dirRes={DirRes}x{DirRes} dirMeshDraws={DirMeshDraws} dirCubes={DirCubes} dirCulled={DirCulled} dirShadowCasterCulled={DirShadowCasterCulled} " +
-            "colorMeshDraws={ColorMeshDraws} colorCubes={ColorCubes} colorCulled={ColorCulled} " +
+            "colorMeshDraws={ColorMeshDraws} colorCubes={ColorCubes} colorCulled={ColorCulled} colorZoneCulled={ColorZoneCulled} " +
             "materialBatches single={SingleBatch} multi={MultiBatch} maxInstBatch={MaxBatch} meshInstances={Instances} " +
             "pointShadow lights={PointShadowLights} casters={Casters} cacheHit={CacheHit} tooFar={TooFar} redrawn={Redrawn} " +
             "fullSceneFaces={Faces} faceRes={PointRes}x{PointRes} pointMeshDraws={PointMeshDraws} estShadowFillPx={ShadowFillPx} " +
@@ -350,6 +356,7 @@ internal static class SceneRenderPipeline
             materialDrawsColor,
             color.CubeDraws,
             color.Culled,
+            color.ZoneCulled,
             color.SingleMaterialDraws,
             color.MultiMaterialDraws,
             color.MaxBatchInstances,
@@ -466,7 +473,12 @@ internal static class SceneRenderPipeline
                      context.View<ModelRendererComponent, TransformComponent>())
             {
                 stats.Renderers++;
-                var transform = transformComponent.GetWorldTransform();
+                if (ShouldSkipForVisibilityZone(modelRenderer.VisibilityZoneEntityId, context, ref stats))
+                    continue;
+
+                var transform = ModelMeshPivot.ToDrawTransform(
+                    transformComponent.GetWorldTransform(),
+                    modelRenderer.Pivot);
                 if (!TryResolveOpaqueSurface(
                         modelRenderer, transform, modelFactory,
                         out _, out var kind, out var model, out var submeshIndex))
@@ -564,6 +576,39 @@ internal static class SceneRenderPipeline
         }
 
         return false;
+    }
+
+    private static void PrepareActiveVisibilityZones(Context context, Vector3 cameraPosition)
+    {
+        _visibilityZonesEnabled = false;
+        ActiveVisibilityZoneEntityIds.Clear();
+        foreach (var (entity, zone, transform) in context.View<VisibilityZoneComponent, TransformComponent>())
+        {
+            _visibilityZonesEnabled = true;
+            var bounds = new Aabb(zone.Min, zone.Max);
+            if (Aabb.ContainsPoint(cameraPosition, transform.GetWorldTransform(), bounds))
+                ActiveVisibilityZoneEntityIds.Add(entity.Id);
+        }
+    }
+
+    private static bool ShouldSkipForVisibilityZone(int visibilityZoneEntityId, Context context, ref PassStats stats)
+    {
+        if (!_visibilityZonesEnabled || visibilityZoneEntityId < 0)
+            return false;
+
+        if (ActiveVisibilityZoneEntityIds.Contains(visibilityZoneEntityId))
+            return false;
+
+        if (!context.Contains(visibilityZoneEntityId)
+            && WarnedMissingVisibilityZoneEntityIds.Add(visibilityZoneEntityId))
+        {
+            Logger.Warning(
+                "Model references missing visibility zone entity {ZoneEntityId}",
+                visibilityZoneEntityId);
+        }
+
+        stats.ZoneCulled++;
+        return true;
     }
 
     private readonly record struct MeshBatchKey(Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao);
@@ -727,7 +772,9 @@ internal static class SceneRenderPipeline
         foreach (var (entity, modelRenderer, transformComponent) in
                  context.View<ModelRendererComponent, TransformComponent>())
         {
-            var transform = transformComponent.GetWorldTransform();
+            var transform = ModelMeshPivot.ToDrawTransform(
+                transformComponent.GetWorldTransform(),
+                modelRenderer.Pivot);
             if (TryResolveOpaqueSurface(
                     modelRenderer, transform, modelFactory,
                     out var pose, out _, out _, out _))

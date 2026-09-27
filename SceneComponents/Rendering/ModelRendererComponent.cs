@@ -15,6 +15,12 @@ public class ModelRendererComponent : IComponent
     public string? ModelPath { get; set; }
     /// <summary>When set, only this submesh index from the model file is drawn. Used by hierarchy unpack.</summary>
     public int? MeshIndex { get; set; }
+
+    /// <summary>
+    /// Mesh-space center baked into <see cref="TransformComponent"/> so the entity sits on the geometry.
+    /// Drawing subtracts it so the mesh does not move. Zero for older imports.
+    /// </summary>
+    public Vector3 Pivot { get; set; }
     /// <summary>Skip drawing this renderer; children draw the unpacked submeshes instead.</summary>
     public bool SuppressDraw { get; set; }
 
@@ -39,6 +45,9 @@ public class ModelRendererComponent : IComponent
     /// <summary>When true, metallic, roughness, and AO replace the imported factors. Cubes ignore this.</summary>
     public bool OverrideMaterial { get; set; }
 
+    /// <summary>Zone entity id for visibility filtering, or -1 to use frustum only.</summary>
+    public int VisibilityZoneEntityId { get; set; } = -1;
+
     private static float Sanitize(float value, float fallback) =>
         float.IsFinite(value) ? System.Math.Clamp(value, 0f, 1f) : fallback;
 
@@ -56,10 +65,12 @@ public class ModelRendererComponent : IComponent
         TilingFactor = TilingFactor,
         ModelPath = ModelPath,
         MeshIndex = MeshIndex,
+        Pivot = Pivot,
         SuppressDraw = SuppressDraw,
         Metallic = Metallic,
         Roughness = Roughness,
         Ao = Ao,
-        OverrideMaterial = OverrideMaterial
+        OverrideMaterial = OverrideMaterial,
+        VisibilityZoneEntityId = VisibilityZoneEntityId
     };
 }

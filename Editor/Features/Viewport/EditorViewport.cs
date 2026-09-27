@@ -38,6 +38,7 @@ public sealed class EditorViewport(
     IContentScaleProvider contentScaleProvider,
     IEditorSelection selection,
     IEditorCameraController cameraController,
+    IEditorCameraFraming cameraFraming,
     ViewportComponents viewport,
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
@@ -73,6 +74,7 @@ public sealed class EditorViewport(
 
         _editorCamera = new EditorCamera();
         cameraController.SetCamera(_editorCamera);
+        cameraFraming.SetCamera(_editorCamera);
         _frameBuffer = frameBufferFactory.Create();
         _contentScale = contentScaleProvider.ContentScale;
 
@@ -307,7 +309,6 @@ public sealed class EditorViewport(
         var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
         var drawGrid3D = sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
         var drawCameraGizmos = HasCameraEntities(context);
-
         if (!drawColliders && !drawGrid3D && !drawCameraGizmos)
             return;
 
@@ -320,7 +321,10 @@ public sealed class EditorViewport(
             cameraGizmoDrawer.Draw(context, graphics2D, _editorCamera);
 
         if (drawGrid3D)
+        {
             ViewportGrid3D.Render(graphics2D, _editorCamera);
+            VisibilityZoneDebugDrawer.Draw(context, graphics2D);
+        }
 
         graphics2D.EndScene();
     }
