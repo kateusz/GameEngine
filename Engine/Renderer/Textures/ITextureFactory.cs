@@ -13,6 +13,9 @@ public interface ITextureFactory : IDisposable
     Texture2D Create(string path, bool sRgb = false);
 
     (byte[] Data, int Width, int Height) DecodePreview(string path);
-    Texture2D CreateFromRgba(byte[] rgba, int width, int height);
+
+    (byte[] Data, int Width, int Height) Decode(string path, bool sRgb);
+
+    Texture2D CreateFromRgba(byte[] rgba, int width, int height, bool sRgb = false, string? cachePath = null);
     Texture2D Create(int width, int height);
 }

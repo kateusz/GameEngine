@@ -67,7 +67,7 @@ public class ModelFactoryDisposeTests
         iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
 
         return new ModelFactory(
-            _ => ([NewMesh()], null),
+            (_, _) => ([NewMesh()], null),
             vaoFactory,
             vboFactory,
             iboFactory);

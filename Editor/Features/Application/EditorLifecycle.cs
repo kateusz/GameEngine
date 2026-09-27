@@ -1,4 +1,3 @@
-using ECS;
 using Editor.Features.History;
 using Editor.Features.Scripting;
 using Editor.Features.Project;
