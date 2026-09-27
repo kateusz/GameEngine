@@ -15,6 +15,6 @@ public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int 
         (int)DisplayConfig.DefaultWindowHeight)
     {
         Maximized = true,
-        CookRuntimeMeshesFromSource = true
+        CookRuntimeMeshesFromSource = false
     };
 }

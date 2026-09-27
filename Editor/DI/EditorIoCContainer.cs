@@ -20,6 +20,7 @@ using Editor.UI.FieldEditors;
 using Editor.Features.Scripting;
 using Editor.Features.Viewport.Gizmos;
 using Editor.Features.Application;
+using Editor.Features.Models;
 using Editor.Features.Viewport;
 using Editor.Features.Viewport.Tools;
 using Engine.Core;
@@ -124,6 +125,7 @@ public static class EditorIoCContainer
 
         container.Register<IEditorCameraController, EditorCameraController>(Reuse.Singleton);
         container.Register<SelectionOutlinePass>(Reuse.Singleton);
+        container.Register<EditorModelLoadService>(Reuse.Singleton);
         container.Register<IEditorViewport, EditorViewport>(Reuse.Singleton);
         container.Register<CameraGizmoDrawer>(Reuse.Singleton);
         container.Register<EditorMenuBar>(Reuse.Singleton);

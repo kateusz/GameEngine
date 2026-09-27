@@ -60,6 +60,13 @@ internal sealed class OpenGLTexture2D : Texture2D
             generateMipmaps: false);
     }
 
+    public static Texture2D CreateFromRgba(byte[] rgba, int width, int height, bool sRgb, bool generateMipmaps,
+        string path = "")
+    {
+        var internalFormat = sRgb ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8;
+        return UploadTexture(path, rgba, width, height, internalFormat, PixelFormat.Rgba, generateMipmaps);
+    }
+
     private static Texture2D UploadTexture(string path, byte[] data, int width, int height,
         InternalFormat internalFormat, PixelFormat dataFormat, bool generateMipmaps = true)
     {

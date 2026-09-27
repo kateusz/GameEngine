@@ -12,7 +12,7 @@ internal class ModelFactory : IModelFactory
 {
     private static readonly ILogger Logger = Log.ForContext<ModelFactory>();
 
-    private readonly Func<string, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> _import;
+    private readonly Func<string, byte[]?, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> _import;
     private readonly IVertexArrayFactory _vertexArrayFactory;
     private readonly IVertexBufferFactory _vertexBufferFactory;
     private readonly IIndexBufferFactory _indexBufferFactory;
@@ -21,14 +21,14 @@ internal class ModelFactory : IModelFactory
     private bool _disposed;
 
     public ModelFactory(
-        AssimpModelImporter importer,
         ITextureFactory textureFactory,
         EngineHostOptions hostOptions,
         IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
         : this(
-            path => LoadFromRuntimeMesh(path, importer, textureFactory, hostOptions.CookRuntimeMeshesFromSource),
+            (path, meshBytes) => LoadFromRuntimeMesh(path, textureFactory, hostOptions.CookRuntimeMeshesFromSource,
+                meshBytes),
             vertexArrayFactory,
             vertexBufferFactory,
             indexBufferFactory)
@@ -36,7 +36,7 @@ internal class ModelFactory : IModelFactory
     }
 
     internal ModelFactory(
-        Func<string, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> import,
+        Func<string, byte[]?, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> import,
         IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
@@ -47,7 +47,7 @@ internal class ModelFactory : IModelFactory
         _indexBufferFactory = indexBufferFactory;
     }
 
-    public Model? Create(string path)
+    public Model? Create(string path, byte[]? runtimeMeshBytes = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -59,7 +59,7 @@ internal class ModelFactory : IModelFactory
                 return cached;
         }
 
-        var model = TryLoadModel(normalizedPath);
+        var model = TryLoadModel(normalizedPath, runtimeMeshBytes);
 
         lock (_cacheLock)
         {
@@ -69,11 +69,11 @@ internal class ModelFactory : IModelFactory
         return model;
     }
 
-    private Model? TryLoadModel(string normalizedPath)
+    private Model? TryLoadModel(string normalizedPath, byte[]? runtimeMeshBytes)
     {
         try
         {
-            var (submeshes, sceneGraph) = _import(normalizedPath);
+            var (submeshes, sceneGraph) = _import(normalizedPath, runtimeMeshBytes);
             if (submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);
@@ -133,9 +133,9 @@ internal class ModelFactory : IModelFactory
 
     private static (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) LoadFromRuntimeMesh(
         string normalizedPath,
-        AssimpModelImporter importer,
         ITextureFactory textureFactory,
-        bool cookFromSource)
+        bool cookFromSource,
+        byte[]? runtimeMeshBytes)
     {
         if (!RuntimeMeshPaths.IsModelSourceExtension(normalizedPath))
         {
@@ -151,41 +151,49 @@ internal class ModelFactory : IModelFactory
                 return ([], null);
             }
 
-            if (!EnsureRuntimeMeshUpToDate(normalizedPath, importer))
+            if (!RuntimeMeshBuilder.TryEnsureUpToDate(normalizedPath))
                 return ([], null);
         }
 
-        var siblingPath = RuntimeMeshPaths.SiblingPath(normalizedPath);
-        if (!File.Exists(siblingPath))
+        byte[] bytes;
+        if (runtimeMeshBytes != null)
         {
-            Logger.Warning("Runtime mesh file not found: {Path}", siblingPath);
-            return ([], null);
+            bytes = runtimeMeshBytes;
+        }
+        else
+        {
+            var siblingPath = RuntimeMeshPaths.SiblingPath(normalizedPath);
+            if (!File.Exists(siblingPath))
+            {
+                Logger.Warning("Runtime mesh file not found: {Path}", siblingPath);
+                return ([], null);
+            }
+
+            bytes = File.ReadAllBytes(siblingPath);
         }
 
-        var bytes = File.ReadAllBytes(siblingPath);
         if (!RuntimeMeshReader.TryRead(bytes, out var source) || source == null)
         {
-            Logger.Warning("Failed to read runtime mesh: {Path}", siblingPath);
+            Logger.Warning("Failed to read runtime mesh: {Path}", normalizedPath);
             return ([], null);
         }
 
-        return SourceModelMaterializer.ToMeshes(source, normalizedPath, textureFactory);
-    }
+        var sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(normalizedPath)) ?? string.Empty;
+        var meshes = new List<Mesh>(source.Submeshes.Count);
+        foreach (var submesh in source.Submeshes)
+        {
+            var mesh = new Mesh(submesh.Name);
+            mesh.Vertices.AddRange(submesh.Vertices);
+            mesh.Indices.AddRange(submesh.Indices);
+            mesh.MetallicFactor = submesh.Metallic;
+            mesh.RoughnessFactor = submesh.Roughness;
+            mesh.BaseColorFactor = submesh.BaseColorFactor;
+            RuntimeMeshTextureRefs.BindTextures(mesh, submesh, sourceDirectory, textureFactory);
+            meshes.Add(mesh);
+        }
 
-    private static bool EnsureRuntimeMeshUpToDate(string sourcePath, AssimpModelImporter importer)
-    {
-        var siblingPath = RuntimeMeshPaths.SiblingPath(sourcePath);
-        var stamp = RuntimeMeshStamp.FromFile(sourcePath);
-        if (File.Exists(siblingPath)
-            && RuntimeMeshReader.TryReadStamp(File.ReadAllBytes(siblingPath), out var fileStamp)
-            && fileStamp.Matches(stamp))
-            return true;
-
-        var imported = importer.ImportSource(sourcePath);
-        if (imported == null || imported.Submeshes.Count == 0)
-            return false;
-
-        return RuntimeMeshWriter.TryWrite(siblingPath, imported, stamp);
+        var sceneGraph = RuntimeMeshSceneGraph.Unflatten(source.Nodes, source.Lights);
+        return (meshes, sceneGraph);
     }
 
     public void Clear()

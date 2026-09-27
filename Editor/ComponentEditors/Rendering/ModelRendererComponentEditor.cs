@@ -2,8 +2,8 @@ using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
+using Editor.Features.Models;
 using Editor.UI.Elements;
-using Engine.Renderer.Models;
 using Engine.Scene;
 using ImGuiNET;
 using SceneComponents;
@@ -12,7 +12,7 @@ using SceneComponents.Rendering;
 namespace Editor.ComponentEditors.Rendering;
 
 public class ModelRendererComponentEditor(
-    IModelFactory modelFactory,
+    EditorModelLoadService modelLoadService,
     UIPropertyRenderer propertyRenderer,
     IEditorHistory history,
     ISceneContext sceneContext) : ComponentEditor<ModelRendererComponent>(history)
@@ -33,7 +33,7 @@ public class ModelRendererComponentEditor(
             }
 
             history.Execute(new ImportModelHierarchyCommand(scene, entity, component, model, relativePath));
-        }, modelFactory, component.ModelPath);
+        }, modelLoadService, component.ModelPath);
         propertyRenderer.DrawPropertyField("Color", component.Color,
             newValue => component.Color = (System.Numerics.Vector4)newValue);
         TextureDropTarget.Draw("Texture", relativePath =>

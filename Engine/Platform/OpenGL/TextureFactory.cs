@@ -19,8 +19,7 @@ internal sealed class TextureFactory : ITextureFactory
 
     public Texture2D Create(string path, bool sRgb = false)
     {
-        var normalizedPath = Path.GetFullPath(path);
-        var cacheKey = sRgb ? normalizedPath + "#srgb" : normalizedPath;
+        var cacheKey = ToCacheKey(path, sRgb);
 
         lock (_cacheLock)
         {
@@ -35,7 +34,13 @@ internal sealed class TextureFactory : ITextureFactory
 
     public (byte[] Data, int Width, int Height) DecodePreview(string path)
     {
-        var decoded = TextureFileDecoder.Decode(path, sRgb: true);
+        var (rgba, width, height) = Decode(path, sRgb: true);
+        return TexturePreviewScaling.DownscaleRgba(rgba, width, height, PreviewMaxEdge);
+    }
+
+    public (byte[] Data, int Width, int Height) Decode(string path, bool sRgb)
+    {
+        var decoded = TextureFileDecoder.Decode(path, sRgb);
         var bytesPerPixel = decoded.Data.Length / (decoded.Width * decoded.Height);
         var rgba = (decoded.DataFormat, bytesPerPixel) switch
         {
@@ -43,11 +48,28 @@ internal sealed class TextureFactory : ITextureFactory
             (PixelFormat.Bgr, 3) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 3),
             _ => decoded.Data
         };
-        return TexturePreviewScaling.DownscaleRgba(rgba, decoded.Width, decoded.Height, PreviewMaxEdge);
+        return (rgba, decoded.Width, decoded.Height);
     }
 
-    public Texture2D CreateFromRgba(byte[] rgba, int width, int height) =>
-        OpenGLTexture2D.CreateFromRgba(rgba, width, height);
+    public Texture2D CreateFromRgba(byte[] rgba, int width, int height, bool sRgb = false, string? cachePath = null)
+    {
+        if (cachePath == null)
+            return OpenGLTexture2D.CreateFromRgba(rgba, width, height);
+
+        var cacheKey = ToCacheKey(cachePath, sRgb);
+
+        lock (_cacheLock)
+        {
+            if (_textureCache.TryGetValue(cacheKey, out var cachedTexture))
+                return cachedTexture;
+
+            var normalizedPath = Path.GetFullPath(cachePath);
+            var texture = OpenGLTexture2D.CreateFromRgba(rgba, width, height, sRgb, generateMipmaps: true,
+                normalizedPath);
+            _textureCache[cacheKey] = texture;
+            return texture;
+        }
+    }
 
     public Texture2D Create(int width, int height) => OpenGLTexture2D.Create(width, height);
 
@@ -71,6 +93,12 @@ internal sealed class TextureFactory : ITextureFactory
         }
 
         _disposed = true;
+    }
+
+    private static string ToCacheKey(string path, bool sRgb)
+    {
+        var normalizedPath = Path.GetFullPath(path);
+        return sRgb ? normalizedPath + "#srgb" : normalizedPath;
     }
 
     private Texture2D GetOrCreateSolid(ref Texture2D? field, uint rgba)

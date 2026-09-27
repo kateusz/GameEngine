@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Editor.Features.History;
+using Editor.Features.Models;
 using Editor.Features.History.Commands;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
@@ -43,6 +44,7 @@ public sealed class EditorViewport(
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
     IModelFactory modelFactory,
+    EditorModelLoadService modelLoadService,
     IEditorHistory history,
     FxaaPass fxaaPass,
     SelectionOutlinePass selectionOutlinePass,
@@ -60,6 +62,7 @@ public sealed class EditorViewport(
     private readonly HashSet<int> _pressedMouseButtons = [];
     private readonly HashSet<KeyCodes> _pressedKeys = [];
     private bool _disposed;
+    private float _modelLoadSpinnerRotation;
 
     private Action<IScene> _sceneChangedHandler = null!;
 
@@ -94,6 +97,7 @@ public sealed class EditorViewport(
 
     public void LayoutAndRender(TimeSpan deltaTime)
     {
+        modelLoadService.Pump();
         ImGui.Begin("Viewport");
 
         IsHovered = ImGui.IsWindowHovered();
@@ -160,19 +164,19 @@ public sealed class EditorViewport(
         if (!ModelDropTarget.IsSupported(path) || !File.Exists(resolved))
             return;
 
-        var model = modelFactory.Create(resolved);
-        if (model == null)
-            return;
+        var relative = PathBuilder.ToAssetRelativePath(path);
+        var displayName = Path.GetFileNameWithoutExtension(path);
+        modelLoadService.Request(resolved, model =>
+        {
+            if (model == null)
+                return;
 
-        var command = new SpawnModelEntityCommand(
-            scene,
-            Path.GetFileNameWithoutExtension(path),
-            model,
-            PathBuilder.ToAssetRelativePath(path));
-        history.Execute(command);
+            var command = new SpawnModelEntityCommand(scene, displayName, model, relative);
+            history.Execute(command);
 
-        if (command.EntityId is int id && scene.Context.Contains(id))
-            selection.Select(scene.Context.GetById(id), SelectionSource.Viewport);
+            if (command.EntityId is int id && scene.Context.Contains(id))
+                selection.Select(scene.Context.GetById(id), SelectionSource.Viewport);
+        });
     }
 
     public void HandleWindowInput(InputEvent windowEvent)
@@ -255,6 +259,37 @@ public sealed class EditorViewport(
 
         viewport.ViewportRuler.Render(_viewportBounds[0], _viewportBounds[1], cameraPos, zoom);
         viewport.ViewportToolManager.RenderActiveTool(_viewportBounds, _editorCamera);
+        DrawModelLoadToast();
+    }
+
+    private void DrawModelLoadToast()
+    {
+        if (!modelLoadService.IsBusy)
+            return;
+
+        var name = modelLoadService.BusyName;
+        var text = string.IsNullOrEmpty(name) ? "Loading 3D model..." : $"Loading {name}...";
+        var drawList = ImGui.GetWindowDrawList();
+        var center = (_viewportBounds[0] + _viewportBounds[1]) * 0.5f;
+
+        const float radius = 8.0f;
+        const float gap = 8.0f;
+        const float padX = 12.0f;
+        const float padY = 8.0f;
+        var textSize = ImGui.CalcTextSize(text);
+        var contentH = MathF.Max(radius * 2.0f, textSize.Y);
+        var contentW = radius * 2.0f + gap + textSize.X;
+        var boxMin = new Vector2(center.X - contentW * 0.5f - padX, center.Y - contentH * 0.5f - padY);
+        var boxMax = new Vector2(center.X + contentW * 0.5f + padX, center.Y + contentH * 0.5f + padY);
+        drawList.AddRectFilled(boxMin, boxMax, ImGui.GetColorU32(new Vector4(0.0f, 0.0f, 0.0f, 0.75f)), 6.0f);
+
+        var spinnerCenter = new Vector2(boxMin.X + padX + radius, center.Y);
+        LoadingOverlayDrawer.DrawSpinner(drawList, ref _modelLoadSpinnerRotation, spinnerCenter, radius, 2.5f);
+
+        drawList.AddText(
+            new Vector2(spinnerCenter.X + radius + gap, center.Y - textSize.Y * 0.5f),
+            ImGui.GetColorU32(new Vector4(1.0f, 1.0f, 1.0f, 1.0f)),
+            text);
     }
 
     private void ResizeFramebufferIfNeeded()

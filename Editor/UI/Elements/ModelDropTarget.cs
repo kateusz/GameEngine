@@ -1,3 +1,4 @@
+using Editor.Features.Models;
 using Editor.UI.Drawers;
 using Engine.Project;
 using Engine.Renderer.Models;
@@ -19,7 +20,7 @@ public static class ModelDropTarget
     public static void Draw(
         string label,
         Action<string, Model> onModelDropped,
-        IModelFactory modelFactory,
+        EditorModelLoadService modelLoadService,
         string? currentModelPath = null)
     {
         UIPropertyRenderer.DrawPropertyRow(label, () =>
@@ -40,14 +41,17 @@ public static class ModelDropTarget
                 path =>
                 {
                     var modelPath = PathBuilder.Resolve(path);
-                    var model = modelFactory.Create(modelPath);
-                    if (model == null)
+                    var relative = PathBuilder.ToAssetRelativePath(path);
+                    modelLoadService.Request(modelPath, model =>
                     {
-                        Logger.Warning("Failed to load model from {Path}", modelPath);
-                        return;
-                    }
+                        if (model == null)
+                        {
+                            Logger.Warning("Failed to load model from {Path}", modelPath);
+                            return;
+                        }
 
-                    onModelDropped(PathBuilder.ToAssetRelativePath(path), model);
+                        onModelDropped(relative, model);
+                    });
                 });
         });
     }
