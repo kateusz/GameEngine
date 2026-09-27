@@ -3,6 +3,7 @@ using ECS;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Selection;
+using Editor.Features.Settings;
 using Editor.Features.Viewport;
 using Editor.Panels;
 using Editor.UI.Constants;
@@ -21,7 +22,8 @@ public class SceneHierarchyPanel(
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection,
     IEditorHistory history,
-    IEditorCameraFraming cameraFraming)
+    IEditorCameraFraming cameraFraming,
+    IEditorPreferences editorPreferences)
     : IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
@@ -34,12 +36,50 @@ public class SceneHierarchyPanel(
     private readonly HashSet<int> _expandedIds = [];
     private readonly List<HierarchyRow> _rows = [];
     private bool _isFilterActive;
+    private bool _selectionHandlerAttached;
+    private int? _scrollToEntityId;
 
     public void SetScene(IScene scene)
     {
         _scene = scene;
         _expandedIds.Clear();
+        _scrollToEntityId = null;
+        EnsureSelectionHandler();
         selection.Select(null, SelectionSource.Code);
+    }
+
+    private void EnsureSelectionHandler()
+    {
+        if (_selectionHandlerAttached)
+            return;
+
+        selection.SelectionChanged += OnSelectionChanged;
+        _selectionHandlerAttached = true;
+    }
+
+    private void OnSelectionChanged(Entity? entity, SelectionSource source)
+    {
+        if (!editorPreferences.FollowViewportSelectionInHierarchy
+            || source != SelectionSource.Viewport
+            || entity is null)
+            return;
+
+        RevealEntityInHierarchy(entity);
+        _scrollToEntityId = entity.Id;
+    }
+
+    internal static void RevealEntityInHierarchy(IScene scene, Entity entity, HashSet<int> expandedIds)
+    {
+        for (var current = scene.GetParent(entity); current is not null; current = scene.GetParent(current))
+            expandedIds.Add(current.Id);
+    }
+
+    private void RevealEntityInHierarchy(Entity entity)
+    {
+        if (!_scene.Context.Contains(entity.Id))
+            return;
+
+        RevealEntityInHierarchy(_scene, entity, _expandedIds);
     }
 
     public void Draw()
@@ -91,6 +131,8 @@ public class SceneHierarchyPanel(
         foreach (var root in roots)
             CollectVisibleRows(_scene, root, 0, _expandedIds, filter, _rows);
 
+        ApplyPendingHierarchyScroll();
+
         var clipper = new ImGuiListClipperPtr(ImGuiNative.ImGuiListClipper_ImGuiListClipper());
         try
         {
@@ -105,6 +147,24 @@ public class SceneHierarchyPanel(
         {
             clipper.Destroy();
         }
+    }
+
+    private void ApplyPendingHierarchyScroll()
+    {
+        if (_scrollToEntityId is not int entityId)
+            return;
+
+        var index = _rows.FindIndex(r => r.Entity.Id == entityId);
+        if (index < 0)
+        {
+            _scrollToEntityId = null;
+            return;
+        }
+
+        var itemHeight = ImGui.GetTextLineHeightWithSpacing();
+        var localY = ImGui.GetCursorStartPos().Y + index * itemHeight;
+        ImGui.SetScrollFromPosY(localY, 0.25f);
+        _scrollToEntityId = null;
     }
 
     internal static void CollectVisibleRows(

@@ -21,17 +21,29 @@ public sealed class SelectionOutlinePass(
 
     public bool Available { get; private set; }
 
-    public IFrameBuffer Resolve(IFrameBuffer colorSource, IFrameBuffer scene, int entityId)
+    public const int MaxEntityIds = 256;
+
+    private readonly int[] _entityIds = new int[MaxEntityIds];
+
+    public IFrameBuffer Resolve(IFrameBuffer colorSource, IFrameBuffer scene, int entityId) =>
+        entityId <= 0
+            ? colorSource
+            : Resolve(colorSource, scene, [entityId]);
+
+    public IFrameBuffer Resolve(IFrameBuffer colorSource, IFrameBuffer scene, ReadOnlySpan<int> entityIds)
     {
         var spec = colorSource.GetSpecification();
-        if (entityId <= 0 || spec.Width == 0 || spec.Height == 0 || !EnsureInitialized() || _output == null)
+        if (entityIds.Length == 0 || spec.Width == 0 || spec.Height == 0 || !EnsureInitialized() || _output == null)
             return colorSource;
+
+        var count = System.Math.Min(entityIds.Length, MaxEntityIds);
+        entityIds[..count].CopyTo(_entityIds);
 
         var entityTexture = scene.GetColorAttachmentRendererId(1);
         if (entityTexture == 0 || !Fit(spec.Width, spec.Height))
             return colorSource;
 
-        Draw(colorSource.GetColorAttachmentRendererId(), entityTexture, spec.Width, spec.Height, entityId);
+        Draw(colorSource.GetColorAttachmentRendererId(), entityTexture, spec.Width, spec.Height, count);
         return _output;
     }
 
@@ -97,7 +109,7 @@ public sealed class SelectionOutlinePass(
         }
     }
 
-    private void Draw(uint colorTextureId, uint entityTextureId, uint width, uint height, int entityId)
+    private void Draw(uint colorTextureId, uint entityTextureId, uint width, uint height, int idCount)
     {
         _output!.Bind();
         rendererApi.SetViewport(0, 0, width, height);
@@ -109,7 +121,8 @@ public sealed class SelectionOutlinePass(
             _shader!.Bind();
             rendererApi.BindTexture2D(colorTextureId, 0);
             rendererApi.BindTexture2D(entityTextureId, 1);
-            _shader.SetInt("u_Id", entityId);
+            _shader.SetInt("u_IdCount", idCount);
+            _shader.SetIntArray("u_Ids", _entityIds, (uint)MaxEntityIds);
             rendererApi.DrawArrays(_triangle!, 3);
             _shader.Unbind();
         }

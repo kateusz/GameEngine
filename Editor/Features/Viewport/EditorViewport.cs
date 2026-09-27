@@ -59,6 +59,7 @@ public sealed class EditorViewport(
     private Vector2 _lastPickMousePos = new(float.NaN);
     private Vector2 _viewportSize;
     private readonly Dictionary<int, Entity> _entityById = [];
+    private int[] _selectedEntityIdBuffer = [];
     private readonly HashSet<int> _pressedMouseButtons = [];
     private readonly HashSet<KeyCodes> _pressedKeys = [];
     private bool _disposed;
@@ -115,8 +116,9 @@ public sealed class EditorViewport(
         RenderSceneToFramebuffer(deltaTime);
 
         var display = editorPreferences.Fxaa ? fxaaPass.Resolve(_frameBuffer) : _frameBuffer;
-        if (selection.SelectedEntity is { } selected)
-            display = selectionOutlinePass.Resolve(display, _frameBuffer, selected.Id);
+        var selectedIds = CollectSelectedEntityIds();
+        if (selectedIds.Length > 0)
+            display = selectionOutlinePass.Resolve(display, _frameBuffer, selectedIds);
         var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
         ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
 
@@ -469,6 +471,22 @@ public sealed class EditorViewport(
         _entityById.Clear();
         foreach (var entity in scene.Entities)
             _entityById[entity.Id] = entity;
+    }
+
+    private ReadOnlySpan<int> CollectSelectedEntityIds()
+    {
+        var selected = selection.SelectedEntities;
+        var count = selected.Count;
+        if (count == 0)
+            return ReadOnlySpan<int>.Empty;
+
+        if (_selectedEntityIdBuffer.Length < count)
+            _selectedEntityIdBuffer = new int[count];
+
+        for (var i = 0; i < count; i++)
+            _selectedEntityIdBuffer[i] = selected[i].Id;
+
+        return _selectedEntityIdBuffer.AsSpan(0, count);
     }
 
     private static Vector2 GetMousePosition()

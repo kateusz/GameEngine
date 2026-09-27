@@ -28,6 +28,8 @@ public class EditorPreferences : IEditorPreferences
     // Autosave: 0 = off
     public int AutosaveIntervalSeconds { get; set; } = 60;
 
+    public bool FollowViewportSelectionInHierarchy { get; set; } = true;
+
     private static readonly string PreferencesPath =
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

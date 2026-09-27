@@ -5,7 +5,8 @@ layout(location = 0) out vec4 o_Color;
 
 uniform sampler2D u_Color;
 uniform isampler2D u_EntityIds;
-uniform int u_Id;
+uniform int u_IdCount;
+uniform int u_Ids[256];
 
 bool Selected(ivec2 p)
 {
@@ -13,7 +14,14 @@ bool Selected(ivec2 p)
     if (p.x < 0 || p.y < 0 || p.x >= size.x || p.y >= size.y)
         return false;
     int id = texelFetch(u_EntityIds, p, 0).r;
-    return id > 0 && id == u_Id;
+    if (id <= 0)
+        return false;
+    for (int i = 0; i < u_IdCount; ++i)
+    {
+        if (id == u_Ids[i])
+            return true;
+    }
+    return false;
 }
 
 void main()
