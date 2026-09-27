@@ -140,10 +140,10 @@ public class ProjectManager(
             }
 
             CloseProject();
-            ApplyProjectPaths(full);
+            projectContext.Apply(full);
             InitializeScripts();
-
             gameProjectScriptBootstrapper.TryEnsureScriptSdkAfterOpen(full);
+            ProjectOpened?.Invoke();
 
             Logger.Information("📂 Project opened: {ProjectPath}", full);
             var projectName = Path.GetFileName(full);

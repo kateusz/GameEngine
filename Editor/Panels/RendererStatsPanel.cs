@@ -22,7 +22,9 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         
         renderPerformanceMonitor?.Invoke();
         
-        ImGui.Text("Editor Camera:");
+        ImGui.Separator();
+        
+        ImGui.Text("Editor Camera");
         ImGui.Text($"Position: ({cameraPosition.X:F2}, {cameraPosition.Y:F2}, {cameraPosition.Z:F2})");
         ImGui.Text($"Focal: ({focalPoint.X:F2}, {focalPoint.Y:F2}, {focalPoint.Z:F2})");
         ImGui.Text($"Rotation: {cameraRotation:F1}°");
@@ -33,7 +35,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         if (dimension == SceneDimension.TwoD)
         {
             var stats2D = graphics2D.GetStats();
-            ImGui.Text("Renderer2D Stats:");
+            ImGui.Text("Renderer2D Stats");
             ImGui.Indent();
             ImGui.Text($"Quad Draw Calls: {stats2D.DrawCalls}");
             ImGui.Text($"Line Draw Calls: {stats2D.LineDrawCalls}");
@@ -49,11 +51,39 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         }
         else
         {
-            var stats3D = graphics3D.GetStats();
-            ImGui.Text("Renderer3D Stats:");
-            ImGui.Text($"Draw Calls: {stats3D.DrawCalls}");
+            DrawRenderer3DStats(graphics3D.GetStats());
         }
         
         ImGui.End();
+    }
+
+    private static void DrawRenderer3DStats(Engine.Renderer.Statistics stats)
+    {
+        ImGui.Text("Renderer3D Stats");
+        ImGui.Indent();
+
+        ImGui.Text($"Draw Calls: {stats.DrawCalls}");
+        ImGui.Text($"  Color / Dir Shadow / Point Shadow: {stats.ColorDrawCalls} / {stats.DirectionalShadowDrawCalls} / {stats.PointShadowDrawCalls}");
+        ImGui.Text($"Cubes: {stats.CubeDraws}");
+        ImGui.Text($"Mesh Draws: {stats.MeshDraws} (instanced: {stats.InstancedDraws})");
+        ImGui.Text($"Instances: {stats.Instances}");
+        ImGui.Text($"Vertices: {stats.Vertices}");
+        ImGui.Text($"Triangles: {stats.Triangles}");
+
+        ImGui.Separator();
+        ImGui.Text($"Renderers: {stats.Renderers}");
+        ImGui.Text($"Frustum Culled: {stats.FrustumCulled}");
+        ImGui.Text($"Zone Culled: {stats.ZoneCulled}");
+        ImGui.Text($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
+        ImGui.Text($"Material Batches: single {stats.SingleMaterialDraws} / multi {stats.MultiMaterialDraws}");
+        ImGui.Text($"Max Batch Instances: {stats.MaxBatchInstances}");
+
+        ImGui.Separator();
+        ImGui.Text($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
+        ImGui.Text($"Point Lights: {stats.PointLights} (shadow: {stats.PointShadowLights}, cache hits: {stats.PointShadowCacheHits})");
+        ImGui.Text($"CPU Color: {stats.ColorCpuMs:F2} ms");
+        ImGui.Text($"CPU Shadows: {stats.ShadowCpuMs:F2} ms");
+
+        ImGui.Unindent();
     }
 }

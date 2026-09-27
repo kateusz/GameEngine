@@ -54,16 +54,23 @@ public static class LayoutDrawer
     }
 
     /// <summary>
-    /// Renders a filter input field with an icon and optional clear button.
+    /// Renders a filter input field with an optional placeholder hint.
     /// </summary>
-    /// <param name="label">Label for the filter input</param>
+    /// <param name="label">Label for the filter input (use ##id for no visible label)</param>
     /// <param name="filterText">Current filter text (will be modified)</param>
     /// <param name="width">Width of the input field (default: FilterInputWidth)</param>
+    /// <param name="hint">Placeholder text shown when empty</param>
     /// <returns>True if the filter was changed</returns>
-    public static bool DrawFilterInput(string label, ref string filterText, float width = EditorUIConstants.FilterInputWidth)
+    public static bool DrawFilterInput(
+        string label,
+        ref string filterText,
+        float width = EditorUIConstants.FilterInputWidth,
+        string? hint = null)
     {
         ImGui.SetNextItemWidth(width);
-        return ImGui.InputText(label, ref filterText, EditorUIConstants.MaxTextInputLength);
+        return hint is null
+            ? ImGui.InputText(label, ref filterText, EditorUIConstants.MaxTextInputLength)
+            : ImGui.InputTextWithHint(label, hint, ref filterText, EditorUIConstants.MaxTextInputLength);
     }
 
     /// <summary>
@@ -170,12 +177,38 @@ public static class LayoutDrawer
     }
 
     /// <summary>
+    /// Draws a form label in a fixed-width column so inputs align across rows.
+    /// </summary>
+    public static void DrawFormLabel(string label, float width = EditorUIConstants.ModalLabelWidth)
+    {
+        ImGui.AlignTextToFramePadding();
+        if (string.IsNullOrEmpty(label))
+            ImGui.Dummy(new Vector2(width - ImGui.GetStyle().ItemSpacing.X, 0f));
+        else
+            ImGui.TextUnformatted(label);
+        ImGui.SameLine(width);
+    }
+
+    /// <summary>
+    /// Draws an editable path field with a trailing "..." browse button (Godot-style).
+    /// </summary>
+    public static void DrawPathField(string id, ref string path, Action onBrowse)
+    {
+        var browseSize = ImGui.GetFrameHeight();
+        var inputWidth = ImGui.GetContentRegionAvail().X - browseSize - ImGui.GetStyle().ItemSpacing.X;
+        ImGui.SetNextItemWidth(inputWidth);
+        ImGui.InputText($"##{id}", ref path, EditorUIConstants.MaxPathLength);
+        ImGui.SameLine();
+        if (ImGui.Button($"...##{id}_browse", new Vector2(browseSize, browseSize)))
+            onBrowse();
+    }
+
+    /// <summary>
     /// Draws a tooltip when the last item is hovered.
     /// </summary>
-    /// <param name="text">Tooltip text</param>
-    public static void DrawTooltip(string text)
+    public static void DrawTooltip(string text, ImGuiHoveredFlags flags = ImGuiHoveredFlags.None)
     {
-        if (ImGui.IsItemHovered())
+        if (ImGui.IsItemHovered(flags))
         {
             ImGui.BeginTooltip();
             ImGui.TextUnformatted(text);

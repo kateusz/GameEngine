@@ -21,9 +21,11 @@
 
     <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
         <Compile Remove="Platform\WindowsFolderPicker.cs" />
+        <Compile Remove="Platform\WindowsFilePicker.cs" />
     </ItemGroup>
     <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
         <Compile Remove="Platform\WindowsFolderPicker.Unsupported.cs" />
+        <Compile Remove="Platform\WindowsFilePicker.Unsupported.cs" />
     </ItemGroup>
 
     <ItemGroup>

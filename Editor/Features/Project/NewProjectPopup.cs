@@ -12,6 +12,8 @@ public class NewProjectPopup(IProjectManager projectManager)
 {
     private static readonly ILogger Logger = Log.ForContext<NewProjectPopup>();
 
+    private const float LabelWidth = 110f;
+
     private bool _showNewProjectPopup;
     private bool _showOpenProjectPopup;
 
@@ -51,55 +53,64 @@ public class NewProjectPopup(IProjectManager projectManager)
 
     private void RenderNewProjectPopup()
     {
-        const string title = "New Project";
-        if (_showNewProjectPopup)
-            ImGui.OpenPopup(title);
-
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
-            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
-
-        if (!ImGui.BeginPopupModal(title, ref _showNewProjectPopup,
-                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        if (!_showNewProjectPopup)
             return;
 
-        ImGui.Text("Project name (new subfolder name):");
+        ImGui.SetNextWindowSizeConstraints(new Vector2(520f, 0f), new Vector2(float.MaxValue, float.MaxValue));
+
+        if (!ModalDrawer.BeginCenteredModal(
+                "New Project",
+                ref _showNewProjectPopup,
+                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings))
+            return;
+
+        DrawLabel("Project Name");
+        ImGui.SetNextItemWidth(-1f);
         if (ImGui.IsWindowAppearing())
             ImGui.SetKeyboardFocusHere();
-        var enterOnName = ImGui.InputText("##NewProject_Name", ref _newProjectName, EditorUIConstants.MaxNameLength,
+        var enterOnName = ImGui.InputText(
+            "##NewProject_Name",
+            ref _newProjectName,
+            EditorUIConstants.MaxNameLength,
             ImGuiInputTextFlags.EnterReturnsTrue);
 
         ImGui.Spacing();
-
-        if (OSInfo.IsWindows)
+        DrawLabel("Location");
+        var browseSize = ImGui.GetFrameHeight();
+        var inputWidth = ImGui.GetContentRegionAvail().X - browseSize - ImGui.GetStyle().ItemSpacing.X;
+        ImGui.SetNextItemWidth(inputWidth);
+        ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
+        ImGui.SameLine();
+        if (ImGui.Button("...", new Vector2(browseSize, browseSize)))
         {
-            ImGui.Text("Location:");
-            var locationLabel = string.IsNullOrWhiteSpace(_newProjectParentPath)
-                ? "(no folder selected)"
-                : _newProjectParentPath;
-            TextDrawer.DrawColoredText(locationLabel, new Vector4(0.7f, 0.7f, 0.7f, 1f));
+            var initial = !string.IsNullOrWhiteSpace(_newProjectParentPath) && Directory.Exists(_newProjectParentPath)
+                ? _newProjectParentPath
+                : Environment.CurrentDirectory;
+            var picked = FolderPicker.PickFolder(
+                "Select Folder Where Project Will Be Created",
+                initial);
+            if (!string.IsNullOrEmpty(picked))
+                _newProjectParentPath = picked;
+        }
 
+        if (!string.IsNullOrWhiteSpace(_newProjectParentPath) &&
+            !string.IsNullOrWhiteSpace(_newProjectName) &&
+            projectManager.IsValidProjectName(_newProjectName))
+        {
             ImGui.Spacing();
-            if (ImGui.Button("Select Folder..."))
-            {
-                var picked = FolderPicker.PickFolder(
-                    "Select Folder Where Project Will Be Created",
-                    string.IsNullOrWhiteSpace(_newProjectParentPath)
-                        ? Environment.CurrentDirectory
-                        : _newProjectParentPath);
-                if (!string.IsNullOrEmpty(picked))
-                    _newProjectParentPath = picked;
-            }
-        }
-        else
-        {
-            ImGui.Text("Parent folder (project will be created inside this folder):");
-            ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
+            DrawLabel("Project path");
+            ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.SuccessColor);
+            ImGui.TextWrapped(Path.Combine(_newProjectParentPath.Trim(), _newProjectName.Trim()));
+            ImGui.PopStyleColor();
         }
 
-        ImGui.Separator();
+        LayoutDrawer.DrawSeparatorWithSpacing();
 
         var validation = GetNewProjectValidationMessage();
-        if (!string.IsNullOrEmpty(validation))
+        var missingFolder = string.IsNullOrWhiteSpace(_newProjectParentPath);
+
+        // Missing-folder hint lives on the Create tooltip; keep other validation inline.
+        if (!string.IsNullOrEmpty(validation) && !missingFolder)
             DrawValidationLine(validation);
 
         if (!string.IsNullOrEmpty(_newProjectError))
@@ -107,47 +118,40 @@ public class NewProjectPopup(IProjectManager projectManager)
 
         var canCreate = string.IsNullOrEmpty(validation) &&
                         projectManager.IsValidProjectName(_newProjectName) &&
-                        !string.IsNullOrWhiteSpace(_newProjectParentPath);
+                        !missingFolder;
 
         var shouldExecuteOk = enterOnName && canCreate;
         var shouldClose = false;
         var actionExecuted = false;
 
-        ButtonDrawer.DrawModalButtonPair(
-            okLabel: "Create",
-            cancelLabel: "Cancel",
-            onOk: () =>
+        var buttonWidth = EditorUIConstants.StandardButtonWidth;
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - buttonWidth) * 0.5f);
+        if (ButtonDrawer.DrawModalButton("Create", disabled: !canCreate) && !actionExecuted && canCreate)
+        {
+            shouldClose = true;
+            actionExecuted = true;
+            if (projectManager.TryCreateNewProject(
+                    _newProjectParentPath.Trim(),
+                    _newProjectName.Trim(),
+                    out var err))
             {
-                if (!actionExecuted && canCreate)
-                {
-                    shouldClose = true;
-                    actionExecuted = true;
-                    if (projectManager.TryCreateNewProject(
-                            _newProjectParentPath.Trim(),
-                            _newProjectName.Trim(),
-                            out var err))
-                    {
-                        _newProjectName = string.Empty;
-                        _newProjectError = string.Empty;
-                    }
-                    else
-                    {
-                        _newProjectError = err;
-                        shouldClose = false;
-                    }
-                }
-            },
-            onCancel: () =>
+                _newProjectName = string.Empty;
+                _newProjectError = string.Empty;
+            }
+            else
             {
-                if (!actionExecuted)
-                {
-                    shouldClose = true;
-                    actionExecuted = true;
-                    _newProjectName = string.Empty;
-                    _newProjectError = string.Empty;
-                }
-            },
-            okDisabled: !canCreate);
+                _newProjectError = err;
+                shouldClose = false;
+            }
+        }
+
+        if (!canCreate && !string.IsNullOrEmpty(validation) &&
+            ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            ImGui.BeginTooltip();
+            ImGui.TextUnformatted(validation);
+            ImGui.EndTooltip();
+        }
 
         if (shouldExecuteOk && !actionExecuted)
         {
@@ -176,7 +180,14 @@ public class NewProjectPopup(IProjectManager projectManager)
         if (shouldClose)
             _showNewProjectPopup = false;
 
-        ImGui.EndPopup();
+        ModalDrawer.EndModal();
+    }
+
+    private static void DrawLabel(string label)
+    {
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextUnformatted(label);
+        ImGui.SameLine(LabelWidth);
     }
 
     private string? GetNewProjectValidationMessage()
@@ -208,7 +219,7 @@ public class NewProjectPopup(IProjectManager projectManager)
 
     private static void DrawValidationLine(string message)
     {
-        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.95f, 0.35f, 0.35f, 1f));
+        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
         ImGui.TextWrapped(message);
         ImGui.PopStyleColor();
     }

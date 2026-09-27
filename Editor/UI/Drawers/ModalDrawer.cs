@@ -9,13 +9,15 @@ public readonly struct InputModalOptions(
     string? errorMessage = null,
     bool isValid = true,
     string okLabel = "OK",
-    string cancelLabel = "Cancel")
+    string cancelLabel = "Cancel",
+    bool showCancel = true)
 {
     public string? ValidationMessage { get; } = validationMessage;
     public string? ErrorMessage { get; } = errorMessage;
     public bool IsValid { get; } = isValid;
     public string OkLabel { get; } = okLabel;
     public string CancelLabel { get; } = cancelLabel;
+    public bool ShowCancel { get; } = showCancel;
 }
 
 /// <summary>
@@ -23,16 +25,18 @@ public readonly struct InputModalOptions(
 /// </summary>
 public static class ModalDrawer
 {
+    public static readonly ImGuiWindowFlags FormModalFlags =
+        ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoSavedSettings;
+
     /// <summary>
     /// Begins a centered modal popup with standard flags.
     /// Must be followed by EndModal() when the modal is closed.
     /// </summary>
-    /// <param name="title">Modal title</param>
-    /// <param name="isOpen">Reference to bool controlling modal open state</param>
-    /// <param name="additionalFlags">Additional window flags (default: AlwaysAutoResize | NoMove)</param>
-    /// <returns>True if the modal is currently open and rendering</returns>
-    public static bool BeginCenteredModal(string title, ref bool isOpen,
-        ImGuiWindowFlags additionalFlags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove)
+    public static bool BeginCenteredModal(
+        string title,
+        ref bool isOpen,
+        ImGuiWindowFlags additionalFlags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove,
+        float minWidth = EditorUIConstants.ModalMinWidth)
     {
         if (isOpen)
             ImGui.OpenPopup(title);
@@ -40,20 +44,15 @@ public static class ModalDrawer
         ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
             ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
 
-        // Use a local variable to track the actual modal state
-        // This allows ImGui to properly manage the popup lifecycle
+        if (minWidth > 0f)
+            ImGui.SetNextWindowSizeConstraints(new Vector2(minWidth, 0f), new Vector2(float.MaxValue, float.MaxValue));
+
         var modalOpen = isOpen;
-        var result = ImGui.BeginPopupModal(title, ref modalOpen, additionalFlags);
-
-        // Sync the modal state back to the caller's variable
+        var result = ImGui.BeginPopupModal(title, ref modalOpen, additionalFlags | ImGuiWindowFlags.NoSavedSettings);
         isOpen = modalOpen;
-
         return result;
     }
 
-    /// <summary>
-    /// Ends a modal popup. Call after BeginCenteredModal returns true.
-    /// </summary>
     public static void EndModal() => ImGui.EndPopup();
 
     public static void RenderInputModal(
@@ -84,48 +83,57 @@ public static class ModalDrawer
         Action onCancel,
         InputModalOptions options = default)
     {
-        if (showModal)
-            ImGui.OpenPopup(title);
+        if (!BeginCenteredModal(title, ref showModal, FormModalFlags))
+            return;
 
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
-            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        LayoutDrawer.DrawFormLabel(TrimPromptLabel(promptText));
+        ImGui.SetNextItemWidth(-1f);
+        if (ImGui.IsWindowAppearing())
+            ImGui.SetKeyboardFocusHere();
 
-        var modalOpen = showModal;
-        if (ImGui.BeginPopupModal(title, ref modalOpen,
-                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        var enterPressed = ImGui.InputText($"##{title}_Input", ref inputValue, maxLength,
+            ImGuiInputTextFlags.EnterReturnsTrue);
+
+        // Multi-line prompts (e.g. "Will create: Foo") go under the field.
+        var hint = ExtractPromptHint(promptText);
+        if (!string.IsNullOrEmpty(hint))
         {
-            ImGui.Text(promptText);
-
-            // Set focus on input field when modal opens
-            if (ImGui.IsWindowAppearing())
-                ImGui.SetKeyboardFocusHere();
-
-            var enterPressed = ImGui.InputText($"##{title}_Input", ref inputValue, maxLength,
-                ImGuiInputTextFlags.EnterReturnsTrue);
-
-            ImGui.Separator();
-
-            if (!string.IsNullOrEmpty(options.ValidationMessage))
-                DrawErrorMessage(options.ValidationMessage);
-
-            if (!string.IsNullOrEmpty(options.ErrorMessage))
-                DrawErrorMessage(options.ErrorMessage);
-
-            HandleInputModalActions(
-                ref showModal,
-                enterPressed && options.IsValid,
-                options.IsValid,
-                options.OkLabel,
-                options.CancelLabel,
-                onOk,
-                onCancel);
-
-            ImGui.EndPopup();
+            ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
+            ImGui.TextWrapped(hint);
+            ImGui.PopStyleColor();
         }
-        else
-        {
-            showModal = modalOpen;
-        }
+
+        LayoutDrawer.DrawSeparatorWithSpacing();
+
+        if (!string.IsNullOrEmpty(options.ValidationMessage))
+            DrawErrorMessage(options.ValidationMessage);
+
+        if (!string.IsNullOrEmpty(options.ErrorMessage))
+            DrawErrorMessage(options.ErrorMessage);
+
+        HandleInputModalActions(
+            ref showModal,
+            enterPressed && options.IsValid,
+            options.IsValid,
+            options.OkLabel,
+            options.CancelLabel,
+            onOk,
+            onCancel,
+            options.ShowCancel);
+
+        EndModal();
+    }
+
+    private static string TrimPromptLabel(string promptText)
+    {
+        var firstLine = promptText.Split('\n')[0].Trim();
+        return firstLine.TrimEnd(':').Trim();
+    }
+
+    private static string? ExtractPromptHint(string promptText)
+    {
+        var parts = promptText.Split('\n', 2, StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 1 ? parts[1].Trim() : null;
     }
 
     private static void HandleInputModalActions(
@@ -135,23 +143,33 @@ public static class ModalDrawer
         string okLabel,
         string cancelLabel,
         Action onOk,
-        Action onCancel)
+        Action onCancel,
+        bool showCancel = true)
     {
         var shouldClose = false;
         var actionExecuted = false;
 
-        ButtonDrawer.DrawModalButtonPair(
-            okLabel: okLabel,
-            cancelLabel: cancelLabel,
-            onOk: () =>
-            {
-                if (!actionExecuted) { shouldClose = true; actionExecuted = true; onOk(); }
-            },
-            onCancel: () =>
-            {
-                if (!actionExecuted) { shouldClose = true; actionExecuted = true; onCancel(); }
-            },
-            okDisabled: !isValid);
+        if (showCancel)
+        {
+            ButtonDrawer.DrawCenteredModalButtonPair(
+                okLabel: okLabel,
+                cancelLabel: cancelLabel,
+                onOk: () =>
+                {
+                    if (!actionExecuted) { shouldClose = true; actionExecuted = true; onOk(); }
+                },
+                onCancel: () =>
+                {
+                    if (!actionExecuted) { shouldClose = true; actionExecuted = true; onCancel(); }
+                },
+                okDisabled: !isValid);
+        }
+        else if (ButtonDrawer.DrawCenteredModalButton(okLabel, disabled: !isValid) && !actionExecuted)
+        {
+            shouldClose = true;
+            actionExecuted = true;
+            onOk();
+        }
 
         if (shouldExecuteOk && !actionExecuted)
         {
@@ -171,17 +189,6 @@ public static class ModalDrawer
             showModal = false;
     }
 
-    /// <summary>
-    /// Renders a simple confirmation modal with OK/Cancel buttons.
-    /// Handles Enter key for confirmation and Escape key for cancellation.
-    /// </summary>
-    /// <param name="title">Modal title</param>
-    /// <param name="showModal">Reference to bool controlling modal visibility</param>
-    /// <param name="message">Message to display</param>
-    /// <param name="onOk">Callback when OK is clicked or Enter is pressed</param>
-    /// <param name="onCancel">Optional callback when Cancel is clicked or Escape is pressed</param>
-    /// <param name="okLabel">Label for OK button (default: "OK")</param>
-    /// <param name="cancelLabel">Label for Cancel button (default: "Cancel")</param>
     public static void RenderConfirmationModal(
         string title,
         ref bool showModal,
@@ -191,67 +198,46 @@ public static class ModalDrawer
         string okLabel = "OK",
         string cancelLabel = "Cancel")
     {
-        if (showModal)
-            ImGui.OpenPopup(title);
+        if (!BeginCenteredModal(title, ref showModal, FormModalFlags))
+            return;
 
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
-            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        ImGui.TextWrapped(message);
+        LayoutDrawer.DrawSeparatorWithSpacing();
 
-        var modalOpen = showModal;
-        if (ImGui.BeginPopupModal(title, ref modalOpen,
-                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
-        {
-            ImGui.TextWrapped(message);
-            ImGui.Separator();
+        var shouldClose = false;
 
-            var shouldClose = false;
-
-            ButtonDrawer.DrawModalButtonPair(
-                okLabel: okLabel,
-                cancelLabel: cancelLabel,
-                onOk: () =>
-                {
-                    shouldClose = true;
-                    onOk();
-                },
-                onCancel: () =>
-                {
-                    shouldClose = true;
-                    onCancel?.Invoke();
-                });
-
-            if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
+        ButtonDrawer.DrawCenteredModalButtonPair(
+            okLabel: okLabel,
+            cancelLabel: cancelLabel,
+            onOk: () =>
             {
                 shouldClose = true;
                 onOk();
-            }
-
-            if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+            },
+            onCancel: () =>
             {
                 shouldClose = true;
                 onCancel?.Invoke();
-            }
+            });
 
-            if (shouldClose)
-                showModal = false;
-
-            ImGui.EndPopup();
-        }
-        else
+        if (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter))
         {
-            showModal = modalOpen;
+            shouldClose = true;
+            onOk();
         }
+
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape))
+        {
+            shouldClose = true;
+            onCancel?.Invoke();
+        }
+
+        if (shouldClose)
+            showModal = false;
+
+        EndModal();
     }
 
-    /// <summary>
-    /// Renders a message box modal with a single OK button.
-    /// Handles Enter and Escape keys to close the modal.
-    /// </summary>
-    /// <param name="title">Modal title</param>
-    /// <param name="showModal">Reference to bool controlling modal visibility</param>
-    /// <param name="message">Message to display</param>
-    /// <param name="messageType">Type of message (affects color)</param>
-    /// <param name="onClose">Optional callback when the modal is closed</param>
     public static void RenderMessageBox(
         string title,
         ref bool showModal,
@@ -259,61 +245,44 @@ public static class ModalDrawer
         MessageType messageType = MessageType.Info,
         Action? onClose = null)
     {
-        if (showModal)
-            ImGui.OpenPopup(title);
+        if (!BeginCenteredModal(title, ref showModal, FormModalFlags))
+            return;
 
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
-            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
-
-        if (ImGui.BeginPopupModal(title, ref showModal,
-                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        switch (messageType)
         {
-            switch (messageType)
-            {
-                case MessageType.Error:
-                    DrawErrorMessage(message);
-                    break;
-                case MessageType.Warning:
-                    DrawWarningMessage(message);
-                    break;
-                case MessageType.Success:
-                    DrawSuccessMessage(message);
-                    break;
-                default:
-                    ImGui.TextWrapped(message);
-                    break;
-            }
-
-            ImGui.Separator();
-
-            if (ButtonDrawer.DrawModalButton("OK"))
-            {
-                showModal = false;
-                onClose?.Invoke();
-            }
-
-            if (ImGui.IsKeyPressed(ImGuiKey.Enter) ||
-                ImGui.IsKeyPressed(ImGuiKey.KeypadEnter) ||
-                ImGui.IsKeyPressed(ImGuiKey.Escape))
-            {
-                showModal = false;
-                onClose?.Invoke();
-            }
-
-            ImGui.EndPopup();
+            case MessageType.Error:
+                DrawErrorMessage(message);
+                break;
+            case MessageType.Warning:
+                DrawWarningMessage(message);
+                break;
+            case MessageType.Success:
+                DrawSuccessMessage(message);
+                break;
+            default:
+                ImGui.TextWrapped(message);
+                break;
         }
+
+        LayoutDrawer.DrawSeparatorWithSpacing();
+
+        if (ButtonDrawer.DrawCenteredModalButton("OK"))
+        {
+            showModal = false;
+            onClose?.Invoke();
+        }
+
+        if (ImGui.IsKeyPressed(ImGuiKey.Enter) ||
+            ImGui.IsKeyPressed(ImGuiKey.KeypadEnter) ||
+            ImGui.IsKeyPressed(ImGuiKey.Escape))
+        {
+            showModal = false;
+            onClose?.Invoke();
+        }
+
+        EndModal();
     }
 
-    /// <summary>
-    /// Renders a list selection modal with search/filter capability.
-    /// </summary>
-    /// <param name="title">Modal title</param>
-    /// <param name="showModal">Reference to bool controlling modal visibility</param>
-    /// <param name="items">Array of items to display</param>
-    /// <param name="onItemSelected">Callback when an item is selected</param>
-    /// <param name="onCancel">Optional callback when Cancel is clicked</param>
-    /// <param name="emptyMessage">Message to display when no items are available</param>
-    /// <param name="renderItem">Optional custom rendering function for each item (returns true if item was clicked)</param>
     public static void RenderListSelectionModal(
         string title,
         ref bool showModal,
@@ -323,34 +292,23 @@ public static class ModalDrawer
         string emptyMessage = "No items available.",
         Func<string, int, bool>? renderItem = null)
     {
-        if (showModal)
-            ImGui.OpenPopup(title);
+        if (!BeginCenteredModal(title, ref showModal, FormModalFlags))
+            return;
 
-        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(),
-            ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        if (items.Length == 0)
+            DrawWarningMessage(emptyMessage);
+        else
+            RenderItemList(title, items, renderItem, onItemSelected, ref showModal);
 
-        if (ImGui.BeginPopupModal(title, ref showModal,
-                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+        LayoutDrawer.DrawSeparatorWithSpacing();
+
+        if (ButtonDrawer.DrawCenteredModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
         {
-            if (items.Length == 0)
-            {
-                DrawWarningMessage(emptyMessage);
-            }
-            else
-            {
-                RenderItemList(title, items, renderItem, onItemSelected, ref showModal);
-            }
-
-            ImGui.Separator();
-
-            if (ButtonDrawer.DrawModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
-            {
-                showModal = false;
-                onCancel?.Invoke();
-            }
-
-            ImGui.EndPopup();
+            showModal = false;
+            onCancel?.Invoke();
         }
+
+        EndModal();
     }
 
     private static void RenderItemList(
@@ -383,10 +341,6 @@ public static class ModalDrawer
         ImGui.EndChild();
     }
 
-    /// <summary>
-    /// Draws an error message with standard red color and wrapping.
-    /// </summary>
-    /// <param name="errorMessage">Error message to display</param>
     private static void DrawErrorMessage(string errorMessage)
     {
         if (string.IsNullOrEmpty(errorMessage)) return;
@@ -396,10 +350,6 @@ public static class ModalDrawer
         ImGui.PopStyleColor();
     }
 
-    /// <summary>
-    /// Draws a warning message with standard yellow color and wrapping.
-    /// </summary>
-    /// <param name="warningMessage">Warning message to display</param>
     private static void DrawWarningMessage(string warningMessage)
     {
         if (string.IsNullOrEmpty(warningMessage)) return;
@@ -409,29 +359,12 @@ public static class ModalDrawer
         ImGui.PopStyleColor();
     }
 
-    /// <summary>
-    /// Draws a success message with standard green color and wrapping.
-    /// </summary>
-    /// <param name="successMessage">Success message to display</param>
     private static void DrawSuccessMessage(string successMessage)
     {
         if (string.IsNullOrEmpty(successMessage)) return;
 
         ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.SuccessColor);
         ImGui.TextWrapped(successMessage);
-        ImGui.PopStyleColor();
-    }
-
-    /// <summary>
-    /// Draws an info message with standard info color and wrapping.
-    /// </summary>
-    /// <param name="infoMessage">Info message to display</param>
-    private static void DrawInfoMessage(string infoMessage)
-    {
-        if (string.IsNullOrEmpty(infoMessage)) return;
-
-        ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
-        ImGui.TextWrapped(infoMessage);
         ImGui.PopStyleColor();
     }
 }

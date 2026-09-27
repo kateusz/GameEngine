@@ -264,7 +264,27 @@ internal static class SceneRenderPipeline
         graphics3D.EndScene();
 
         perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
+        ApplyPipelineStats(graphics3D.GetStats(), in perf);
         LogRender3DPerfIfDue(in perf);
+    }
+
+    private static void ApplyPipelineStats(Statistics dest, in Render3DPerfFrame perf)
+    {
+        var color = perf.ColorPass;
+        dest.Renderers = color.Renderers;
+        dest.FrustumCulled = color.Culled;
+        dest.ZoneCulled = color.ZoneCulled;
+        dest.ShadowCasterCulled =
+            perf.DirectionalShadowPass.ShadowCasterCulled + perf.PointShadowPass.ShadowCasterCulled;
+        dest.SingleMaterialDraws = color.SingleMaterialDraws;
+        dest.MultiMaterialDraws = color.MultiMaterialDraws;
+        dest.MaxBatchInstances = color.MaxBatchInstances;
+        dest.PointLights = perf.PointLights;
+        dest.PointShadowLights = perf.PointShadowLights;
+        dest.PointShadowCacheHits = perf.PointShadowLightsCacheHit;
+        dest.DirectionalShadow = perf.DirectionalShadow;
+        dest.ColorCpuMs = color.CpuMs;
+        dest.ShadowCpuMs = perf.DirectionalShadowPass.CpuMs + perf.PointShadowPass.CpuMs;
     }
 
     private struct PassStats

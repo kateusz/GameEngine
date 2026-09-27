@@ -45,7 +45,5 @@ public class SubTextureRendererComponentEditor(
             e => e.GetComponent<SubTextureRendererComponent>().SpriteSize,
             (e, v) => e.GetComponent<SubTextureRendererComponent>().SpriteSize = v,
             UIPropertyRenderer.SameVector2);
-
-        ImGui.EndDisabled();
     }
 }

@@ -26,7 +26,8 @@ public class SceneHierarchyPanel(
     IEntityContextMenu entityContextMenu,
     IEditorSelection selection,
     IEditorHistory history,
-    IEditorPreferences editorPreferences)
+    IEditorPreferences editorPreferences,
+    ISceneManager sceneManager)
     : IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
@@ -73,6 +74,17 @@ public class SceneHierarchyPanel(
         selection.Select(null, SelectionSource.Code);
     }
 
+    public void RequestScrollToEntity(int entityId)
+    {
+        if (!_scene.Context.Contains(entityId))
+            return;
+
+        var entity = _scene.Context.GetById(entityId);
+        for (var current = _scene.GetParent(entity); current is not null; current = _scene.GetParent(current))
+            _expandedIds.Add(current.Id);
+        _scrollToEntityId = entityId;
+    }
+
     private void OnSelectionChanged(Entity? entity, SelectionSource source)
     {
         if (!editorPreferences.FollowViewportSelectionInHierarchy
@@ -81,15 +93,29 @@ public class SceneHierarchyPanel(
             || !_scene.Context.Contains(entity.Id))
             return;
 
-        for (var current = _scene.GetParent(entity); current is not null; current = _scene.GetParent(current))
-            _expandedIds.Add(current.Id);
-        _scrollToEntityId = entity.Id;
+        RequestScrollToEntity(entity.Id);
+    }
+
+    private void DrawCurrentSceneLabel()
+    {
+        var path = sceneManager.GetCurrentScenePath();
+        var label = path is not null
+            ? Path.GetFileNameWithoutExtension(path)
+            : string.IsNullOrWhiteSpace(_scene.Name) ? "Untitled" : _scene.Name;
+
+        ImGui.TextUnformatted($"Scene: {label}");
+        if (path is not null && ImGui.IsItemHovered())
+            ImGui.SetTooltip(path);
+
+        ImGui.Spacing();
     }
 
     public void Draw()
     {
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");
+
+        DrawCurrentSceneLabel();
 
         if (ButtonDrawer.DrawSmallButton("+", tooltip: "Add Entity"))
             ImGui.OpenPopup(EntityContextMenu.CreateEntityPopupId);

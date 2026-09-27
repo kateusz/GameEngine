@@ -1,70 +1,46 @@
+using Editor.Commands;
 using Editor.Features.Project;
-using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
-using Editor.Input;
 using Editor.Panels;
-using Editor.Publisher;
-using Engine.Core;
-using Engine.Project;
 using ImGuiNET;
-using Serilog;
 
 namespace Editor.Features.Application;
 
 public class EditorMenuBar(
-    IProjectManager projectManager,
-    IProjectContext projectContext,
+    CommandRegistry registry,
     IEditorPreferences editorPreferences,
-    EditorSettingsUI editorSettingsUI,
-    ISceneManager sceneManager,
-    NewProjectPopup newProjectPopup,
-    SceneSettingsPopup sceneSettingsPopup,
-    PublishSettingsUI publishSettingsUI,
     RecentProjectsPanel recentProjectsPanel,
     RendererStatsPanel rendererStatsPanel,
-    KeyboardShortcutsPanel keyboardShortcutsPanel,
-    ViewportComponents viewport,
-    IEditorCameraController cameraController)
+    ViewportComponents viewport)
 {
-    private static readonly ILogger Logger = Log.ForContext<EditorMenuBar>();
-
     public void Render()
     {
         if (!ImGui.BeginMenuBar()) return;
 
-        RenderFileMenu();
+        RenderProjectMenu();
         RenderSceneMenu();
         RenderViewMenu();
-        RenderSettingsMenu();
+        RenderEditorMenu();
         RenderHelpMenu();
-        RenderPublishMenu();
 
         ImGui.EndMenuBar();
     }
 
-    private void RenderFileMenu()
+    private void RenderProjectMenu()
     {
-        if (!ImGui.BeginMenu("File")) return;
-
-        if (ImGui.MenuItem("New Project"))
-            newProjectPopup.ShowNewProjectPopup();
-        if (ImGui.MenuItem("Open Project"))
-            newProjectPopup.ShowOpenProjectPopup();
-        if (ImGui.MenuItem("Close Project", enabled: projectContext.HasProject))
-        {
-            projectManager.CloseProject();
-            recentProjectsPanel.Show();
-        }
-
-        ImGui.Separator();
-
-        if (ImGui.MenuItem("Show Recent Projects"))
-            recentProjectsPanel.Show();
+        if (!ImGui.BeginMenu("Project")) return;
+        
+        CommandItem("New...", EditorCommandIds.NewProject);
+        CommandItem("Open...", EditorCommandIds.OpenProject);
+        CommandItem("Close", EditorCommandIds.CloseProject);
+        CommandItem("Show Recent Projects", EditorCommandIds.ShowRecentProjects);
 
         if (ImGui.BeginMenu("Recent Projects"))
         {
-            var recentProjects = editorPreferences.GetRecentProjects();
+            var recentProjects = editorPreferences.GetRecentProjects()
+                .Where(p => Directory.Exists(p.Path))
+                .ToList();
             if (recentProjects.Count == 0)
             {
                 ImGui.MenuItem("(No recent projects)", false);
@@ -74,16 +50,12 @@ public class EditorMenuBar(
                 foreach (var recent in recentProjects)
                 {
                     if (ImGui.MenuItem($"{recent.Name}"))
-                    {
-                        if (!projectManager.TryOpenProject(recent.Path, out var error))
-                            Logger.Warning("Failed to open recent project {Path}: {Error}", recent.Path, error);
-                    }
+                        recentProjectsPanel.QueueOpen(recent.Path, recent.Name);
 
                     if (ImGui.IsItemHovered())
                     {
                         ImGui.BeginTooltip();
                         ImGui.Text(recent.Path);
-                        ImGui.Text($"Last opened: {recent.LastOpened:yyyy-MM-dd HH:mm}");
                         ImGui.EndTooltip();
                     }
                 }
@@ -94,10 +66,11 @@ public class EditorMenuBar(
             }
             ImGui.EndMenu();
         }
-
         ImGui.Separator();
-        if (ImGui.MenuItem("Exit"))
-            Environment.Exit(0);
+
+        CommandItem("Settings...", EditorCommandIds.ShowProjectSettings);
+        CommandItem("Export...", EditorCommandIds.Export);
+
         ImGui.EndMenu();
     }
 
@@ -105,21 +78,13 @@ public class EditorMenuBar(
     {
         if (!ImGui.BeginMenu("Scene")) return;
 
-        if (ImGui.MenuItem("New", "Ctrl+N"))
-            sceneSettingsPopup.ShowNewScenePopup();
-        if (ImGui.MenuItem("Save", "Ctrl+S"))
-            sceneManager.Save();
-        if (ImGui.MenuItem("Close"))
-        {
-            if (sceneManager.IsDirty)
-                sceneSettingsPopup.ShowCloseConfirmation();
-            else
-                sceneManager.Close();
-        }
+        CommandItem("New...", EditorCommandIds.NewScene, "Ctrl+N");
+        CommandItem("Open...", EditorCommandIds.OpenScene);
+        CommandItem("Save", EditorCommandIds.SaveScene, "Ctrl+S");
+        CommandItem("Close", EditorCommandIds.CloseScene);
 
         ImGui.Separator();
-        if (ImGui.MenuItem("Settings"))
-            sceneSettingsPopup.ShowSettings();
+        CommandItem("Settings...", EditorCommandIds.SceneSettings);
 
         ImGui.EndMenu();
     }
@@ -128,22 +93,21 @@ public class EditorMenuBar(
     {
         if (!ImGui.BeginMenu("View")) return;
 
-        if (ImGui.MenuItem("Reset Camera"))
-            cameraController.ResetCamera();
+        CommandItem("Command Palette", EditorCommandIds.OpenCommandPalette, "Ctrl+Shift+P");
+        CommandItem("Reset Camera", EditorCommandIds.ResetCamera);
         ImGui.Separator();
         if (ImGui.MenuItem("Show Rulers", null, viewport.ViewportRuler.Enabled))
-            viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled;
-        if (ImGui.MenuItem("Show Stats", null, rendererStatsPanel.IsVisible))
-            rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible;
+            registry.Execute(EditorCommandIds.ToggleRulers);
+        if (ImGui.MenuItem("Show Debug", null, rendererStatsPanel.IsVisible))
+            registry.Execute(EditorCommandIds.ToggleStats);
         ImGui.EndMenu();
     }
 
-    private void RenderSettingsMenu()
+    private void RenderEditorMenu()
     {
-        if (!ImGui.BeginMenu("Settings")) return;
+        if (!ImGui.BeginMenu("Editor")) return;
 
-        if (ImGui.MenuItem("Editor Settings"))
-            editorSettingsUI.Show();
+        CommandItem("Settings...", EditorCommandIds.ShowEditorSettings);
         ImGui.EndMenu();
     }
 
@@ -151,17 +115,14 @@ public class EditorMenuBar(
     {
         if (!ImGui.BeginMenu("Help")) return;
 
-        if (ImGui.MenuItem("Keyboard Shortcuts"))
-            keyboardShortcutsPanel.Show();
+        CommandItem("Keyboard Shortcuts...", EditorCommandIds.ShowKeyboardShortcuts);
         ImGui.EndMenu();
     }
 
-    private void RenderPublishMenu()
+    private void CommandItem(string label, string id, string? shortcut = null)
     {
-        if (!ImGui.BeginMenu("Publish")) return;
-
-        if (ImGui.MenuItem("Build & Publish"))
-            publishSettingsUI.ShowPublishModal();
-        ImGui.EndMenu();
+        var can = registry.GetCanExecute(id);
+        if (ImGui.MenuItem(label, shortcut, selected: false, enabled: can.Allowed))
+            registry.Execute(id);
     }
 }
