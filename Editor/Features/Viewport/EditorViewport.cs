@@ -348,7 +348,7 @@ public sealed class EditorViewport(
     private void RenderEditor2DOverlays(Context context, in SceneView view)
     {
         var drawColliders = debugSettings.ShowColliderBounds && sceneContext.ActivePhysicsBodyStore is not null;
-        var drawGrid3D = sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
+        var drawGrid3D = viewport.ViewportGrid.Enabled && sceneContext.ActiveScene?.Dimension == SceneDimension.ThreeD;
         var drawCameraGizmos = HasCameraEntities(context);
         if (!drawColliders && !drawGrid3D && !drawCameraGizmos)
             return;

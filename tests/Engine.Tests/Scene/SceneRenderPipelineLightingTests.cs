@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using Engine.Renderer;
 using Engine.Scene;
+using SceneComponents;
 using SceneComponents.Lighting;
 using SceneComponents.Rendering;
 using Shouldly;
@@ -47,12 +48,28 @@ public class SceneRenderPipelineLightingTests
         entity.AddComponent(new DirectionalLightComponent
         {
             Direction = new Vector3(0, -2, 0),
-            Color = new Vector4(1f, 0.9f, 0.8f, 1f)
+            Color = new Vector4(1f, 0.9f, 0.8f, 1f),
+            Intensity = 2f
         });
         context.Register(entity);
 
         SceneRenderPipeline.ResolveDirectional(context)
-            .ShouldBe((new Vector3(0, -1, 0), new Vector3(1f, 0.9f, 0.8f)));
+            .ShouldBe((new Vector3(0, -1, 0), new Vector3(2f, 1.8f, 1.6f)));
+    }
+
+    [Fact]
+    public void ResolveDirectional_NegativeIntensity_ClampsToZero()
+    {
+        var context = new Context();
+        var entity = new Entity(1, "sun");
+        entity.AddComponent(new DirectionalLightComponent
+        {
+            Color = Vector4.One,
+            Intensity = -1f
+        });
+        context.Register(entity);
+
+        SceneRenderPipeline.ResolveDirectional(context).Color.ShouldBe(Vector3.Zero);
     }
 
     [Fact]
@@ -148,5 +165,28 @@ public class SceneRenderPipelineLightingTests
                 meshMetallic: 2f,
                 meshRoughness: float.NaN)
             .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0f, 1f));
+    }
+
+    [Fact]
+    public void ResolvePointLights_ApplyOffset_AddsOffsetToWorldTranslation()
+    {
+        var context = new Context();
+        var entity = new Entity(1, "lamp");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(Matrix4x4.CreateTranslation(1f, 2f, 3f));
+        entity.AddComponent(transform);
+        entity.AddComponent(new PointLightComponent
+        {
+            Range = 10f,
+            ApplyOffset = true,
+            Offset = new Vector3(9f, 8f, 7f)
+        });
+        context.Register(entity);
+
+        var lights = new PointLightData[LightingMath.MaxPointLights];
+        var count = SceneRenderPipeline.ResolvePointLights(context, lights);
+
+        count.ShouldBe(1);
+        lights[0].Position.ShouldBe(new Vector3(10f, 10f, 10f));
     }
 }

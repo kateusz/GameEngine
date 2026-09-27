@@ -9,12 +9,16 @@ public class PointLightComponent : IComponent
     public float Intensity { get; set; } = 1f;
     public float Range { get; set; } = 10f;
     public bool CastsShadow { get; set; }
+    public bool ApplyOffset { get; set; }
+    public Vector3 Offset { get; set; }
 
     public IComponent Clone() => new PointLightComponent
     {
         Color = Color,
         Intensity = Intensity,
         Range = Range,
-        CastsShadow = CastsShadow
+        CastsShadow = CastsShadow,
+        ApplyOffset = ApplyOffset,
+        Offset = Offset
     };
 }
