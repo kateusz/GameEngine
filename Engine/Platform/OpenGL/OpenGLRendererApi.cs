@@ -8,6 +8,7 @@ namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLRendererApi : IRendererAPI
 {
+    private readonly HashSet<uint> _meshInstanceLayoutVaos = [];
     public void SetClearColor(Vector4 color)
     {
         SilkNetContext.GL.ClearColor(color.X, color.Y, color.Z, color.W);
@@ -66,7 +67,7 @@ internal sealed class OpenGLRendererApi : IRendererAPI
             return;
 
         var count = indexCount != 0 ? indexCount : (uint)vertexArray.IndexBuffer.Count;
-        BindInstanceBuffer(instances);
+        BindInstanceBuffer(vertexArray, instances);
 
         SilkNetContext.GL.DrawElementsInstanced(
             PrimitiveType.Triangles, count, DrawElementsType.UnsignedInt, (void*)0, (uint)instances.Length);
@@ -75,7 +76,7 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
     private uint _meshInstanceBuffer; // process lifetime; the GL context owns it until exit
 
-    private unsafe void BindInstanceBuffer(ReadOnlySpan<MeshInstanceData> instances)
+    private unsafe void BindInstanceBuffer(IVertexArray vertexArray, ReadOnlySpan<MeshInstanceData> instances)
     {
         var gl = SilkNetContext.GL;
         if (_meshInstanceBuffer == 0)
@@ -93,11 +94,16 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
         OpenGLDebug.CheckError(gl, "BufferData(mesh instances)");
 
+        if (vertexArray is not OpenGLVertexArray oglVao || _meshInstanceLayoutVaos.Contains(oglVao.RendererId))
+            return;
+
+        vertexArray.Bind();
         var stride = (uint)sizeof(MeshInstanceData);
-        // Locations 0–5 are the mesh. A mat4 uses four locations. Set every draw so each mesh VAO records the shared buffer.
+        // Locations 0–5 are the mesh. Instance layout is stored once per VAO.
         EnableMat4(gl, startLocation: 6, byteOffset: 0, stride);
         EnableMat4(gl, startLocation: 10, byteOffset: MeshInstanceData.NormalByteOffset, stride);
         EnableInt(gl, location: 14, byteOffset: MeshInstanceData.EntityIdByteOffset, stride);
+        _meshInstanceLayoutVaos.Add(oglVao.RendererId);
     }
 
     private static unsafe void EnableMat4(GL gl, uint startLocation, int byteOffset, uint stride)

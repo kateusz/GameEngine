@@ -10,6 +10,10 @@ layout(location = 10) in mat4 a_InstanceNormal;
 layout(location = 14) in int a_InstanceEntityId;
 
 uniform mat4 u_ViewProjection;
+uniform mat4 u_Model;
+uniform mat4 u_NormalMatrix;
+uniform int u_Instanced;
+uniform int u_EntityID;
 
 out vec3 v_FragPos;
 out vec3 v_Normal;
@@ -19,13 +23,15 @@ flat out int v_EntityID;
 
 void main()
 {
-    vec4 worldPos = vec4(a_Position, 1.0) * a_InstanceModel;
+    mat4 model = u_Instanced != 0 ? a_InstanceModel : u_Model;
+    mat4 normalMat = u_Instanced != 0 ? a_InstanceNormal : u_NormalMatrix;
+    vec4 worldPos = vec4(a_Position, 1.0) * model;
     v_FragPos  = worldPos.xyz;
-    v_Normal   = normalize(a_Normal * mat3(a_InstanceNormal));
+    v_Normal   = normalize(a_Normal * mat3(normalMat));
     v_TexCoord = a_TexCoord;
-    v_EntityID = a_InstanceEntityId;
+    v_EntityID = u_Instanced != 0 ? a_InstanceEntityId : u_EntityID;
 
-    vec3 T = normalize(a_Tangent * mat3(a_InstanceNormal));
+    vec3 T = normalize(a_Tangent * mat3(normalMat));
     vec3 N = v_Normal;
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);

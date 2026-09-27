@@ -483,7 +483,8 @@ public class SceneRenderPipelineShadowTests
 
         var graphics = RenderCube(
             Matrix4x4.CreateTranslation(Unproject(inverseLight, 0.95f, 0f, 0.5f)),
-            viewProjection);
+            viewProjection,
+            new SceneView(viewProjection, eye, DirectionalShadowCasterMaxDistance: 0f));
 
         graphics.CubeDraws.ShouldBe(1);
         graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene"]);
@@ -586,7 +587,10 @@ public class SceneRenderPipelineShadowTests
         packed.Model.M41.ShouldBe(0f);
     }
 
-    private static RecordingGraphics3D RenderCube(Matrix4x4 world, Matrix4x4 viewProjection)
+    private static RecordingGraphics3D RenderCube(
+        Matrix4x4 world,
+        Matrix4x4 viewProjection,
+        SceneView? view = null)
     {
         var context = SceneWithSun();
         var cube = new Entity(1, "cube");
@@ -603,7 +607,7 @@ public class SceneRenderPipelineShadowTests
             graphics,
             Substitute.For<ITextureFactory>(),
             Substitute.For<IModelFactory>(),
-            new SceneView(viewProjection));
+            view ?? new SceneView(viewProjection));
         return graphics;
     }
 

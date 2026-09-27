@@ -46,6 +46,16 @@ internal readonly record struct Aabb(Vector3 Min, Vector3 Max)
         }
     }
 
+    internal static float ClosestPointDistanceSquared(Vector3 point, Matrix4x4 world, Aabb local)
+    {
+        WorldMinMax(world, local, out var min, out var max);
+        var closest = new Vector3(
+            System.Math.Clamp(point.X, min.X, max.X),
+            System.Math.Clamp(point.Y, min.Y, max.Y),
+            System.Math.Clamp(point.Z, min.Z, max.Z));
+        return Vector3.DistanceSquared(point, closest);
+    }
+
     internal static void WorldMinMax(Matrix4x4 world, Aabb local, out Vector3 min, out Vector3 max)
     {
         min = new Vector3(float.PositiveInfinity);
