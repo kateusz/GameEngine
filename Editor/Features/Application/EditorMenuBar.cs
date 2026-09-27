@@ -116,6 +116,11 @@ public class EditorMenuBar(
             else
                 sceneManager.Close();
         }
+
+        ImGui.Separator();
+        if (ImGui.MenuItem("Settings"))
+            sceneSettingsPopup.ShowSettings();
+
         ImGui.EndMenu();
     }
 

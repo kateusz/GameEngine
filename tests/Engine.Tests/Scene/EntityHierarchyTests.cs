@@ -85,6 +85,53 @@ public class EntityHierarchyTests
     }
 
     [Fact]
+    public void UpdateWorldTransforms_WritesEffectiveVisibility_Cascade()
+    {
+        using var scene = CreateScene();
+        var parent = CreateWithTransform(scene, "parent", Vector3.Zero);
+        var child = CreateWithTransform(scene, "child", Vector3.UnitX);
+        scene.SetParent(child, parent);
+
+        parent.GetComponent<TransformComponent>().Visible = false;
+        child.GetComponent<TransformComponent>().Visible = true;
+        scene.UpdateWorldTransforms();
+
+        parent.GetComponent<TransformComponent>().EffectiveVisible.ShouldBeFalse();
+        child.GetComponent<TransformComponent>().EffectiveVisible.ShouldBeFalse();
+
+        parent.GetComponent<TransformComponent>().Visible = true;
+        scene.UpdateWorldTransforms();
+        child.GetComponent<TransformComponent>().EffectiveVisible.ShouldBeTrue();
+
+        child.GetComponent<TransformComponent>().Visible = false;
+        scene.UpdateWorldTransforms();
+        child.GetComponent<TransformComponent>().EffectiveVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void SetSubtreeVisible_WritesVisibleOnDescendants()
+    {
+        using var scene = CreateScene();
+        var parent = CreateWithTransform(scene, "parent", Vector3.Zero);
+        var child = CreateWithTransform(scene, "child", Vector3.UnitX);
+        var grand = CreateWithTransform(scene, "grand", Vector3.UnitY);
+        scene.SetParent(child, parent);
+        scene.SetParent(grand, child);
+
+        scene.SetSubtreeVisible(parent, false);
+
+        parent.GetComponent<TransformComponent>().Visible.ShouldBeFalse();
+        child.GetComponent<TransformComponent>().Visible.ShouldBeFalse();
+        grand.GetComponent<TransformComponent>().Visible.ShouldBeFalse();
+        grand.GetComponent<TransformComponent>().EffectiveVisible.ShouldBeFalse();
+
+        scene.SetSubtreeVisible(parent, true);
+
+        child.GetComponent<TransformComponent>().Visible.ShouldBeTrue();
+        grand.GetComponent<TransformComponent>().EffectiveVisible.ShouldBeTrue();
+    }
+
+    [Fact]
     public void WorldTransform_Child_ComposesParentThenLocal()
     {
         using var scene = CreateScene();

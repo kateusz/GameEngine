@@ -108,7 +108,8 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Entity entity,
         JsonObject componentJson,
         JsonSerializerOptions options,
-        bool strict)
+        bool strict,
+        ICollection<string>? skippedNames = null)
     {
         if (componentJson[NameKey] is null)
             throw new InvalidSceneJsonException("Invalid component JSON");
@@ -118,6 +119,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         {
             if (strict)
                 throw new InvalidSceneJsonException($"Unknown component type: {componentName}");
+            skippedNames?.Add(componentName);
             return;
         }
 

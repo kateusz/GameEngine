@@ -67,6 +67,44 @@ public class SceneSerializerDimensionTests
         }
     }
 
+    [Fact]
+    public void Deserialize_UnknownComponent_SkipsAndReturnsName()
+    {
+        var path = WriteScene(
+            """
+            {
+              "Scene":"t",
+              "Entities":[
+                {
+                  "Id":1,
+                  "Name":"e",
+                  "Components":[
+                    {"Name":"TransformComponent"},
+                    {"Name":"GoneComponent","X":1},
+                    {"Name":"AlsoGone"}
+                  ]
+                }
+              ]
+            }
+            """);
+        try
+        {
+            using var scene = CreateEmptyScene();
+            var skipped = Serializer().Deserialize(scene, path);
+
+            skipped.Count.ShouldBe(2);
+            skipped.ShouldContain("AlsoGone");
+            skipped.ShouldContain("GoneComponent");
+            var entity = scene.Entities.Single();
+            entity.HasComponent<SceneComponents.TransformComponent>().ShouldBeTrue();
+            entity.GetAllComponents().Count().ShouldBe(1);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static SceneSerializer Serializer() =>
         new(new ComponentSerializerRegistry(), new SerializerOptions());
 
