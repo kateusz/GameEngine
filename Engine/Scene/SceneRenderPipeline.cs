@@ -238,7 +238,7 @@ internal static class SceneRenderPipeline
                         perf.PointShadowOpaque3D++;
                         perf.PointShadowPass = Accumulate(perf.PointShadowPass,
                             DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face],
-                                shadowCasterMaxSq, shadowCasterView));
+                                shadowCasterMaxSq, shadowCasterView, light.Position));
                     }
                     finally
                     {
@@ -462,7 +462,8 @@ internal static class SceneRenderPipeline
         IModelFactory? modelFactory,
         Matrix4x4 cullMatrix,
         float shadowCasterMaxDistanceSq = 0f,
-        Vector3 shadowCasterViewPosition = default)
+        Vector3 shadowCasterViewPosition = default,
+        Vector3? skipCastersContainingLight = null)
     {
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
@@ -508,7 +509,7 @@ internal static class SceneRenderPipeline
                     }
 
                     if (ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, Aabb.UnitCube, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, ref stats))
+                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
                     var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
@@ -526,7 +527,7 @@ internal static class SceneRenderPipeline
                     var submesh = model!.Submeshes[submeshIndex];
                     if (submesh.Bounds is { } bounds
                         && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, ref stats))
+                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
                     QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
@@ -537,7 +538,7 @@ internal static class SceneRenderPipeline
                 {
                     if (submesh.Bounds is { } bounds
                         && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, ref stats))
+                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
                     QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
@@ -560,6 +561,7 @@ internal static class SceneRenderPipeline
         Aabb bounds,
         float shadowCasterMaxDistanceSq,
         Vector3 shadowCasterViewPosition,
+        Vector3? skipCastersContainingLight,
         ref PassStats stats)
     {
         if (hasFrustum && frustum.IsOutside(world, bounds))
@@ -570,6 +572,13 @@ internal static class SceneRenderPipeline
 
         if (shadowCasterMaxDistanceSq > 0f
             && Aabb.ClosestPointDistanceSquared(shadowCasterViewPosition, world, bounds) > shadowCasterMaxDistanceSq)
+        {
+            stats.ShadowCasterCulled++;
+            return true;
+        }
+
+        // Marker/housing cubes sit on the lamp; casting them fills every cubemap face and kills the light.
+        if (skipCastersContainingLight is { } lamp && Aabb.ContainsPoint(lamp, world, bounds))
         {
             stats.ShadowCasterCulled++;
             return true;

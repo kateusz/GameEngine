@@ -8,6 +8,7 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 using NSubstitute;
+using Shouldly;
 
 namespace Engine.Tests.Renderer;
 
@@ -145,6 +146,47 @@ public class Graphics3DFrameUniformTests
 
         graphics.EndShadowPass();
         shadowMap.Received().Unbind();
+    }
+
+    [Fact]
+    public void BeginPointShadowFace_DrawMesh_UsesPointDepthNotWindowDepth()
+    {
+        var depthShader = Substitute.For<IShader>();
+        var pointDepthShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(ShaderId.Cube).Returns(Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.Model).Returns(Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.Depth).Returns(depthShader);
+        shaderFactory.Create(ShaderId.PointDepth).Returns(pointDepthShader);
+
+        var cube = InitializedMesh();
+        var caster = InitializedMesh();
+        var meshFactory = Substitute.For<IMeshFactory>();
+        meshFactory.CreateCube().Returns(cube);
+
+        var cubemap = Substitute.For<IFrameBuffer>();
+        var frameBuffers = Substitute.For<IFrameBufferFactory>();
+        frameBuffers.Create(Arg.Any<FrameBufferSpecification>()).Returns(cubemap);
+
+        var graphics = new Graphics3D(
+            Substitute.For<IRendererAPI>(),
+            shaderFactory,
+            meshFactory,
+            Substitute.For<ITextureFactory>(),
+            frameBuffers);
+        graphics.Init();
+
+        var face = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2f, 1f, 0.1f, 10f);
+        graphics.BeginPointShadowFace(0, entityId: 7, face: 0, face, Vector3.Zero, range: 10f)
+            .ShouldBeTrue();
+
+        var model = Matrix4x4.CreateTranslation(1f, 2f, 3f);
+        graphics.DrawMesh(model, caster, Vector4.One);
+
+        pointDepthShader.Received().SetMat4("u_Model", model);
+        depthShader.DidNotReceive().SetMat4("u_Model", Arg.Any<Matrix4x4>());
+
+        graphics.EndPointShadowFace();
     }
 
     private static Mesh InitializedMesh()

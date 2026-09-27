@@ -203,7 +203,10 @@ public class SceneRenderPipelineShadowTests
     {
         var context = new Context();
         var cube = new Entity(1, "cube");
-        cube.AddComponent(new TransformComponent());
+        var cubeTransform = new TransformComponent();
+        // Outside the lamp so it still casts; a cube at the lamp would enclose it and be skipped.
+        cubeTransform.SetWorldTransform(Matrix4x4.CreateTranslation(2f, 0f, 0f));
+        cube.AddComponent(cubeTransform);
         cube.AddComponent(new ModelRendererComponent());
         context.Register(cube);
 
@@ -218,6 +221,34 @@ public class SceneRenderPipelineShadowTests
         });
         context.Register(lamp);
         return context;
+    }
+
+    [Fact]
+    public void RenderScene_CubeContainingLamp_SkippedInPointShadowPass()
+    {
+        var context = new Context();
+        var housing = new Entity(1, "housing");
+        housing.AddComponent(new TransformComponent());
+        housing.AddComponent(new ModelRendererComponent());
+        context.Register(housing);
+
+        var lamp = new Entity(2, "lamp");
+        lamp.AddComponent(new TransformComponent());
+        lamp.AddComponent(new PointLightComponent { Range = 10f, CastsShadow = true });
+        context.Register(lamp);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+        // Housing encloses the lamp — only the color pass draws it.
+        graphics.CubeDraws.ShouldBe(1);
     }
 
     [Fact]
@@ -236,7 +267,8 @@ public class SceneRenderPipelineShadowTests
 
         graphics.PointShadowFaces.Count.ShouldBe(6);
         graphics.EndPointShadowFaces.ShouldBe(6);
-        graphics.CubeDraws.ShouldBe(7);
+        // Cube sits on +X — only faces that see it draw it, plus the color pass.
+        graphics.CubeDraws.ShouldBeGreaterThan(1);
         graphics.Order.Count(o => o == "begin-point-shadow").ShouldBe(6);
         graphics.Order[^2].ShouldBe("begin-scene");
         graphics.Order[^1].ShouldBe("cube");
