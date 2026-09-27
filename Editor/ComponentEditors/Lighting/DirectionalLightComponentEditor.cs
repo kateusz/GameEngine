@@ -13,9 +13,13 @@ public class DirectionalLightComponentEditor(UIPropertyRenderer propertyRenderer
 
     protected override void DrawContent(DirectionalLightComponent component, Entity entity)
     {
-        propertyRenderer.DrawPropertyField("Direction", component.Direction,
-            newValue => component.Direction = (System.Numerics.Vector3)newValue);
-        propertyRenderer.DrawPropertyField("Color", component.Color,
-            newValue => component.Color = (System.Numerics.Vector4)newValue);
+        propertyRenderer.DrawPropertyField("Direction", entity,
+            e => e.GetComponent<DirectionalLightComponent>().Direction,
+            (e, v) => e.GetComponent<DirectionalLightComponent>().Direction = v,
+            UIPropertyRenderer.SameVector3);
+        propertyRenderer.DrawPropertyField("Color", entity,
+            e => e.GetComponent<DirectionalLightComponent>().Color,
+            (e, v) => e.GetComponent<DirectionalLightComponent>().Color = v,
+            UIPropertyRenderer.SameVector4);
     }
 }

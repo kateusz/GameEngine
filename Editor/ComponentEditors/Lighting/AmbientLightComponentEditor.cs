@@ -13,9 +13,13 @@ public class AmbientLightComponentEditor(UIPropertyRenderer propertyRenderer, IE
 
     protected override void DrawContent(AmbientLightComponent component, Entity entity)
     {
-        propertyRenderer.DrawPropertyField("Color", component.Color,
-            newValue => component.Color = (System.Numerics.Vector4)newValue);
-        propertyRenderer.DrawPropertyField("Strength", component.Strength,
-            newValue => component.Strength = (float)newValue);
+        propertyRenderer.DrawPropertyField("Color", entity,
+            e => e.GetComponent<AmbientLightComponent>().Color,
+            (e, v) => e.GetComponent<AmbientLightComponent>().Color = v,
+            UIPropertyRenderer.SameVector4);
+        propertyRenderer.DrawPropertyField("Strength", entity,
+            e => e.GetComponent<AmbientLightComponent>().Strength,
+            (e, v) => e.GetComponent<AmbientLightComponent>().Strength = v,
+            MultiField.SameFloat);
     }
 }

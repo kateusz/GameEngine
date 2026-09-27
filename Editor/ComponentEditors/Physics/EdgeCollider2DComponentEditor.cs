@@ -15,16 +15,23 @@ public class EdgeCollider2DComponentEditor(UIPropertyRenderer propertyRenderer, 
     {
         ColliderPointListDrawer.DrawVec2List("Points", component.Points, minCount: 2);
 
-        propertyRenderer.DrawPropertyField("Density", component.Density,
-            newValue => component.Density = (float)newValue);
+        propertyRenderer.DrawPropertyField("Density", entity,
+            e => e.GetComponent<EdgeCollider2DComponent>().Density,
+            (e, v) => e.GetComponent<EdgeCollider2DComponent>().Density = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Friction", component.Friction,
-            newValue => component.Friction = (float)newValue);
+        propertyRenderer.DrawPropertyField("Friction", entity,
+            e => e.GetComponent<EdgeCollider2DComponent>().Friction,
+            (e, v) => e.GetComponent<EdgeCollider2DComponent>().Friction = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Restitution", component.Restitution,
-            newValue => component.Restitution = (float)newValue);
+        propertyRenderer.DrawPropertyField("Restitution", entity,
+            e => e.GetComponent<EdgeCollider2DComponent>().Restitution,
+            (e, v) => e.GetComponent<EdgeCollider2DComponent>().Restitution = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Is Trigger", component.IsTrigger,
-            newValue => component.IsTrigger = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Is Trigger", entity,
+            e => e.GetComponent<EdgeCollider2DComponent>().IsTrigger,
+            (e, v) => e.GetComponent<EdgeCollider2DComponent>().IsTrigger = v);
     }
 }

@@ -19,33 +19,61 @@ public class AudioSourceComponentEditor(
 
     protected override void DrawContent(AudioSourceComponent component, Entity entity)
     {
+        string? clipPath = null;
+        if (MultiField.TryUniform(entity,
+                e => e.GetComponent<AudioSourceComponent>().AudioClipPath,
+                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
+                out var uniformPath))
+            clipPath = uniformPath;
+
         audioDropTarget.Draw("Audio Clip", relativePath =>
         {
-            component.AudioClipPath = relativePath;
-        }, component.AudioClipPath);
+            MultiField.WriteEach(entity, (Entity e, string path) =>
+            {
+                e.GetComponent<AudioSourceComponent>().AudioClipPath = path;
+            }, relativePath);
+        }, clipPath);
 
-        propertyRenderer.DrawPropertyField("Volume", component.Volume,
-            newValue => component.Volume = System.Math.Clamp((float)newValue, 0.0f, 1.0f));
-        propertyRenderer.DrawPropertyField("Pitch", component.Pitch,
-            newValue => component.Pitch = System.Math.Clamp((float)newValue, 0.1f, 3.0f));
-        propertyRenderer.DrawPropertyField("Loop", component.Loop,
-            newValue => component.Loop = (bool)newValue);
-        propertyRenderer.DrawPropertyField("Play On Awake", component.PlayOnAwake,
-            newValue => component.PlayOnAwake = (bool)newValue);
-        propertyRenderer.DrawPropertyField("Is 3D", component.Is3D,
-            newValue => component.Is3D = (bool)newValue);
+        propertyRenderer.DrawPropertyField("Volume", entity,
+            e => e.GetComponent<AudioSourceComponent>().Volume,
+            (e, v) => e.GetComponent<AudioSourceComponent>().Volume = System.Math.Clamp(v, 0.0f, 1.0f),
+            MultiField.SameFloat);
+        propertyRenderer.DrawPropertyField("Pitch", entity,
+            e => e.GetComponent<AudioSourceComponent>().Pitch,
+            (e, v) => e.GetComponent<AudioSourceComponent>().Pitch = System.Math.Clamp(v, 0.1f, 3.0f),
+            MultiField.SameFloat);
+        propertyRenderer.DrawPropertyField("Loop", entity,
+            e => e.GetComponent<AudioSourceComponent>().Loop,
+            (e, v) => e.GetComponent<AudioSourceComponent>().Loop = v);
+        propertyRenderer.DrawPropertyField("Play On Awake", entity,
+            e => e.GetComponent<AudioSourceComponent>().PlayOnAwake,
+            (e, v) => e.GetComponent<AudioSourceComponent>().PlayOnAwake = v);
+        propertyRenderer.DrawPropertyField("Is 3D", entity,
+            e => e.GetComponent<AudioSourceComponent>().Is3D,
+            (e, v) => e.GetComponent<AudioSourceComponent>().Is3D = v);
 
-        if (component.Is3D)
+        if (MultiField.For(entity).All(e => e.GetComponent<AudioSourceComponent>().Is3D))
         {
             LayoutDrawer.DrawIndentedSection(() =>
             {
-                propertyRenderer.DrawPropertyField("Min Distance", component.MinDistance,
-                    newValue => component.MinDistance = System.Math.Max((float)newValue, 0.1f));
+                propertyRenderer.DrawPropertyField("Min Distance", entity,
+                    e => e.GetComponent<AudioSourceComponent>().MinDistance,
+                    (e, v) => e.GetComponent<AudioSourceComponent>().MinDistance = System.Math.Max(v, 0.1f),
+                    MultiField.SameFloat);
 
-                propertyRenderer.DrawPropertyField("Max Distance", component.MaxDistance,
-                    newValue => component.MaxDistance = System.Math.Max((float)newValue, component.MinDistance));
+                propertyRenderer.DrawPropertyField("Max Distance", entity,
+                    e => e.GetComponent<AudioSourceComponent>().MaxDistance,
+                    (e, v) =>
+                    {
+                        var min = e.GetComponent<AudioSourceComponent>().MinDistance;
+                        e.GetComponent<AudioSourceComponent>().MaxDistance = System.Math.Max(v, min);
+                    },
+                    MultiField.SameFloat);
             });
         }
+
+        if (MultiField.Targets is not null)
+            return;
 
         LayoutDrawer.DrawSeparatorWithSpacing();
         ImGui.Text("Playback Controls:");
@@ -67,7 +95,6 @@ public class AudioSourceComponentEditor(
 
         DrawAddEffectPopup(component);
 
-        // Draw existing effects
         for (var i = component.Effects.Count - 1; i >= 0; i--)
         {
             var effect = component.Effects[i];
@@ -108,7 +135,6 @@ public class AudioSourceComponentEditor(
 
         foreach (var type in Enum.GetValues<AudioEffectType>())
         {
-            // Skip if already has this effect type
             if (component.Effects.AsValueEnumerable().Any(e => e.Type == type))
                 continue;
 

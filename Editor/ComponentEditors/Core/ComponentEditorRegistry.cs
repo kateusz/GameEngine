@@ -4,6 +4,7 @@ using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
+using Editor.UI.Elements;
 using ImGuiNET;
 
 namespace Editor.ComponentEditors.Core;
@@ -62,8 +63,12 @@ public class ComponentEditorRegistry(IEnumerable<IComponentEditor> editors) : IC
         var open = ImGui.TreeNodeEx(treeNodeId, treeNodeFlags, name);
         ImGui.PopStyleVar();
 
-        ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
-        var removed = ButtonDrawer.DrawButton("-", lineHeight, lineHeight, removeComponent);
+        var removed = false;
+        if (MultiField.Targets is null)
+        {
+            ImGui.SameLine(contentRegionAvailable.X - lineHeight * 0.5f);
+            removed = ButtonDrawer.DrawButton("-", lineHeight, lineHeight, removeComponent);
+        }
 
         if (!open)
             return;

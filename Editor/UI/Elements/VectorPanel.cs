@@ -10,7 +10,7 @@ public static class VectorPanel
     {
         ImGui.PushID(label);
 
-        DrawVectorControlHeader(label, 2, out var inputWidth);
+        BeginVectorRow(label, 2, out var inputWidth);
         
         DrawAxisControl("X", ref values.X, resetValue, EditorUIConstants.AxisXColor, inputWidth, false);
         ImGui.SameLine();
@@ -24,7 +24,7 @@ public static class VectorPanel
     {
         ImGui.PushID(label);
 
-        DrawVectorControlHeader(label, 3, out var inputWidth);
+        BeginVectorRow(label, 3, out var inputWidth);
         
         DrawAxisControl("X", ref values.X, resetValue, EditorUIConstants.AxisXColor, inputWidth);
         ImGui.SameLine();
@@ -34,6 +34,18 @@ public static class VectorPanel
 
         ImGui.PopID();
         ImGui.Columns(1);
+    }
+
+    public static void BeginVectorRow(string label, int componentCount, out float inputWidth) =>
+        DrawVectorControlHeader(label, componentCount, out inputWidth);
+
+    public static float ComputeAxisInputWidth(int componentCount)
+    {
+        var columnWidth = ImGui.GetContentRegionAvail().X;
+        var buttonWidth = EditorUIConstants.SmallButtonSize;
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var sectionWidth = columnWidth / componentCount;
+        return sectionWidth - (buttonWidth + spacing);
     }
     
     private static void DrawVectorControlHeader(string label, int componentCount, out float inputWidth)
@@ -56,7 +68,7 @@ public static class VectorPanel
         inputWidth = sectionWidth - (buttonWidth + spacing);
     }
 
-    private static void DrawAxisControl(string axisLabel, ref float value, float resetValue, Vector4 color, float inputWidth, bool drag = true)
+    public static void DrawAxisControl(string axisLabel, ref float value, float resetValue, Vector4 color, float inputWidth, bool drag = true)
     {
         // Use colored button for axis reset buttons
         ImGui.PushStyleColor(ImGuiCol.Button, color);

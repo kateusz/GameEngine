@@ -14,20 +14,37 @@ public class SubTextureRendererComponentEditor(
 
     protected override void DrawContent(SubTextureRendererComponent component, Entity entity)
     {
+        string? texturePath = null;
+        if (MultiField.TryUniform(entity,
+                e => e.GetComponent<SubTextureRendererComponent>().TexturePath,
+                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
+                out var uniformPath))
+            texturePath = uniformPath;
+
         TextureDropTarget.Draw("Texture", relativePath =>
         {
-            component.TexturePath = relativePath;
-        });
-        propertyRenderer.DrawPropertyField("Sub texture coords", component.Coords,
-            newValue => component.Coords = (System.Numerics.Vector2)newValue);
+            MultiField.WriteEach(entity, (Entity e, string path) =>
+            {
+                e.GetComponent<SubTextureRendererComponent>().TexturePath = path;
+            }, relativePath);
+        }, texturePath);
+
+        propertyRenderer.DrawPropertyField("Sub texture coords", entity,
+            e => e.GetComponent<SubTextureRendererComponent>().Coords,
+            (e, v) => e.GetComponent<SubTextureRendererComponent>().Coords = v,
+            UIPropertyRenderer.SameVector2);
 
         ImGui.Separator();
         ImGui.Text("Atlas Settings");
 
-        propertyRenderer.DrawPropertyField("Cell Size", component.CellSize,
-            newValue => component.CellSize = (System.Numerics.Vector2)newValue);
-        propertyRenderer.DrawPropertyField("Sprite Size", component.SpriteSize,
-            newValue => component.SpriteSize = (System.Numerics.Vector2)newValue);
+        propertyRenderer.DrawPropertyField("Cell Size", entity,
+            e => e.GetComponent<SubTextureRendererComponent>().CellSize,
+            (e, v) => e.GetComponent<SubTextureRendererComponent>().CellSize = v,
+            UIPropertyRenderer.SameVector2);
+        propertyRenderer.DrawPropertyField("Sprite Size", entity,
+            e => e.GetComponent<SubTextureRendererComponent>().SpriteSize,
+            (e, v) => e.GetComponent<SubTextureRendererComponent>().SpriteSize = v,
+            UIPropertyRenderer.SameVector2);
 
         ImGui.EndDisabled();
     }
