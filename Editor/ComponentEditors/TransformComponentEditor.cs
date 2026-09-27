@@ -1,19 +1,26 @@
 using ECS;
 using Editor.ComponentEditors.Core;
-using ImGuiNET;
 using Editor.Features.History;
 using Editor.UI.Elements;
+using Engine.Scene;
 using Math;
 using SceneComponents;
 
 namespace Editor.ComponentEditors;
 
-public class TransformComponentEditor(IEditorHistory history) : ComponentEditor<TransformComponent>(history)
+public class TransformComponentEditor(
+    UIPropertyRenderer propertyRenderer,
+    IEditorHistory history,
+    ISceneContext sceneContext) : ComponentEditor<TransformComponent>(history)
 {
     protected override string DisplayName => "Transform";
 
     protected override void DrawContent(TransformComponent component, Entity entity)
     {
+        propertyRenderer.DrawPropertyField("Visible", entity,
+            e => e.GetComponent<TransformComponent>().Visible,
+            (e, v) => sceneContext.ActiveScene?.SetSubtreeVisible(e, v));
+
         if (MultiField.Targets is null)
         {
             var newTranslation = component.Translation;

@@ -13,6 +13,9 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
 
     public static void DrawPropertyRow(string label, Action inputControl)
     {
+        if (!PropertySearch.Matches(label))
+            return;
+
         ImGui.Columns(2);
         ImGui.Text(label);
         ImGui.NextColumn();

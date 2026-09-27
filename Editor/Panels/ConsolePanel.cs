@@ -72,10 +72,11 @@ public class ConsolePanel : IConsolePanel, IEditorPanel
     public void Draw()
     {
         ImGui.Begin("Console");
+        var appearing = ImGui.IsWindowAppearing();
 
         RenderToolbar();
         ImGui.Separator();
-        RenderLogDisplay();
+        RenderLogDisplay(appearing);
 
         ImGui.End();
     }
@@ -104,7 +105,7 @@ public class ConsolePanel : IConsolePanel, IEditorPanel
         LayoutDrawer.DrawColoredCheckbox("Errors", ref _showErrors, EditorUIConstants.ErrorColor);
     }
 
-    private void RenderLogDisplay()
+    private void RenderLogDisplay(bool forceScrollToBottom = false)
     {
         ImGui.BeginChild("ConsoleLog");
 
@@ -114,7 +115,7 @@ public class ConsolePanel : IConsolePanel, IEditorPanel
             RenderLogMessage(message);
         }
 
-        if (_autoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
+        if (forceScrollToBottom || (_autoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY()))
         {
             ImGui.SetScrollHereY(1.0f);
         }

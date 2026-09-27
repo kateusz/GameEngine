@@ -64,9 +64,11 @@ public class ComponentSerializerRegistryTests
     {
         var entity = new Entity(1, "e");
         var json = JsonNode.Parse("""{"Name":"UnknownComponent","Value":1}""")!.AsObject();
+        var skipped = new List<string>();
 
-        _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: false);
+        _registry.DeserializeComponent(entity, json, _serializerOptions.Options, strict: false, skipped);
         entity.GetAllComponents().ShouldBeEmpty();
+        skipped.ShouldBe(["UnknownComponent"]);
     }
 
     [Fact]

@@ -61,7 +61,7 @@ internal sealed class SceneSerializer(
         return jsonObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
-    public void Deserialize(IScene scene, string path)
+    public IReadOnlyList<string> Deserialize(IScene scene, string path)
     {
         if (!File.Exists(path))
             throw new InvalidSceneJsonException($"Scene file not found: {path}");
@@ -96,10 +96,10 @@ internal sealed class SceneSerializer(
         var jsonObj = parsedNode?.AsObject() ??
                       throw new InvalidSceneJsonException("Invalid JSON format - could not parse as JSON object");
 
-        Deserialize(scene, jsonObj);
+        return Deserialize(scene, jsonObj);
     }
 
-    public void Deserialize(IScene scene, JsonObject jsonObj)
+    public IReadOnlyList<string> Deserialize(IScene scene, JsonObject jsonObj)
     {
         if (jsonObj.TryGetPropertyValue(BackgroundColorKey, out var backgroundColorNode) && backgroundColorNode != null)
             scene.BackgroundColor = backgroundColorNode.Deserialize<Vector4>(_options)!;
@@ -107,14 +107,16 @@ internal sealed class SceneSerializer(
         if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null)
             scene.Dimension = dimensionNode.Deserialize<SceneDimension>(_options)!;
 
+        var skipped = new HashSet<string>(StringComparer.Ordinal);
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
         foreach (var jsonEntity in jsonEntities)
         {
             if (jsonEntity is not JsonObject entityObj) continue;
-            scene.AddEntity(DeserializeEntity(entityObj));
+            scene.AddEntity(DeserializeEntity(entityObj, skipped));
         }
 
         scene.RebuildHierarchyIndex();
+        return skipped.ToList();
     }
 
     private static JsonArray GetJsonArray(JsonNode jsonObject, string key)
@@ -126,7 +128,7 @@ internal sealed class SceneSerializer(
                throw new InvalidSceneJsonException($"'{key}' must be a JSON array");
     }
 
-    private Entity DeserializeEntity(JsonObject entityObj)
+    private Entity DeserializeEntity(JsonObject entityObj, ICollection<string> skippedNames)
     {
         var entityId = entityObj[IdKey]?.GetValue<int>() ?? throw new InvalidSceneJsonException("Invalid entity ID");
         var entityName = entityObj[NameKey]?.GetValue<string>() ??
@@ -140,7 +142,7 @@ internal sealed class SceneSerializer(
             if (componentNode is not JsonObject componentObj)
                 throw new InvalidSceneJsonException("Got null JSON Component");
 
-            registry.DeserializeComponent(entity, componentObj, _options, strict: true);
+            registry.DeserializeComponent(entity, componentObj, _options, strict: false, skippedNames);
         }
 
         return entity;

@@ -223,19 +223,33 @@ public class SceneHierarchyPanel(
 
         var isSelected = selection.SelectedEntities.Any(e => e.Id == entity.Id);
         var isMatch = _isFilterActive && _filterMatchIds.Contains(entity.Id);
+        entity.TryGetComponent<TransformComponent>(out var transform);
+        var effectivelyHidden = transform is not null && !transform.EffectiveVisible;
 
-        var flags = ImGuiTreeNodeFlags.NoTreePushOnOpen
-                    | ImGuiTreeNodeFlags.SpanAvailWidth
-                    | ImGuiTreeNodeFlags.OpenOnArrow;
+        // No SpanAvailWidth — full-width tree steals clicks from the eye on the right.
+        var flags = ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.OpenOnArrow;
         if (!row.HasChildren)
             flags |= ImGuiTreeNodeFlags.Leaf;
         if (isSelected)
             flags |= ImGuiTreeNodeFlags.Selected;
 
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + row.Depth * ImGui.GetTreeNodeToLabelSpacing());
+        var depthPad = row.Depth * ImGui.GetTreeNodeToLabelSpacing();
+        var lineY = ImGui.GetCursorPosY();
+        var lineStartX = ImGui.GetCursorPosX() + depthPad;
+        var eyeW = EditorUIConstants.SmallButtonSize;
+
         ImGui.PushID(entity.Id);
         if (row.HasChildren)
             ImGui.SetNextItemOpen(_expandedIds.Contains(entity.Id));
+
+        var eyeClicked = false;
+        if (transform is not null)
+        {
+            ImGui.SetCursorPos(new Vector2(ImGui.GetWindowContentRegionMax().X - eyeW, lineY));
+            eyeClicked = DrawVisibilityEye(entity, transform);
+        }
+
+        ImGui.SetCursorPos(new Vector2(lineStartX, lineY));
 
         if (isSelected)
         {
@@ -244,12 +258,13 @@ public class SceneHierarchyPanel(
             ImGui.PushStyleColor(ImGuiCol.HeaderActive, EditorUIConstants.HierarchyRowSelectedBackground);
             ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.HierarchyRowSelectedText);
         }
-        else if (isMatch)
+        else if (isMatch || effectivelyHidden)
             ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.InfoColor);
 
         var opened = ImGui.TreeNodeEx(entity.Name, flags);
         var rowMin = ImGui.GetItemRectMin();
         var rowMax = ImGui.GetItemRectMax();
+        var toggledOpen = row.HasChildren && ImGui.IsItemToggledOpen();
 
         if (isSelected)
         {
@@ -258,10 +273,9 @@ public class SceneHierarchyPanel(
             drawList.AddRectFilled(rowMin, new Vector2(rowMin.X + 3f, rowMax.Y), accent);
             ImGui.PopStyleColor(4);
         }
-        else if (isMatch)
+        else if (isMatch || effectivelyHidden)
             ImGui.PopStyleColor();
 
-        var toggledOpen = row.HasChildren && ImGui.IsItemToggledOpen();
         if (toggledOpen)
         {
             if (opened)
@@ -270,7 +284,7 @@ public class SceneHierarchyPanel(
                 _expandedIds.Remove(entity.Id);
         }
 
-        if (toggledOpen || PointerActivatedInRect(rowMin, rowMax))
+        if (!eyeClicked && (toggledOpen || PointerActivatedInRect(rowMin, rowMax)))
         {
             if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                 selection.Select(entity, SelectionSource.Hierarchy);
@@ -321,6 +335,19 @@ public class SceneHierarchyPanel(
 
         prefabDropTarget.HandleEntityDrop(entity);
         ImGui.PopID();
+    }
+
+    private bool DrawVisibilityEye(Entity entity, TransformComponent transform)
+    {
+        // ponytail: text stand-in for an eye icon; swap if an icon font lands
+        var clicked = ImGui.Button(
+            transform.Visible ? "O##vis" : "-##vis",
+            new Vector2(EditorUIConstants.SmallButtonSize, EditorUIConstants.SmallButtonSize));
+        if (!clicked)
+            return false;
+
+        _scene.SetSubtreeVisible(entity, !transform.Visible);
+        return true;
     }
 
     private static bool PointerActivatedInRect(Vector2 min, Vector2 max)
