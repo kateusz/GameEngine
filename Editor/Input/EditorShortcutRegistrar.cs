@@ -1,9 +1,14 @@
+using Editor.Commands;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
+using Editor.Features.Project;
 using Editor.Features.Scene;
 using Editor.Features.Selection;
+using Editor.Features.Settings;
 using Editor.Features.Viewport;
-using Editor.Features.Viewport.Tools;
+using Editor.Panels;
+using Editor.Publisher;
+using Engine.Project;
 using Engine.Scene;
 using Input;
 using Serilog;
@@ -11,105 +16,161 @@ using Serilog;
 namespace Editor.Input;
 
 public class EditorShortcutRegistrar(
+    CommandRegistry registry,
+    CommandPalette commandPalette,
     ViewportComponents viewport,
     SceneSettingsPopup sceneSettingsPopup,
     ISceneManager sceneManager,
     IEditorSelection selection,
     IEditorCameraController cameraController,
     IEditorHistory history,
-    ISceneContext sceneContext)
+    ISceneContext sceneContext,
+    IProjectManager projectManager,
+    IProjectContext projectContext,
+    NewProjectPopup newProjectPopup,
+    RecentProjectsPanel recentProjectsPanel,
+    RendererStatsPanel rendererStatsPanel,
+    KeyboardShortcutsPanel keyboardShortcutsPanel,
+    EditorSettingsUI editorSettingsUI,
+    ProjectSettingsUI projectSettingsUI,
+    PublishSettingsUI publishSettingsUI,
+    UnsavedSceneGuard unsavedSceneGuard)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorShortcutRegistrar>();
 
     public void RegisterAll(ShortcutManager shortcutManager)
     {
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.Q, KeyModifiers.ShiftOnly,
+        CanExecuteResult EditMode() =>
+            sceneContext.State == SceneState.Edit
+                ? CanExecuteResult.Yes
+                : CanExecuteResult.No("Only available in Edit mode");
+
+        CanExecuteResult EditWithSelection() =>
+            sceneContext.State != SceneState.Edit
+                ? CanExecuteResult.No("Only available in Edit mode")
+                : selection.SelectedEntity is null
+                    ? CanExecuteResult.No("No entity selected")
+                    : CanExecuteResult.Yes;
+
+        CanExecuteResult HasProject() =>
+            projectContext.HasProject
+                ? CanExecuteResult.Yes
+                : CanExecuteResult.No("No project open");
+
+        Register(shortcutManager, EditorCommandIds.OpenCommandPalette, "Command Palette", "View",
+            commandPalette.Show, key: KeyCodes.P, modifiers: KeyModifiers.CtrlShift);
+
+        Register(shortcutManager, EditorCommandIds.SelectTool, "Select", "Tools",
             () => viewport.SceneToolbar.CurrentMode = EditorMode.Select,
-            "Select tool", "Tools"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.W, KeyModifiers.ShiftOnly,
+            key: KeyCodes.Q, modifiers: KeyModifiers.ShiftOnly);
+        Register(shortcutManager, EditorCommandIds.MoveTool, "Move", "Tools",
             () => viewport.SceneToolbar.CurrentMode = EditorMode.Move,
-            "Move tool", "Tools"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.R, KeyModifiers.ShiftOnly,
+            key: KeyCodes.W, modifiers: KeyModifiers.ShiftOnly);
+        Register(shortcutManager, EditorCommandIds.ScaleTool, "Scale", "Tools",
             () => viewport.SceneToolbar.CurrentMode = EditorMode.Scale,
-            "Scale tool", "Tools"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.E, KeyModifiers.ShiftOnly,
+            key: KeyCodes.R, modifiers: KeyModifiers.ShiftOnly);
+        Register(shortcutManager, EditorCommandIds.RulerTool, "Ruler", "Tools",
             () => viewport.SceneToolbar.CurrentMode = EditorMode.Ruler,
-            "Ruler tool", "Tools"));
+            key: KeyCodes.E, modifiers: KeyModifiers.ShiftOnly);
 
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.Escape, KeyModifiers.None,
-            () =>
-            {
-                if (viewport.SceneToolbar.CurrentMode == EditorMode.Ruler)
-                {
-                    var rulerTool = viewport.ViewportToolManager.GetTool<RulerTool>();
-                    rulerTool?.ClearMeasurement();
-                }
-            },
-            "Clear ruler measurement", "Tools"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.N, KeyModifiers.CtrlOnly,
+        Register(shortcutManager, EditorCommandIds.NewScene, "New...", "Scene",
             sceneSettingsPopup.ShowNewScenePopup,
-            "New scene", "File"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.S, KeyModifiers.CtrlOnly,
+            key: KeyCodes.N, modifiers: KeyModifiers.CtrlOnly);
+        Register(shortcutManager, EditorCommandIds.OpenScene, "Open...", "Scene",
+            sceneSettingsPopup.ShowOpenScenePopup, HasProject);
+        Register(shortcutManager, EditorCommandIds.SaveScene, "Save", "Scene",
             () => sceneManager.Save(),
-            "Save scene", "File"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.D, KeyModifiers.CtrlOnly,
+            key: KeyCodes.S, modifiers: KeyModifiers.CtrlOnly);
+        Register(shortcutManager, EditorCommandIds.CloseScene, "Close", "Scene",
             () =>
             {
-                if (sceneContext.State == SceneState.Edit && selection.SelectedEntity is { } entity)
+                if (sceneManager.IsDirty)
+                    sceneSettingsPopup.ShowCloseConfirmation();
+                else
+                    sceneManager.Close();
+            });
+        Register(shortcutManager, EditorCommandIds.SceneSettings, "Settings...", "Scene",
+            sceneSettingsPopup.ShowSettings);
+
+        Register(shortcutManager, EditorCommandIds.DuplicateEntity, "Duplicate entity", "Edit",
+            () =>
+            {
+                if (selection.SelectedEntity is { } entity)
                     sceneContext.ActiveScene?.DuplicateEntity(entity);
             },
-            "Duplicate entity", "Edit"));
-
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.Delete, KeyModifiers.None,
+            EditWithSelection, KeyCodes.D, KeyModifiers.CtrlOnly);
+        Register(shortcutManager, EditorCommandIds.DeleteEntity, "Delete entity", "Edit",
             () =>
             {
-                if (sceneContext.State != SceneState.Edit
-                    || selection.SelectedEntity is not { } entity
-                    || sceneContext.ActiveScene is not { } scene)
+                if (selection.SelectedEntity is not { } entity || sceneContext.ActiveScene is not { } scene)
                     return;
-
                 history.Execute(new DestroyEntitySubtreeCommand(scene, entity.Id));
             },
-            "Delete entity", "Edit"));
+            EditWithSelection, KeyCodes.Delete, KeyModifiers.None);
+        Register(shortcutManager, EditorCommandIds.Undo, "Undo", "Edit",
+            () => history.Undo(), EditMode, KeyCodes.Z, KeyModifiers.CtrlOnly);
+        Register(shortcutManager, EditorCommandIds.Redo, "Redo", "Edit",
+            () => history.Redo(), EditMode, KeyCodes.Y, KeyModifiers.CtrlOnly);
 
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.Z, KeyModifiers.CtrlOnly,
-            () =>
+        Register(shortcutManager, EditorCommandIds.ResetCamera, "Reset camera", "View",
+            cameraController.ResetCamera, key: KeyCodes.R, modifiers: KeyModifiers.CtrlOnly);
+        Register(shortcutManager, EditorCommandIds.ToggleRulers, "Toggle rulers", "View",
+            () => viewport.ViewportRuler.Enabled = !viewport.ViewportRuler.Enabled);
+        Register(shortcutManager, EditorCommandIds.ToggleStats, "Toggle debug", "View",
+            () => rendererStatsPanel.IsVisible = !rendererStatsPanel.IsVisible);
+        Register(shortcutManager, EditorCommandIds.ShowEditorSettings, "Settings...", "Editor",
+            editorSettingsUI.Show);
+        Register(shortcutManager, EditorCommandIds.ShowKeyboardShortcuts, "Keyboard Shortcuts...", "Help",
+            keyboardShortcutsPanel.Show);
+
+        Register(shortcutManager, EditorCommandIds.NewProject, "New...", "Project",
+            () => unsavedSceneGuard.Run(newProjectPopup.ShowNewProjectPopup));
+        Register(shortcutManager, EditorCommandIds.OpenProject, "Open...", "Project",
+            () => unsavedSceneGuard.Run(() => newProjectPopup.ShowOpenProjectPopup()));
+        Register(shortcutManager, EditorCommandIds.CloseProject, "Close", "Project",
+            () => unsavedSceneGuard.Run(() =>
             {
-                if (sceneContext.State == SceneState.Edit)
-                    history.Undo();
-            },
-            "Undo", "Edit"));
+                projectManager.CloseProject();
+                recentProjectsPanel.Show();
+            }),
+            HasProject);
+        Register(shortcutManager, EditorCommandIds.ShowRecentProjects, "Show Recent Projects", "Project",
+            recentProjectsPanel.Show);
 
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.Y, KeyModifiers.CtrlOnly,
-            () =>
-            {
-                if (sceneContext.State == SceneState.Edit)
-                    history.Redo();
-            },
-            "Redo", "Edit"));
+        Register(shortcutManager, EditorCommandIds.ShowProjectSettings, "Settings...", "Project",
+            projectSettingsUI.Show, HasProject);
+        Register(shortcutManager, EditorCommandIds.Export, "Export...", "Project",
+            publishSettingsUI.ShowExportModal, HasProject);
 
-        shortcutManager.RegisterShortcut(new KeyboardShortcut(
-            KeyCodes.R, KeyModifiers.CtrlOnly,
-            cameraController.ResetCamera,
-            "Reset camera", "Navigation"));
+        Logger.Debug("Registered {Count} commands and {Shortcuts} shortcuts",
+            registry.GetWorkingSet().Count(c => !c.Id.StartsWith(EditorCommandIds.EntityGotoPrefix)),
+            shortcutManager.Shortcuts.Count);
+    }
 
-        Logger.Debug("Registered {Count} keyboard shortcuts", shortcutManager.Shortcuts.Count);
+    private void Register(
+        ShortcutManager shortcutManager,
+        string id,
+        string title,
+        string category,
+        Action execute,
+        Func<CanExecuteResult>? canExecute = null,
+        KeyCodes? key = null,
+        KeyModifiers? modifiers = null)
+    {
+        if (key is { } keyCode)
+        {
+            var chord = new KeyboardShortcut(
+                keyCode,
+                modifiers ?? KeyModifiers.None,
+                () => registry.Execute(id),
+                title,
+                category);
+            var shortcutDisplay = chord.GetDisplayString();
+            registry.Register(new EditorCommand(id, title, category, execute, canExecute, shortcutDisplay));
+            shortcutManager.RegisterShortcut(chord);
+            return;
+        }
+
+        registry.Register(new EditorCommand(id, title, category, execute, canExecute));
     }
 }

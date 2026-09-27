@@ -21,7 +21,11 @@ public class RulerTool : IViewportTool
     {
     }
 
-    public void OnDeactivate() => ClearMeasurement();
+    public void OnDeactivate()
+    {
+        _isMeasuring = false;
+        _hasStartPoint = false;
+    }
 
     public void OnMouseDown(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
@@ -46,15 +50,6 @@ public class RulerTool : IViewportTool
     public void OnMouseUp(Vector2 mousePos, Vector2[] viewportBounds, EditorCamera camera)
     {
         // End measurement
-        _isMeasuring = false;
-        _hasStartPoint = false;
-    }
-
-    /// <summary>
-    /// Clears the current measurement (ESC key or mode switch).
-    /// </summary>
-    public void ClearMeasurement()
-    {
         _isMeasuring = false;
         _hasStartPoint = false;
     }

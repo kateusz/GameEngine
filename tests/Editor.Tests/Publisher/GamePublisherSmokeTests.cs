@@ -27,9 +27,7 @@ public class GamePublisherSmokeTests
             {
                 OutputPath = outputPath,
                 RuntimeIdentifier = "win-x64",
-                Configuration = "Release",
-                SelfContained = true,
-                SingleFile = true
+                Configuration = "Release"
             };
 
             var result = await publisher.PublishAsync(settings, gameConfig, progress: null, cts.Token);

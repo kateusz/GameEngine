@@ -70,15 +70,7 @@ public class KeyboardShortcutsPanel(ShortcutManager shortcutManager) : IEditorPa
 
     private void DrawHeader()
     {
-        ImGui.Text("All available keyboard shortcuts:");
-        ImGui.Spacing();
-
-        // Filter input
-        LayoutDrawer.DrawFilterInput("Filter", ref _filterText);
-        LayoutDrawer.DrawTooltip("Filter shortcuts by description or key combination");
-
-        ImGui.SameLine();
-        ButtonDrawer.DrawButton("Clear Filter", () => _filterText = string.Empty);
+        LayoutDrawer.DrawSearchInput("Filter shortcuts...", ref _filterText);
     }
 
     private void DrawShortcutsTable()
