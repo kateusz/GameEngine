@@ -23,23 +23,6 @@ public class CircleCollider2DComponentEditor(UIPropertyRenderer propertyRenderer
             (e, v) => e.GetComponent<CircleCollider2DComponent>().Radius = v,
             MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Density", entity,
-            e => e.GetComponent<CircleCollider2DComponent>().Density,
-            (e, v) => e.GetComponent<CircleCollider2DComponent>().Density = v,
-            MultiField.SameFloat);
-
-        propertyRenderer.DrawPropertyField("Friction", entity,
-            e => e.GetComponent<CircleCollider2DComponent>().Friction,
-            (e, v) => e.GetComponent<CircleCollider2DComponent>().Friction = v,
-            MultiField.SameFloat);
-
-        propertyRenderer.DrawPropertyField("Restitution", entity,
-            e => e.GetComponent<CircleCollider2DComponent>().Restitution,
-            (e, v) => e.GetComponent<CircleCollider2DComponent>().Restitution = v,
-            MultiField.SameFloat);
-
-        propertyRenderer.DrawPropertyField("Is Trigger", entity,
-            e => e.GetComponent<CircleCollider2DComponent>().IsTrigger,
-            (e, v) => e.GetComponent<CircleCollider2DComponent>().IsTrigger = v);
+        ColliderMaterialDrawer.Draw<CircleCollider2DComponent>(propertyRenderer, entity);
     }
 }

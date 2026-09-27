@@ -41,18 +41,10 @@ public class PointLightComponentEditor(UIPropertyRenderer propertyRenderer, IEdi
         {
             LayoutDrawer.DrawIndentedSection(() =>
             {
-                if (MultiField.Targets is null)
-                {
-                    var offset = component.Offset;
-                    VectorPanel.DrawVec3Control("Offset", ref offset);
-                    if (offset != component.Offset)
-                        component.Offset = offset;
-                    return;
-                }
-
-                MultiField.DrawVec3Control("Offset", entity,
+                propertyRenderer.DrawPropertyField("Offset", entity,
                     e => e.GetComponent<PointLightComponent>().Offset,
-                    (e, v) => e.GetComponent<PointLightComponent>().Offset = v);
+                    (e, v) => e.GetComponent<PointLightComponent>().Offset = v,
+                    UIPropertyRenderer.SameVector3);
             });
         }
     }

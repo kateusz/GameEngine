@@ -3,9 +3,9 @@ using Editor.ComponentEditors.Core;
 using Editor.Features.History;
 using Editor.Features.History.Commands;
 using Editor.Features.Models;
+using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using Engine.Scene;
-using ImGuiNET;
 using SceneComponents;
 using SceneComponents.Rendering;
 
@@ -13,6 +13,8 @@ namespace Editor.ComponentEditors.Rendering;
 
 public class ModelRendererComponentEditor(
     EditorModelLoadService modelLoadService,
+    ModelDropTarget modelDropTarget,
+    TextureDropTarget textureDropTarget,
     UIPropertyRenderer propertyRenderer,
     IEditorHistory history,
     ISceneContext sceneContext) : ComponentEditor<ModelRendererComponent>(history)
@@ -21,14 +23,7 @@ public class ModelRendererComponentEditor(
 
     protected override void DrawContent(ModelRendererComponent component, Entity entity)
     {
-        string? modelPath = null;
-        if (MultiField.TryUniform(entity,
-                e => e.GetComponent<ModelRendererComponent>().ModelPath,
-                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
-                out var uniformPath))
-            modelPath = uniformPath;
-
-        ModelDropTarget.Draw("Model", (relativePath, model) =>
+        modelDropTarget.Draw("Model", (relativePath, model) =>
         {
             if (MultiField.Targets is not null)
             {
@@ -52,7 +47,8 @@ public class ModelRendererComponentEditor(
             }
 
             history.Execute(new ImportModelHierarchyCommand(scene, entity, component, model, relativePath));
-        }, modelLoadService, modelPath);
+        }, modelLoadService,
+            MultiField.UniformPath(entity, e => e.GetComponent<ModelRendererComponent>().ModelPath));
 
         var hasModel = MultiField.Targets is null
             ? !string.IsNullOrWhiteSpace(component.ModelPath)
@@ -70,20 +66,12 @@ public class ModelRendererComponentEditor(
             (e, v) => e.GetComponent<ModelRendererComponent>().Color = v,
             UIPropertyRenderer.SameVector4);
 
-        string? texturePath = null;
-        if (MultiField.TryUniform(entity,
-                e => e.GetComponent<ModelRendererComponent>().TexturePath,
-                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
-                out var uniformTexture))
-            texturePath = uniformTexture;
-
-        TextureDropTarget.Draw("Texture", relativePath =>
-        {
-            MultiField.WriteEach(entity, (Entity e, string path) =>
+        textureDropTarget.Draw("Texture",
+            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
             {
                 e.GetComponent<ModelRendererComponent>().TexturePath = path;
-            }, relativePath);
-        }, texturePath);
+            }, relativePath),
+            MultiField.UniformPath(entity, e => e.GetComponent<ModelRendererComponent>().TexturePath));
 
         propertyRenderer.DrawPropertyField("Tiling Factor", entity,
             e => e.GetComponent<ModelRendererComponent>().TilingFactor,
@@ -141,29 +129,17 @@ public class ModelRendererComponentEditor(
 
         UIPropertyRenderer.DrawPropertyRow("Visibility Zone", () =>
         {
-            if (ImGui.BeginCombo("##VisibilityZone", currentLabel))
+            var zones = new List<(int Id, string Name)>();
+            foreach (var (zoneEntity, _, _) in scene.Context.View<VisibilityZoneComponent, TransformComponent>())
+                zones.Add((zoneEntity.Id, zoneEntity.Name));
+
+            LayoutDrawer.DrawEntityIdCombo("##VisibilityZone", currentLabel, selectedId =>
             {
-                if (ImGui.Selectable("(none)", currentLabel == "(none)"))
+                MultiField.WriteEach(entity, (Entity e, int id) =>
                 {
-                    MultiField.WriteEach(entity, (Entity e, int id) =>
-                    {
-                        e.GetComponent<ModelRendererComponent>().VisibilityZoneEntityId = id;
-                    }, -1);
-                }
-
-                foreach (var (zoneEntity, _, _) in scene.Context.View<VisibilityZoneComponent, TransformComponent>())
-                {
-                    if (ImGui.Selectable(zoneEntity.Name, currentLabel == zoneEntity.Name))
-                    {
-                        MultiField.WriteEach(entity, (Entity e, int id) =>
-                        {
-                            e.GetComponent<ModelRendererComponent>().VisibilityZoneEntityId = id;
-                        }, zoneEntity.Id);
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
+                    e.GetComponent<ModelRendererComponent>().VisibilityZoneEntityId = id;
+                }, selectedId);
+            }, zones);
         });
     }
 }

@@ -22,23 +22,6 @@ public class BoxCollider2DComponentEditor(UIPropertyRenderer propertyRenderer, I
             (e, v) => e.GetComponent<BoxCollider2DComponent>().Size = v,
             UIPropertyRenderer.SameVector2);
 
-        propertyRenderer.DrawPropertyField("Density", entity,
-            e => e.GetComponent<BoxCollider2DComponent>().Density,
-            (e, v) => e.GetComponent<BoxCollider2DComponent>().Density = v,
-            MultiField.SameFloat);
-
-        propertyRenderer.DrawPropertyField("Friction", entity,
-            e => e.GetComponent<BoxCollider2DComponent>().Friction,
-            (e, v) => e.GetComponent<BoxCollider2DComponent>().Friction = v,
-            MultiField.SameFloat);
-
-        propertyRenderer.DrawPropertyField("Restitution", entity,
-            e => e.GetComponent<BoxCollider2DComponent>().Restitution,
-            (e, v) => e.GetComponent<BoxCollider2DComponent>().Restitution = v,
-            MultiField.SameFloat);
-
-        propertyRenderer.DrawPropertyField("Is Trigger", entity,
-            e => e.GetComponent<BoxCollider2DComponent>().IsTrigger,
-            (e, v) => e.GetComponent<BoxCollider2DComponent>().IsTrigger = v);
+        ColliderMaterialDrawer.Draw<BoxCollider2DComponent>(propertyRenderer, entity);
     }
 }

@@ -3,7 +3,7 @@ using ECS;
 
 namespace SceneComponents.Physics;
 
-public class EdgeCollider2DComponent : IComponent
+public class EdgeCollider2DComponent : IComponent, ICollider2DMaterial
 {
     public List<Vector2> Points
     {

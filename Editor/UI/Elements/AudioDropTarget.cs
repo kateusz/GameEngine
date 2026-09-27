@@ -1,52 +1,35 @@
 using Audio;
-using Editor.UI.Drawers;
+using Editor.AssetPicker;
 using Engine.Project;
 using Serilog;
 
 namespace Editor.UI.Elements;
 
 /// <summary>
-/// UI element that provides drag-and-drop functionality for audio files.
-/// Allows users to drag audio files (.wav, .ogg) from the content browser onto audio properties.
+/// Audio clip field: opens Asset Browser; Content Browser drop still supported.
+/// Drop validation uses AssetKind.Audio.Extensions (shared source of truth);
+/// AudioClipFactory stays only at load time (runtime audio detection).
 /// </summary>
-public class AudioDropTarget(IAudio audio)
+public class AudioDropTarget(IAudio audio, AssetPathField assetPathField)
 {
-    /// <summary>
-    /// Draws a drag-and-drop target button for audio clips.
-    /// </summary>
-    /// <param name="label">Label to display for the property</param>
-    /// <param name="onAudioPathChanged">Callback invoked with the dropped path when a new audio clip is assigned</param>
-    /// <param name="currentAudioPath">Currently assigned audio path (can be null)</param>
-    public void Draw(string label, Action<string> onAudioPathChanged, string? currentAudioPath = null)
+    public void Draw(string label, Action<string> onAudioPathChanged, string? currentAudioPath = null) =>
+        assetPathField.Draw(
+            label,
+            AssetKind.Audio,
+            currentAudioPath,
+            relative => TryAssign(relative, onAudioPathChanged));
+
+    private void TryAssign(string relativePath, Action<string> onAudioPathChanged)
     {
-        UIPropertyRenderer.DrawPropertyRow(label, () =>
+        var audioPath = PathBuilder.Resolve(relativePath);
+        try
         {
-            var buttonLabel = !string.IsNullOrEmpty(currentAudioPath)
-                ? Path.GetFileName(currentAudioPath)
-                : "None (Drop audio here)";
-
-            ButtonDrawer.DrawFullWidthButton(buttonLabel);
-
-            DragDropDrawer.HandleFileDropTarget(
-                DragDropDrawer.ContentBrowserItemPayload,
-                path =>
-                {
-                    var audioPath = PathBuilder.Resolve(path);
-                    return File.Exists(audioPath) && AudioClipFactory.IsSupportedFormat(audioPath);
-                },
-                path =>
-                {
-                    var audioPath = PathBuilder.Resolve(path);
-                    try
-                    {
-                        audio.LoadAudioClip(audioPath);
-                        onAudioPathChanged(PathBuilder.ToAssetRelativePath(path));
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Failed to load audio clip from {Path}", audioPath);
-                    }
-                });
-        });
+            audio.LoadAudioClip(audioPath);
+            onAudioPathChanged(relativePath);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to load audio clip from {Path}", audioPath);
+        }
     }
 }

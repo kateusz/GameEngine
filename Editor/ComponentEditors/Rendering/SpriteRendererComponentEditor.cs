@@ -7,7 +7,9 @@ using SceneComponents.Rendering;
 namespace Editor.ComponentEditors.Rendering;
 
 public class SpriteRendererComponentEditor(
-    UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<SpriteRendererComponent>(history)
+    UIPropertyRenderer propertyRenderer,
+    TextureDropTarget textureDropTarget,
+    IEditorHistory history) : ComponentEditor<SpriteRendererComponent>(history)
 {
     protected override string DisplayName => "Sprite Renderer";
 
@@ -18,20 +20,12 @@ public class SpriteRendererComponentEditor(
             (e, v) => e.GetComponent<SpriteRendererComponent>().Color = v,
             UIPropertyRenderer.SameVector4);
 
-        string? texturePath = null;
-        if (MultiField.TryUniform(entity,
-                e => e.GetComponent<SpriteRendererComponent>().TexturePath,
-                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
-                out var uniformPath))
-            texturePath = uniformPath;
-
-        TextureDropTarget.Draw("Texture", relativePath =>
-        {
-            MultiField.WriteEach(entity, (Entity e, string path) =>
+        textureDropTarget.Draw("Texture",
+            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
             {
                 e.GetComponent<SpriteRendererComponent>().TexturePath = path;
-            }, relativePath);
-        }, texturePath);
+            }, relativePath),
+            MultiField.UniformPath(entity, e => e.GetComponent<SpriteRendererComponent>().TexturePath));
 
         propertyRenderer.DrawPropertyField("Tiling Factor", entity,
             e => e.GetComponent<SpriteRendererComponent>().TilingFactor,

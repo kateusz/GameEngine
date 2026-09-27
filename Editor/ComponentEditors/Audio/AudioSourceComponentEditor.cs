@@ -19,20 +19,12 @@ public class AudioSourceComponentEditor(
 
     protected override void DrawContent(AudioSourceComponent component, Entity entity)
     {
-        string? clipPath = null;
-        if (MultiField.TryUniform(entity,
-                e => e.GetComponent<AudioSourceComponent>().AudioClipPath,
-                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
-                out var uniformPath))
-            clipPath = uniformPath;
-
-        audioDropTarget.Draw("Audio Clip", relativePath =>
-        {
-            MultiField.WriteEach(entity, (Entity e, string path) =>
+        audioDropTarget.Draw("Audio Clip",
+            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
             {
                 e.GetComponent<AudioSourceComponent>().AudioClipPath = path;
-            }, relativePath);
-        }, clipPath);
+            }, relativePath),
+            MultiField.UniformPath(entity, e => e.GetComponent<AudioSourceComponent>().AudioClipPath));
 
         propertyRenderer.DrawPropertyField("Volume", entity,
             e => e.GetComponent<AudioSourceComponent>().Volume,

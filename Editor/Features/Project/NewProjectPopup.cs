@@ -76,12 +76,7 @@ public class NewProjectPopup(IProjectManager projectManager)
 
         ImGui.Spacing();
         DrawLabel("Location");
-        var browseSize = ImGui.GetFrameHeight();
-        var inputWidth = ImGui.GetContentRegionAvail().X - browseSize - ImGui.GetStyle().ItemSpacing.X;
-        ImGui.SetNextItemWidth(inputWidth);
-        ImGui.InputText("##NewProject_Parent", ref _newProjectParentPath, EditorUIConstants.MaxPathLength);
-        ImGui.SameLine();
-        if (ImGui.Button("...", new Vector2(browseSize, browseSize)))
+        LayoutDrawer.DrawPathField("NewProject_Parent", ref _newProjectParentPath, () =>
         {
             var initial = !string.IsNullOrWhiteSpace(_newProjectParentPath) && Directory.Exists(_newProjectParentPath)
                 ? _newProjectParentPath
@@ -91,7 +86,7 @@ public class NewProjectPopup(IProjectManager projectManager)
                 initial);
             if (!string.IsNullOrEmpty(picked))
                 _newProjectParentPath = picked;
-        }
+        });
 
         if (!string.IsNullOrWhiteSpace(_newProjectParentPath) &&
             !string.IsNullOrWhiteSpace(_newProjectName) &&

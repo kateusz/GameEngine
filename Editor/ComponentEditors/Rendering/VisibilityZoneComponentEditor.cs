@@ -1,4 +1,3 @@
-using System.Numerics;
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
@@ -7,17 +6,20 @@ using SceneComponents.Rendering;
 
 namespace Editor.ComponentEditors.Rendering;
 
-public class VisibilityZoneComponentEditor(IEditorHistory history) : ComponentEditor<VisibilityZoneComponent>(history)
+public class VisibilityZoneComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history)
+    : ComponentEditor<VisibilityZoneComponent>(history)
 {
     protected override string DisplayName => "Visibility Zone";
 
     protected override void DrawContent(VisibilityZoneComponent component, Entity entity)
     {
-        var min = component.Min;
-        var max = component.Max;
-        VectorPanel.DrawVec3Control("Min", ref min);
-        VectorPanel.DrawVec3Control("Max", ref max);
-        component.Min = min;
-        component.Max = max;
+        propertyRenderer.DrawPropertyField("Min", entity,
+            e => e.GetComponent<VisibilityZoneComponent>().Min,
+            (e, v) => e.GetComponent<VisibilityZoneComponent>().Min = v,
+            UIPropertyRenderer.SameVector3);
+        propertyRenderer.DrawPropertyField("Max", entity,
+            e => e.GetComponent<VisibilityZoneComponent>().Max,
+            (e, v) => e.GetComponent<VisibilityZoneComponent>().Max = v,
+            UIPropertyRenderer.SameVector3);
     }
 }

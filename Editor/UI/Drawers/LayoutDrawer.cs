@@ -9,6 +9,8 @@ namespace Editor.UI.Drawers;
 /// </summary>
 public static class LayoutDrawer
 {
+    private const ImGuiColorEditFlags ColorEditFlags = ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB | ImGuiColorEditFlags.NoOptions;
+    
     /// <summary>
     /// Renders a search input field with an optional clear button.
     /// </summary>
@@ -16,12 +18,16 @@ public static class LayoutDrawer
     /// <param name="searchQuery">Current search query (will be modified)</param>
     /// <param name="onQueryChanged">Optional callback when query changes</param>
     /// <param name="trailingReservedWidth">Width reserved after the input (e.g. a toolbar button on SameLine)</param>
+    /// <param name="id">ImGui id for the input (unique when multiple searches are on screen)</param>
+    /// <param name="maxLength">Max characters</param>
     /// <returns>True if the query was changed</returns>
     public static bool DrawSearchInput(
         string hint,
         ref string searchQuery,
         Action<string>? onQueryChanged = null,
-        float trailingReservedWidth = 0f)
+        float trailingReservedWidth = 0f,
+        string id = "##searchInput",
+        uint maxLength = EditorUIConstants.MaxNameLength)
     {
         var contentWidth = ImGui.GetContentRegionAvail().X - trailingReservedWidth;
         var inputWidth = contentWidth;
@@ -32,8 +38,7 @@ public static class LayoutDrawer
 
         ImGui.SetNextItemWidth(inputWidth);
 
-        var changed = ImGui.InputTextWithHint("##searchInput", hint, ref searchQuery,
-            EditorUIConstants.MaxNameLength);
+        var changed = ImGui.InputTextWithHint(id, hint, ref searchQuery, maxLength);
 
         if (changed) 
             onQueryChanged?.Invoke(searchQuery);
@@ -43,7 +48,7 @@ public static class LayoutDrawer
             return changed;
         
         ImGui.SameLine();
-        if (ImGui.Button("×", new Vector2(EditorUIConstants.SmallButtonSize, EditorUIConstants.SmallButtonSize)))
+        if (ButtonDrawer.DrawSmallButton($"×##{id}_clear"))
         {
             searchQuery = string.Empty;
             onQueryChanged?.Invoke(searchQuery);
@@ -214,5 +219,33 @@ public static class LayoutDrawer
             ImGui.TextUnformatted(text);
             ImGui.EndTooltip();
         }
+    }
+    
+    public static bool DrawColorEdit4(string label, ref Vector4 color) =>
+        ImGui.ColorEdit4(label, ref color, ColorEditFlags);
+
+    /// <summary>
+    /// Entity id combo with an optional "(none)" entry (-1).
+    /// </summary>
+    public static void DrawEntityIdCombo(
+        string id,
+        string currentLabel,
+        Action<int> onSelected,
+        IEnumerable<(int Id, string Name)> entities,
+        string noneLabel = "(none)")
+    {
+        if (!ImGui.BeginCombo(id, currentLabel))
+            return;
+
+        if (ImGui.Selectable(noneLabel, currentLabel == noneLabel))
+            onSelected(-1);
+
+        foreach (var (entityId, name) in entities)
+        {
+            if (ImGui.Selectable(name, currentLabel == name))
+                onSelected(entityId);
+        }
+
+        ImGui.EndCombo();
     }
 }

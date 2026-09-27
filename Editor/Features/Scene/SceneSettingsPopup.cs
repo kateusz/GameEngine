@@ -123,9 +123,7 @@ public class SceneSettingsPopup(
         }
 
         var backgroundColor = scene.BackgroundColor;
-        if (ImGui.ColorEdit4("Background Color", ref backgroundColor,
-                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
-                ImGuiColorEditFlags.NoOptions))
+        if (LayoutDrawer.DrawColorEdit4("Background Color", ref backgroundColor))
         {
             scene.BackgroundColor = backgroundColor;
         }
@@ -169,8 +167,7 @@ public class SceneSettingsPopup(
                 validationMessage: validationMessage,
                 errorMessage: _newSceneError,
                 isValid: isValid,
-                okLabel: "Create",
-                showCancel: false));
+                okLabel: "Create"));
     }
 
     private void RenderCloseConfirmationModal()
@@ -187,8 +184,8 @@ public class SceneSettingsPopup(
         ImGui.SameLine();
         if (ButtonDrawer.DrawModalButton("Don't Save", sceneManager.Close))
             _showCloseConfirmation = false;
-        ImGui.SameLine();
-        if (ButtonDrawer.DrawModalButton("Cancel") || ImGui.IsKeyPressed(ImGuiKey.Escape))
+
+        if (ImGui.IsKeyPressed(ImGuiKey.Escape))
             _showCloseConfirmation = false;
 
         ModalDrawer.EndModal();

@@ -56,7 +56,7 @@ public class GameComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHis
             {
                 if (!MultiField.TryUniform(entity, ReadMember, Same, out var value))
                 {
-                    propertyRenderer.DrawBlankControl(
+                    UIPropertyRenderer.DrawBlankControl(
                         $"##{componentId}_{fieldName}",
                         fieldType,
                         entity,

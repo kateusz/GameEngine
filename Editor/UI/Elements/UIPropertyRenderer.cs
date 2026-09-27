@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Numerics;
 using ECS;
+using Editor.UI.Constants;
+using Editor.UI.Drawers;
 using Editor.UI.FieldEditors;
 using ImGuiNET;
 
@@ -16,7 +18,10 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
         if (!PropertySearch.Matches(label))
             return;
 
-        ImGui.Columns(2);
+        var totalWidth = ImGui.GetContentRegionAvail().X;
+        ImGui.Columns(2, null, false);
+        ImGui.SetColumnWidth(0, totalWidth * EditorUIConstants.PropertyLabelRatio);
+        ImGui.SetColumnWidth(1, totalWidth * EditorUIConstants.PropertyInputRatio);
         ImGui.Text(label);
         ImGui.NextColumn();
         ImGui.SetNextItemWidth(-1);
@@ -89,17 +94,7 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
         });
     }
 
-    public void DrawBlankForType(
-        string label,
-        Type fieldType,
-        Entity entity,
-        Func<Entity, object> read,
-        Action<Entity, object> write)
-    {
-        DrawPropertyRow(label, () => DrawBlankCore(label, fieldType, entity, read, write));
-    }
-
-    public void DrawBlankControl(
+    public static void DrawBlankControl(
         string label,
         Type fieldType,
         Entity entity,
@@ -107,12 +102,12 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
         Action<Entity, object> write) =>
         DrawBlankCore(label, fieldType, entity, read, write);
 
-    private void DrawBlank<T>(string label, Entity entity, Func<Entity, T> read, Action<Entity, T> write)
+    private static void DrawBlank<T>(string label, Entity entity, Func<Entity, T> read, Action<Entity, T> write)
     {
         DrawBlankCore(label, typeof(T), entity, e => read(e), (e, v) => write(e, (T)v));
     }
 
-    private void DrawBlankCore(
+    private static void DrawBlankCore(
         string label,
         Type fieldType,
         Entity entity,
@@ -193,9 +188,7 @@ public class UIPropertyRenderer(IEnumerable<IFieldEditor> editors)
             return;
 
         var color = Vector4.One;
-        if (ImGui.ColorEdit4("##color", ref color,
-                ImGuiColorEditFlags.Float | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB |
-                ImGuiColorEditFlags.NoOptions))
+        if (LayoutDrawer.DrawColorEdit4("##color", ref color))
             MultiField.WriteEach(entity, (Entity e, Vector4 c) => write(e, c), color);
 
         ImGui.EndPopup();
