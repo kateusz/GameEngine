@@ -4,6 +4,7 @@ using Editor.Features.Scene;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
 using Editor.Publisher;
+using Editor.UI.Drawers;
 using Engine.Scene;
 using ImGuiNET;
 using Serilog;
@@ -21,12 +22,14 @@ public class EditorDockspace(
     PublishSettingsUI publishSettingsUI,
     ISceneManager sceneManager,
     IEditorPreferences editorPreferences,
-    ISceneContext sceneContext)
+    ISceneContext sceneContext,
+    EditorSceneLoadService sceneLoadService)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorDockspace>();
     private const int MinAutosaveIntervalSeconds = 5;
 
     private TimeSpan _timeSinceAutosave;
+    private float _sceneLoadingSpinnerRotation;
 
     public void Draw(TimeSpan deltaTime)
     {
@@ -68,12 +71,20 @@ public class EditorDockspace(
         newProjectPopup.Render();
         sceneSettingsPopup.Render();
         publishSettingsUI.Render();
+
+        if (sceneLoadService.IsLoading)
+            LoadingOverlayDrawer.DrawFullscreen(
+                $"Loading scene {sceneLoadService.LoadingName}...",
+                ref _sceneLoadingSpinnerRotation);
+
+        sceneLoadService.Pump();
     }
 
     private void TickAutosave(TimeSpan deltaTime)
     {
         var intervalSeconds = editorPreferences.AutosaveIntervalSeconds;
         if (intervalSeconds <= 0
+            || sceneLoadService.IsLoading
             || sceneContext.State != SceneState.Edit
             || sceneContext.ActiveScene is null
             || string.IsNullOrEmpty(sceneManager.GetCurrentScenePath()))

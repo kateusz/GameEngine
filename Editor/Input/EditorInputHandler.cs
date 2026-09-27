@@ -1,3 +1,4 @@
+using Editor.Features.Scene;
 using Editor.Features.Viewport;
 using Engine.Events.Input;
 using Engine.Scene;
@@ -9,12 +10,16 @@ namespace Editor.Input;
 public class EditorInputHandler(
     ISceneContext sceneContext,
     ShortcutManager shortcutManager,
-    IEditorViewport editorViewport)
+    IEditorViewport editorViewport,
+    EditorSceneLoadService sceneLoadService)
 {
     private readonly HashSet<KeyCodes> _pressedKeys = [];
 
     public void Handle(InputEvent windowEvent)
     {
+        if (sceneLoadService.IsLoading)
+            return;
+
         switch (windowEvent)
         {
             case KeyPressedEvent kpe:

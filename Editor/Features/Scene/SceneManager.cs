@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using ECS.Systems;
 using Editor.Features.History;
 using Editor.Features.Scripting;
@@ -45,7 +46,9 @@ public class SceneManager(
         CaptureCleanSnapshot();
     }
 
-    public void Open(string path)
+    public void Open(string path) => Open(path, null);
+
+    public void Open(string path, JsonObject? parsedRoot)
     {
         if (sceneContext.State != SceneState.Edit)
             Stop();
@@ -60,7 +63,11 @@ public class SceneManager(
         if (!string.IsNullOrEmpty(projectContext.ScriptsDir))
             scriptWorkspace.EnsureScriptsCompiledAndApplied();
 
-        sceneSerializer.Deserialize(scene, path);
+        if (parsedRoot is not null)
+            sceneSerializer.Deserialize(scene, parsedRoot);
+        else
+            sceneSerializer.Deserialize(scene, path);
+
         sceneContext.SetScene(scene);
         CaptureCleanSnapshot();
         Logger.Information("📂 Scene opened: {Path}", path);

@@ -31,22 +31,21 @@ public class PropertiesPanel(
 
     private void DrawEntityProperties()
     {
-        if (selection.SelectedEntity is not { } selectedEntity)
-        {
-            DrawSceneProperties();
-            return;
-        }
+        DrawSceneProperties();
 
-        EntityNameEditor.Draw(selectedEntity);
+        if (selection.SelectedEntity is null)
+            return;
+
+        EntityNameEditor.Draw(selection.SelectedEntity);
         ImGui.Spacing();
 
-        ComponentSelector.Draw(selectedEntity, sceneContext.ActiveScene!, gameComponentEditor, history);
+        ComponentSelector.Draw(selection.SelectedEntity, sceneContext.ActiveScene!, gameComponentEditor, history);
         ImGui.SameLine();
 
         ButtonDrawer.DrawButton("Save as Prefab",
-            () => prefabManager.ShowSavePrefabPopup(selectedEntity));
+            () => prefabManager.ShowSavePrefabPopup(selection.SelectedEntity));
 
-        componentEditors.DrawAllComponents(selectedEntity);
+        componentEditors.DrawAllComponents(selection.SelectedEntity);
     }
 
     private void DrawSceneProperties()
