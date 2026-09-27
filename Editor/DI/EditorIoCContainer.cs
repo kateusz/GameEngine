@@ -84,9 +84,10 @@ public static class EditorIoCContainer
         // Panel draw order
         container.RegisterMany<SceneHierarchyPanel>(Reuse.Singleton);
         container.RegisterMany<PropertiesPanel>(Reuse.Singleton);
-        container.RegisterMany<ContentBrowserPanel>(Reuse.Singleton);
+        container.Register<ContentBrowserPanel>(Reuse.Singleton);
         container.Register<ContentBrowserActions>(Reuse.Singleton);
         container.RegisterMany<ConsolePanel>(Reuse.Singleton);
+        container.Register<BottomPanelHost>(Reuse.Singleton);
         container.RegisterMany<RecentProjectsPanel>(Reuse.Singleton);
         container.RegisterMany<KeyboardShortcutsPanel>(Reuse.Singleton);
 
