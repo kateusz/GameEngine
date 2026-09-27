@@ -49,11 +49,20 @@ Put models under `assets/models/`.
 
 ## Lights
 
-3D shading reads **one** ambient and **one** directional light from the scene (first component of each type):
+3D shading combines ambient, directional, and point lights (Cook-Torrance direct lighting; no image-based lighting).
 
-- **AmbientLightComponent** — `Color`, `Strength` (default strength 0.1 if none)
-- **DirectionalLightComponent** — `Direction`, `Color` (no directional light → specular/diffuse from the sun is black)
+| Component | Limit | Notes |
+|-----------|-------|--------|
+| **AmbientLightComponent** | First in scene | `Color`, `Strength`. If none → white at strength 0.1 |
+| **DirectionalLightComponent** | First in scene | `Direction`, `Color`. If none → no sun (ambient only) |
+| **PointLightComponent** | Up to **8** (`PointLightComponent` + transform) | `Color`, `Intensity`, `Range` (≤ 0 skipped). Position = entity world translation |
 
 2D sprites ignore these lights.
+
+### Shadows
+
+- **Directional** — cast when the directional light has non-zero color and the engine can fit a shadow frustum to the camera view. Opaque cubes and models (`ModelRendererComponent`) write the map.
+- **Point** — enable **CastsShadow** on `PointLightComponent`. Cubemaps update only for lights within **20** units of the camera; unchanged scenes reuse the previous frame’s map when possible.
+- The editor viewport can disable point shadows via `SceneView.PointShadows` (runtime play uses defaults).
 
 Pipeline details: [Rendering Pipeline](../../architecture/rendering-pipeline.md). Property details: [Component Inspector](../editor/component-inspector.md#cameracomponent).

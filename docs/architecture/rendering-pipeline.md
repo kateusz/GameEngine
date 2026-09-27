@@ -76,7 +76,7 @@ If `CameraQueries.TryGetPrimaryView` fails, the system returns without drawing. 
 
 Physics debug draw (**File**: `Engine/Scene/Systems/PhysicsDebugRenderSystem.cs`, priority 151) renders collider outlines when collider debug is enabled. It uses the same primary-camera `SceneView` and returns if that lookup fails.
 
-**Render order within a frame**: one 2D batch (sprites, then subtextures), then one 3D pass that iterates `ModelRendererComponent` (cubes and meshes interleaved in entity order). Callers pass a single `SceneView` into both graphics layers. 3D draws enable depth test; the 2D quad flush disables it for the indexed draw.
+**Render order within a frame**: one 2D batch (sprites, then subtextures), then a 3D sequence (see [3D frame order](#3d-frame-order) below). Callers pass a single `SceneView` into both graphics layers. 3D color draws enable depth test; the 2D quad flush disables it for the indexed draw.
 
 User-facing setup: [Cameras and Rendering](../guide/concepts/cameras-and-rendering.md).
 
@@ -192,9 +192,64 @@ sequenceDiagram
 
 ## 3D Mesh Path
 
-**File**: `Engine/Renderer/Pipeline/Graphics3D.cs`, `Engine/Renderer/Pipeline/IGraphics3D.cs`, `Engine/Renderer/Models/`, `Engine/Renderer/Meshes/Mesh.cs`, `Engine/Renderer/Meshes/IMeshFactory.cs`
+**File**: `Engine/Renderer/Pipeline/Graphics3D.cs`, `Engine/Renderer/Pipeline/IGraphics3D.cs`, `Engine/Scene/SceneRenderPipeline.cs`, `Engine/Renderer/Models/`, `Engine/Renderer/Meshes/Mesh.cs`, `Engine/Renderer/Meshes/IMeshFactory.cs`
 
-3D is a **forward, unbatched** path: one `DrawIndexed` per cube or imported submesh. That is enough for static props and a handful of characters; it is not an instancing pipeline. Lighting is direct Cook-Torrance with one directional shadow and no image-based lighting.
+3D is a **forward** path: cubes are one draw each; imported submeshes with the same mesh, tint, and PBR factors are **instanced** (`DrawMeshInstances`) after `SceneRenderPipeline` batches them. Lighting is direct **Cook-Torrance** (GGX + Smith) with ambient, one directional light, and up to eight point lights. Directional and point lights can cast shadows; there is no image-based lighting.
+
+### 3D frame order
+
+**File**: `Engine/Scene/SceneRenderPipeline.cs` (`Render3D`)
+
+```mermaid
+sequenceDiagram
+    participant SRP as Scene render pipeline
+    participant G3D as 3D graphics
+
+    SRP->>G3D: SetAmbientLight / SetDirectionalLight / SetPointLights
+    alt Directional color non-zero and shadow fit OK
+        SRP->>G3D: BeginShadowPass (depth shader)
+        SRP->>G3D: DrawOpaque3D (shadow casters)
+        SRP->>G3D: EndShadowPass
+        SRP->>G3D: SetDirectionalShadow (bind map)
+    end
+    opt view.PointShadows and CastsShadow point lights
+        loop Each dirty/near point light, 6 faces
+            SRP->>G3D: BeginPointShadowFace (point depth shader)
+            SRP->>G3D: DrawOpaque3D
+            SRP->>G3D: EndPointShadowFace
+        end
+    end
+    SRP->>G3D: BeginScene (color pass)
+    SRP->>G3D: DrawOpaque3D
+    SRP->>G3D: EndScene
+```
+
+Opaque draws in shadow and color passes share frustum culling and optional shadow-caster distance culling (`SceneView.DirectionalShadowCasterMaxDistance`; `0` disables caster cut).
+
+### Lighting
+
+**Files**: `SceneComponents/Lighting/*.cs`, `Engine/Renderer/PointLightData.cs`, `Engine/Renderer/LightingMath.cs`, `Engine/assets/shaders/OpenGL/modelShader.frag`, `Engine/assets/shaders/OpenGL/cube.frag`
+
+| Source | Resolution rule | Shader use |
+|--------|-----------------|--------------|
+| `AmbientLightComponent` | First in scene | `u_AmbientColor`, `u_AmbientStrength` |
+| `DirectionalLightComponent` | First in scene; direction normalized (`LightingMath.NormalizeDirection`) | `u_LightDirection`, `u_LightColor` |
+| `PointLightComponent` + `TransformComponent` | Up to `LightingMath.MaxPointLights` (8), entity iteration order; skips `Range <= 0` | Arrays `u_PointLight*`; smooth falloff `(1 - dist/range)²` inside range |
+
+Defaults when a component is missing: ambient → white at strength **0.1**; directional → direction `(0,-1,0)` with **zero** color (ambient-only sun). Point positions come from the entity world translation.
+
+PBR factors (`SceneRenderPipeline.ResolvePbr`): for cubes or when `ModelRendererComponent.OverrideMaterial` is set, metallic / roughness / AO come from the component; otherwise mesh Assimp factors apply (AO stays 1 unless overridden on the entity).
+
+### Shadows
+
+**Files**: `Engine/Renderer/LightingMath.cs`, `Engine/Scene/PointShadowCache.cs`, `Engine/Renderer/Pipeline/Graphics3D.cs`
+
+| Kind | Map | Resolution / range | Notes |
+|------|-----|-------------------|--------|
+| Directional | 2D depth (`ShaderId.Depth`) | `ShadowMapResolution` = 1024; frustum fit capped by `ShadowDistance` (50) | `TryFitDirectionalShadow` ortho-fits the camera frustum in light space with texel snapping. Fit failure → color pass without directional shadows (one warning). Fragment shader: 2×2 bilinear PCF on `u_ShadowMap` (texture unit 3). |
+| Point | Depth cubemap per light entity (`ShaderId.PointDepth`) | Face size `PointShadowFaceResolution` = 512; redraw only within `PointShadowDistance` (20) of the camera | `PointLightComponent.CastsShadow`. Six faces per redraw; front-face cull during the point pass. Cubemap bound to `u_PointShadowMaps[i]` (units 4+). `PointShadowCache` skips redraw when lamp pose and overlapping casters are unchanged; `UseCachedPointShadow` reuses the prior frame’s map when still valid. `SceneView.PointShadows = false` marks the cache stale and skips point shadow work. |
+
+Shadow casters are opaque `ModelRendererComponent` surfaces (cubes and imported submeshes), collected each frame for the point-shadow cache.
 
 ### Draw API
 
@@ -202,12 +257,16 @@ sequenceDiagram
 
 | Call | Role |
 |------|------|
-| `BeginScene` | Store `SceneView`, then upload view-projection, lights, and (model shader) view position |
-| `SetAmbientLight` / `SetDirectionalLight` | Store scene lights; call before `BeginScene` so the upload sees them |
-| `DrawCube` | Shared unit cube mesh (`IMeshFactory.CreateCube`) |
-| `DrawMesh` | GPU mesh + albedo, normal, metallic-roughness, and occlusion maps |
+| `SetAmbientLight` / `SetDirectionalLight` / `SetPointLights` | Store lights; set before shadow or color work |
+| `BeginShadowPass` / `EndShadowPass` | Directional depth pass into internal 2D shadow map |
+| `SetDirectionalShadow` | Upload `u_LightViewProjection` and enable `u_ShadowsEnabled` for the color pass |
+| `BeginPointShadowFace` / `EndPointShadowFace` / `UseCachedPointShadow` | Point-light cubemap faces and cache reuse |
+| `BeginScene` | Store `SceneView`; upload view-projection, lights, shadows, and `u_ViewPosition` (model shader) |
+| `DrawCube` | Unit cube; depth-only variant during shadow passes |
+| `DrawMesh` | Single-instance wrapper over `DrawMeshInstances` |
+| `DrawMeshInstances` | One or many instances; instanced path when count ≥ 2 |
 
-Lighting is direct Cook-Torrance (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`), with Reinhard and gamma in the fragment shader. There is no image-based lighting. The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
+`SceneView` (`Engine/Renderer/Pipeline/SceneView.cs`): `ViewProjection`, `ViewPosition`, `PointShadows` (default true), `DirectionalShadowCasterMaxDistance` (default `LightingMath.ShadowDistance`).
 
 ### Model import
 
@@ -257,7 +316,9 @@ Within a single batch, the 2D graphics layer maps texture ids to slot indices. T
 
 **File**: `Engine/Renderer/Shaders/IShaderFactory.cs`, `Engine/Renderer/Shaders/ShaderId.cs`
 
-GLSL sources ship in `Engine/assets/shaders/OpenGL/` and hosts copy them next to the exe via `Engine.Shaders.props`. Graphics loads programs with `IShaderFactory.Create(ShaderId)` (`Texture`, `Line`, `Cube`, `Model`). Paths resolve under `AppContext.BaseDirectory/assets/shaders/OpenGL/`, not the game `PathBuilder` root.
+GLSL sources ship in `Engine/assets/shaders/OpenGL/` and hosts copy them next to the exe via `Engine.Shaders.props`. Graphics loads programs with `IShaderFactory.Create(ShaderId)` (`Texture`, `Line`, `Cube`, `Model`, `Depth`, `PointDepth`, plus editor-only `Fxaa` / `SelectionOutline`). Paths resolve under `AppContext.BaseDirectory/assets/shaders/OpenGL/`, not the game `PathBuilder` root.
+
+3D lighting and shadows use `Cube` / `Model` for the color pass, `Depth` for directional shadow casters, and `PointDepth` for point-light cubemap faces.
 
 `Create` returns a strongly cached program keyed on vert+frag paths. The factory owns Dispose; there is no public `ClearCache`.
 
@@ -309,7 +370,7 @@ classDiagram
 
 ### Begin-scene integration
 
-`IGraphics2D.BeginScene` and `IGraphics3D.BeginScene` both take `in SceneView`. 2D sets `u_ViewProjection` on the quad and line shaders, then starts a batch. 3D uploads view-projection and lights to the cube and model shaders (and `u_ViewPosition` on the model shader). `SceneRenderPipeline` sets lights before `BeginScene`. Any caller (runtime systems or the editor viewport) can pass a `SceneView`; the graphics layer does not distinguish camera types.
+`IGraphics2D.BeginScene` and `IGraphics3D.BeginScene` both take `in SceneView`. 2D sets `u_ViewProjection` on the quad and line shaders, then starts a batch. 3D uploads view-projection, lights, and shadow maps on `BeginScene` (shadow maps are rendered earlier in `SceneRenderPipeline.Render3D`). `SceneRenderPipeline` resolves lights and runs shadow passes before `BeginScene`. Any caller (runtime systems or the editor viewport) can pass a `SceneView`; the graphics layer does not distinguish camera types.
 
 ---
 

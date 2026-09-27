@@ -221,7 +221,7 @@ public class ArenaSystem(
                     ? Vector2.Normalize(toPlayer) * game.EnemySpeed
                     : Vector2.Zero;
 
-            // ponytail: radius contact check instead of IPhysicsContacts, and enemies are Kinematic
+            // radius contact check instead of IPhysicsContacts, and enemies are Kinematic
             // (so they ignore walls and can trail the player past one). Upgrade path: Dynamic enemy
             // bodies with runtime spawn/despawn + DrainContacts() if precise collisions are needed.
             if (distance <= game.ContactRadius)

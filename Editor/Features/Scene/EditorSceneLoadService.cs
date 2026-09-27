@@ -41,7 +41,7 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
 
     public void Pump()
     {
-        // ponytail: skip one Pump so the overlay frame is presented before sync Open blocks the swap.
+        // skip one Pump so the overlay frame is presented before sync Open blocks the swap.
         if (_holdForPaint)
         {
             _holdForPaint = false;

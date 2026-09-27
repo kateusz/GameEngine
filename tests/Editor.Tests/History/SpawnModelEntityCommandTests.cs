@@ -127,4 +127,34 @@ public class SpawnModelEntityCommandTests
         command.Undo();
         scene.GetChildren(root).ShouldBeEmpty();
     }
+
+    [Fact]
+    public void Reimport_RestoresVisibilityZoneOnUnpackedMeshChildren()
+    {
+        using var scene = CreateScene();
+        var graph = new ModelSceneNode("Room", [],
+        [
+            new ModelSceneNode("Chair", [0], []),
+            new ModelSceneNode("Table", [1], [])
+        ]);
+        var model = ModelWithGraph(graph);
+
+        var root = scene.CreateEntity("Room");
+        root.AddComponent(new TransformComponent());
+        var renderer = new ModelRendererComponent();
+        root.AddComponent(renderer);
+
+        var command = new ImportModelHierarchyCommand(scene, root, renderer, model, "models/room.glb");
+        command.Execute().ShouldBeTrue();
+
+        var chair = scene.GetChildren(root).Single(e => e.Name == "Chair");
+        chair.GetComponent<ModelRendererComponent>().VisibilityZoneEntityId = 42;
+
+        command.Execute().ShouldBeTrue();
+
+        scene.GetChildren(root).Single(e => e.Name == "Chair")
+            .GetComponent<ModelRendererComponent>().VisibilityZoneEntityId.ShouldBe(42);
+        scene.GetChildren(root).Single(e => e.Name == "Table")
+            .GetComponent<ModelRendererComponent>().VisibilityZoneEntityId.ShouldBe(-1);
+    }
 }

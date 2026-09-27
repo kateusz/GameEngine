@@ -29,6 +29,8 @@ public sealed class ImportModelHierarchyCommand(
             _oldChildren = EntitySubtreeSnapshot.CaptureChildren(scene, root);
         }
 
+        var visibilityZones = CaptureVisibilityZones(scene, root);
+
         ModelHierarchySpawner.DestroyChildren(scene, root);
         component.ModelPath = relativeModelPath;
         component.MeshIndex = null;
@@ -54,6 +56,7 @@ public sealed class ImportModelHierarchyCommand(
 
         ModelHierarchySpawner.SpawnChildren(
             scene, root, graph, relativeModelPath, component.Color, model.Submeshes);
+        ApplyVisibilityZones(scene, root, visibilityZones);
         return true;
     }
 
@@ -69,5 +72,42 @@ public sealed class ImportModelHierarchyCommand(
 
         foreach (var snapshot in _oldChildren)
             snapshot.Restore(scene);
+    }
+
+    private static Dictionary<(string Name, int? MeshIndex), int> CaptureVisibilityZones(IScene scene, Entity root)
+    {
+        var saved = new Dictionary<(string, int?), int>();
+        foreach (var entity in scene.CollectSubtree(root))
+        {
+            if (!entity.TryGetComponent<ModelRendererComponent>(out var renderer))
+                continue;
+
+            if (renderer.VisibilityZoneEntityId < 0)
+                continue;
+
+            saved[(entity.Name, renderer.MeshIndex)] = renderer.VisibilityZoneEntityId;
+        }
+
+        return saved;
+    }
+
+    private static void ApplyVisibilityZones(
+        IScene scene,
+        Entity root,
+        IReadOnlyDictionary<(string Name, int? MeshIndex), int> saved)
+    {
+        if (saved.Count == 0)
+            return;
+
+        foreach (var entity in scene.CollectSubtree(root))
+        {
+            if (!entity.TryGetComponent<ModelRendererComponent>(out var renderer))
+                continue;
+
+            if (!saved.TryGetValue((entity.Name, renderer.MeshIndex), out var zoneId))
+                continue;
+
+            renderer.VisibilityZoneEntityId = zoneId;
+        }
     }
 }
