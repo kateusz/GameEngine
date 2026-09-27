@@ -25,7 +25,6 @@ public class SceneManager(
     private static readonly ILogger Logger = Log.ForContext<SceneManager>();
 
     private string? _playSnapshotPath;
-    private bool _playPaused;
     private string? _cleanJson;
 
     public string? EditorScenePath { get; private set; }
@@ -109,25 +108,22 @@ public class SceneManager(
         }
 
         var scene = sceneContext.ActiveScene!;
-        var isResume = _playPaused && !string.IsNullOrEmpty(_playSnapshotPath) && File.Exists(_playSnapshotPath);
 
         // Compile before tearing down entities so a build failure leaves the scene intact.
         if (!TryCompilePlayAssembly(out var dllPath, out _))
             return;
 
-        if (!isResume)
-        {
-            history.Clear();
+        history.Clear();
+        // Always snapshot live edit scene — Stop's Restart file must not skip this.
+        if (string.IsNullOrEmpty(_playSnapshotPath) || !File.Exists(_playSnapshotPath))
             _playSnapshotPath = Path.Combine(Path.GetTempPath(), $"ge-play-{Guid.NewGuid():N}.scene");
-            sceneSerializer.Serialize(scene, _playSnapshotPath);
-        }
+        sceneSerializer.Serialize(scene, _playSnapshotPath);
 
         // Entities + IGameSystem instances pin the collectible ALC — drop them before unload.
-        SwapPlayAssembly(scene, dllPath, _playSnapshotPath!);
+        SwapPlayAssembly(scene, dllPath, _playSnapshotPath);
 
-        _playPaused = false;
         RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
-        Logger.Information(isResume ? "▶️ Scene play resumed" : "▶️ Scene play started");
+        Logger.Information("▶️ Scene play started");
     }
 
     public void Stop()
@@ -157,7 +153,6 @@ public class SceneManager(
             _playSnapshotPath = playSnapshot;
         }
 
-        _playPaused = true;
         Logger.Information("⏹️ Scene play stopped");
     }
 
@@ -175,7 +170,6 @@ public class SceneManager(
             return;
 
         SwapPlayAssembly(scene, dllPath, _playSnapshotPath);
-        _playPaused = false;
         RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
         Logger.Information("🔄 Scene restarted");
     }
@@ -230,7 +224,6 @@ public class SceneManager(
             File.Delete(_playSnapshotPath);
 
         _playSnapshotPath = null;
-        _playPaused = false;
     }
 
     private void CaptureCleanSnapshot() =>

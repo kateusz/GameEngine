@@ -6,6 +6,7 @@ using Engine.Scene;
 using Engine.Scene.Systems;
 using NSubstitute;
 using SceneComponents;
+using SceneComponents.Camera;
 using Scripting;
 using Shouldly;
 
@@ -126,5 +127,19 @@ public class SceneHierarchyRowsTests
         SceneHierarchyPanel.ResolveEntitiesToReparent(scene, a, [a])
             .Select(e => e.Name)
             .ShouldBe(["a"]);
+    }
+
+    [Fact]
+    public void EntityPassesComponentFilter_AnySelectedType_Matches()
+    {
+        using var scene = CreateScene();
+        var withCamera = Create(scene, "cam");
+        withCamera.AddComponent(new CameraComponent());
+        var transformOnly = Create(scene, "xf");
+
+        var selected = new HashSet<Type> { typeof(CameraComponent) };
+
+        SceneHierarchyPanel.EntityPassesComponentFilter(withCamera, selected).ShouldBeTrue();
+        SceneHierarchyPanel.EntityPassesComponentFilter(transformOnly, selected).ShouldBeFalse();
     }
 }

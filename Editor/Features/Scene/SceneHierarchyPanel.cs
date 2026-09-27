@@ -11,6 +11,11 @@ using Editor.UI.Elements;
 using Engine.Scene;
 using ImGuiNET;
 using SceneComponents;
+using SceneComponents.Audio;
+using SceneComponents.Camera;
+using SceneComponents.Lighting;
+using SceneComponents.Physics;
+using SceneComponents.Rendering;
 
 namespace Editor.Features.Scene;
 
@@ -25,6 +30,27 @@ public class SceneHierarchyPanel(
     : IEditorPanel
 {
     private const string EntityDragPayload = "SCENE_HIERARCHY_ENTITY";
+    private const string ComponentFilterPopupId = "##HierarchyComponentFilter";
+
+    // Same built-ins as ComponentSelector — keep in sync when adding component types.
+    private static readonly (Type Type, string Name)[] FilterableComponents =
+    [
+        (typeof(CameraComponent), "Camera"),
+        (typeof(TransformComponent), "Transform"),
+        (typeof(SpriteRendererComponent), "Sprite Renderer"),
+        (typeof(SubTextureRendererComponent), "Sub Texture Renderer"),
+        (typeof(RigidBody2DComponent), "Rigidbody 2D"),
+        (typeof(BoxCollider2DComponent), "Box Collider 2D"),
+        (typeof(ModelRendererComponent), "Model Renderer"),
+        (typeof(CircleCollider2DComponent), "Circle Collider 2D"),
+        (typeof(EdgeCollider2DComponent), "Edge Collider 2D"),
+        (typeof(AudioSourceComponent), "Audio Source"),
+        (typeof(AudioListenerComponent), "Audio Listener"),
+        (typeof(AmbientLightComponent), "Ambient Light"),
+        (typeof(DirectionalLightComponent), "Directional Light"),
+        (typeof(PointLightComponent), "Point Light"),
+        (typeof(VisibilityZoneComponent), "Visibility Zone"),
+    ];
 
     private IScene _scene = null!;
 
@@ -33,6 +59,7 @@ public class SceneHierarchyPanel(
     private readonly HashSet<int> _filterMatchIds = [];
     private readonly HashSet<int> _expandedIds = [];
     private readonly List<HierarchyRow> _rows = [];
+    private readonly HashSet<Type> _selectedComponentTypes = [];
     private bool _isFilterActive;
     private int? _scrollToEntityId;
 
@@ -64,7 +91,22 @@ public class SceneHierarchyPanel(
         ImGui.SetNextWindowSize(new Vector2(250, 400), ImGuiCond.FirstUseEver);
         ImGui.Begin("Scene Hierarchy");
 
-        LayoutDrawer.DrawSearchInput("Search entities...", ref _searchQuery, ApplyFilter);
+        if (ButtonDrawer.DrawSmallButton("+", tooltip: "Add Entity"))
+            ImGui.OpenPopup(EntityContextMenu.CreateEntityPopupId);
+
+        ImGui.SameLine();
+        LayoutDrawer.DrawSearchInput(
+            "Search entities...",
+            ref _searchQuery,
+            ApplyFilter,
+            trailingReservedWidth: EditorUIConstants.SmallButtonSize + EditorUIConstants.SmallPadding);
+
+        ImGui.SameLine();
+        if (ButtonDrawer.DrawSmallButton("▼", tooltip: "Filter by component"))
+            ImGui.OpenPopup(ComponentFilterPopupId);
+
+        entityContextMenu.RenderCreatePopup(_scene);
+        DrawComponentFilterPopup();
 
         if (_isFilterActive)
             RenderFilterStatus();
@@ -342,6 +384,28 @@ public class SceneHierarchyPanel(
             .ToList();
     }
 
+    private void DrawComponentFilterPopup()
+    {
+        if (!ImGui.BeginPopup(ComponentFilterPopupId))
+            return;
+
+        foreach (var (type, name) in FilterableComponents)
+        {
+            var selected = _selectedComponentTypes.Contains(type);
+            if (!ImGui.Checkbox(name, ref selected))
+                continue;
+
+            if (selected)
+                _selectedComponentTypes.Add(type);
+            else
+                _selectedComponentTypes.Remove(type);
+
+            ApplyFilter(_searchQuery);
+        }
+
+        ImGui.EndPopup();
+    }
+
     private void RenderFilterStatus()
     {
         TextDrawer.DrawInfoText($"Filtering: {_filterMatchIds.Count} of {_scene.Entities.Count()} entities");
@@ -353,18 +417,25 @@ public class SceneHierarchyPanel(
         _filterVisibleIds.Clear();
         _filterMatchIds.Clear();
 
-        if (string.IsNullOrWhiteSpace(query))
+        var hasSearch = !string.IsNullOrWhiteSpace(query);
+        var hasComponentFilter = _selectedComponentTypes.Count > 0;
+
+        if (!hasSearch && !hasComponentFilter)
         {
             _isFilterActive = false;
             return;
         }
 
         _isFilterActive = true;
-        var normalizedQuery = query.Trim();
+        var normalizedQuery = hasSearch ? query.Trim() : null;
 
         foreach (var entity in _scene.Entities)
         {
-            if (!entity.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            if (hasComponentFilter && !EntityPassesComponentFilter(entity, _selectedComponentTypes))
+                continue;
+
+            if (normalizedQuery is not null
+                && !entity.Name.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
                 continue;
 
             _filterMatchIds.Add(entity.Id);
@@ -377,4 +448,7 @@ public class SceneHierarchyPanel(
             }
         }
     }
+
+    internal static bool EntityPassesComponentFilter(Entity entity, IReadOnlySet<Type> selectedTypes) =>
+        entity.GetAllComponents().Any(c => selectedTypes.Contains(c.GetType()));
 }

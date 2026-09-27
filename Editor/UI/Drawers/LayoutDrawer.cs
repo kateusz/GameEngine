@@ -15,14 +15,19 @@ public static class LayoutDrawer
     /// <param name="hint">Placeholder hint text</param>
     /// <param name="searchQuery">Current search query (will be modified)</param>
     /// <param name="onQueryChanged">Optional callback when query changes</param>
+    /// <param name="trailingReservedWidth">Width reserved after the input (e.g. a toolbar button on SameLine)</param>
     /// <returns>True if the query was changed</returns>
-    public static bool DrawSearchInput(string hint, ref string searchQuery, Action<string>? onQueryChanged = null)
+    public static bool DrawSearchInput(
+        string hint,
+        ref string searchQuery,
+        Action<string>? onQueryChanged = null,
+        float trailingReservedWidth = 0f)
     {
-        var contentWidth = ImGui.GetContentRegionAvail().X;
+        var contentWidth = ImGui.GetContentRegionAvail().X - trailingReservedWidth;
         var inputWidth = contentWidth;
 
         // Calculate width for clear button if search query is not empty
-        if (!string.IsNullOrEmpty(searchQuery)) 
+        if (!string.IsNullOrEmpty(searchQuery))
             inputWidth = contentWidth - EditorUIConstants.SmallButtonSize - EditorUIConstants.SmallPadding;
 
         ImGui.SetNextItemWidth(inputWidth);

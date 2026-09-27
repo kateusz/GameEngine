@@ -11,10 +11,15 @@ public interface IEntityContextMenu
 
     /// <summary>Context menu for the last submitted item (e.g. hierarchy empty-space drop target).</summary>
     void RenderForLastItem(IScene context);
+
+    /// <summary>Popup opened from the hierarchy toolbar + button.</summary>
+    void RenderCreatePopup(IScene context);
 }
 
 public class EntityContextMenu : IEntityContextMenu
 {
+    public const string CreateEntityPopupId = "##CreateEntityPopup";
+
     public void Render(IScene context)
     {
         if (ImGui.BeginPopupContextWindow("WindowContextMenu",
@@ -34,15 +39,22 @@ public class EntityContextMenu : IEntityContextMenu
         }
     }
 
+    public void RenderCreatePopup(IScene context)
+    {
+        if (!ImGui.BeginPopup(CreateEntityPopupId))
+            return;
+
+        DrawCreateItems(context);
+        ImGui.EndPopup();
+    }
+
     private static void DrawCreateItems(IScene context)
     {
         if (ImGui.MenuItem("Create Empty Entity"))
             CreateEmptyEntity(context);
-        
+
         if (ImGui.MenuItem("Create 3D Entity"))
-        {
             Create3DEntity(context);
-        }
     }
 
     private static void CreateEmptyEntity(IScene context)
