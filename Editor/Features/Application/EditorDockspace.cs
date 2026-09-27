@@ -14,6 +14,7 @@ namespace Editor.Features.Application;
 public class EditorDockspace(
     EditorMenuBar menuBar,
     EditorPanels panels,
+    BottomPanelHost bottomPanel,
     IEditorViewport editorViewport,
     ViewportComponents viewport,
     EditorSettingsUI editorSettingsUI,
@@ -66,6 +67,8 @@ public class EditorDockspace(
             viewport.SceneToolbar.Render();
             ImGui.End();
         }
+
+        bottomPanel.Draw();
 
         editorSettingsUI.Render();
         newProjectPopup.Render();

@@ -14,7 +14,7 @@ using Ui.ImGui;
 
 namespace Editor.Panels;
 
-public class ContentBrowserPanel : IEditorPanel, IDisposable
+public class ContentBrowserPanel : IDisposable
 {
     private enum CreateAssetKind { Component, System }
 
@@ -77,10 +77,8 @@ public class ContentBrowserPanel : IEditorPanel, IDisposable
         }
     }
 
-    public void Draw()
+    public void DrawContent()
     {
-        ImGui.Begin("Content Browser");
-
         ImGui.BeginChild("DirectoryTree", new Vector2(TreePanelWidth, 0), ImGuiChildFlags.Border);
         DrawDirectoryTree();
         ImGui.EndChild();
@@ -90,8 +88,6 @@ public class ContentBrowserPanel : IEditorPanel, IDisposable
         ImGui.BeginChild("ContentGrid", new Vector2(0, 0), ImGuiChildFlags.None);
         DrawContentGrid();
         ImGui.EndChild();
-
-        ImGui.End();
     }
 
     public void RenderPopups() => RenderCreateAssetModal();

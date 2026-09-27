@@ -5,7 +5,7 @@ using Editor.UI.Drawers;
 
 namespace Editor.Panels;
 
-public class ConsolePanel : IConsolePanel, IEditorPanel
+public class ConsolePanel : IConsolePanel
 {
     private volatile List<LogMessage> _logMessages = new();
     private readonly Lock _writeSync = new();
@@ -69,16 +69,11 @@ public class ConsolePanel : IConsolePanel, IEditorPanel
         }
     }
 
-    public void Draw()
+    public void DrawContent()
     {
-        ImGui.Begin("Console");
-        var appearing = ImGui.IsWindowAppearing();
-
         RenderToolbar();
         ImGui.Separator();
-        RenderLogDisplay(appearing);
-
-        ImGui.End();
+        RenderLogDisplay();
     }
 
     private void RenderToolbar()
