@@ -3,7 +3,7 @@ using System.Numerics;
 namespace Engine.Renderer.Models;
 
 /// <summary>
-/// Hierarchy node from an imported model file (Assimp scene graph).
+/// Hierarchy node for a loaded model (from source import or cooked runtime mesh).
 /// </summary>
 public sealed class ModelSceneNode
 {
