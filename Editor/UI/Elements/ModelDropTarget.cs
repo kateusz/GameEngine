@@ -1,5 +1,5 @@
+using Editor.AssetPicker;
 using Editor.Features.Models;
-using Editor.Platform;
 using Editor.UI.Drawers;
 using Engine.Project;
 using Engine.Renderer.Models;
@@ -8,63 +8,26 @@ using Serilog;
 namespace Editor.UI.Elements;
 
 /// <summary>
-/// Drag-and-drop target for 3D model files (.glb, .gltf, .fbx) from the content browser.
-/// On Windows, clicking opens a native file dialog.
+/// Model asset field: opens Asset Browser; Content Browser drop still supported.
 /// </summary>
-public static class ModelDropTarget
+public class ModelDropTarget(AssetPathField assetPathField)
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ModelDropTarget));
-    private static readonly string[] SupportedExtensions = [".glb", ".gltf", ".fbx"];
-    private const string FileFilter = "3D Models (*.glb;*.gltf;*.fbx)|*.glb;*.gltf;*.fbx|All files (*.*)|*.*";
+    private static readonly string[] SupportedExtensions = AssetKind.Model.Extensions;
 
     public static bool IsSupported(string path) =>
         DragDropDrawer.HasValidExtension(path, SupportedExtensions);
 
-    public static void Draw(
+    public void Draw(
         string label,
         Action<string, Model> onModelDropped,
         EditorModelLoadService modelLoadService,
-        string? currentModelPath = null)
-    {
-        UIPropertyRenderer.DrawPropertyRow(label, () =>
-        {
-            var buttonLabel = !string.IsNullOrEmpty(currentModelPath)
-                ? Path.GetFileName(currentModelPath)
-                : FilePicker.IsAvailable ? "Open..." : "Drop model here";
-
-            if (ButtonDrawer.DrawFullWidthButton(buttonLabel) && FilePicker.IsAvailable)
-            {
-                string? initial = null;
-                try
-                {
-                    initial = !string.IsNullOrEmpty(currentModelPath)
-                        ? PathBuilder.Resolve(currentModelPath)
-                        : PathBuilder.AssetsPath;
-                }
-                catch (InvalidOperationException)
-                {
-                    initial = Environment.CurrentDirectory;
-                }
-
-                var picked = FilePicker.PickFile("Open Model", FileFilter, initial);
-                if (!string.IsNullOrEmpty(picked) && IsSupported(picked))
-                    LoadModel(picked, modelLoadService, onModelDropped);
-            }
-
-            DragDropDrawer.HandleFileDropTarget(
-                DragDropDrawer.ContentBrowserItemPayload,
-                path =>
-                {
-                    var modelPath = PathBuilder.Resolve(path);
-                    return DragDropDrawer.IsValidFile(modelPath, SupportedExtensions);
-                },
-                path =>
-                {
-                    var modelPath = PathBuilder.Resolve(path);
-                    LoadModel(modelPath, modelLoadService, onModelDropped, PathBuilder.ToAssetRelativePath(path));
-                });
-        });
-    }
+        string? currentModelPath = null) =>
+        assetPathField.Draw(
+            label,
+            AssetKind.Model,
+            currentModelPath,
+            relative => LoadModel(PathBuilder.Resolve(relative), modelLoadService, onModelDropped, relative));
 
     private static void LoadModel(
         string absolutePath,

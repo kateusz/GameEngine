@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.AssetPicker;
 using Editor.Commands;
 using Editor.Features.Project;
 using Editor.Features.Scene;
@@ -25,6 +26,7 @@ public class EditorDockspace(
     UnsavedSceneGuard unsavedSceneGuard,
     PublishSettingsUI publishSettingsUI,
     CommandPalette commandPalette,
+    AssetBrowserDialog assetBrowserDialog,
     RecentProjectsPanel recentProjectsPanel,
     ISceneManager sceneManager,
     IEditorPreferences editorPreferences,
@@ -82,6 +84,7 @@ public class EditorDockspace(
         unsavedSceneGuard.Render();
         publishSettingsUI.Render();
         commandPalette.Render();
+        assetBrowserDialog.Render();
 
         if (sceneLoadService.IsLoading && !recentProjectsPanel.IsLoading)
             LoadingOverlayDrawer.DrawFullscreen(

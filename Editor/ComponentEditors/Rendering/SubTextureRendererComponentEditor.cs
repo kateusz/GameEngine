@@ -1,6 +1,7 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
+using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using ImGuiNET;
 using SceneComponents.Rendering;
@@ -8,33 +9,27 @@ using SceneComponents.Rendering;
 namespace Editor.ComponentEditors.Rendering;
 
 public class SubTextureRendererComponentEditor(
-    UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<SubTextureRendererComponent>(history)
+    UIPropertyRenderer propertyRenderer,
+    TextureDropTarget textureDropTarget,
+    IEditorHistory history) : ComponentEditor<SubTextureRendererComponent>(history)
 {
     protected override string DisplayName => "Sub Texture Renderer";
 
     protected override void DrawContent(SubTextureRendererComponent component, Entity entity)
     {
-        string? texturePath = null;
-        if (MultiField.TryUniform(entity,
-                e => e.GetComponent<SubTextureRendererComponent>().TexturePath,
-                (a, b) => string.Equals(a, b, StringComparison.Ordinal),
-                out var uniformPath))
-            texturePath = uniformPath;
-
-        TextureDropTarget.Draw("Texture", relativePath =>
-        {
-            MultiField.WriteEach(entity, (Entity e, string path) =>
+        textureDropTarget.Draw("Texture",
+            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
             {
                 e.GetComponent<SubTextureRendererComponent>().TexturePath = path;
-            }, relativePath);
-        }, texturePath);
+            }, relativePath),
+            MultiField.UniformPath(entity, e => e.GetComponent<SubTextureRendererComponent>().TexturePath));
 
-        propertyRenderer.DrawPropertyField("Sub texture coords", entity,
+        propertyRenderer.DrawPropertyField("Coords", entity,
             e => e.GetComponent<SubTextureRendererComponent>().Coords,
             (e, v) => e.GetComponent<SubTextureRendererComponent>().Coords = v,
             UIPropertyRenderer.SameVector2);
 
-        ImGui.Separator();
+        LayoutDrawer.DrawSeparatorWithSpacing();
         ImGui.Text("Atlas Settings");
 
         propertyRenderer.DrawPropertyField("Cell Size", entity,

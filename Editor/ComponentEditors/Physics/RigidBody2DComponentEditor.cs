@@ -1,7 +1,6 @@
 using ECS;
 using Editor.ComponentEditors.Core;
 using Editor.Features.History;
-using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using SceneComponents.Physics;
 
@@ -9,24 +8,13 @@ namespace Editor.ComponentEditors.Physics;
 
 public class RigidBody2DComponentEditor(UIPropertyRenderer propertyRenderer, IEditorHistory history) : ComponentEditor<RigidBody2DComponent>(history)
 {
-    private static readonly string[] BodyTypeStrings =
-        [nameof(RigidBodyType.Static), nameof(RigidBodyType.Dynamic), nameof(RigidBodyType.Kinematic)];
-
     protected override string DisplayName => "Rigidbody 2D";
 
     protected override void DrawContent(RigidBody2DComponent component, Entity entity)
     {
-        LayoutDrawer.DrawComboBox("Body Type", component.BodyType.ToString(), BodyTypeStrings,
-            selectedType =>
-            {
-                component.BodyType = selectedType switch
-                {
-                    nameof(RigidBodyType.Static) => RigidBodyType.Static,
-                    nameof(RigidBodyType.Dynamic) => RigidBodyType.Dynamic,
-                    nameof(RigidBodyType.Kinematic) => RigidBodyType.Kinematic,
-                    _ => component.BodyType
-                };
-            });
+        MultiField.DrawEnumCombo("Body Type", entity,
+            e => e.GetComponent<RigidBody2DComponent>().BodyType,
+            (e, t) => e.GetComponent<RigidBody2DComponent>().BodyType = t);
 
         propertyRenderer.DrawPropertyField("Fixed Rotation", entity,
             e => e.GetComponent<RigidBody2DComponent>().FixedRotation,

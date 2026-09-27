@@ -25,7 +25,7 @@ public static class LoadingOverlayDrawer
         ImGui.End();
     }
 
-    public static void Draw(string text, ref float spinnerRotation)
+    private static void Draw(string text, ref float spinnerRotation)
     {
         var min = ImGui.GetWindowPos();
         var max = min + ImGui.GetWindowSize();

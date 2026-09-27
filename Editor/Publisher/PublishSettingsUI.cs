@@ -12,6 +12,8 @@ public class PublishSettingsUI(
     IProjectContext projectContext)
 {
     private const float LabelWidth = 130f;
+    
+    private static readonly Vector2 ExportProgressModalSize = new(600f, 500f);
 
     private bool _showExportModal;
     private string _selectedPlatform = PlatformDetection.DetectCurrentPlatform();
@@ -103,7 +105,7 @@ public class PublishSettingsUI(
         if (_publishProgress == null)
             return;
 
-        ImGui.SetNextWindowSize(EditorUIConstants.ExportProgressModalSize, ImGuiCond.Appearing);
+        ImGui.SetNextWindowSize(ExportProgressModalSize, ImGuiCond.Appearing);
 
         var title = _publishProgress.HasError ? "Export Failed"
             : _publishProgress.IsComplete ? "Export Complete"

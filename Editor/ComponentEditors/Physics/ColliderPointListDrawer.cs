@@ -1,4 +1,5 @@
 using System.Numerics;
+using Editor.UI.Drawers;
 using Editor.UI.Elements;
 using ImGuiNET;
 
@@ -15,14 +16,14 @@ internal static class ColliderPointListDrawer
             VectorPanel.DrawVec2Control($"{label}[{i}]", ref point);
             points[i] = point;
 
-            if (points.Count > minCount && ImGui.Button($"Remove##{label}{i}"))
+            if (points.Count > minCount && ButtonDrawer.DrawCompactButton($"Remove##{label}{i}"))
             {
                 points.RemoveAt(i);
                 break;
             }
         }
 
-        if (ImGui.Button($"Add {label}"))
+        if (ButtonDrawer.DrawCompactButton($"Add {label}"))
         {
             var last = points.Count > 0 ? points[^1] : Vector2.Zero;
             points.Add(last + new Vector2(0.5f, 0f));

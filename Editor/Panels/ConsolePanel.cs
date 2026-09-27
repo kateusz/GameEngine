@@ -80,7 +80,7 @@ public class ConsolePanel : IConsolePanel
 
     private void RenderToolbar()
     {
-        ButtonDrawer.DrawButton("Clear", Clear);
+        ButtonDrawer.DrawSmallButton("X", Clear, tooltip: "Clear");
         ImGui.SameLine();
 
         ImGui.Checkbox("Auto-scroll", ref _autoScroll);

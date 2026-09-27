@@ -1,8 +1,7 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using System.Text.RegularExpressions;
-using Engine.Core;
+using Editor.AssetPicker;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Project;
@@ -19,12 +18,11 @@ public class ContentBrowserPanel : IDisposable
     private enum CreateAssetKind { Component, System }
 
     private const float TreePanelWidth = 200f;
-    private const int MaxThumbnailUploadsPerFrame = 8;
-    private const int MaxReadyThumbnails = 32;
     private static readonly Regex ValidNameRegex = new(@"^[a-zA-Z][a-zA-Z0-9_]*$", RegexOptions.Compiled);
     private static readonly ILogger Logger = Log.ForContext<ContentBrowserPanel>();
 
     private readonly ITextureFactory _textureFactory;
+    private readonly AssetThumbnailCache _thumbnails;
     private readonly IProjectContext _projectContext;
     private readonly ContentBrowserActions _actions;
     private string _assetPath;
@@ -33,12 +31,6 @@ public class ContentBrowserPanel : IDisposable
     private Texture2D _fileIcon = null!;
     private readonly Dictionary<string, Texture2D> _imageCache = new();
     private readonly Dictionary<string, Texture2D> _folderIconCache = new();
-    private readonly BlockingCollection<(string Path, int Generation)> _decodeQueue = new();
-    private readonly BlockingCollection<(string Path, byte[]? Rgba, int Width, int Height, int Generation)> _readyThumbnails =
-        new(MaxReadyThumbnails);
-    private readonly HashSet<string> _pendingThumbnailPaths = new(StringComparer.OrdinalIgnoreCase);
-    private Task? _decodeWorker;
-    private int _thumbnailGeneration;
     private bool _disposed;
 
     private const string CreateAssetPopupId = "ContentBrowserCreateAsset";
@@ -50,13 +42,16 @@ public class ContentBrowserPanel : IDisposable
     private string _newAssetName = string.Empty;
     private string? _errorMessage;
     private string _folderFilter = string.Empty;
+    private bool _pendingTreeExpand = true; // open path to current dir on first draw
 
     public ContentBrowserPanel(
         ITextureFactory textureFactory,
+        AssetThumbnailCache thumbnails,
         IProjectContext projectContext,
         ContentBrowserActions actions)
     {
         _textureFactory = textureFactory;
+        _thumbnails = thumbnails;
         _projectContext = projectContext;
         _actions = actions;
         _currentDirectory = Environment.CurrentDirectory;
@@ -95,6 +90,7 @@ public class ContentBrowserPanel : IDisposable
     private void DrawDirectoryTree()
     {
         DrawDirectoryNode(_assetPath);
+        _pendingTreeExpand = false;
     }
 
     private void DrawDirectoryNode(string directoryPath)
@@ -118,9 +114,11 @@ public class ContentBrowserPanel : IDisposable
         if (isSelected)
             flags |= ImGuiTreeNodeFlags.Selected;
 
+        // Only force-open the path to the current folder when navigating — Always every
+        // frame made collapse impossible.
         var isAncestor = _currentDirectory.StartsWith(directoryPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
                          || isSelected;
-        if (isAncestor && subdirectories.Length > 0)
+        if (_pendingTreeExpand && isAncestor && subdirectories.Length > 0)
             ImGui.SetNextItemOpen(true, ImGuiCond.Always);
         
         var opened = ImGui.TreeNodeEx($"{dirName}##{directoryPath}", flags);
@@ -307,7 +305,7 @@ public class ContentBrowserPanel : IDisposable
 
     private void DrawContentGrid()
     {
-        ProcessPendingThumbnails();
+        _thumbnails.Pump();
 
         ImGui.TextWrapped($"Current Path: {_currentDirectory}");
         ImGui.Separator();
@@ -388,97 +386,15 @@ public class ContentBrowserPanel : IDisposable
     private void NavigateTo(string directory)
     {
         _currentDirectory = directory;
+        _pendingTreeExpand = true;
         _folderFilter = string.Empty;
-        _thumbnailGeneration++;
-        while (_decodeQueue.TryTake(out _))
-        {
-        }
-
-        DrainReadyThumbnails();
-        _pendingThumbnailPaths.Clear();
-    }
-
-    private void EnsureDecodeWorker()
-    {
-        if (_decodeWorker != null || _decodeQueue.IsAddingCompleted)
-            return;
-
-        _decodeWorker = Task.Run(DecodeWorkerLoop);
-    }
-
-    private void DecodeWorkerLoop()
-    {
-        foreach (var (path, generation) in _decodeQueue.GetConsumingEnumerable())
-        {
-            byte[]? rgba = null;
-            var width = 0;
-            var height = 0;
-            try
-            {
-                var preview = _textureFactory.DecodePreview(path);
-                rgba = preview.Data;
-                width = preview.Width;
-                height = preview.Height;
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                _readyThumbnails.Add((path, rgba, width, height, generation));
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-    }
-
-    private void ProcessPendingThumbnails()
-    {
-        var processed = 0;
-        while (processed < MaxThumbnailUploadsPerFrame && _readyThumbnails.TryTake(out var item))
-        {
-            if (item.Generation != _thumbnailGeneration)
-                continue;
-
-            processed++;
-
-            if (_imageCache.ContainsKey(item.Path))
-                continue;
-
-            if (item.Rgba == null)
-            {
-                _imageCache[item.Path] = _fileIcon;
-                continue;
-            }
-
-            try
-            {
-                _imageCache[item.Path] = _textureFactory.CreateFromRgba(item.Rgba, item.Width, item.Height);
-            }
-            catch
-            {
-                _imageCache[item.Path] = _fileIcon;
-            }
-        }
+        _imageCache.Clear();
+        _thumbnails.Clear();
     }
 
     private void RequestThumbnail(string entry)
     {
-        if (_imageCache.ContainsKey(entry) || !_pendingThumbnailPaths.Add(entry))
-            return;
-
-        EnsureDecodeWorker();
-        if (!_decodeQueue.IsAddingCompleted)
-            _decodeQueue.Add((entry, _thumbnailGeneration));
-    }
-
-    private void DrainReadyThumbnails()
-    {
-        while (_readyThumbnails.TryTake(out _))
-        {
-        }
+        _thumbnails.GetOrRequest(entry);
     }
 
     private (Texture2D icon, bool isImage) ResolveIcon(FileSystemInfo info, string entry, bool isDirectory)
@@ -491,9 +407,17 @@ public class ContentBrowserPanel : IDisposable
             return (_directoryIcon, false);
         }
 
-        if (info.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-            info.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+        if (DragDropDrawer.HasValidExtension(info.Name, AssetKind.Texture.Extensions))
         {
+            // Shared cache drives decode; this local cache only remembers the
+            // resolved icon (texture or _fileIcon fallback for failed decodes).
+            var thumb = _thumbnails.GetOrRequest(entry);
+            if (thumb is not null)
+            {
+                _imageCache[entry] = thumb;
+                return (thumb, true);
+            }
+
             if (_imageCache.TryGetValue(entry, out var cached))
                 return (cached, true);
 
@@ -554,19 +478,7 @@ public class ContentBrowserPanel : IDisposable
             return;
 
         _disposed = true;
-        _decodeQueue.CompleteAdding();
-        _readyThumbnails.CompleteAdding();
-        _decodeWorker?.Wait(TimeSpan.FromSeconds(1));
-        DrainReadyThumbnails();
-        _decodeQueue.Dispose();
-        _readyThumbnails.Dispose();
-
-        foreach (var texture in _imageCache.Values)
-        {
-            if (!ReferenceEquals(texture, _fileIcon))
-                texture.Dispose();
-        }
-
+        // Shared AssetThumbnailCache is owned by the editor lifecycle; do not dispose here.
         _imageCache.Clear();
     }
 }

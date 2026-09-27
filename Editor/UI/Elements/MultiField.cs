@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using ECS;
 using Editor.UI.Constants;
+using Editor.UI.Drawers;
 using ImGuiNET;
 
 namespace Editor.UI.Elements;
@@ -34,6 +35,32 @@ public static class MultiField
         }
 
         return true;
+    }
+
+    public static string? UniformPath(Entity entity, Func<Entity, string?> read) =>
+        TryUniform(entity, read, static (a, b) => string.Equals(a, b, StringComparison.Ordinal), out var path)
+            ? path
+            : null;
+
+    public static void DrawEnumCombo<TEnum>(
+        string label,
+        Entity entity,
+        Func<Entity, TEnum> read,
+        Action<Entity, TEnum> write)
+        where TEnum : struct, Enum
+    {
+        var currentLabel = "";
+        if (TryUniform(entity, read, EqualityComparer<TEnum>.Default.Equals, out var value))
+            currentLabel = value.ToString()!;
+
+        UIPropertyRenderer.DrawPropertyRow(label, () =>
+        {
+            LayoutDrawer.DrawComboBox($"##{label}", currentLabel, Enum.GetNames<TEnum>(), selected =>
+            {
+                if (Enum.TryParse<TEnum>(selected, out var parsed))
+                    WriteEach(entity, write, parsed);
+            }, width: -1f);
+        });
     }
 
     public static void WriteEach<T>(Entity fallback, Action<Entity, T> write, T value)

@@ -133,6 +133,8 @@ internal sealed class SilkNetImGuiLayer : IImGuiLayer, IDisposable
 
         var fontSize = 15.0f;
         io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", fontSize);
+        // Slightly larger size for modal window titles (ModalDrawer PushFont before BeginPopupModal).
+        io.Fonts.AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", fontSize + 3.0f);
 
         SetupImGuiStyle();
     }

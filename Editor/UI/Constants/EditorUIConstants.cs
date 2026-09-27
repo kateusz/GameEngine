@@ -13,6 +13,11 @@ public static class EditorUIConstants
     /// Standard width for modal buttons (Create, Save, Cancel, etc.)
     /// </summary>
     public const float StandardButtonWidth = 120f;
+
+    /// <summary>
+    /// Tooltip for asset Open / drag-drop field buttons.
+    /// </summary>
+    public const string SelectAssetTooltip = "Select Asset or search on computer";
     
     /// <summary>
     /// Height for standard buttons (0 = auto-height based on content)
@@ -20,25 +25,10 @@ public static class EditorUIConstants
     public const float StandardButtonHeight = 0f;
     
     /// <summary>
-    /// Width for wide action buttons (Add Existing Script, Create New Script, etc.)
-    /// </summary>
-    public const float WideButtonWidth = 150f;
-    
-    /// <summary>
     /// Width/height for small square buttons (axis labels, remove component, etc.)
     /// Used for compact controls like "X", "Y", "Z" axis buttons
     /// </summary>
     public const float SmallButtonSize = 20f;
-    
-    /// <summary>
-    /// Width for medium-sized buttons (Load OBJ, etc.)
-    /// </summary>
-    public const float MediumButtonWidth = 100f;
-    
-    /// <summary>
-    /// Standard size for icon buttons
-    /// </summary>
-    public const float IconSize = 16f;
     
     /// <summary>
     /// Ratio for property label column (1/3 of available width)
@@ -71,11 +61,6 @@ public static class EditorUIConstants
     /// Standard padding for frame elements (ImGui.PushStyleVar FramePadding)
     /// </summary>
     public const float StandardPadding = 4f;
-    
-    /// <summary>
-    /// Larger padding for elements that need more spacing
-    /// </summary>
-    public const float LargePadding = 8f;
     
     /// <summary>
     /// Small padding for compact layouts
@@ -163,18 +148,12 @@ public static class EditorUIConstants
     /// Width for toolbar toggle buttons (grid, ruler, etc.)
     /// </summary>
     public const float ToolbarToggleWidth = 25f;
-    public const float ToolbarWireframeToggleWidth = 70f;
 
     /// <summary>
     /// Height for toolbar toggle buttons (grid, ruler, etc.)
     /// </summary>
     public const float ToolbarToggleHeight = 19f;
-
-    /// <summary>
-    /// Default size for the export progress modal window.
-    /// </summary>
-    public static readonly Vector2 ExportProgressModalSize = new(600f, 500f);
-
+    
     /// <summary>
     /// Label column width for form-style dialogs (Export, Project Settings, New Project, …).
     /// </summary>
@@ -184,8 +163,6 @@ public static class EditorUIConstants
     /// Minimum width for form-style dialogs.
     /// </summary>
     public const float ModalMinWidth = 520f;
-
-    public const float DefaultButtonWidth = 100;
 
     // Viewport grid / ruler
     public const float GridMinorLineOpacity = 0.30f;
