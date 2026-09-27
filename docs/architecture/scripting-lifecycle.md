@@ -144,7 +144,7 @@ Called on **project close** and at the start of every reload.
 | Create / edit / delete `.cs` (content browser) | `GameScriptWorkspace.TryCompileAllScripts` | Yes | Yes |
 | Open scene (edit mode) | `SceneManager.Open` → `EnsureScriptsCompiledAndApplied` | Only if no valid assembly for current project | Yes |
 | **Play** | `SceneManager.Play` | Yes (new GUID DLL) | Yes (`LoadGameAssemblyFromFile`, no second compile) |
-| **Stop** | `SceneManager.Stop` → `Open(saved scene)` | After scene dispose, if needed | Yes |
+| **Stop** | `SceneManager.Stop` → dispose/reload scene, then `EnsureScriptsCompiledAndApplied` / `RestoreEditAssembly` | After scene dispose (required) | Yes |
 | Publish | `GamePublisher` | Yes (release, no PDB) | N/A (copied to output) |
 | Standalone runtime startup | Runtime player | **No** | Yes (pre-built DLL) |
 

@@ -49,6 +49,12 @@ public class SystemManager : IDisposable
         IsInitialized = false;
     }
 
+    public void RemoveSystems(Predicate<ISystem> match)
+    {
+        ArgumentNullException.ThrowIfNull(match);
+        _systems.RemoveAll(match);
+    }
+
     public void Dispose()
     {
         if (_disposed)

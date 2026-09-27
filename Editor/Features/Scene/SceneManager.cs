@@ -111,7 +111,8 @@ public class SceneManager(
         var scene = sceneContext.ActiveScene!;
         var isResume = _playPaused && !string.IsNullOrEmpty(_playSnapshotPath) && File.Exists(_playSnapshotPath);
 
-        if (!TryCompileAndLoadPlayAssembly(out _))
+        // Compile before tearing down entities so a build failure leaves the scene intact.
+        if (!TryCompilePlayAssembly(out var dllPath, out _))
             return;
 
         if (!isResume)
@@ -119,8 +120,10 @@ public class SceneManager(
             history.Clear();
             _playSnapshotPath = Path.Combine(Path.GetTempPath(), $"ge-play-{Guid.NewGuid():N}.scene");
             sceneSerializer.Serialize(scene, _playSnapshotPath);
-            ReloadEntitiesFromSnapshot(scene, _playSnapshotPath);
         }
+
+        // Entities + IGameSystem instances pin the collectible ALC — drop them before unload.
+        SwapPlayAssembly(scene, dllPath, _playSnapshotPath!);
 
         _playPaused = false;
         RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
@@ -134,9 +137,27 @@ public class SceneManager(
 
         sceneContext.SetState(SceneState.Edit);
         sceneContext.ActiveScene?.OnRuntimeStop();
-        scriptWorkspace.RestoreEditAssembly();
-        _playPaused = true;
 
+        // Preserve restart snapshot — Open() → ClearPlaySession would delete the file.
+        var playSnapshot = _playSnapshotPath;
+        _playSnapshotPath = null;
+
+        // Dispose / reload scene *before* any GameAssembly unload so live ALC roots are gone
+        // (CORDBG_E_TARGET_INCONSISTENT when debugger is attached).
+        if (!string.IsNullOrEmpty(EditorScenePath) && File.Exists(EditorScenePath))
+        {
+            Open(EditorScenePath);
+            _playSnapshotPath = playSnapshot;
+        }
+        else
+        {
+            sceneContext.ActiveScene?.Dispose();
+            scriptWorkspace.RestoreEditAssembly();
+            sceneContext.SetScene(sceneFactory.Create(""));
+            _playSnapshotPath = playSnapshot;
+        }
+
+        _playPaused = true;
         Logger.Information("⏹️ Scene play stopped");
     }
 
@@ -149,15 +170,11 @@ public class SceneManager(
         }
 
         var scene = sceneContext.ActiveScene!;
-        var wasPlaying = sceneContext.State == SceneState.Play;
 
-        if (wasPlaying)
-            scene.OnRuntimeStop();
-
-        if (!TryCompileAndLoadPlayAssembly(out _))
+        if (!TryCompilePlayAssembly(out var dllPath, out _))
             return;
 
-        ReloadEntitiesFromSnapshot(scene, _playSnapshotPath);
+        SwapPlayAssembly(scene, dllPath, _playSnapshotPath);
         _playPaused = false;
         RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
         Logger.Information("🔄 Scene restarted");
@@ -173,8 +190,11 @@ public class SceneManager(
         sceneContext.SetScene(sceneFactory.Create(sceneName));
     }
 
-    private void ReloadEntitiesFromSnapshot(IScene scene, string snapshotPath)
+    private void SwapPlayAssembly(IScene scene, string dllPath, string snapshotPath)
     {
+        if (sceneContext.State == SceneState.Play)
+            scene.OnRuntimeStop();
+
         var destroyed = 0;
         foreach (var entity in scene.Entities.ToList())
         {
@@ -182,16 +202,18 @@ public class SceneManager(
             destroyed++;
         }
 
+        scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir!);
         sceneSerializer.Deserialize(scene, snapshotPath);
         Logger.Debug("♻️ Reloaded {Destroyed} entities from snapshot for play-mode assembly", destroyed);
     }
 
-    private bool TryCompileAndLoadPlayAssembly(out string[] buildErrors)
+    private bool TryCompilePlayAssembly(out string dllPath, out string[] buildErrors)
     {
+        dllPath = "";
         buildErrors = [];
         var engineDir = Path.Combine(projectContext.Root!, ".engine");
         Directory.CreateDirectory(engineDir);
-        var dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
+        dllPath = GameAssemblyCompiler.GetNextEditorBuildPath(engineDir);
         if (!GameAssemblyCompiler.TryCompile(projectContext.ScriptsDir!, dllPath, emitPdb: true, useDebugOptimization: true, out buildErrors))
         {
             foreach (var e in buildErrors)
@@ -199,7 +221,6 @@ public class SceneManager(
             return false;
         }
 
-        scriptWorkspace.LoadGameAssemblyFromFile(dllPath, projectContext.ScriptsDir!);
         return true;
     }
 
