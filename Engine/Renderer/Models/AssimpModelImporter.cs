@@ -82,6 +82,23 @@ internal sealed class AssimpModelImporter : IDisposable
                     submesh.NormalPath = material.NormalPath ?? string.Empty;
                     submesh.MetallicRoughnessPath = material.MetallicRoughnessPath ?? string.Empty;
                     submesh.OcclusionPath = material.OcclusionPath ?? string.Empty;
+                    Logger.Debug(
+                        "PBR set for mesh={Mesh} model={Path}: metallic={Metallic} roughness={Roughness} baseColor={BaseColor} " +
+                        "maps albedo={Albedo} normal={Normal} metallicRoughness={Mr} occlusion={Occlusion} " +
+                        "hasAlbedo={HasAlbedo} hasNormal={HasNormal} hasMr={HasMr} hasOcclusion={HasOcclusion}",
+                        submesh.Name,
+                        normalizedPath,
+                        submesh.Metallic,
+                        submesh.Roughness,
+                        submesh.BaseColorFactor,
+                        submesh.DiffusePath,
+                        submesh.NormalPath,
+                        submesh.MetallicRoughnessPath,
+                        submesh.OcclusionPath,
+                        !string.IsNullOrEmpty(submesh.DiffusePath),
+                        !string.IsNullOrEmpty(submesh.NormalPath),
+                        !string.IsNullOrEmpty(submesh.MetallicRoughnessPath),
+                        !string.IsNullOrEmpty(submesh.OcclusionPath));
                     meshIndexMap[i] = submeshes.Count;
                     submeshes.Add(submesh);
                 }

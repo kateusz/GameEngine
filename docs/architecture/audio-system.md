@@ -12,7 +12,7 @@ OpenAL-backed playback via `IAudio` (`OpenALAudioEngine`). Supports spatial audi
 |---:|---|---|
 | 120 | `AudioSystem` | Listener pose, source sync, effect chains |
 
-Constants: `Engine/Scene/Systems/SystemPriorities.cs`
+Priority is defined on `AudioSystem` (`Priority => 120`).
 
 ---
 
@@ -96,7 +96,7 @@ Runtime OpenAL sources are **not** stored on the component. `AudioSystem` keeps 
 sequenceDiagram
     participant Loop as Game Loop
     participant AS as AudioSystem
-    participant Ctx as IContext
+    participant Ctx as Context
     participant A as IAudio
     participant Src as IAudioSource
 

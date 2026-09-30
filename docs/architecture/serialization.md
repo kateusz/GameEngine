@@ -56,61 +56,67 @@ Scene JSON structure:
 }
 ```
 
-- On save, the `"Scene"` key is set from the file path via `Path.GetFileNameWithoutExtension(path)` (metadata only — `Deserialize()` does not read it; callers supply the scene name separately, e.g. from the file path when opening)
+- On save, `"Scene"` is written from `IScene.Name` (metadata; `Deserialize` does not restore the name from JSON)
 - `BackgroundColor` (`Vector4`) and `Dimension` (`SceneDimension` enum) are scene-level properties restored on load
-- Each entity serialized with `Id`, `Name`, and `Components` array
-- `Deserialize()` appends entities to the provided `IScene` without clearing it — callers must use a fresh scene or remove existing entities first
-- Components serialized via `ComponentSerializerRegistry.SerializeEntity()` — iteration order follows `entity.GetAllComponents()`
-- Each component JSON object includes a `"Name"` property (the registered component type name) plus serialized property values
+- Each entity is serialized with `Id`, `Name`, and a `Components` array
+- `Deserialize` appends entities to the provided `IScene` without clearing it — callers must use a fresh scene or remove existing entities first
+- After all entities are added, `IScene.RebuildHierarchyIndex()` runs
+- Components are serialized via `ComponentSerializerRegistry.SerializeEntity()` — iteration order follows `entity.GetAllComponents()`
+- Each component JSON object includes a `"Name"` property (registered type name) plus property values
+- Unknown component types are **skipped** (lenient); `Deserialize` returns the distinct skipped names
+- `SerializeToString(IScene)` returns indented JSON without writing a file
 
 ## Component Serialization
 
-Components are data-only classes serialized by System.Text.Json through `JsonComponentSerializer<T>`. Runtime-only fields are excluded with `[JsonIgnore]` on the component type:
+Components are data-only classes serialized by System.Text.Json through `JsonComponentSerializer<T>`. Runtime-only fields on component types use `[JsonIgnore]` (e.g. computed view matrices, physics dirty flags) so they are not persisted.
 
-| Component | Excluded Fields | Reason |
-|-----------|----------------|--------|
-| CameraComponent | `CameraViewTransform` | Computed view matrix, not persisted |
-| BoxCollider2DComponent | `IsDirty` | Physics sync flag, not persisted |
+Resource paths (`TexturePath`, `ModelPath`, `AudioClipPath`, etc.) are serialized as strings. GPU/audio resources are loaded later by their systems — not during JSON deserialization.
 
-Resource paths (`TexturePath`, `AudioClipPath`, etc.) are serialized as strings. GPU/audio resources are loaded later by their respective systems — not during JSON deserialization.
-
-Built-in components **not** registered in `RegisterBuiltins()` (`TagComponent`, `IdComponent`) cannot be saved to scene/prefab JSON — `SerializeEntity()` throws if an entity has an unregistered component type.
+Built-in components **not** registered in `RegisterBuiltins()` (`TagComponent`, `IdComponent`) cannot be saved — `SerializeEntity()` throws if an entity has an unregistered component type (unless a hot-reload name fallback matches; see below).
 
 ## ComponentSerializerRegistry
 
 **File:** `Engine/Scene/Serializer/ComponentSerializerRegistry.cs`
 
-Central registry mapping component type names to serializers. Built-in components are registered in `RegisterBuiltins()`:
+Central registry mapping component type names to serializers. Built-ins in `RegisterBuiltins()`:
 
 | Component | Serializer |
 |-----------|-----------|
 | TransformComponent | `JsonComponentSerializer<T>` |
+| ParentComponent | `JsonComponentSerializer<T>` |
 | CameraComponent | `JsonComponentSerializer<T>` |
 | SpriteRendererComponent | `JsonComponentSerializer<T>` |
 | SubTextureRendererComponent | `JsonComponentSerializer<T>` |
+| ModelRendererComponent | `JsonComponentSerializer<T>` |
+| VisibilityZoneComponent | `JsonComponentSerializer<T>` |
+| AmbientLightComponent | `JsonComponentSerializer<T>` |
+| DirectionalLightComponent | `JsonComponentSerializer<T>` |
+| PointLightComponent | `JsonComponentSerializer<T>` |
 | RigidBody2DComponent | `JsonComponentSerializer<T>` |
 | BoxCollider2DComponent | `JsonComponentSerializer<T>` |
+| CircleCollider2DComponent | `JsonComponentSerializer<T>` |
+| EdgeCollider2DComponent | `JsonComponentSerializer<T>` |
 | AudioListenerComponent | `JsonComponentSerializer<T>` |
 | AudioSourceComponent | `JsonComponentSerializer<T>` |
 
-### Strict vs lenient deserialization
+### Lenient deserialization
 
-Both scene and prefab loading use `DeserializeComponent(entity, componentJson, options, strict)`:
+Scene and prefab loading both pass `strict: false` into `DeserializeComponent`:
 
-| Mode | `strict` | Used By | Unknown Types |
-|------|----------|---------|---------------|
-| **Strict** | `true` | SceneSerializer | Throws `InvalidSceneJsonException` |
-| **Lenient** | `false` | PrefabSerializer | Silently skipped |
+| Caller | Unknown Types |
+|--------|---------------|
+| SceneSerializer | Skipped; names returned from `Deserialize` |
+| PrefabSerializer | Skipped silently |
 
-Prefabs use lenient mode for forward/backward compatibility — unknown component types from newer engine versions are skipped when loading older prefabs.
+Optional `skippedNames` collection records unknown `"Name"` values when provided (scenes use this).
 
 ### Serialize safety
 
-If an entity has a component with no registered serializer, `SerializeEntity()` throws `InvalidOperationException` rather than silently dropping data.
+If an entity has a component with no registered serializer, `SerializeEntity()` throws `InvalidOperationException` rather than silently dropping data. After hot-reload, instances typed from a previous GameAssembly may miss the `_byType` entry; the registry then falls back to `[SerializableComponent]` name / type name and serializes via `JsonSerializer.SerializeToNode` against the live instance type.
 
 ### Extensibility
 
-Game-defined components can opt into serialization with `[SerializableComponent]` (defined in `ECS/SerializableComponentAttribute.cs`). Optional `name` parameter overrides the JSON `"Name"` value.
+Game-defined components opt in with `[SerializableComponent]` (`ECS/SerializableComponentAttribute.cs`). Optional `name` overrides the JSON `"Name"` value.
 
 ```csharp
 [SerializableComponent]
@@ -120,12 +126,12 @@ public class ScoreComponent : IGameComponent { ... }
 public class MyComponent : IGameComponent { ... }
 ```
 
-Registration happens at runtime when the game assembly loads:
+Registration when the game assembly loads:
 
-- **Editor:** `GameScriptWorkspace` calls `RegisterFromAssembly(assembly)` after script hot-reload
-- **Runtime:** `Runtime/Program.cs` calls `RegisterFromAssembly(assembly)` after game assembly load
+- **Editor:** workspace calls `RegisterFromAssembly(assembly)` after script hot-reload
+- **Runtime:** host calls `RegisterFromAssembly(assembly)` after game assembly load
 
-`RegisterFromAssembly` calls `UnregisterAssembly` first, so recompilation replaces serializers from the same assembly without duplicates. `UnregisterAssembly(assembly)` removes serializers owned by that assembly without clobbering serializers registered from another assembly with the same component name.
+`RegisterFromAssembly` calls `UnregisterAssembly` first so recompilation replaces serializers from that assembly. `UnregisterAssembly(assembly)` removes only serializers owned by that assembly.
 
 Public registration API: `IComponentSerializerRegistry.Register<T>(string? componentName = null)`.
 
@@ -133,7 +139,7 @@ Public registration API: `IComponentSerializerRegistry.Register<T>(string? compo
 
 **File:** `Engine/Scene/Serializer/SerializerOptions.cs`
 
-`SerializerOptions` is a DI singleton that constructs a `JsonSerializerOptions` with these converters:
+`SerializerOptions` is a DI singleton that builds `JsonSerializerOptions` with:
 
 | Converter | Format | Example |
 |-----------|--------|---------|
@@ -142,31 +148,51 @@ Public registration API: `IComponentSerializerRegistry.Register<T>(string? compo
 | `Vector4Converter` | `[x, y, z, w]` | `[1, 1, 1, 1]` |
 | `JsonStringEnumConverter` | Enum as string | `"TwoD"`, `"Dynamic"` |
 
-Vector converters sanitize NaN/Infinity values to `0f` on write. The options are made read-only via `MakeReadOnly(populateMissingResolver: true)` after construction.
+Vector converters sanitize NaN/Infinity to `0f` on write. Options are made read-only via `MakeReadOnly(populateMissingResolver: true)` after construction.
 
 ## Prefab Serialization
 
 **File:** `Engine/Scene/Serializer/PrefabSerializer.cs`
 
-Prefab JSON structure:
+### Prefab v2 (current save format)
+
+Saves the full subtree from the selected entity. Parent ids are remapped to prefab-local indices (`PrefabIndex`).
 
 ```json
 {
   "Prefab": "PlayerPrefab",
-  "Version": "1.0",
-  "OriginalName": "Player",
-  "Components": [
-    { "Name": "TransformComponent", ... },
-    { "Name": "SpriteRendererComponent", ... }
+  "Version": "2.0",
+  "RootPrefabIndex": 0,
+  "Entities": [
+    {
+      "PrefabIndex": 0,
+      "Name": "Player",
+      "Components": [
+        { "Name": "TransformComponent", "...": "..." },
+        { "Name": "SpriteRendererComponent", "...": "..." }
+      ]
+    },
+    {
+      "PrefabIndex": 1,
+      "Name": "Weapon",
+      "Components": [
+        { "Name": "ParentComponent", "ParentId": 0 },
+        { "Name": "TransformComponent", "...": "..." }
+      ]
+    }
   ]
 }
 ```
 
-Three operations:
+### Prefab v1 (load only)
 
-- **`SerializeToPrefab()`**: Serializes entity components to `{projectPath}/assets/prefabs/{name}.prefab`
-- **`ApplyPrefabToEntity()`**: Clears all components from an existing entity, then deserializes prefab components onto it (lenient)
-- **`CreateEntityFromPrefab()`**: Creates a new `Entity` and deserializes prefab components onto it (lenient)
+Older single-entity files with top-level `Components` (and optional `OriginalName`) still load.
+
+### Operations
+
+- **`SerializeToPrefab()`**: Writes `{projectPath}/assets/prefabs/{name}.prefab` in **v2** format (always)
+- **`ApplyPrefabToEntity()`**: v2 replaces the subtree under the target (keeps external parent); v1 replaces components on that entity only
+- **`CreateEntityFromPrefab()`**: Instantiates v2 subtree or v1 single entity; returns the root
 
 ## Scene Deserialization Flow
 
@@ -186,40 +212,41 @@ sequenceDiagram
 
     loop For each entity JSON object
         SS->>SS: Read Id and Name
-        SS->>SS: Entity.Create(id, name)
+        SS->>SS: new Entity(id, name)
 
         loop For each component in "Components" array
-            SS->>CSR: DeserializeComponent(entity, componentNode, strict: true)
+            SS->>CSR: DeserializeComponent(..., strict: false, skippedNames)
             CSR->>CSR: Lookup serializer by "Name"
             alt Known component
                 CSR->>CSR: serializer.TryDeserialize(entity, json, options)
             else Unknown component
-                CSR-->>SS: InvalidSceneJsonException
+                CSR-->>SS: skip (record name)
             end
         end
 
         SS->>Scene: AddEntity(entity)
     end
 
-    SS-->>Caller: Scene populated
+    SS->>Scene: RebuildHierarchyIndex()
+    SS-->>Caller: skipped component names
 ```
 
 ## Public API
 
 | Interface | Implementation | Purpose |
 |-----------|----------------|---------|
-| `ISceneSerializer` | `SceneSerializer` | `Serialize(IScene, path)` / `Deserialize(IScene, path)` |
+| `ISceneSerializer` | `SceneSerializer` | `Serialize` / `SerializeToString` / `Deserialize` (path or `JsonObject`) |
 | `IPrefabSerializer` | `PrefabSerializer` | Prefab save, apply, and create-from-prefab |
 | `IComponentSerializerRegistry` | `ComponentSerializerRegistry` | `Register<T>()`, `RegisterFromAssembly`, `UnregisterAssembly` |
 
-`InvalidSceneJsonException` is the public exception type for invalid scene/prefab JSON and I/O failures during scene save/load.
+`InvalidSceneJsonException` is the public exception type for invalid scene/prefab JSON and I/O failures during scene/prefab save/load.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `Engine/Scene/Serializer/SceneSerializer.cs` | Scene save/load |
-| `Engine/Scene/Serializer/PrefabSerializer.cs` | Prefab save/load/apply |
+| `Engine/Scene/Serializer/PrefabSerializer.cs` | Prefab save/load/apply (v1 + v2) |
 | `Engine/Scene/Serializer/ComponentSerializerRegistry.cs` | Polymorphic component dispatch and registration |
 | `Engine/Scene/Serializer/ComponentSerializers.cs` | `IComponentSerializer`, `JsonComponentSerializer<T>` |
 | `Engine/Scene/Serializer/IComponentSerializerRegistry.cs` | Public registration API |

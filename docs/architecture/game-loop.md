@@ -60,7 +60,7 @@ sequenceDiagram
     App->>Win: Run()
 
     Win-->>App: OnWindowLoad(inputSystem)
-    App->>App: RendererAPI.Init(), Graphics2D.Init(), Audio.Initialize()
+    App->>App: RendererAPI.Init(), Graphics2D.Init(), Graphics3D.Init(), Audio.Initialize()
     App->>Layers: OnAttach() for each layer
     Note over Layers: GameLayer OnAttach: deserialize startup scene, RuntimeSceneStarter.Start()
 

@@ -8,21 +8,23 @@ A component-based game engine built with C# and .NET 10, featuring a visual edit
 
 ### Core Engine
 - **Entity Component System (ECS)** — data-driven architecture with ordered system execution
-- **Entity Hierarchy** — parent/child transforms, cascade destroy, prefab subtrees, serialized relationships
+- **Entity Hierarchy** — parent/child transforms, cascade destroy, show/hide (`Visible` / `EffectiveVisible`), prefab subtrees, serialized relationships
 - **2D Rendering** — OpenGL pipeline with batched sprites
-- **3D Rendering** — static `.glb` / `.gltf` / `.fbx` meshes (PBR textures, mesh instancing), unit cubes, perspective camera, ambient + directional + point lights (Cook-Torrance), directional and point shadows. No skinning or animation yet.
+- **3D Rendering** — static `.glb` / `.gltf` / `.fbx` meshes (PBR textures, mesh instancing), unit cubes, perspective camera, ambient + directional + point lights (Cook-Torrance), directional and point shadows, frustum culling, visibility zones. No skinning or animation yet.
 - **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast & overlap queries, and debug visualization
 - **Hot-Reloadable Scripting** — C# `IGameSystem` / `IGameComponent` under `assets/scripts/`, compiled to a GameAssembly and loaded via `ScriptEngine` without restarting the editor. Systems poll `IKeyboardInput` / `IMouseInput` ([docs](docs/guide/scripting/input.md))
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
 - **Cross-Platform** — Windows and macOS
 
 ### Editor
-- **Visual Scene Editor** — hierarchy tree, viewport tools (select/move/scale/rotate/ruler), and properties panel
+- **Visual Scene Editor** — hierarchy tree (multi-select, reparent), viewport tools (select/move/scale/rotate/ruler), and properties panel with multi-entity edit
 - **Undo/Redo** — reversible transform, component, and entity-delete operations (Ctrl+Z / Ctrl+Y)
-- **Asset Browser** — browse and manage project assets; drag-drop textures, 3D models, audio, and prefabs into scenes
-- **Live Console** — real-time logging while you work
+- **Content Browser** — bottom-dock asset browser; drag-drop textures, 3D models, audio, and prefabs; asset picker on component fields
+- **Command Palette** — search and run editor commands
+- **Project & Scene Settings** — project settings, per-scene settings, and entity show/hide for rendering
+- **Live Console** — bottom-dock logging while you work
 - **Project Management** — create and open game projects
-- **Game Publishing** — build a standalone executable for the host RID (Windows or macOS), with publish validation
+- **Game Publishing** — build a standalone executable for the host RID (Windows/macOS x64 or ARM64), with publish validation (`IGamePublisher` / `PublishedBuildValidator`)
 - **Keyboard Shortcuts** — configurable shortcuts with an in-editor reference ([docs](docs/guide/editor/shortcuts.md))
 
 ## Getting Started
@@ -86,8 +88,9 @@ Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game ove
 - [Developer Guide](docs/guide/index.md) — setup, editor, scripting, concepts
 - [Cameras and Rendering](docs/guide/concepts/cameras-and-rendering.md) — 2D sprites, 3D models, lights, cameras
 - [Architecture](docs/architecture/README.md) — how the engine is structured
-- [Rendering Pipeline](docs/architecture/rendering-pipeline.md) — 2D batching, 3D meshes, lighting, and shadows
-- [Roadmap](docs/guide/roadmap.md) — planned work
+- [Scene Rendering Pipeline](docs/architecture/scene-rendering-pipeline.md) — pass ordering, 2D batching, 3D meshes
+- [Lighting](docs/architecture/lighting.md) — forward lighting and light resolution
+- [Shadows](docs/architecture/shadows.md) — directional and point shadow passes
 
 ## Dependencies
 

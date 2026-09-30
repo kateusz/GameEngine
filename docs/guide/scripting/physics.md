@@ -10,7 +10,7 @@
 | **Dynamic** | Simulated — gravity, forces, collisions |
 | **Kinematic** | Moved by code; pushes dynamics, ignores forces |
 
-Set `RigidBody2DComponent.Velocity` in `OnUpdate` for Dynamic/Kinematic movement. `GravityScale` scales gravity per entity (1.0 = default).
+Set `RigidBody2DComponent.Velocity` in `OnUpdate` for Dynamic/Kinematic movement. `GravityScale` scales gravity per entity (1.0 = default). `IsBullet` enables continuous collision detection (helps fast movers).
 
 ## Collisions vs triggers
 

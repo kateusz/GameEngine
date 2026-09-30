@@ -54,7 +54,7 @@ The toolbar also provides a **2D Grid** toggle. Grid and ruler visibility can be
 
 ## Play / Stop Controls
 
-The toolbar at the top of the editor provides controls for entering and exiting runtime mode.
+The toolbar at the top of the editor provides controls for entering and exiting runtime mode. **Ctrl+Shift+P** opens the **Command Palette** to search and run editor commands.
 
 - **Play** - Starts the simulation. Physics begins, scripts execute, and the game camera takes over the viewport. Requires an open project with an `assets/scripts/` directory. Scripts are recompiled before play starts.
 - **Stop** - Ends the simulation and returns to edit mode. The scene is reloaded from the last **saved** file on disk, reverting any changes that occurred during play.

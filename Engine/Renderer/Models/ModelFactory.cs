@@ -188,6 +188,23 @@ internal class ModelFactory : IModelFactory
             mesh.MetallicFactor = submesh.Metallic;
             mesh.RoughnessFactor = submesh.Roughness;
             mesh.BaseColorFactor = submesh.BaseColorFactor;
+            Logger.Debug(
+                "PBR set for mesh={Mesh} model={Path}: metallic={Metallic} roughness={Roughness} baseColor={BaseColor} " +
+                "maps albedo={Albedo} normal={Normal} metallicRoughness={Mr} occlusion={Occlusion} " +
+                "hasAlbedo={HasAlbedo} hasNormal={HasNormal} hasMr={HasMr} hasOcclusion={HasOcclusion}",
+                submesh.Name,
+                normalizedPath,
+                submesh.Metallic,
+                submesh.Roughness,
+                submesh.BaseColorFactor,
+                submesh.DiffusePath,
+                submesh.NormalPath,
+                submesh.MetallicRoughnessPath,
+                submesh.OcclusionPath,
+                !string.IsNullOrEmpty(submesh.DiffusePath),
+                !string.IsNullOrEmpty(submesh.NormalPath),
+                !string.IsNullOrEmpty(submesh.MetallicRoughnessPath),
+                !string.IsNullOrEmpty(submesh.OcclusionPath));
             RuntimeMeshTextureRefs.BindTextures(mesh, submesh, sourceDirectory, textureFactory);
             meshes.Add(mesh);
         }

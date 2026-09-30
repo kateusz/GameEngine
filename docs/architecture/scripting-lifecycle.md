@@ -224,7 +224,7 @@ Scene dispose must happen **before** assembly reload so play-mode `IGameSystem` 
 
 Discovered from the loaded `GameAssembly` via `[Register]` (typically `[Register(typeof(IGameSystem))]`). `GameAssemblyContainerRegistration` uses `AssemblyLoadTypes.From` so a `ReflectionTypeLoadException` still yields the types that did load.
 
-Editor **Add System** scaffold (`GameSystemTemplates.Generate`): class name `{baseName}System`, `[Register(typeof(IGameSystem))]`, `Priority => 100`, constructor-injects `IContext` and `IKeyboardInput`, implements `OnInit` / `OnUpdate(TimeSpan)` / `OnShutdown`.
+Editor **Add System** scaffold (`GameSystemTemplates.Generate`): class name `{baseName}System`, `[Register(typeof(IGameSystem))]`, `Priority => 100`, constructor-injects `Context` and `IKeyboardInput`, empty `OnUpdate(TimeSpan)` (optional `OnInit` / `OnShutdown` via `ISystem` defaults).
 
 On play, registered `IGameSystem` instances are resolved from DryIoc and started on the scene (`RuntimeSceneStarter`). Other engine services (`IPhysicsContacts`, `IAudio`, …) are the same constructor-injection pattern — [API Reference](../guide/scripting/api-reference.md).
 
