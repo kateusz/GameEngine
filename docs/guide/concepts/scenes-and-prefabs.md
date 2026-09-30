@@ -25,12 +25,14 @@ Entities can have a parent (`ParentComponent` in scene JSON). Child local transf
 
 | Scene API | Behavior |
 |-----------|----------|
-| `GetRootEntities` / `GetChildren` / `GetParent` | Tree walk |
+| `GetRootEntities` / `GetChildren` / `GetParent` | Tree walk (`GetChildren` returns a snapshot) |
 | `SetParent` | Rejects missing entities, self-parent, and cycles; same parent is a no-op (keeps sibling order) |
 | `DestroyEntity` | Destroys descendants first |
 | `DuplicateEntity` | Clones the subtree and remaps internal parent ids |
-| `UpdateWorldTransforms` | Depth-first world matrices from roots — call before reading world position in edit mode |
+| `UpdateWorldTransforms` | Depth-first world matrices from roots; also refreshes `EffectiveVisible` (parent AND local `Visible`) |
+| `SetSubtreeVisible` | Sets `TransformComponent.Visible` on root and descendants, then refreshes world caches |
 | `CollectSubtree` | Root plus descendants, parent-before-child |
+| `GetWorldPosition` | World-space translation (`IEntityHierarchy`) |
 
 The editor hierarchy panel shows the tree and supports drag-reparent. Scripts use `IEntityHierarchy` on the scene — [API Reference](../scripting/api-reference.md).
 
@@ -40,9 +42,9 @@ The editor hierarchy panel shows the tree and supports drag-reparent. Scripts us
 
 ## Prefabs
 
-`.prefab` files under `assets/prefabs/` — same component JSON as scenes, no scene-level fields. Parent references serialize with the entity tree.
+`.prefab` files under `assets/prefabs/` — component JSON via the same registry as scenes. Current saves use **prefab v2** (entity subtree with remapped parent indices). Older v1 single-entity files still load. Schema details: [Serialization](../../architecture/serialization.md).
 
 1. Select entity → **Save as Prefab** → name
-2. Drag `.prefab` onto an **existing** hierarchy entity to apply its components
+2. Drag `.prefab` onto an **existing** hierarchy entity to apply (v2 replaces the subtree)
 
 `CreateEntityFromPrefab` exists in code but hierarchy drag-to-spawn is not wired yet. No runtime prefab API yet — editor only.

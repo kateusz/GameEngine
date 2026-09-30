@@ -43,4 +43,4 @@ public void OnUpdate(TimeSpan deltaTime)
 
 Direct position changes conflict with `RigidBody2DComponent` simulation — prefer velocity.
 
-**Files:** `Engine/Core/Input/IInputSystem.cs`, `Engine/Core/Input/KeyboardInputState.cs`, `Engine/Core/Input/MouseInputState.cs`, `Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs`
+**Files:** `Engine/Input/IInputSystem.cs`, `Engine/Input/KeyboardInputState.cs`, `Engine/Input/MouseInputState.cs`, `Engine/Platform/SilkNet/Input/SilkNetInputSystem.cs`, `Engine/Events/Input/`

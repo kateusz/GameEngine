@@ -65,13 +65,13 @@ Body and fixture creation use value-type defs:
 
 | Struct | File | Fields |
 |---|---|---|
-| `PhysicsBodyDef` | `Engine/Physics/PhysicsBodyDef.cs` | `Position`, `Angle`, `MotionType`, `FixedRotation`, `GravityScale` |
+| `PhysicsBodyDef` | `Engine/Physics/PhysicsBodyDef.cs` | `Position`, `Angle`, `MotionType`, `FixedRotation`, `GravityScale`, `IsBullet` |
 | `PhysicsBoxFixtureDef` | `Engine/Physics/PhysicsBoxFixtureDef.cs` | `HalfWidth`, `HalfHeight`, `CenterOffset`, `Density`, `Friction`, `Restitution`, `IsSensor` |
 | `PhysicsCircleFixtureDef` | `Engine/Physics/PhysicsCircleFixtureDef.cs` | `Radius`, `CenterOffset`, `Density`, `Friction`, `Restitution`, `IsSensor` |
 | `PhysicsEdgeFixtureDef` | `Engine/Physics/PhysicsEdgeFixtureDef.cs` | `Points`, `Density`, `Friction`, `Restitution`, `IsSensor` |
 | `PhysicsBodyMotionType` | `Engine/Physics/PhysicsBodyMotionType.cs` | `Static`, `Dynamic`, `Kinematic` |
 
-Dynamic bodies are created with `bullet = true` in the Box2D backend to reduce tunneling.
+Dynamic bodies use `IsBullet` from `RigidBody2DComponent` (passed through `PhysicsBodyDef`) to reduce tunneling when enabled.
 
 ---
 
@@ -88,6 +88,7 @@ Properties referenced by `PhysicsSimulationSystem`:
 | `BodyType` | Maps to `PhysicsBodyMotionType` at body creation |
 | `FixedRotation` | Passed to `PhysicsBodyDef` |
 | `GravityScale` | Passed to `PhysicsBodyDef` |
+| `IsBullet` | Passed to `PhysicsBodyDef` (CCD / continuous collision) |
 | `Velocity` | Written to body before each step (Dynamic/Kinematic); read back after sync |
 
 ### Collider components
@@ -197,7 +198,7 @@ After all steps, for each entity with rigidbody, collider, and a stored body:
 
 ## System Priorities
 
-**File**: `Engine/Scene/Systems/SystemPriorities.cs`
+Priorities are defined on each system class (there is no shared `SystemPriorities.cs`):
 
 | Priority | System |
 |---|---|

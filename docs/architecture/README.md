@@ -76,15 +76,16 @@ C4Container
 GameEngine/
 ├── ECS/                 # Pure ECS framework (no engine dependencies)
 │   ├── Entity.cs        # Entity with Dictionary<Type, IComponent> storage
-│   ├── Context.cs       # Thread-safe entity registry + View<T>() queries
+│   ├── Context.cs       # Main-thread entity registry + View<T>() queries
 │   └── Systems/         # ISystem, SystemManager (priority-sorted execution)
 ├── Engine/              # Core runtime
 │   ├── Core/            # Application, Layer stack, DI setup, Input, Window
-│   ├── Renderer/        # 2D graphics, 3D meshes/cubes, renderer API, cameras
-│   ├── Scene/           # Scene, Components (14 types), Systems (10 types)
-│   ├── Scripting/       # IScriptEngine, GameAssembly load/unload, script discovery
-│   └── Audio/           # IAudio loaders/utils, OpenAL integration
-├── Editor/              # Visual editor (ImGui panels, component editors)
+│   ├── Renderer/        # 2D/3D graphics APIs, buffers, shaders, textures, models
+│   ├── Platform/        # OpenGL, Silk.NET windowing/input, OpenAL, Box2D backends
+│   ├── Scene/           # Scene, systems, cameras, serialization
+│   ├── Scripting/       # IScriptEngine, GameAssembly load/unload
+│   └── Audio/           # Audio loaders, playback service, effect interfaces
+├── Editor/              # Visual editor (ImGui panels, component editors, publisher)
 ├── Runtime/             # Standalone game player
 └── tests/               # Unit tests (ECS.Tests, Engine.Tests)
 ```
@@ -97,7 +98,9 @@ GameEngine/
 |----------|-------|
 | [ECS Architecture](ecs-architecture.md) | Entity, Components, Context queries, Systems, priority execution |
 | [Game Loop](game-loop.md) | Application lifecycle, frame tick, layer stack, Editor vs Runtime |
-| [Rendering Pipeline](rendering-pipeline.md) | Renderer abstraction, 2D batching, 3D mesh import, shaders, textures, cameras, framebuffers |
+| [Scene Rendering Pipeline](scene-rendering-pipeline.md) | Pass ordering, 2D batching, 3D mesh path, shaders, textures, cameras, framebuffers |
+| [Lighting](lighting.md) | Forward lighting model, light resolution rules, color-pass shader contract |
+| [Shadows](shadows.md) | Directional and point shadow passes, cache, depth shader contracts |
 | [Scripting Lifecycle](scripting-lifecycle.md) | Roslyn compilation (editor), GameAssembly load/unload, IGameSystem / IGameComponent, editor vs runtime |
 | [Physics System](physics-system.md) | Physics world abstraction, Box2D backend, fixed timestep, contact queue, world queries, debug draw |
 | [Audio System](audio-system.md) | OpenAL engine, spatial audio, components |

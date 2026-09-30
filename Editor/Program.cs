@@ -24,7 +24,7 @@ ConfigureContainer(container);
 var consolePanel = container.Resolve<IConsolePanel>();
 consolePanel.Initialize();
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
+    .MinimumLevel.Debug()
     .Enrich.WithProperty("Application", "GameEngine")
     .Enrich.WithThreadId()
     .WriteTo.Async(a => a.ConsolePanel(consolePanel))

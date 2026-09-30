@@ -11,13 +11,13 @@ graph TB
     subgraph "ECS/ (Pure Framework)"
         Entity["Entity<br/><i>int Id + Dictionary&lt;Type, IComponent&gt;</i>"]
         IComponent["IComponent<br/><i>Interface with Clone()</i>"]
-        Context["Context<br/><i>Thread-safe entity registry</i>"]
+        Context["Context<br/><i>Main-thread entity registry + component index</i>"]
         ISystem["ISystem<br/><i>Priority + OnInit/OnUpdate/OnShutdown</i>"]
         SystemManager["SystemManager<br/><i>Priority-sorted execution</i>"]
     end
 
     subgraph "SceneComponents/ (Built-in Components)"
-        Components["Components<br/><i>Transform, Sprite, Physics, Audio, etc.</i>"]
+        Components["Components<br/><i>Transform, Sprite, Model, Lights, Physics, Audio, etc.</i>"]
     end
 
     subgraph "Engine/Scene/ (Game Systems)"
@@ -43,16 +43,16 @@ graph TB
 
 **File**: `ECS/Entity.cs`
 
-An entity is a lightweight identifier with a component dictionary. Entities are created via a static factory method and compared by ID only.
+An entity is a lightweight identifier with a component dictionary. Construct with `new Entity(id, name)`. `Id` is immutable; `Name` is mutable.
 
 ```mermaid
 classDiagram
     class Entity {
-        +int Id (required, immutable)
-        +string Name (required)
+        +int Id
+        +string Name
         -Dictionary~Type, IComponent~ _components
-        +AddComponent~T~(T component)
-        +AddComponent~T~()
+        +AddComponent~T~(T component) T
+        +AddComponent~T~() T
         +AddComponentDynamic(IComponent)
         +RemoveComponent~T~()
         +RemoveComponent(Type)
@@ -60,17 +60,14 @@ classDiagram
         +TryGetComponent~T~(out T) bool
         +TryGetComponent(Type, out IComponent) bool
         +HasComponent~T~() bool
-        +HasComponents(Type[]) bool
         +GetAllComponents() IEnumerable
-        +Create(int id, string name)$ Entity
     }
 ```
 
 - **Storage**: `Dictionary<Type, IComponent>` — one component per type per entity
-- **Equality**: Based solely on `Id` — stable in collections regardless of name changes
 - **Validation**: `AddComponent` throws if a component of that type already exists
 - **Hooks**: Internal `ComponentAdded` / `ComponentRemoved` callbacks wire entities into `Context` component indexing on register
-- **Cloning**: `DuplicateEntity()` in Scene calls `Clone()` on every component
+- **Cloning**: Entity duplication (in Scene) calls `Clone()` on every component
 
 ---
 
@@ -80,19 +77,24 @@ All components implement `IComponent` (defined in `ECS/Component.cs`), which req
 
 **Design rule**: Components are data-only. Matrix calculations (e.g., `TransformComponent.GetTransform()` with dirty-flag caching) are allowed, but game logic belongs in Systems.
 
-Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponentAttribute.cs`) to control persisted component type names.
+Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponentAttribute.cs`) to control persisted type names for custom game components.
 
-### Component Types
+### Built-in Component Types (`SceneComponents/`)
 
 | Component | File | Purpose |
 |-----------|------|---------|
 | **IdComponent** | `SceneComponents/IDComponent.cs` | Unique long ID for serialization cross-references |
 | **TagComponent** | `SceneComponents/TagComponent.cs` | String tag for entity identification |
 | **TransformComponent** | `SceneComponents/TransformComponent.cs` | Position, rotation, scale with cached transform matrix (dirty flag) |
+| **ParentComponent** | `SceneComponents/ParentComponent.cs` | Parent entity id for hierarchy |
 | **SpriteRendererComponent** | `SceneComponents/Rendering/SpriteRendererComponent.cs` | Color, texture path, tiling factor for 2D sprite rendering |
 | **SubTextureRendererComponent** | `SceneComponents/Rendering/SubTextureRendererComponent.cs` | Sprite atlas region: texture path, coords, cell/sprite size, optional precomputed UVs |
-| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic projection settings, `Primary` and `FixedAspectRatio` flags |
-| **ParentComponent** | `SceneComponents/ParentComponent.cs` | Parent entity id for hierarchy |
+| **ModelRendererComponent** | `SceneComponents/Rendering/ModelRendererComponent.cs` | Static mesh path (`.glb`/`.gltf`/`.fbx`), PBR factors, optional mesh index / pivot / suppress-draw |
+| **VisibilityZoneComponent** | `SceneComponents/Rendering/VisibilityZoneComponent.cs` | Local AABB (`Min`/`Max`) for visibility culling |
+| **CameraComponent** | `SceneComponents/Camera/CameraComponent.cs` | Orthographic or perspective projection, `Primary` and `FixedAspectRatio` flags |
+| **AmbientLightComponent** | `SceneComponents/Lighting/AmbientLightComponent.cs` | Scene ambient color and strength |
+| **DirectionalLightComponent** | `SceneComponents/Lighting/DirectionalLightComponent.cs` | Direction, color, intensity |
+| **PointLightComponent** | `SceneComponents/Lighting/PointLightComponent.cs` | Color, intensity, range, optional shadow / offset |
 | **RigidBody2DComponent** | `SceneComponents/Physics/RigidBody2DComponent.cs` | Body type (Static/Dynamic/Kinematic), velocity, gravity scale, `FixedRotation` |
 | **BoxCollider2DComponent** | `SceneComponents/Physics/BoxCollider2DComponent.cs` | Collision shape: size, offset, density, friction, restitution, trigger flag |
 | **CircleCollider2DComponent** | `SceneComponents/Physics/CircleCollider2DComponent.cs` | Collision shape: radius, offset, material, trigger flag |
@@ -100,7 +102,9 @@ Serialization uses `[SerializableComponentAttribute]` (`ECS/SerializableComponen
 | **AudioSourceComponent** | `SceneComponents/Audio/AudioSourceComponent.cs` | Audio clip path, volume, pitch, loop, spatial settings, effects |
 | **AudioListenerComponent** | `SceneComponents/Audio/AudioListenerComponent.cs` | Active flag marking the scene audio listener |
 
-Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `CameraComponent.CameraViewTransform`, `BoxCollider2DComponent.IsDirty`).
+There are **18** built-in `IComponent` types under `SceneComponents/`. Supporting data types (`CameraProjectionTypeData`, `AudioEffectData`, `PhysicsBodyRevision`) are not components.
+
+Components with runtime-only fields use `[JsonIgnore]` to exclude them from serialization (e.g., `CameraComponent.CameraViewTransform`).
 
 ---
 
@@ -108,41 +112,39 @@ Components with runtime-only fields use `[JsonIgnore]` to exclude them from seri
 
 **File**: `ECS/Context.cs`
 
-The Context is a thread-safe entity registry with a per-component-type index for efficient queries.
+The Context is a main-thread entity registry with a per-component-type index for efficient queries. Source comment: snapshot/lock if ECS is touched off the game loop — there is no built-in lock.
 
 ```mermaid
 graph LR
-    Context -->|"Register(entity)"| Storage["Dictionary&lt;int, Entity&gt;<br/>+ List&lt;Entity&gt;"]
+    Context -->|"Register(entity)"| Storage["OrderedDictionary&lt;int, Entity&gt;"]
     Context -->|"ComponentAdded/Removed"| Index["Dictionary&lt;Type, HashSet&lt;Entity&gt;&gt;"]
-    Context -->|"View&lt;T&gt;()"| Snapshot["Indexed snapshot"]
+    Context -->|"View&lt;T&gt;()"| Snapshot["ComponentView / DualComponentView"]
     Snapshot -->|yields| Tuples["(Entity, T) tuples"]
 ```
 
 ### Storage and Lookup
 
-- `Dictionary<int, Entity>` — O(1) lookup by ID
-- `List<Entity>` — efficient iteration in insertion order
+- `OrderedDictionary<int, Entity>` — O(1) lookup by ID, insertion-order iteration via `Entities`
 - `Dictionary<Type, HashSet<Entity>>` — component-type index maintained via entity hooks
-- `Lock _lock` — thread-safe access for all operations
 - `Register`, `Remove`, `Clear`, `Contains`, `GetById`, `GetByName`, `Entities`
+- Static `Context.ComponentIndexed` event fires when any registered entity adds/removes a component type
 
 ### View Queries
 
+**Files**: `ECS/Context.cs`, `ECS/ComponentView.cs`
+
 ```csharp
-public IEnumerable<(Entity Entity, TComponent Component)> View<TComponent>()
+public ComponentView<TComponent> View<TComponent>()
     where TComponent : IComponent
 
-public IEnumerable<(Entity Entity, T1 Component1, T2 Component2)> View<T1, T2>()
+public DualComponentView<T1, T2> View<T1, T2>()
     where T1 : IComponent where T2 : IComponent
 ```
 
-- **Indexed filtering** — `View<T>()` iterates only entities with `T` (O(matches), not O(all entities))
-- **Two-component queries** — `View<T1, T2>()` iterates the smaller of the two component indices
-- **Snapshot isolation** — copies the matching entity set under lock before yielding
-- **Lazy evaluation** — returns `IEnumerable` for deferred execution
+- **Indexed filtering** — `View<T>()` iterates only entities indexed for `T`
+- **Two-component queries** — `View<T1, T2>()` iterates the smaller of the two component indices, then requires both components
+- **Struct enumerators** — `ComponentView` / `DualComponentView` avoid allocating an intermediate list; they walk the live `HashSet` (main-thread use)
 - **Returns references** — modifications to yielded components affect the originals
-
-Systems can use either multi-component views or separate `View<T>()` calls with `TryGetComponent`:
 
 ```csharp
 // Option A: indexed two-component view
@@ -171,9 +173,9 @@ foreach (var (entity, sprite) in context.View<SpriteRendererComponent>())
 public interface ISystem
 {
     int Priority { get; }                    // Execution order (ascending)
-    void OnInit();                           // Called once on scene start
+    void OnInit();                           // Default empty; called once on Initialize()
     void OnUpdate(TimeSpan deltaTime);       // Called every frame
-    void OnShutdown();                       // Called on scene stop
+    void OnShutdown();                       // Default empty; called on Shutdown()
 }
 ```
 
@@ -181,17 +183,17 @@ public interface ISystem
 
 ### SystemManager
 
-**File**: `ECS/Systems/SystemManager.cs`, `ECS/Systems/ISystemManager.cs`
+**File**: `ECS/Systems/SystemManager.cs`
 
-`SystemManager` implements `ISystemManager` and maintains a priority-sorted list of systems, executing them sequentially each frame.
+`SystemManager` maintains a priority-sorted list of systems and executes them sequentially each frame. It implements `IDisposable`.
 
 ```mermaid
 sequenceDiagram
     participant Scene
     participant SM as SystemManager
-    participant S1 as Physics (100)
-    participant S2 as Scripts (110)
-    participant S3 as Rendering (150+)
+    participant S1 as Physics (lower priority)
+    participant S2 as Scripts
+    participant S3 as Rendering (higher priority)
 
     Scene->>SM: Initialize()
     SM->>S1: OnInit()
@@ -205,53 +207,33 @@ sequenceDiagram
         SM->>S3: OnUpdate(dt)
     end
 
-    Scene->>SM: Shutdown()
+    Scene->>SM: Shutdown() / Dispose()
     SM->>S3: OnShutdown()
     SM->>S2: OnShutdown()
     SM->>S1: OnShutdown()
-    Note over SM: Reverse priority order (all per-scene)
+    Note over SM: Reverse registration order by priority (descending)
 ```
 
-- **Registration**: `RegisterSystem(system, isShared)` adds to list and re-sorts by Priority; `isShared` marks systems that survive `Shutdown()` (unused by current scene wiring — all engine systems are per-scene)
-- **Initialize**: Calls `OnInit()` on all systems in ascending priority order (once per play session via `Scene.OnRuntimeStart`)
-- **Update**: Iterates all systems in ascending priority order each frame
-- **Shutdown**: Calls `OnShutdown()` in reverse priority order on per-scene systems (`Scene.OnRuntimeStop`); shared systems are skipped
-- **ShutdownAll** (concrete class): Calls `OnShutdown()` on every system in reverse order, then clears the list
-- **Dispose**: Shuts down any remaining per-scene systems, disposes `IDisposable` per-scene systems, then clears all registrations
+- **Registration**: `RegisterSystem(system)` adds to the list (no-op if already present) and re-sorts by `Priority`
+- **Initialize**: Calls `OnInit()` on all systems in ascending priority order; throws if already initialized
+- **Update**: Iterates all systems in ascending priority order; throws if not initialized
+- **Shutdown**: Calls `OnShutdown()` in reverse priority order, then clears the initialized flag
+- **RemoveSystems**: Removes systems matching a predicate (does not call `OnShutdown`)
+- **Dispose**: Calls `Shutdown()`, then clears the system list
 
-### Per-Scene Systems
+### Engine Integration (outside `ECS/`)
 
-**File**: `Engine/Scene/SceneFactory.cs`, `Engine/Scene/SceneSystemsFactory.cs`
+Concrete engine systems, per-scene wiring (`SceneFactory` / `SceneSystemsFactory`), and numeric priorities live under `Engine/Scene/`. Typical order is physics → hierarchy/scripts → audio → rendering → debug draw. See `Engine/Scene/Systems/SystemPriorities.cs` for current values.
 
-Each scene gets a fresh `Context`, `SystemManager`, and physics world via `SceneFactory` → `ISceneSystemsFactory.PopulateSystemManager`. `SceneSystemsFactory` registers all built-in systems as per-scene (no `isShared: true`). Scene unload calls `SystemManager.Dispose()`, which shuts down and disposes every system.
-
-Custom runtime systems can be added with `Scene.RegisterRuntimeSystem(ISystem)`.
-
-### System Execution Order
-
-**File**: `Engine/Scene/Systems/SystemPriorities.cs`
-
-| Priority | System | Responsibility |
-|----------|--------|---------------|
-| 100 | PhysicsSimulationSystem | Fixed-timestep Box2D stepping, syncs physics bodies → TransformComponent |
-| 115 | TransformHierarchySystem | World-transform caches |
-| 120 | AudioSystem | Audio listener position, source playback |
-| 150 | SceneRenderSystem | Renders sprites and sub-textures via `SceneRenderPipeline` |
-| 151 | PhysicsDebugRenderSystem | Collider visualization (color-coded by body type) |
-
-The ordering ensures: **physics runs first** → **scripts see updated positions** → **rendering reads final transforms and the primary `CameraComponent`**.
-
----
-
-## Data Flow Between Systems
+### Data Flow Between Systems
 
 ```mermaid
 graph LR
-    Physics["PhysicsSimulation<br/>(100)"]
-    Scripts["ScriptUpdate<br/>(110)"]
-    Audio["Audio<br/>(120)"]
-    Render["SceneRender<br/>(150)"]
-    Debug["PhysicsDebug<br/>(151)"]
+    Physics["Physics"]
+    Scripts["Scripts"]
+    Audio["Audio"]
+    Render["Rendering"]
+    Debug["PhysicsDebug"]
 
     Physics -->|"updates TransformComponent"| Scripts
     Scripts -->|"may modify any component"| Audio
@@ -259,7 +241,7 @@ graph LR
     Render --> Debug
 ```
 
-Each system reads/writes components on entities via the shared `Context`. Systems communicate through two mechanisms:
+Each system reads/writes components on entities via the shared `Context`. Systems communicate through:
 
 1. **Shared component state** (primary) — systems write components that downstream systems read in the same frame, ordered by priority
 2. **EventBus** — global pub/sub for decoupled notifications across engine subsystems

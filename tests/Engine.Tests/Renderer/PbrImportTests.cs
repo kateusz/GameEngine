@@ -1,3 +1,4 @@
+using System.Numerics;
 using Engine.Renderer.Models;
 using Shouldly;
 
@@ -6,6 +7,26 @@ namespace Engine.Tests.Renderer;
 [Trait("Category", "Unit")]
 public class PbrImportTests
 {
+    [Fact]
+    public void ImportSource_GltfPbrFactors_LandOnSubmesh()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "PbrFactors.gltf");
+        if (!File.Exists(path))
+            path = Path.GetFullPath(Path.Combine("tests", "Engine.Tests", "TestAssets", "PbrFactors.gltf"));
+
+        using var importer = new AssimpModelImporter();
+        var model = importer.ImportSource(path);
+        model.ShouldNotBeNull();
+        model!.Submeshes.Count.ShouldBe(1);
+
+        var mesh = model.Submeshes[0];
+        mesh.Metallic.ShouldBe(0.85f, 0.001f);
+        mesh.Roughness.ShouldBe(0.2f, 0.001f);
+        mesh.BaseColorFactor.X.ShouldBe(1f, 0.001f);
+        mesh.BaseColorFactor.Y.ShouldBe(0.5f, 0.001f);
+        mesh.BaseColorFactor.Z.ShouldBe(0.1f, 0.001f);
+    }
+
     [Fact]
     public void ChooseMetallicRoughnessPath_PackedWins()
     {
