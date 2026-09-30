@@ -6,7 +6,7 @@ Game C# is **data** (`IGameComponent`) plus **systems** (`IGameSystem`). Compile
 
 ```csharp
 [Register(typeof(IGameSystem))]
-public class MySystem(IContext context, IKeyboardInput keyboard) : IGameSystem
+public class MySystem(Context context, IKeyboardInput keyboard) : IGameSystem
 {
     public int Priority => 100;
 
@@ -26,7 +26,7 @@ Scaffold: Content Browser **Add System**. Injected services:
 
 | Service | Use |
 |---------|-----|
-| `IContext` | `GetByName`, `View<T>()` |
+| `Context` | `GetByName`, `View<T>()` |
 | `IKeyboardInput` / `IMouseInput` | [Input](input.md) |
 | `IPhysicsContacts` | `DrainContacts()` — [Physics](physics.md) |
 | `IPhysicsQueries` | `Raycast` / `OverlapCircle` |

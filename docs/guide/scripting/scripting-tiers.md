@@ -26,7 +26,7 @@ Turn order, win conditions, multi-entity updates. Register with `[Register(typeo
 
 | Service | Use |
 |---------|-----|
-| `IContext` | Entity/component queries |
+| `Context` | Entity/component queries |
 | `IKeyboardInput` | `IsKeyDown` / `WasKeyPressed` |
 | `IPhysicsContacts` | `DrainContacts()` per frame |
 | `IPhysicsQueries` | `Raycast` / `OverlapCircle` |

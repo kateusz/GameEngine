@@ -29,6 +29,7 @@ Escape is a normal key. The window host does not quit on Escape; Runtime games t
 |----------|--------|
 | Ctrl+N | New scene |
 | Ctrl+S | Save scene |
+| Ctrl+Shift+P | Command palette |
 
 ### Edit Operations
 

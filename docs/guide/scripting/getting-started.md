@@ -7,7 +7,7 @@ Game logic is C# under `assets/scripts/`. The editor compiles it to `GameAssembl
 ## Create a system
 
 1. Content Browser → right-click `assets/scripts/` → **Add System**
-2. Scaffold names the class `{Name}System`, with `[Register(typeof(IGameSystem))]`, `Priority => 100`, and `IContext` + `IKeyboardInput` injected
+2. Scaffold names the class `{Name}System`, with `[Register(typeof(IGameSystem))]`, `Priority => 100`, and `Context` + `IKeyboardInput` injected (empty `OnUpdate`)
 3. Put saved fields on an `IGameComponent` (**Add Component** → `{Name}Component`), not on the system
 
 ## Lifecycle

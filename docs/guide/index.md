@@ -6,13 +6,13 @@ This is a C# game engine built on an Entity Component System (ECS) architecture,
 
 - **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
 - **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
-- **3D rendering** — static `.glb` / `.gltf` / `.fbx` models, unit cubes, perspective camera, ambient + directional light (Cook-Torrance)
+- **3D rendering** — static `.glb` / `.gltf` / `.fbx` models, unit cubes, perspective camera, ambient + directional + point lights (Cook-Torrance), shadows, frustum culling, visibility zones
 - **Physics** — rigid-body simulation and collision detection via Box2D
 - **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
 - **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)
 - **Sprite atlasing** — `SubTextureRendererComponent` for sprite sheets with manual frame selection via grid coordinates
 - **Visual editor** — ImGui editor with parent/child hierarchy tree, properties panel, content browser, and console
-- **Publishing** — build a standalone executable for the host RID (Windows or macOS) from the editor
+- **Publishing** — build a standalone executable for the host RID (Windows/macOS x64 or ARM64) from the editor (`GamePublisher`)
 
 ## Prerequisites
 
@@ -58,9 +58,11 @@ Sample games live under `games/` (Snake, Flappy Bird, Arena Shooter). Open one v
 
 ### Architecture
 - [Architecture overview](../architecture/README.md) — solution structure and system docs
-- [Rendering Pipeline](../architecture/rendering-pipeline.md) — 2D batching, 3D meshes, shaders, textures, cameras, framebuffers
+- [Scene Rendering Pipeline](../architecture/scene-rendering-pipeline.md) — pass ordering, 2D/3D paths, shaders, cameras, framebuffers
+- [Lighting](../architecture/lighting.md) — forward lighting model
+- [Shadows](../architecture/shadows.md) — directional and point shadows
 - [Game Loop](../architecture/game-loop.md) — application lifecycle and frame tick
 - [Scripting Lifecycle](../architecture/scripting-lifecycle.md) — Roslyn compile, assembly reload, editor vs runtime
 
 ### Planning
-- [Roadmap](roadmap.md) — milestones and planned work
+- Architecture docs under [`docs/architecture/`](../architecture/README.md) — subsystem design references

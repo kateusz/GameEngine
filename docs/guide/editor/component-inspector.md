@@ -12,13 +12,14 @@ When no entity is selected, the panel shows scene-level settings (background col
 
 ## TransformComponent
 
-Stores the position, rotation, and scale of an entity in world space. Add it manually from **Add Component** if the entity does not have one yet.
+Stores the **local** position, rotation, and scale of an entity (relative to parent, or world if root). World matrices are updated by the hierarchy system.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `Translation` | Vector3 | (0, 0, 0) | World-space position |
+| `Translation` | Vector3 | (0, 0, 0) | Local position |
 | `Rotation` | Vector3 | (0, 0, 0) | Euler angles stored in **radians**; the editor displays and edits **degrees** (X = pitch, Y = yaw, Z = roll) |
 | `Scale` | Vector3 | (1, 1, 1) | Size multiplier per axis |
+| `Visible` | bool | true | Local render visibility; cascades to `EffectiveVisible` for descendants |
 
 > **Rotation in the editor is shown in degrees.** Values are converted to radians internally when saved to the component.
 
@@ -92,13 +93,16 @@ Draws either a unit cube or a static imported 3D model at the entity's transform
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Tint. White means no tint. |
-| `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from the Content Browser. Empty → cube. |
+| `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from the Content Browser or use the asset picker. Empty → cube. |
 | `TexturePath` | string | — | Cube albedo only (ignored when `ModelPath` is set). |
 | `TilingFactor` | float | 1.0 | Cube texture repeat (ignored for imported models). |
 | `Metallic` | float | 0 | 0 dielectric, 1 metal. On a model this applies only when Override Material is on. |
 | `Roughness` | float | 0.5 | 0 mirror, 1 fully matte. Same override rule as Metallic. |
 | `AO` | float | 1 | Ambient occlusion factor. Same override rule as Metallic. |
 | `Override Material` | bool | false | Shown when `ModelPath` is set. Replaces imported metallic, roughness, and AO factors. Textures still multiply. |
+| `MeshIndex` | int? | — | When set, draw only that imported submesh index. |
+| `SuppressDraw` | bool | false | Skip drawing this renderer (children may still draw unpacked meshes). |
+| `VisibilityZoneEntityId` | int | -1 | Optional zone entity id; when set, draws only while the camera is inside that zone. |
 
 Imported models use Cook-Torrance (albedo, normal, metallic-roughness, occlusion). Skinning and animation clips are not imported. Image-based lighting is not supported.
 
@@ -129,8 +133,39 @@ Scene-wide directional light for 3D diffuse/specular. The render pass uses the *
 |---|---|---|---|
 | `Direction` | Vector3 | (0, -1, 0) | Light direction (normalized at draw). |
 | `Color` | Vector4 | (1, 1, 1, 1) | Light color (RGB). If none exists, directional contribution is black. |
+| `Intensity` | float | 1 | Scales the directional contribution. |
 
 **When to use:** One “sun” per 3D scene.
+
+---
+
+## PointLightComponent
+
+Local point light for 3D shading (up to eight per scene). Position comes from the entity transform (plus optional offset).
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Color` | Vector4 | (1, 1, 1, 1) | Light color (RGB). |
+| `Intensity` | float | 1 | Brightness scale. |
+| `Range` | float | 10 | Falloff distance (≤ 0 skipped). |
+| `CastsShadow` | bool | false | Enable point-light cubemap shadows. |
+| `ApplyOffset` | bool | false | When true, add `Offset` to the world position. |
+| `Offset` | Vector3 | (0, 0, 0) | Local offset applied when `ApplyOffset` is set. |
+
+**When to use:** Lamps, torches, localized fills. Pair with a transform.
+
+---
+
+## VisibilityZoneComponent
+
+Local AABB used for zone-based 3D visibility. Place on a zone entity; reference it from `ModelRendererComponent.VisibilityZoneEntityId`.
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Min` | Vector3 | (-0.5, -0.5, -0.5) | Local AABB minimum |
+| `Max` | Vector3 | (0.5, 0.5, 0.5) | Local AABB maximum |
+
+**When to use:** Interior rooms / portals so meshes only draw while the camera is inside the zone.
 
 ---
 
@@ -143,6 +178,7 @@ Registers the entity with the 2D physics simulation. The physics system reads th
 | `BodyType` | enum | Static | Controls how physics acts on the body (see below). |
 | `FixedRotation` | bool | false | When enabled, physics cannot rotate this entity. Useful for top-down characters. |
 | `GravityScale` | float | 1.0 | Scales gravity for this body (1.0 = default). |
+| `IsBullet` | bool | false | Continuous collision detection (helps fast movers). |
 | `Velocity` | Vector2 | (0, 0) | Linear velocity; written to the physics body each step for Dynamic/Kinematic bodies. |
 
 **BodyType values:**

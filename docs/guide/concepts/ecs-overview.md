@@ -8,7 +8,7 @@ Build objects by composition — e.g. Player = `TransformComponent` + `SpriteRen
 
 | Kind | Interface | Defined in | Serialized |
 |------|-----------|------------|------------|
-| Engine components | `IComponent` | Engine (`TransformComponent`, `RigidBody2DComponent`, …) | Most types in `.scene` / `.prefab` |
+| Engine components | `IComponent` | `SceneComponents/` (`TransformComponent`, `RigidBody2DComponent`, …) | Most types in `.scene` / `.prefab` |
 | Game components | `IGameComponent` | `assets/scripts/` | Yes, with `[SerializableComponent]` |
 | Engine systems | `ISystem` | Engine (physics, rendering, audio) | — |
 | Game systems | `IGameSystem` | `assets/scripts/` | — |
@@ -33,4 +33,4 @@ Open samples: `games/Snake/project/`, `games/FlappyBird/project/` via **Open Pro
 
 Create entities in **Scene Hierarchy** → attach components via **Add Component** in Properties. One component per type per entity.
 
-**12** built-in engine component types serialize to `.scene` / `.prefab` (including `ParentComponent` and 2D colliders). `TagComponent` and `IdComponent` exist in code but are not exposed in the editor or saved in scene files. Full list: [Component Inspector](../editor/component-inspector.md).
+**18** built-in component types live in `SceneComponents/` (transform, hierarchy, 2D/3D renderers, lights, camera, physics, audio, plus `TagComponent` / `IdComponent`). Full editor list: [Component Inspector](../editor/component-inspector.md).

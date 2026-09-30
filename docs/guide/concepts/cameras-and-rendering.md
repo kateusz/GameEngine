@@ -9,7 +9,7 @@ Play mode renders through the **Primary** `CameraComponent`. If none is marked P
 | Field | Role |
 |---|---|
 | `ProjectionType` | `Orthographic` (default, 2D) or `Perspective` (3D) |
-| `OrthographicSize` (**Size**) | Half-height of the view volume. Smaller values zoom in. Defaults: size 10, near −100, far 100 |
+| `OrthographicSize` (**Size**) | Half-height of the view volume. Smaller values zoom in. Component default: size 10, near −1, far 1 (`CameraConfig` editor defaults use −100 / 100) |
 | `PerspectiveFOV` | Vertical field of view (radians in data; degrees in the inspector). Default 45° |
 | `PerspectiveNear` / `PerspectiveFar` | Clip planes for perspective (defaults 0.01 / 1000) |
 
@@ -26,7 +26,7 @@ For 3D models, switch the primary camera to **Perspective** or they will look fl
 - **SpriteRendererComponent** — full texture quad; optional `TexturePath`, `Color` tint (alpha 0 skips the draw)
 - **SubTextureRendererComponent** — atlas cell via `Coords` / `CellSize` / `SpriteSize`
 
-Sprites draw in **entity iteration order**; depth test is off — **Z does not sort**. `SortingOrder` is not implemented.
+Sprites draw in **entity iteration order**; depth test is off — **Z does not sort**. `SortingOrder` is not implemented. Entities with `EffectiveVisible == false` are skipped.
 
 ## 3D models and cubes
 
@@ -39,11 +39,13 @@ Sprites draw in **entity iteration order**; depth test is off — **Z does not s
 | Same, with `MeshIndex` | That submesh only (use when a model is split across child entities) |
 | `SuppressDraw` | Skip the all-submeshes draw |
 
-`Color` tints both paths. The first draw of a model path imports via Assimp and uploads GPU buffers; later frames use a path cache. Failed import draws a unit cube instead (one warning per path).
+`Color` tints both paths. The first draw of a model path loads via runtime-mesh sibling (`.mesh`) when available, otherwise Assimp, then uploads GPU buffers; later frames use a path cache. Failed import draws a unit cube instead (one warning per path).
 
-Import keeps the Assimp node graph (transforms are not baked into vertices). Unreal collision mesh names (`UCX_`, `UBX_`, …) are skipped. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture name.
+Import keeps the Assimp / runtime-mesh node graph (transforms are not baked into vertices). Unreal collision mesh names (`UCX_`, `UBX_`, …) are skipped. FBX files often store absolute texture paths from the DCC; the importer also looks next to the model file by texture name.
 
-**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting. **Not supported:** image-based lighting, skinning, animation clips, transparent mesh sort.
+Opaque 3D draws are **frustum-culled**. Optional **visibility zones**: add `VisibilityZoneComponent` (local AABB) on a zone entity; set `ModelRendererComponent.VisibilityZoneEntityId` to that entity’s id so the mesh only draws while the camera is inside the zone.
+
+**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting, mesh instancing, directional/point shadows. **Not supported:** image-based lighting, skinning, animation clips, transparent mesh sort.
 
 Put models under `assets/models/`.
 
@@ -55,7 +57,7 @@ Put models under `assets/models/`.
 |-----------|-------|--------|
 | **AmbientLightComponent** | First in scene | `Color`, `Strength`. If none → white at strength 0.1 |
 | **DirectionalLightComponent** | First in scene | `Direction`, `Color`. If none → no sun (ambient only) |
-| **PointLightComponent** | Up to **8** (`PointLightComponent` + transform) | `Color`, `Intensity`, `Range` (≤ 0 skipped). Position = entity world translation |
+| **PointLightComponent** | Up to **8** (`PointLightComponent` + transform) | `Color`, `Intensity`, `Range` (≤ 0 skipped). Position = world translation (+ `Offset` when `ApplyOffset`) |
 
 2D sprites ignore these lights.
 
@@ -65,4 +67,4 @@ Put models under `assets/models/`.
 - **Point** — enable **CastsShadow** on `PointLightComponent`. Cubemaps update only for lights within **20** units of the camera; unchanged scenes reuse the previous frame’s map when possible.
 - The editor viewport can disable point shadows via `SceneView.PointShadows` (runtime play uses defaults).
 
-Pipeline details: [Rendering Pipeline](../../architecture/rendering-pipeline.md). Property details: [Component Inspector](../editor/component-inspector.md#cameracomponent).
+Pipeline details: [Scene Rendering Pipeline](../../architecture/scene-rendering-pipeline.md). Property details: [Component Inspector](../editor/component-inspector.md#cameracomponent).

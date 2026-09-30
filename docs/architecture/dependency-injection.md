@@ -16,6 +16,7 @@ graph TD
             RAPI[IRendererAPI]
             GCTX[IGraphicsContext]
             G2D[IGraphics2D]
+            G3D[IGraphics3D]
         end
 
         subgraph "Audio"
@@ -29,9 +30,10 @@ graph TD
             SF[SceneFactory]
             SSF[ISceneSystemsFactory]
             SC[ISceneContext]
-            CTX[IContext delegate]
+            CTX[Context delegate]
             PC[IPhysicsContacts delegate]
             PQ[IPhysicsQueries delegate]
+            EH[IEntityHierarchy / ICameraQueries]
         end
 
         subgraph "Physics"
@@ -62,6 +64,8 @@ graph TD
 
         subgraph "Input & Debug"
             KIS[KeyboardInputState / IKeyboardInput]
+            MIS[MouseInputState / IMouseInput]
+            PS[PointerSurface / IPointerSurface]
             DS[DebugSettings]
         end
     end
@@ -128,17 +132,21 @@ Registration splits into `RegisterCore(Container)` (runtime services) and `Regis
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
 | `IRendererApiConfig` | `RendererApiConfig(ApiType.SilkNet)` | Singleton | Hardcoded to Silk.NET |
-| `IRendererAPI` | Via `IRendererApiFactory.Create()` | Singleton | Factory-resolved |
+| `IRendererAPI` | `OpenGLRendererApi` | Singleton | OpenGL backend |
 | `IGraphicsContext` | `SilkNetGraphicsContext` | Singleton | OpenGL context wrapper |
 | `IGraphics2D` | `Graphics2D` | Singleton | 2D rendering API |
+| `IGraphics3D` | `Graphics3D` | Singleton | 3D mesh/cube path |
+| `FxaaPass` | `FxaaPass` | Singleton | Optional FXAA pass |
 
 ### Global Services (`RegisterCore`)
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `IScriptEngine` | `ScriptEngine` | Singleton | Load/unload game assembly ALC, type index, script instance factory |
+| `IScriptEngine` | `ScriptEngine` | Singleton | Load/unload collectible game assembly ALC |
 | `IProjectContext` | `ProjectContext` | Singleton | Initializer wires `PathBuilder.UseProjectContext` |
 | `KeyboardInputState` | `KeyboardInputState` | Singleton | Also mapped as `IKeyboardInput` |
+| `MouseInputState` | `MouseInputState` | Singleton | Also mapped as `IMouseInput` |
+| `PointerSurface` | `PointerSurface` | Singleton | Also mapped as `IPointerSurface` |
 | `DebugSettings` | `DebugSettings` | Singleton | Runtime debug toggles |
 
 ### Audio (`RegisterCore`)
@@ -160,9 +168,11 @@ ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` bu
 | `SceneFactory` | `SceneFactory` | Singleton | Creates `Scene` instances |
 | `ISceneSystemsFactory` | `SceneSystemsFactory` | Singleton | Factory for scene-bound systems |
 | `ISceneContext` | `SceneContext` | Singleton | Active scene reference |
-| `IContext` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
+| `Context` | Delegate from `ISceneContext.ActiveScene.Context` | Default | Throws if no active scene |
 | `IPhysicsContacts` | Delegate from active scene, else `NullPhysicsContacts` | Default | Per-scene contact queue access |
 | `IPhysicsQueries` | Delegate from active scene, else `NullPhysicsQueries` | Default | Per-scene physics ray/overlap queries |
+| `IEntityHierarchy` | Delegate from active scene | Default | Hierarchy API for scripts |
+| `ICameraQueries` | Delegate from active scene, else `NullCameraQueries` | Default | Screen→world / primary view |
 
 ### Physics (`RegisterCore`)
 
@@ -175,7 +185,7 @@ ECS systems are **not** registered individually in DI. `ISceneSystemsFactory` bu
 
 | Service | Implementation | Lifetime | Notes |
 |---------|---------------|----------|-------|
-| `SerializerOptions` | `SerializerOptions` | Singleton | Custom Vector/Rectangle/Enum converters |
+| `SerializerOptions` | `SerializerOptions` | Singleton | Custom Vector2/3/4 + enum converters |
 | `IComponentSerializerRegistry` | `ComponentSerializerRegistry` | Singleton | Polymorphic component dispatch |
 | `IPrefabSerializer` | `PrefabSerializer` | Singleton | Prefab save/load |
 | `ISceneSerializer` | `SceneSerializer` | Singleton | Scene save/load |
@@ -301,7 +311,7 @@ Runtime performs a one-shot game assembly registration in `Runtime/Program.cs` a
 |----------|-------|----------|
 | Singleton | Most services — shared across entire application lifetime | `IScriptEngine`, all factories, `ISceneSystemsFactory`, all editors |
 | Default (Transient) | Factory-created services where DryIoc resolves once at startup | `IGameWindow`, `IContentScaleProvider` |
-| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `IContext`, `IPhysicsContacts`, `IPhysicsQueries` |
+| Scene delegate | Resolved from `ISceneContext.ActiveScene` at resolve time | `Context`, `IPhysicsContacts`, `IPhysicsQueries`, `IEntityHierarchy`, `ICameraQueries` |
 | Per-scene (not DI singletons) | Created by `ISceneSystemsFactory` per scene | Individual `ISystem` implementations (e.g. physics simulation) |
 
 ## Registration Flow
@@ -366,7 +376,7 @@ All DI-consuming classes use C# 12 primary constructors. No traditional construc
 ```csharp
 internal sealed class SpriteRenderingSystem(
     IGraphics2D graphics2D,
-    IContext context) : ISystem
+    Context context) : ISystem
 {
     public void OnUpdate(TimeSpan deltaTime)
     {

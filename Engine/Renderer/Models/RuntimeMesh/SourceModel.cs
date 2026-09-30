@@ -3,21 +3,14 @@ using Engine.Renderer.Meshes;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
-internal sealed class SourceModel
+internal sealed class SourceModel(
+    IReadOnlyList<SourceSubmesh> submeshes,
+    IReadOnlyList<SourceNode> nodes,
+    IReadOnlyList<SourceLight> lights)
 {
-    public SourceModel(
-        IReadOnlyList<SourceSubmesh> submeshes,
-        IReadOnlyList<SourceNode> nodes,
-        IReadOnlyList<SourceLight> lights)
-    {
-        Submeshes = submeshes;
-        Nodes = nodes;
-        Lights = lights;
-    }
-
-    public IReadOnlyList<SourceSubmesh> Submeshes { get; }
-    public IReadOnlyList<SourceNode> Nodes { get; }
-    public IReadOnlyList<SourceLight> Lights { get; }
+    public IReadOnlyList<SourceSubmesh> Submeshes { get; } = submeshes;
+    public IReadOnlyList<SourceNode> Nodes { get; } = nodes;
+    public IReadOnlyList<SourceLight> Lights { get; } = lights;
 }
 
 internal sealed class SourceSubmesh

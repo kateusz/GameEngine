@@ -24,7 +24,7 @@ All drop targets accept only files with matching extensions — dropping an inco
 
 | Drag source | Drop target | Result |
 |-------------|-------------|--------|
-| `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture |
+| `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture (drag-drop or asset picker) |
 | `.glb` / `.gltf` / `.fbx` | ModelRendererComponent model field | Assigns the static mesh |
 | `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
 | `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
@@ -65,4 +65,4 @@ Use **Ctrl+N** to create a new scene (a name prompt appears). Use **Ctrl+S** to 
 ## Next Steps
 
 - [Component Inspector](component-inspector.md) — view and edit component properties, including drag-and-drop targets
-- [Roadmap](../roadmap.md) — planned features
+- [Scene Editor](scene-editor.md) — hierarchy and viewport
