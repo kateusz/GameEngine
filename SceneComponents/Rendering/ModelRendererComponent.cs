@@ -42,9 +42,6 @@ public class ModelRendererComponent : IComponent
         set => _ao = Sanitize(value, 1f);
     }
 
-    /// <summary>When true, metallic, roughness, and AO replace the imported factors. Cubes ignore this.</summary>
-    public bool OverrideMaterial { get; set; }
-
     /// <summary>Zone entity id for visibility filtering, or -1 to use frustum only.</summary>
     public int VisibilityZoneEntityId { get; set; } = -1;
 
@@ -70,7 +67,6 @@ public class ModelRendererComponent : IComponent
         Metallic = Metallic,
         Roughness = Roughness,
         Ao = Ao,
-        OverrideMaterial = OverrideMaterial,
         VisibilityZoneEntityId = VisibilityZoneEntityId
     };
 }
