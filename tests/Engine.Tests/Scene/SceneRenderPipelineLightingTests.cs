@@ -1,6 +1,7 @@
 using System.Numerics;
 using ECS;
 using Engine.Renderer;
+using Engine.Renderer.Meshes;
 using Engine.Scene;
 using SceneComponents;
 using SceneComponents.Lighting;
@@ -109,42 +110,42 @@ public class SceneRenderPipelineLightingTests
     }
 
     [Fact]
-    public void ResolvePbr_Cube_UsesEntityTripleEvenWhenOverrideIsOff()
+    public void AdoptSubmeshFactors_DefaultChild_CopiesMeshOnce()
     {
-        var renderer = new ModelRendererComponent
-        {
-            Metallic = 1f,
-            Roughness = 0.2f,
-            Ao = 0.4f,
-            OverrideMaterial = false
-        };
+        var renderer = new ModelRendererComponent { MeshIndex = 0 };
+        var mesh = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
 
-        SceneRenderPipeline.ResolvePbr(cube: true, renderer, meshMetallic: 0f, meshRoughness: 1f)
-            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0.2f, 0.4f));
+        SceneRenderPipeline.AdoptSubmeshFactors(renderer, mesh);
+        renderer.Roughness.ShouldBe(0.122727275f);
+        renderer.FactorsSeeded.ShouldBeTrue();
+
+        renderer.Roughness = 0.5f;
+        SceneRenderPipeline.AdoptSubmeshFactors(renderer, mesh);
+        renderer.Roughness.ShouldBe(0.5f);
+        mesh.Dispose();
     }
 
     [Fact]
-    public void ResolvePbr_ModelOverrideOff_UsesMeshFactorsAndFullOcclusion()
+    public void AdoptSubmeshFactors_EditedChild_KeepsComponentValues()
     {
-        var renderer = new ModelRendererComponent { Metallic = 1f, Roughness = 0f, Ao = 0f };
+        var renderer = new ModelRendererComponent { MeshIndex = 0, Metallic = 0.8f, Roughness = 0.25f };
+        var mesh = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
 
-        SceneRenderPipeline.ResolvePbr(cube: false, renderer, meshMetallic: 0.25f, meshRoughness: 0.75f)
-            .ShouldBe(new SceneRenderPipeline.PbrFactors(0.25f, 0.75f, 1f));
+        SceneRenderPipeline.AdoptSubmeshFactors(renderer, mesh);
+
+        renderer.Metallic.ShouldBe(0.8f);
+        renderer.Roughness.ShouldBe(0.25f);
+        renderer.FactorsSeeded.ShouldBeTrue();
+        mesh.Dispose();
     }
 
     [Fact]
-    public void ResolvePbr_ModelOverrideOn_UsesEntityTriple()
+    public void ResolvePbr_UsesComponentFactors()
     {
-        var renderer = new ModelRendererComponent
-        {
-            Metallic = 1f,
-            Roughness = 0.2f,
-            Ao = 0.4f,
-            OverrideMaterial = true
-        };
+        var renderer = new ModelRendererComponent { Metallic = 0.8f, Roughness = 0.25f, Ao = 0.4f };
 
-        SceneRenderPipeline.ResolvePbr(cube: false, renderer, meshMetallic: 0f, meshRoughness: 1f)
-            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0.2f, 0.4f));
+        SceneRenderPipeline.ResolvePbr(renderer)
+            .ShouldBe(new SceneRenderPipeline.PbrFactors(0.8f, 0.25f, 0.4f));
     }
 
     [Fact]
@@ -152,18 +153,7 @@ public class SceneRenderPipelineLightingTests
     {
         var renderer = new ModelRendererComponent { Metallic = 2f, Roughness = -1f, Ao = 3f };
 
-        SceneRenderPipeline.ResolvePbr(cube: true, renderer, 0f, 0.5f)
-            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0f, 1f));
-    }
-
-    [Fact]
-    public void ResolvePbr_NonFiniteMeshFactor_BecomesZero()
-    {
-        SceneRenderPipeline.ResolvePbr(
-                cube: false,
-                new ModelRendererComponent(),
-                meshMetallic: 2f,
-                meshRoughness: float.NaN)
+        SceneRenderPipeline.ResolvePbr(renderer)
             .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0f, 1f));
     }
 

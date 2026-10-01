@@ -265,7 +265,7 @@ internal static class SceneRenderPipeline
 
         perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
         ApplyPipelineStats(graphics3D.GetStats(), in perf);
-        LogRender3DPerfIfDue(in perf);
+        //LogRender3DPerfIfDue(in perf);
     }
 
     private static void ApplyPipelineStats(Statistics dest, in Render3DPerfFrame perf)
@@ -541,7 +541,7 @@ internal static class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    var factors = ResolvePbr(cube: true, modelRenderer, 0f, 0.5f);
+                    var factors = ResolvePbr(modelRenderer);
                     if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
                         DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors);
                     else
@@ -670,7 +670,8 @@ internal static class SceneRenderPipeline
         stats.Vertices += submesh.VertexCount;
         stats.Indices += submesh.GetIndexCount();
 
-        var pbr = ResolvePbr(cube: false, modelRenderer, submesh.MetallicFactor, submesh.RoughnessFactor);
+        AdoptSubmeshFactors(modelRenderer, submesh);
+        var pbr = ResolvePbr(modelRenderer);
         var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao);
         if (!MeshBatches.TryGetValue(key, out var batch))
         {
@@ -766,19 +767,24 @@ internal static class SceneRenderPipeline
 
     internal readonly record struct PbrFactors(float Metallic, float Roughness, float Ao);
 
-    internal static PbrFactors ResolvePbr(
-        bool cube,
-        ModelRendererComponent renderer,
-        float meshMetallic,
-        float meshRoughness)
-    {
-        var entityMetallic = Finite01(renderer.Metallic);
-        var entityRoughness = Finite01(renderer.Roughness);
-        var entityAo = Finite01(renderer.Ao);
-        if (cube)
-            return new PbrFactors(entityMetallic, entityRoughness, entityAo);
+    internal static PbrFactors ResolvePbr(ModelRendererComponent renderer) =>
+        new(Finite01(renderer.Metallic), Finite01(renderer.Roughness), Finite01(renderer.Ao));
 
-        return new PbrFactors(Finite01(meshMetallic), Finite01(meshRoughness), 1f);
+    /// <summary>
+    /// Unpacked children are new components, so they miss the factors stored on the mesh.
+    /// Copy once while the component is still at its defaults.
+    /// </summary>
+    internal static void AdoptSubmeshFactors(ModelRendererComponent renderer, Mesh submesh)
+    {
+        if (renderer.MeshIndex is not int || renderer.FactorsSeeded)
+            return;
+
+        renderer.FactorsSeeded = true;
+        if (renderer.Metallic != 0f || renderer.Roughness != 0.5f || renderer.Ao != 1f)
+            return;
+
+        renderer.Metallic = submesh.MetallicFactor;
+        renderer.Roughness = submesh.RoughnessFactor;
     }
 
     private static float Finite01(float value) =>
