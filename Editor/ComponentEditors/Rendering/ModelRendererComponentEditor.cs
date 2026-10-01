@@ -24,30 +24,30 @@ public class ModelRendererComponentEditor(
     protected override void DrawContent(ModelRendererComponent component, Entity entity)
     {
         modelDropTarget.Draw("Model", (relativePath, model) =>
-        {
-            if (MultiField.Targets is not null)
             {
-                MultiField.WriteEach(entity, (Entity e, string path) =>
+                if (MultiField.Targets is not null)
                 {
-                    var c = e.GetComponent<ModelRendererComponent>();
-                    c.ModelPath = path;
-                    c.MeshIndex = null;
-                    c.SuppressDraw = false;
-                }, relativePath);
-                return;
-            }
+                    MultiField.WriteEach(entity, (Entity e, string path) =>
+                    {
+                        var c = e.GetComponent<ModelRendererComponent>();
+                        c.ModelPath = path;
+                        c.MeshIndex = null;
+                        c.SuppressDraw = false;
+                    }, relativePath);
+                    return;
+                }
 
-            var scene = sceneContext.ActiveScene;
-            if (scene == null)
-            {
-                component.ModelPath = relativePath;
-                component.MeshIndex = null;
-                component.SuppressDraw = false;
-                return;
-            }
+                var scene = sceneContext.ActiveScene;
+                if (scene == null)
+                {
+                    component.ModelPath = relativePath;
+                    component.MeshIndex = null;
+                    component.SuppressDraw = false;
+                    return;
+                }
 
-            history.Execute(new ImportModelHierarchyCommand(scene, entity, component, model, relativePath));
-        }, modelLoadService,
+                history.Execute(new ImportModelHierarchyCommand(scene, entity, component, model, relativePath));
+            }, modelLoadService,
             MultiField.UniformPath(entity, e => e.GetComponent<ModelRendererComponent>().ModelPath));
 
         var hasModel = MultiField.Targets is null
@@ -67,43 +67,30 @@ public class ModelRendererComponentEditor(
             UIPropertyRenderer.SameVector4);
 
         textureDropTarget.Draw("Texture",
-            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
-            {
-                e.GetComponent<ModelRendererComponent>().TexturePath = path;
-            }, relativePath),
+            relativePath => MultiField.WriteEach(entity,
+                (Entity e, string path) => { e.GetComponent<ModelRendererComponent>().TexturePath = path; },
+                relativePath),
             MultiField.UniformPath(entity, e => e.GetComponent<ModelRendererComponent>().TexturePath));
 
         propertyRenderer.DrawPropertyField("Tiling Factor", entity,
             e => e.GetComponent<ModelRendererComponent>().TilingFactor,
             (e, v) => e.GetComponent<ModelRendererComponent>().TilingFactor = v,
             MultiField.SameFloat);
+        
+        propertyRenderer.DrawPropertyField("Metallic", entity,
+            e => e.GetComponent<ModelRendererComponent>().Metallic,
+            (e, v) => e.GetComponent<ModelRendererComponent>().Metallic = v,
+            MultiField.SameFloat);
 
-        propertyRenderer.DrawPropertyField("Override Material", entity,
-            e => e.GetComponent<ModelRendererComponent>().OverrideMaterial,
-            (e, v) => e.GetComponent<ModelRendererComponent>().OverrideMaterial = v);
+        propertyRenderer.DrawPropertyField("Roughness", entity,
+            e => e.GetComponent<ModelRendererComponent>().Roughness,
+            (e, v) => e.GetComponent<ModelRendererComponent>().Roughness = v,
+            MultiField.SameFloat);
 
-        var overrideOn = MultiField.TryUniform(entity,
-            e => e.GetComponent<ModelRendererComponent>().OverrideMaterial,
-            EqualityComparer<bool>.Default.Equals,
-            out var overrideMaterial) && overrideMaterial;
-
-        if (overrideOn)
-        {
-            propertyRenderer.DrawPropertyField("Metallic", entity,
-                e => e.GetComponent<ModelRendererComponent>().Metallic,
-                (e, v) => e.GetComponent<ModelRendererComponent>().Metallic = v,
-                MultiField.SameFloat);
-
-            propertyRenderer.DrawPropertyField("Roughness", entity,
-                e => e.GetComponent<ModelRendererComponent>().Roughness,
-                (e, v) => e.GetComponent<ModelRendererComponent>().Roughness = v,
-                MultiField.SameFloat);
-
-            propertyRenderer.DrawPropertyField("AO", entity,
-                e => e.GetComponent<ModelRendererComponent>().Ao,
-                (e, v) => e.GetComponent<ModelRendererComponent>().Ao = v,
-                MultiField.SameFloat);
-        }
+        propertyRenderer.DrawPropertyField("AO", entity,
+            e => e.GetComponent<ModelRendererComponent>().Ao,
+            (e, v) => e.GetComponent<ModelRendererComponent>().Ao = v,
+            MultiField.SameFloat);
 
         DrawVisibilityZonePicker(entity);
     }
@@ -133,13 +120,13 @@ public class ModelRendererComponentEditor(
             foreach (var (zoneEntity, _, _) in scene.Context.View<VisibilityZoneComponent, TransformComponent>())
                 zones.Add((zoneEntity.Id, zoneEntity.Name));
 
-            LayoutDrawer.DrawEntityIdCombo("##VisibilityZone", currentLabel, selectedId =>
-            {
-                MultiField.WriteEach(entity, (Entity e, int id) =>
+            LayoutDrawer.DrawEntityIdCombo("##VisibilityZone", currentLabel,
+                selectedId =>
                 {
-                    e.GetComponent<ModelRendererComponent>().VisibilityZoneEntityId = id;
-                }, selectedId);
-            }, zones);
+                    MultiField.WriteEach(entity,
+                        (Entity e, int id) => { e.GetComponent<ModelRendererComponent>().VisibilityZoneEntityId = id; },
+                        selectedId);
+                }, zones);
         });
     }
 }

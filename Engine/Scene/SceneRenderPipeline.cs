@@ -775,7 +775,7 @@ internal static class SceneRenderPipeline
         var entityMetallic = Finite01(renderer.Metallic);
         var entityRoughness = Finite01(renderer.Roughness);
         var entityAo = Finite01(renderer.Ao);
-        if (cube || renderer.OverrideMaterial)
+        if (cube)
             return new PbrFactors(entityMetallic, entityRoughness, entityAo);
 
         return new PbrFactors(Finite01(meshMetallic), Finite01(meshRoughness), 1f);
