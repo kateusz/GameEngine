@@ -412,7 +412,7 @@ public class SceneRenderPipelineShadowTests
     }
 
     [Fact]
-    public void RenderScene_MeshOverrideOff_PassesSubmeshFactors()
+    public void RenderScene_Mesh_PassesComponentFactors()
     {
         var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
         var model = new Model(@"C:\prop.glb", [mesh]);
@@ -425,10 +425,9 @@ public class SceneRenderPipelineShadowTests
         entity.AddComponent(new ModelRendererComponent
         {
             ModelPath = @"C:\prop.glb",
-            Metallic = 1f,
-            Roughness = 0f,
-            Ao = 0f,
-            OverrideMaterial = false
+            Metallic = 0.8f,
+            Roughness = 0.25f,
+            Ao = 0.4f
         });
         context.Register(entity);
 
@@ -441,28 +440,25 @@ public class SceneRenderPipelineShadowTests
             models,
             new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
 
-        graphics.MeshFactors.ShouldBe([(0.3f, 0.6f, 1f)]);
+        graphics.MeshFactors.ShouldBe([(0.8f, 0.25f, 0.4f)]);
         model.Dispose();
     }
 
     [Fact]
-    public void RenderScene_MeshOverrideOn_PassesEntityFactors()
+    public void RenderScene_UnpackedSubmesh_DrawsAdoptedMeshFactors()
     {
-        var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
-        var model = new Model(@"C:\prop.glb", [mesh]);
+        var mesh = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
+        var model = new Model(@"C:\rosliny.glb", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
 
         var context = new Context();
-        var entity = new Entity(1, "prop");
+        var entity = new Entity(1, "Cube.008");
         entity.AddComponent(new TransformComponent());
         entity.AddComponent(new ModelRendererComponent
         {
-            ModelPath = @"C:\prop.glb",
-            Metallic = 1f,
-            Roughness = 0f,
-            Ao = 0f,
-            OverrideMaterial = true
+            ModelPath = @"C:\rosliny.glb",
+            MeshIndex = 0
         });
         context.Register(entity);
 
@@ -475,7 +471,8 @@ public class SceneRenderPipelineShadowTests
             models,
             new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
 
-        graphics.MeshFactors.ShouldBe([(1f, 0f, 0f)]);
+        graphics.MeshFactors.ShouldBe([(0f, 0.122727275f, 1f)]);
+        entity.GetComponent<ModelRendererComponent>().Roughness.ShouldBe(0.122727275f);
         model.Dispose();
     }
 
@@ -560,8 +557,8 @@ public class SceneRenderPipelineShadowTests
         models.Create(Arg.Any<string>()).Returns(model);
 
         var context = new Context();
-        RegisterProp(context, 1, overrideMaterial: false);
-        RegisterProp(context, 2, overrideMaterial: false);
+        RegisterProp(context, 1);
+        RegisterProp(context, 2);
 
         var graphics = new RecordingGraphics3D();
         SceneRenderPipeline.RenderScene(
@@ -585,8 +582,8 @@ public class SceneRenderPipelineShadowTests
         models.Create(Arg.Any<string>()).Returns(model);
 
         var context = new Context();
-        RegisterProp(context, 1, overrideMaterial: false);
-        RegisterProp(context, 2, overrideMaterial: true);
+        RegisterProp(context, 1, metallic: 1f);
+        RegisterProp(context, 2, metallic: 0f);
 
         var graphics = new RecordingGraphics3D();
         SceneRenderPipeline.RenderScene(
@@ -684,17 +681,16 @@ public class SceneRenderPipelineShadowTests
         return mesh;
     }
 
-    private static void RegisterProp(Context context, int id, bool overrideMaterial)
+    private static void RegisterProp(Context context, int id, float metallic = 1f)
     {
         var entity = new Entity(id, "prop");
         entity.AddComponent(new TransformComponent());
         entity.AddComponent(new ModelRendererComponent
         {
             ModelPath = @"C:\prop.glb",
-            Metallic = 1f,
+            Metallic = metallic,
             Roughness = 0f,
-            Ao = 0f,
-            OverrideMaterial = overrideMaterial
+            Ao = 0f
         });
         context.Register(entity);
     }

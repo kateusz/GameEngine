@@ -5,10 +5,6 @@ namespace SceneComponents.Rendering;
 
 public class ModelRendererComponent : IComponent
 {
-    private float _metallic;
-    private float _roughness = 0.5f;
-    private float _ao = 1f;
-
     public Vector4 Color { get; set; } = Vector4.One;
     public string? TexturePath { get; set; }
     public float TilingFactor { get; set; } = 1.0f;
@@ -24,23 +20,26 @@ public class ModelRendererComponent : IComponent
     /// <summary>Skip drawing this renderer; children draw the unpacked submeshes instead.</summary>
     public bool SuppressDraw { get; set; }
 
+    /// <summary>Submesh metallic/roughness were copied onto this renderer. Stops a later draw from overwriting an edit.</summary>
+    public bool FactorsSeeded { get; set; }
+
     public float Metallic
     {
-        get => _metallic;
-        set => _metallic = Sanitize(value, 0f);
+        get;
+        set => field = Sanitize(value, 0f);
     }
 
     public float Roughness
     {
-        get => _roughness;
-        set => _roughness = Sanitize(value, 0.5f);
-    }
+        get;
+        set => field = Sanitize(value, 0.5f);
+    } = 0.5f;
 
     public float Ao
     {
-        get => _ao;
-        set => _ao = Sanitize(value, 1f);
-    }
+        get;
+        set => field = Sanitize(value, 1f);
+    } = 1f;
 
     /// <summary>Zone entity id for visibility filtering, or -1 to use frustum only.</summary>
     public int VisibilityZoneEntityId { get; set; } = -1;
@@ -64,6 +63,7 @@ public class ModelRendererComponent : IComponent
         MeshIndex = MeshIndex,
         Pivot = Pivot,
         SuppressDraw = SuppressDraw,
+        FactorsSeeded = FactorsSeeded,
         Metallic = Metallic,
         Roughness = Roughness,
         Ao = Ao,
