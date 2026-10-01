@@ -2,6 +2,7 @@ using System.Numerics;
 using ECS;
 using ECS.Systems;
 using Editor.Features.Scene;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Scene;
 using Engine.Scene.Systems;
@@ -86,6 +87,28 @@ public class ModelHierarchySpawnerTests
         children.ShouldBe(["Cabinet_mesh0", "Cabinet_mesh1"]);
         foreach (var child in scene.GetChildren(root))
             child.HasComponent<TransformComponent>().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SpawnChildren_SubmeshChild_CopiesMeshFactors()
+    {
+        using var scene = CreateScene();
+        var root = scene.CreateEntity("Plant");
+        root.AddComponent(new TransformComponent());
+        root.AddComponent(new ModelRendererComponent());
+
+        var cube = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
+        var graph = Node("plant", [], Node("Cube.008", [0]));
+        ModelHierarchySpawner.SpawnChildren(
+            scene, root, graph, "models/rosliny.glb", Vector4.One, [cube]);
+
+        var child = scene.GetChildren(root).Single();
+        var renderer = child.GetComponent<ModelRendererComponent>();
+        renderer.MeshIndex.ShouldBe(0);
+        renderer.Metallic.ShouldBe(0f);
+        renderer.Roughness.ShouldBe(0.122727275f);
+        renderer.FactorsSeeded.ShouldBeTrue();
+        cube.Dispose();
     }
 
     [Fact]

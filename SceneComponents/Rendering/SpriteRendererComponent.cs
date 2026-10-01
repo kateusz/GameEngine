@@ -7,19 +7,17 @@ public class SpriteRendererComponent : IComponent
 {
     internal string? ResolvedTexturePath;
 
-    private string? _texturePath;
-
     public Vector4 Color { get; set; }
 
     public string? TexturePath
     {
-        get => _texturePath;
+        get;
         set
         {
-            if (string.Equals(_texturePath, value, StringComparison.Ordinal))
+            if (string.Equals(field, value, StringComparison.Ordinal))
                 return;
 
-            _texturePath = value;
+            field = value;
             ResolvedTexturePath = null;
         }
     }
