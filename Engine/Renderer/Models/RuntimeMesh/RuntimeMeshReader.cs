@@ -284,6 +284,10 @@ internal static class RuntimeMeshReader
         if (!reader.TryReadString(out var diffuse) || !reader.TryReadString(out var normal) ||
             !reader.TryReadString(out var metallicRoughness) || !reader.TryReadString(out var occlusion))
             return false;
+        if (!reader.TryReadUInt32(out var surfaceFlags))
+            return false;
+        if (!reader.TryReadSingle(out var alphaCutoff) || !IsFactor(alphaCutoff))
+            return false;
 
         var vertexBytes = (int)vertexCount * RuntimeMeshFormat.VertexLayoutStride;
         if (!reader.TryReadBytes(vertexBytes, out var vertexData))
@@ -307,7 +311,10 @@ internal static class RuntimeMeshReader
             DiffusePath = diffuse,
             NormalPath = normal,
             MetallicRoughnessPath = metallicRoughness,
-            OcclusionPath = occlusion
+            OcclusionPath = occlusion,
+            AlphaCutout = (surfaceFlags & RuntimeMeshFormat.SurfaceAlphaCutout) != 0,
+            DoubleSided = (surfaceFlags & RuntimeMeshFormat.SurfaceDoubleSided) != 0,
+            AlphaCutoff = alphaCutoff
         };
 
         for (var v = 0; v < vertexCount; v++)
