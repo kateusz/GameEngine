@@ -1,4 +1,6 @@
 using System.Numerics;
+using System.Text;
+using Engine.Renderer;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using ImGuiNET;
@@ -35,7 +37,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         if (dimension == SceneDimension.TwoD)
         {
             var stats2D = graphics2D.GetStats();
-            ImGui.Text("Renderer2D Stats");
+            DrawCopyableSectionHeader("Renderer2D Stats", FormatRenderer2DStats(stats2D), "renderer2d");
             ImGui.Indent();
             ImGui.Text($"Quad Draw Calls: {stats2D.DrawCalls}");
             ImGui.Text($"Line Draw Calls: {stats2D.LineDrawCalls}");
@@ -57,9 +59,9 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         ImGui.End();
     }
 
-    private static void DrawRenderer3DStats(Engine.Renderer.Statistics stats)
+    private static void DrawRenderer3DStats(Statistics stats)
     {
-        ImGui.Text("Renderer3D Stats");
+        DrawCopyableSectionHeader("Renderer3D Stats", FormatRenderer3DStats(stats), "renderer3d");
         ImGui.Indent();
 
         ImGui.Text($"Draw Calls: {stats.DrawCalls}");
@@ -85,5 +87,56 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         ImGui.Text($"CPU Shadows: {stats.ShadowCpuMs:F2} ms");
 
         ImGui.Unindent();
+    }
+
+    private static void DrawCopyableSectionHeader(string title, string clipboardText, string id)
+    {
+        ImGui.Text(title);
+        ImGui.SameLine();
+        if (ImGui.SmallButton($"Copy##{id}"))
+            ImGui.SetClipboardText(clipboardText);
+    }
+
+    private static string FormatRenderer2DStats(Graphics2DStats stats)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Renderer2D Stats");
+        sb.AppendLine($"Quad Draw Calls: {stats.DrawCalls}");
+        sb.AppendLine($"Line Draw Calls: {stats.LineDrawCalls}");
+        sb.AppendLine($"Quads: {stats.QuadCount}");
+        sb.AppendLine($"Line Vertices: {stats.LineVertexCount}");
+        sb.AppendLine($"Vertices: {stats.GetTotalVertexCount()}");
+        sb.AppendLine($"Batch Count: {stats.BatchCount}");
+        sb.AppendLine($"Texture Binds: {stats.TextureBinds}");
+        sb.AppendLine($"Upload: {stats.UploadBytes / 1024.0:F1} KB");
+        sb.AppendLine($"CPU Flush: {stats.FlushMs:F3} ms");
+        sb.AppendLine($"GPU Quad Pass: {stats.GpuQuadPassMs:F3} ms");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string FormatRenderer3DStats(Statistics stats)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Renderer3D Stats");
+        sb.AppendLine($"Draw Calls: {stats.DrawCalls}");
+        sb.AppendLine($"  Color / Dir Shadow / Point Shadow: {stats.ColorDrawCalls} / {stats.DirectionalShadowDrawCalls} / {stats.PointShadowDrawCalls}");
+        sb.AppendLine($"Cubes: {stats.CubeDraws}");
+        sb.AppendLine($"Mesh Draws: {stats.MeshDraws} (instanced: {stats.InstancedDraws})");
+        sb.AppendLine($"Instances: {stats.Instances}");
+        sb.AppendLine($"Vertices: {stats.Vertices}");
+        sb.AppendLine($"Triangles: {stats.Triangles}");
+        sb.AppendLine();
+        sb.AppendLine($"Renderers: {stats.Renderers}");
+        sb.AppendLine($"Frustum Culled: {stats.FrustumCulled}");
+        sb.AppendLine($"Zone Culled: {stats.ZoneCulled}");
+        sb.AppendLine($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
+        sb.AppendLine($"Material Batches: single {stats.SingleMaterialDraws} / multi {stats.MultiMaterialDraws}");
+        sb.AppendLine($"Max Batch Instances: {stats.MaxBatchInstances}");
+        sb.AppendLine();
+        sb.AppendLine($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
+        sb.AppendLine($"Point Lights: {stats.PointLights} (shadow: {stats.PointShadowLights}, cache hits: {stats.PointShadowCacheHits})");
+        sb.AppendLine($"CPU Color: {stats.ColorCpuMs:F2} ms");
+        sb.AppendLine($"CPU Shadows: {stats.ShadowCpuMs:F2} ms");
+        return sb.ToString().TrimEnd();
     }
 }

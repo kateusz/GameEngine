@@ -125,6 +125,13 @@ internal static class RuntimeMeshWriter
         AppendString(body, mesh.NormalPath);
         AppendString(body, mesh.MetallicRoughnessPath);
         AppendString(body, mesh.OcclusionPath);
+        var surface = 0u;
+        if (mesh.AlphaCutout)
+            surface |= RuntimeMeshFormat.SurfaceAlphaCutout;
+        if (mesh.DoubleSided)
+            surface |= RuntimeMeshFormat.SurfaceDoubleSided;
+        AppendUInt32(body, surface);
+        AppendSingle(body, mesh.AlphaCutoff);
 
         var vertexScratch = new byte[RuntimeMeshFormat.VertexLayoutStride];
         foreach (var vertex in mesh.Vertices)

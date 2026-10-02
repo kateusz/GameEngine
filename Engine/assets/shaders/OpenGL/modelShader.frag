@@ -20,6 +20,8 @@ uniform float u_Roughness;
 uniform float u_Ao;
 uniform vec3 u_BaseColor;
 uniform int u_HasDiffuseMap;
+uniform int u_AlphaTest;
+uniform float u_AlphaCutoff;
 uniform int u_HasMetallicRoughnessMap;
 uniform int u_HasNormalMap;
 uniform int u_HasOcclusionMap;
@@ -193,8 +195,10 @@ void main()
         ? normalize(v_TBN * (texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0))
         : normalize(v_Normal);
 
-    vec3 albedo = (u_HasDiffuseMap != 0 ? texture(u_DiffuseMap, v_TexCoord).rgb : vec3(1.0))
-        * u_BaseColor * u_Color.rgb;
+    vec4 texel = u_HasDiffuseMap != 0 ? texture(u_DiffuseMap, v_TexCoord) : vec4(1.0);
+    if (u_AlphaTest != 0 && texel.a < u_AlphaCutoff)
+        discard;
+    vec3 albedo = texel.rgb * u_BaseColor * u_Color.rgb;
     vec3 mr = u_HasMetallicRoughnessMap != 0
         ? texture(u_MetallicRoughnessMap, v_TexCoord).rgb
         : vec3(1.0);

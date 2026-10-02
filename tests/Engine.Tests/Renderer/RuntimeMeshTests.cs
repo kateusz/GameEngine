@@ -55,6 +55,22 @@ public class RuntimeMeshTests
     }
 
     [Fact]
+    public void RoundTrip_PreservesAlphaCutout()
+    {
+        var model = SampleModel();
+        model.Submeshes[0].AlphaCutout = true;
+        model.Submeshes[0].DoubleSided = true;
+        model.Submeshes[0].AlphaCutoff = 0.35f;
+        var bytes = RuntimeMeshWriter.Serialize(model, new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
+
+        RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
+        read!.Submeshes[0].AlphaCutout.ShouldBeTrue();
+        read.Submeshes[0].DoubleSided.ShouldBeTrue();
+        read.Submeshes[0].AlphaCutoff.ShouldBe(0.35f, 0.001f);
+    }
+
+    [Fact]
     public void TryRead_RejectsTruncatedFile()
     {
         var model = SampleModel();

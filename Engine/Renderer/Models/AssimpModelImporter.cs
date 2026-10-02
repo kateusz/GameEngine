@@ -82,6 +82,9 @@ internal sealed class AssimpModelImporter : IDisposable
                     submesh.NormalPath = material.NormalPath ?? string.Empty;
                     submesh.MetallicRoughnessPath = material.MetallicRoughnessPath ?? string.Empty;
                     submesh.OcclusionPath = material.OcclusionPath ?? string.Empty;
+                    submesh.AlphaCutout = material.AlphaCutout;
+                    submesh.DoubleSided = material.DoubleSided;
+                    submesh.AlphaCutoff = material.AlphaCutoff;
                     Logger.Debug(
                         "PBR set for mesh={Mesh} model={Path}: metallic={Metallic} roughness={Roughness} baseColor={BaseColor} " +
                         "maps albedo={Albedo} normal={Normal} metallicRoughness={Mr} occlusion={Occlusion} " +
@@ -444,6 +447,12 @@ internal sealed class AssimpModelImporter : IDisposable
         return null;
     }
 
+    // ponytail: glTF BLEND leaves are cut out at 0.5. Sorted alpha blend needs a second pass.
+    internal static bool UsesAlphaCutout(string? alphaMode) =>
+        alphaMode != null && (
+            alphaMode.Equals("MASK", StringComparison.OrdinalIgnoreCase) ||
+            alphaMode.Equals("BLEND", StringComparison.OrdinalIgnoreCase));
+
     internal static float ImportedFactor(bool found, float value, float missing)
     {
         if (!found || !float.IsFinite(value))
@@ -458,7 +467,10 @@ internal sealed class AssimpModelImporter : IDisposable
         string? OcclusionPath,
         float MetallicFactor,
         float RoughnessFactor,
-        Vector3 BaseColorFactor);
+        Vector3 BaseColorFactor,
+        bool AlphaCutout,
+        bool DoubleSided,
+        float AlphaCutoff);
 
     private unsafe MaterialInfo ExtractMaterialInfo(
         Silk.NET.Assimp.Scene* scene,
@@ -471,7 +483,7 @@ internal sealed class AssimpModelImporter : IDisposable
             Logger.Warning(
                 "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
                 materialIndex, scene->MNumMaterials);
-            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One);
+            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f);
         }
 
         var aiMaterial = scene->MMaterials[materialIndex];
@@ -515,6 +527,13 @@ internal sealed class AssimpModelImporter : IDisposable
         var metallicFactor = ReadFactor(aiMaterial, Assimp.MatkeyMetallicFactor, missing: 0f);
         var roughnessFactor = ReadFactor(aiMaterial, Assimp.MatkeyRoughnessFactor, missing: 0.5f);
         var baseColor = ReadBaseColor(aiMaterial);
+        var alphaMode = ReadMaterialString(aiMaterial, "$mat.gltf.alphaMode");
+        var alphaCutout = UsesAlphaCutout(alphaMode);
+        var alphaCutoff = string.Equals(alphaMode, "MASK", StringComparison.OrdinalIgnoreCase)
+            ? ReadFactor(aiMaterial, "$mat.gltf.alphaCutoff", missing: 0.5f)
+            : 0.5f;
+        // Assimp 5.x does not surface glTF doubleSided. Leaf cards (MASK/BLEND) are two-sided.
+        var doubleSided = ReadFactor(aiMaterial, "$mat.twosided", missing: 0f) > 0.5f || alphaCutout;
 
         return new MaterialInfo(
             diffuseTexturePath,
@@ -523,7 +542,19 @@ internal sealed class AssimpModelImporter : IDisposable
             occlusionPath,
             metallicFactor,
             roughnessFactor,
-            baseColor);
+            baseColor,
+            alphaCutout,
+            doubleSided,
+            alphaCutoff);
+    }
+
+    private unsafe string? ReadMaterialString(Material* material, string key)
+    {
+        AssimpString value = default;
+        if (_assimp.GetMaterialString(material, key, 0, 0, ref value) != Return.Success)
+            return null;
+        var text = value.AsString;
+        return string.IsNullOrEmpty(text) ? null : text;
     }
 
     private unsafe float ReadFactor(Material* material, string key, float missing)
